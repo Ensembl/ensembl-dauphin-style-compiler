@@ -19,7 +19,7 @@ mod fileutil;
 mod vectorcopy;
 
 pub use dfloat::DFloat;
-pub use fileutil::fix_incoming_filename;
+pub use fileutil::{ fix_filename, fix_incoming_filename };
 pub use vectorcopy::{
     vector_push_instrs, vector_update_offsets, vector_update_lengths, vector_copy, vector_append, vector_append_offsets, vector_register_copy_instrs, 
     vector_append_lengths
