@@ -50,8 +50,9 @@ mod test {
     use std::cell::RefCell;
     use std::collections::HashMap;
     use super::*;
-    use dauphin_interp::command::{ InterpLibRegister, InterpContext };
-    use dauphin_compile::command::{ CompilerLink, CompLibRegister, CommandSetId };
+    use dauphin_interp::command::{ InterpLibRegister, CommandSetId };
+    use dauphin_interp::runtime::InterpContext;
+    use dauphin_compile::command::{ CompilerLink, CompLibRegister };
     use dauphin_interp::util::templates::NoopDeserializer;
     use dauphin_interp::util::cbor::cbor_serialize;
     use crate::test::{ FakeDeserializer, fake_command, xxx_test_config, fake_trigger };

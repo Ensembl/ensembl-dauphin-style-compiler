@@ -15,14 +15,16 @@
  */
 
 use crate::test::{ xxx_test_config, make_compiler_suite, mini_interp, load_testdata, compile, comp_interpret, make_interpret_suite, mini_interp_run };
-use dauphin_interp::common::{ MemberMode };
-use dauphin_interp::interp::{ InterpreterLink, InterpContext };
+use dauphin_interp::types::{ MemberMode };
+use dauphin_interp::command::{ InterpreterLink };
+use dauphin_interp::runtime::{ InterpContext };
 use dauphin_compile::cli::Config;
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::parser::{ Parser, parse_type };
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
-use dauphin_compile::model::{ CompilerLink, DefStore, make_full_type, InstructionType, Instruction, InstructionSuperType };
+use dauphin_compile::command::{ CompilerLink, InstructionType, Instruction, InstructionSuperType };
+use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call };
 use dauphin_lib_std::stream::{ StreamFactory, Stream };
 
