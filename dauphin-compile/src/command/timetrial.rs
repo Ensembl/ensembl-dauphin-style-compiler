@@ -64,6 +64,7 @@ fn run_time_trial(command_type: &dyn TimeTrialCommandType, icom: &Box<dyn Interp
             context.registers_mut().commit();
         }
     }
+    context.finish();
     Ok(start_time.elapsed().unwrap_or(Duration::new(0,0)).as_secs_f64()*1000.)
 }
 

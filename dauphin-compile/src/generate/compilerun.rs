@@ -29,15 +29,16 @@ struct CompileRun<'a,'b> {
 }
 
 impl<'a,'b> CompileRun<'a,'b> {
-    pub fn new(compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'b>, config: &Config, last: bool) -> Result<CompileRun<'a,'b>,String> {
+    pub fn new(compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'b>, config: &Config, first: bool, last: bool) -> Result<CompileRun<'a,'b>,String> {
         let mut max_reg = 0;
         for instr in gen_context.get_instructions() {
             for reg in &instr.regs {
                 if reg.0 > max_reg { max_reg = reg.0; }
             }
         }
+        let context = PreImageContext::new(compiler_link,Box::new(resolver),config,max_reg,first,last)?;
         Ok(CompileRun {
-            context: PreImageContext::new(compiler_link,Box::new(resolver),config,max_reg,last)?,
+            context,
             gen_context
         })
     }
@@ -169,13 +170,14 @@ impl<'a,'b> CompileRun<'a,'b> {
                 }
             })?;
         }
+        self.context.finish();
         self.gen_context.phase_finished();
         Ok(())
     }
 }
 
-pub fn compile_run(compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, last: bool) -> Result<(),String> {
-    let mut pic = CompileRun::new(compiler_link,resolver,context,config,last)?;
+pub fn compile_run(compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, first: bool, last: bool) -> Result<(),String> {
+    let mut pic = CompileRun::new(compiler_link,resolver,context,config,first,last)?;
     pic.preimage()?;
     Ok(())
 }

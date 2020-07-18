@@ -17,3 +17,4 @@ struct version {
 func get_version(string) becomes version;
 
 proc force_pause();
+proc print_compile(string);

@@ -16,9 +16,11 @@
 
 use std::collections::HashMap;
 use std::mem::replace;
+use std::rc::Rc;
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use crate::command::CommandType;
 use serde_cbor::Value as CborValue;
+use dauphin_interp::runtime::PayloadFactory;
 use crc::crc64::checksum_iso;
 
 pub struct CompLibRegister {
@@ -27,7 +29,8 @@ pub struct CompLibRegister {
     interp_lib_register: Option<InterpLibRegister>,
     commands: Vec<(Option<u32>,Box<dyn CommandType + 'static>)>,
     headers: Vec<(String,String)>,
-    dynamic_data: Vec<Vec<u8>>
+    dynamic_data: Vec<Vec<u8>>,
+    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
 }
 
 impl CompLibRegister {
@@ -39,7 +42,16 @@ impl CompLibRegister {
             commands: vec![],
             headers: vec![],
             dynamic_data: vec![],
+            payloads: HashMap::new()
         }
+    }
+
+    pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
+        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
+    }
+
+    pub fn drain_payloads(&mut self) -> HashMap<(String,String),Rc<Box<dyn PayloadFactory>>> {
+        replace(&mut self.payloads, HashMap::new())
     }
 
     pub fn id(&self) -> &CommandSetId { &self.id }

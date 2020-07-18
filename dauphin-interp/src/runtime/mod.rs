@@ -5,7 +5,7 @@ mod interpret;
 mod supercow;
 mod value;
 
-pub use context::{ InterpContext, PayloadFactory };
+pub use context::{ InterpContext, Payload, PayloadFactory };
 pub use register::Register;
 pub use registers::RegisterFile;
 pub use interpret::{ StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };

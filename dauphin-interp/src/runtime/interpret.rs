@@ -65,7 +65,10 @@ impl<'a> InterpretInstance<'a> for StandardInterpretInstance<'a> {
         self.more_internal().map_err(|msg| self.error_message(msg))
     }
 
-    fn finish(&mut self) -> InterpContext { self.context.take().unwrap() }
+    fn finish(&mut self) -> InterpContext { 
+        self.context.as_mut().unwrap().finish();
+        self.context.take().unwrap()
+    }
 }
 
 pub struct DebugInterpretInstance<'a> {
@@ -122,5 +125,8 @@ impl<'a> InterpretInstance<'a> for DebugInterpretInstance<'a> {
         self.more_internal().map_err(|msg| self.error_message(msg))
     }
 
-    fn finish(&mut self) -> InterpContext { self.context.take().unwrap() }
+    fn finish(&mut self) -> InterpContext { 
+        self.context.as_mut().unwrap().finish();
+        self.context.take().unwrap()
+    }
 }

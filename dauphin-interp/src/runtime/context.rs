@@ -19,13 +19,19 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::runtime::RegisterFile;
 
+pub trait Payload {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn finish(&mut self);
+}
+
 pub trait PayloadFactory {
-    fn make_payload(&self) -> Box<dyn Any>;
+    fn make_payload(&self) -> Box<dyn Payload>;
 }
 
 pub struct InterpContext {
     registers: RegisterFile,
-    payloads: HashMap<(String,String),Box<dyn Any>>,
+    payloads: HashMap<(String,String),Box<dyn Payload>>,
     filename: String,
     line_number: u32,
     pause: bool
@@ -42,6 +48,12 @@ impl InterpContext {
         }
     }
 
+    pub fn finish(&mut self) {
+        for (_,p) in self.payloads.iter_mut() {
+            p.finish();
+        }
+    }
+
     pub fn do_pause(&mut self) { self.pause = true; }
     pub fn test_pause(&mut self) -> bool {
         let out = self.pause;
@@ -50,7 +62,7 @@ impl InterpContext {
     }
     pub fn registers(&self) -> &RegisterFile { &self.registers }
     pub fn registers_mut(&mut self) -> &mut RegisterFile { &mut self.registers }
-    pub fn payload(&mut self, set: &str, name: &str) -> Result<&mut Box<dyn Any>,String> {
+    pub fn payload(&mut self, set: &str, name: &str) -> Result<&mut Box<dyn Payload>,String> {
         self.payloads.get_mut(&(set.to_string(),name.to_string())).ok_or_else(|| format!("missing payload {}",name))
     }
 

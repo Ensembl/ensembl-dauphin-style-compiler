@@ -89,8 +89,7 @@ mod test {
     #[test]
     fn load_ini_smoke() {
         let mut config = xxx_test_config();
-        config.add_define(("yes".to_string(),"".to_string()));
-        config.add_define(("hello".to_string(),"world".to_string()));
+        config.add_file_search_path("*");
         let strings = compile(&config,"search:buildtime/load_ini").expect("a");
         for s in &strings {
             print!("{}\n",s);

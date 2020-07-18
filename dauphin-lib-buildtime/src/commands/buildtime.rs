@@ -18,7 +18,7 @@ use dauphin_interp::command::{ CommandSetId };
 use dauphin_compile::command::CompLibRegister;
 use super::defines::DefineCommandType;
 use super::ini::LoadIniCommandType;
-use super::dump::DumpSigCommandType;
+use super::dump::{ DumpSigCommandType, PrintCompileCommandType };
 use super::versions::VersionCommandType;
 use super::hints::{ GetSizeHintCommandType, SetSizeHintCommandType, ForcePauseCommandType };
 
@@ -33,6 +33,7 @@ pub fn make_buildtime() -> Result<CompLibRegister,String> {
     set.push("is_defined",None,DefineCommandType(false));
     set.push("get_define",None,DefineCommandType(true));
     set.push("get_version",None,VersionCommandType());
+    set.push("print_compile",None,PrintCompileCommandType());
     set.add_header("buildtime",include_str!("header.dp"));
     Ok(set)
 }

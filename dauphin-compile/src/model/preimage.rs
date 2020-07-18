@@ -29,11 +29,12 @@ pub struct PreImageContext<'a> {
     context: InterpContext,
     regalloc: RegisterAllocator,
     config: Config,
+    first: bool,
     last: bool
 }
 
 impl<'a> PreImageContext<'a> {
-    pub fn new(compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, max_reg: usize, last: bool) -> Result<PreImageContext<'a>,String> {
+    pub fn new(compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, max_reg: usize, first: bool, last: bool) -> Result<PreImageContext<'a>,String> {
         Ok(PreImageContext {
             resolver,
             reg_sizes: HashMap::new(),
@@ -42,7 +43,7 @@ impl<'a> PreImageContext<'a> {
             context: compiler_link.new_context(),
             regalloc: RegisterAllocator::new(max_reg+1),
             config: config.clone(),
-            last
+            first, last
         })
     }
 
@@ -52,7 +53,10 @@ impl<'a> PreImageContext<'a> {
     pub fn config(&self) -> &Config { &self.config }
     pub fn linker(&self) -> &CompilerLink { &self.compiler_link }
 
+    pub fn finish(&mut self) { self.context.finish() }
+
     pub fn new_register(&self) -> Register { self.regalloc.allocate() }
+    pub fn is_first(&self) -> bool { self.first }
     pub fn is_last(&self) -> bool { self.last }
 
     pub fn set_reg_valid(&mut self, reg: &Register) -> Result<(),String> {

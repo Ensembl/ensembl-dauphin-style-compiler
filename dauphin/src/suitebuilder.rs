@@ -108,6 +108,7 @@ mod test {
         assert_eq!(5,*v.borrow());
         cis.get_deserializer(12).expect("e").deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
+        context.finish();
     }
 
     fn age_check(compiler: (u32,u32), interpreter: (u32,u32)) -> bool {
@@ -173,6 +174,7 @@ mod test {
         cis.get_deserializer(2).expect("e").deserialize(6,&vec![]).expect("f").execute(&mut context).expect("g");
         // TODO trace command in payload to replace Fake*
         assert_eq!(2,*v.borrow());
+        context.finish()
     }
 
     #[test]

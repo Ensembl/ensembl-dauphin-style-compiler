@@ -44,6 +44,10 @@ impl CompilerLink {
         })
     }
 
+    pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
+        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
+    }
+
     pub fn generate_dynamic_data(&self, config: &Config) -> Result<HashMap<CommandSetId,CborValue>,String> {
         Ok(self.cs.generate_dynamic_data(&self,config)?)
     }

@@ -54,7 +54,7 @@ fn export_indexes(ic: &mut InterpContext) -> Result<HashMap<Register,Vec<usize>>
 
 pub fn std_stream(context: &mut InterpContext) -> Result<&mut Stream,String> {
     let p = context.payload("std","stream")?;
-    Ok(p.downcast_mut().ok_or_else(|| "No stream context".to_string())?)
+    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| "No stream context".to_string())?)
 }
 
 pub fn comp_interpret(compiler_linker: &CompilerLink, config: &Config, name: &str) -> Result<InterpContext,String> {

@@ -124,6 +124,7 @@ version = "0.1.0"
 dependencies = [
  "dauphin_compile",
  "dauphin_interp",
+ "dauphin_lib_std",
  "rust-ini",
  "serde_cbor",
 ]

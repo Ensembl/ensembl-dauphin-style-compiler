@@ -16,7 +16,7 @@
 
 use std::any::Any;
 use std::mem::replace;
-use dauphin_interp::runtime::{ PayloadFactory };
+use dauphin_interp::runtime::{ Payload, PayloadFactory };
 
 pub struct Stream {
     contents: Vec<String>,
@@ -47,6 +47,12 @@ impl Stream {
     }
 }
 
+impl Payload for Stream {
+    fn as_any(&self) -> &dyn Any { self }
+    fn as_any_mut(&mut self) -> &mut dyn Any { self }
+    fn finish(&mut self) {}
+}
+
 pub struct StreamFactory {
     to_stdout: bool
 }
@@ -60,11 +66,11 @@ impl StreamFactory {
 
     pub fn to_stdout(&mut self, yn: bool) {
         self.to_stdout = yn;
-    } 
+    }
 }
 
 impl PayloadFactory for StreamFactory {
-    fn make_payload(&self) -> Box<dyn Any> {
+    fn make_payload(&self) -> Box<dyn Payload> {
         Box::new(Stream::new(self.to_stdout))
     }
 }

@@ -55,7 +55,7 @@ fn export_indexes(ic: &mut InterpContext) -> Result<HashMap<Register,Vec<usize>>
 
 pub fn std_stream(context: &mut InterpContext) -> Result<&mut Stream,String> {
     let p = context.payload("std","stream")?;
-    Ok(p.downcast_mut().ok_or_else(|| "No stream context".to_string())?)
+    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| "No stream context".to_string())?)
 }
 
 pub fn comp_interpret(compiler_linker: &CompilerLink, config: &Config, name: &str) -> Result<InterpContext,String> {
@@ -104,7 +104,11 @@ pub fn make_interpret_suite() -> Result<CommandInterpretSuite,String> {
 pub fn make_compiler_suite(config: &Config) -> Result<CommandCompileSuite,String> {
     let mut suite = CommandCompileSuite::new();
     suite.register(make_core()?)?;
-    suite.register(make_std()?)?;
+    let mut std = make_std()?;
+    let mut sf = StreamFactory::new();
+    sf.to_stdout(true);
+    std.add_payload("std","stream",sf);
+    suite.register(std)?;
     suite.register(make_buildtime()?)?;
     Ok(suite)
 }

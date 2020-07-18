@@ -120,6 +120,9 @@ impl Action for CompileAction {
         let mut linker = bomb(|| format!("cannot make linker"),
             CompilerLink::new(lib)
         );
+        let mut sf = StreamFactory::new();
+        sf.to_stdout(true);
+        linker.add_payload("std","stream",sf);
         let resolver = bomb(|| format!("cannot create resolver"),
             common_resolver(&config,&linker)
         );

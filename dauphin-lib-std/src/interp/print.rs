@@ -25,7 +25,7 @@ use serde_cbor::Value as CborValue;
 // XXX dedup
 pub fn std_stream(context: &mut InterpContext) -> Result<&mut Stream,String> {
     let p = context.payload("std","stream")?;
-    Ok(p.downcast_mut().ok_or_else(|| "No stream context".to_string())?)
+    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| "No stream context".to_string())?)
 }
 
 fn print_simple(sv: &SharedVec, path: &[usize], first: usize) -> Result<String,String> {

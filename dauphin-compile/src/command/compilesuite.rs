@@ -67,6 +67,7 @@ impl CommandCompileSuite {
                 }
             }
             self.payloads.extend(&mut ils.drain_payloads().drain());
+            self.payloads.extend(&mut set.drain_payloads().drain());
         } else {
             self.opcode_mapper.dont_serialize(&sid);
         }
@@ -279,6 +280,7 @@ mod test {
         assert_eq!(5,*v.borrow());
         cis.get_deserializer(12).expect("e").deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
+        context.finish();
     }
 
     #[test]
@@ -308,6 +310,7 @@ mod test {
         cis.get_deserializer(3).expect("e").deserialize(2,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(3,*v.borrow());
         assert!(cis.get_deserializer(4).is_err());
+        context.finish();
     }
 
     fn trace_type(cs: &mut CompLibRegister, name: &str, opcode: u32) {
