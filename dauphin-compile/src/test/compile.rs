@@ -25,6 +25,7 @@ use dauphin_lib_std::{ make_std_interp };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register };
 use dauphin_lib_std::stream::{ StreamFactory, Stream };
 use dauphin_interp::util::cbor::{ cbor_serialize };
+use dauphin_interp::util::xxx_error;
 use crate::core::{ make_core };
 use crate::generate::generate;
 use crate::resolver::common_resolver;
@@ -108,7 +109,7 @@ pub fn make_compiler_suite(config: &Config) -> Result<CommandCompileSuite,String
 
 pub fn compile(config: &Config, path: &str) -> Result<Vec<String>,String> {
     let mut linker = CompilerLink::new(make_compiler_suite(&config)?)?;
-    let resolver = common_resolver(&config,&linker)?;
+    let resolver = xxx_error(common_resolver(&config,&linker))?;
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
     let p = Parser::new(&mut lexer);

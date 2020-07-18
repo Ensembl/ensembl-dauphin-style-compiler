@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use dauphin_interp::util::{ xxx_error };
 use std::time::{ SystemTime, Duration };
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -109,7 +110,7 @@ pub fn make_compiler_suite(config: &Config) -> Result<CommandCompileSuite,String
 
 pub fn compile(config: &Config, path: &str) -> Result<Vec<String>,String> {
     let mut linker = CompilerLink::new(make_compiler_suite(&config)?)?;
-    let resolver = common_resolver(&config,&linker)?;
+    let resolver = xxx_error(common_resolver(&config,&linker))?;
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
     let p = Parser::new(&mut lexer);

@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+use anyhow;
+
 pub trait ResolveFile {
-    fn resolve(&self, path: &str) -> Result<String,String>;
+    fn resolve(&self, path: &str) -> anyhow::Result<String>;
 }

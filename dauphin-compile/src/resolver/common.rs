@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
+use dauphin_interp::util::DauphinError;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use crate::cli::Config;
@@ -33,7 +35,7 @@ impl DataResolver {
 }
 
 impl DocumentResolver for DataResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         let path = query.current_suffix();
         Ok(query.new_result(StringCharSource::new(query.original_name(),"data",path.to_string())))
     }
@@ -48,12 +50,12 @@ impl HashMapResolver {
 }
 
 impl DocumentResolver for HashMapResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         let key = query.current_suffix();
         if let Some(value) = self.0.get(key) {
             Ok(query.new_result(StringCharSource::new(query.original_name(),key,value.to_string())))
         } else {
-            Err(format!("No such library header 'lib:{}'",key))
+            Err(DauphinError::floating(&format!("No such library header 'lib:{}'",key)))
         }
     }
 }
@@ -67,16 +69,16 @@ impl PreambleResolver {
 }
 
 impl DocumentResolver for PreambleResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         Ok(query.new_result(StringCharSource::new("preamble","preamble",PREAMBLE.to_string())))
     }
 }
 
-fn root_dir(config: &Config) -> Result<PathBuf,String> {
+fn root_dir(config: &Config) -> anyhow::Result<PathBuf> {
     if config.isset_root_dir() {
         Ok(PathBuf::from(config.get_root_dir()))
     } else {
-        std::env::current_dir().map_err(|x| x.to_string())
+        std::env::current_dir().context("getting current directory")
     }
 }
 
@@ -88,7 +90,7 @@ fn calculate_search_path(config: &Config) -> Vec<String> {
     out
 }
 
-pub fn common_resolver(config: &Config, clink: &CompilerLink) -> Result<Resolver,String> {
+pub fn common_resolver(config: &Config, clink: &CompilerLink) -> anyhow::Result<Resolver> {
     let root_dir = root_dir(config)?;
     let mut out = Resolver::new(config);
     out.add("preamble",PreambleResolver::new());

@@ -49,7 +49,7 @@ impl<'a> PreImageContext<'a> {
 
     pub fn context(&self) -> &InterpContext { &self.context }
     pub fn context_mut(&mut self) -> &mut InterpContext { &mut self.context }
-    pub fn resolve(&self, path: &str) -> Result<String,String> { self.resolver.resolve(path) }
+    pub fn resolve(&self, path: &str) -> anyhow::Result<String> { self.resolver.resolve(path) }
     pub fn config(&self) -> &Config { &self.config }
     pub fn linker(&self) -> &CompilerLink { &self.compiler_link }
 

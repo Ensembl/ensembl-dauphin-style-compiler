@@ -14,11 +14,13 @@
  *  limitations under the License.
  */
 
+use anyhow::Context;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use super::core::{ DocumentResolver, ResolverQuery, ResolverResult };
 use crate::lexer::StringCharSource;
 use regex::Regex;
+use dauphin_interp::util::DauphinError;
 
 static EXTENSIONS : [&str;1] = [".dp"];
 
@@ -54,9 +56,9 @@ impl FileResolver {
         name.to_string()
     }
 
-    fn get_module(&self, path: &PathBuf) -> Result<String,String> {
+    fn get_module(&self, path: &PathBuf) -> anyhow::Result<String> {
         if let Some(last) = path.iter().last() {
-            let name = last.to_str().ok_or_else(|| format!("filename is bad unicode"))?;
+            let name = last.to_str().ok_or_else(|| DauphinError::floating("filename is bad unicode"))?;
             let name = self.strip_extension(name);
             let re = Regex::new(r"[^A-Za-z0-9]+").unwrap();
             let name = re.replace_all(&name,"_");
@@ -70,7 +72,7 @@ impl FileResolver {
 }
 
 impl DocumentResolver for FileResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         let name = query.current_suffix();
         let path = if name.starts_with("/") {
             PathBuf::from(name)
@@ -94,7 +96,7 @@ impl DocumentResolver for FileResolver {
         let mut dir = path.clone();
         dir.pop();
         let sub = FileResolver::new(&dir);
-        let data = read_to_string(path.clone()).map_err(|x| format!("{}: {}",path.to_str().unwrap_or(""),x))?;
+        let data = read_to_string(path.clone()).with_context(|| format!("reading {}",path.to_string_lossy()))?;
         let mut result = query.new_result(StringCharSource::new(query.original_name(),&module,data));
         result.resolver().add("file",sub);
         Ok(result)

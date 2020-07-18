@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use dauphin_interp::util::DauphinError;
 use super::core::{ DocumentResolver, ResolverQuery };
 use super::core::ResolverResult;
 
@@ -30,16 +31,12 @@ impl SearchResolver {
 }
 
 impl DocumentResolver for SearchResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         let verbosity = query.resolver().config().get_verbose();
         let suffix = query.current_suffix();
-        let mut errors = vec![];
         for template in &self.templates {
             let new_path = template.replace("*",suffix);
             let new_subquery = query.new_subquery(&new_path);
-            if verbosity > 1 {
-                print!("trying {} -> {}\n",suffix,new_path);
-            }
             match query.resolver().document_resolve(&new_subquery) {
                 Ok(out) => { 
                     if verbosity > 0 {
@@ -47,9 +44,13 @@ impl DocumentResolver for SearchResolver {
                     }
                     return Ok(out);
                 },
-                Err(err) => { errors.push(err); }
+                Err(err) => { 
+                    if verbosity > 1 {
+                        print!("trying {} -> {} failed due to {}\n",suffix,new_path,err);
+                    }
+                }
             }
         }
-        Err(format!("not found in search path: {}",errors.join(", ")))
+        Err(DauphinError::floating(&format!("not found in search path. Use -v -v for more info on paths searched")))
     }
 }

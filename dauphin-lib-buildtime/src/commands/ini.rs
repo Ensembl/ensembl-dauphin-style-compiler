@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+use anyhow::{ Context };
+use dauphin_interp::util::{ xxx_error, error_runtime };
 use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpValue, Register };
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction };
@@ -39,7 +41,7 @@ impl CommandType for LoadIniCommandType {
 pub struct LoadIniCommand(Register,Register,Register,Register);
 
 fn load_ini(context: &PreImageContext, filename: &str, section: &str, key: &str) -> Result<String,String> {
-    let data = context.resolve(filename)?;
+    let data = xxx_error(error_runtime(context.resolve(filename)).with_context(|| format!("loading ini file at compile time: {}",filename)))?;
     let ini_file = Ini::load_from_str(&data).map_err(|e| format!("Cannot parse {}: {}",filename,e))?;
     let section = if section == "" { None } else { Some(section.to_string()) };
     let ini_section = ini_file.section(section).ok_or_else(|| format!("No such section"))?;

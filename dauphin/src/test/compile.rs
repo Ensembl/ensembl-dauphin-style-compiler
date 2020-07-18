@@ -35,6 +35,7 @@ use dauphin_compile::lexer::Lexer;
 use dauphin_compile::parser::Parser;
 use dauphin_interp::runtime::{ StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
 use crate::test::hexdump;
+use dauphin_interp::util::xxx_error;
 
 pub fn interpreter<'a>(interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> Result<Box<dyn InterpretInstance<'a> + 'a>,String> {
     if let Some(instrs) = interpret_linker.get_instructions(name)? {
@@ -114,7 +115,7 @@ pub fn make_compiler_suite(config: &Config) -> Result<CommandCompileSuite,String
 
 pub fn compile(config: &Config, path: &str) -> Result<Vec<String>,String> {
     let mut linker = CompilerLink::new(make_compiler_suite(&config)?)?;
-    let resolver = common_resolver(&config,&linker)?;
+    let resolver = xxx_error(common_resolver(&config,&linker))?;
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
     let p = Parser::new(&mut lexer);

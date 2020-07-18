@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::fmt;
 use std::rc::Rc;
 use std::collections::HashSet;
@@ -21,7 +22,7 @@ use super::filelexer::{ FileLexer };
 use crate::resolver::Resolver;
 use super::inlinetokens::InlineTokens;
 use super::token::Token;
-
+use dauphin_interp::util::{ DauphinError, xxx_error, error_locate };
 
 #[derive(Debug,PartialEq,Eq,Hash,Clone)]
 pub struct FileContentsHandle {
@@ -114,11 +115,12 @@ impl<'a> Lexer<'a> {
         self.inlines.add(s,mode)
     }
 
-    pub fn import(&mut self, path: &str) -> Result<(),String> {
+    pub fn import(&mut self, path: &str) -> anyhow::Result<()> {
+        let p = self.position();
         let resolver = self.files.iter().last().map(|f| f.get_resolver()).unwrap_or_else(|| &self.resolver);
-        resolver.resolve(path).map(|stream| {
+        error_locate(resolver.resolve(path).map(|stream| {
             self.files.push(FileLexer::new(stream.1,stream.0)); ()
-        })
+        }),p.filename(),p.line())
     }
 
     pub fn position(&self) -> LexerPosition {
@@ -209,6 +211,6 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        assert!(lexer.import("file:missing").err().unwrap().contains("No such file or directory"));
+        assert!(xxx_error(lexer.import("file:missing")).err().unwrap().contains("No such file or directory"));
     }
 }

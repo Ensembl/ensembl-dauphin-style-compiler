@@ -10,6 +10,7 @@ edition = "2018"
 regex="*"
 serde_cbor="*"
 clap="*"
+anyhow="1.0"
 
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_interp = { path = "../dauphin-interp" }

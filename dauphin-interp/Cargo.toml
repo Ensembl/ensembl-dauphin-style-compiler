@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 serde_cbor="*"
 lazy_static="*"
+thiserror="1.0"
+anyhow="*"
 
 [dev-dependencies]
 dauphin_compile = { path = "../dauphin-compile" }

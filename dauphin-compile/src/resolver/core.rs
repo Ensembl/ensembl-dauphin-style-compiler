@@ -14,11 +14,13 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self };
 use std::rc::Rc;
 use crate::cli::Config;
 use crate::resolver::ResolveFile;
 use std::collections::HashMap;
 use crate::lexer::CharSource;
+use dauphin_interp::util::DauphinError;
 
 pub(super) fn prefix_suffix(path: &str) -> (&str,&str) {
     if let Some(colon) = path.find(':') {
@@ -83,7 +85,7 @@ impl ResolverResult {
 }
 
 pub trait DocumentResolver {
-    fn resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String>;
+    fn resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult>;
 }
 
 #[derive(Clone)]
@@ -106,16 +108,16 @@ impl Resolver {
         self.document_resolvers.insert(prefix.to_string(),Rc::new(document_resolver));
     }
     
-    pub fn document_resolve(&self, query: &ResolverQuery) -> Result<ResolverResult,String> {
+    pub fn document_resolve(&self, query: &ResolverQuery) -> anyhow::Result<ResolverResult> {
         let our_prefix = query.current_prefix();
         if let Some(document_resolver) = self.document_resolvers.get(our_prefix) {
             document_resolver.resolve(&query)
         } else {
-            Err(format!("protocol {} not supported",our_prefix))
+            Err(DauphinError::floating(&format!("protocol {} not supported",our_prefix)))
         }
     }
 
-    pub fn resolve(&self, path: &str) -> Result<(Box<dyn CharSource>,Resolver),String> {
+    pub fn resolve(&self, path: &str) -> anyhow::Result<(Box<dyn CharSource>,Resolver)> {
         let query = ResolverQuery::new(&self,path);
         let source = self.document_resolve(&query)?;
         Ok((source.source,source.resolver))
@@ -123,7 +125,7 @@ impl Resolver {
 }
 
 impl ResolveFile for Resolver {
-    fn resolve(&self, path: &str) -> Result<String,String> {
+    fn resolve(&self, path: &str) -> anyhow::Result<String> {
         Ok(self.resolve(path)?.0.to_string())
     }
 }
