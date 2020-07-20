@@ -125,7 +125,7 @@ mod test {
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
         let (stmts,defstore) = p.parse().expect("error").expect("error");
-        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j");
+        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
@@ -141,7 +141,7 @@ mod test {
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
         let (stmts,defstore) = p.parse().expect("error").expect("error");
-        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j");
+        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");
         cbor_cmp(&named,"cbor-signature-named.out");

@@ -179,7 +179,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:import-search").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let txt = "file:../import-smoke4.dp:1 Reserved keyword \'reserved\' found";
+        let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
         assert_eq!(txt,p.parse().ok().unwrap().expect_err("x")[0]);
     }
 
@@ -191,7 +191,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/import-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let txt = "file:../import-smoke4.dp:1 Reserved keyword \'reserved\' found";
+        let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
         assert_eq!(txt,p.parse().ok().unwrap().expect_err("x")[0]);
     }
 
@@ -203,7 +203,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/parser-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let (stmts,_defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let mut out : Vec<String> = stmts.iter().map(|x| format!("{:?}",x)).collect();
         out.push("".to_string()); /* For trailing \n */
         let outdata = load_testdata(&["parser","parser-smoke.out"]).ok().unwrap();
@@ -218,7 +218,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/parser-nonest").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let txt = "search:parser/parser-nonest:5 $ encountered outside filter";
+        let txt = "parser-nonest.dp:5 $ encountered outside filter";
         assert_eq!(txt,p.parse().ok().unwrap().expect_err("x")[0]);
     }
 
@@ -230,7 +230,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/id-clash").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let txt = "search:parser/id-clash:2 duplicate identifier: id_clash::assign";
+        let txt = "id-clash.dp:2 duplicate identifier: id_clash::assign";
         assert_eq!(txt,p.parse().ok().unwrap().expect_err("x")[0]);
     }
 
@@ -298,7 +298,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/macro").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let (stmts,_defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let x = format!("{:?}",stmts);
         print!("{}\n",x);
         assert_eq!("[assign(x,[[1,2,3],[4,5,6],[7,8,9]]), assign(z,0), incr(((x)[eq(@,0)])[eq(@,1)],1), incr(z,plus(0,1)), assign(z,plus(z,0))]",x);

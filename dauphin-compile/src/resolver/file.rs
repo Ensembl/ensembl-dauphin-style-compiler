@@ -19,6 +19,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 use super::core::{ DocumentResolver, ResolverQuery, ResolverResult };
 use crate::lexer::StringCharSource;
+use crate::util::filename_to_name;
 use regex::Regex;
 use dauphin_interp::util::DauphinError;
 
@@ -97,7 +98,8 @@ impl DocumentResolver for FileResolver {
         dir.pop();
         let sub = FileResolver::new(&dir);
         let data = read_to_string(path.clone()).with_context(|| format!("reading {}",path.to_string_lossy()))?;
-        let mut result = query.new_result(StringCharSource::new(query.original_name(),&module,data));
+        let name = filename_to_name(&path.to_string_lossy());
+        let mut result = query.new_result(StringCharSource::new(&name,&module,data));
         result.resolver().add("file",sub);
         Ok(result)
     }

@@ -136,7 +136,7 @@ fn line_number_smoke() {
     linker.add("main",&instrs,&config).expect("a");
     let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
-    assert!(message.contains("codegen/line-number:10"));
+    assert!(message.contains("line-number.dp:10"));
 }
 
 #[test]

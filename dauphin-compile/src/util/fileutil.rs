@@ -21,6 +21,14 @@ pub fn fix_filename(s: &str) -> String {
     invalid.replace_all(s,"-").to_string()
 }
 
+pub fn filename_to_name(name: &str) -> String {
+    let re = Regex::new(r".*/").unwrap();
+    let name = re.replace_all(&name,"");
+    let re = Regex::new(r"[^A-Za-z0-9+=_\\.-]+").unwrap();
+    let name = re.replace_all(&name,"_");
+    name.to_string()
+}
+
 pub fn fix_incoming_filename(name: &str) -> String {
     let re = Regex::new(r"[^A-Za-z0-9]+").unwrap();
     let name = re.replace_all(&name,"_");
