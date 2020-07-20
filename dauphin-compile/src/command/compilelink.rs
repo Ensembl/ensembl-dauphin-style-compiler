@@ -14,12 +14,14 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::{ BTreeMap, HashMap };
 use std::rc::Rc;
 use crate::cli::Config;
 use crate::command::{ Instruction, InstructionType, CommandCompileSuite, Command, CommandSchema, CommandTrigger };
 use dauphin_interp::runtime::{ InterpContext, PayloadFactory };
 use dauphin_interp::command::{ CommandSetId, InterpCommand };
+use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
 pub(super) const VERSION : u32 = 0;
@@ -33,29 +35,29 @@ pub struct CompilerLink {
 }
 
 impl CompilerLink {
-    pub fn new(cs: CommandCompileSuite) -> Result<CompilerLink,String> {
+    pub fn new(cs: CommandCompileSuite) -> CompilerLink {
         let payloads = cs.copy_payloads().clone();
         let headers = cs.get_headers().clone();
-        Ok(CompilerLink {
+        CompilerLink {
             cs: Rc::new(cs),
             headers: headers.clone(),
             programs: BTreeMap::new(),
             payloads
-        })
+        }
     }
 
     pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
         self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
     }
 
-    pub fn generate_dynamic_data(&self, config: &Config) -> Result<HashMap<CommandSetId,CborValue>,String> {
+    pub fn generate_dynamic_data(&self, config: &Config) -> anyhow::Result<HashMap<CommandSetId,CborValue>> {
         Ok(self.cs.generate_dynamic_data(&self,config)?)
     }
 
     pub fn get_suite(&self) -> &Rc<CommandCompileSuite> { &self.cs }
     pub fn get_headers(&self) -> &HashMap<String,String> { &self.headers }
 
-    fn instruction_to_trigger(&self, instr: &Instruction) -> Result<CommandTrigger,String> {
+    fn instruction_to_trigger(&self, instr: &Instruction) -> anyhow::Result<CommandTrigger> {
         Ok(if let InstructionType::Call(identifier,_,_,_) = &instr.itype {
             CommandTrigger::Command(identifier.clone())
         } else {
@@ -63,12 +65,12 @@ impl CompilerLink {
         })
     }
 
-    pub fn instruction_to_command(&self, instr: &Instruction) -> Result<(CommandSchema,Box<dyn Command>),String> {
+    pub fn instruction_to_command(&self, instr: &Instruction) -> anyhow::Result<(CommandSchema,Box<dyn Command>)> {
         let ct = self.cs.get_command_by_trigger(&self.instruction_to_trigger(instr)?)?;
         Ok((ct.get_schema(),ct.from_instruction(instr)?))
     }
 
-    pub fn instruction_to_interp_command(&self, instr: &Instruction) -> Result<Option<Box<dyn InterpCommand>>,String> {
+    pub fn instruction_to_interp_command(&self, instr: &Instruction) -> anyhow::Result<Option<Box<dyn InterpCommand>>> {
         if let Some(ds) = self.cs.get_deserializer_by_trigger(&self.instruction_to_trigger(instr)?)? {
             if let Some(opcode) = ds.get_opcode_len()? {
                 let (_sch,command) = self.instruction_to_command(instr)?;
@@ -81,7 +83,7 @@ impl CompilerLink {
         return Ok(None)
     }
 
-    pub fn instruction_to_opcode(&self, instr: &Instruction) -> Result<Option<u32>,String> {
+    pub fn instruction_to_opcode(&self, instr: &Instruction) -> anyhow::Result<Option<u32>> {
         let opcode = if let InstructionType::Call(identifier,_,_,_) = &instr.itype {
             self.cs.get_opcode_by_trigger(&CommandTrigger::Command(identifier.clone()))?
         } else {
@@ -90,10 +92,10 @@ impl CompilerLink {
         Ok(opcode)
     }
 
-    fn serialize_command(&self, out: &mut Vec<CborValue>, opcode: u32, schema: &CommandSchema, command: &Box<dyn Command>) -> Result<bool,String> {
+    fn serialize_command(&self, out: &mut Vec<CborValue>, opcode: u32, schema: &CommandSchema, command: &Box<dyn Command>) -> anyhow::Result<bool> {
         if let Some(mut data) = command.serialize()? {
             if data.len() != schema.values {
-                return Err(format!("serialization of {} returned {} values, expected {}",schema.trigger,data.len(),schema.values));
+                return Err(DauphinError::internal(file!(),line!())); /* wrong number of serialization values */
             }
             out.push(CborValue::Integer(opcode as i128));
             out.append(&mut data);
@@ -112,12 +114,12 @@ impl CompilerLink {
         ])
     }
 
-    pub fn add(&mut self, name: &str, instrs: &[Instruction], config: &Config) -> Result<(),String> {
+    pub fn add(&mut self, name: &str, instrs: &[Instruction], config: &Config) -> anyhow::Result<()> {
         self.programs.insert(CborValue::Text(name.to_string()),self.serialize_program(instrs,config)?);
         Ok(())
     }
 
-    fn serialize_program(&self, instrs: &[Instruction], config: &Config) -> Result<CborValue,String> {
+    fn serialize_program(&self, instrs: &[Instruction], config: &Config) -> anyhow::Result<CborValue> {
         let mut cmds_s = vec![];
         let mut symbols = vec![];
         for (i,instr) in instrs.iter().enumerate() {
@@ -137,7 +139,7 @@ impl CompilerLink {
         Ok(CborValue::Map(program))
     }
 
-    pub fn serialize(&self, _config: &Config) -> Result<CborValue,String> {
+    pub fn serialize(&self, _config: &Config) -> anyhow::Result<CborValue> {
         let mut out = BTreeMap::new();
         out.insert(CborValue::Text("version".to_string()),CborValue::Integer(VERSION as i128));
         out.insert(CborValue::Text("suite".to_string()),self.cs.serialize().clone());

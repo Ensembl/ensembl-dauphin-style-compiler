@@ -29,7 +29,7 @@ fn update_poly<T>(dst: &mut Vec<T>, src: &Vec<T>, filter: &[usize]) where T: Clo
     }
 }
 
-pub fn vector_update_poly(dst: InterpValue, src: &Rc<InterpValue>, filter_val: &[usize]) -> Result<InterpValue,String> {
+pub fn vector_update_poly(dst: InterpValue, src: &Rc<InterpValue>, filter_val: &[usize]) -> anyhow::Result<InterpValue> {
     if let Some(natural) = arbitrate_type(&dst,src,true) {
         Ok(polymorphic!(dst,[src],natural,(|d,s| {
             update_poly(d,s,filter_val)
@@ -39,7 +39,7 @@ pub fn vector_update_poly(dst: InterpValue, src: &Rc<InterpValue>, filter_val: &
     }
 }
 
-pub fn append_data(dst: InterpValue, src: &Rc<InterpValue>, copies: usize) -> Result<(InterpValue,usize),String> {
+pub fn append_data(dst: InterpValue, src: &Rc<InterpValue>, copies: usize) -> anyhow::Result<(InterpValue,usize)> {
     let offset = src.len();
     if let Some(natural) = arbitrate_type(&dst,src,false) {
         Ok((polymorphic!(dst,[src],natural,(|d: &mut Vec<_>, s: &[_]| {

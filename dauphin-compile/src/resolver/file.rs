@@ -58,7 +58,7 @@ impl FileResolver {
 
     fn get_module(&self, path: &PathBuf) -> anyhow::Result<String> {
         if let Some(last) = path.iter().last() {
-            let name = last.to_str().ok_or_else(|| DauphinError::floating("filename is bad unicode"))?;
+            let name = last.to_str().ok_or_else(|| DauphinError::source("filename is bad unicode"))?;
             let name = self.strip_extension(name);
             let re = Regex::new(r"[^A-Za-z0-9]+").unwrap();
             let name = re.replace_all(&name,"_");

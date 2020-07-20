@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::{ HashSet, HashMap };
 
 use super::charsource::CharSource;
@@ -81,7 +82,7 @@ impl InlineTokensSection {
         }
     }
 
-    pub fn add(&mut self, op: &str) -> Result<(),String> {
+    pub fn add(&mut self, op: &str) {
         let len = op.len();
         if let Some(start) = op.chars().next() {
             let r = self.lens.entry(len).or_insert_with(|| InlineTokensLen::new(len));
@@ -90,7 +91,6 @@ impl InlineTokensSection {
             lens.push(len as i32);
             lens.sort_by_key(|k| -k);
         }
-        Ok(())
     }
 }
 
@@ -123,8 +123,9 @@ impl InlineTokens {
         self.part(prefix).equal(op)
     }
 
-    pub fn add(&mut self, op: &str, prefix: bool) -> Result<(),String> {
+    pub fn add(&mut self, op: &str, prefix: bool) -> anyhow::Result<()> {
         check_inline(&self,op,prefix)?;
-        self.part_mut(prefix).add(op)
+        self.part_mut(prefix).add(op);
+        Ok(())
     }
 }

@@ -14,14 +14,16 @@
  *  limitations under the License.
  */
 
+use anyhow;
+use dauphin_interp::util::DauphinError;
 use std::collections::HashMap;
 use super::definition::{
     ExprMacro, StmtMacro, FuncDecl, ProcDecl, Inline, InlineMode
 };
 use super::structenum::{ StructDef, EnumDef };
 use super::identifierstore::{ IdentifierStore, IdentifierPattern, IdentifierUse };
+use crate::parser::parse_error;
 use crate::lexer::Lexer;
-use crate::parser::ParseError;
 use dauphin_interp::command::Identifier;
 
 #[derive(Debug)]
@@ -45,15 +47,15 @@ pub struct DefStore {
 
 macro_rules! accessor {
     ($accessor:ident,$setter:ident,$branch:tt,$type:ty,$name:expr) => {
-        pub fn $accessor(&self, identifier: &Identifier) -> Result<&$type,String> {
+        pub fn $accessor(&self, identifier: &Identifier) -> anyhow::Result<&$type> {
             if let IdentifierValue::$branch(out) = self.get_id(identifier)? {
                 Ok(out)
             } else {
-                Err(format!("{} is not a {}",identifier,$name))
+                Err(DauphinError::source(&format!("{} is not a {}",identifier,$name)))
             }
         }
 
-        pub fn $setter(&mut self, data: $type, lexer: &Lexer) -> Result<(),ParseError> {
+        pub fn $setter(&mut self, data: $type, lexer: &Lexer) -> anyhow::Result<()> {
             let id = data.identifier().clone();
             self.detect_clash(&id,lexer)?;
             let data = IdentifierValue::$branch(data);
@@ -81,19 +83,19 @@ impl DefStore {
 
     pub fn get_source(&self) -> &str { &self.source }
 
-    fn detect_clash(&mut self, identifier: &Identifier, lexer: &Lexer) -> Result<(),ParseError> {
+    fn detect_clash(&mut self, identifier: &Identifier, lexer: &Lexer) -> anyhow::Result<()> {
         if self.identifiers.contains_key(identifier) {
-            Err(ParseError::new(&format!("duplicate identifier: {}",identifier),lexer))
+            Err(parse_error(&format!("duplicate identifier: {}",identifier),lexer))
         } else {
             Ok(())
         }
     }
 
-    fn get_id(&self, identifier: &Identifier) -> Result<&IdentifierValue,String> {
+    fn get_id(&self, identifier: &Identifier) -> anyhow::Result<&IdentifierValue> {
         self.identifiers.get_id(identifier)
     }
 
-    pub fn pattern_to_identifier(&self, lexer: &Lexer, pattern: &IdentifierPattern, guess: bool) -> Result<IdentifierUse,String> {
+    pub fn pattern_to_identifier(&self, lexer: &Lexer, pattern: &IdentifierPattern, guess: bool) -> anyhow::Result<IdentifierUse> {
         if let Some(first) = &pattern.0 {
             return Ok(IdentifierUse(Identifier::new(first,&pattern.1),false));
         } else if guess {
@@ -101,7 +103,7 @@ impl DefStore {
             for short in lexer.get_shorts().iter() {
                 if self.identifiers.contains_key(&Identifier::new(short,&pattern.1)) {
                     if module.is_some() {
-                        return Err(format!("duplicate match for identifier '{}': use :: syntax",pattern.1))
+                        return Err(parse_error(&format!("duplicate match for identifier '{}': use :: syntax",pattern.1),lexer));
                     } else {
                         module = Some(short);
                     }
@@ -114,7 +116,7 @@ impl DefStore {
         Ok(IdentifierUse(Identifier::new(lexer.get_module(),&pattern.1),true))
     }
 
-    pub fn add_inline(&mut self, inline: Inline) -> Result<(),ParseError> {
+    pub fn add_inline(&mut self, inline: Inline) -> anyhow::Result<()> {
         if inline.mode() == &InlineMode::Prefix {
             self.inlines_unary.insert(inline.symbol().to_string(),inline);
         } else {
@@ -123,23 +125,23 @@ impl DefStore {
         Ok(())
     }
 
-    pub fn get_inline_binary(&self, symbol: &str, lexer: &Lexer) -> Result<&Inline,ParseError> {
+    pub fn get_inline_binary(&self, symbol: &str, lexer: &Lexer) -> anyhow::Result<&Inline> {
         self.inlines_binary.get(symbol).ok_or(
-            ParseError::new(&format!("No such binary operator: {}",symbol),lexer)
+            parse_error(&format!("No such binary operator: {}",symbol),lexer)
         )
     }
 
-    pub fn get_inline_unary(&self, symbol: &str, lexer: &Lexer) -> Result<&Inline,ParseError> {
+    pub fn get_inline_unary(&self, symbol: &str, lexer: &Lexer) -> anyhow::Result<&Inline> {
         self.inlines_unary.get(symbol).ok_or(
-            ParseError::new(&format!("No such unary operator: {}",symbol),lexer)
+            parse_error(&format!("No such unary operator: {}",symbol),lexer)
         )
     }
 
-    pub fn stmt_like(&self, identifier: &Identifier, lexer: &Lexer) -> Result<bool,ParseError> {
+    pub fn stmt_like(&self, identifier: &Identifier, lexer: &Lexer) -> anyhow::Result<bool> {
         match self.get_id(identifier) {
             Ok(IdentifierValue::Stmt(_)) | Ok(IdentifierValue::Proc(_)) => Ok(true),
             Ok(IdentifierValue::Expr(_)) | Ok(IdentifierValue::Func(_)) => Ok(false),
-            _ => Err(ParseError::new(&format!("Missing or ambiguous symbol: '{}'",identifier),lexer))
+            _ => Err(parse_error(&format!("Missing or ambiguous symbol: '{}'",identifier),lexer))
         }
     }
 

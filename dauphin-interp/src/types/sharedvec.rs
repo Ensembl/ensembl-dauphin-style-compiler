@@ -14,10 +14,12 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::fmt::Debug;
 use std::rc::Rc;
 use crate::runtime::{ InterpContext, InterpValue, InterpValueIndexes };
 use crate::types::{ VectorSource, VectorRegisters };
+use crate::util::DauphinError;
 
 #[derive(Debug)]
 pub struct SharedVec {
@@ -27,7 +29,7 @@ pub struct SharedVec {
 }
 
 impl SharedVec {
-    pub fn new(context: &mut InterpContext, vs: &dyn VectorSource, vr: &VectorRegisters) -> Result<SharedVec,String> {
+    pub fn new(context: &mut InterpContext, vs: &dyn VectorSource, vr: &VectorRegisters) -> anyhow::Result<SharedVec> {
         let mut structs = vec![];
         for level in 0..vr.depth() {
             structs.push((
@@ -46,15 +48,15 @@ impl SharedVec {
 
     pub fn get_data(&self) -> &Rc<InterpValue> { &self.data }
 
-    fn get(&self, level: usize) -> Result<&(InterpValueIndexes,InterpValueIndexes),String> {
-        self.structure.get(level).ok_or_else(|| format!("index out of range"))
+    fn get(&self, level: usize) -> anyhow::Result<&(InterpValueIndexes,InterpValueIndexes)> {
+        self.structure.get(level).ok_or_else(|| DauphinError::internal(file!(),line!()))
     }
 
-    pub fn get_offset(&self, level: usize) -> Result<&InterpValueIndexes,String> {
+    pub fn get_offset(&self, level: usize) -> anyhow::Result<&InterpValueIndexes> {
         self.get(level).map(|x| &x.0)
     }
 
-    pub fn get_length(&self, level: usize) -> Result<&InterpValueIndexes,String> {
+    pub fn get_length(&self, level: usize) -> anyhow::Result<&InterpValueIndexes> {
         self.get(level).map(|x| &x.1)
     }
 }

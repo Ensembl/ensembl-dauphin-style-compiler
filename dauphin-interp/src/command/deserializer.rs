@@ -14,7 +14,9 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use crate::command::{ CommandDeserializer, CommandTypeId };
+use crate::util::DauphinError;
 
 pub struct Deserializer {
     mapping: Vec<Box<dyn CommandDeserializer>>
@@ -27,13 +29,13 @@ impl Deserializer {
         }
     }
 
-    pub fn add(&mut self, cd: Box<dyn CommandDeserializer>) -> Result<CommandTypeId,String> {
+    pub fn add(&mut self, cd: Box<dyn CommandDeserializer>) -> CommandTypeId {
         let pos = self.mapping.len();
         self.mapping.push(cd);
-        Ok(CommandTypeId(pos))
+        CommandTypeId(pos)
     }
 
-    pub fn get(&self, cid: &CommandTypeId) -> Result<&Box<dyn CommandDeserializer>,String> {
-        self.mapping.get(cid.0).ok_or_else(|| format!("No such command"))
+    pub fn get(&self, cid: &CommandTypeId) -> anyhow::Result<&Box<dyn CommandDeserializer>> {
+        self.mapping.get(cid.0).ok_or_else(|| DauphinError::internal(file!(),line!()))
     }
 }

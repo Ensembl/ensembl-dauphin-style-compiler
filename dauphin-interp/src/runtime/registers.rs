@@ -31,12 +31,12 @@ pub struct RegisterFile {
 macro_rules! accessors {
     ($self:ident,$wrapper:ident,$to_exc:ident,$to_shared:ident,$type:ty,$get:ident,$coerce:ident,$take:ident) => {
         #[allow(unused)]
-        pub fn $get(&$self, register: &Register) -> Result<$wrapper,String> {
+        pub fn $get(&$self, register: &Register) -> anyhow::Result<$wrapper> {
             Ok(InterpValue::$to_shared(&$self.get(register).borrow().get_shared()?)?.0)
         }
 
         #[allow(unused)]
-        pub fn $coerce(&mut $self, register: &Register) -> Result<$wrapper,String> {
+        pub fn $coerce(&mut $self, register: &Register) -> anyhow::Result<$wrapper> {
             let v = InterpValue::$to_shared(&$self.get(register).borrow().get_shared()?)?;
             if let Some(v) = v.1 {
                 $self.write_rc(register,v);
@@ -45,7 +45,7 @@ macro_rules! accessors {
         }
 
         #[allow(unused)]
-        pub fn $take(&mut $self, register: &Register) -> Result<Vec<$type>,String> {
+        pub fn $take(&mut $self, register: &Register) -> anyhow::Result<Vec<$type>> {
             Ok($self.get(register).borrow_mut().get_exclusive()?.$to_exc()?)
         }
     };
@@ -77,7 +77,7 @@ impl RegisterFile {
         ).clone()
     }
 
-    pub fn len(&self, register: &Register) -> Result<usize,String> {
+    pub fn len(&self, register: &Register) -> anyhow::Result<usize> {
         let reg = self.get(register);
         let reg = reg.borrow().get_shared()?;
         Ok(reg.len())
@@ -97,7 +97,7 @@ impl RegisterFile {
         regs
     }
 
-    pub fn copy(&mut self, dst: &Register, src: &Register) -> Result<(),String> {
+    pub fn copy(&mut self, dst: &Register, src: &Register) -> anyhow::Result<()> {
         if src == dst { return Ok(()); }
         let srcv = self.get(src);
         let dstv = self.get(dst);
@@ -112,7 +112,7 @@ impl RegisterFile {
     accessors!(self,InterpValueStrings,to_strings,to_rc_strings,String,get_strings,coerce_strings,take_strings);
     accessors!(self,InterpValueBytes,to_bytes,to_rc_bytes,Vec<u8>,get_bytes,coerce_bytes,take_bytes);
 
-    pub fn export(&self) -> Result<HashMap<Register,InterpValue>,String> {
+    pub fn export(&self) -> anyhow::Result<HashMap<Register,InterpValue>> {
         let mut out = HashMap::new();
         for r in self.values.borrow().iter() {
             out.insert(*r.0,r.1.borrow().get_shared()?.copy());
@@ -120,16 +120,16 @@ impl RegisterFile {
         Ok(out)
     }
 
-    pub fn dump(&self, reg: &Register) -> Result<(String,String),String> {
+    pub fn dump(&self, reg: &Register) -> anyhow::Result<(String,String)> {
         Ok((reg.to_string(),self.get(reg).borrow().get_shared().and_then(|x| x.dump()).unwrap_or_else(|_| format!("???"))))
     }
 
-    fn dump_one(&self, reg: &Register) -> Result<String,String> {
+    fn dump_one(&self, reg: &Register) -> anyhow::Result<String> {
         let x = self.dump(reg)?;
         Ok(format!("{} = {}",x.0,x.1))
     }
 
-    pub fn dump_many(&self, regs: &[Register]) -> Result<String,String> {
+    pub fn dump_many(&self, regs: &[Register]) -> anyhow::Result<String> {
         Ok(format!("{}\n",regs.iter().map(|x| self.dump_one(x)).collect::<Result<Vec<_>,_>>()?.join("    ")))
     }
 }

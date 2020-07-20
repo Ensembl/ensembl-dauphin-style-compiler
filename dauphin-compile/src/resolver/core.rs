@@ -113,7 +113,7 @@ impl Resolver {
         if let Some(document_resolver) = self.document_resolvers.get(our_prefix) {
             document_resolver.resolve(&query)
         } else {
-            Err(DauphinError::floating(&format!("protocol {} not supported",our_prefix)))
+            Err(DauphinError::source(&format!("protocol {} not supported",our_prefix)))
         }
     }
 

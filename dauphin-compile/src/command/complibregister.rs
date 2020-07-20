@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::collections::HashMap;
 use std::mem::replace;
 use std::rc::Rc;
@@ -21,6 +22,7 @@ use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use crate::command::CommandType;
 use serde_cbor::Value as CborValue;
 use dauphin_interp::runtime::PayloadFactory;
+use dauphin_interp::util::DauphinError;
 use crc::crc64::checksum_iso;
 
 pub struct CompLibRegister {
@@ -89,7 +91,7 @@ impl CompLibRegister {
         replace(&mut self.dynamic_data,vec![])
     }
 
-    fn cbor_trace(&self) -> Result<CborValue,String> {
+    fn cbor_trace(&self) -> anyhow::Result<CborValue> {
         let mut items : HashMap<u32,CborValue> = self.trace.iter()
             .map(|(k,v)| (*k,CborValue::Array(vec![
                 CborValue::Integer(*k as i128),
@@ -101,15 +103,17 @@ impl CompLibRegister {
         keys.sort();
         let mut out = vec![];
         for key in keys.iter() {
-            out.push(items.remove(key).ok_or(format!("internal error tracing"))?);
+            out.push(items.remove(key).ok_or(DauphinError::internal(file!(),line!()))?);
         }
         Ok(CborValue::Array(out))
     }
 
-    pub(super) fn check_trace(&self) -> Result<(),String> {
-        let got = checksum_iso(&serde_cbor::to_vec(&self.cbor_trace()?).map_err(|_| format!("tracing failed"))?);
+    pub(super) fn check_trace(&self) -> anyhow::Result<()> {
+        let trace_data = self.cbor_trace().context("building trace cbor")?;
+        let trace_bytes = serde_cbor::to_vec(&trace_data).context("building trace bytes")?;
+        let got = checksum_iso(&trace_bytes);
         if got != self.id.trace() {
-            Err(format!("trace comparison failed for {}: expected {:08X}, got {:08X}",self.id(),self.id.trace(),got))
+            Err(DauphinError::integration(&format!("trace comparison failed: expected {:08X}, got {:08X}",self.id.trace(),got)))
         } else {
             Ok(())
         }

@@ -14,8 +14,10 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpValue, Register };
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction };
 use dauphin_compile::model::{ PreImageContext };
 use serde_cbor::Value as CborValue;
@@ -30,7 +32,7 @@ impl CommandType for DefineCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(DefineCommand(self.0,it.regs[0],it.regs[1])))
     }    
 }
@@ -38,11 +40,11 @@ impl CommandType for DefineCommandType {
 pub struct DefineCommand(bool,Register,Register);
 
 impl Command for DefineCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("buildtime::define can only be executed at compile time"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::internal(file!(),line!()))
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         if context.is_reg_valid(&self.2) {
             let keys = context.context().registers().get_strings(&self.2)?;
             let config = context.config();
@@ -65,7 +67,7 @@ impl Command for DefineCommand {
             }
             Ok(PreImageOutcome::Constant(vec![self.1]))
         } else {
-            Err(format!("buildtime::define needs key to be known at build time"))
+            Err(DauphinError::runtime("buildtime::define needs key to be known at build time"))
         }
     }
 }

@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use dauphin_compile::command::{
     Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, CompLibRegister, Instruction, InstructionType
 };
@@ -22,11 +23,12 @@ use dauphin_interp::runtime::Register;
 use dauphin_interp::command::InterpCommand;
 use dauphin_interp::types::{ VectorRegisters, MemberMode, RegisterSignature };
 use serde_cbor::Value as CborValue;
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::util::{ vector_push_instrs, vector_update_offsets, vector_update_lengths, vector_copy };
 use super::extend::ExtendCommandType;
 use super::library::std;
 
-fn preimage_instrs(regs: &Vec<Register>) -> Result<Vec<Instruction>,String> {
+fn preimage_instrs(regs: &Vec<Register>) -> anyhow::Result<Vec<Instruction>> {
     let mut instrs = vec![];
     let n = regs.len()/2;
     for i in 0..n {
@@ -35,7 +37,7 @@ fn preimage_instrs(regs: &Vec<Register>) -> Result<Vec<Instruction>,String> {
     Ok(instrs)
 }
 
-fn copy_deep_instrs<'d>(context: &mut PreImageContext, left: &VectorRegisters, right: &VectorRegisters, filter: &Register, regs: &[Register]) -> Result<Vec<Instruction>,String> {
+fn copy_deep_instrs<'d>(context: &mut PreImageContext, left: &VectorRegisters, right: &VectorRegisters, filter: &Register, regs: &[Register]) -> anyhow::Result<Vec<Instruction>> {
     let mut out = vec![];
     let depth = left.depth();
     let start = context.new_register();
@@ -64,11 +66,11 @@ impl CommandType for AssignCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(AssignCommand(sig[0].get_mode() == MemberMode::Filter,sig.clone(),it.regs.to_vec())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
@@ -76,7 +78,7 @@ impl CommandType for AssignCommandType {
 pub struct AssignCommand(bool,RegisterSignature,Vec<Register>);
 
 impl AssignCommand {
-    fn replace_shallow(&self, context: &mut PreImageContext) -> Result<Vec<Instruction>,String> {
+    fn replace_shallow(&self, context: &mut PreImageContext) -> anyhow::Result<Vec<Instruction>> {
         let mut out = vec![];
         for (left,right) in self.1[1].iter().zip(self.1[2].iter()) {
             if left.1.depth() > 0 {
@@ -92,15 +94,15 @@ impl AssignCommand {
 }
 
 impl Command for AssignCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("compile-side command"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::malformed("compile-side command"))
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(self.1[1].all_registers().iter().map(|x| self.2[*x]).collect()))
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> { 
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> { 
         Ok(if !self.0 {
             /* unfiltered */
             PreImageOutcome::Replace(preimage_instrs(&self.2)?)

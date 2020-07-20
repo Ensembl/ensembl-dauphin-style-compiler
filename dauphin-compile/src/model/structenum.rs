@@ -14,9 +14,12 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashSet;
 use std::fmt;
 
+use crate::lexer::Lexer;
+use crate::parser::{ parse_error };
 use crate::typeinf::{ MemberType };
 use dauphin_interp::command::Identifier;
 
@@ -40,11 +43,11 @@ impl fmt::Debug for StructEnumDef {
     }
 }
 
-fn no_duplicates(input: &Vec<String>) -> Result<(),String> { // TODO test
+fn no_duplicates(input: &Vec<String>, lexer: &Lexer) -> anyhow::Result<()> { // TODO test
     let mut seen = HashSet::new();
     for name in input {
         if seen.contains(name) {
-            return Err(format!("Duplicate name: '{:?}'",name));
+            return Err(parse_error(&format!("Duplicate name: '{:?}'",name),lexer));
         }
         seen.insert(name);
     }
@@ -52,8 +55,8 @@ fn no_duplicates(input: &Vec<String>) -> Result<(),String> { // TODO test
 }
 
 impl StructEnumDef {
-    pub fn new(type_: &str, identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>) -> Result<StructEnumDef,String> {
-        no_duplicates(names)?;
+    pub fn new(type_: &str, identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>, lexer: &Lexer) -> anyhow::Result<StructEnumDef> {
+        no_duplicates(names, lexer)?;
         Ok(StructEnumDef {
             type_: type_.to_string(),
             identifier: identifier.clone(),
@@ -86,9 +89,9 @@ pub struct StructDef {
 }
 
 impl StructDef {
-    pub fn new(identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>) -> Result<StructDef,String> {
+    pub fn new(identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>, lexer: &Lexer) -> anyhow::Result<StructDef> {
         Ok(StructDef {
-            common: StructEnumDef::new("struct",identifier,member_types,names)?
+            common: StructEnumDef::new("struct",identifier,member_types,names,lexer)?
         })
     }
 
@@ -115,9 +118,9 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    pub fn new(identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>) -> Result<EnumDef,String> {
+    pub fn new(identifier: &Identifier, member_types: &Vec<MemberType>, names: &Vec<String>, lexer: &Lexer) -> anyhow::Result<EnumDef> {
         Ok(EnumDef {
-            common: StructEnumDef::new("enum",identifier,member_types,names)?
+            common: StructEnumDef::new("enum",identifier,member_types,names,lexer)?
         })
     }
 

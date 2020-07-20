@@ -14,13 +14,14 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::rc::Rc;
 use crate::runtime::{ Register, InterpContext, InterpValue };
 
 pub trait VectorSource {
-    fn len(&self, context: &mut InterpContext, index: usize) -> Result<usize,String>;
-    fn get_shared(&self, context: &mut InterpContext, index: usize) -> Result<Rc<InterpValue>,String>;
-    fn get_exclusive(&self, context: &mut InterpContext, index: usize) -> Result<InterpValue,String>;
+    fn len(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<usize>;
+    fn get_shared(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<Rc<InterpValue>>;
+    fn get_exclusive(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<InterpValue>;
     fn set(&self, context: &mut InterpContext, index: usize, value: InterpValue);
 }
 
@@ -37,17 +38,17 @@ impl<'c> RegisterVectorSource<'c> {
 }
 
 impl<'c> VectorSource for RegisterVectorSource<'c> {
-    fn len(&self, context: &mut InterpContext, index: usize) -> Result<usize,String> {
+    fn len(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<usize> {
         context.registers_mut().len(&self.regs[index])
     }
 
-    fn get_shared(&self, context: &mut InterpContext, index: usize) -> Result<Rc<InterpValue>,String> {
+    fn get_shared(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<Rc<InterpValue>> {
         let r = context.registers_mut().get(&self.regs[index]);
         let r = r.borrow();
         r.get_shared()
     }
 
-    fn get_exclusive(&self, context: &mut InterpContext, index: usize) -> Result<InterpValue,String> {
+    fn get_exclusive(&self, context: &mut InterpContext, index: usize) -> anyhow::Result<InterpValue> {
         let r = context.registers_mut().get(&self.regs[index]);
         let mut r = r.borrow_mut();
         r.get_exclusive()
@@ -59,7 +60,7 @@ impl<'c> VectorSource for RegisterVectorSource<'c> {
 }
 
 impl<'c> RegisterVectorSource<'c> {
-    pub fn copy(&self, context: &mut InterpContext, dst: usize, src: usize) -> Result<(),String> {
+    pub fn copy(&self, context: &mut InterpContext, dst: usize, src: usize) -> anyhow::Result<()> {
         context.registers_mut().copy(&self.regs[dst],&self.regs[src])?;
         Ok(())
     }

@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::time::{ SystemTime, Duration };
 use crate::cli::Config;
 use crate::command::{ CompilerLink, Instruction };
@@ -21,11 +22,12 @@ use serde_cbor::Value as CborValue;
 use dauphin_interp::command::{ InterpCommand };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register };
 use dauphin_interp::types::{ RegisterSignature, ComplexPath, FullType, VectorRegisters, MemberMode, BaseType };
+use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_array, cbor_float };
 
-pub fn regress(input: &[(f64,f64)]) -> Result<(f64,f64),String> {
+pub fn regress(input: &[(f64,f64)]) -> anyhow::Result<(f64,f64)> {
     if input.len() == 0 {
-        return Err("no data to regress".to_string());
+        return Err(DauphinError::internal(file!(),line!())); /* no data to regress */
     }
     let total_x : f64 = input.iter().map(|x| x.0).sum();
     let total_y : f64 = input.iter().map(|x| x.1).sum();
@@ -40,14 +42,15 @@ pub fn regress(input: &[(f64,f64)]) -> Result<(f64,f64),String> {
         denom += x_delta*x_delta;
     }
     if denom == 0. {
-        return Err("no x-variance to regress".to_string());
+        return Err(DauphinError::internal(file!(),line!())); /* no x-variance to regress */
     }
     let grad = numer/denom;
     let icept = mean_y - grad * mean_x;
     Ok((grad,icept))
 }
 
-fn run_time_trial(command_type: &dyn TimeTrialCommandType, icom: &Box<dyn InterpCommand>, linker: &CompilerLink, _config: &Config, t: i64, loops: i64, dry: bool) -> Result<f64,String> {
+fn run_time_trial(command_type: &dyn TimeTrialCommandType, icom: &Box<dyn InterpCommand>, linker: &CompilerLink, _config: &Config, 
+                    t: i64, loops: i64, dry: bool) -> anyhow::Result<f64> {
     let mut context = linker.new_context();
     command_type.global_prepare(&mut context,t);
     let start_time = SystemTime::now();
@@ -68,11 +71,11 @@ fn run_time_trial(command_type: &dyn TimeTrialCommandType, icom: &Box<dyn Interp
     Ok(start_time.elapsed().unwrap_or(Duration::new(0,0)).as_secs_f64()*1000.)
 }
 
-fn generate_one_timing(trial: &dyn TimeTrialCommandType, linker: &CompilerLink, config: &Config, param: i64, block: i64) -> Result<f64,String> {
+fn generate_one_timing(trial: &dyn TimeTrialCommandType, linker: &CompilerLink, config: &Config, param: i64, block: i64) -> anyhow::Result<f64> {
     let mut data = vec![];
     for i in 0..5 {
         let instr = trial.timetrial_make_command(param,linker,config)?;
-        let interp_command = linker.instruction_to_interp_command(&instr)?.ok_or_else(|| format!("cannot run time trial"))?;
+        let interp_command = linker.instruction_to_interp_command(&instr)?.ok_or_else(|| DauphinError::internal(file!(),line!()))?;
         let run = run_time_trial(trial,&interp_command,linker,config,param,i*block,false)?;
         let dry = run_time_trial(trial,&interp_command,linker,config,param,i*block,true)?;
         data.push(((i*block) as f64,run-dry));
@@ -87,7 +90,7 @@ fn generate_one_timing(trial: &dyn TimeTrialCommandType, linker: &CompilerLink, 
 pub struct TimeTrial(pub f64,pub f64);
 
 impl TimeTrial {
-    pub fn run(command: &dyn TimeTrialCommandType, linker: &CompilerLink, config: &Config) -> Result<TimeTrial,String> {
+    pub fn run(command: &dyn TimeTrialCommandType, linker: &CompilerLink, config: &Config) -> anyhow::Result<TimeTrial> {
         let block = if config.get_unit_test() { 10 } else { 100 };
         let trial = command.timetrial_make_trials();
         let mut data = vec![];
@@ -114,7 +117,7 @@ impl TimeTrial {
         CborValue::Array(vec![CborValue::Float(self.0),CborValue::Float(self.1)])
     }
 
-    pub fn deserialize(value: &CborValue) -> Result<TimeTrial,String> {
+    pub fn deserialize(value: &CborValue) -> anyhow::Result<TimeTrial> {
         let data = cbor_array(value,2,false)?;
         Ok(TimeTrial(cbor_float(&data[0])?,cbor_float(&data[1])?))
     }
@@ -125,7 +128,7 @@ pub trait TimeTrialCommandType {
     fn local_prepare(&self, _context: &mut InterpContext, _: i64) {}
     fn global_prepare(&self, _context: &mut InterpContext, _: i64) {}
 
-    fn timetrial_make_command(&self, instance: i64, linker: &CompilerLink, config: &Config) -> Result<Instruction,String>;
+    fn timetrial_make_command(&self, instance: i64, linker: &CompilerLink, config: &Config) -> anyhow::Result<Instruction>;
 }
 
 

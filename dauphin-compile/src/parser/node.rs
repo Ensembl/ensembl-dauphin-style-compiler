@@ -14,12 +14,14 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::fmt;
 use hex;
 
 use crate::model::{ InlineMode, IdentifierPattern };
 use crate::lexer::{ Lexer, LexerPosition };
 use crate::typeinf::{ MemberType, SignatureConstraint };
+use dauphin_interp::util::{ DauphinError, error_locate, error_locate_cb };
 use dauphin_interp::command::Identifier;
 
 #[derive(PartialEq,Clone)]
@@ -44,9 +46,9 @@ pub enum Expression {
     At
 }
 
-fn alpha_id(id: &str, args: &[Identifier], exprs: &[Expression]) -> Result<Expression,String> {
+fn alpha_id(id: &str, args: &[Identifier], exprs: &[Expression]) -> anyhow::Result<Expression> {
     if args.len() != exprs.len() {
-        return Err(format!("{}: expected {} args, got {}",id,args.len(),exprs.len()));
+        return Err(DauphinError::source(&format!("{}: expected {} args, got {}",id,args.len(),exprs.len())));
     }
     for (i,arg) in args.iter().enumerate() {
         if arg.name() == id {
@@ -57,10 +59,10 @@ fn alpha_id(id: &str, args: &[Identifier], exprs: &[Expression]) -> Result<Expre
 }
 
 impl Expression {
-    pub fn alpha(&self, args: &[Identifier], exprs: &[Expression]) -> Result<Expression,String> {
+    pub fn alpha(&self, args: &[Identifier], exprs: &[Expression]) -> anyhow::Result<Expression> {
         Ok(match self {
             Expression::Identifier(s) => alpha_id(s,args,exprs)?,
-            Expression::Operator(id,x) => Expression::Operator(id.clone(),x.iter().map(|x| x.alpha(args,exprs)).collect::<Result<_,String>>()?),
+            Expression::Operator(id,x) => Expression::Operator(id.clone(),x.iter().map(|x| x.alpha(args,exprs)).collect::<anyhow::Result<Vec<_>>>()?),
             Expression::Star(expr) => Expression::Star(Box::new(expr.alpha(args,exprs)?)),
             Expression::Square(expr) => Expression::Square(Box::new(expr.alpha(args,exprs)?)),
             Expression::Bracket(a,b) => Expression::Bracket(Box::new(a.alpha(args,exprs)?),Box::new(b.alpha(args,exprs)?)),
@@ -68,8 +70,8 @@ impl Expression {
             Expression::Dot(a,s) => Expression::Dot(Box::new(a.alpha(args,exprs)?),s.to_string()),
             Expression::Query(a,s) => Expression::Query(Box::new(a.alpha(args,exprs)?),s.to_string()),
             Expression::Pling(a,s) => Expression::Pling(Box::new(a.alpha(args,exprs)?),s.to_string()),
-            Expression::Vector(x) => Expression::Vector(x.iter().map(|x| x.alpha(args,exprs)).collect::<Result<_,String>>()?),
-            Expression::CtorStruct(id,x,f) => Expression::CtorStruct(id.clone(),x.iter().map(|x| x.alpha(args,exprs)).collect::<Result<_,String>>()?,f.to_vec()),
+            Expression::Vector(x) => Expression::Vector(x.iter().map(|x| x.alpha(args,exprs)).collect::<anyhow::Result<Vec<_>>>()?),
+            Expression::CtorStruct(id,x,f) => Expression::CtorStruct(id.clone(),x.iter().map(|x| x.alpha(args,exprs)).collect::<anyhow::Result<Vec<_>>>()?,f.to_vec()),
             Expression::CtorEnum(id,f,a) => Expression::CtorEnum(id.clone(),f.to_string(),Box::new(a.alpha(args,exprs)?)),
             x => x.clone()
         })
@@ -145,8 +147,8 @@ impl fmt::Debug for Expression {
 pub struct Statement(pub Identifier,pub Vec<Expression>,pub LexerPosition);
 
 impl Statement {
-    pub fn alpha(&self, args: &[Identifier], exprs: &[Expression]) -> Result<Statement,String> {
-        let out = self.1.iter().map(|x| x.alpha(args,exprs)).collect::<Result<_,String>>()?;
+    pub fn alpha(&self, args: &[Identifier], exprs: &[Expression]) -> anyhow::Result<Statement> {
+        let out = self.1.iter().map(|x| x.alpha(args,exprs)).collect::<anyhow::Result<Vec<_>>>()?;
         Ok(Statement(self.0.clone(),out,self.2.clone()))
     }
 }
@@ -182,18 +184,14 @@ pub enum ParserStatement {
     EndOfParse
 }
 
-#[derive(Debug,PartialEq)]
-pub struct ParseError {
-    error: String
+pub fn parse_error(error: &str, lexer: &Lexer) -> anyhow::Error {
+    let pos = lexer.position();
+    error_locate(DauphinError::source(error),pos.filename(),pos.line())
 }
 
-impl ParseError {
-    pub fn new(error: &str, lexer: &Lexer) -> ParseError {
+pub fn parse_locate<T>(e: anyhow::Result<T>, lexer: &Lexer) -> anyhow::Result<T> {
+    error_locate_cb(|| {
         let pos = lexer.position();
-        ParseError {
-            error: format!("{} at {}",error,pos)
-        }
-    }
-
-    pub fn message(&self) -> &str { &self.error }
+        (pos.filename().to_string(),pos.line())
+    },e)
 }

@@ -14,10 +14,12 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::{ HashMap, HashSet };
 
 use super::types::ExpressionType;
 use super::typesinternal::{ ExpressionConstraint, Key };
+use dauphin_interp::util::DauphinError;
 
 /* Invariant: a Key is never both a key in self.values and at the same time used as a placeholder in
  * a value stored in self.values. As this invariant holds, we guarantee ourselves to be non-recursive.
@@ -57,10 +59,10 @@ impl TypeStore {
         }
     }
 
-    fn ensure_not_recursive(&self, key: &Key, constraint: &ExpressionConstraint) -> Result<(),String> {
+    fn ensure_not_recursive(&self, key: &Key, constraint: &ExpressionConstraint) -> anyhow::Result<()> {
         if let Some(placeholder) = constraint.get_placeholder() {
             if placeholder == key {
-                return Err(format!("recursive type {:?}",constraint));
+                return Err(DauphinError::source(&format!("recursive type {:?}",constraint)));
             }
         }
         return Ok(())
@@ -89,11 +91,11 @@ impl TypeStore {
         }
     }
 
-    fn try_unify(&self, a: &ExpressionConstraint, b: &ExpressionConstraint) -> Result<Option<(Key,ExpressionConstraint)>,String> {
-        self.unify(a,b).map_err(|_| format!("Cannot unify {:?} and {:?}",a,b))
+    fn try_unify(&self, a: &ExpressionConstraint, b: &ExpressionConstraint) -> anyhow::Result<Option<(Key,ExpressionConstraint)>> {
+        self.unify(a,b).map_err(|_| DauphinError::source(&format!("Cannot unify {:?} and {:?}",a,b)))
     }
 
-    fn replace_placeholder(&mut self, key: &Key, constraint: &ExpressionConstraint) -> Result<(),String> {
+    fn replace_placeholder(&mut self, key: &Key, constraint: &ExpressionConstraint) -> anyhow::Result<()> {
         if let Some(targets) = self.uses_placeholder.get(key) {
             for target in targets.clone().iter() {
                 let old_value = self.values.get(target).unwrap();
@@ -104,7 +106,7 @@ impl TypeStore {
         Ok(())
     }
 
-    fn apply_unification(&mut self, a: &ExpressionConstraint, b: &ExpressionConstraint) -> Result<(),String> {
+    fn apply_unification(&mut self, a: &ExpressionConstraint, b: &ExpressionConstraint) -> anyhow::Result<()> {
         if let Some((key,constraint)) = self.try_unify(a,b)? {
             self.replace_placeholder(&key,&constraint)?;
             self.set(&key,&constraint);
@@ -113,7 +115,7 @@ impl TypeStore {
         Ok(())
     }
 
-    pub(super) fn add(&mut self, key: &Key, constraint: &ExpressionConstraint) -> Result<(),String> {
+    pub(super) fn add(&mut self, key: &Key, constraint: &ExpressionConstraint) -> anyhow::Result<()> {
         //print!("trying to add {:?} as {:?}\n",key,constraint);
         let mut constraint = constraint.clone();
         /* substitute expression to ensure store is naive to our placeholder as a key */

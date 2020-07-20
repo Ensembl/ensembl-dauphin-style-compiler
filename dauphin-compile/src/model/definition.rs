@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use crate::typeinf::SignatureConstraint;
 use crate::model::{ IdentifierUse };
 use crate::parser::{ Expression, Statement };
@@ -65,7 +66,7 @@ impl ExprMacro {
 
     pub fn identifier(&self) -> &Identifier { &self.identifier }
 
-    pub fn expression(&self, exprs: &[Expression]) -> Result<Expression,String> {
+    pub fn expression(&self, exprs: &[Expression]) -> anyhow::Result<Expression> {
         self.expr.alpha(&self.args,exprs)
     }
 }
@@ -84,7 +85,7 @@ impl StmtMacro {
 
     pub fn identifier(&self) -> &Identifier { &self.identifier }
 
-    pub fn block(&self, exprs: &[Expression]) -> Result<Vec<Statement>,String> {
+    pub fn block(&self, exprs: &[Expression]) -> anyhow::Result<Vec<Statement>> {
         self.block.iter().map(|x| x.alpha(&self.args,exprs)).collect()
     }
 }

@@ -68,8 +68,8 @@ impl InterpBinBoolOp {
 pub struct BinBoolDeserializer(InterpBinBoolOp,u32);
 
 impl CommandDeserializer for BinBoolDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((self.1,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((self.1,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(InterpBinBoolInterpCommand(
             self.0,
             Register::deserialize(&value[0])?,
@@ -81,7 +81,7 @@ impl CommandDeserializer for BinBoolDeserializer {
 pub struct InterpBinBoolInterpCommand(InterpBinBoolOp,Register,Register,Register);
 
 impl InterpCommand for InterpBinBoolInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let a = registers.get_numbers(&self.2)?;
         let b = &registers.get_numbers(&self.3)?;
@@ -98,8 +98,8 @@ impl InterpCommand for InterpBinBoolInterpCommand {
 pub struct BinNumDeserializer(InterpBinNumOp,u32);
 
 impl CommandDeserializer for BinNumDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((self.1,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((self.1,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(InterpBinNumInterpCommand(
             self.0,
             Register::deserialize(&value[0])?,
@@ -111,7 +111,7 @@ impl CommandDeserializer for BinNumDeserializer {
 pub struct InterpBinNumInterpCommand(InterpBinNumOp,Register,Register,Register);
 
 impl InterpCommand for InterpBinNumInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let a = registers.get_numbers(&self.2)?;
         let b = &registers.get_numbers(&self.3)?;
@@ -148,8 +148,8 @@ impl InterpNumModOp {
 pub struct NumModDeserializer(InterpNumModOp,u32);
 
 impl CommandDeserializer for NumModDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((self.1,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((self.1,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         let filter = if *value[2] == CborValue::Null { 
             None
         } else {
@@ -166,7 +166,7 @@ impl CommandDeserializer for NumModDeserializer {
 pub struct InterpNumModInterpCommand(InterpNumModOp,Register,Register,Option<Register>);
 
 impl InterpNumModInterpCommand {
-    fn execute_unfiltered(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute_unfiltered(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let b = &registers.get_numbers(&self.2)?;
         let mut a = registers.take_numbers(&self.1)?;
@@ -178,7 +178,7 @@ impl InterpNumModInterpCommand {
         Ok(())
     }
 
-    fn execute_filtered(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute_filtered(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let filter : &[usize] = &context.registers_mut().get_indexes(self.3.as_ref().unwrap())?;
         let registers = context.registers_mut();
         let b = &registers.get_numbers(&self.2)?;
@@ -193,7 +193,7 @@ impl InterpNumModInterpCommand {
 }
 
 impl InterpCommand for InterpNumModInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         if self.3.is_some() {
             self.execute_filtered(context)
         } else {
@@ -202,12 +202,11 @@ impl InterpCommand for InterpNumModInterpCommand {
     }
 }
 
-pub(super) fn library_numops_commands_interp(set: &mut InterpLibRegister) -> Result<(),String> {
+pub(super) fn library_numops_commands_interp(set: &mut InterpLibRegister) {
     set.push(BinBoolDeserializer(InterpBinBoolOp::Lt,5));
     set.push(BinBoolDeserializer(InterpBinBoolOp::LtEq,6));
     set.push(BinBoolDeserializer(InterpBinBoolOp::Gt,7));
     set.push(BinBoolDeserializer(InterpBinBoolOp::GtEq,8));
     set.push(NumModDeserializer(InterpNumModOp::Incr,11));
     set.push(BinNumDeserializer(InterpBinNumOp::Plus,12));
-    Ok(())
 }

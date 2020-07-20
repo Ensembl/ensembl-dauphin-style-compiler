@@ -14,10 +14,10 @@
  *  limitations under the License.
  */
 
-use anyhow::{ Context };
-use dauphin_interp::util::{ xxx_error, error_runtime };
+use anyhow::{ self, Context };
 use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpValue, Register };
+use dauphin_interp::util::{ DauphinError, result_runtime };
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction };
 use dauphin_compile::model::{ PreImageContext };
 use serde_cbor::Value as CborValue;
@@ -33,23 +33,23 @@ impl CommandType for LoadIniCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(LoadIniCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3])))
     }    
 }
 
 pub struct LoadIniCommand(Register,Register,Register,Register);
 
-fn load_ini(context: &PreImageContext, filename: &str, section: &str, key: &str) -> Result<String,String> {
-    let data = xxx_error(error_runtime(context.resolve(filename)).with_context(|| format!("loading ini file at compile time: {}",filename)))?;
-    let ini_file = Ini::load_from_str(&data).map_err(|e| format!("Cannot parse {}: {}",filename,e))?;
+fn load_ini(context: &PreImageContext, filename: &str, section: &str, key: &str) -> anyhow::Result<String> {
+    let data = result_runtime(context.resolve(filename)).with_context(|| format!("loading ini file at compile time: {}",filename))?;
+    let ini_file = Ini::load_from_str(&data).map_err(|e| DauphinError::runtime(&format!("Cannot parse {}: {}",filename,e)))?;
     let section = if section == "" { None } else { Some(section.to_string()) };
-    let ini_section = ini_file.section(section).ok_or_else(|| format!("No such section"))?;
-    let value = ini_section.get(key).ok_or_else(|| format!("No such key {}",key))?.to_string();
+    let ini_section = ini_file.section(section).ok_or_else(|| DauphinError::runtime("No such section"))?;
+    let value = ini_section.get(key).ok_or_else(|| DauphinError::runtime(&format!("No such key {}",key)))?.to_string();
     Ok(value)
 }
 
-fn load_inis(context: &PreImageContext, filenames: &[String], sections: &[String], keys: &[String]) -> Result<Vec<String>,String> {
+fn load_inis(context: &PreImageContext, filenames: &[String], sections: &[String], keys: &[String]) -> anyhow::Result<Vec<String>> {
     let mut out = vec![];
     let sec_len = sections.len();
     let fn_len = filenames.len();
@@ -60,11 +60,11 @@ fn load_inis(context: &PreImageContext, filenames: &[String], sections: &[String
 }
 
 impl Command for LoadIniCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("buildtime::load_ini can only be executed at compile time"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::internal(file!(),line!()))
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && context.is_reg_valid(&self.3) {
             let (filenames,sections,keys) = {
                 let regs = context.context_mut().registers_mut();
@@ -78,8 +78,9 @@ impl Command for LoadIniCommand {
             context.context_mut().registers_mut().write(&self.0,InterpValue::Strings(out));
             Ok(PreImageOutcome::Constant(vec![self.0]))
         } else {
-            Err(format!("buildtime::load_ini needs all arguments to be known at build time 1st/2nd/3rd-arg-known={}/{}/{}",
-                            context.is_reg_valid(&self.1),context.is_reg_valid(&self.2),context.is_reg_valid(&self.3)))
+            Err(DauphinError::runtime(&
+                format!("buildtime::load_ini needs all arguments to be known at build time 1st/2nd/3rd-arg-known={}/{}/{}",
+                            context.is_reg_valid(&self.1),context.is_reg_valid(&self.2),context.is_reg_valid(&self.3))))
         }
     }
 }

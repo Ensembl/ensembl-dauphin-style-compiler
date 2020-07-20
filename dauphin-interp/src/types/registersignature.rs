@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::iter::Iterator;
 use std::ops::Index;
 use std::slice::SliceIndex;
@@ -48,11 +49,11 @@ impl RegisterSignature {
         }
     }
 
-    pub fn serialize(&self, named: bool) -> Result<CborValue,String> {
+    pub fn serialize(&self, named: bool) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(self.args.iter().map(|x| x.serialize(named)).collect::<Result<Vec<_>,_>>()?))
     }
 
-    pub fn deserialize(cbor: &CborValue, named: bool) -> Result<RegisterSignature,String> {
+    pub fn deserialize(cbor: &CborValue, named: bool) -> anyhow::Result<RegisterSignature> {
         let mut out = RegisterSignature::new();
         for cr in cbor_array(cbor,0,true)?.iter().map(|x| FullType::deserialize(x,named)).collect::<Result<Vec<_>,_>>()? {
             out.add(cr);

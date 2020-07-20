@@ -29,31 +29,21 @@ use dauphin_compile::util::{ fix_filename };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_serialize };
 use dauphin_compile::lexer::{ Lexer };
-use dauphin_compile::parser::{ Parser, ParseError };
-use dauphin_compile::resolver::common_resolver;
+use dauphin_compile::parser::{ Parser };
+use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::generate::generate;
 use dauphin_compile::cli::Config;
 use dauphin_compile::command::CompilerLink;
 use serde_cbor::Value as CborValue;
 use serde_cbor::to_writer;
 
-pub fn interpreter<'a>(interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> Result<Box<dyn InterpretInstance<'a> + 'a>,String> {
+pub fn interpreter<'a>(interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance<'a> + 'a>> {
     if let Some(instrs) = interpret_linker.get_instructions(name)? {
         if config.get_debug_run() {
             return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name)?));
         }
     }
     Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name)?))
-}
-
-fn bomb<A,E,T>(action: T, x: Result<A,E>) -> A where T: Fn() -> String, E: Display {
-    match x {
-        Ok(v) => v,
-        Err(e) => {
-            eprint!("{} Error {}\n",action(),e.to_string());
-            exit(2);
-        }
-    }
 }
 
 fn read_binary_file(filename: &str) -> anyhow::Result<Vec<u8>> {
@@ -92,7 +82,7 @@ impl Action for GenerateDynamicData {
     fn name(&self) -> String { "generate-dynamic-data".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
         let builder = make_compiler_suite(&config).expect("y");
-        let linker = CompilerLink::new(builder).expect("z");
+        let linker = CompilerLink::new(builder);
         let data = linker.generate_dynamic_data(&config).expect("x");
         for (suite,data) in data.iter() {
             print!("writing data for {}\n",suite);
@@ -102,8 +92,34 @@ impl Action for GenerateDynamicData {
     }
 }
 
-fn format_parse_errors(x: &[ParseError]) -> String {
-    x.iter().map(|x| x.message()).collect::<Vec<_>>().join("\n")
+fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, source: &str) -> anyhow::Result<bool> {
+    let name = if let Some(name) = Regex::new(r".*/(.*?)\.dp").unwrap().captures_iter(source).next() {
+        name.get(1).unwrap().as_str()
+    } else {
+        source
+    };
+    if config.get_verbose() > 0 {
+        print!("compiling {}\n",source);
+    }
+    let mut lexer = Lexer::new(&resolver,name);
+    lexer.import(&format!("file:{}",source))?;
+    let p = Parser::new(&mut lexer);
+    let (stmts,defstore) = match p.parse().context("parsing")? {
+        Err(errors) => {
+            print!("{}\nCompilation failed\n",errors.join("\n"));
+            return Ok(false);
+        },
+        Ok(x) => x
+    };
+    let instrs = match generate(&linker,&stmts,&defstore,&resolver,&config).context("generating code")? {
+        Err(errors) => {
+            print!("{}\nCompilation failed\n",errors.join("\n"));
+            return Ok(false);
+        },
+        Ok(x) => x
+    };
+    linker.add(&name,&instrs,config).context("linking")?;
+    Ok(true)
 }
 
 struct CompileAction();
@@ -111,45 +127,26 @@ struct CompileAction();
 impl Action for CompileAction {
     fn name(&self) -> String { "compile".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
-        let lib = bomb(|| format!("cannot make library suite"),
-            make_compiler_suite(&config)
-        );
-        let mut linker = bomb(|| format!("cannot make linker"),
-            CompilerLink::new(lib)
-        );
+        let lib = make_compiler_suite(&config).context("registering commands")?;
+        let mut linker = CompilerLink::new(lib);
         let mut sf = StreamFactory::new();
         sf.to_stdout(true);
         linker.add_payload("std","stream",sf);
         let resolver = common_resolver(&config,&linker).context("creating file-path resolver")?;
+        let mut emit = true;
         for source in config.get_sources() {
-            let name = if let Some(name) = Regex::new(r".*/(.*?)\.dp").unwrap().captures_iter(source).next() {
-                name.get(1).unwrap().as_str()
-            } else {
-                source
-            };
-            if config.get_verbose() > 0 {
-                print!("compiling {}\n",source);
+            if !compile_one(config,&resolver,&mut linker,source).with_context(|| format!("compiling {}",source))? {
+                emit = false;
             }
-            let mut lexer = Lexer::new(&resolver,name);
-            lexer.import(&format!("file:{}",source))?;
-            let p = Parser::new(&mut lexer);
-            let (stmts,defstore) = bomb(|| format!("cannot compile {}\n",source),
-                p.parse().map_err(|x| format_parse_errors(&x))
-            );
-            let instrs = bomb(|| format!("cannot generate binary for {}",source),
-                generate(&linker,&stmts,&defstore,&resolver,&config)
-            );
-            bomb(|| format!("cannot add instructions to binary for {}",source),
-                linker.add(&name,&instrs,config)
-            );
         }
-        let program = bomb(|| format!("cannot serialize program to CBOR"),
-            linker.serialize(config)
-        );
-        let buffer = bomb(|| format!("cannot serialize CBOR to byes"),
-            cbor_serialize(&program)
-        );
-        write_binary_file(config.get_output(),&buffer)?;
+        if emit {
+            let program = linker.serialize(config).context("serializing")?;
+            let buffer = cbor_serialize(&program).context("writing")?;
+            write_binary_file(config.get_output(),&buffer)?;
+            print!("{} written\n",config.get_output());
+        } else {
+            print!("did not write output\n");
+        }
         Ok(())
     }
 }
@@ -159,15 +156,10 @@ struct RunAction();
 impl Action for RunAction {
     fn name(&self) -> String { "run".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
-        let suite = bomb(|| format!("could not construct library"),
-            make_interpret_suite(config)
-        );
+        let suite = make_interpret_suite(config).context("building commands")?;
         let buffer = read_binary_file(config.get_output())?;
-        let program = bomb(|| format!("corrupted cbor in {}",config.get_output()),
-                        serde_cbor::from_slice(&buffer).map_err(|x| format!("{} while deserialising",x)));
-        let mut interpret_linker = bomb(|| format!("could not link binary"),
-            InterpreterLink::new(suite,&program)
-        );
+        let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+        let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking binary")?;
         let mut sf = StreamFactory::new();
         sf.to_stdout(true);
         interpret_linker.add_payload("std","stream",sf);
@@ -188,7 +180,7 @@ pub(super) fn make_actions() -> HashMap<String,Box<dyn Action>> {
 }
 
 pub fn run_or_error(config: &Config) -> anyhow::Result<()> {
-    bomb(|| format!("bad config"), config.verify());
+    config.verify().context("verifying config/options")?;
     let actions = make_actions();
     let action_name = config.get_action();
     if let Some(action) = actions.get(action_name) {

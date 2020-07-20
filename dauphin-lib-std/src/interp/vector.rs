@@ -22,7 +22,7 @@ use serde_cbor::Value as CborValue;
 pub struct VectorCopyShallowInterpCommand(Register,Register,Register);
 
 impl InterpCommand for VectorCopyShallowInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let rightval = registers.get(&self.1);
         let rightval = rightval.borrow_mut().get_shared()?;
@@ -38,8 +38,8 @@ impl InterpCommand for VectorCopyShallowInterpCommand {
 pub struct VectorCopyShallowDeserializer();
 
 impl CommandDeserializer for VectorCopyShallowDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((9,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((9,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(VectorCopyShallowInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?)))
     }
 }
@@ -47,8 +47,8 @@ impl CommandDeserializer for VectorCopyShallowDeserializer {
 pub struct VectorAppendDeserializer();
 
 impl CommandDeserializer for VectorAppendDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((10,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((10,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(VectorAppendInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?)))
     }
 }
@@ -56,7 +56,7 @@ impl CommandDeserializer for VectorAppendDeserializer {
 pub struct VectorAppendInterpCommand(Register,Register,Register);
 
 impl InterpCommand for VectorAppendInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let rightval = registers.get(&self.1);
         let rightval = rightval.borrow_mut().get_shared()?;
@@ -73,8 +73,8 @@ impl InterpCommand for VectorAppendInterpCommand {
 pub struct VectorAppendIndexesDeserializer();
 
 impl CommandDeserializer for VectorAppendIndexesDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((17,5))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((17,5))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(VectorAppendIndexesInterpCommand(
             Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?,
             Register::deserialize(&value[3])?,Register::deserialize(&value[4])?)))
@@ -84,7 +84,7 @@ impl CommandDeserializer for VectorAppendIndexesDeserializer {
 pub struct VectorAppendIndexesInterpCommand(Register,Register,Register,Register,Register);
 
 impl InterpCommand for VectorAppendIndexesInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let copies = registers.len(&self.4)?;
         if copies == 0 { return Ok(()) }
@@ -115,8 +115,8 @@ impl InterpCommand for VectorAppendIndexesInterpCommand {
 pub struct VectorUpdateIndexesDeserializer();
 
 impl CommandDeserializer for VectorUpdateIndexesDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((18,5))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((18,5))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(VectorUpdateIndexesInterpCommand(
             Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?,
             Register::deserialize(&value[3])?,Register::deserialize(&value[4])?)))
@@ -127,7 +127,7 @@ impl CommandDeserializer for VectorUpdateIndexesDeserializer {
 pub struct VectorUpdateIndexesInterpCommand(Register,Register,Register,Register,Register);
 
 impl InterpCommand for VectorUpdateIndexesInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let rightval = registers.get_indexes(&self.1)?;
         let filter = registers.get_indexes(&self.2)?;
@@ -151,11 +151,10 @@ impl InterpCommand for VectorUpdateIndexesInterpCommand {
     }
 }
 
-pub(super) fn library_vector_commands_interp(set: &mut InterpLibRegister) -> Result<(),String> {
+pub(super) fn library_vector_commands_interp(set: &mut InterpLibRegister) {
     set.push(VectorCopyShallowDeserializer());
     set.push(VectorAppendDeserializer());
     set.push(VectorAppendIndexesDeserializer());
     set.push(VectorUpdateIndexesDeserializer());
-    Ok(())
 }
 

@@ -17,6 +17,7 @@
 use std::collections::{ HashMap, BTreeMap, HashSet };
 use serde_cbor::Value as CborValue;
 use crate::command::{ CommandSetId };
+use crate::util::DauphinError;
 
 #[derive(Debug)]
 pub struct OpcodeMapping {
@@ -79,7 +80,7 @@ impl OpcodeMapping {
         CborValue::Array(out)
     }
 
-    pub fn adjust(&mut self, mapping: &HashMap<CommandSetId,u32>) -> Result<(),String> {
+    pub fn adjust(&mut self, mapping: &HashMap<CommandSetId,u32>) {
         self.sid_base_opcode.clear();
         self.opcode_sid.clear();
         self.order.clear();
@@ -88,20 +89,19 @@ impl OpcodeMapping {
             self.sid_base_opcode.insert(sid.clone(),*base);
             self.opcode_sid.insert(*base,sid.clone());    
         }
-        Ok(())
     }
 
-    pub fn sid_to_offset(&self, sid: &CommandSetId) -> Result<u32,String> {
-        if !self.ready { return Err(format!("recalculate not called after adding")); }
-        self.sid_base_opcode.get(sid).map(|v| *v).ok_or_else(|| format!("no such sid"))
+    pub fn sid_to_offset(&self, sid: &CommandSetId) -> anyhow::Result<u32> {
+        if !self.ready { return Err(DauphinError::internal(file!(),line!())); }
+        self.sid_base_opcode.get(sid).map(|v| *v).ok_or_else(|| DauphinError::malformed("no such sid"))
     }
 
-    pub fn decode_opcode(&self, offset: u32) -> Result<(CommandSetId,u32),String> {
-        if !self.ready { return Err(format!("recalculate not called after adding")); }
+    pub fn decode_opcode(&self, offset: u32) -> anyhow::Result<(CommandSetId,u32)> {
+        if !self.ready { return Err(DauphinError::internal(file!(),line!())); }
         if let Some((base,csi)) = self.opcode_sid.range(..(offset+1)).next_back() {
             Ok((csi.clone(),offset-base))
         } else {
-            Err("no such offset".to_string())
+            Err(DauphinError::malformed(&format!("no such offset {}",offset)))
         }
     }
 }

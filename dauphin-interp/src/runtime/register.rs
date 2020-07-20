@@ -16,16 +16,17 @@
 
 use std::fmt;
 use serde_cbor::Value as CborValue;
+use crate::util::DauphinError;
 
 #[derive(Clone,Copy,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Register(pub usize);
 
 impl Register {
-    pub fn deserialize(v: &CborValue) -> Result<Register,String> {
+    pub fn deserialize(v: &CborValue) -> anyhow::Result<Register> {
         if let CborValue::Integer(r) = v {
             Ok(Register(*r as usize))
         } else {
-            Err("bad cbor, expected register".to_string())
+            Err(DauphinError::malformed("bad cbor, expected register"))
         }
     }
 

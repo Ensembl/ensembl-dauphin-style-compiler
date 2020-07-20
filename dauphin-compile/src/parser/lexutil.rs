@@ -14,10 +14,11 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use lazy_static::lazy_static;
 
 use crate::lexer::{ Lexer, Token };
-use super::node::ParseError;
+use crate::parser::parse_error;
 use dauphin_interp::command::Identifier;
 
 lazy_static! {
@@ -26,55 +27,55 @@ lazy_static! {
     };
 }
 
-pub fn id_not_reserved(id: &str, lexer: &mut Lexer) -> Result<(),ParseError> {
+pub fn id_not_reserved(id: &str, lexer: &mut Lexer) -> anyhow::Result<()> {
     if KEYWORDS.contains(&id) {
-        Err(ParseError::new(&format!("Reserved keyword '{}' found",id),lexer))?;
+        Err(parse_error(&format!("Reserved keyword '{}' found",id),lexer))?;
     }
     Ok(())
 }
 
-pub fn not_reserved(identifier: &Identifier, lexer: &mut Lexer) -> Result<(),ParseError> {
+pub fn not_reserved(identifier: &Identifier, lexer: &mut Lexer) -> anyhow::Result<()> {
     id_not_reserved(&identifier.module(),lexer)?;
     id_not_reserved(&identifier.name(),lexer)?;
     Ok(())
 }
 
-pub fn get_string(lexer: &mut Lexer) -> Result<String,ParseError> {
+pub fn get_string(lexer: &mut Lexer) -> anyhow::Result<String> {
     match lexer.get() {
         Token::LiteralString(symbol) => Ok(symbol),
-        _ => Err(ParseError::new("expected string",lexer))
+        _ => Err(parse_error("expected string",lexer))
     }
 }
 
-pub fn get_number(lexer: &mut Lexer) -> Result<String,ParseError> {
+pub fn get_number(lexer: &mut Lexer) -> anyhow::Result<String> {
     match lexer.get() {
         Token::Number(number) => Ok(number),
-        _ => Err(ParseError::new("expected number",lexer))
+        _ => Err(parse_error("expected number",lexer))
     }
 }
 
-pub fn get_identifier(lexer: &mut Lexer) -> Result<String,ParseError> {
+pub fn get_identifier(lexer: &mut Lexer) -> anyhow::Result<String> {
     match lexer.get() {
         Token::Identifier(symbol) => Ok(symbol),
         Token::Number(symbol) => Ok(symbol),
-        x => Err(ParseError::new(&format!("expected identifier, got {:?}",x),lexer))
+        x => Err(parse_error(&format!("expected identifier, got {:?}",x),lexer))
     }
 }
 
-pub fn get_operator(lexer: &mut Lexer, mode: bool) -> Result<String,ParseError> {
+pub fn get_operator(lexer: &mut Lexer, mode: bool) -> anyhow::Result<String> {
     match lexer.get_oper(mode) {
         Token::Operator(symbol) => Ok(symbol),
-        x => Err(ParseError::new(&format!("expected operator not {:?}",x),lexer))
+        x => Err(parse_error(&format!("expected operator not {:?}",x),lexer))
     }
 }
 
-pub fn get_other(lexer: &mut Lexer, ok: &str) -> Result<char,ParseError> {
+pub fn get_other(lexer: &mut Lexer, ok: &str) -> anyhow::Result<char> {
     let out = match lexer.get() {
         Token::Other(symbol) => Ok(symbol),
-        _ => Err(ParseError::new(&format!("Expected one of \"{}\"",ok),lexer))
+        _ => Err(parse_error(&format!("Expected one of \"{}\"",ok),lexer))
     }?;
     if !ok.contains(out) {
-        Err(ParseError::new(&format!("Expected one of \"{}\"",ok),lexer))?;
+        Err(parse_error(&format!("Expected one of \"{}\"",ok),lexer))?;
     }
     Ok(out)
 }

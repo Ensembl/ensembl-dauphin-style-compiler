@@ -21,11 +21,12 @@ use dauphin_compile::model::PreImageContext;
 use dauphin_interp::command::InterpCommand;
 use dauphin_interp::runtime::Register;
 use dauphin_interp::types::RegisterSignature;
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::util::{ vector_push_instrs, vector_append, vector_append_offsets, vector_register_copy_instrs, vector_append_lengths };
 use serde_cbor::Value as CborValue;
 use super::library::std;
 
-fn extend(context: &mut PreImageContext, sig: &RegisterSignature, regs: &Vec<Register>) -> Result<Vec<Instruction>,String> {
+fn extend(context: &mut PreImageContext, sig: &RegisterSignature, regs: &Vec<Register>) -> anyhow::Result<Vec<Instruction>> {
     let mut out = vec![];
     for (vr_z,vr_a) in sig[0].iter().zip(sig[1].iter()) {
         out.append(&mut vector_register_copy_instrs(&vr_z.1,&vr_a.1,regs)?);
@@ -71,11 +72,11 @@ impl CommandType for ExtendCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(ExtendCommand(sig.clone(),it.regs.to_vec(),self.0.clone())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
@@ -83,11 +84,11 @@ impl CommandType for ExtendCommandType {
 pub struct ExtendCommand(RegisterSignature,Vec<Register>,Option<TimeTrial>);
 
 impl Command for ExtendCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(None)
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Replace(extend(context,&self.0,&self.1)?))
     }
 }

@@ -14,6 +14,8 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, bail, Context };
+use crate::util::DauphinError;
 use std::collections::BTreeMap;
 use serde_cbor::Value as CborValue;
 
@@ -30,15 +32,16 @@ pub enum CborType {
     Bytes
 }
 
-pub fn cbor_serialize(program: &CborValue) -> Result<Vec<u8>,String> {
+pub fn cbor_serialize(program: &CborValue) -> anyhow::Result<Vec<u8>> {
     let mut buffer = Vec::new();
-    serde_cbor::to_writer(&mut buffer,&program).map_err(|x| format!("{} while serialising",x))?;
+    serde_cbor::to_writer(&mut buffer,&program)
+        .map_err(|x| DauphinError::malformed(&format!("cannot serialize cbor: {}",x.to_string())));
     Ok(buffer)
 }
 
-pub fn cbor_make_map(keys: &[&str], mut values: Vec<CborValue>) -> Result<CborValue,String> {
+pub fn cbor_make_map(keys: &[&str], mut values: Vec<CborValue>) -> anyhow::Result<CborValue> {
     if keys.len() != values.len() {
-        return Err("Bad cbor_make_map()".to_string());
+        bail!(DauphinError::internal(file!(),line!()));
     }
     let mut out = BTreeMap::new();
     for (i,v) in values.drain(..).enumerate() {
@@ -47,7 +50,7 @@ pub fn cbor_make_map(keys: &[&str], mut values: Vec<CborValue>) -> Result<CborVa
     Ok(CborValue::Map(out))
 }
 
-pub fn cbor_type(cbor: &CborValue, allowed: Option<&[CborType]>) -> Result<CborType,String> {
+pub fn cbor_type(cbor: &CborValue, allowed: Option<&[CborType]>) -> anyhow::Result<CborType> {
     let out = match cbor {
         CborValue::Integer(_) => CborType::Integer,
         CborValue::Bool(_) => CborType::Bool,
@@ -58,17 +61,17 @@ pub fn cbor_type(cbor: &CborValue, allowed: Option<&[CborType]>) -> Result<CborT
         CborValue::Null => CborType::Null,
         CborValue::Float(_) => CborType::Float,
         CborValue::Bytes(_) => CborType::Bytes,
-        _ => { return Err(format!("unexpected cbort type (hidden")) }
+        _ => { bail!(DauphinError::internal(file!(),line!())); }
     };
     if let Some(allowed) = allowed {
         if !allowed.contains(&out) {
-            return Err(format!("unexpected cbor type: {:?}",out));
+            bail!(DauphinError::internal(file!(),line!()));
         }
     }
     Ok(out)
 }
 
-pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> Result<i128,String>  {
+pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> anyhow::Result<i128>  {
     match cbor {
         CborValue::Integer(x) => {
             if let Some(max) = max {
@@ -79,65 +82,69 @@ pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> Result<i128,String>  {
         },
         _ => {}
     }
-    Err(format!("bad cbor: expected int, unexpected {:?}",cbor))
+    bail!(DauphinError::internal(file!(),line!()));
 }
 
-pub fn cbor_float(cbor: &CborValue) -> Result<f64,String>  {
+pub fn cbor_float(cbor: &CborValue) -> anyhow::Result<f64>  {
     match cbor {
         CborValue::Float(x) => {
             return Ok(*x);
         },
         _ => {}
     }
-    Err(format!("bad cbor: expected float, unexpected {:?}",cbor))
+    bail!(DauphinError::internal(file!(),line!()));
 }
 
-pub fn cbor_bool(cbor: &CborValue) -> Result<bool,String> {
+pub fn cbor_bool(cbor: &CborValue) -> anyhow::Result<bool> {
     match cbor {
         CborValue::Bool(x) => Ok(*x),
-        _ => Err(format!("bad cbor: expected bool, unexpected {:?}",cbor))
+        _ => bail!(DauphinError::internal(file!(),line!()))
     }
 }
 
-pub fn cbor_string(cbor: &CborValue) -> Result<String,String> {
+pub fn cbor_string(cbor: &CborValue) -> anyhow::Result<String> {
     match cbor {
         CborValue::Text(x) => Ok(x.to_string()),
-        _ => Err(format!("bad cbor: expected string, unexpected {:?}",cbor))
+        _ => bail!(DauphinError::internal(file!(),line!()))
     }
 }
 
-pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> Result<Vec<&'a CborValue>,String> {
+pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> anyhow::Result<Vec<&'a CborValue>> {
     let mut out = vec![];
     match cbor {
         CborValue::Map(m) => {
             for key in keys {
-                out.push(m.get(&CborValue::Text(key.to_string())).ok_or_else(|| format!("cbor: missing key {}",key))?);
+                out.push(m.get(&CborValue::Text(key.to_string())).ok_or_else(|| {
+                    DauphinError::internal(file!(),line!()).context(format!("key {}",key))
+                })?);
             }
         },
-        _ => { return Err(format!("bad cbor: expected map, unexpected {:?}",cbor)); }
+        _ => { bail!(DauphinError::internal(file!(),line!())); }
     }
     Ok(out)
 }
 
-pub fn cbor_map_iter(cbor: &CborValue) -> Result<impl Iterator<Item=(&CborValue,&CborValue)>,String> {
+pub fn cbor_map_iter(cbor: &CborValue) -> anyhow::Result<impl Iterator<Item=(&CborValue,&CborValue)>> {
     match cbor {
         CborValue::Map(m) => {
             Ok(m.iter())
         },
         _ => {
-            return Err(format!("bad cbor: expected map, unexpected {:?}",cbor));
+            bail!(DauphinError::internal(file!(),line!()));
         }
     }
 }
 
-pub fn cbor_entry<'a>(cbor: &'a CborValue, key: &str) -> Result<Option<&'a CborValue>,String> {
+pub fn cbor_entry<'a>(cbor: &'a CborValue, key: &str) -> anyhow::Result<Option<&'a CborValue>> {
     Ok(match cbor {
         CborValue::Map(m) => m.get(&CborValue::Text(key.to_string())),
-        _ => { return Err(format!("bad cbor: expected map, unexpected {:?}",cbor)); }
+        _ => { 
+            return Err(DauphinError::internal(file!(),line!()).context(format!("expected map got {:?}",cbor)));
+        }
     })
 }
 
-pub fn cbor_array<'a>(cbor: &'a CborValue, len: usize, or_more: bool) -> Result<&'a Vec<CborValue>,String> {
+pub fn cbor_array<'a>(cbor: &'a CborValue, len: usize, or_more: bool) -> anyhow::Result<&'a Vec<CborValue>> {
     match cbor {
         CborValue::Array(a) => {
             if a.len() == len || (a.len() >= len && or_more) {
@@ -146,5 +153,5 @@ pub fn cbor_array<'a>(cbor: &'a CborValue, len: usize, or_more: bool) -> Result<
         },
         _ => {}
     }
-    Err(format!("bad cbor: expected array len={:?}/{:?}, unexpected {:?}",len,or_more,cbor))
+    Err(DauphinError::malformed(&format!("expected map got {:?}",cbor)))
 }

@@ -17,6 +17,7 @@
 use std::collections::HashMap;
 use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpValue, Register };
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction, InstructionType };
 use dauphin_compile::model::{ PreImageContext };
 use serde_cbor::Value as CborValue;
@@ -31,7 +32,7 @@ impl CommandType for VersionCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             let mut major = None;
             let mut minor = None;
@@ -46,12 +47,12 @@ impl CommandType for VersionCommandType {
                 }
             }
             if major.is_none() || minor.is_none() {
-                return Err(format!("buildtime:version signature issue"))
+                return Err(DauphinError::internal(file!(),line!())); /* type has wrong shape */
             }
             let libname = it.regs[sig[1].iter().next().as_ref().unwrap().1.data_pos()];
             Ok(Box::new(VersionCommand(*major.unwrap(),*minor.unwrap(),libname)))
         } else {
-            Err(format!("buildtime::version cannot be built"))
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 }
@@ -59,11 +60,11 @@ impl CommandType for VersionCommandType {
 pub struct VersionCommand(Register,Register,Register);
 
 impl Command for VersionCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("buildtime::version can only be executed at compile time"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::internal(file!(),line!()))
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         if context.is_reg_valid(&self.2) {
             let suite = context.linker().get_suite().get_set_ids();
             let versions : HashMap<_,_> = suite.iter().map(|x| (x.name().to_string(),x.version())).collect();
@@ -82,7 +83,7 @@ impl Command for VersionCommand {
             context.context_mut().registers_mut().write(&self.1,InterpValue::Indexes(minors));
             Ok(PreImageOutcome::Constant(vec![self.0,self.1]))
         } else {
-            Err(format!("buildtime::version needs key to be known at build time"))
+            Err(DauphinError::runtime("buildtime::version needs key to be known at build time"))
         }
     }
 }

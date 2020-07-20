@@ -14,15 +14,17 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashSet;
 use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpValue, Register };
 use dauphin_interp::types::{ FullType, MemberMode };
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, InstructionType, Instruction };
 use dauphin_compile::model::{ PreImageContext };
 use serde_cbor::Value as CborValue;
 
-fn hint_reg(sig: &FullType, regs: &[Register], incl_length: bool) -> Result<HashSet<Register>,String> {
+fn hint_reg(sig: &FullType, regs: &[Register], incl_length: bool) -> anyhow::Result<HashSet<Register>> {
     let mut out = HashSet::new();
     for (_,vr) in sig.iter() {
         if vr.depth() > 0 {
@@ -47,11 +49,11 @@ impl CommandType for GetSizeHintCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(GetSizeHintCommand(it.regs[0].clone(),hint_reg(&sig[1],&it.regs,false)?.iter().cloned().collect())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 }
@@ -59,11 +61,11 @@ impl CommandType for GetSizeHintCommandType {
 pub struct GetSizeHintCommand(Register,Vec<Register>);
 
 impl Command for GetSizeHintCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("cannot seriailize size hints"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::internal(file!(),line!()))
     }
     
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         let mut out = vec![];
         for reg in self.1.iter() {
             out.push(context.get_reg_size(reg).unwrap_or(1000000000));
@@ -83,14 +85,14 @@ impl CommandType for SetSizeHintCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             let offset = if sig[0].get_mode() == MemberMode::Filter { 1 } else { 0 };
             Ok(Box::new(SetSizeHintCommand(hint_reg(&sig[offset],&it.regs,true)?,
                                             sig[offset].all_registers().iter().map(|x| it.regs[*x].clone()).collect(),
                                             it.regs[sig[offset+1].iter().next().unwrap().1.data_pos()])))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 }
@@ -98,11 +100,11 @@ impl CommandType for SetSizeHintCommandType {
 pub struct SetSizeHintCommand(HashSet<Register>,Vec<Register>,Register);
 
 impl Command for SetSizeHintCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(None)
     }
     
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         if context.is_reg_valid(&self.2) {
             let values = context.context_mut().registers_mut().get_indexes(&self.2)?;
             let mut out = vec![];
@@ -119,7 +121,7 @@ impl Command for SetSizeHintCommand {
             }
             Ok(PreImageOutcome::Skip(out))
         } else {
-            Err(format!("set_size_hint needs compile-time-fixed value\n"))
+            Err(DauphinError::runtime("set_size_hint needs compile-time-fixed value"))
         }
     }
 }
@@ -134,11 +136,11 @@ impl CommandType for ForcePauseCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,_,_) = &it.itype {
             Ok(Box::new(ForcePauseCommand()))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }
     }    
 }
@@ -146,11 +148,11 @@ impl CommandType for ForcePauseCommandType {
 pub struct ForcePauseCommand();
 
 impl Command for ForcePauseCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(None)
     }
     
-    fn preimage(&self, _context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, _context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Replace(vec![Instruction::new(InstructionType::Pause(true),vec![])]))
     }
 

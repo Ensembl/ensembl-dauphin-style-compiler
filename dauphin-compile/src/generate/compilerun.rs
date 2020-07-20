@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use super::gencontext::GenContext;
 use crate::resolver::Resolver;
 use crate::cli::Config;
@@ -22,6 +23,7 @@ use crate::model::{ PreImageContext };
 use crate::util::DFloat;
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::runtime::{ InterpValue, numbers_to_indexes };
+use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
 struct CompileRun<'a,'b> {
     context: PreImageContext<'a>,
@@ -29,21 +31,21 @@ struct CompileRun<'a,'b> {
 }
 
 impl<'a,'b> CompileRun<'a,'b> {
-    pub fn new(compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'b>, config: &Config, first: bool, last: bool) -> Result<CompileRun<'a,'b>,String> {
+    pub fn new(compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'b>, config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b>> {
         let mut max_reg = 0;
         for instr in gen_context.get_instructions() {
             for reg in &instr.regs {
                 if reg.0 > max_reg { max_reg = reg.0; }
             }
         }
-        let context = PreImageContext::new(compiler_link,Box::new(resolver),config,max_reg,first,last)?;
+        let context = PreImageContext::new(compiler_link,Box::new(resolver),config,max_reg,first,last);
         Ok(CompileRun {
             context,
             gen_context
         })
     }
 
-    fn commit(&mut self) -> Result<(),String> {
+    fn commit(&mut self) -> anyhow::Result<()> {
         let regs = self.context.context_mut().registers_mut().commit();
         for reg in &regs {
             if self.context.is_reg_valid(reg) {
@@ -54,7 +56,7 @@ impl<'a,'b> CompileRun<'a,'b> {
         Ok(())
     }
 
-    fn unable_instr(&mut self, instr: &Instruction, sizes: &[(Register,usize)]) -> Result<(),String> {
+    fn unable_instr(&mut self, instr: &Instruction, sizes: &[(Register,usize)]) -> anyhow::Result<()> {
         //let name = format!("{:?}",instr).replace("\n","");
         //print!("unable {:?} {:?}\n",name,sizes);
         self.add(instr.clone())?;
@@ -70,7 +72,7 @@ impl<'a,'b> CompileRun<'a,'b> {
         Ok(())
     }
 
-    fn long_constant<F,T>(&mut self, reg: &Register, values: &Vec<T>, mut cb: F) -> Result<(),String> where F: FnMut(Register,&T) -> Instruction {
+    fn long_constant<F,T>(&mut self, reg: &Register, values: &Vec<T>, mut cb: F) -> anyhow::Result<()> where F: FnMut(Register,&T) -> Instruction {
         if values.len() == 1 {
             self.add(cb(*reg,&values[0]))?;
         } else {
@@ -84,14 +86,14 @@ impl<'a,'b> CompileRun<'a,'b> {
         Ok(())
     }
 
-    fn add(&mut self, instr: Instruction) -> Result<(),String> {
+    fn add(&mut self, instr: Instruction) -> anyhow::Result<()> {
         let command = self.context.linker().instruction_to_command(&instr)?.1;
         let time = command.execution_time(&self.context);
         self.gen_context.add_timed(instr,time);
         Ok(())
     }
 
-    fn make_constant(&mut self, reg: &Register) -> Result<(),String> {
+    fn make_constant(&mut self, reg: &Register) -> anyhow::Result<()> {
         // XXX don't copy the big ones
         let value = self.context.context_mut().registers_mut().get(reg).borrow().get_shared()?;
         match value.as_ref() {
@@ -129,7 +131,7 @@ impl<'a,'b> CompileRun<'a,'b> {
         Ok(())
     }
 
-    fn preimage_instr(&mut self, instr: &Instruction) -> Result<(),String> {
+    fn preimage_instr(&mut self, instr: &Instruction) -> anyhow::Result<()> {
         //print!("{:?}",instr);
         let command = self.context.linker().instruction_to_command(instr)?.1;
         let ic = self.context.linker().instruction_to_interp_command(instr)?;
@@ -139,7 +141,7 @@ impl<'a,'b> CompileRun<'a,'b> {
             },
             PreImageOutcome::Replace(instrs) => {
                 if self.context.is_last() {
-                    Err(format!("Illegal replace during last run!: {:?}",instr))?
+                    Err(DauphinError::internal(file!(),line!()))?  /* Illegal replace during last run */
                 }
                 for instr in instrs {
                     self.preimage_instr(&instr)?;
@@ -159,16 +161,13 @@ impl<'a,'b> CompileRun<'a,'b> {
         Ok(())
     }
 
-    pub fn preimage(&mut self) -> Result<(),String> {
+    pub fn preimage(&mut self) -> anyhow::Result<()> {
         for instr in &self.gen_context.get_instructions() {
-            self.preimage_instr(instr).map_err(|msg| {
+            let out = self.preimage_instr(instr);
+            error_locate_cb(|| {
                 let line = self.context.context().get_line_number();
-                if line.1 != 0 {
-                    format!("{} at {}:{}",msg,line.0,line.1)
-                } else {
-                    msg.to_string()
-                }
-            })?;
+                (line.0.to_string(),line.1)
+            },out).with_context(|| format!("preimaging {:?}",instr))?;
         }
         self.context.finish();
         self.gen_context.phase_finished();
@@ -176,7 +175,7 @@ impl<'a,'b> CompileRun<'a,'b> {
     }
 }
 
-pub fn compile_run(compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, first: bool, last: bool) -> Result<(),String> {
+pub fn compile_run(compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, first: bool, last: bool) -> anyhow::Result<()> {
     let mut pic = CompileRun::new(compiler_link,resolver,context,config,first,last)?;
     pic.preimage()?;
     Ok(())

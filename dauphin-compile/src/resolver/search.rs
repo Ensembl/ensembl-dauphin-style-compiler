@@ -51,6 +51,6 @@ impl DocumentResolver for SearchResolver {
                 }
             }
         }
-        Err(DauphinError::floating(&format!("not found in search path. Use -v -v for more info on paths searched")))
+        Err(DauphinError::source(&format!("not found in search path. Use -v -v for more info on paths searched")))
     }
 }

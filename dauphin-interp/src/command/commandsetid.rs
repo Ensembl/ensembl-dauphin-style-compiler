@@ -63,7 +63,7 @@ impl CommandSetId {
         ])
     }
 
-    pub fn deserialize(cbor: &CborValue) -> Result<CommandSetId,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<CommandSetId> {
         let data = cbor_array(cbor,4,false)?;
         Ok(CommandSetId {
             name: cbor_string(&data[0])?,

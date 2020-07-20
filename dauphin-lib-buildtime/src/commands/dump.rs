@@ -19,6 +19,7 @@ use dauphin_interp::runtime::{ InterpValue, Register, InterpContext };
 use dauphin_interp::types::RegisterSignature;
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction, InstructionType };
 use dauphin_compile::model::{ PreImageContext };
+use dauphin_interp::util::DauphinError;
 use dauphin_lib_std::stream::Stream;
 use serde_cbor::Value as CborValue;
 
@@ -36,11 +37,11 @@ impl CommandType for DumpSigCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(DumpSigCommand(it.regs[0],sig_string(sig))))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 }
@@ -48,11 +49,11 @@ impl CommandType for DumpSigCommandType {
 pub struct DumpSigCommand(Register,String);
 
 impl Command for DumpSigCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(None)
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         context.context_mut().registers_mut().write(&self.0,InterpValue::Strings(vec![self.1.to_string()]));
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
@@ -68,28 +69,28 @@ impl CommandType for PrintCompileCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,_sig,_) = &it.itype {
             Ok(Box::new(PrintCompileCommand(it.regs[0])))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 }
 
-pub fn std_stream(context: &mut InterpContext) -> Result<&mut Stream,String> {
+pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     let p = context.payload("std","stream")?;
-    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| "No stream context".to_string())?)
+    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("No stream context"))?)
 }
 
 pub struct PrintCompileCommand(Register);
 
 impl Command for PrintCompileCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(None)
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         if context.is_first() {
             let text = context.context().registers().get_strings(&self.0)?;
             let stream = std_stream(context.context_mut())?;

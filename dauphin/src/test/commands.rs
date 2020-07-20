@@ -14,17 +14,19 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::cell::RefCell;
 use std::rc::Rc;
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, Identifier };
 use dauphin_interp::runtime::{ InterpContext };
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::command::{ Instruction, Command, CommandSchema, CommandTrigger, CommandType };
 use serde_cbor::Value as CborValue;
 
 pub struct FakeInterpCommand(Rc<RefCell<u32>>,u32);
 
 impl InterpCommand for FakeInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
         *self.0.borrow_mut() = self.1;
         Ok(())
     }
@@ -33,8 +35,8 @@ impl InterpCommand for FakeInterpCommand {
 pub struct FakeDeserializer(pub Rc<RefCell<u32>>,pub u32);
 
 impl CommandDeserializer for FakeDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((self.1,0))) }
-    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((self.1,0))) }
+    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(FakeInterpCommand(self.0.clone(),self.1)))
     }
 }
@@ -53,8 +55,8 @@ impl CommandType for FakeCommandType {
         }
     }
 
-    fn from_instruction(&self, _it: &Instruction) -> Result<Box<dyn Command>,String> {
-        Err(format!("unable"))
+    fn from_instruction(&self, _it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        Err(DauphinError::internal(file!(),line!()))
     }
 }
 

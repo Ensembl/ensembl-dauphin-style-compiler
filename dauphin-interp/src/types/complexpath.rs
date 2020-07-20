@@ -17,6 +17,7 @@
 use std::fmt;
 use std::sync::{ Arc, Mutex };
 use crate::command::Identifier;
+use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_int };
 use serde_cbor::Value as CborValue;
 
@@ -37,7 +38,7 @@ impl ComplexPathId {
         ComplexPathId::Anon(*next)
     }
 
-    pub fn serialize(&self) -> Result<CborValue,String> {
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(match self {
             ComplexPathId::Named(path) => {
                 CborValue::Array(path.iter().map(|x| 
@@ -49,19 +50,19 @@ impl ComplexPathId {
         })
     }
 
-    pub fn deserialize(cbor: &CborValue) -> Result<ComplexPathId,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<ComplexPathId> {
         match cbor {
             CborValue::Array(data) => {
                 Ok(ComplexPathId::Named(
-                    data.iter().map::<Result<_,String>,_>(|x| {
+                    data.iter().map::<anyhow::Result<_>,_>(|x| {
                         let part = cbor_array(x,2,false)?;
                         Ok((Identifier::deserialize(&part[0])?,cbor_string(&part[1])?))
-                }).collect::<Result<Vec<(_,_)>,_>>()?))
+                }).collect::<anyhow::Result<Vec<(_,_)>,_>>()?))
             },
             CborValue::Null => {
                 Ok(ComplexPathId::new_anon())
             },
-            _ => Err("bad path".to_string())
+            _ => Err(DauphinError::malformed("bad path"))
         }
     }
 }
@@ -140,14 +141,14 @@ impl ComplexPath {
         }        
     }
 
-    pub fn serialize(&self) -> Result<CborValue,String> {
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
         let breaks = CborValue::Array(
             self.breaks.iter().map(|x| CborValue::Integer(*x as i128)).collect()
         );
         Ok(CborValue::Array(vec![self.path.serialize()?,breaks]))
     }
 
-    pub fn deserialize(cbor: &CborValue) -> Result<ComplexPath,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<ComplexPath> {
         let data = cbor_array(cbor,2,false)?;
         let breaks = cbor_array(&data[1],0,true)?.iter().map(|x| cbor_int(x,None).map(|x| x as usize)).collect::<Result<Vec<_>,_>>()?;
         let path = ComplexPathId::deserialize(&data[0])?;

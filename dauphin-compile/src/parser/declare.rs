@@ -14,93 +14,92 @@
  *  limitations under the License.
  */
 
-use super::node::{ ParserStatement, ParseError, Statement, Expression };
+use super::node::{ ParserStatement, Statement, Expression };
 use super::lexutil::not_reserved;
 use crate::model::{
     InlineMode, Inline, DefStore, ExprMacro, StmtMacro, FuncDecl, ProcDecl,
     StructDef, EnumDef, IdentifierPattern
 };
+use crate::parser::parse_error;
 use crate::lexer::Lexer;
 use crate::typeinf::{ SignatureConstraint, MemberType };
 
-fn run_import(path: &str, lexer: &mut Lexer) -> Result<(),ParseError> {
-    lexer.import(path).map_err(|s| ParseError::new(&format!("import of {} failed: {}",path,s),lexer))
+fn run_import(path: &str, lexer: &mut Lexer) -> anyhow::Result<()> {
+    lexer.import(path).map_err(|s| parse_error(&format!("import of {} failed: {}",path,s),lexer))
 }
 
-fn run_use(name: &str, lexer: &mut Lexer) -> Result<(),ParseError> {
+fn run_use(name: &str, lexer: &mut Lexer) -> anyhow::Result<()> {
     lexer.add_short(name);
     Ok(())
 }
 
-fn run_module(name: &str, lexer: &mut Lexer) -> Result<(),ParseError> {
+fn run_module(name: &str, lexer: &mut Lexer) -> anyhow::Result<()> {
     lexer.set_module(name);
     Ok(())
 }
 
-fn run_inline(symbol: &str, pattern: &IdentifierPattern, mode: &InlineMode, prio: f64, lexer: &mut Lexer, defstore: &mut DefStore) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_inline(symbol: &str, pattern: &IdentifierPattern, mode: &InlineMode, prio: f64, lexer: &mut Lexer, defstore: &mut DefStore) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     let stmt_like = defstore.stmt_like(&identifier.0,lexer)?;
-    lexer.add_inline(symbol,mode == &InlineMode::Prefix).map_err(|s| {
-        ParseError::new(&s,lexer)
-    })?;
+    lexer.add_inline(symbol,mode == &InlineMode::Prefix)?;
     defstore.add_inline(Inline::new(symbol,&identifier,stmt_like,prio,mode))?;
     Ok(())
 }
 
-fn run_expr(pattern: &IdentifierPattern, args_in: &[IdentifierPattern], expr: &Expression, defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_expr(pattern: &IdentifierPattern, args_in: &[IdentifierPattern], expr: &Expression, defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     let mut args = vec![];
     for pattern in args_in.iter() {
-        args.push(defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?.0);
+        args.push(defstore.pattern_to_identifier(lexer,&pattern,false)?.0);
     }
     not_reserved(&identifier.0,lexer)?;
     defstore.add_expr(ExprMacro::new(&identifier.0,args,expr.clone()),lexer)?;
     Ok(())
 }
 
-fn run_stmt(pattern: &IdentifierPattern, args_in: &[IdentifierPattern], block: &[Statement], defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_stmt(pattern: &IdentifierPattern, args_in: &[IdentifierPattern], block: &[Statement], defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     let mut args = vec![];
     for pattern in args_in.iter() {
-        args.push(defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?.0);
+        args.push(defstore.pattern_to_identifier(lexer,&pattern,false)?.0);
     }
     not_reserved(&identifier.0,lexer)?;
     defstore.add_stmt(StmtMacro::new(&identifier.0,args,block.to_vec()),lexer)?;
     Ok(())
 }
 
-fn run_proc(pattern: &IdentifierPattern, signature: &SignatureConstraint, defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_proc(pattern: &IdentifierPattern, signature: &SignatureConstraint, defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     not_reserved(&identifier.0,lexer)?;
     defstore.add_proc(ProcDecl::new(&identifier.0,signature),lexer)?;
     Ok(())
 }
 
-fn run_func(pattern: &IdentifierPattern, signature: &SignatureConstraint, defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_func(pattern: &IdentifierPattern, signature: &SignatureConstraint, defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     not_reserved(&identifier.0,lexer)?;
     defstore.add_func(FuncDecl::new(&identifier.0,signature),lexer)?;
     Ok(())
 }
 
-fn run_struct(pattern: &IdentifierPattern, member_types: &Vec<MemberType>, names: &Vec<String>, defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_struct(pattern: &IdentifierPattern, member_types: &Vec<MemberType>, names: &Vec<String>, defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     not_reserved(&identifier.0,lexer)?;
-    let def = StructDef::new(&identifier.0,member_types,names).map_err(|e| ParseError::new(&e,lexer) )?;
+    let def = StructDef::new(&identifier.0,member_types,names,lexer)?;
     defstore.add_struct(def,lexer)?;
     Ok(())
 }
 
 // TODO allow one operator as prefix of another
-fn run_enum(pattern: &IdentifierPattern, member_types: &Vec<MemberType>, names: &Vec<String>, defstore: &mut DefStore, lexer: &mut Lexer) -> Result<(),ParseError> {
-    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+fn run_enum(pattern: &IdentifierPattern, member_types: &Vec<MemberType>, names: &Vec<String>, defstore: &mut DefStore, lexer: &mut Lexer) -> anyhow::Result<()> {
+    let identifier = defstore.pattern_to_identifier(lexer,&pattern,false)?;
     not_reserved(&identifier.0,lexer)?;
-    let def = EnumDef::new(&identifier.0,member_types,names).map_err(|e| ParseError::new(&e,lexer) )?;
+    let def = EnumDef::new(&identifier.0,member_types,names,lexer)?;
     defstore.add_enum(def,lexer)?;
     Ok(())
 }
 
-pub fn declare(stmt: &ParserStatement, lexer: &mut Lexer, defstore: &mut DefStore) -> Result<bool,ParseError> {
+pub fn declare(stmt: &ParserStatement, lexer: &mut Lexer, defstore: &mut DefStore) -> anyhow::Result<bool> {
     match stmt {
         ParserStatement::Import(path) =>
             run_import(path,lexer).map(|_| true),

@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
+serde_cbor = "*"
+rust-ini="*"
 dauphin_interp = { path = "../dauphin-interp" }
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_lib_std = { path = "../dauphin-lib-std", features = ["compile"] }
-serde_cbor = "*"
-rust-ini="*"

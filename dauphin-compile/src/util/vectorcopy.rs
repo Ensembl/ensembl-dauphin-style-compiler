@@ -14,11 +14,13 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use crate::command::{ Instruction, InstructionType };
 use crate::model::PreImageContext;
 use dauphin_interp::command::Identifier;
 use dauphin_interp::runtime::Register;
 use dauphin_interp::types::{ VectorRegisters, ComplexPath, RegisterSignature, FullType, MemberMode, MemberDataFlow, BaseType };
+use dauphin_interp::util::DauphinError;
 use regex::Regex;
 
 pub fn do_call_flat(lib: &str, name: &str, impure: bool, spec: &str) -> Result<InstructionType,()> {
@@ -56,47 +58,47 @@ pub fn do_call_flat(lib: &str, name: &str, impure: bool, spec: &str) -> Result<I
     Ok(InstructionType::Call(Identifier::new(lib,name),impure,sigs,flows))
 }
 
-pub fn call_flat(lib: &str, name: &str, pure_: bool, spec: &str) -> Result<InstructionType,String> {
-    do_call_flat(lib,name,pure_,spec).map_err(|_| format!("could not call_flat"))
+pub fn call_flat(lib: &str, name: &str, pure_: bool, spec: &str) -> anyhow::Result<InstructionType> {
+    do_call_flat(lib,name,pure_,spec).map_err(|_| DauphinError::internal(file!(),line!()))
 }
 
 pub fn vector_append_offsets(dst: &VectorRegisters, src: &VectorRegisters, 
-                             start: &Register, stride: &Register, copies: &Register, regs: &[Register], level: usize) -> Result<Instruction,String> {
+                             start: &Register, stride: &Register, copies: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_append_indexes",false,"L0ioR0R0R0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.offset_pos(level)?].clone(),regs[src.offset_pos(level)?].clone(),
                                          start.clone(),stride.clone(),copies.clone()]))
 }
 
 pub fn vector_append_lengths(dst: &VectorRegisters, src: &VectorRegisters, 
-                            zero: &Register, copies: &Register, regs: &[Register], level: usize) -> Result<Instruction,String> {
+                            zero: &Register, copies: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_append_indexes",false,"L0ioR0R0R0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.length_pos(level)?].clone(),regs[src.length_pos(level)?].clone(),
                                         zero.clone(),zero.clone(),copies.clone()]))
 
 }
 pub fn vector_update_offsets(dst: &VectorRegisters, src: &VectorRegisters, 
-                            start: &Register, stride: &Register, filter: &Register, regs: &[Register], level: usize) -> Result<Instruction,String> {
+                            start: &Register, stride: &Register, filter: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_update_indexes",false,"L0ioR0R0R0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.offset_pos(level)?].clone(),regs[src.offset_pos(level)?.clone()],filter.clone(),start.clone(),stride.clone()]))
 }
 
 pub fn vector_update_lengths(dst: &VectorRegisters, src: &VectorRegisters, 
-                            zero: &Register, filter: &Register, regs: &[Register], level: usize) -> Result<Instruction,String> {
+                            zero: &Register, filter: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_update_indexes",false,"L0ioR0R0R0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.length_pos(level)?].clone(),regs[src.length_pos(level)?.clone()],filter.clone(),zero.clone(),zero.clone()]))
 }
 
-pub fn vector_append(dst: &VectorRegisters, src: &VectorRegisters, copies: &Register, regs: &[Register]) -> Result<Instruction,String> {
+pub fn vector_append(dst: &VectorRegisters, src: &VectorRegisters, copies: &Register, regs: &[Register]) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_append",false,"L0ioR0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.data_pos()].clone(),regs[src.data_pos()].clone(),copies.clone()]))
 }
 
-pub fn vector_copy(dst: &VectorRegisters, src: &VectorRegisters, filter: &Register, regs: &[Register]) -> Result<Instruction,String> {
+pub fn vector_copy(dst: &VectorRegisters, src: &VectorRegisters, filter: &Register, regs: &[Register]) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_copy_shallow",false,"L1ioR0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.data_pos()],regs[src.data_pos()],filter.clone()]))
 }
 
-pub fn vector_push_instrs(context: &mut PreImageContext, dst: &VectorRegisters, src: &VectorRegisters, copies: &Register, regs: &[Register]) -> Result<Vec<Instruction>,String> {
+pub fn vector_push_instrs(context: &mut PreImageContext, dst: &VectorRegisters, src: &VectorRegisters, copies: &Register, regs: &[Register]) -> anyhow::Result<Vec<Instruction>> {
     let mut out = vec![];
     let depth = dst.depth();
     /* intermediate levels */
@@ -117,7 +119,7 @@ pub fn vector_push_instrs(context: &mut PreImageContext, dst: &VectorRegisters, 
     Ok(out)
 }
 
-pub fn vector_register_copy_instrs(dst: &VectorRegisters, src: &VectorRegisters, regs: &[Register]) -> Result<Vec<Instruction>,String> {
+pub fn vector_register_copy_instrs(dst: &VectorRegisters, src: &VectorRegisters, regs: &[Register]) -> anyhow::Result<Vec<Instruction>> {
     let mut out = vec![];
     for level in 0..dst.depth() {
         out.push(Instruction::new(InstructionType::Copy,vec![regs[dst.offset_pos(level)?].clone(),regs[src.offset_pos(level)?].clone()]));

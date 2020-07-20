@@ -121,7 +121,7 @@ impl RetreatOutput {
     }
 }
 
-pub fn retreat(context: &mut GenContext) -> Result<(),String> {
+pub fn retreat(context: &mut GenContext) {
     let mut retreat = RetreatOutput::new();
     let instrs = context.get_instructions();
     for instr in instrs.iter() {
@@ -129,5 +129,4 @@ pub fn retreat(context: &mut GenContext) -> Result<(),String> {
     }
     retreat.finish(context);
     context.phase_finished();
-    Ok(())
 }

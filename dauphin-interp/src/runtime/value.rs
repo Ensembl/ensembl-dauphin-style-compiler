@@ -14,11 +14,13 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::ops::Deref;
 use std::fmt::Display;
 use std::iter::{ Iterator };
 use std::rc::Rc;
 use std::str::from_utf8;
+use crate::util::DauphinError;
 
 pub const MAX_USIZE : usize = 9007199254740991;
 
@@ -38,92 +40,92 @@ pub fn to_index(value: f64) -> Option<usize> {
     }
 }
 
-fn indexes_to_numbers(data: &Vec<usize>) -> Result<Vec<f64>,String> {
+fn indexes_to_numbers(data: &Vec<usize>) -> anyhow::Result<Vec<f64>> {
     data.iter().map(|x| {
         if *x <= MAX_USIZE {
             Ok(*x as f64)
         } else {
-            Err(format!("Cannot convert {:?} to number",x))
+            Err(DauphinError::runtime(&format!("Cannot convert {:?} to number",x)))
         }
     }).collect()
 }
 
-pub fn numbers_to_indexes(data: &Vec<f64>) -> Result<Vec<usize>,String> {
+pub fn numbers_to_indexes(data: &Vec<f64>) -> anyhow::Result<Vec<usize>> {
     data.iter().map(|x| {
         if let Some(x) = to_index(*x) {
             Ok(x)
         } else {
-            Err(format!("Cannot convert {:?} to index",x))
+            Err(DauphinError::runtime(&format!("Cannot convert {:?} to index",x)))
         }
     }).collect()
 }
 
-fn boolean_to_numbers(data: &Vec<bool>) -> Result<Vec<f64>,String> {
+fn boolean_to_numbers(data: &Vec<bool>) -> anyhow::Result<Vec<f64>> {
     data.iter().map(|x| {
         Ok(if *x { 1. } else { 0. })
     }).collect()
 }
 
-fn boolean_to_indexes(data: &Vec<bool>) -> Result<Vec<usize>,String> {
+fn boolean_to_indexes(data: &Vec<bool>) -> anyhow::Result<Vec<usize>> {
     Ok(data.iter().map(|x| { if *x { 1 } else { 0 } }).collect())
 }
 
-fn numbers_to_boolean(data: &Vec<f64>) -> Result<Vec<bool>,String> {
+fn numbers_to_boolean(data: &Vec<f64>) -> anyhow::Result<Vec<bool>> {
     Ok(data.iter().map(|x| { *x != 0. }).collect())
 }
 
-fn indexes_to_boolean(data: &Vec<usize>) -> Result<Vec<bool>,String> {
+fn indexes_to_boolean(data: &Vec<usize>) -> anyhow::Result<Vec<bool>> {
     Ok(data.iter().map(|x| { *x != 0 }).collect())
 }
 
-fn strings_to_boolean(data: &Vec<String>) -> Result<Vec<bool>,String> {
+fn strings_to_boolean(data: &Vec<String>) -> anyhow::Result<Vec<bool>> {
     Ok(data.iter().map(|x| {
         x!=""
     }).collect())
 }
 
-fn bytes_to_boolean(data: &Vec<Vec<u8>>) -> Result<Vec<bool>,String> {
+fn bytes_to_boolean(data: &Vec<Vec<u8>>) -> anyhow::Result<Vec<bool>> {
     Ok(data.iter().map(|x| {
         x.len() > 0
     }).collect())
 }
 
-fn display_to_strings<T>(data: &Vec<T>) -> Result<Vec<String>,String> where T: Display {
+fn display_to_strings<T>(data: &Vec<T>) -> anyhow::Result<Vec<String>> where T: Display {
     Ok(data.iter().map(|x| {
         format!("{}",x)
     }).collect())
 }
 
-fn bytes_to_strings(data: &Vec<Vec<u8>>) -> Result<Vec<String>,String> {
+fn bytes_to_strings(data: &Vec<Vec<u8>>) -> anyhow::Result<Vec<String>> {
     data.iter().map(|x| {
-        from_utf8(&x).map(|x| x.to_string()).map_err(|_| format!("bad utf8 in conversion"))
+        from_utf8(&x).map(|x| x.to_string()).map_err(|_| DauphinError::runtime("bad utf8 in conversion"))
     }).collect()
 }
 
-fn strings_to_bytes(data: &Vec<String>) -> Result<Vec<Vec<u8>>,String> {
+fn strings_to_bytes(data: &Vec<String>) -> anyhow::Result<Vec<Vec<u8>>> {
     Ok(data.iter().map(|x| {
         x.as_bytes().to_vec()
     }).collect())
 }
 
-fn bytes_to_indexes(data: &Vec<Vec<u8>>) -> Result<Vec<usize>,String> {
+fn bytes_to_indexes(data: &Vec<Vec<u8>>) -> anyhow::Result<Vec<usize>> {
     if data.len() == 0 { return Ok(vec![]); }
     data.iter().map(|x| {
         if x.len() > 0 {
             Ok(x[0] as usize)
         } else {
-            Err(format!("cannot convert {:?} into indexes",x))
+            Err(DauphinError::runtime(&format!("cannot convert {:?} into indexes",x)))
         }
     }).collect()
 }
 
-fn indexes_to_bytes(data: &Vec<usize>) -> Result<Vec<Vec<u8>>,String> {
+fn indexes_to_bytes(data: &Vec<usize>) -> anyhow::Result<Vec<Vec<u8>>> {
     if data.len() == 0 { return Ok(vec![]); }
     data.iter().map(|x| {
         if *x < 256 {
             Ok(vec![*x as u8])
         } else {
-            Err(format!("cannot convert {:?} into bytes",x))
+            Err(DauphinError::runtime(&format!("cannot convert {:?} into bytes",x)))
         }
     }).collect()
 }
@@ -171,11 +173,11 @@ pub enum InterpNatural {
 
 macro_rules! accessor {
     ($self:ident,$branch:tt,$coercer:ident,$wrapper:ident,$type:ty,$exc:ident,$shared:ident,$coerced:ident) => {
-        pub fn $exc($self) -> Result<Vec<$type>,String> {
+        pub fn $exc($self) -> anyhow::Result<Vec<$type>> {
             Ok($self.$coercer()?.unwrap_or(if let InterpValue::$branch(n) = $self { n } else { vec![] }))
         }
 
-        pub fn $shared(self: &Rc<Self>) -> Result<($wrapper,Option<Rc<InterpValue>>),String> {
+        pub fn $shared(self: &Rc<Self>) -> anyhow::Result<($wrapper,Option<Rc<InterpValue>>)> {
             let x = self.$coercer()?
                 .map(|x| {
                     let r = Rc::new(InterpValue::$branch(x));
@@ -221,7 +223,7 @@ impl InterpValue {
         }
     }
 
-    pub fn coerce_numbers(&self) -> Result<Option<Vec<f64>>,String> {
+    pub fn coerce_numbers(&self) -> anyhow::Result<Option<Vec<f64>>> {
         Ok(match self {
             InterpValue::Empty => Some(vec![]),
             InterpValue::Numbers(_) => None,
@@ -232,7 +234,7 @@ impl InterpValue {
         })
     }
 
-    pub fn coerce_indexes(&self) -> Result<Option<Vec<usize>>,String> {
+    pub fn coerce_indexes(&self) -> anyhow::Result<Option<Vec<usize>>> {
         Ok(match self {
             InterpValue::Empty => Some(vec![]),
             InterpValue::Numbers(n) => Some(numbers_to_indexes(&n)?),
@@ -243,7 +245,7 @@ impl InterpValue {
         })
     }
 
-    pub fn coerce_boolean(&self) -> Result<Option<Vec<bool>>,String> {
+    pub fn coerce_boolean(&self) -> anyhow::Result<Option<Vec<bool>>> {
         Ok(match self {
             InterpValue::Empty => Some(vec![]),
             InterpValue::Numbers(n) => Some(numbers_to_boolean(&n)?),
@@ -254,7 +256,7 @@ impl InterpValue {
         })
     }
 
-    pub fn coerce_strings(&self) -> Result<Option<Vec<String>>,String> {
+    pub fn coerce_strings(&self) -> anyhow::Result<Option<Vec<String>>> {
         Ok(match self {
             InterpValue::Empty => Some(vec![]),
             InterpValue::Numbers(n) => Some(display_to_strings(&n)?),
@@ -265,7 +267,7 @@ impl InterpValue {
         })
     }
 
-    pub fn coerce_bytes(&self) -> Result<Option<Vec<Vec<u8>>>,String> {
+    pub fn coerce_bytes(&self) -> anyhow::Result<Option<Vec<Vec<u8>>>> {
         Ok(match self {
             InterpValue::Empty => Some(vec![]),
             InterpValue::Numbers(n) => Some(indexes_to_bytes(&numbers_to_indexes(&n)?)?),
@@ -282,7 +284,7 @@ impl InterpValue {
     accessor!(self,Strings,coerce_strings,InterpValueStrings,String,to_strings,to_rc_strings,to_coerced_strings);
     accessor!(self,Bytes,coerce_bytes,InterpValueBytes,Vec<u8>,to_bytes,to_rc_bytes,to_coerced_bytes);
 
-    pub fn dump(self: &Rc<Self>) -> Result<String,String> {
+    pub fn dump(self: &Rc<Self>) -> anyhow::Result<String> {
         Ok(match self.get_natural() {
             InterpNatural::Empty => { String::new() },
             InterpNatural::Numbers => { print_value(&self.to_rc_numbers()?.0) },

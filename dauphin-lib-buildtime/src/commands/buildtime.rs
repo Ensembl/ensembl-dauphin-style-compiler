@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use dauphin_interp::command::{ CommandSetId };
 use dauphin_compile::command::CompLibRegister;
 use super::defines::DefineCommandType;
@@ -22,7 +23,7 @@ use super::dump::{ DumpSigCommandType, PrintCompileCommandType };
 use super::versions::VersionCommandType;
 use super::hints::{ GetSizeHintCommandType, SetSizeHintCommandType, ForcePauseCommandType };
 
-pub fn make_buildtime() -> Result<CompLibRegister,String> {
+pub fn make_buildtime() -> CompLibRegister {
     let set_id = CommandSetId::new("buildtime",(0,1),0xB790000000000000);
     let mut set = CompLibRegister::new(&set_id,None);
     set.push("load_ini",None,LoadIniCommandType());
@@ -35,5 +36,5 @@ pub fn make_buildtime() -> Result<CompLibRegister,String> {
     set.push("get_version",None,VersionCommandType());
     set.push("print_compile",None,PrintCompileCommandType());
     set.add_header("buildtime",include_str!("header.dp"));
-    Ok(set)
+    set
 }

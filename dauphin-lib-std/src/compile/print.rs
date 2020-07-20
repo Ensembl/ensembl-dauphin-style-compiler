@@ -18,6 +18,7 @@ use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrig
 use dauphin_interp::command::Identifier;
 use dauphin_interp::runtime::Register;
 use dauphin_interp::types::RegisterSignature;
+use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
 pub struct FormatCommandType();
@@ -30,11 +31,11 @@ impl CommandType for FormatCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(FormatCommand(it.regs.to_vec(),sig.clone())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
@@ -42,7 +43,7 @@ impl CommandType for FormatCommandType {
 pub struct FormatCommand(Vec<Register>,RegisterSignature);
 
 impl Command for FormatCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         let regs = CborValue::Array(self.0.iter().map(|x| x.serialize()).collect());
         Ok(Some(vec![regs,self.1.serialize(true)?]))
     }
@@ -58,11 +59,11 @@ impl CommandType for PrintCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,_sig,_) = &it.itype {
             Ok(Box::new(PrintCommand(it.regs[0])))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
@@ -70,7 +71,7 @@ impl CommandType for PrintCommandType {
 pub struct PrintCommand(Register);
 
 impl Command for PrintCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize()]))
     }    
 }

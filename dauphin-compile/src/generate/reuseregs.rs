@@ -14,10 +14,12 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashMap;
 use super::gencontext::GenContext;
 use crate::command::{ InstructionType, Instruction };
 use dauphin_interp::runtime::Register;
+use dauphin_interp::util::DauphinError;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 struct UnknownValue {
@@ -105,7 +107,7 @@ impl RegisterValues {
 }
 
 /* Relabel instead of copying from sources which are never reused. Recurse this until no change */
-pub fn reuse_regs(context: &mut GenContext) -> Result<(),String> {
+pub fn reuse_regs(context: &mut GenContext) -> anyhow::Result<()> {
     let mut saved = ValueStore::new();
     let mut map = RegisterValues::new();
     let instrs = context.get_instructions();
@@ -123,7 +125,7 @@ pub fn reuse_regs(context: &mut GenContext) -> Result<(),String> {
                     map.insert(&instr.regs[0],&val);
                     context.add(instr.clone());
                 } else {
-                    Err("reference to missing value")?
+                    Err(DauphinError::internal(file!(),line!()))? /* reference to missing value */
                 }
             },
             InstructionType::LineNumber(_) | InstructionType::Pause(_) => {

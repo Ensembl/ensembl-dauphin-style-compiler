@@ -14,7 +14,9 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::rc::Rc;
+use crate::util::DauphinError;
 
 pub struct SuperCow<T> {
     copy: Box<dyn Fn(&T) -> T>,
@@ -31,22 +33,25 @@ impl<T> SuperCow<T> {
         }
     }
 
-    pub fn copy(&mut self, other: &SuperCow<T>) -> Result<(),String> {
-        self.set = Some(other.get.as_ref().ok_or_else(|| format!("Attempt to copy with exclusive value"))?.clone());
+    pub fn copy(&mut self, other: &SuperCow<T>) -> anyhow::Result<()> {
+        /* err = get a taken value */
+        self.set = Some(other.get.as_ref().ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone());
         Ok(())
     }
 
-    pub fn get_shared(&self) -> Result<Rc<T>,String> {
-        Ok(self.get.clone().ok_or_else(|| format!("Attempt to share exclusive value"))?)
+    pub fn get_shared(&self) -> anyhow::Result<Rc<T>> {
+        /* err = get a taken value */
+        Ok(self.get.clone().ok_or_else(|| DauphinError::internal(file!(),line!()))?)
     }
 
-    pub fn get_exclusive(&mut self) -> Result<T,String> {
+    pub fn get_exclusive(&mut self) -> anyhow::Result<T> {
         let value = if let Some(value) = self.set.take() {
             value.clone()
         } else if let Some(value) = self.get.take() {
             value.clone()
         } else {
-            return Err(format!("Attempt to double spend exclusive value"));
+            /* double spend */
+            return Err(DauphinError::internal(file!(),line!()));
         };
         Ok(Rc::try_unwrap(value).unwrap_or_else(|rc| (self.copy)(&rc)))
     }

@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use super::definitionstore::DefStore;
 use super::structenum::{ EnumDef, StructDef };
 use dauphin_interp::types::{ ComplexPath, FullType, VectorRegisters, BaseType, MemberMode };
@@ -26,13 +27,13 @@ impl ComplexRegisters {
         ComplexRegisters(FullType::new_empty(mode))
     }
 
-    fn new(defstore: &DefStore, mode: MemberMode, type_: &MemberType) -> Result<FullType,String> {
+    fn new(defstore: &DefStore, mode: MemberMode, type_: &MemberType) -> anyhow::Result<FullType> {
         let mut out = ComplexRegisters::new_empty(mode);
         out.vec_from_type(defstore,type_,&ComplexPath::new_empty(),&ContainerType::new_empty())?;
         Ok(out.0)
     }
 
-    fn vec_from_type(&mut self, defstore: &DefStore, type_: &MemberType, path: &ComplexPath, container: &ContainerType) -> Result<(),String> {
+    fn vec_from_type(&mut self, defstore: &DefStore, type_: &MemberType, path: &ComplexPath, container: &ContainerType) -> anyhow::Result<()> {
         let path = path.add_levels(type_.get_container().depth());
         let container = container.merge(&type_.get_container());
         match type_.get_base() {
@@ -51,7 +52,7 @@ impl ComplexRegisters {
         }
     }
 
-    fn from_struct(&mut self, defstore: &DefStore, se: &StructDef, cpath: &ComplexPath, container: &ContainerType) -> Result<(),String> {
+    fn from_struct(&mut self, defstore: &DefStore, se: &StructDef, cpath: &ComplexPath, container: &ContainerType) -> anyhow::Result<()> {
         for name in se.get_names() {
             let new_cpath = cpath.add(se.identifier(),name);
             let type_ = se.get_member_type(name).unwrap();
@@ -60,7 +61,7 @@ impl ComplexRegisters {
         Ok(())
     }
 
-    fn from_enum(&mut self, defstore: &DefStore, se: &EnumDef, cpath: &ComplexPath, container: &ContainerType) -> Result<(),String> {
+    fn from_enum(&mut self, defstore: &DefStore, se: &EnumDef, cpath: &ComplexPath, container: &ContainerType) -> anyhow::Result<()> {
         self.0.add(cpath.clone(),VectorRegisters::new(container.depth(),BaseType::NumberType));
         for name in se.get_names() {
             let new_cpath = cpath.add(se.identifier(),name);
@@ -71,7 +72,7 @@ impl ComplexRegisters {
     }
 }
 
-pub fn make_full_type(defstore: &DefStore, mode: MemberMode, type_: &MemberType) -> Result<FullType,String> {
+pub fn make_full_type(defstore: &DefStore, mode: MemberMode, type_: &MemberType) -> anyhow::Result<FullType> {
     ComplexRegisters::new(defstore,mode,type_)
 }
 
@@ -91,7 +92,7 @@ mod test {
     // XXX move to common test utils
     fn make_type(defstore: &DefStore, name: &str) -> MemberType {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("data:{}",name)).expect("cannot load file");
@@ -118,12 +119,12 @@ mod test {
     #[test]
     fn offset_smoke() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
         generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
@@ -134,12 +135,12 @@ mod test {
     #[test]
     fn test_cbor() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
         generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");

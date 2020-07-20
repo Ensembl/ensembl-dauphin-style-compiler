@@ -14,9 +14,11 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::rc::Rc;
 use crate::command::{ CommandDeserializer, CommandSetId, InterpCommand, InterpLibRegister };
 use crate::runtime::{ Register, InterpValue, InterpContext };
+use crate::util::DauphinError;
 use crate::types::arbitrate_type;
 use serde_cbor::Value as CborValue;
 use super::consts::{ const_commands_interp };
@@ -24,8 +26,8 @@ use super::consts::{ const_commands_interp };
 pub struct NilDeserializer();
 
 impl CommandDeserializer for NilDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((5,1))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((5,1))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(NilInterpCommand(Register::deserialize(value[0])?)))
     }
 }
@@ -33,7 +35,7 @@ impl CommandDeserializer for NilDeserializer {
 pub struct NilInterpCommand(Register);
 
 impl InterpCommand for NilInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Empty);
         Ok(())
     }
@@ -42,8 +44,8 @@ impl InterpCommand for NilInterpCommand {
 pub struct CopyDeserializer();
 
 impl CommandDeserializer for CopyDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((6,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((6,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(CopyInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
     }
 }
@@ -51,7 +53,7 @@ impl CommandDeserializer for CopyDeserializer {
 pub struct CopyInterpCommand(Register,Register);
 
 impl InterpCommand for CopyInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().copy(&self.0,&self.1)?;
         Ok(())
     }
@@ -60,8 +62,8 @@ impl InterpCommand for CopyInterpCommand {
 pub struct AppendDeserializer();
 
 impl CommandDeserializer for AppendDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((7,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((7,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(AppendInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
     }
 }
@@ -69,7 +71,7 @@ impl CommandDeserializer for AppendDeserializer {
 pub struct AppendInterpCommand(Register,Register);
 
 impl InterpCommand for AppendInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src = registers.get(&self.1).borrow().get_shared()?;
         let dstr = registers.get(&self.0);
@@ -83,7 +85,7 @@ fn append_typed<T>(dst: &mut Vec<T>, src: &Vec<T>) where T: Clone {
     dst.append(&mut src.clone());
 }
 
-fn append(dst: InterpValue, src: &Rc<InterpValue>) -> Result<InterpValue,String> {
+fn append(dst: InterpValue, src: &Rc<InterpValue>) -> anyhow::Result<InterpValue> {
     if let Some(natural) = arbitrate_type(&dst,src,false) {
         Ok(polymorphic!(dst,[src],natural,(|d,s| {
             append_typed(d,s)
@@ -96,8 +98,8 @@ fn append(dst: InterpValue, src: &Rc<InterpValue>) -> Result<InterpValue,String>
 pub struct LengthDeserializer();
 
 impl CommandDeserializer for LengthDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((8,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((8,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(LengthInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
     }
 }
@@ -105,7 +107,7 @@ impl CommandDeserializer for LengthDeserializer {
 pub struct LengthInterpCommand(Register,Register);
 
 impl InterpCommand for LengthInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let len = registers.get(&self.1).borrow().get_shared()?.len();
         registers.write(&self.0,InterpValue::Indexes(vec![len]));
@@ -116,8 +118,8 @@ impl InterpCommand for LengthInterpCommand {
 pub struct AddDeserializer();
 
 impl CommandDeserializer for AddDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((9,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((9,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(AddInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
     }
 }
@@ -125,7 +127,7 @@ impl CommandDeserializer for AddDeserializer {
 pub struct AddInterpCommand(Register,Register);
 
 impl InterpCommand for AddInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = registers.take_indexes(&self.0)?;
@@ -141,8 +143,8 @@ impl InterpCommand for AddInterpCommand {
 pub struct ReFilterDeserializer();
 
 impl CommandDeserializer for ReFilterDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((16,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((16,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(ReFilterInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }
@@ -150,7 +152,7 @@ impl CommandDeserializer for ReFilterDeserializer {
 pub struct ReFilterInterpCommand(Register,Register,Register);
 
 impl InterpCommand for ReFilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src : &[usize] = &registers.get_indexes(&self.1)?;
         let indexes : &[usize] = &registers.get_indexes(&self.2)?;
@@ -166,8 +168,8 @@ impl InterpCommand for ReFilterInterpCommand {
 pub struct NumEqDeserializer();
 
 impl CommandDeserializer for NumEqDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((10,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((10,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(NumEqInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }    
@@ -175,7 +177,7 @@ impl CommandDeserializer for NumEqDeserializer {
 pub struct NumEqInterpCommand(Register,Register,Register);
 
 impl InterpCommand for NumEqInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src1 = &registers.get_indexes(&self.1)?;
         let src2 = &registers.get_indexes(&self.2)?;
@@ -198,7 +200,7 @@ fn filter_typed<T>(dst: &mut Vec<T>, src: &[T], filter: &[bool]) where T: Clone 
     }
 }
 
-pub fn filter(src: &Rc<InterpValue>, filter_val: &[bool]) -> Result<InterpValue,String> {
+pub fn filter(src: &Rc<InterpValue>, filter_val: &[bool]) -> anyhow::Result<InterpValue> {
     if let Some(natural) = arbitrate_type(&InterpValue::Empty,src,true) {
         Ok(polymorphic!(InterpValue::Empty,[src],natural,(|d,s| {
             filter_typed(d,s,filter_val)
@@ -211,8 +213,8 @@ pub fn filter(src: &Rc<InterpValue>, filter_val: &[bool]) -> Result<InterpValue,
 pub struct FilterDeserializer();
 
 impl CommandDeserializer for FilterDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((11,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((11,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(FilterInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }    
@@ -220,7 +222,7 @@ impl CommandDeserializer for FilterDeserializer {
 pub struct FilterInterpCommand(Register,Register,Register);
 
 impl InterpCommand for FilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let filter_val = registers.get_boolean(&self.2)?;
         let src = registers.get(&self.1);
@@ -233,8 +235,8 @@ impl InterpCommand for FilterInterpCommand {
 pub struct RunDeserializer();
 
 impl CommandDeserializer for RunDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((12,4))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((12,4))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(RunInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,
                                      Register::deserialize(value[2])?,Register::deserialize(value[3])?)))
     }
@@ -243,7 +245,7 @@ impl CommandDeserializer for RunDeserializer {
 pub struct RunInterpCommand(Register,Register,Register,Register);
 
 impl InterpCommand for RunInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let start = &registers.get_indexes(&self.1)?;
         let len = &registers.get_indexes(&self.2)?;
@@ -251,7 +253,7 @@ impl InterpCommand for RunInterpCommand {
         let startlen = start.len();
         let lenlen = len.len();
         if lenlen == 0 {
-            Err(format!("zero length run in register {:?}\n",self.2))?
+            Err(DauphinError::runtime(&format!("zero length run in register {:?}\n",self.2)))?
         }
         for i in 0..startlen {
             for j in 0..len[i%lenlen] {
@@ -266,8 +268,8 @@ impl InterpCommand for RunInterpCommand {
 pub struct AtDeserializer();
 
 impl CommandDeserializer for AtDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((15,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((15,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(AtInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
     }
 }
@@ -275,7 +277,7 @@ impl CommandDeserializer for AtDeserializer {
 pub struct AtInterpCommand(Register,Register);
 
 impl InterpCommand for AtInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = vec![];
@@ -298,7 +300,7 @@ fn seq_filter_typed<T>(dst: &mut Vec<T>, src: &[T], starts: &[usize], lens: &[us
     }
 }
 
-fn seq_filter(src: &Rc<InterpValue>, starts: &[usize], lens: &[usize]) -> Result<InterpValue,String> {
+fn seq_filter(src: &Rc<InterpValue>, starts: &[usize], lens: &[usize]) -> anyhow::Result<InterpValue> {
     if let Some(natural) = arbitrate_type(&InterpValue::Empty,src,true) {
         Ok(polymorphic!(InterpValue::Empty,[src],natural,(|d,s| {
             seq_filter_typed(d,s,starts,lens)
@@ -311,8 +313,8 @@ fn seq_filter(src: &Rc<InterpValue>, starts: &[usize], lens: &[usize]) -> Result
 pub struct SeqFilterDeserializer();
 
 impl CommandDeserializer for SeqFilterDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((13,4))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((13,4))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(SeqFilterInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,
                                            Register::deserialize(value[2])?,Register::deserialize(value[3])?)))
     }
@@ -321,7 +323,7 @@ impl CommandDeserializer for SeqFilterDeserializer {
 pub struct SeqFilterInterpCommand(Register,Register,Register,Register);
 
 impl InterpCommand for SeqFilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src = registers.get(&self.1);
         let start = registers.get_indexes(&self.2)?;
@@ -335,8 +337,8 @@ impl InterpCommand for SeqFilterInterpCommand {
 pub struct SeqAtDeserializer();
 
 impl CommandDeserializer for SeqAtDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((14,3))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((14,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(SeqAtInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }
@@ -344,7 +346,7 @@ impl CommandDeserializer for SeqAtDeserializer {
 pub struct SeqAtInterpCommand(Register,Register,Register);
 
 impl InterpCommand for SeqAtInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = vec![];
@@ -361,8 +363,8 @@ impl InterpCommand for SeqAtInterpCommand {
 pub struct PauseDeserializer();
 
 impl CommandDeserializer for PauseDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((18,0))) }
-    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((18,0))) }
+    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(PauseInterpCommand()))
     }
 }
@@ -370,16 +372,16 @@ impl CommandDeserializer for PauseDeserializer {
 pub struct PauseInterpCommand();
 
 impl InterpCommand for PauseInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.do_pause();
         Ok(())
     }
 }
 
-pub fn make_core_interp() -> Result<InterpLibRegister,String> {
+pub fn make_core_interp() -> InterpLibRegister {
     let set_id = CommandSetId::new("core",(0,0),0x6131BA5737E6EAE0);
     let mut set = InterpLibRegister::new(&set_id);
-    const_commands_interp(&mut set)?;
+    const_commands_interp(&mut set);
     set.push(NilDeserializer());
     set.push(CopyDeserializer());
     set.push(AppendDeserializer());
@@ -393,5 +395,5 @@ pub fn make_core_interp() -> Result<InterpLibRegister,String> {
     set.push(AtDeserializer());
     set.push(ReFilterDeserializer());
     set.push(PauseDeserializer());
-    Ok(set)
+    set
 }

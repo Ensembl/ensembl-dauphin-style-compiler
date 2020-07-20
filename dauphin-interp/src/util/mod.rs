@@ -18,4 +18,4 @@ pub mod cbor;
 pub mod error;
 pub mod templates;
 
-pub use error::{ DauphinError, xxx_error, error_locate, error_runtime };
+pub use error::{ DauphinError, error_locate, error_locate_cb, result_locate, result_runtime, triage_source_errors };

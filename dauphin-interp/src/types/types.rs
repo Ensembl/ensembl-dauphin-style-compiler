@@ -15,6 +15,7 @@
  */
 
 use std::fmt;
+use crate::util::DauphinError;
 use crate::util::cbor::cbor_int;
 use crate::command::Identifier;
 use serde_cbor::Value as CborValue;
@@ -28,7 +29,7 @@ pub enum MemberMode {
 }
 
 impl MemberMode {
-    pub fn deserialize(cbor: &CborValue) -> Result<MemberMode,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<MemberMode> {
         Ok(match cbor_int(cbor,Some(3))? {
             0 => MemberMode::In,
             1 => MemberMode::InOut,
@@ -71,17 +72,17 @@ pub enum BaseType {
 }
 
 impl BaseType {
-    pub fn serialize(&self) -> Result<CborValue,String> {
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(match self {
             BaseType::StringType => CborValue::Integer(0),
             BaseType::BytesType => CborValue::Integer(1),
             BaseType::NumberType => CborValue::Integer(2),
             BaseType::BooleanType => CborValue::Integer(3),
-            _ => Err("cannot serialize complex basetypes")?
+            _ => Err(DauphinError::internal(file!(),line!()))? /* cannot serialize complex basetypes */
         })
     }
 
-    pub fn deserialize(cbor: &CborValue) -> Result<BaseType,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<BaseType> {
         Ok(match cbor_int(cbor,Some(3))? {
             0 => BaseType::StringType,
             1 => BaseType::BytesType,
@@ -119,7 +120,7 @@ pub enum MemberDataFlow { In, Out, InOut }
 
 // XXX remove data-flow from sig
 impl MemberDataFlow {
-    pub fn deserialize(cbor: &CborValue) -> Result<MemberDataFlow,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<MemberDataFlow> {
         Ok(match cbor_int(cbor,Some(2))? {
             0 => MemberDataFlow::In,
             1 => MemberDataFlow::Out,

@@ -14,9 +14,6 @@
  *  limitations under the License.
  */
 
-#[macro_use]
-use super::commontype;
-
 use crate::cli::Config;
 use crate::command::{
     Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, PreImagePrepare,
@@ -35,7 +32,7 @@ struct NilTimeTrial();
 impl TimeTrialCommandType for NilTimeTrial {
     fn timetrial_make_trials(&self) -> (i64,i64) { (0,1) }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Nil,vec![Register(0)]))
     }
 }
@@ -54,16 +51,16 @@ impl CommandType for NilCommandType {
         }
     }
     
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(NilCommand(it.regs[0],self.0)))
     }
 
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&NilTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = TimeTrial::deserialize(&t[0])?.evaluate(1.);
         Ok(())
@@ -73,11 +70,11 @@ impl CommandType for NilCommandType {
 pub struct NilCommand(Register,f64);
 
 impl Command for NilCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> {
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> {
         if context.is_last() {
             Ok(PreImagePrepare::Keep(vec![(self.0,1)]))
         } else {
@@ -85,7 +82,7 @@ impl Command for NilCommand {
         }
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -104,7 +101,7 @@ impl TimeTrialCommandType for CopyTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Copy,vec![Register(0),Register(1)]))
     }
 }
@@ -114,11 +111,11 @@ type_instr2!(CopyCommandType,CopyCommand,InstructionSuperType::Copy,CopyTimeTria
 pub struct CopyCommand(Register,Register,Option<TimeTrial>);
 
 impl Command for CopyCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = context.get_reg_size(&self.1) {
@@ -128,7 +125,7 @@ impl Command for CopyCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -154,7 +151,7 @@ impl TimeTrialCommandType for AppendTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Append,vec![Register(0),Register(1)]))
     }
 }
@@ -164,11 +161,11 @@ type_instr2!(AppendCommandType,AppendCommand,InstructionSuperType::Append,Append
 pub struct AppendCommand(Register,Register,Option<TimeTrial>);
 
 impl Command for AppendCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.0) && context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let (Some(a),Some(b)) = (context.get_reg_size(&self.0),context.get_reg_size(&self.1)) {
@@ -178,7 +175,7 @@ impl Command for AppendCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -209,7 +206,7 @@ impl TimeTrialCommandType for LengthTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Length,vec![Register(0),Register(1)]))
     }
 }
@@ -219,11 +216,11 @@ type_instr2!(LengthCommandType,LengthCommand,InstructionSuperType::Length,Length
 pub struct LengthCommand(Register,Register,Option<TimeTrial>);
 
 impl Command for LengthCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else {
@@ -231,7 +228,7 @@ impl Command for LengthCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -261,7 +258,7 @@ impl TimeTrialCommandType for AddTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Add,vec![Register(0),Register(1)]))
     }
 }
@@ -271,11 +268,11 @@ type_instr2!(AddCommandType,AddCommand,InstructionSuperType::Add,AddTimeTrial);
 pub struct AddCommand(Register,Register,Option<TimeTrial>);
 
 impl Command for AddCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.0) && context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(a) = context.get_reg_size(&self.0) {
@@ -285,7 +282,7 @@ impl Command for AddCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -318,7 +315,7 @@ impl TimeTrialCommandType for ReFilterTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::ReFilter,vec![Register(0),Register(1),Register(2)]))
     }
 }
@@ -328,11 +325,11 @@ type_instr3!(ReFilterCommandType,ReFilterCommand,InstructionSuperType::ReFilter,
 pub struct ReFilterCommand(Register,Register,Register,Option<TimeTrial>);
 
 impl Command for ReFilterCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(a) = context.get_reg_size(&self.2) {
@@ -342,7 +339,7 @@ impl Command for ReFilterCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -372,7 +369,7 @@ impl TimeTrialCommandType for NumEqTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::NumEq,vec![Register(0),Register(1),Register(2)]))
     }
 }
@@ -390,16 +387,16 @@ impl CommandType for NumEqCommandType {
             trigger: CommandTrigger::Instruction(InstructionSuperType::NumEq)
         }
     }
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(NumEqCommand(it.regs[0],it.regs[1],it.regs[2],self.0.clone())))
     }
 
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&NumEqTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -409,11 +406,11 @@ impl CommandType for NumEqCommandType {
 pub struct NumEqCommand(pub(crate) Register,pub(crate) Register, pub(crate) Register,Option<TimeTrial>);
 
 impl Command for NumEqCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(a) = context.get_reg_size(&self.1) {
@@ -423,7 +420,7 @@ impl Command for NumEqCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -450,7 +447,7 @@ impl TimeTrialCommandType for FilterTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Filter,vec![Register(0),Register(1),Register(2)]))
     }
 }
@@ -460,11 +457,11 @@ type_instr3!(FilterCommandType,FilterCommand,InstructionSuperType::Filter,Filter
 pub struct FilterCommand(Register,Register,Register,Option<TimeTrial>);
 
 impl Command for FilterCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(a) = context.get_reg_size(&self.1) {
@@ -474,7 +471,7 @@ impl Command for FilterCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -502,7 +499,7 @@ impl TimeTrialCommandType for RunTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::Run,vec![Register(0),Register(1),Register(2),Register(3)]))
     }
 }
@@ -529,11 +526,11 @@ impl RunCommand {
 }
 
 impl Command for RunCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.2) {
             if context.is_reg_valid(&self.1) && !context.is_last() {
                 PreImagePrepare::Replace
@@ -550,7 +547,7 @@ impl Command for RunCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -576,7 +573,7 @@ impl TimeTrialCommandType for AtTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::At,vec![Register(0),Register(1)]))
     }
 }
@@ -586,11 +583,11 @@ type_instr2!(AtCommandType,AtCommand,InstructionSuperType::At,AtTimeTrial);
 pub struct AtCommand(Register,Register,Option<TimeTrial>);
 
 impl Command for AtCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(a) = context.get_reg_size(&self.1) {
@@ -600,7 +597,7 @@ impl Command for AtCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -629,7 +626,7 @@ impl TimeTrialCommandType for SeqFilterTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::SeqFilter,vec![Register(0),Register(1),Register(2),Register(3)]))
     }
 }
@@ -639,11 +636,11 @@ type_instr4!(SeqFilterCommandType,SeqFilterCommand,InstructionSuperType::SeqFilt
 pub struct SeqFilterCommand(Register,Register,Register,Register,Option<TimeTrial>);
 
 impl Command for SeqFilterCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.3) {
             if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
                 PreImagePrepare::Replace
@@ -661,7 +658,7 @@ impl Command for SeqFilterCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -686,7 +683,7 @@ impl TimeTrialCommandType for SeqAtTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         Ok(Instruction::new(InstructionType::SeqAt,vec![Register(0),Register(1),Register(2)]))
     }
 }
@@ -696,11 +693,11 @@ type_instr3!(SeqAtCommandType,SeqAtCommand,InstructionSuperType::SeqAt,SeqAtTime
 pub struct SeqAtCommand(Register,Register,Register,Option<TimeTrial>);
 
 impl Command for SeqAtCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(x) = context.get_reg_size(&self.2) {
@@ -710,7 +707,7 @@ impl Command for SeqAtCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -732,7 +729,7 @@ impl CommandType for PauseCommandType {
             trigger: CommandTrigger::Instruction(InstructionSuperType::Pause)
         }
     }
-    fn from_instruction(&self, _it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, _it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(PauseCommand()))
     }
 }
@@ -740,15 +737,15 @@ impl CommandType for PauseCommandType {
 pub struct PauseCommand();
 
 impl Command for PauseCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![]))
     }
 }
 
-pub fn make_core() -> Result<CompLibRegister,String> {
+pub fn make_core() -> CompLibRegister {
     let set_id = CommandSetId::new("core",(0,0),0x6131BA5737E6EAE0);
-    let mut set = CompLibRegister::new(&set_id,Some(make_core_interp()?));
-    const_commands(&mut set)?;
+    let mut set = CompLibRegister::new(&set_id,Some(make_core_interp()));
+    const_commands(&mut set);
     set.push("nil",Some(5),NilCommandType::new());
     set.push("copy",Some(6),CopyCommandType::new());
     set.push("append",Some(7),AppendCommandType::new());
@@ -763,5 +760,5 @@ pub fn make_core() -> Result<CompLibRegister,String> {
     set.push("refilter",Some(16),ReFilterCommandType::new());
     set.push("pause",Some(18),PauseCommandType());
     set.dynamic_data(include_bytes!("core-0.0.ddd"));
-    Ok(set)
+    set
 }

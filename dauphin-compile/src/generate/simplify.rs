@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashMap;
 use crate::command::{ Instruction, InstructionType };
 use crate::util::DFloat;
@@ -23,6 +24,7 @@ use super::gencontext::GenContext;
 use dauphin_interp::command::Identifier;
 use dauphin_interp::runtime::Register;
 use dauphin_interp::types::BaseType;
+use dauphin_interp::util::DauphinError;
 
 /* simplification is the process of converting arbitrary assemblies of structs, enums and vecs into sets of vecs of
  * simple values. To achieve this, vecs of structured types are converted to sets of vecs of simpler types.
@@ -79,15 +81,15 @@ fn allocate_registers(context: &mut GenContext, member_types: &Vec<MemberType>, 
     out
 }
 
-fn extend_vertical<F>(in_: &Vec<Register>, mapping: &HashMap<Register,Vec<Register>>,mut cb: F) -> Result<(),String>
-        where F: FnMut(Vec<Register>) -> Result<(),String> {
+fn extend_vertical<F>(in_: &Vec<Register>, mapping: &HashMap<Register,Vec<Register>>,mut cb: F) -> anyhow::Result<()>
+        where F: FnMut(Vec<Register>) -> anyhow::Result<()> {
     let mut expanded = Vec::new();
     let mut len = None;
     for in_reg in in_.iter() {
         let in_reg = in_reg.clone().clone();
         let map = mapping.get(&in_reg).unwrap_or(&vec![in_reg]).clone();
         if len.is_none() { len = Some(map.len()); }
-        if map.len() != len.unwrap() { return Err("mismatched register lengths".to_string()); }
+        if map.len() != len.unwrap() { return Err(DauphinError::internal(file!(),line!())); /* mismatched register lengths */ }
         expanded.push(map);
     }
     for i in 0..len.unwrap() {
@@ -98,7 +100,7 @@ fn extend_vertical<F>(in_: &Vec<Register>, mapping: &HashMap<Register,Vec<Regist
 }
 
 /* Some easy value for unused enum branches */
-fn build_nil(context: &mut GenContext, defstore: &DefStore, reg: &Register, type_: &MemberType) -> Result<(),String> {
+fn build_nil(context: &mut GenContext, defstore: &DefStore, reg: &Register, type_: &MemberType) -> anyhow::Result<()> {
     match type_ {
         MemberType::Vec(m) =>  {
             let subreg = context.allocate_register(Some(m));
@@ -110,7 +112,7 @@ fn build_nil(context: &mut GenContext, defstore: &DefStore, reg: &Register, type
             BaseType::StringType => context.add(Instruction::new(InstructionType::StringConst(String::new()),vec![*reg])),
             BaseType::NumberType => context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(0)),vec![*reg])),
             BaseType::BytesType => context.add(Instruction::new(InstructionType::BytesConst(vec![]),vec![*reg])),
-            BaseType::Invalid => return Err("cannot build nil".to_string()),
+            BaseType::Invalid =>  return Err(DauphinError::internal(file!(),line!())),
             BaseType::StructType(name) => {
                 let decl = defstore.get_struct_id(name)?;
                 let mut subregs = vec![*reg];
@@ -123,8 +125,8 @@ fn build_nil(context: &mut GenContext, defstore: &DefStore, reg: &Register, type
             },
             BaseType::EnumType(name) => {
                 let decl = defstore.get_enum_id(name)?;
-                let branch_type = decl.get_branch_types().get(0).ok_or_else(|| "cannot build nil".to_string())?;
-                let field_name = decl.get_names().get(0).ok_or_else(|| "cannot build nil".to_string())?;
+                let branch_type = decl.get_branch_types().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+                let field_name = decl.get_names().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 let subreg = context.allocate_register(Some(branch_type));
                 build_nil(context,defstore,&subreg,branch_type)?;
                 context.add(Instruction::new(InstructionType::CtorEnum(name.clone(),field_name.clone()),vec![*reg,subreg]));
@@ -134,7 +136,7 @@ fn build_nil(context: &mut GenContext, defstore: &DefStore, reg: &Register, type
     Ok(())
 }
 
-fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> Result<(),String> {
+fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
     Ok(match &instr.itype {
         InstructionType::Proc(_,_) |
         InstructionType::Operator(_) |
@@ -213,14 +215,14 @@ fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &HashMa
     })
 }
 
-fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &StructDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> Result<(),String> {
+fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &StructDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
     /* because types topologically ordered and non-recursive
     * we know there's nothing to expand in the args in the else branches.
     */
     Ok(match &instr.itype {
         InstructionType::CtorStruct(name) => {
             if name == obj_name {
-                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| "missing register".to_string())?;
+                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 for i in 1..instr.regs.len() {
                     instr!(context,Copy,dests[i-1],instr.regs[i]);
                 }
@@ -230,14 +232,14 @@ fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &S
         },
 
         InstructionType::SValue(name,field) if name == obj_name => {
-            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
-            let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| "missing register".to_string())?;
+            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
             instr!(context,Copy,instr.regs[0],dests[pos]);
         },
 
         InstructionType::RefSValue(name,field) if name == obj_name => {
-            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
-            let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| "missing register".to_string())?;
+            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
             instr!(context,Alias,instr.regs[0],dests[pos]);
         },
 
@@ -245,19 +247,19 @@ fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &S
     })
 }
 
-fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &Identifier, decl: &EnumDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> Result<(),String> {
+fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &Identifier, decl: &EnumDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
     /* because types topologically ordered and non-recursive we know there's nothing to expand in the args */
     Ok(match &instr.itype {
         InstructionType::CtorEnum(name,field) => {
             if name == obj_name {
-                let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| "missing register".to_string())?;
-                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| "missing register".to_string())?;
+                let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
+                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 for i in 1..dests.len() {
                     if i-1 == pos {
                         context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(i-1)),vec![dests[0]]));
                         instr!(context,Copy,dests[i],instr.regs[1]);
                     } else {
-                        let type_ = context.xxx_types().get(&dests[i]).ok_or_else(|| "missing register".to_string())?.clone();
+                        let type_ = context.xxx_types().get(&dests[i]).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
                         build_nil(context,defstore,&dests[i],&type_)?;
                     }
                 }
@@ -267,8 +269,8 @@ fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &I
         },
 
         InstructionType::FilterEValue(name,field) if name == obj_name => {
-            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| "missing register".to_string())?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
+            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
+            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             let posreg = allocate!(context,NumberType);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
             let seq = instr_f!(context,NumberType,At,srcs[0]);
@@ -277,8 +279,8 @@ fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &I
         },
 
         InstructionType::EValue(name,field) if name == obj_name => {
-            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| "missing register".to_string())?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
+            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
+            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             let posreg = allocate!(context,NumberType);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
             let filter = instr_f!(context,BooleanType,NumEq,srcs[0],posreg);
@@ -286,14 +288,14 @@ fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &I
         },
 
         InstructionType::RefEValue(name,field) if name == obj_name => {
-            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| "missing register".to_string())?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
+            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
+            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             instr!(context,Alias,instr.regs[0],srcs[pos+1]);
         },
 
         InstructionType::ETest(name,field) if name == obj_name => {
-            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| "missing register".to_string())?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| "missing register".to_string())?;
+            let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
+            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             let posreg = allocate!(context,NumberType);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
             instr!(context,NumEq,instr.regs[0],srcs[0],posreg);
@@ -303,7 +305,7 @@ fn extend_enum_instr(defstore: &DefStore, context: &mut GenContext, obj_name: &I
     })
 }
 
-fn make_new_registers(context: &mut GenContext, member_types: &Vec<MemberType>, base: BaseType, with_index: bool) -> Result<HashMap<Register,Vec<Register>>,String> {
+fn make_new_registers(context: &mut GenContext, member_types: &Vec<MemberType>, base: BaseType, with_index: bool) -> anyhow::Result<HashMap<Register,Vec<Register>>> {
     let mut target_registers = Vec::new();
     /* which registers will we be expanding? */
     for (reg,reg_type) in context.xxx_types().each_register() {
@@ -315,14 +317,14 @@ fn make_new_registers(context: &mut GenContext, member_types: &Vec<MemberType>, 
     /* create some new subregisters for them */
     let mut new_registers = HashMap::new();
     for reg in &target_registers {
-        let type_ = context.xxx_types().get(reg).ok_or_else(|| "Missing register")?.clone();
+        let type_ = context.xxx_types().get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
         new_registers.insert(reg.clone(),allocate_registers(context,member_types,with_index,type_.get_container()));
     }
     /* move any refs which include our member forward to new origin */
     Ok(new_registers)
 }
 
-fn extend_one(defstore: &DefStore, context: &mut GenContext, name: &Identifier) -> Result<(),String> {
+fn extend_one(defstore: &DefStore, context: &mut GenContext, name: &Identifier) -> anyhow::Result<()> {
     if let Some(decl) = defstore.get_struct_id(name).ok() {
         let member_types = decl.get_member_types();
         let base = BaseType::StructType(name.clone());
@@ -334,18 +336,17 @@ fn extend_one(defstore: &DefStore, context: &mut GenContext, name: &Identifier) 
         let member_types = decl.get_branch_types();
         let base = BaseType::EnumType(name.clone());
         let new_registers = make_new_registers(context,member_types,base,true)?;
-        print!("new_registers {:?}\n",new_registers);
         for instr in &context.get_instructions() {
             extend_enum_instr(defstore,context,name,decl,instr,&new_registers)?;
         }
     } else {
-        return Err("can only extend structs/enums".to_string());                
+        return Err(DauphinError::internal(file!(),line!())); /* can only extend structs/enums */
     };
     context.phase_finished();
     Ok(())
 }
 
-pub fn simplify(defstore: &DefStore, context: &mut GenContext) -> Result<(),String> {
+pub fn simplify(defstore: &DefStore, context: &mut GenContext) -> anyhow::Result<()> {
     for name in defstore.get_structenum_order().rev() {
         extend_one(defstore,context,name)?;
     }

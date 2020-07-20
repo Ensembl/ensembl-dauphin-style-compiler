@@ -22,7 +22,8 @@ use super::filelexer::{ FileLexer };
 use crate::resolver::Resolver;
 use super::inlinetokens::InlineTokens;
 use super::token::Token;
-use dauphin_interp::util::{ DauphinError, xxx_error, error_locate };
+use dauphin_interp::util::{ error_locate_cb };
+use crate::parser::parse_locate;
 
 #[derive(Debug,PartialEq,Eq,Hash,Clone)]
 pub struct FileContentsHandle {
@@ -111,16 +112,19 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn add_inline(&mut self, s: &str, mode: bool) -> Result<(),String> {
-        self.inlines.add(s,mode)
+    pub fn add_inline(&mut self, s: &str, mode: bool) -> anyhow::Result<()> {
+        parse_locate(self.inlines.add(s,mode),self)
     }
 
     pub fn import(&mut self, path: &str) -> anyhow::Result<()> {
-        let p = self.position();
         let resolver = self.files.iter().last().map(|f| f.get_resolver()).unwrap_or_else(|| &self.resolver);
-        error_locate(resolver.resolve(path).map(|stream| {
+        let out = resolver.resolve(path).map(|stream| {
             self.files.push(FileLexer::new(stream.1,stream.0)); ()
-        }),p.filename(),p.line())
+        });
+        error_locate_cb(|| {
+            let p = self.position();
+            (p.filename().to_string(),p.line())
+        },out)
     }
 
     pub fn position(&self) -> LexerPosition {
@@ -184,7 +188,7 @@ mod test {
     #[test]
     fn lexer_smoke() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:lexer/smoke2").expect("import failed");
@@ -208,9 +212,9 @@ mod test {
     #[test]
     fn missing() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        assert!(xxx_error(lexer.import("file:missing")).err().unwrap().contains("No such file or directory"));
+        assert!(format!("{:?}",lexer.import("file:missing").err().unwrap()).contains("No such file or directory"));
     }
 }

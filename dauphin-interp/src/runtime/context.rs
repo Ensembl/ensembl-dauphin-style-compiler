@@ -18,6 +18,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::rc::Rc;
 use crate::runtime::RegisterFile;
+use crate::util::DauphinError;
 
 pub trait Payload {
     fn as_any(&self) -> &dyn Any;
@@ -62,8 +63,8 @@ impl InterpContext {
     }
     pub fn registers(&self) -> &RegisterFile { &self.registers }
     pub fn registers_mut(&mut self) -> &mut RegisterFile { &mut self.registers }
-    pub fn payload(&mut self, set: &str, name: &str) -> Result<&mut Box<dyn Payload>,String> {
-        self.payloads.get_mut(&(set.to_string(),name.to_string())).ok_or_else(|| format!("missing payload {}",name))
+    pub fn payload(&mut self, set: &str, name: &str) -> anyhow::Result<&mut Box<dyn Payload>> {
+        self.payloads.get_mut(&(set.to_string(),name.to_string())).ok_or_else(|| DauphinError::runtime(&format!("missing payload {}",name)))
     }
 
     pub fn set_line_number(&mut self, filename: &str, line_number: u32) {

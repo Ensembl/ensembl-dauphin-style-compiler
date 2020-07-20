@@ -55,7 +55,7 @@ impl DocumentResolver for HashMapResolver {
         if let Some(value) = self.0.get(key) {
             Ok(query.new_result(StringCharSource::new(query.original_name(),key,value.to_string())))
         } else {
-            Err(DauphinError::floating(&format!("No such library header 'lib:{}'",key)))
+            Err(DauphinError::source(&format!("No such library header 'lib:{}'",key)))
         }
     }
 }

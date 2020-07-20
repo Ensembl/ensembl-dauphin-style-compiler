@@ -18,6 +18,7 @@ use std::fmt;
 use serde_cbor::Value as CborValue;
 use crate::types::BaseType;
 use crate::util::cbor::{ cbor_int, cbor_array };
+use crate::util::DauphinError;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct VectorRegisters {
@@ -45,14 +46,14 @@ impl VectorRegisters {
         regs
     }
     
-    pub fn deserialize(cbor: &CborValue) -> Result<VectorRegisters,String> {
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<VectorRegisters> {
         let v = cbor_array(cbor,3,false)?;
         let mut out = VectorRegisters::new(cbor_int(&v[0],None)? as usize,BaseType::deserialize(&v[2])?);
         out.add_start(cbor_int(&v[1],None)? as usize);
         Ok(out)
     }
 
-    pub fn serialize(&self, with_start: bool) -> Result<CborValue,String> {
+    pub fn serialize(&self, with_start: bool) -> anyhow::Result<CborValue> {
         let start = if with_start { self.start } else { 0 };
         Ok(CborValue::Array(vec![CborValue::Integer(self.depth as i128),CborValue::Integer(start as i128),self.base.serialize()?]))
     }
@@ -68,19 +69,19 @@ impl VectorRegisters {
         if level > 0 { self.offset_pos(level-1).unwrap() } else { self.data_pos() }
     }
 
-    pub fn offset_pos(&self, level: usize) -> Result<usize,String> {
+    pub fn offset_pos(&self, level: usize) -> anyhow::Result<usize> {
         if self.depth > level {
             Ok(self.start+level*2+1)
         } else {
-            Err(format!("bad level {}. depth is {}",level,self.depth))
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 
-    pub fn length_pos(&self, level: usize) -> Result<usize,String> {
+    pub fn length_pos(&self, level: usize) -> anyhow::Result<usize> {
         if self.depth > level {
             Ok(self.start+level*2+2)
         } else {
-            Err(format!("bad level {}. depth is {}",level,self.depth))
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 

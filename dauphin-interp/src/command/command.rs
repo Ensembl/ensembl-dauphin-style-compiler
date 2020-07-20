@@ -14,16 +14,17 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use serde_cbor::Value as CborValue;
 use crate::runtime::InterpContext;
 
 pub trait CommandDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String>;
-    fn deserialize(&self, opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String>;
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>>;
+    fn deserialize(&self, opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>>;
 }
 
 pub trait InterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String>;
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()>;
 }
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]

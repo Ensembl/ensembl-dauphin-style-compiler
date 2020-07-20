@@ -18,6 +18,7 @@ use crate::test::{ xxx_test_config, make_compiler_suite, mini_interp, load_testd
 use dauphin_interp::types::{ MemberMode };
 use dauphin_interp::command::{ InterpreterLink };
 use dauphin_interp::runtime::InterpContext;
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::cli::Config;
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::parser::{ Parser, parse_type };
@@ -31,7 +32,7 @@ use dauphin_lib_std::stream::{ StreamFactory, Stream };
 // XXX move to common test utils
 fn make_type(defstore: &DefStore, name: &str) -> MemberType {
     let config = xxx_test_config();
-    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(&format!("data:{}",name)).expect("cannot load file");
@@ -54,15 +55,15 @@ fn load_cmp(filename: &str) -> String {
 #[test]
 fn offset_enums() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/offset-enums").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"offset_enums::stest")).expect("b");
     assert_eq!(load_cmp("offset-enums.out"),regs.to_string());
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
@@ -73,13 +74,13 @@ fn offset_enums() {
 fn typing_smoke() {
     let mut config = xxx_test_config();
     config.set_opt_seq("");
-    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("cfg");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/typepass-smoke").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let instrs_str : Vec<String> = instrs.iter().map(|v| format!("{:?}",v)).collect();
     print!("{}\n",instrs_str.join(""));
     let mut tp = Typing::new();
@@ -125,17 +126,17 @@ fn lvalue_regression() {
 fn line_number_smoke() {
     let mut config = xxx_test_config();
     config.set_opt_seq("");
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/line-number").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     linker.add("main",&instrs,&config).expect("a");
-    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x");
+    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
-    assert!(message.ends_with("codegen/line-number:10"));
+    assert!(message.contains("codegen/line-number:10"));
 }
 
 #[test]
@@ -143,15 +144,15 @@ fn no_line_number_smoke() {
     let mut config = xxx_test_config();
     config.set_generate_debug(false);
     config.set_opt_seq("");
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/line-number").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     linker.add("main",&instrs,&config).expect("a");
-    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x");
+    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(!message.contains(" at "));
 }
@@ -196,13 +197,13 @@ fn compare_instrs(a: &Vec<String>,b: &Vec<String>) {
 #[test]
 fn simplify_smoke() {
     let config = xxx_test_config();
-    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/simplify-smoke").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let mut context = generate_code(&defstore,&stmts,true).expect("codegen");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("m");
     call(&mut context).expect("j");
     simplify(&defstore,&mut context).expect("k");
     let outdata = load_testdata(&["codegen","simplify-smoke.out"]).ok().unwrap();
@@ -219,13 +220,13 @@ fn simplify_enum_nest() {
 #[test]
 fn simplify_enum_lvalue() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/enum-lvalue").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
@@ -235,13 +236,13 @@ fn simplify_enum_lvalue() {
 #[test]
 fn simplify_struct_lvalue() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/struct-lvalue").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
@@ -252,13 +253,13 @@ fn simplify_struct_lvalue() {
 #[test]
 fn simplify_both_lvalue() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/both-lvalue").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
@@ -270,13 +271,13 @@ fn simplify_both_lvalue() {
 fn dealias_smoke() {
     // XXX check all aliases gone
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/linearize-refsquare").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let (values,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     print!("{:?}\n",values);
     for s in &strings {
@@ -293,13 +294,13 @@ fn dealias_smoke() {
 #[test]
 fn reuse_regs_smoke() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:codegen/reuse-regs").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
@@ -318,13 +319,13 @@ fn pause_check(filename: &str) -> bool {
     let mut config = xxx_test_config();
     config.set_generate_debug(false);
     config.set_opt_seq("pcpmuedpdpa"); /* no r to avoid re-ordering */
-    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(&format!("search:codegen/{}",filename)).expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let mut seen_force_pause = false;
     for instr in &instrs {
         if seen_force_pause {
@@ -348,19 +349,19 @@ fn pause() {
     assert!(!pause_check("no-pause"));
 }
 
-fn make_program(linker: &mut CompilerLink, resolver: &Resolver, config: &Config, name: &str, path: &str) -> Result<(),String> {
+fn make_program(linker: &mut CompilerLink, resolver: &Resolver, config: &Config, name: &str, path: &str) -> anyhow::Result<()> {
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     linker.add(name,&instrs,config)?;
     Ok(())
 }
 
-pub fn std_stream(context: &mut InterpContext) -> Result<&mut Stream,String> {
+pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     let p = context.payload("std","stream")?;
-    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| "No stream context".to_string())?)
+    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("No stream context"))?)
 }    
 
 #[test]
@@ -368,7 +369,7 @@ fn test_multi_program() {
     let mut config = xxx_test_config();
     config.set_generate_debug(false);
     config.set_verbose(2);
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     make_program(&mut linker,&resolver,&config,"prog1","search:codegen/multiprog1").expect("cannot build prog1");
     make_program(&mut linker,&resolver,&config,"prog2","search:codegen/multiprog2").expect("cannot build prog2");

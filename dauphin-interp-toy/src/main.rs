@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::fmt::Display;
 use std::fs::read;
 use std::process::exit;
@@ -40,14 +41,14 @@ fn read_binary_file(filename: &str) -> Vec<u8> {
     )
 }
 
-fn make_suite() -> Result<CommandInterpretSuite,String> {
+fn make_suite() -> anyhow::Result<CommandInterpretSuite> {
     let mut suite = CommandInterpretSuite::new();
-    suite.register(make_core_interp()?)?;
-    suite.register(make_std_interp()?)?;
+    suite.register(make_core_interp()).context("registering core")?;
+    suite.register(make_std_interp()).context("registering std")?;
     Ok(suite)     
 }
 
-fn interpreter<'a>(linker: &'a InterpreterLink, name: &str) -> Result<Box<dyn InterpretInstance<'a> + 'a>,String> {
+fn interpreter<'a>(linker: &'a InterpreterLink, name: &str) -> anyhow::Result<Box<dyn InterpretInstance<'a> + 'a>> {
     Ok(Box::new(StandardInterpretInstance::new(linker,name)?))
 }
 

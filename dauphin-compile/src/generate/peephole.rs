@@ -18,7 +18,7 @@ use std::collections::HashSet;
 use super::gencontext::GenContext;
 use crate::command::{ Instruction, InstructionType };
 
-pub fn peephole_nil_append(context: &mut GenContext) -> Result<(),String> {
+pub fn peephole_nil_append(context: &mut GenContext) {
     let mut nil_regs = HashSet::new();
     let instrs = context.get_instructions();
     for instr in instrs.iter() {
@@ -42,10 +42,9 @@ pub fn peephole_nil_append(context: &mut GenContext) -> Result<(),String> {
         context.add(instr);
     }
     context.phase_finished();
-    Ok(())
 }
 
-pub fn peephole_linenum_remove(context: &mut GenContext) -> Result<(),String> {
+pub fn peephole_linenum_remove(context: &mut GenContext) {
     let mut rev_instrs = context.get_instructions();
     rev_instrs.reverse();
     let mut seen_line = false;
@@ -69,5 +68,4 @@ pub fn peephole_linenum_remove(context: &mut GenContext) -> Result<(),String> {
         context.add(instr);
     }
     context.phase_finished();
-    Ok(())
 }

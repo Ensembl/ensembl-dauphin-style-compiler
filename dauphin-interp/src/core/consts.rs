@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_int, cbor_string };
 use crate::command::{ InterpLibRegister, InterpCommand, CommandDeserializer };
 use crate::runtime::{ InterpValue, InterpContext, Register };
@@ -25,7 +26,7 @@ macro_rules! force_branch {
         if let $ty::$branch(v) = $value {
             Ok(v)
         } else {
-            Err("Cannot extract".to_string())
+            Err(DauphinError::internal(file!(),line!()))
         }?
     };
 }
@@ -33,8 +34,8 @@ macro_rules! force_branch {
 pub struct NumberConstDeserializer();
 
 impl CommandDeserializer for NumberConstDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((0,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((0,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(NumberConstInterpCommand(Register::deserialize(&value[0])?,*force_branch!(value[1],CborValue,Float)))) 
     }
 }
@@ -42,7 +43,7 @@ impl CommandDeserializer for NumberConstDeserializer {
 pub struct NumberConstInterpCommand(Register,f64);
 
 impl InterpCommand for NumberConstInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Numbers(vec![self.1]));
         Ok(())
     }
@@ -51,10 +52,10 @@ impl InterpCommand for NumberConstInterpCommand {
 pub struct ConstDeserializer();
 
 impl CommandDeserializer for ConstDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((1,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((1,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         let v = force_branch!(&value[1],CborValue,Array);
-        let v = v.iter().map(|x| { Ok(*force_branch!(x,CborValue,Integer) as usize) }).collect::<Result<Vec<usize>,String>>()?;
+        let v = v.iter().map(|x| { Ok(*force_branch!(x,CborValue,Integer) as usize) }).collect::<anyhow::Result<Vec<usize>>>()?;
         Ok(Box::new(ConstInterpCommand(Register::deserialize(&value[0])?,v)))
     }
 }
@@ -62,7 +63,7 @@ impl CommandDeserializer for ConstDeserializer {
 pub struct ConstInterpCommand(Register,Vec<usize>);
 
 impl InterpCommand for ConstInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Indexes(self.1.to_vec()));
         Ok(())
     }
@@ -71,8 +72,8 @@ impl InterpCommand for ConstInterpCommand {
 pub struct BooleanConstDeserializer();
 
 impl CommandDeserializer for BooleanConstDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((2,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((2,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(BooleanConstInterpCommand(Register::deserialize(&value[0])?,*force_branch!(value[1],CborValue,Bool))))
     }
 }
@@ -80,7 +81,7 @@ impl CommandDeserializer for BooleanConstDeserializer {
 pub struct BooleanConstInterpCommand(Register,bool);
 
 impl InterpCommand for BooleanConstInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Boolean(vec![self.1]));
         Ok(())
     }
@@ -89,8 +90,8 @@ impl InterpCommand for BooleanConstInterpCommand {
 pub struct StringConstDeserializer();
 
 impl CommandDeserializer for StringConstDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((3,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((3,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         let v = force_branch!(value[1],CborValue,Text).to_string();
         Ok(Box::new(StringConstInterpCommand(Register::deserialize(&value[0])?,v)))
     }
@@ -99,18 +100,17 @@ impl CommandDeserializer for StringConstDeserializer {
 pub struct StringConstInterpCommand(Register,String);
 
 impl InterpCommand for StringConstInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Strings(vec![self.1.to_string()]));
         Ok(())
     }
 }
 
-
 pub struct BytesConstDeserializer();
 
 impl CommandDeserializer for BytesConstDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((4,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((4,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         let v = force_branch!(value[1],CborValue,Bytes).to_vec();
         Ok(Box::new(BytesConstInterpCommand(Register::deserialize(&value[0])?,v)))
     }
@@ -119,7 +119,7 @@ impl CommandDeserializer for BytesConstDeserializer {
 pub struct BytesConstInterpCommand(Register,Vec<u8>);
 
 impl InterpCommand for BytesConstInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.registers_mut().write(&self.0,InterpValue::Bytes(vec![self.1.to_vec()]));
         Ok(())
     }
@@ -128,8 +128,8 @@ impl InterpCommand for BytesConstInterpCommand {
 pub struct LineNumberDeserializer();
 
 impl CommandDeserializer for LineNumberDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((17,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((17,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(LineNumberInterpCommand(cbor_string(&value[0])?,cbor_int(&value[1],None)? as u32)))
     }
 }
@@ -138,18 +138,17 @@ impl CommandDeserializer for LineNumberDeserializer {
 pub struct LineNumberInterpCommand(String,u32);
 
 impl InterpCommand for LineNumberInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         context.set_line_number(&self.0,self.1);
         Ok(())
     }
 }
 
-pub(super) fn const_commands_interp(set: &mut InterpLibRegister) -> Result<(),String> {
+pub(super) fn const_commands_interp(set: &mut InterpLibRegister) {
     set.push(NumberConstDeserializer());
     set.push(ConstDeserializer());
     set.push(BooleanConstDeserializer());
     set.push(StringConstDeserializer());
     set.push(BytesConstDeserializer());
     set.push(LineNumberDeserializer());
-    Ok(())
 }

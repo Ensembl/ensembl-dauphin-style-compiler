@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-// TODO Copy for registers
+use anyhow;
 use std::collections::BTreeMap;
 
 use crate::command::{ InstructionType, Instruction };
@@ -23,6 +23,7 @@ use crate::typeinf::{ MemberType };
 use super::gencontext::GenContext;
 use dauphin_interp::types::BaseType;
 use dauphin_interp::runtime::{ Register };
+use dauphin_interp::util::DauphinError;
 
 /* Linearization is the process of converting arbitrarily deep vectors of simple values into multivals. Although a 
  * multival is a sequence of values, as we need to support multivals of single level lists, all lists get additional
@@ -130,7 +131,7 @@ fn linear_extend<F>(subregs: &BTreeMap<Register,Linearized>, dst: &Register, src
     }
 }
 
-fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearized> , instr: &Instruction) -> Result<(),String> {
+fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearized> , instr: &Instruction) -> anyhow::Result<()> {
     match &instr.itype {
         InstructionType::NumEq |
         InstructionType::ReFilter |
@@ -198,7 +199,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         },
         InstructionType::Append => {
             if let Some(lin_src) = subregs.get(&instr.regs[1]) {
-                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| format!("Missing info for register {:?} in push",instr.regs[0]))?;
+                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 push_top(context,lin_dst,lin_src,lin_src.index.len()-1);
                 for level in (0..lin_src.index.len()-1).rev() {
                     push_copy_level(context,lin_dst,lin_src,level);
@@ -210,7 +211,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         },
 
         InstructionType::RefSquare => {
-            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| format!("Missing info for register {:?} C",instr.regs[1]))?;
+            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             if let Some(lin_dst) = subregs.get(&instr.regs[0]) {
                 context.add(Instruction::new(InstructionType::Alias,vec![lin_dst.data,lin_src.data]));
                 for level in 0..lin_dst.index.len() {
@@ -223,7 +224,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         },
 
         InstructionType::FilterSquare => {
-            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| format!("Missing info for register {:?} D",instr.regs[1]))?;
+            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             let top_level = lin_src.index.len()-1;
             if top_level > 0 {
                 let next_level_reg = lin_src.index[top_level-1].1;
@@ -235,9 +236,9 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         },
 
         InstructionType::Square => {
-            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| format!("Missing info for register {:?} A",instr.regs[1]))?;
+            let lin_src = subregs.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             if lin_src.index.len() > 1 {
-                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| format!("Missing info for register {:?} B",instr.regs[0]))?;
+                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 context.add(Instruction::new(InstructionType::Copy,vec![lin_dst.data,lin_src.data]));
                 let top_level = lin_dst.index.len()-1;
                 if top_level > 0 {
@@ -262,7 +263,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         },
 
         InstructionType::Star => {
-            let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| format!("Missing info for register {:?}",instr.regs[0]))?;
+            let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
             let top_level = lin_dst.index.len()-1;
             context.add(Instruction::new(InstructionType::Nil,vec![lin_dst.index[top_level].0]));
             let src_len = if let Some(lin_src) = subregs.get(&instr.regs[1]) {
@@ -291,7 +292,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
 
         InstructionType::Filter => {
             if let Some(lin_src) = subregs.get(&instr.regs[1]) {
-                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| format!("Missing info for register {:?}",instr.regs[0]))?;
+                let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 let top_level = lin_dst.index.len()-1;
                 context.add(Instruction::new(InstructionType::Filter,vec![lin_dst.index[top_level].0,lin_src.index[top_level].0,instr.regs[2]]));
                 context.add(Instruction::new(InstructionType::Filter,vec![lin_dst.index[top_level].1,lin_src.index[top_level].1,instr.regs[2]]));
@@ -325,7 +326,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
     Ok(())
 }
 
-fn linearize_real(context: &mut GenContext) -> Result<BTreeMap<Register,Linearized>,String> {
+fn linearize_real(context: &mut GenContext) -> anyhow::Result<BTreeMap<Register,Linearized>> {
     let subregs = allocate_subregs(context);
     for instr in &context.get_instructions().to_vec() {
         linearize_one(context,&subregs,&instr)?;
@@ -334,7 +335,7 @@ fn linearize_real(context: &mut GenContext) -> Result<BTreeMap<Register,Lineariz
     Ok(subregs)
 }
 
-pub fn linearize(context: &mut GenContext) -> Result<(),String> {
+pub fn linearize(context: &mut GenContext) -> anyhow::Result<()> {
     linearize_real(context)?;
     Ok(())
 }
@@ -355,13 +356,13 @@ mod test {
     #[test]
     fn linearize_smoke() {
         let config = xxx_test_config();
-        let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/linearize-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
-        let mut context = generate_code(&defstore,&stmts,true).expect("codegen");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
         call(&mut context).expect("j");
         simplify(&defstore,&mut context).expect("k");
         print!("{:?}\n",context);
@@ -374,13 +375,13 @@ mod test {
 
     fn linearize_stable_pass() -> Vec<Instruction> {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/linearize-smoke").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
-        let mut context = generate_code(&defstore,&stmts,true).expect("codegen");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
         call(&mut context).expect("j");
         simplify(&defstore,&mut context).expect("k");
         linearize_real(&mut context).expect("linearize");

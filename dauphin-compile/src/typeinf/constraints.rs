@@ -14,10 +14,12 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use crate::command::{ Instruction, InstructionType };
 use crate::model::DefStore;
 use crate::typeinf::{ ArgumentConstraint, ArgumentExpressionConstraint, InstructionConstraint };
 use dauphin_interp::types::{ BaseType, MemberMode };
+use dauphin_interp::util::DauphinError;
 
 fn placeholder(ref_: bool) -> ArgumentConstraint {
     if ref_ {
@@ -39,7 +41,7 @@ fn fixed(bt: BaseType) -> ArgumentConstraint {
     ArgumentConstraint::NonReference(ArgumentExpressionConstraint::Base(bt))
 }
 
-pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<ArgumentConstraint>,String> {
+pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> anyhow::Result<Vec<ArgumentConstraint>> {
     match it {
         InstructionType::CtorStruct(identifier) => {
             let exprdecl = defstore.get_struct_id(identifier)?;
@@ -51,7 +53,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
 
         InstructionType::CtorEnum(identifier,branch) => {
             let exprdecl = defstore.get_enum_id(identifier)?;
-            let intype = exprdecl.get_branch_type(branch).ok_or_else(|| format!("No such enum branch {:?}",branch))?;
+            let intype = exprdecl.get_branch_type(branch).ok_or_else(|| DauphinError::source(&format!("No such enum branch {:?}",branch)))?;
             Ok(vec![
                 ArgumentConstraint::NonReference(ArgumentExpressionConstraint::Base(BaseType::EnumType(identifier.clone()))),
                 ArgumentConstraint::NonReference(intype.to_argumentexpressionconstraint())
@@ -60,7 +62,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
 
         InstructionType::SValue(identifier,field) => {
             let exprdecl = defstore.get_struct_id(identifier)?;
-            let dtype = exprdecl.get_member_type(field).ok_or_else(|| format!("No such field {:?}",field))?;
+            let dtype = exprdecl.get_member_type(field).ok_or_else(|| DauphinError::source(&format!("No such field {:?}",field)))?;
             Ok(vec![
                 ArgumentConstraint::NonReference(dtype.to_argumentexpressionconstraint()),
                 ArgumentConstraint::NonReference(ArgumentExpressionConstraint::Base(BaseType::StructType(identifier.clone())))
@@ -69,7 +71,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
 
         InstructionType::RefSValue(identifier,field) => {
             let exprdecl = defstore.get_struct_id(identifier)?;
-            let dtype = exprdecl.get_member_type(field).ok_or_else(|| format!("No such field {:?}",field))?;
+            let dtype = exprdecl.get_member_type(field).ok_or_else(|| DauphinError::source(&format!("No such field {:?}",field)))?;
             Ok(vec![
                 ArgumentConstraint::Reference(dtype.to_argumentexpressionconstraint()),
                 ArgumentConstraint::Reference(ArgumentExpressionConstraint::Base(BaseType::StructType(identifier.clone())))
@@ -78,7 +80,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
 
         InstructionType::EValue(identifier,field) => {
             let exprdecl = defstore.get_enum_id(identifier)?;
-            let dtype = exprdecl.get_branch_type(field).ok_or_else(|| format!("No such branch {:?}",field))?;
+            let dtype = exprdecl.get_branch_type(field).ok_or_else(|| DauphinError::source(&format!("No such branch {:?}",field)))?;
             Ok(vec![
                 ArgumentConstraint::NonReference(dtype.to_argumentexpressionconstraint()),
                 ArgumentConstraint::NonReference(ArgumentExpressionConstraint::Base(BaseType::EnumType(identifier.clone())))
@@ -94,7 +96,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
 
         InstructionType::RefEValue(identifier,field) => {
             let exprdecl = defstore.get_enum_id(identifier)?;
-            let dtype = exprdecl.get_branch_type(field).ok_or_else(|| format!("No such branch {:?}",field))?;
+            let dtype = exprdecl.get_branch_type(field).ok_or_else(|| DauphinError::source(&format!("No such branch {:?}",field)))?;
             Ok(vec![
                 ArgumentConstraint::Reference(dtype.to_argumentexpressionconstraint()),
                 ArgumentConstraint::Reference(ArgumentExpressionConstraint::Base(BaseType::EnumType(identifier.clone())))
@@ -166,7 +168,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> Result<Vec<
     }
 }
 
-pub fn get_constraint(instr: &Instruction, defstore: &DefStore) -> Result<InstructionConstraint,String> {
+pub fn get_constraint(instr: &Instruction, defstore: &DefStore) -> anyhow::Result<InstructionConstraint> {
     let mut out = Vec::new();
     for (i,c) in get_constraints(&instr.itype, defstore)?.drain(..).enumerate() {
         out.push((c,instr.regs[i]));

@@ -14,50 +14,52 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use super::inlinetokens::InlineTokens;
+use dauphin_interp::util::DauphinError;
 
 const SPECIAL : &str = "\"$'(),;[]@";
 const NONALNUM : &str = ".?!:";
 
-fn check_unbracketed(c: &str) -> Result<(),String> {
+fn check_unbracketed(c: &str) -> anyhow::Result<()> {
     let mut chars = c.chars();
     let first = chars.next().unwrap();
     let second = chars.next();
     if SPECIAL.contains(first) {
-        return Err(format!("operator cannot have '{}' as first character",first));
+        return Err(DauphinError::source(&format!("operator cannot have '{}' as first character",first)));
     }
     if NONALNUM.contains(first) {
         if let Some(second) = second {
             if second.is_alphanumeric() || second == '_' {
-                return Err(format!("if operator begins with '{}' it must be followed by non-alnum not '{}'",first,second));
+                return Err(DauphinError::source(&format!("if operator begins with '{}' it must be followed by non-alnum not '{}'",first,second)));
             }
         }
     }
     Ok(())
 }
 
-fn check_regular_bracketed(c: &str) -> Result<(),String> {
+fn check_regular_bracketed(c: &str) -> anyhow::Result<()> {
     let mut chars = c.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch.is_alphanumeric() || ch == '_' {
-            return Err(format!("operator cannot contain '{}'",ch));
+            return Err(DauphinError::source(&format!("operator cannot contain '{}'",ch)));
         }
         if NONALNUM.contains(ch) {
             if let Some(next) = chars.peek() {
                 if next.is_alphanumeric() || next == &'_' {
-                    return Err(format!("'{}' must be followed by non-alnum in operator",ch));
+                    return Err(DauphinError::source(&format!("'{}' must be followed by non-alnum in operator",ch)));
                 }
             }
         } else if SPECIAL.contains(ch) {
-            return Err(format!("operator cannot contain '{}'",ch));
+            return Err(DauphinError::source(&format!("operator cannot contain '{}'",ch)));
         }
     }
     Ok(())
 }
 
-fn check_bracketed(c: &str) -> Result<(),String> {
+fn check_bracketed(c: &str) -> anyhow::Result<()> {
     if c.len() == 0 {
-        return Err("operator cannot only be brackets".to_string());
+        return Err(DauphinError::source(&"operator cannot only be brackets".to_string()));
     }
     let first = c.chars().next().unwrap();
     let last = c.chars().last().unwrap();
@@ -69,30 +71,30 @@ fn check_bracketed(c: &str) -> Result<(),String> {
     Ok(())
 }
 
-pub fn check_inline(tokens: &InlineTokens, c: &str, prefix: bool) -> Result<(),String> {
+pub fn check_inline(tokens: &InlineTokens, c: &str, prefix: bool) -> anyhow::Result<()> {
     /* cannot contain slash-star, slash-slash, semicolon */
     for b in &vec!["//","/*",";"] {
         if c.contains(b) {
-            return Err(format!("operator '{}' invalid, cannot contain '{}'",c,b));
+            return Err(DauphinError::source(&format!("operator '{}' invalid, cannot contain '{}'",c,b)));
         }
     }
     /* cannot contain whitespace */
     for c in c.chars() {
         if c.is_whitespace() {
-            return Err(format!("operator '{}' invalid, cannot contain whitespace",c));
+            return Err(DauphinError::source(&format!("operator '{}' invalid, cannot contain whitespace",c)));
         }
     }
     /* cannot begin with alphanumerics or be blank */
     if let Some(c) = c.chars().next() {
         if c.is_alphanumeric() || c == '_' {
-            return Err("operator cannot begin with alphanumeric".to_string());
+            return Err(DauphinError::source("operator cannot begin with alphanumeric"));
         }
     } else {
-        return Err("operator cannot be blank".to_string());
+        return Err(DauphinError::source("operator cannot be blank"));
     }
     /* cannot register an operator twice except as prefix and other */
     if tokens.equal(c,prefix) {
-        return Err("operator already defined".to_string());
+        return Err(DauphinError::source("operator already defined"));
     }
     /* character check */
     if let Some(first) = c.chars().next() {

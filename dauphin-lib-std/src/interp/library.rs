@@ -16,6 +16,7 @@
 
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister };
 use dauphin_interp::runtime::{ InterpContext, Register };
+use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
 use serde_cbor::Value as CborValue;
 use super::eq::{ library_eq_command_interp };
@@ -30,8 +31,8 @@ pub fn std_id() -> CommandSetId {
 pub struct AssertDeserializer();
 
 impl CommandDeserializer for AssertDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> { Ok(Some((4,2))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((4,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(AssertInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?)))
     }
 }
@@ -39,26 +40,26 @@ impl CommandDeserializer for AssertDeserializer {
 pub struct AssertInterpCommand(Register,Register);
 
 impl InterpCommand for AssertInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
         let a = &registers.get_boolean(&self.0)?;
         let b = &registers.get_boolean(&self.1)?;
         for i in 0..a.len() {
             if a[i] != b[i%b.len()] {
-                return Err(format!("assertion failed index={}!",i));
+                return Err(DauphinError::runtime(&format!("assertion failed index={}!",i)));
             }
         }
         Ok(())
     }
 }
 
-pub fn make_std_interp() -> Result<InterpLibRegister,String> {
+pub fn make_std_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
-    library_eq_command_interp(&mut set)?;
+    library_eq_command_interp(&mut set);
     set.push(AssertDeserializer());
     set.push(NoopDeserializer(13));
-    library_print_commands_interp(&mut set)?;
-    library_numops_commands_interp(&mut set)?;
-    library_vector_commands_interp(&mut set)?;
-    Ok(set)
+    library_print_commands_interp(&mut set);
+    library_numops_commands_interp(&mut set);
+    library_vector_commands_interp(&mut set);
+    set
 }

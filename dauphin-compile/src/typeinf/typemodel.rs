@@ -42,7 +42,7 @@ impl TypeModel {
         }
     }
 
-    pub fn add(&mut self, reg: &Register, type_: &MemberType) {
+    pub fn set(&mut self, reg: &Register, type_: &MemberType) {
         self.values.insert(reg.clone(),type_.clone());
     }
 

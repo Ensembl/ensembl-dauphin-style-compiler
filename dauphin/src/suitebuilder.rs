@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::Context;
 use dauphin_compile::cli::Config;
 use dauphin_compile::command::{ CommandCompileSuite };
 use dauphin_interp::command::{ CommandInterpretSuite };
@@ -23,23 +24,23 @@ use dauphin_interp::make_core_interp;
 use dauphin_compile::core::{ make_core };
 use dauphin_lib_buildtime::{ make_buildtime };
 
-pub fn make_compiler_suite(config: &Config) -> Result<CommandCompileSuite,String> {
+pub fn make_compiler_suite(config: &Config) -> anyhow::Result<CommandCompileSuite> {
     let mut suite = CommandCompileSuite::new();
-    suite.register(make_core()?)?;
+    suite.register(make_core()).context("registering core commands")?;
     if !config.get_nostd() {
-        suite.register(make_std()?)?;
+        suite.register(make_std()).context("registering std commands")?;
     }
     if config.get_libs().contains(&"buildtime".to_string()) {
-        suite.register(make_buildtime()?)?;
+        suite.register(make_buildtime()).context("registering buildtime commands")?;
     }
     Ok(suite)
 }
 
-pub fn make_interpret_suite(config: &Config) -> Result<CommandInterpretSuite,String> {
+pub fn make_interpret_suite(config: &Config) -> anyhow::Result<CommandInterpretSuite> {
     let mut suite = CommandInterpretSuite::new();
-    suite.register(make_core_interp()?)?;
+    suite.register(make_core_interp()).context("registering core interp commands")?;
     if !config.get_nostd() {
-        suite.register(make_std_interp()?)?;
+        suite.register(make_std_interp()).context("registering std interp commands")?;
     }
     Ok(suite)
 }
@@ -210,7 +211,7 @@ mod test {
         config.set_generate_debug(false);
         config.set_verbose(2);
         let cs = make_compiler_suite(&config).expect("y");
-        let linker = CompilerLink::new(cs).expect("z");
+        let linker = CompilerLink::new(cs);
         let data = linker.generate_dynamic_data(&config).expect("x");
         for (suite,data) in data.iter() {
             print!("command set {}\n",suite);

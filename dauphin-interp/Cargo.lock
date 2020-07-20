@@ -102,6 +102,7 @@ dependencies = [
 name = "dauphin_lib_std"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dauphin_compile",
  "dauphin_interp",
  "serde_cbor",

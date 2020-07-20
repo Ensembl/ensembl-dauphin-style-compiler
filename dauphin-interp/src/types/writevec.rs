@@ -26,7 +26,7 @@ pub struct WriteVec<'a> {
 }
 
 impl<'a> WriteVec<'a> {
-    pub fn new(context: &mut InterpContext, vs: &'a dyn VectorSource, vr: &VectorRegisters) -> Result<WriteVec<'a>,String> {
+    pub fn new(context: &mut InterpContext, vs: &'a dyn VectorSource, vr: &VectorRegisters) -> anyhow::Result<WriteVec<'a>> {
         let mut structs = vec![];
         for level in 0..vr.depth() {
             structs.push((
@@ -81,7 +81,7 @@ impl<'a> WriteVec<'a> {
         Ok(())
     }
 
-    pub fn write(&mut self, context: &mut InterpContext) -> Result<(),String> {
+    pub fn write(&mut self, context: &mut InterpContext) -> anyhow::Result<()> {
         self.vs.set(context,self.vr.data_pos(),replace(&mut self.data,InterpValue::Empty));
         for (level,(offsetr,lengthr)) in self.structure.drain(..).enumerate() {
             self.vs.set(context,self.vr.offset_pos(level)?,InterpValue::Indexes(offsetr));

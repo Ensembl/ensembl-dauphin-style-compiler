@@ -30,16 +30,16 @@ macro_rules! type_instr2 {
                     trigger: CommandTrigger::Instruction($supertype)
                 }
             }
-            fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+            fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
                 Ok(Box::new($command(it.regs[0],it.regs[1],self.0.clone())))
             }
 
-            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
                 let timings = TimeTrial::run(&$trial(),linker,config)?;
                 Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
             }
 
-            fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+            fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
                 let t = cbor_map(value,&vec!["t"])?;
                 self.0 = Some(TimeTrial::deserialize(&t[0])?);
                 Ok(())
@@ -64,16 +64,16 @@ macro_rules! type_instr3 {
                     trigger: CommandTrigger::Instruction($supertype)
                 }
             }
-            fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+            fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
                 Ok(Box::new($command(it.regs[0],it.regs[1],it.regs[2],self.0.clone())))
             }
 
-            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
                 let timings = TimeTrial::run(&$trial(),linker,config)?;
                 Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
             }
 
-            fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+            fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
                 let t = cbor_map(value,&vec!["t"])?;
                 self.0 = Some(TimeTrial::deserialize(&t[0])?);
                 Ok(())
@@ -98,16 +98,16 @@ macro_rules! type_instr4 {
                     trigger: CommandTrigger::Instruction($supertype)
                 }
             }
-            fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+            fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
                 Ok(Box::new($command(it.regs[0],it.regs[1],it.regs[2],it.regs[3],self.0.clone())))
             }
 
-            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+            fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
                 let timings = TimeTrial::run(&$trial(),linker,config)?;
                 Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
             }
 
-            fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+            fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
                 let t = cbor_map(value,&vec!["t"])?;
                 self.0 = Some(TimeTrial::deserialize(&t[0])?);
                 Ok(())

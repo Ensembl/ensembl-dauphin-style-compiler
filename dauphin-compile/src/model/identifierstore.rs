@@ -14,9 +14,11 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::fmt::Debug;
 use std::collections::HashMap;
 use dauphin_interp::command::{ Identifier };
+use dauphin_interp::util::DauphinError;
 
 #[derive(Clone,Debug)]
 pub struct IdentifierUse(pub Identifier,pub bool);
@@ -50,8 +52,8 @@ impl<T> IdentifierStore<T> where T: Debug {
         self.store.insert(identifier.clone(),value);
     }
 
-    pub fn get_id(&self, identifier: &Identifier) -> Result<&T,String> {
-        self.store.get(&identifier.clone()).ok_or_else(|| format!("No such identifier {}",identifier))
+    pub fn get_id(&self, identifier: &Identifier) -> anyhow::Result<&T> {
+        self.store.get(&identifier.clone()).ok_or_else(|| DauphinError::source(&format!("No such identifier {}",identifier)))
     }
 
     pub fn contains_key(&self, identifier: &Identifier) -> bool {

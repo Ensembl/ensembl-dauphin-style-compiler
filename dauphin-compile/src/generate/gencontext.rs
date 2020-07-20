@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::fmt;
 use std::mem::swap;
 use crate::command::{ Instruction, InstructionType };
@@ -60,13 +61,13 @@ impl<'a> GenContext<'a> {
         self.input_instrs.to_vec()
     }
 
-    pub fn add_untyped(&mut self, instr: Instruction) -> Result<(),String> {
-        self.typing.add(&get_constraint(&instr,&self.defstore)?).map_err(|x| format!("{} while adding {:?}",x,instr))?;
+    pub fn add_untyped(&mut self, instr: Instruction) -> anyhow::Result<()> {
+        self.typing.add(&get_constraint(&instr,&self.defstore)?).with_context(|| format!("adding {:?}",instr))?;
         self.output_instrs.push((instr,0.));
         Ok(())
     }
 
-    pub fn add_untyped_f(&mut self, itype: InstructionType, mut regs_in: Vec<Register>) -> Result<Register,String> {
+    pub fn add_untyped_f(&mut self, itype: InstructionType, mut regs_in: Vec<Register>) -> anyhow::Result<Register> {
         let dst = self.regalloc.allocate();
         let mut regs = vec![dst];
         regs.append(&mut regs_in);
@@ -94,7 +95,7 @@ impl<'a> GenContext<'a> {
     pub fn allocate_register(&mut self, type_: Option<&MemberType>) -> Register {
         let out = self.regalloc.allocate();
         if let Some(type_) = type_ {
-            self.types.add(&out,type_);
+            self.types.set(&out,type_);
         }
         out
     }

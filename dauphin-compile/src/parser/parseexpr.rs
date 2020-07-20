@@ -14,22 +14,24 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use crate::lexer::{ Lexer, Token };
 use crate::model::{ DefStore, InlineMode, ExprMacro };
-use super::node::{ ParseError, Expression };
+use super::node::{ Expression };
 use super::lexutil::{get_other, get_identifier };
 use crate::model::{ IdentifierPattern, IdentifierUse };
+use crate::parser::parse_error;
 use dauphin_interp::command::Identifier;
 
-fn vec_ctor(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> Result<Expression,ParseError> {
+fn vec_ctor(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::Result<Expression> {
     Ok(Expression::Vector(parse_exprlist(lexer,defstore,']',nested)?))
 }
 
-fn parse_prefix(lexer: &mut Lexer, defstore: &DefStore, op: &str, nested: bool) -> Result<Expression,ParseError> {
+fn parse_prefix(lexer: &mut Lexer, defstore: &DefStore, op: &str, nested: bool) -> anyhow::Result<Expression> {
     let inline = defstore.get_inline_unary(op,lexer)?;
     let prec = inline.precedence();
     if inline.mode() != &InlineMode::Prefix {
-        return Err(ParseError::new("Not a prefix operator",lexer));
+        return Err(parse_error("Not a prefix operator",lexer));
     }
     let identifier = inline.identifier();
     Ok(match &identifier.0.name()[..] {
@@ -39,9 +41,9 @@ fn parse_prefix(lexer: &mut Lexer, defstore: &DefStore, op: &str, nested: bool) 
     })
 }
 
-fn require_filter(lexer: &mut Lexer, c: char, nested: bool) -> Result<(),ParseError> {
+fn require_filter(lexer: &mut Lexer, c: char, nested: bool) -> anyhow::Result<()> {
     if !nested {
-        return Err(ParseError::new(&format!("{} encountered outside filter",c),lexer));
+        return Err(parse_error(&format!("{} encountered outside filter",c),lexer));
     }
     Ok(())
 }
@@ -50,7 +52,7 @@ fn make_names(len: usize) -> Vec<String> {
     (0..len).map(|v| v.to_string()).collect()
 }
 
-fn parse_struct_ctor(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifier, nested: bool) -> Result<Expression,ParseError> {
+fn parse_struct_ctor(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifier, nested: bool) -> anyhow::Result<Expression> {
     get_other(lexer,"{")?;
     let pos = lexer.pos();
     if let Token::Identifier(_) = lexer.get() {
@@ -64,7 +66,7 @@ fn parse_struct_ctor(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identi
     return Ok(Expression::CtorStruct(identifier.clone(),inner,names));
 }
 
-fn parse_ctor_full(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifier, nested: bool) -> Result<Expression,ParseError> {
+fn parse_ctor_full(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifier, nested: bool) -> anyhow::Result<Expression> {
     let mut inner = Vec::new();
     let mut names = Vec::new();
     if let Token::Other('}') = lexer.peek(None,1)[0] {
@@ -78,15 +80,15 @@ fn parse_ctor_full(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifi
         match lexer.get() {
             Token::Other(',') => (),
             Token::Other('}') => break,
-            _ => return Err(ParseError::new("Unexpected token (expected ; or ,)",lexer))
+            _ => return Err(parse_error("Unexpected token (expected ; or ,)",lexer))
         }
     }
     Ok(Expression::CtorStruct(identifier.clone(),inner,names))
 }
 
-fn parse_atom_id(lexer: &mut Lexer, defstore: &DefStore, identifier: &IdentifierUse, nested: bool) -> Result<Expression,ParseError> {
+fn parse_atom_id(lexer: &mut Lexer, defstore: &DefStore, identifier: &IdentifierUse, nested: bool) -> anyhow::Result<Expression> {
     if defstore.stmt_like(&identifier.0,lexer).unwrap_or(false) {
-        Err(ParseError::new("Unexpected statement in expression",lexer))?;
+        Err(parse_error("Unexpected statement in expression",lexer))?;
     }
     if !defstore.stmt_like(&identifier.0,lexer).unwrap_or(true) { /* expr-like */
         get_other(lexer, "(")?;
@@ -113,16 +115,16 @@ fn peek_enum_ctor(lexer: &mut Lexer) -> bool {
     out
 }
 
-fn parse_expr_use(lexer: &mut Lexer, defstore: &DefStore, em: &ExprMacro, nested: bool) -> Result<Expression,ParseError> {
+fn parse_expr_use(lexer: &mut Lexer, defstore: &DefStore, em: &ExprMacro, nested: bool) -> anyhow::Result<Expression> {
     get_other(lexer,"(")?;
     let exprs = parse_exprlist(lexer,defstore,')',nested)?;
-    em.expression(&exprs).map_err(|e| ParseError::new(&e.to_string(),lexer))
+    em.expression(&exprs).map_err(|e| parse_error(&e.to_string(),lexer))
 }
 
-fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> Result<Expression,ParseError> {
+fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::Result<Expression> {
     if peek_full_identifier(lexer,Some(true)).is_some() {
         let pattern = parse_full_identifier(lexer,Some(true)).unwrap();
-        let identifier = defstore.pattern_to_identifier(lexer,&pattern,true).map_err(|e| ParseError::new(&e.to_string(),lexer))?;
+        let identifier = defstore.pattern_to_identifier(lexer,&pattern,true).map_err(|e| parse_error(&e.to_string(),lexer))?;
         if lexer.peek(None,1)[0] == Token::Other('(') {
             if let Ok(em) = defstore.get_expr_id(&identifier.0) {
                 return Ok(parse_expr_use(lexer,defstore,&em,nested)?);
@@ -157,12 +159,12 @@ fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> Result<Ex
                 Expression::At
             },
             Token::Operator(op) => parse_prefix(lexer,defstore,&op,nested)?,
-            x => Err(ParseError::new(&format!("Expected expression, not {:?}",x),lexer))?
+            x => Err(parse_error(&format!("Expected expression, not {:?}",x),lexer))?
         })
     }
 }
 
-fn parse_brackets(lexer: &mut Lexer, defstore: &DefStore, left: Expression) -> Result<Expression,ParseError> {
+fn parse_brackets(lexer: &mut Lexer, defstore: &DefStore, left: Expression) -> anyhow::Result<Expression> {
     if let Token::Other(']') = lexer.peek(None,1)[0] {
         lexer.get();
         Ok(Expression::Square(Box::new(left)))
@@ -173,7 +175,7 @@ fn parse_brackets(lexer: &mut Lexer, defstore: &DefStore, left: Expression) -> R
     }
 }
 
-fn parse_suffix(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identifier: &IdentifierUse) -> Result<Expression,ParseError> {
+fn parse_suffix(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identifier: &IdentifierUse) -> anyhow::Result<Expression> {
     lexer.get_oper(false);
     Ok(match &identifier.0.name()[..] {
         "__sqopen__" if identifier.1 => parse_brackets(lexer,defstore,left)?,
@@ -184,20 +186,20 @@ fn parse_suffix(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identi
             if let Expression::Bracket(op,key) = parse_brackets(lexer,defstore,left)? {
                 Expression::Filter(op,key)
             } else {
-                Err(ParseError::new("Expected filter",lexer))?
+                Err(parse_error("Expected filter",lexer))?
             }
         },
         _ => Expression::Operator(identifier.0.clone(),vec![left])
     })
 }
 
-fn parse_binary_right(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identifier: &Identifier, min: f64, oreq: bool, nested: bool) -> Result<Expression,ParseError> {
+fn parse_binary_right(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identifier: &Identifier, min: f64, oreq: bool, nested: bool) -> anyhow::Result<Expression> {
     lexer.get_oper(false);
     let right = parse_expr_level(lexer,defstore,Some(min),oreq,nested)?;
     Ok(Expression::Operator(identifier.clone(),vec![left,right]))
 }
 
-fn extend_expr(lexer: &mut Lexer, defstore: &DefStore, left: Expression, symbol: &str, min: Option<f64>, oreq: bool, nested: bool) -> Result<(Expression,bool),ParseError> {
+fn extend_expr(lexer: &mut Lexer, defstore: &DefStore, left: Expression, symbol: &str, min: Option<f64>, oreq: bool, nested: bool) -> anyhow::Result<(Expression,bool)> {
     let inline = defstore.get_inline_binary(symbol,lexer)?;
     let prio = inline.precedence();
     if let Some(min) = min {
@@ -216,7 +218,7 @@ fn extend_expr(lexer: &mut Lexer, defstore: &DefStore, left: Expression, symbol:
     })
 }
 
-fn parse_expr_level(lexer: &mut Lexer, defstore: &DefStore, min: Option<f64>, oreq: bool, nested: bool) -> Result<Expression,ParseError> {
+fn parse_expr_level(lexer: &mut Lexer, defstore: &DefStore, min: Option<f64>, oreq: bool, nested: bool) -> anyhow::Result<Expression> {
     let mut out = parse_atom(lexer,defstore,nested)?;
     loop {
         match &lexer.peek(Some(false),1)[0] {
@@ -233,11 +235,11 @@ fn parse_expr_level(lexer: &mut Lexer, defstore: &DefStore, min: Option<f64>, or
     }
 }
 
-pub(in super) fn parse_expr(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> Result<Expression,ParseError> {
+pub(in super) fn parse_expr(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::Result<Expression> {
     parse_expr_level(lexer,defstore,None,true,nested)
 }
 
-pub(in super) fn parse_exprlist(lexer: &mut Lexer, defstore: &DefStore, term: char, nested: bool) -> Result<Vec<Expression>,ParseError> {
+pub(in super) fn parse_exprlist(lexer: &mut Lexer, defstore: &DefStore, term: char, nested: bool) -> anyhow::Result<Vec<Expression>> {
     let mut out = Vec::new();
     loop {
         match lexer.peek(None,1)[0] {
@@ -255,7 +257,7 @@ pub(in super) fn parse_exprlist(lexer: &mut Lexer, defstore: &DefStore, term: ch
     }
 }
 
-pub(super) fn parse_full_identifier(lexer: &mut Lexer, mode: Option<bool>) -> Result<IdentifierPattern,ParseError> {
+pub(super) fn parse_full_identifier(lexer: &mut Lexer, mode: Option<bool>) -> anyhow::Result<IdentifierPattern> {
     let first = get_identifier(lexer)?;
     if let Token::FourDots = lexer.peek(mode,1)[0] {
         lexer.get();

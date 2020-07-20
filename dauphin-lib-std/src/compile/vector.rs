@@ -40,7 +40,7 @@ impl TimeTrialCommandType for VectorCopyShallowTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_vector_copy_shallow"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In]),
             vec![Register(0),Register(1),Register(2)]))
@@ -61,16 +61,16 @@ impl CommandType for VectorCopyShallowType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(VectorCopyShallow(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),self.0.clone())))
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&VectorCopyShallowTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -96,11 +96,11 @@ impl VectorCopyShallow {
 }
 
 impl Command for VectorCopyShallow {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = self.size(context) {
@@ -110,7 +110,7 @@ impl Command for VectorCopyShallow {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -136,7 +136,7 @@ impl TimeTrialCommandType for VectorAppendTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_vector_append"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In]),
             vec![Register(0),Register(1),Register(2)]))
@@ -157,16 +157,16 @@ impl CommandType for VectorAppendType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(VectorAppend(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),self.0.clone())))
     }
 
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&VectorAppendTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -176,7 +176,7 @@ impl CommandType for VectorAppendType {
 pub struct VectorAppend(Register,Register,Register,Option<TimeTrial>);
 
 impl VectorAppend {
-    fn size(&self, context: &PreImageContext) -> Result<Option<usize>,String> {
+    fn size(&self, context: &PreImageContext) -> anyhow::Result<Option<usize>> {
         let orig = if let Some(size) = context.get_reg_size(&self.0) {
             size
         } else {
@@ -197,11 +197,11 @@ impl VectorAppend {
 }
 
 impl Command for VectorAppend {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.0) && context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = self.size(context)? {
@@ -211,7 +211,7 @@ impl Command for VectorAppend {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -239,7 +239,7 @@ impl TimeTrialCommandType for VectorAppendIndexesTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
                                         (MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_vector_append_indexes"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In]),
@@ -261,18 +261,18 @@ impl CommandType for VectorAppendIndexesType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(VectorAppendIndexes(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
                                         it.regs[3].clone(),it.regs[4].clone(),
                                         self.0.clone())))
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&VectorAppendIndexesTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -282,7 +282,7 @@ impl CommandType for VectorAppendIndexesType {
 pub struct VectorAppendIndexes(Register,Register,Register,Register,Register,Option<TimeTrial>);
 
 impl VectorAppendIndexes {
-    fn size(&self, context: &PreImageContext) -> Result<Option<usize>,String> {
+    fn size(&self, context: &PreImageContext) -> anyhow::Result<Option<usize>> {
         let orig = if let Some(size) = context.get_reg_size(&self.0) {
             size
         } else {
@@ -303,11 +303,11 @@ impl VectorAppendIndexes {
 }
 
 impl Command for VectorAppendIndexes {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize(),self.4.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.0) && context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) &&
                 context.is_reg_valid(&self.3) && context.is_reg_valid(&self.4) && !context.is_last() {
             PreImagePrepare::Replace
@@ -318,7 +318,7 @@ impl Command for VectorAppendIndexes {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -346,7 +346,7 @@ impl TimeTrialCommandType for VectorUpdateIndexesTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
                                         (MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_vector_update_indexes"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In]),
@@ -368,17 +368,17 @@ impl CommandType for VectorUpdateIndexesType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(VectorUpdateIndexes(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
                                         it.regs[3].clone(),it.regs[4].clone(),self.0.clone())))
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&VectorUpdateIndexesTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -388,7 +388,7 @@ impl CommandType for VectorUpdateIndexesType {
 pub struct VectorUpdateIndexes(Register,Register,Register,Register,Register,Option<TimeTrial>);
 
 impl VectorUpdateIndexes {
-    fn size(&self, context: &PreImageContext) -> Result<Option<usize>,String> {
+    fn size(&self, context: &PreImageContext) -> anyhow::Result<Option<usize>> {
         let orig = if let Some(size) = context.get_reg_size(&self.0) {
             size
         } else {
@@ -410,11 +410,11 @@ impl VectorUpdateIndexes {
 }
 
 impl Command for VectorUpdateIndexes {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize(),self.4.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.0) && context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) &&
                 context.is_reg_valid(&self.3) && context.is_reg_valid(&self.4) && !context.is_last() {
             PreImagePrepare::Replace
@@ -425,7 +425,7 @@ impl Command for VectorUpdateIndexes {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -438,7 +438,7 @@ impl Command for VectorUpdateIndexes {
     }
 }
 
-pub(super) fn library_vector_commands(set: &mut CompLibRegister) -> Result<(),String> {
+pub(super) fn library_vector_commands(set: &mut CompLibRegister) -> anyhow::Result<()> {
     set.push("_vector_copy_shallow",Some(9),VectorCopyShallowType::new());
     set.push("_vector_append",Some(10),VectorAppendType::new());
     set.push("_vector_append_indexes",Some(17),VectorAppendIndexesType::new());

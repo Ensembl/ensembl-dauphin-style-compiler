@@ -22,6 +22,9 @@
  * 4 = interstep
  */
 
+use anyhow;
+use dauphin_interp::util::DauphinError;
+
 #[derive(Clone)]
 pub struct Config {
     subconfig: Option<Box<Config>>,
@@ -154,12 +157,12 @@ impl Config {
         self.subconfig = Some(Box::new(sub));
     }
 
-    pub fn verify(&self) -> Result<(),String> {
+    pub fn verify(&self) -> anyhow::Result<()> {
         if self.get_profile() && !self.get_generate_debug() {
-            return Err(format!("cannot generate profile (-p) without debug info (-g)"));
+            return Err(DauphinError::config("cannot generate profile (-p) without debug info (-g)"));
         }
         if self.get_action() == "run" && !self.isset_output() {
-            return Err(format!("cannot run (-x) without object file (-o)"));
+            return Err(DauphinError::config("cannot run (-x) without object file (-o)"));
         }
         Ok(())
     }

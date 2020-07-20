@@ -14,8 +14,10 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::collections::HashMap;
 use crate::command::CommandSetId;
+use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_array, cbor_string };
 use serde_cbor::Value as CborValue;
 
@@ -31,7 +33,7 @@ impl Identifier {
         CborValue::Array(vec![CborValue::Text(self.0.clone()),CborValue::Text(self.1.clone())])
     }
 
-    pub fn deserialize(value: &CborValue) -> Result<Identifier,String> {
+    pub fn deserialize(value: &CborValue) -> anyhow::Result<Identifier> {
         let data = cbor_array(value,2,false)?;
         Ok(Identifier::new(&cbor_string(&data[0])?,&cbor_string(&data[1])?))
     }
@@ -57,11 +59,11 @@ impl CommandSetVerifier {
         }
     }
 
-    pub fn register2(&mut self, set_id: &CommandSetId) -> Result<(),String> {
+    pub fn register2(&mut self, set_id: &CommandSetId) -> anyhow::Result<()> {
         let set_name = set_id.name().to_string();
         let set_major = set_id.version().0;
         if let Some(name) = self.seen.get(&(set_name.to_string(),set_major)) {
-            return Err(format!("Attempt to register multiple versions {} and {}",set_id,name));
+            return Err(DauphinError::integration(&format!("Attempt to register multiple versions {} and {}",set_id,name)));
         }
         self.seen.insert((set_name.to_string(),set_major),set_id.to_string());
         Ok(())

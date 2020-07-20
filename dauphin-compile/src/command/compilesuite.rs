@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::rc::Rc;
 use crate::cli::Config;
 use std::collections::{ HashMap, BTreeMap };
@@ -21,6 +22,7 @@ use crate::command::{ CommandTrigger, CommandType };
 use dauphin_interp::command::{ CommandSetId, CommandDeserializer, CommandTypeId, OpcodeMapping, CommandSetVerifier };
 use dauphin_interp::runtime::{ PayloadFactory };
 use dauphin_interp::util::cbor::{ cbor_map_iter };
+use dauphin_interp::util::{ DauphinError };
 use crate::command::{ CompilerLink, CommandTypeStore, CompLibRegister };
 use serde_cbor::Value as CborValue;
 
@@ -55,7 +57,7 @@ impl CommandCompileSuite {
         }
     }
 
-    pub fn register(&mut self, mut set: CompLibRegister) -> Result<(),String> {
+    fn register_real(&mut self, mut set: CompLibRegister) -> anyhow::Result<()> {
         set.check_trace()?;
         let sid = set.id().clone();
         self.sets.push(sid.clone());
@@ -96,6 +98,11 @@ impl CommandCompileSuite {
         Ok(())
     }
 
+    pub fn register(&mut self, set: CompLibRegister) -> anyhow::Result<()> {
+        let name = set.id().name().to_string();
+        self.register_real(set).with_context(|| format!("registering {}",name))
+    }
+
     pub fn get_headers(&self) -> &HashMap<String,String> { &self.headers }
 
     pub fn copy_payloads(&self) -> HashMap<(String,String),Rc<Box<dyn PayloadFactory>>> {
@@ -110,19 +117,19 @@ impl CommandCompileSuite {
         self.opcode_mapper.serialize()
     }
 
-    pub fn get_command_by_trigger(&self, trigger: &CommandTrigger) -> Result<&Box<dyn CommandType>,String> {
-        let cid = self.trigger_commands.get(trigger).ok_or(format!("Unknown command/1 {}",trigger))?;
+    pub fn get_command_by_trigger(&self, trigger: &CommandTrigger) -> anyhow::Result<&Box<dyn CommandType>> {
+        let cid = self.trigger_commands.get(trigger).ok_or(DauphinError::internal(file!(),line!()))?; /* unknown command */
         let cmdtype = self.store.get(cid);
         Ok(cmdtype)
     }
 
-    pub fn get_deserializer_by_trigger(&self, trigger: &CommandTrigger) -> Result<Option<&Box<dyn CommandDeserializer>>,String> {
-        let cid = self.trigger_commands.get(trigger).ok_or(format!("Unknown command/2 {:?}",trigger))?;
+    pub fn get_deserializer_by_trigger(&self, trigger: &CommandTrigger) -> anyhow::Result<Option<&Box<dyn CommandDeserializer>>> {
+        let cid = self.trigger_commands.get(trigger).ok_or(DauphinError::internal(file!(),line!()))?; /* unknown command */
         Ok(self.interp_commands.get(cid))
     }
 
-    pub fn get_opcode_by_trigger(&self, trigger: &CommandTrigger) -> Result<Option<u32>,String> {
-        let cid = self.trigger_commands.get(trigger).ok_or(format!("Unknown command/3 {}",trigger))?;
+    pub fn get_opcode_by_trigger(&self, trigger: &CommandTrigger) -> anyhow::Result<Option<u32>> {
+        let cid = self.trigger_commands.get(trigger).ok_or(DauphinError::internal(file!(),line!()))?; /* unknown command */
         if let Some((sid,offset)) = self.command_offsets.get(cid) {
             Ok(Some(self.opcode_mapper.sid_to_offset(sid)?+offset))
         } else {
@@ -130,7 +137,7 @@ impl CommandCompileSuite {
         }
     }
 
-    pub fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<HashMap<CommandSetId,CborValue>,String> {
+    pub fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<HashMap<CommandSetId,CborValue>> {
         let mut out = HashMap::new();
         for (set,commands) in self.set_commands.iter() {
             if config.get_verbose() > 0 {
@@ -151,9 +158,9 @@ impl CommandCompileSuite {
         Ok(out)
     }
 
-    pub fn load_dynamic_data(&mut self, set: &CommandSetId, data: &[u8]) -> Result<(),String> {
+    pub fn load_dynamic_data(&mut self, set: &CommandSetId, data: &[u8]) -> anyhow::Result<()> {
         if self.set_commands.contains_key(set) {
-            let data : CborValue = serde_cbor::from_slice(&data).map_err(|x| format!("{} while deserialising {:?}",x,set))?;
+            let data : CborValue = serde_cbor::from_slice(&data).context("while deserialising dynamic data")?;
             for (trigger,data) in cbor_map_iter(&data)? {
                 let trigger = CommandTrigger::deserialize(trigger)?;
                 if let Some(cid) = self.trigger_commands.get(&trigger) {
@@ -194,8 +201,8 @@ mod test {
             }
         }
 
-        fn from_instruction(&self, _it: &Instruction) -> Result<Box<dyn Command>,String> {
-            Err(format!("unable"))
+        fn from_instruction(&self, _it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+            Err(DauphinError::internal(file!(),line!()))
         }
     }
 

@@ -14,13 +14,15 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::slice::Iter;
 use crate::command::{ InterpCommand, InterpreterLink };
+use crate::util::{ DauphinError, error_locate_cb };
 use crate::runtime::{ Register, InterpContext };
 
 pub trait InterpretInstance<'a> {
     fn finish(&mut self) -> InterpContext;
-    fn more(&mut self) -> Result<bool,String>;
+    fn more(&mut self) -> anyhow::Result<bool>;
 }
 
 pub struct StandardInterpretInstance<'a> {
@@ -29,7 +31,7 @@ pub struct StandardInterpretInstance<'a> {
 }
 
 impl<'a> StandardInterpretInstance<'a> {
-    pub fn new(interpret_linker: &'a InterpreterLink, name: &str) -> Result<StandardInterpretInstance<'a>,String> {
+    pub fn new(interpret_linker: &'a InterpreterLink, name: &str) -> anyhow::Result<StandardInterpretInstance<'a>> {
         let context = interpret_linker.new_context();
         Ok(StandardInterpretInstance {
             commands: interpret_linker.get_commands(name)?.iter(),
@@ -37,7 +39,7 @@ impl<'a> StandardInterpretInstance<'a> {
         })
     }
 
-    fn more_internal(&mut self) -> Result<bool,String> {
+    fn more_internal(&mut self) -> anyhow::Result<bool> {
         let context = self.context.as_mut().unwrap();
         while let Some(command) = self.commands.next() {
             command.execute(context)?;
@@ -48,21 +50,16 @@ impl<'a> StandardInterpretInstance<'a> {
         }
         Ok(false)
     }
-
-    fn error_message(&self, msg: String) -> String {
-        let context = self.context.as_ref().unwrap();
-        let line = context.get_line_number();
-        if line.1 != 0 {
-            format!("{} at {}:{}",msg,line.0,line.1)
-        } else {
-            msg
-        }
-    }
 }
 
 impl<'a> InterpretInstance<'a> for StandardInterpretInstance<'a> {
-    fn more(&mut self) -> Result<bool,String> {
-        self.more_internal().map_err(|msg| self.error_message(msg))
+    fn more(&mut self) -> anyhow::Result<bool> {
+        let out = self.more_internal();
+        error_locate_cb(|| {
+            let context = self.context.as_ref().unwrap();
+            let line = context.get_line_number();
+            (line.0.to_string(),line.1)
+        },out)
     }
 
     fn finish(&mut self) -> InterpContext { 
@@ -79,7 +76,7 @@ pub struct DebugInterpretInstance<'a> {
 }
 
 impl<'a> DebugInterpretInstance<'a> {
-    pub fn new(interpret_linker: &'a InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str) -> Result<DebugInterpretInstance<'a>,String> {
+    pub fn new(interpret_linker: &'a InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str) -> anyhow::Result<DebugInterpretInstance<'a>> {
         let context = interpret_linker.new_context();
         Ok(DebugInterpretInstance {
             commands: interpret_linker.get_commands(name)?.iter(),
@@ -89,7 +86,7 @@ impl<'a> DebugInterpretInstance<'a> {
         })
     }
 
-    fn more_internal(&mut self) -> Result<bool,String> {
+    fn more_internal(&mut self) -> anyhow::Result<bool> {
         let context = self.context.as_mut().unwrap();
         let idx = self.index;
         self.index += 1;
@@ -108,21 +105,16 @@ impl<'a> DebugInterpretInstance<'a> {
             Ok(false)
         }
     }
-
-    fn error_message(&self, msg: String) -> String {
-        let context = self.context.as_ref().unwrap();
-        let line = context.get_line_number();
-        if line.1 != 0 {
-            format!("{} at {}:{}",msg,line.0,line.1)
-        } else {
-            msg
-        }
-    }
 }
 
 impl<'a> InterpretInstance<'a> for DebugInterpretInstance<'a> {
-    fn more(&mut self) -> Result<bool,String> {
-        self.more_internal().map_err(|msg| self.error_message(msg))
+    fn more(&mut self) -> anyhow::Result<bool> {
+        let out = self.more_internal();
+        error_locate_cb(|| {
+            let context = self.context.as_ref().unwrap();
+            let line = context.get_line_number();
+            (line.0.to_string(),line.1)
+        },out)
     }
 
     fn finish(&mut self) -> InterpContext { 

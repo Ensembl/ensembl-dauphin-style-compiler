@@ -22,6 +22,7 @@ use dauphin_compile::cli::Config;
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::parser::{ Parser, parse_type };
 use dauphin_compile::lexer::Lexer;
+use dauphin_interp::util::DauphinError;
 use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
 use dauphin_compile::command::{ CompilerLink, InstructionType, Instruction, InstructionSuperType };
 use dauphin_compile::model::{ DefStore, make_full_type };
@@ -69,13 +70,13 @@ fn assign_shallow() {
 #[test]
 fn extend_smoke() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:std/extend").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
     let mut prev : Option<Instruction> = None;
     for instr in &instrs {
         if let InstructionType::Call(id,_,_,_) = &instr.itype {
@@ -96,13 +97,13 @@ fn extend_smoke() {
 #[test]
 fn vector_append() {
     let config = xxx_test_config();
-    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:std/vector-append").expect("cannot load file");
     let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("error");
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j");
+    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
     let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);

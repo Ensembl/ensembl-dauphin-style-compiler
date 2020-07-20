@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashMap;
 use super::gencontext::GenContext;
 use crate::command::{ InstructionType };
@@ -84,7 +85,7 @@ impl RegEquiv {
     }
 }
 
-pub fn use_earliest_regs(context: &mut GenContext) -> Result<(),String> {
+pub fn use_earliest_regs(context: &mut GenContext) {
     let mut equivs = RegEquiv::new();
     let instrs = context.get_instructions();
     /* Flag copies where source is last mention of a variable with appropriate rewrite */
@@ -117,5 +118,4 @@ pub fn use_earliest_regs(context: &mut GenContext) -> Result<(),String> {
         context.add(instr.clone());
     }
     context.phase_finished();
-    Ok(())
 }

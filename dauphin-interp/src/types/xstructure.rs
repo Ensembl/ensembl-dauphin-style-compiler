@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::command::Identifier;
 use crate::types::{ FullType, ComplexPath, VectorRegisters };
+use crate::util::DauphinError;
 
 #[derive(Debug)]
 pub enum XStructure<T> {
@@ -41,16 +42,16 @@ impl<T> Clone for XStructure<T> {
 
 
 impl<T> XStructure<T> {
-    pub fn derive<F,U,V>(&self, cb: &mut F) -> Result<XStructure<U>,V> where F: FnMut(&T) -> Result<U,V> {
+    pub fn derive<F,U>(&self, cb: &mut F) -> anyhow::Result<XStructure<U>> where F: FnMut(&T) -> anyhow::Result<U> {
         Ok(match self {
             XStructure::Simple(t) => XStructure::Simple(Rc::new(RefCell::new(cb(&t.borrow())?))),
             XStructure::Vector(v) => XStructure::Vector(Rc::new(v.derive(cb)?)),
             XStructure::Struct(id,map) => {
-                let map : Result<HashMap<_,_>,_> = map.iter().map(|(k,v)| Ok((k.to_string(),Rc::new(v.derive(cb)?)))).collect();
+                let map : anyhow::Result<HashMap<_,_>> = map.iter().map(|(k,v)| Ok((k.to_string(),Rc::new(v.derive(cb)?)))).collect();
                 XStructure::Struct(id.clone(),map?)
             },
             XStructure::Enum(id,order,map,disc) => {
-                let map : Result<HashMap<_,_>,_> = map.iter().map(|(k,v)| Ok((k.to_string(),Rc::new(v.derive(cb)?)))).collect();
+                let map : anyhow::Result<HashMap<_,_>> = map.iter().map(|(k,v)| Ok((k.to_string(),Rc::new(v.derive(cb)?)))).collect();
                 XStructure::Enum(id.clone(),order.clone(),map?,Rc::new(RefCell::new(cb(&disc.borrow())?)))
             }
         })
@@ -81,16 +82,16 @@ pub enum XPathEl {
     Part(Identifier,String)
 }
 
-fn to_xpath<T>(cp: &ComplexPath, vr: T) -> Result<XPath<T>,String> {
+fn to_xpath<T>(cp: &ComplexPath, vr: T) -> anyhow::Result<XPath<T>> {
     let mut out = vec![];
-    let mut name = cp.get_name().ok_or_else(|| format!("cannot convert anon"))?.iter();
+    let mut name = cp.get_name().ok_or_else(|| DauphinError::internal(file!(),line!()) /* cannot convert anon */)?.iter();
     let mut cursor = cp.get_breaks().iter().peekable();
     while let Some(vecs) = cursor.next() {
         for _ in 0..*vecs {
             out.push(XPathEl::Vector());
         }
         if cursor.peek().is_some() {
-            let (obj,field) = name.next().ok_or_else(|| format!("bad path"))?;
+            let (obj,field) = name.next().ok_or_else(|| DauphinError::internal(file!(),line!()) /* bad path */)?;
             out.push(XPathEl::Part(obj.clone(),field.to_string()));
         }
     }
@@ -110,7 +111,7 @@ fn enum_split<T>(paths: &[XPath<T>]) -> (Vec<XPath<T>>,Option<XPath<T>>) {
     (rest,disc)
 }
 
-fn convert<T>(paths: &[XPath<T>]) -> Result<XStructure<T>,String> {
+fn convert<T>(paths: &[XPath<T>]) -> anyhow::Result<XStructure<T>> {
     if paths.iter().filter(|x| x.0.len()!=0).count() == 0 {
         /* simple */
         return Ok(XStructure::Simple(paths[0].1.clone()));
@@ -128,7 +129,7 @@ fn convert<T>(paths: &[XPath<T>]) -> Result<XStructure<T>,String> {
             name_order.push(name.1.clone());
             obj_name = Some(name.0.clone());
         }
-        let obj_name = obj_name.as_ref().ok_or_else(|| "empty arm in sig".to_string())?.clone();
+        let obj_name = obj_name.as_ref().ok_or_else(|| DauphinError::internal(file!(),line!()) /* empty arm in sig */)?.clone();
         let mut entries = HashMap::new();
         for (field,members) in mapping.iter() {
             entries.insert(field.clone(),Rc::new(convert(members)?));
@@ -143,10 +144,10 @@ fn convert<T>(paths: &[XPath<T>]) -> Result<XStructure<T>,String> {
     }
 }
 
-pub fn to_xstructure(sig: &FullType) -> Result<XStructure<VectorRegisters>,String> {
+pub fn to_xstructure(sig: &FullType) -> anyhow::Result<XStructure<VectorRegisters>> {
     let mut xpaths = vec![];
     for (cp,vr) in sig.iter() {
         xpaths.push(to_xpath(cp,vr)?);
     }
-    Ok(convert(&xpaths)?.derive::<_,_,String>(&mut (|x| Ok((*x).clone())))?)
+    Ok(convert(&xpaths)?.derive(&mut (|x| Ok((*x).clone())))?)
 }

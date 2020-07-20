@@ -19,6 +19,7 @@ use std::hash::{ Hash, Hasher };
 use std::fmt;
 use super::complexpath::ComplexPath;
 use crate::types::{ MemberMode, VectorRegisters };
+use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_array };
 use serde_cbor::Value as CborValue;
 
@@ -91,14 +92,14 @@ impl FullType {
         Ok(path.get_breaks().iter().sum())
     }
 
-    pub fn deserialize(cbor: &CborValue, named: bool) -> Result<FullType,String> {
+    pub fn deserialize(cbor: &CborValue, named: bool) -> anyhow::Result<FullType> {
         let data = cbor_array(cbor,1,true)?;
         let mut out = FullType::new_empty(MemberMode::deserialize(&data[0])?);
         let mut mult = 1;
         if named { mult +=1; }
         let len = (data.len()-1)/mult;
         if len*mult+1 != data.len() {
-            return Err(format!("malformed complexregisters cbor"));
+            return Err(DauphinError::malformed("malformed complexregisters cbor"));
         }
         for i in 0..len {
             let vs = VectorRegisters::deserialize(&data[i*mult+1])?;
@@ -112,7 +113,7 @@ impl FullType {
         Ok(out)
     }
 
-    pub fn serialize(&self, named: bool) -> Result<CborValue,String> {
+    pub fn serialize(&self, named: bool) -> anyhow::Result<CborValue> {
         let mut regs = vec![self.mode.serialize()];
         for complex in &self.order {
             regs.push(self.vectors.get(complex).as_ref().unwrap().serialize(false)?);

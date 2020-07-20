@@ -26,6 +26,7 @@ use dauphin_interp::types::{
     BaseType, MemberDataFlow, FullType, ComplexPath
 };
 use dauphin_interp::runtime::{ InterpContext, Register };
+use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_make_map, cbor_map };
 use serde_cbor::Value as CborValue;
 use super::library::std;
@@ -50,7 +51,7 @@ impl TimeTrialCommandType for EqCompareTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let regs = (0..15).map(|i| Register(i)).collect();
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,3,BaseType::NumberType),(MemberMode::In,3,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_eq_compare"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In]),regs))
@@ -71,22 +72,22 @@ impl CommandType for EqCompareCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
-            let a = sig[1].iter().next().ok_or_else(|| format!("bad conversion"))?;
-            let b = sig[2].iter().next().ok_or_else(|| format!("bad conversion"))?;
+            let a = sig[1].iter().next().ok_or_else(|| DauphinError::malformed("bad conversion"))?;
+            let b = sig[2].iter().next().ok_or_else(|| DauphinError::malformed("bad conversion"))?;
             Ok(Box::new(EqCompareCommand(a.1.clone(),b.1.clone(),it.regs.to_vec(),self.0.clone())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&EqCompareTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -96,7 +97,7 @@ impl CommandType for EqCompareCommandType {
 pub struct EqCompareCommand(VectorRegisters,VectorRegisters,Vec<Register>,Option<TimeTrial>);
 
 impl EqCompareCommand {
-    fn enough_valid(&self, context: &PreImageContext) -> Result<bool,String> {
+    fn enough_valid(&self, context: &PreImageContext) -> anyhow::Result<bool> {
         for i in 1..self.2.len() {
             if !context.is_reg_valid(&self.2[i]) { return Ok(false); }
         }
@@ -114,12 +115,12 @@ impl EqCompareCommand {
 }
 
 impl Command for EqCompareCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         let regs = CborValue::Array(self.2.iter().map(|x| x.serialize()).collect());
         Ok(Some(vec![self.0.serialize(true)?,self.1.serialize(true)?,regs]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if self.enough_valid(context)? && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = self.any_size(context) {
@@ -129,7 +130,7 @@ impl Command for EqCompareCommand {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.2[0].clone()]))
     }
 
@@ -155,7 +156,7 @@ impl TimeTrialCommandType for EqShallowTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_eq_shallow"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In]),
             vec![Register(0),Register(1),Register(2)]))
@@ -176,16 +177,16 @@ impl CommandType for EqShallowCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(EqShallowCommand(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),self.0.clone())))
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&EqShallowTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -195,11 +196,11 @@ impl CommandType for EqShallowCommandType {
 pub struct EqShallowCommand(Register,Register,Register,Option<TimeTrial>);
 
 impl Command for EqShallowCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = context.get_reg_size(&self.1) {
@@ -209,7 +210,7 @@ impl Command for EqShallowCommand {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 
@@ -234,7 +235,7 @@ impl TimeTrialCommandType for EqAllTimeTrial {
         context.registers_mut().commit();
     }
 
-    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> Result<Instruction,String> {
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
         let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
         Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_eq_all"),true,sig,vec![MemberDataFlow::Out,MemberDataFlow::In,MemberDataFlow::In]),
             vec![Register(0),Register(1),Register(2)]))
@@ -255,16 +256,16 @@ impl CommandType for AllCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(AllCommand(it.regs.to_vec(),self.0.clone())))
     }
     
-    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> Result<CborValue,String> {
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&EqAllTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
 
-    fn use_dynamic_data(&mut self, value: &CborValue) -> Result<(),String> {
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
         let t = cbor_map(value,&vec!["t"])?;
         self.0 = Some(TimeTrial::deserialize(&t[0])?);
         Ok(())
@@ -274,7 +275,7 @@ impl CommandType for AllCommandType {
 pub struct AllCommand(Vec<Register>,Option<TimeTrial>);
 
 impl AllCommand {
-    fn enough_valid(&self, context: &PreImageContext) -> Result<bool,String> {
+    fn enough_valid(&self, context: &PreImageContext) -> anyhow::Result<bool> {
         for i in 1..self.0.len() {
             if !context.is_reg_valid(&self.0[i]) { return Ok(false); }
         }
@@ -292,12 +293,12 @@ impl AllCommand {
 }
 
 impl Command for AllCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         let regs = CborValue::Array(self.0.iter().map(|x| x.serialize()).collect());
         Ok(Some(vec![regs]))
     }
 
-    fn simple_preimage(&self, context: &mut PreImageContext) -> Result<PreImagePrepare,String> { 
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if self.enough_valid(context)? && !context.is_last() {
             PreImagePrepare::Replace
         } else if let Some(size) = self.any_size(context) {
@@ -307,7 +308,7 @@ impl Command for AllCommand {
         })
     }
 
-    fn preimage_post(&self, _context: &mut PreImageContext) -> Result<PreImageOutcome,String> {
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0[0].clone()]))
     }
 
@@ -330,11 +331,11 @@ impl CommandType for EqCommandType {
         }
     }
 
-    fn from_instruction(&self, it: &Instruction) -> Result<Box<dyn Command>,String> {
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
             Ok(Box::new(EqCommand(sig.clone(),it.regs.to_vec())))
         } else {
-            Err("unexpected instruction".to_string())
+            Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
@@ -342,7 +343,7 @@ impl CommandType for EqCommandType {
 pub struct EqCommand(RegisterSignature,Vec<Register>);
 
 impl EqCommand {
-    fn build_instrs(&self, context: &mut PreImageContext) -> Result<Vec<Instruction>,String> {
+    fn build_instrs(&self, context: &mut PreImageContext) -> anyhow::Result<Vec<Instruction>> {
         let mut out = vec![];
         let mut parts = vec![self.1[0].clone()];
         let short = self.0[1].iter().count() == 1;
@@ -389,21 +390,20 @@ impl EqCommand {
 }
 
 impl Command for EqCommand {
-    fn serialize(&self) -> Result<Option<Vec<CborValue>>,String> {
-        Err(format!("compile-side command"))
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Err(DauphinError::malformed("compile-side command"))
     }
 
-    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> Result<PreImageOutcome,String> {
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Replace(self.build_instrs(context)?))
     }
 }
 
-pub(super) fn library_eq_command(set: &mut CompLibRegister) -> Result<(),String> {
+pub(super) fn library_eq_command(set: &mut CompLibRegister) {
     set.push("eq",None,EqCommandType());
     set.push("_eq_shallow",Some(0),EqShallowCommandType::new());
     set.push("_eq_compare",Some(19),EqCompareCommandType::new());
     set.push("_eq_all",Some(20),AllCommandType::new());
-    Ok(())
 }
 
 #[cfg(test)]
@@ -413,7 +413,7 @@ mod test {
     #[test]
     fn eq_smoke() {
         let mut config = xxx_test_config();
-        config.set_generate_debug(false);
+        //config.set_generate_debug(false);
         config.set_verbose(3);
         let strings = compile(&config,"search:std/eq").expect("a");
         for s in &strings {

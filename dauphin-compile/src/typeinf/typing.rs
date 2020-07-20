@@ -75,7 +75,7 @@ impl Typing {
         out
     }
 
-    pub fn add(&mut self, sig: &InstructionConstraint) -> Result<(),String> {
+    pub fn add(&mut self, sig: &InstructionConstraint) -> anyhow::Result<()> {
         for (constraint,register) in self.extract(sig) {
             let is_ref = match constraint {
                 TypeConstraint::Reference(_) => true,
@@ -107,7 +107,7 @@ impl Typing {
         for (key,expression_type) in self.store.get_all() {
             if let Key::External(id) = key {
                 if let Some(reg) = revmap.get(id) {
-                    model.add(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
+                    model.set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
                 }
             }
         }

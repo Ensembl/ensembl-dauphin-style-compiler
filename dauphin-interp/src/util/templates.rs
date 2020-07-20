@@ -16,20 +16,21 @@
 
 use crate::command::{ CommandDeserializer, InterpCommand };
 use crate::runtime::{ InterpContext };
+use crate::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
 pub struct ErrorInterpCommand();
 
 impl InterpCommand for ErrorInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> Result<(),String> {
-        Err(format!("compile time command somehow ended up in binary"))
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
+        Err(DauphinError::malformed("compile time command somehow ended up in binary"))
     }
 }
 
 pub struct NoopInterpCommand();
 
 impl InterpCommand for NoopInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> Result<(),String> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
         Ok(())
     }
 }
@@ -37,21 +38,21 @@ impl InterpCommand for NoopInterpCommand {
 pub struct ErrorDeserializer();
 
 impl CommandDeserializer for ErrorDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> {
         Ok(None)
     }
-    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
-        Err(format!("compile time command somehow ended up in binary"))
+    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Err(DauphinError::malformed("compile time command somehow ended up in binary"))
     }
 }
 
 pub struct NoopDeserializer(pub u32);
 
 impl CommandDeserializer for NoopDeserializer {
-    fn get_opcode_len(&self) -> Result<Option<(u32,usize)>,String> {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> {
         Ok(Some((self.0,0)))
     }
-    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> Result<Box<dyn InterpCommand>,String> {
+    fn deserialize(&self, _opcode: u32, _value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(NoopInterpCommand()))
     }
 }

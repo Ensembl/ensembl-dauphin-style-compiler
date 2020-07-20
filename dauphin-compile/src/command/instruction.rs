@@ -14,14 +14,15 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::fmt;
-
 use crate::util::DFloat;
 use crate::lexer::LexerPosition;
 use serde_cbor::Value as CborValue;
 use dauphin_interp::command::{ Identifier };
 use dauphin_interp::runtime::{ Register  };
 use dauphin_interp::types::{ RegisterSignature, MemberMode, MemberDataFlow };
+use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_int };
 
 #[derive(Clone,Copy,PartialEq,Debug,Hash,Eq)]
@@ -74,7 +75,7 @@ impl InstructionSuperType {
         })
     }
 
-    pub fn deserialize(value: &CborValue) -> Result<InstructionSuperType,String> {
+    pub fn deserialize(value: &CborValue) -> anyhow::Result<InstructionSuperType> {
         Ok(match cbor_int(value,Some(19))? {
             0 => InstructionSuperType::Pause,
             1 => InstructionSuperType::Nil,
@@ -96,7 +97,7 @@ impl InstructionSuperType {
             17 => InstructionSuperType::BytesConst,
             18 => InstructionSuperType::Call,
             19 => InstructionSuperType::LineNumber,
-            _ => Err(format!("impossible in IntstructionSuperType deserialize"))?
+            _ => Err(DauphinError::internal(file!(),line!()))? /* impossible in IntstructionSuperType deserialize */
         })
     }
 }
@@ -141,7 +142,7 @@ pub enum InstructionType {
 }
 
 impl InstructionType {
-    pub fn supertype(&self) -> Result<InstructionSuperType,String> {
+    pub fn supertype(&self) -> anyhow::Result<InstructionSuperType> {
         Ok(match self {
             InstructionType::Nil => InstructionSuperType::Nil,
             InstructionType::Pause(_) => InstructionSuperType::Pause,
@@ -163,7 +164,7 @@ impl InstructionType {
             InstructionType::BytesConst(_) => InstructionSuperType::BytesConst,
             InstructionType::Call(_,_,_,_) => InstructionSuperType::Call,
             InstructionType::LineNumber(_) => InstructionSuperType::LineNumber,
-            _ => Err(format!("instruction has no supertype"))?
+            _ => Err(DauphinError::internal(file!(),line!()))? /* format!("instruction has no supertype")) */
         })
     }
 

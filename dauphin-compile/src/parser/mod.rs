@@ -23,7 +23,7 @@ mod parser;
 mod declare;
 
 pub use lexutil::not_reserved;
-pub use node::{ ParseError, Statement, Expression };
+pub use node::{ Statement, Expression, parse_error, parse_locate };
 pub use parser::Parser;
 
 pub use parsedecl::parse_signature;

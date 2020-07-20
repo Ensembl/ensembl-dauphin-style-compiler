@@ -14,8 +14,8 @@
  *  limitations under the License.
  */
 
+use anyhow;
 use std::collections::HashMap;
-
 use super::gencontext::GenContext;
 use crate::command::{ Instruction, InstructionType };
 use crate::util::DFloat;
@@ -23,6 +23,7 @@ use crate::parser::{ Expression, Statement };
 use dauphin_interp::command::{ Identifier };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::types::{ BaseType, MemberMode };
+use dauphin_interp::util::{ DauphinError, error_locate, triage_source_errors };
 use crate::model::DefStore;
 use crate::typeinf::{ExpressionType, SignatureMemberConstraint };
 
@@ -60,7 +61,7 @@ impl<'a> CodeGen<'a> {
         }
     }
 
-    fn build_vec(&mut self, values: &Vec<Expression>, dollar: Option<&Register>, at: Option<&Register>) -> Result<Register,String> {
+    fn build_vec(&mut self, values: &Vec<Expression>, dollar: Option<&Register>, at: Option<&Register>) -> anyhow::Result<Register> {
         let tmp = addf!(self,Nil);
         for val in values {
             let r = self.build_rvalue(val,dollar,at)?;
@@ -70,7 +71,7 @@ impl<'a> CodeGen<'a> {
 
     }
 
-    fn struct_rearrange(&mut self, s: &Identifier, x: Vec<Register>, got_names: &Vec<String>) -> Result<Vec<Register>,String> {
+    fn struct_rearrange(&mut self, s: &Identifier, x: Vec<Register>, got_names: &Vec<String>) -> anyhow::Result<Vec<Register>> {
         let decl = self.defstore.get_struct_id(s)?;
         let gotpos : HashMap<String,usize> = got_names.iter().enumerate().map(|(i,e)| (e.to_string(),i)).collect();
         let mut out = Vec::new();
@@ -78,17 +79,17 @@ impl<'a> CodeGen<'a> {
             if let Some(got_pos) = gotpos.get(want_name) {
                 out.push(x[*got_pos]);
             } else {
-                return Err(format!("Missing member '{}'",want_name));
+                return Err(DauphinError::source(&format!("Missing member '{}'",want_name)));
             }
         }
         Ok(out)
     }
 
-    fn type_of(&mut self, expr: &Expression) -> Result<ExpressionType,String> {
+    fn type_of(&mut self, expr: &Expression) -> anyhow::Result<ExpressionType> {
         Ok(match expr {
             Expression::Identifier(id) => {
                 if !self.rvalue_regnames.contains_key(id) {
-                    return Err(format!("No such variable {:?}",id));
+                    return Err(DauphinError::source(&format!("No such variable {:?}",id)));
                 }
                 self.context.get_partial_type(&self.rvalue_regnames[id])
             },
@@ -98,10 +99,10 @@ impl<'a> CodeGen<'a> {
                     if let Some(type_) = struct_.get_member_type(f) {
                         type_.to_expressiontype()
                     } else {
-                        return Err(format!("no such field {:?}",f));
+                        return Err(DauphinError::source(&format!("no such field {:?}",f)));
                     }
                 } else {
-                    return Err(format!("{:?} is not a structure",expr));
+                    return Err(DauphinError::source(&format!("{:?} is not a structure",expr)));
                 }
             },
             Expression::Pling(x,f) => {
@@ -110,27 +111,27 @@ impl<'a> CodeGen<'a> {
                     if let Some(type_) = enum_.get_branch_type(f) {
                         type_.to_expressiontype()
                     } else {
-                        return Err(format!("no such field {:?}",f));
+                        return Err(DauphinError::source(&format!("no such field {:?}",f)));
                     }
                 } else {
-                    return Err(format!("{:?} is not a structure",expr));
+                    return Err(DauphinError::source(&format!("{:?} is not a structure",expr)));
                 }
             },
             Expression::Square(x) | Expression::Bracket(x,_) => {
                 if let ExpressionType::Vec(subtype) = self.type_of(x)? {
                     subtype.as_ref().clone()
                 } else {
-                    return Err(format!("{:?} is not a vector",expr));
+                    return Err(DauphinError::source(&format!("{:?} is not a vector",expr)));
                 }
             },
             Expression::Filter(x,_) => {
                 self.type_of(x)?
             },
-            _ => return Err(format!("Cannot type {:?}",expr))
+            _ => return Err(DauphinError::source(&format!("Cannot type {:?}",expr)))
         })
     }
 
-    fn build_lvalue(&mut self, expr: &Expression, top: bool, unfiltered_in: bool) -> Result<(Register,Option<Register>,Register),String> {
+    fn build_lvalue(&mut self, expr: &Expression, top: bool, unfiltered_in: bool) -> anyhow::Result<(Register,Option<Register>,Register)> {
         match expr {
             Expression::Identifier(id) => {
                 if top {
@@ -151,7 +152,7 @@ impl<'a> CodeGen<'a> {
                     let rvalue_reg = addf!(self,SValue(name.clone(),f.clone()),rvalue_subreg);
                     Ok((lvalue_reg,fvalue_reg,rvalue_reg))
                 } else {
-                    Err("Can only take \"dot\" of structs".to_string())
+                    Err(DauphinError::source("Can only take \"dot\" of structs"))
                 }
             },
             Expression::Pling(x,f) => {
@@ -165,7 +166,7 @@ impl<'a> CodeGen<'a> {
                     let rvalue_reg = addf!(self,EValue(name.clone(),f.clone()),rvalue_subreg);
                     Ok((lvalue_reg,Some(fvalue_reg),rvalue_reg))
                 } else {
-                    Err("Can only take \"pling\" of enums".to_string())
+                    Err(DauphinError::source("Can only take \"pling\" of enums"))
                 }
             },
             Expression::Square(x) => {
@@ -194,19 +195,20 @@ impl<'a> CodeGen<'a> {
                 let rvalue_reg = addf!(self,Filter,rvalue_interreg,filterreg);
                 Ok((lvalue_reg,Some(fvalue_reg),rvalue_reg))
             },
-            _ => return Err("Invalid lvalue".to_string())
+            _ => return Err(DauphinError::source(&"Invalid lvalue".to_string()))
         }
     }
 
-    fn build_rvalue(&mut self, expr: &Expression, dollar: Option<&Register>, at: Option<&Register>) -> Result<Register,String> {
+    fn build_rvalue(&mut self, expr: &Expression, dollar: Option<&Register>, at: Option<&Register>) -> anyhow::Result<Register> {
         Ok(match expr {
             Expression::Identifier(id) => {
                 if !self.rvalue_regnames.contains_key(id) {
-                    return Err(format!("Unset variable {:?}",id));
+                    return Err(DauphinError::source(&format!("Unset variable {:?}",id)));
                 }
                 self.rvalue_regnames[id]
             },
-            Expression::Number(n) =>        addf!(self,NumberConst(DFloat::new_str(n).map_err(|_| format!("Bad number '{:?}'",n))?)),
+            Expression::Number(n) =>        
+                addf!(self,NumberConst(DFloat::new_str(n).map_err(|_| DauphinError::source(&format!("Bad number '{:?}'",n)))?)),
             Expression::LiteralString(s) => addf!(self,StringConst(s.to_string())),
             Expression::LiteralBool(b) =>   addf!(self,BooleanConst(*b)),
             Expression::LiteralBytes(b) =>  addf!(self,BytesConst(b.to_vec())),
@@ -238,7 +240,7 @@ impl<'a> CodeGen<'a> {
                 if let ExpressionType::Base(BaseType::StructType(name)) = stype {
                     addf!(self,SValue(name.clone(),f.clone()),subreg)
                 } else {
-                    return Err(format!("Can only take \"dot\" of structs, not {:?}",stype));
+                    return Err(DauphinError::source(&format!("Can only take \"dot\" of structs, not {:?}",stype)));
                 }
             },
             Expression::Query(x,f) => {
@@ -247,7 +249,7 @@ impl<'a> CodeGen<'a> {
                 if let ExpressionType::Base(BaseType::EnumType(name)) = etype {
                     addf!(self,ETest(name.clone(),f.clone()),subreg)
                 } else {
-                    return Err("Can only take \"query\" of enums".to_string());
+                    return Err(DauphinError::source("Can only take \"query\" of enums"));
                 }
             },
             Expression::Pling(x,f) => {
@@ -256,7 +258,7 @@ impl<'a> CodeGen<'a> {
                 if let ExpressionType::Base(BaseType::EnumType(name)) = etype {
                     addf!(self,EValue(name.clone(),f.clone()),subreg)
                 } else {
-                    return Err("Can only take \"pling\" of enums".to_string());
+                    return Err(DauphinError::source("Can only take \"pling\" of enums"));
                 }
             },
             Expression::Square(x) => {
@@ -284,20 +286,20 @@ impl<'a> CodeGen<'a> {
                 if let Some(dollar) = dollar {
                     addf!(self,Copy,*dollar)
                 } else {
-                    return Err("Unexpected $".to_string());
+                    return Err(DauphinError::source("Unexpected $"));
                 }
             },
             Expression::At => {
                 if let Some(at) = at {
                     addf!(self,Copy,*at)
                 } else {
-                    return Err("Unexpected @".to_string());
+                    return Err(DauphinError::source("Unexpected @"));
                 }
             }
         })
     }
 
-    fn build_stmt(&mut self, stmt: &Statement) -> Result<(),String> {
+    fn build_stmt(&mut self, stmt: &Statement) -> anyhow::Result<()> {
         let mut regs = Vec::new();
         let mut modes = Vec::new();
         let procdecl = self.defstore.get_proc_id(&stmt.0)?;
@@ -327,27 +329,32 @@ impl<'a> CodeGen<'a> {
         Ok(())
     }
 
-    fn go(mut self, stmts: &Vec<Statement>) -> Result<GenContext<'a>,Vec<String>> {
-        let mut errors = Vec::new();
+    fn go(mut self, stmts: &[Statement]) -> anyhow::Result<Result<GenContext<'a>,Vec<String>>> {
+        let mut errors = vec![];
         for stmt in stmts {
-            let r = self.build_stmt(stmt);
-            if let Err(r) = r {
-                errors.push(format!("{} at {}",r,stmt.2));
+            if let Err(e) = self.build_stmt(stmt) {
+                let pos = &stmt.2;
+                errors.push(error_locate(e,pos.filename(),pos.line()));
             }
         }
         if errors.len() > 0 {
-            Err(errors)
+            match triage_source_errors(&mut errors) {
+                Ok(e) => Ok(Err(e)),
+                Err(e) => Err(e)
+            }
         } else {
             self.context.generate_types();
-            Ok(self.context)
+            Ok(Ok(self.context))
         }
     }
 }
 
-pub fn generate_code<'a>(defstore: &'a DefStore, stmts: &Vec<Statement>, include_line_numbers: bool) -> Result<GenContext<'a>,Vec<String>> {
-    let mut context = CodeGen::new(defstore,include_line_numbers).go(stmts)?;
-    context.phase_finished();
-    Ok(context)
+pub fn generate_code<'a>(defstore: &'a DefStore, stmts: &Vec<Statement>, include_line_numbers: bool) -> anyhow::Result<Result<GenContext<'a>,Vec<String>>> {
+    let mut out = CodeGen::new(defstore,include_line_numbers).go(stmts)?;
+    if let Ok(ref mut context) = out {
+        context.phase_finished();
+    }
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -361,27 +368,27 @@ mod test {
 
     fn run_pass(filename: &str) -> Result<(),Vec<String>> {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("search:codegen/{}",filename)).expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
         let gen = CodeGen::new(&defstore,true);
-        gen.go(&stmts)?;
+        gen.go(&stmts).expect("go")?;
         Ok(())
     }
 
     #[test]
     fn codegen_smoke() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y")).expect("y2");
+        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/generate-smoke2").expect("cannot load file");
         let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error");
-        let gencontext = generate_code(&defstore,&stmts,true).expect("codegen");
+        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let gencontext = generate_code(&defstore,&stmts,true).expect("codegen").expect("error");
         let cmds : Vec<String> = gencontext.get_instructions().iter().map(|e| format!("{:?}",e)).collect();
         let outdata = load_testdata(&["codegen","generate-smoke2.out"]).ok().unwrap();
         print!("{}",cmds.join(""));
