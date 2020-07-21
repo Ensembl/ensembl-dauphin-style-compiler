@@ -14,10 +14,9 @@
  *  limitations under the License.
  */
 
-use anyhow::{ self, Context };
+use anyhow::{ Context };
 
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::fs::{ write, read };
 use std::process::exit;
 use regex::Regex;
@@ -33,7 +32,7 @@ use dauphin_compile::parser::{ Parser };
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::generate::generate;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::CompilerLink;
+use dauphin_compile::command::{ CompilerLink, ProgramMetadata };
 use serde_cbor::Value as CborValue;
 use serde_cbor::to_writer;
 
@@ -118,7 +117,8 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         },
         Ok(x) => x
     };
-    linker.add(&name,&instrs,config).context("linking")?;
+    let md = ProgramMetadata::new(&name,None,&instrs);
+    linker.add(&md,&instrs,config).context("linking")?;
     Ok(true)
 }
 

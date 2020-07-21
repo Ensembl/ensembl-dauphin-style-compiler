@@ -20,7 +20,7 @@ use std::time::{ SystemTime, Duration };
 use std::collections::HashMap;
 use std::rc::Rc;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction };
+use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction, ProgramMetadata };
 use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::{ make_core_interp };
 use crate::{ make_std_interp };
@@ -81,7 +81,8 @@ pub fn mini_interp_run(interpret_linker: &InterpreterLink, config: &Config, name
 }
 
 pub fn mini_interp(instrs: &Vec<Instruction>, cl: &mut CompilerLink, config: &Config, name: &str) -> anyhow::Result<(HashMap<Register,Vec<usize>>,Vec<String>)> {
-    cl.add(name,instrs,config)?;
+    let md = ProgramMetadata::new(name,None,&instrs);
+    cl.add(&md,instrs,config)?;
     let program = cl.serialize(config)?;
     let buffer = cbor_serialize(&program)?;
     print!("{}\n",hexdump(&buffer));

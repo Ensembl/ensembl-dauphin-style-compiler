@@ -13,6 +13,8 @@ owning_ref="*"
 serde_cbor="*"
 crc="*"
 regex="*"
+chrono="*"
+users="*"
 
 dauphin_interp = { path = "../dauphin-interp" }
 

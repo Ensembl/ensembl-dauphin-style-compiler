@@ -24,7 +24,7 @@ use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::parser::{ Parser, parse_type };
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
-use dauphin_compile::command::{ CompilerLink, InstructionType };
+use dauphin_compile::command::{ CompilerLink, InstructionType, ProgramMetadata };
 use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call };
 use dauphin_lib_std::stream::{ StreamFactory, Stream };
@@ -133,7 +133,8 @@ fn line_number_smoke() {
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    linker.add("main",&instrs,&config).expect("a");
+    let md = ProgramMetadata::new("main",None,&instrs);
+    linker.add(&md,&instrs,&config).expect("a");
     let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(message.contains("line-number.dp:10"));
@@ -151,7 +152,8 @@ fn no_line_number_smoke() {
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    linker.add("main",&instrs,&config).expect("a");
+    let md = ProgramMetadata::new("main",None,&instrs);
+    linker.add(&md,&instrs,&config).expect("a");
     let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(!message.contains(" at "));
@@ -355,7 +357,8 @@ fn make_program(linker: &mut CompilerLink, resolver: &Resolver, config: &Config,
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    linker.add(name,&instrs,config)?;
+    let md = ProgramMetadata::new(name,None,&instrs);
+    linker.add(&md,&instrs,config)?;
     Ok(())
 }
 

@@ -113,8 +113,7 @@ impl Command for AssignCommand {
     }
 }
 
-pub(super) fn library_assign_commands(set: &mut CompLibRegister) -> Result<(),String> {
+pub(super) fn library_assign_commands(set: &mut CompLibRegister) {
     set.push("assign",None,AssignCommandType());
     set.push("extend",None,ExtendCommandType::new());
-    Ok(())
 }
