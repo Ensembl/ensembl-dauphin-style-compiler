@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-use anyhow;
 use std::collections::HashMap;
 use super::gencontext::GenContext;
 use crate::command::{ InstructionType };

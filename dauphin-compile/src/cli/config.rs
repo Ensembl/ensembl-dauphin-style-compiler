@@ -43,7 +43,8 @@ pub struct Config {
     output: Option<String>,
     profile: Option<bool>,
     define: Vec<(String,String)>,
-    run: Option<String>
+    run: Option<String>,
+    note: Option<String>,
 }
 
 macro_rules! push {
@@ -148,7 +149,8 @@ impl Config {
             output: None,
             profile: None,
             define: vec![],
-            run: None
+            run: None,
+            note: None
         }
     }
 
@@ -161,7 +163,7 @@ impl Config {
         if self.get_profile() && !self.get_generate_debug() {
             return Err(DauphinError::config("cannot generate profile (-p) without debug info (-g)"));
         }
-        if self.get_action() == "run" && !self.isset_output() {
+        if (self.get_action() == "run" || self.get_action() == "list") && !self.isset_output() {
             return Err(DauphinError::config("cannot run (-x) without object file (-o)"));
         }
         Ok(())
@@ -183,4 +185,5 @@ impl Config {
     flag_str!(self,run,set_run,get_run,isset_run,"");
     flag!(self,profile,set_profile,get_profile,isset_profile,bool,false);
     push!(self,define,add_define,get_defines,(String,String));
+    flag_str!(self,note,set_note,get_note,isset_note,"");
 }

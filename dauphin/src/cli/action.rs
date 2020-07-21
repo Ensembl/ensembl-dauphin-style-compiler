@@ -32,7 +32,7 @@ use dauphin_compile::parser::{ Parser };
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::generate::generate;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CompilerLink, ProgramMetadata };
+use dauphin_compile::command::{ CompilerLink, ProgramMetadata, MetaLink };
 use serde_cbor::Value as CborValue;
 use serde_cbor::to_writer;
 
@@ -117,7 +117,11 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         },
         Ok(x) => x
     };
-    let md = ProgramMetadata::new(&name,None,&instrs);
+    let note = match config.get_note() {
+        "" => None,
+        note => Some(note)
+    };
+    let md = ProgramMetadata::new(&name,note,&instrs);
     linker.add(&md,&instrs,config).context("linking")?;
     Ok(true)
 }
@@ -170,12 +174,26 @@ impl Action for RunAction {
     }
 }
 
+struct ListAction();
+
+impl Action for ListAction {
+    fn name(&self) -> String { "list".to_string() }
+    fn execute(&self, config: &Config) -> anyhow::Result<()> {
+        let buffer = read_binary_file(config.get_output())?;
+        let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+        let metalink = MetaLink::new(&program).context("loading metadata")?;
+        print!("\n{}\n\n",metalink.ls().join("\n"));
+        Ok(())
+    }
+}
+
 pub(super) fn make_actions() -> HashMap<String,Box<dyn Action>> {
     let mut out : Vec<Box<dyn Action>> = vec![];
     out.push(Box::new(VersionAction()));
     out.push(Box::new(CompileAction()));
     out.push(Box::new(GenerateDynamicData()));
     out.push(Box::new(RunAction()));
+    out.push(Box::new(ListAction()));
     out.drain(..).map(|a| (a.name(),a)).collect()
 }
 

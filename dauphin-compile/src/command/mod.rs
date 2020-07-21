@@ -21,6 +21,7 @@ mod compilesuite;
 mod complibregister;
 mod instruction;
 mod metadata;
+mod metalink;
 mod timetrial;
 
 pub use self::command::{ CommandType, Command, CommandSchema,CommandTrigger, PreImageOutcome, PreImagePrepare };
@@ -30,4 +31,5 @@ pub use self::compilesuite::CommandCompileSuite;
 pub use self::complibregister::CompLibRegister;
 pub use self::instruction::{ InstructionSuperType, InstructionType, Instruction };
 pub use self::metadata::{ ProgramMetadata };
+pub use self::metalink::MetaLink;
 pub use self::timetrial::{ TimeTrial, TimeTrialCommandType, trial_signature, trial_write };

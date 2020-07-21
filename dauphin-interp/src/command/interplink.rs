@@ -117,7 +117,7 @@ impl InterpreterLink {
         Ok(out)
     }
 
-    pub fn new(mut ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
+    pub fn new(ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
         InterpreterLink::new_real(ips,cbor).context("parsing program")
     }
 

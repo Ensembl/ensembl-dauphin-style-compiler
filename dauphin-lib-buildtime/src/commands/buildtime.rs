@@ -14,7 +14,6 @@
  *  limitations under the License.
  */
 
-use anyhow;
 use dauphin_interp::command::{ CommandSetId };
 use dauphin_compile::command::CompLibRegister;
 use super::defines::DefineCommandType;

@@ -71,6 +71,10 @@ pub fn cbor_type(cbor: &CborValue, allowed: Option<&[CborType]>) -> anyhow::Resu
     Ok(out)
 }
 
+pub fn cbor_option<F,T>(cbor: &CborValue, cb: F) -> anyhow::Result<Option<T>> where F: FnOnce(&CborValue) -> anyhow::Result<T> {
+    Ok(if let CborValue::Null = cbor { None } else { Some(cb(cbor)?) })
+}
+
 pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> anyhow::Result<i128>  {
     match cbor {
         CborValue::Integer(x) => {

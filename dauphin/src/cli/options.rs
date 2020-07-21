@@ -83,6 +83,8 @@ pub fn config_from_options() -> Config {
         ConfigOption::new("output","output",Some("o"),Some("BINARY-FILE"),false,|config,v| { config.set_output(v) }),
         ConfigOption::new("profile","profile",Some("p"),None,false,|config,_| { config.set_profile(true) }),
         ConfigOption::new("execute","execute",Some("x"),Some("PROG-NAME"),false,|config,v| { config.set_run(v); config.set_action("run") }),
+        ConfigOption::new("note","note",None,Some("NOTE"),false,|config,v| { config.set_note(v) }),
+        ConfigOption::new("ls","ls",None,None,false,|config,_| { config.set_action("list") }),
         ConfigOption::new("define","define",Some("D"),Some("KEY=VALUE"),true,|config,v| { 
             let (k,v) = if let Some(eq_pos) = v.chars().position(|x| x== '=') {
                 let (k,v) = v.split_at(eq_pos);

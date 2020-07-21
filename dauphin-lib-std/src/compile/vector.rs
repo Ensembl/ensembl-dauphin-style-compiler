@@ -438,10 +438,9 @@ impl Command for VectorUpdateIndexes {
     }
 }
 
-pub(super) fn library_vector_commands(set: &mut CompLibRegister) -> anyhow::Result<()> {
+pub(super) fn library_vector_commands(set: &mut CompLibRegister) {
     set.push("_vector_copy_shallow",Some(9),VectorCopyShallowType::new());
     set.push("_vector_append",Some(10),VectorAppendType::new());
     set.push("_vector_append_indexes",Some(17),VectorAppendIndexesType::new());
     set.push("_vector_update_indexes",Some(18),VectorUpdateIndexesType::new());
-    Ok(())
 }
