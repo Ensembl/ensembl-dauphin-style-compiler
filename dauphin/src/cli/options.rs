@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use anyhow::{ self, Context };
 use std::process::exit;
 use dauphin_compile::cli::Config;
 use super::action::make_actions;
@@ -30,12 +31,12 @@ struct ConfigOption {
     short: Option<String>,
     value: Option<String>,
     multiple: bool,
-    cb: Box<dyn Fn(&mut Config,&str)>
+    cb: Box<dyn Fn(&mut Config,&str) -> anyhow::Result<()>>
 }
 
 impl ConfigOption {
     fn new<T>(name: &str, long: &str, short: Option<&str>, value: Option<&str>, multiple: bool, cb: T) -> ConfigOption
-        where T: Fn(&mut Config,&str) + 'static {
+        where T: Fn(&mut Config,&str) -> anyhow::Result<()> + 'static {
         ConfigOption {
             name: name.to_string(),
             long: long.to_string(),
@@ -55,37 +56,31 @@ impl ConfigOption {
     }
 }
 
-pub fn to_u8(s: &str) -> u8 {
-    match s.parse::<u8>() {
-        Ok(v) => v,
-        Err(_) => {
-            print!("Bad value '{}', expected integer\n",s);
-            exit(1);
-        }
-    }
+pub fn to_u8(s: &str) -> anyhow::Result<u8> {
+    Ok(s.parse::<u8>().with_context(|| "parsing small integer")?)
 }
 
-pub fn config_from_options() -> Config {
+pub fn config_from_options() -> anyhow::Result<Config> {
     let mut config = Config::new();
 
     let mut options = vec![
-        ConfigOption::new("generate-debug","generate-debug",Some("g"),None,false,|config,_| { config.set_generate_debug(true) }),
-        ConfigOption::new("no-std","no-std",None,None,false,|config,_| { config.set_nostd(true) }),
-        ConfigOption::new("verbose","verbose",Some("v"),None,true,|config,v| { config.set_verbose(to_u8(v)) }),
-        ConfigOption::new("opt-level","opt",Some("O"),Some("LEVEL"),false,|config,v| { config.set_opt_level(to_u8(v)) }),
-        ConfigOption::new("debug-run","debug-run",None,None,false,|config,_| { config.set_debug_run(true) }),
-        ConfigOption::new("opt-seq","opt-seq",None,Some("OPT-SEQUENCE"),false,|config,v| { config.set_opt_seq(v) }),
-        ConfigOption::new("root-dir","root-dir",Some("B"),Some("DIRECTORY"),false,|config,v| { config.set_root_dir(v) }),
-        ConfigOption::new("file-search-path","file-search-path",Some("I"),Some("DIRECTORY"),true,|config,v| { config.add_file_search_path(v) }),
-        ConfigOption::new("lib","lib",Some("L"),Some("LIBRARY"),true,|config,v| { config.add_lib(v) }),
-        ConfigOption::new("action","action",None,Some("ACTION"),false,|config,value| { config.set_action(value) }),
-        ConfigOption::new("source","source",Some("c"),Some("SOURCE-FILE"),true,|config,v| { config.add_source(v) }),
-        ConfigOption::new("output","output",Some("o"),Some("BINARY-FILE"),false,|config,v| { config.set_output(v) }),
-        ConfigOption::new("binary-source","binary-source",Some("s"),Some("BINARY-FILE"),true,|config,v| { config.add_binary_source(v) }),
-        ConfigOption::new("profile","profile",Some("p"),None,false,|config,_| { config.set_profile(true) }),
-        ConfigOption::new("execute","execute",Some("x"),Some("PROG-NAME"),false,|config,v| { config.set_run(v); config.set_action("run") }),
-        ConfigOption::new("note","note",None,Some("NOTE"),false,|config,v| { config.set_note(v) }),
-        ConfigOption::new("ls","ls",None,None,false,|config,_| { config.set_action("list") }),
+        ConfigOption::new("generate-debug","generate-debug",Some("g"),None,false,|config,_| { Ok(config.set_generate_debug(true)) }),
+        ConfigOption::new("no-std","no-std",None,None,false,|config,_| { Ok(config.set_nostd(true)) }),
+        ConfigOption::new("verbose","verbose",Some("v"),None,true,|config,v| { Ok(config.set_verbose(to_u8(v)?)) }),
+        ConfigOption::new("opt-level","opt",Some("O"),Some("LEVEL"),false,|config,v| { Ok(config.set_opt_level(to_u8(v)?)) }),
+        ConfigOption::new("debug-run","debug-run",None,None,false,|config,_| { Ok(config.set_debug_run(true)) }),
+        ConfigOption::new("opt-seq","opt-seq",None,Some("OPT-SEQUENCE"),false,|config,v| { Ok(config.set_opt_seq(v)) }),
+        ConfigOption::new("root-dir","root-dir",Some("B"),Some("DIRECTORY"),false,|config,v| { Ok(config.set_root_dir(v)) }),
+        ConfigOption::new("file-search-path","file-search-path",Some("I"),Some("DIRECTORY"),true,|config,v| { Ok(config.add_file_search_path(v)) }),
+        ConfigOption::new("lib","lib",Some("L"),Some("LIBRARY"),true,|config,v| { Ok(config.add_lib(v)) }),
+        ConfigOption::new("action","action",None,Some("ACTION"),false,|config,value| { Ok(config.set_action(value)) }),
+        ConfigOption::new("source","source",Some("c"),Some("SOURCE-FILE"),true,|config,v| { Ok(config.add_source(v)) }),
+        ConfigOption::new("output","output",Some("o"),Some("BINARY-FILE"),false,|config,v| { Ok(config.set_output(v)) }),
+        ConfigOption::new("binary-source","binary-source",Some("s"),Some("BINARY-FILE"),true,|config,v| { Ok(config.add_binary_source(v)) }),
+        ConfigOption::new("profile","profile",Some("p"),None,false,|config,_| { Ok(config.set_profile(true)) }),
+        ConfigOption::new("execute","execute",Some("x"),Some("PROG-NAME"),false,|config,v| { config.set_run(v); Ok(config.set_action("run")) }),
+        ConfigOption::new("note","note",None,Some("NOTE"),false,|config,v| { Ok(config.set_note(v)) }),
+        ConfigOption::new("ls","ls",None,None,false,|config,_| { Ok(config.set_action("list")) }),
         ConfigOption::new("define","define",Some("D"),Some("KEY=VALUE"),true,|config,v| { 
             let (k,v) = if let Some(eq_pos) = v.chars().position(|x| x== '=') {
                 let (k,v) = v.split_at(eq_pos);
@@ -93,13 +88,13 @@ pub fn config_from_options() -> Config {
             } else {
                 (v,"")
             };
-            config.add_define((k.to_string(),v.to_string()));
+            Ok(config.add_define((k.to_string(),v.to_string())))
          }),
     ];
     let actions = make_actions();
     for (action,_) in actions.iter() {
         let action = action.to_string();
-        options.push(ConfigOption::new(&action.to_string(),&action.to_string(),None,None,false, move |config,_| { config.set_action(&action) }));
+        options.push(ConfigOption::new(&action.to_string(),&action.to_string(),None,None,false, move |config,_| { Ok(config.set_action(&action)) }));
     }
 
     let mut args = App::new(APP_NAME).version(APP_VERSION).author(APP_AUTHOR).about(APP_ABOUT);
@@ -110,14 +105,13 @@ pub fn config_from_options() -> Config {
     for option in &options {
         if option.value.is_some() {
             for value in matches.values_of_lossy(&option.name).unwrap_or(vec![]).iter() {
-                (option.cb)(&mut config,&value);
+                (option.cb)(&mut config,&value)?;
             }
         } else {
             if matches.is_present(&option.name) {
-                (option.cb)(&mut config,&format!("{}",matches.occurrences_of(&option.name)));
+                (option.cb)(&mut config,&format!("{}",matches.occurrences_of(&option.name)))?;
             }
         }
     }
-
-    config
+    Ok(config)
 }

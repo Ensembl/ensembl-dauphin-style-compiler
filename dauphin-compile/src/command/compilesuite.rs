@@ -280,7 +280,6 @@ mod test {
         cis.register(cs2).expect("c");
 
         cis.adjust(&ccs.serialize()).expect("e");
-        //print!("{:?}\n",cis.offset_to_command);
 
         let mut context = InterpContext::new(&HashMap::new());
         cis.get_deserializer(5).expect("e").deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");

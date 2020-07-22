@@ -24,10 +24,8 @@ use dauphin_interp::util::DauphinError;
 
 pub(super) fn prefix_suffix(path: &str) -> (&str,&str) {
     if let Some(colon) = path.find(':') {
-        print!("prefix_suffix({}) = ({},{})\n",path,&path[0..colon],&path[colon+1..]);
         (&path[0..colon],&path[colon+1..])
     } else {
-        print!("prefix_suffix({}) = ({},{})\n",path,"",path);
         ("",path)
     }
 }

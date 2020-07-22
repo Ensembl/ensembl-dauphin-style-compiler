@@ -23,6 +23,10 @@ mod test;
 use crate::cli::{ config_from_options, run };
 
 fn main() {
-    let options_config = config_from_options();
-    run(&options_config);
+    match config_from_options() {
+        Ok(options) => run(&options),
+        Err(error) => {
+            eprint!("Error: {}\n",error);
+        }
+    }
 }

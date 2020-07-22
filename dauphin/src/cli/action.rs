@@ -65,16 +65,6 @@ pub trait Action {
     fn execute(&self, config: &Config) -> anyhow::Result<()>;
 }
 
-struct VersionAction();
-
-impl Action for VersionAction {
-    fn name(&self) -> String { "version".to_string() }
-    fn execute(&self, _: &Config) -> anyhow::Result<()> {
-        print!("0.0\n");
-        Ok(())
-    }
-}
-
 struct GenerateDynamicData();
 
 impl Action for GenerateDynamicData {
@@ -214,7 +204,6 @@ impl Action for MergeAction {
 
 pub(super) fn make_actions() -> HashMap<String,Box<dyn Action>> {
     let mut out : Vec<Box<dyn Action>> = vec![];
-    out.push(Box::new(VersionAction()));
     out.push(Box::new(CompileAction()));
     out.push(Box::new(GenerateDynamicData()));
     out.push(Box::new(RunAction()));

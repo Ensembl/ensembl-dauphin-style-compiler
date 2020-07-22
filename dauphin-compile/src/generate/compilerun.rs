@@ -57,8 +57,6 @@ impl<'a,'b> CompileRun<'a,'b> {
     }
 
     fn unable_instr(&mut self, instr: &Instruction, sizes: &[(Register,usize)]) -> anyhow::Result<()> {
-        //let name = format!("{:?}",instr).replace("\n","");
-        //print!("unable {:?} {:?}\n",name,sizes);
         self.add(instr.clone())?;
         self.commit()?;
         let changing = instr.itype.out_registers();
