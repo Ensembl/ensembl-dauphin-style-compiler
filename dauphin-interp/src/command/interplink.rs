@@ -94,7 +94,7 @@ impl InterpreterLink {
         Ok(self.programs.get(name).ok_or_else(|| DauphinError::config(&format!("No such program {}",name)))?)
     }
 
-    fn new_real(mut ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
+    fn add_programs(mut ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
         let mut out = InterpreterLink {
             programs: HashMap::new(),
             payloads: ips.copy_payloads()
@@ -118,7 +118,7 @@ impl InterpreterLink {
     }
 
     pub fn new(ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
-        InterpreterLink::new_real(ips,cbor).context("parsing program")
+        InterpreterLink::add_programs(ips,cbor).context("parsing program")
     }
 
     pub fn get_commands(&self, name: &str) -> anyhow::Result<&Vec<Box<dyn InterpCommand>>> {

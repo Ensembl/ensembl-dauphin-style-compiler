@@ -81,6 +81,7 @@ pub fn config_from_options() -> Config {
         ConfigOption::new("action","action",None,Some("ACTION"),false,|config,value| { config.set_action(value) }),
         ConfigOption::new("source","source",Some("c"),Some("SOURCE-FILE"),true,|config,v| { config.add_source(v) }),
         ConfigOption::new("output","output",Some("o"),Some("BINARY-FILE"),false,|config,v| { config.set_output(v) }),
+        ConfigOption::new("binary-source","binary-source",Some("s"),Some("BINARY-FILE"),true,|config,v| { config.add_binary_source(v) }),
         ConfigOption::new("profile","profile",Some("p"),None,false,|config,_| { config.set_profile(true) }),
         ConfigOption::new("execute","execute",Some("x"),Some("PROG-NAME"),false,|config,v| { config.set_run(v); config.set_action("run") }),
         ConfigOption::new("note","note",None,Some("NOTE"),false,|config,v| { config.set_note(v) }),

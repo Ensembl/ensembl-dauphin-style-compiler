@@ -15,9 +15,11 @@
  */
 
 use std::collections::{ HashMap, BTreeMap, HashSet };
+use std::iter::Iterator;
 use serde_cbor::Value as CborValue;
 use crate::command::{ CommandSetId };
 use crate::util::DauphinError;
+use crate::util::cbor::{ cbor_array, cbor_int };
 
 #[derive(Debug)]
 pub struct OpcodeMapping {
@@ -39,6 +41,10 @@ impl OpcodeMapping {
             opcode_sid: BTreeMap::new(),
             dont_serialize: HashSet::new()
         }
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item=(&CommandSetId,&u32)> {
+        self.sid_next_offset.iter()
     }
 
     pub fn dont_serialize(&mut self, sid: &CommandSetId) {
@@ -73,11 +79,30 @@ impl OpcodeMapping {
         for sid in &self.order {
             if !self.dont_serialize.contains(sid) {
                 let base_opcode = *self.sid_base_opcode.get(sid).as_ref().unwrap();
+                let max_opcode = *self.sid_next_offset.get(sid).unwrap() - 1;
                 out.push(CborValue::Integer(*base_opcode as i128));
                 out.push(sid.serialize());
+                out.push(CborValue::Integer(max_opcode as i128));
             }
         }
         CborValue::Array(out)
+    }
+
+    pub fn deserialize(cbor: &CborValue) -> anyhow::Result<OpcodeMapping> {
+        let mut out = OpcodeMapping::new();
+        let data = cbor_array(cbor,0,true)?;
+        if data.len()%3 != 0 {
+            return Err(DauphinError::malformed("badly formed cbor"));
+        }
+        for i in (0..data.len()).step_by(3) {
+            let (sid,base) = (CommandSetId::deserialize(&data[i+1])?,cbor_int(&data[i],None)? as u32);
+            let max_opcode = cbor_int(&data[i+2],None)? as u32;
+            out.order.push(sid.clone());
+            out.sid_base_opcode.insert(sid.clone(),base);
+            out.sid_next_offset.insert(sid.clone(),max_opcode+1);
+            out.opcode_sid.insert(base,sid.clone());    
+        }
+        Ok(out)
     }
 
     pub fn adjust(&mut self, mapping: &HashMap<CommandSetId,u32>) {

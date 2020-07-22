@@ -25,7 +25,7 @@ fn hexdump_line(index: usize, data: &[u8]) -> String {
         } else {
             out.push_str("   ");
         }
-        if i == 8 {
+        if i == 7 {
             out.push_str(" ");
         }
     }

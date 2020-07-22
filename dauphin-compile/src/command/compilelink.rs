@@ -24,7 +24,7 @@ use dauphin_interp::command::{ CommandSetId, InterpCommand };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
-pub(super) const VERSION : u32 = 0;
+pub const VERSION : u32 = 0;
 
 #[derive(Clone)]
 pub struct CompilerLink {

@@ -32,7 +32,7 @@ use dauphin_compile::parser::{ Parser };
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::generate::generate;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CompilerLink, ProgramMetadata, MetaLink };
+use dauphin_compile::command::{ CompilerLink, ProgramMetadata, MetaLink, MergeLink };
 use serde_cbor::Value as CborValue;
 use serde_cbor::to_writer;
 
@@ -160,16 +160,18 @@ struct RunAction();
 impl Action for RunAction {
     fn name(&self) -> String { "run".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
-        let suite = make_interpret_suite(config).context("building commands")?;
-        let buffer = read_binary_file(config.get_output())?;
-        let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
-        let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking binary")?;
-        let mut sf = StreamFactory::new();
-        sf.to_stdout(true);
-        interpret_linker.add_payload("std","stream",sf);
-        let mut interp = interpreter(&interpret_linker,&config,config.get_run()).expect("interpreter");
-        while interp.more().expect("interpreting") {}
-        interp.finish();
+        for filename in config.get_binary_sources() {
+            let suite = make_interpret_suite(config).context("building commands")?;
+            let buffer = read_binary_file(filename)?;
+            let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+            let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking binary")?;
+            let mut sf = StreamFactory::new();
+            sf.to_stdout(true);
+            interpret_linker.add_payload("std","stream",sf);
+            let mut interp = interpreter(&interpret_linker,&config,config.get_run()).expect("interpreter");
+            while interp.more().expect("interpreting") {}
+            interp.finish();
+        }
         Ok(())
     }
 }
@@ -179,10 +181,33 @@ struct ListAction();
 impl Action for ListAction {
     fn name(&self) -> String { "list".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
-        let buffer = read_binary_file(config.get_output())?;
-        let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
-        let metalink = MetaLink::new(&program).context("loading metadata")?;
-        print!("\n{}\n\n",metalink.ls().join("\n"));
+        let mut metalink = vec![];
+        for filename in config.get_binary_sources() {
+            let buffer = read_binary_file(filename)?;
+            let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+            metalink.append(&mut MetaLink::new(&program).context("loading metadata")?.ls());
+        }
+        print!("\n{}\n\n",metalink.join("\n"));
+        Ok(())
+    }
+}
+
+struct MergeAction();
+
+impl Action for MergeAction {
+    fn name(&self) -> String { "merge".to_string() }
+    fn execute(&self, config: &Config) -> anyhow::Result<()> {
+        let cis = make_interpret_suite(config).context("building commands")?;
+        let mut mergelink = MergeLink::new(&cis);
+        for filename in config.get_binary_sources() {
+            let buffer = read_binary_file(filename)?;
+            let data = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+            mergelink.add_file(data).with_context(|| format!("adding {}",filename))?;
+        }
+        let data = mergelink.serialize().context("serializing")?;
+        let buffer = cbor_serialize(&data).context("writing")?;
+        write_binary_file(config.get_output(),&buffer).context("writing")?;
+        print!("{} written\n",config.get_output());
         Ok(())
     }
 }
@@ -194,6 +219,7 @@ pub(super) fn make_actions() -> HashMap<String,Box<dyn Action>> {
     out.push(Box::new(GenerateDynamicData()));
     out.push(Box::new(RunAction()));
     out.push(Box::new(ListAction()));
+    out.push(Box::new(MergeAction()));
     out.drain(..).map(|a| (a.name(),a)).collect()
 }
 

@@ -40,11 +40,13 @@ pub struct Config {
     action: Option<String>,
     unit_test: Option<bool>,
     source: Vec<String>,
+    binary_source: Vec<String>,
     output: Option<String>,
     profile: Option<bool>,
     define: Vec<(String,String)>,
     run: Option<String>,
     note: Option<String>,
+    merge: Option<String>,
 }
 
 macro_rules! push {
@@ -150,7 +152,9 @@ impl Config {
             profile: None,
             define: vec![],
             run: None,
-            note: None
+            note: None,
+            merge: None,
+            binary_source: vec![]
         }
     }
 
@@ -162,9 +166,6 @@ impl Config {
     pub fn verify(&self) -> anyhow::Result<()> {
         if self.get_profile() && !self.get_generate_debug() {
             return Err(DauphinError::config("cannot generate profile (-p) without debug info (-g)"));
-        }
-        if (self.get_action() == "run" || self.get_action() == "list") && !self.isset_output() {
-            return Err(DauphinError::config("cannot run (-x) without object file (-o)"));
         }
         Ok(())
     }
@@ -181,9 +182,11 @@ impl Config {
     push_str!(self,file_search_path,add_file_search_path,get_file_search_path);
     push_str!(self,libs,add_lib,get_libs);
     push_str!(self,source,add_source,get_sources);
+    push_str!(self,binary_source,add_binary_source,get_binary_sources);
     flag_str!(self,output,set_output,get_output,isset_output,"out.dpb");
     flag_str!(self,run,set_run,get_run,isset_run,"");
     flag!(self,profile,set_profile,get_profile,isset_profile,bool,false);
     push!(self,define,add_define,get_defines,(String,String));
     flag_str!(self,note,set_note,get_note,isset_note,"");
+    flag_str!(self,merge,set_merge,get_merge,isset_merge,"");
 }

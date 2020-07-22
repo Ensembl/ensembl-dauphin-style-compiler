@@ -50,6 +50,15 @@ pub fn cbor_make_map(keys: &[&str], mut values: Vec<CborValue>) -> anyhow::Resul
     Ok(CborValue::Map(out))
 }
 
+pub fn cbor_update_map(data: &mut CborValue, key: &str, value: CborValue) -> anyhow::Result<()> {
+    if let CborValue::Map(ref mut m) = data {
+        m.insert(CborValue::Text(key.to_string()),value);
+        Ok(())
+    } else {
+        Err(DauphinError::internal(file!(),line!()))
+    }
+}
+
 pub fn cbor_type(cbor: &CborValue, allowed: Option<&[CborType]>) -> anyhow::Result<CborType> {
     let out = match cbor {
         CborValue::Integer(_) => CborType::Integer,
@@ -128,10 +137,28 @@ pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> anyhow::Result<Vec<&'
     Ok(out)
 }
 
+pub fn cbor_take_map(cbor: CborValue) -> anyhow::Result<BTreeMap<CborValue,CborValue>> {
+    match cbor {
+        CborValue::Map(m) => Ok(m),
+        _ => Err(DauphinError::internal(file!(),line!()))
+    }
+}
+
 pub fn cbor_map_iter(cbor: &CborValue) -> anyhow::Result<impl Iterator<Item=(&CborValue,&CborValue)>> {
     match cbor {
         CborValue::Map(m) => {
             Ok(m.iter())
+        },
+        _ => {
+            bail!(DauphinError::internal(file!(),line!()));
+        }
+    }
+}
+
+pub fn cbor_map_iter_mut(cbor: &mut CborValue) -> anyhow::Result<impl Iterator<Item=(&CborValue,&mut CborValue)>> {
+    match cbor {
+        CborValue::Map(m) => {
+            Ok(m.iter_mut())
         },
         _ => {
             bail!(DauphinError::internal(file!(),line!()));

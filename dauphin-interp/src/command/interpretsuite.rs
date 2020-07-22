@@ -72,14 +72,11 @@ impl CommandInterpretSuite {
         self.payloads.clone()
     }
 
+    pub fn opcode_mapper(&self) -> &OpcodeMapping { &self.opcode_mapper }
+
     pub fn adjust(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
-        let data = cbor_array(cbor,0,true)?;
-        if data.len()%2 != 0 {
-            return Err(DauphinError::malformed("badly formed cbor"));
-        }
-        let mut adjustments = HashMap::new();
-        for i in (0..data.len()).step_by(2) {
-            let (sid,base) = (CommandSetId::deserialize(&data[i+1])?,cbor_int(&data[i],None)? as u32);
+        self.opcode_mapper = OpcodeMapping::deserialize(cbor)?;
+        for (sid,_) in self.opcode_mapper.iter() {
             let name = sid.name().to_string();
             let version = sid.version();
             if let Some(stored_minor) = self.minors.get(&(name.clone(),version.0)) {
@@ -89,9 +86,7 @@ impl CommandInterpretSuite {
             } else {
                 return Err(DauphinError::integration(&format!("missing command suite {}.{}",name,version.0)));
             }
-            adjustments.insert(sid,base);
         }
-        self.opcode_mapper.adjust(&adjustments);
         Ok(())
     }
 
