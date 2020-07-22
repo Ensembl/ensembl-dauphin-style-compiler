@@ -31,7 +31,7 @@ pub struct CompilerLink {
     cs: Rc<CommandCompileSuite>,
     headers: HashMap<String,String>,
     programs: BTreeMap<CborValue,CborValue>,
-    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
+    payloads: HashMap<(String,String),Rc<dyn PayloadFactory>>
 }
 
 impl CompilerLink {
@@ -47,7 +47,7 @@ impl CompilerLink {
     }
 
     pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
-        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
+        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(pf));
     }
 
     pub fn generate_dynamic_data(&self, config: &Config) -> anyhow::Result<HashMap<CommandSetId,CborValue>> {
@@ -149,7 +149,9 @@ impl CompilerLink {
         Ok(CborValue::Map(out))
     }
 
-    pub fn new_context(&self) -> InterpContext {
-        InterpContext::new(&self.payloads)
+    pub fn make_payloads(&self, context: &mut InterpContext) {
+        for ((lib,name),payload) in &self.payloads {
+            context.add_payload(lib,name,payload.as_ref());
+        }
     }
 }

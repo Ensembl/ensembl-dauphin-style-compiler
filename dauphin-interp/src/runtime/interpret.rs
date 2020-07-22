@@ -20,31 +20,28 @@ use crate::command::{ InterpCommand, InterpreterLink };
 use crate::util::{ DauphinError, error_locate_cb };
 use crate::runtime::{ Register, InterpContext };
 
-pub trait InterpretInstance<'a> {
-    fn finish(&mut self) -> InterpContext;
+pub trait InterpretInstance {
     fn more(&mut self) -> anyhow::Result<bool>;
 }
 
-pub struct StandardInterpretInstance<'a> {
+pub struct StandardInterpretInstance<'a,'b> {
     commands: Iter<'a,Box<dyn InterpCommand>>,
-    context: Option<InterpContext>
+    context: &'b mut InterpContext
 }
 
-impl<'a> StandardInterpretInstance<'a> {
-    pub fn new(interpret_linker: &'a InterpreterLink, name: &str) -> anyhow::Result<StandardInterpretInstance<'a>> {
-        let context = interpret_linker.new_context();
+impl<'a,'b> StandardInterpretInstance<'a,'b> {
+    pub fn new(interpret_linker: &'a InterpreterLink, name: &str, context: &'b mut InterpContext) -> anyhow::Result<StandardInterpretInstance<'a,'b>> {
         Ok(StandardInterpretInstance {
             commands: interpret_linker.get_commands(name)?.iter(),
-            context: Some(context)
+            context
         })
     }
 
     fn more_internal(&mut self) -> anyhow::Result<bool> {
-        let context = self.context.as_mut().unwrap();
         while let Some(command) = self.commands.next() {
-            command.execute(context)?;
-            context.registers_mut().commit();
-            if context.test_pause() {
+            command.execute(self.context)?;
+            self.context.registers_mut().commit();
+            if self.context.test_pause() {
                 return Ok(true);
             }
         }
@@ -52,52 +49,44 @@ impl<'a> StandardInterpretInstance<'a> {
     }
 }
 
-impl<'a> InterpretInstance<'a> for StandardInterpretInstance<'a> {
+impl<'a,'b> InterpretInstance for StandardInterpretInstance<'a,'b> {
     fn more(&mut self) -> anyhow::Result<bool> {
         let out = self.more_internal();
         error_locate_cb(|| {
-            let context = self.context.as_ref().unwrap();
-            let line = context.get_line_number();
+            let line = self.context.get_line_number();
             (line.0.to_string(),line.1)
         },out)
     }
-
-    fn finish(&mut self) -> InterpContext { 
-        self.context.as_mut().unwrap().finish();
-        self.context.take().unwrap()
-    }
 }
 
-pub struct DebugInterpretInstance<'a> {
+pub struct DebugInterpretInstance<'a,'b> {
     commands: Iter<'a,Box<dyn InterpCommand>>,
-    context: Option<InterpContext>,
+    context: &'b mut InterpContext,
     instrs: Vec<(String,Vec<Register>)>,
     index: usize
 }
 
-impl<'a> DebugInterpretInstance<'a> {
-    pub fn new(interpret_linker: &'a InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str) -> anyhow::Result<DebugInterpretInstance<'a>> {
-        let context = interpret_linker.new_context();
+impl<'a,'b> DebugInterpretInstance<'a,'b> {
+    pub fn new(interpret_linker: &'a InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str, context: &'b mut InterpContext) -> anyhow::Result<DebugInterpretInstance<'a,'b>> {
         Ok(DebugInterpretInstance {
             commands: interpret_linker.get_commands(name)?.iter(),
-            context: Some(context),
+            context,
             instrs: instrs.to_vec(),
             index: 0
         })
     }
 
     fn more_internal(&mut self) -> anyhow::Result<bool> {
-        let context = self.context.as_mut().unwrap();
         let idx = self.index;
         self.index += 1;
         if let Some(command) = self.commands.next() {
             let (instr,regs) = &self.instrs[idx];
-            print!("{}",context.registers_mut().dump_many(&regs)?);
+            print!("{}",self.context.registers_mut().dump_many(&regs)?);
             print!("{}",instr);
-            command.execute(context)?;
-            context.registers_mut().commit();
-            print!("{}",context.registers_mut().dump_many(&regs)?);
-            if context.test_pause() {
+            command.execute(self.context)?;
+            self.context.registers_mut().commit();
+            print!("{}",self.context.registers_mut().dump_many(&regs)?);
+            if self.context.test_pause() {
                 print!("PAUSE\n");
             }
             Ok(true)
@@ -107,18 +96,12 @@ impl<'a> DebugInterpretInstance<'a> {
     }
 }
 
-impl<'a> InterpretInstance<'a> for DebugInterpretInstance<'a> {
+impl<'a,'b> InterpretInstance for DebugInterpretInstance<'a,'b> {
     fn more(&mut self) -> anyhow::Result<bool> {
         let out = self.more_internal();
         error_locate_cb(|| {
-            let context = self.context.as_ref().unwrap();
-            let line = context.get_line_number();
+            let line = self.context.get_line_number();
             (line.0.to_string(),line.1)
         },out)
-    }
-
-    fn finish(&mut self) -> InterpContext { 
-        self.context.as_mut().unwrap().finish();
-        self.context.take().unwrap()
     }
 }

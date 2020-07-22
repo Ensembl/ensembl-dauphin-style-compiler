@@ -21,26 +21,26 @@ use crate::model::{ RegisterAllocator };
 use dauphin_interp::runtime::{ Register, InterpContext };
 use crate::cli::Config;
 
-pub struct PreImageContext<'a> {
+pub struct PreImageContext<'a,'b> {
     resolver: Box<&'a dyn ResolveFile>,
     reg_sizes: HashMap<Register,usize>,
     compiler_link: CompilerLink,
     valid_registers: HashSet<Register>,
-    context: InterpContext,
+    context: &'b mut InterpContext,
     regalloc: RegisterAllocator,
     config: Config,
     first: bool,
     last: bool
 }
 
-impl<'a> PreImageContext<'a> {
-    pub fn new(compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, max_reg: usize, first: bool, last: bool) -> PreImageContext<'a> {
+impl<'a,'b> PreImageContext<'a,'b> {
+    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, max_reg: usize, first: bool, last: bool) -> PreImageContext<'a,'b> {
         PreImageContext {
             resolver,
             reg_sizes: HashMap::new(),
             compiler_link: compiler_link.clone(),
             valid_registers: HashSet::new(),
-            context: compiler_link.new_context(),
+            context,
             regalloc: RegisterAllocator::new(max_reg+1),
             config: config.clone(),
             first, last

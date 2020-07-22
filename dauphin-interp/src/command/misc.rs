@@ -48,6 +48,7 @@ impl std::fmt::Display for Identifier {
     }
 }
 
+#[derive(Clone)]
 pub struct CommandSetVerifier {
     seen: HashMap<(String,u32),String>,
 }

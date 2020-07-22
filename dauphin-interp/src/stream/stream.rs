@@ -16,7 +16,7 @@
 
 use std::any::Any;
 use std::mem::replace;
-use dauphin_interp::runtime::{ Payload, PayloadFactory };
+use crate::runtime::{ Payload, PayloadFactory };
 
 pub struct Stream {
     contents: Vec<String>,

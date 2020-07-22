@@ -17,19 +17,21 @@
 use anyhow::{ self, Context };
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::cell::RefCell;
 use serde_cbor::Value as CborValue;
-use crate::command::{ CommandTypeId, CommandDeserializer, CommandSetId, Deserializer, InterpLibRegister, OpcodeMapping, CommandSetVerifier };
+use crate::command::{ CommandTypeId, CommandDeserializer, CommandSetId, Deserializer, InterpCommand, InterpLibRegister, OpcodeMapping, CommandSetVerifier };
 use crate::runtime::{ PayloadFactory };
 use crate::util::cbor::{ cbor_array, cbor_int };
 use crate::util::{ DauphinError };
 
+#[derive(Clone)]
 pub struct CommandInterpretSuite {
-    store: Deserializer,
+    store: Rc<RefCell<Deserializer>>,
     offset_to_command: HashMap<(CommandSetId,u32),CommandTypeId>,
     opcode_mapper: OpcodeMapping,
     minors: HashMap<(String,u32),u32>,
     verifier: CommandSetVerifier,
-    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
+    payloads: HashMap<(String,String),Rc<dyn PayloadFactory>>
 }
 
 impl CommandInterpretSuite {
@@ -37,7 +39,7 @@ impl CommandInterpretSuite {
         CommandInterpretSuite {
             opcode_mapper: OpcodeMapping::new(),
             offset_to_command: HashMap::new(),
-            store: Deserializer::new(),
+            store: Rc::new(RefCell::new(Deserializer::new())),
             minors: HashMap::new(),
             verifier: CommandSetVerifier::new(),
             payloads: HashMap::new()
@@ -50,7 +52,7 @@ impl CommandInterpretSuite {
         self.minors.insert((sid.name().to_string(),version.0),version.1);
         for ds in set.drain_commands().drain(..) {
             if let Some((opcode,_)) = ds.get_opcode_len()? {
-                let cid = self.store.add(ds);
+                let cid = self.store.borrow_mut().add(ds);
                 self.offset_to_command.insert((sid.clone(),opcode),cid.clone());
                 self.opcode_mapper.add_opcode(&sid,opcode);
             }
@@ -68,7 +70,7 @@ impl CommandInterpretSuite {
         self.register_real(set).with_context(|| format!("while registering {}",name))
     }
 
-    pub fn copy_payloads(&self) -> HashMap<(String,String),Rc<Box<dyn PayloadFactory>>> {
+    pub fn copy_payloads(&self) -> HashMap<(String,String),Rc<dyn PayloadFactory>> {
         self.payloads.clone()
     }
 
@@ -90,9 +92,16 @@ impl CommandInterpretSuite {
         Ok(())
     }
 
-    pub fn get_deserializer(&self, real_opcode: u32) -> anyhow::Result<&Box<dyn CommandDeserializer>> {
+    fn get_cid(&self, real_opcode: u32) -> anyhow::Result<&CommandTypeId> {
         let (sid,offset) = self.opcode_mapper.decode_opcode(real_opcode)?;
-        let cid = self.offset_to_command.get(&(sid,offset)).ok_or(DauphinError::malformed(&format!("Unknown opcode {}",real_opcode)))?;
-        self.store.get(cid)
+        Ok(self.offset_to_command.get(&(sid,offset)).ok_or(DauphinError::malformed(&format!("Unknown opcode {}",real_opcode)))?)
+    }
+
+    pub fn get_opcode_len(&self, real_opcode: u32) -> anyhow::Result<Option<(u32,usize)>> {
+        Ok(self.store.borrow().get(self.get_cid(real_opcode)?)?.get_opcode_len()?)
+    }
+
+    pub fn deserialize(&self, real_opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        self.store.borrow().get(self.get_cid(real_opcode)?)?.deserialize(real_opcode,value)
     }
 }

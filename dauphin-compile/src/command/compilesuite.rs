@@ -37,7 +37,7 @@ pub struct CommandCompileSuite {
     opcode_mapper: OpcodeMapping,
     headers: HashMap<String,String>,
     verifier: CommandSetVerifier,
-    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
+    payloads: HashMap<(String,String),Rc<dyn PayloadFactory>>
 }
 
 impl CommandCompileSuite {
@@ -105,7 +105,7 @@ impl CommandCompileSuite {
 
     pub fn get_headers(&self) -> &HashMap<String,String> { &self.headers }
 
-    pub fn copy_payloads(&self) -> HashMap<(String,String),Rc<Box<dyn PayloadFactory>>> {
+    pub fn copy_payloads(&self) -> HashMap<(String,String),Rc<dyn PayloadFactory>> {
         self.payloads.clone()
     }
 
@@ -281,10 +281,10 @@ mod test {
 
         cis.adjust(&ccs.serialize()).expect("e");
 
-        let mut context = InterpContext::new(&HashMap::new());
-        cis.get_deserializer(5).expect("e").deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
+        let mut context = InterpContext::new();
+        cis.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(5,*v.borrow());
-        cis.get_deserializer(12).expect("e").deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
+        cis.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
         context.finish();
     }
@@ -310,12 +310,12 @@ mod test {
         cs.push(FakeDeserializer(v.clone(),3));
         let mut cis = CommandInterpretSuite::new();
         cis.register(cs).expect("a");
-        let mut context = InterpContext::new(&HashMap::new());
-        cis.get_deserializer(1).expect("e").deserialize(0,&vec![]).expect("f").execute(&mut context).expect("g");
+        let mut context = InterpContext::new();
+        cis.deserialize(1,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(1,*v.borrow());
-        cis.get_deserializer(3).expect("e").deserialize(2,&vec![]).expect("f").execute(&mut context).expect("g");
+        cis.deserialize(3,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(3,*v.borrow());
-        assert!(cis.get_deserializer(4).is_err());
+        assert!(cis.deserialize(4,&[]).is_err());
         context.finish();
     }
 

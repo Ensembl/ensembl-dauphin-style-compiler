@@ -16,15 +16,8 @@
 
 /* interp */
 pub mod interp;
-pub mod stream {
-    pub mod stream;
-    pub use self::stream::{ Stream, StreamFactory };
-}
-
 pub use interp::{ InterpBinBoolOp, InterpBinNumOp, InterpNumModOp };
 pub use interp::make_std_interp;
-pub use self::stream::{ Stream, StreamFactory };
-
 
 /* compile */
 #[cfg(any(feature = "compile",test))]

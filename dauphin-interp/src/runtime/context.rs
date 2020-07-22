@@ -39,14 +39,18 @@ pub struct InterpContext {
 }
 
 impl InterpContext {
-    pub fn new(payloads: &HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>) -> InterpContext {
+    pub fn new() -> InterpContext {
         InterpContext {
             registers: RegisterFile::new(),
-            payloads: payloads.iter().map(|(k,v)| (k.clone(),v.make_payload())).collect(),
+            payloads: HashMap::new(),
             filename: "**anon**".to_string(),
             line_number: 0,
             pause: false
         }
+    }
+
+    pub fn add_payload(&mut self, lib: &str, name: &str, payload: &dyn PayloadFactory) {
+        self.payloads.insert((lib.to_string(),name.to_string()),payload.make_payload());
     }
 
     pub fn finish(&mut self) {

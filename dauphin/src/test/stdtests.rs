@@ -27,7 +27,7 @@ use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
 use dauphin_compile::command::{ CompilerLink, InstructionType, Instruction, InstructionSuperType };
 use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call };
-use dauphin_lib_std::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ StreamFactory, Stream };
 
 #[test]
 fn print_smoke() {

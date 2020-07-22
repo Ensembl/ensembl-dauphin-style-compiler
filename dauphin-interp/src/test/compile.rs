@@ -23,7 +23,7 @@ use crate::command::{ CommandInterpretSuite, InterpreterLink };
 use crate::{ make_core_interp };
 use dauphin_lib_std::{ make_std_interp };
 use crate::runtime::{ InterpContext, InterpValue, Register };
-use dauphin_lib_std::stream::{ StreamFactory, Stream };
+use crate::stream::{ StreamFactory, Stream };
 use crate::util::cbor::{ cbor_serialize };
 use dauphin_compile::core::{ make_core };
 use dauphin_compile::generate::generate;
@@ -34,13 +34,14 @@ use crate::test::cbor::hexdump;
 use crate::util::DauphinError;
 use crate::runtime::{ StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
 
-pub fn interpreter<'a>(interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance<'a> + 'a>> {
+pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a InterpreterLink, config: &Config, name: &str) 
+                                                                        -> anyhow::Result<Box<dyn InterpretInstance + 'a>> {
     if let Some(instrs) = interpret_linker.get_instructions(name)? {
         if config.get_debug_run() {
-            return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name)?));
+            return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name,context)?));
         }
     }
-    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name)?))
+    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name,context)?))
 }
 
 fn export_indexes(ic: &mut InterpContext) -> anyhow::Result<HashMap<Register,Vec<usize>>> {
@@ -58,18 +59,17 @@ pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("No stream context"))?)
 }
 
-pub fn interpret(interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<InterpContext> {
-    let mut interp = interpreter(interpret_linker,config,name)?;
+pub fn interpret(context: &mut InterpContext, interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<()> {
+    let mut interp = interpreter(context,interpret_linker,config,name)?;
     while interp.more()? {}
-    Ok(interp.finish())
+    Ok(())
 }
 
-pub fn mini_interp_run(interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<InterpContext> {
-    let interp = interpreter(interpret_linker,config,name)?;
+pub fn mini_interp_run(context: &mut InterpContext, interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<()> {
     let start_time = SystemTime::now();
-    let out = interpret(interpret_linker,config,name)?;
+    interpret(context,interpret_linker,config,name)?;
     print!("command time {}ms\n",start_time.elapsed().unwrap_or(Duration::new(0,0)).as_secs_f32()*1000.);
-    Ok(out)
+    Ok(())
 }
 
 pub fn make_interpret_suite() -> anyhow::Result<CommandInterpretSuite> {

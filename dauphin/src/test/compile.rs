@@ -24,7 +24,7 @@ use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::{ make_core_interp };
 use dauphin_lib_std::{ make_std_interp };
 use dauphin_interp::runtime::{ InterpContext, InterpValue };
-use dauphin_lib_std::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ StreamFactory, Stream };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::cbor_serialize;
@@ -38,13 +38,13 @@ use dauphin_compile::parser::Parser;
 use dauphin_interp::runtime::{ StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
 use crate::test::hexdump;
 
-pub fn interpreter<'a>(interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance<'a> + 'a>> {
+pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance + 'a>> {
     if let Some(instrs) = interpret_linker.get_instructions(name)? {
         if config.get_debug_run() {
-            return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name)?));
+            return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name,context)?));
         }
     }
-    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name)?))
+    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name,context)?))
 }
 
 fn export_indexes(ic: &mut InterpContext) -> anyhow::Result<HashMap<Register,Vec<usize>>> {
@@ -62,42 +62,41 @@ pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("no stream context"))?)
 }
 
-pub fn comp_interpret(compiler_linker: &CompilerLink, config: &Config, name: &str) -> anyhow::Result<InterpContext> {
+pub fn comp_interpret(context: &mut InterpContext, compiler_linker: &CompilerLink, config: &Config, name: &str) -> anyhow::Result<()> {
     let program = compiler_linker.serialize(config)?;
     let mut interpret_linker = InterpreterLink::new(make_interpret_suite()?,&program).context("linking")?;
-    interpret_linker.add_payload("std","stream",StreamFactory::new()); 
-    interpret(&interpret_linker,config,name)
+    interpret(context,&interpret_linker,config,name)?;
+    Ok(())
 }
 
-pub fn interpret(interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<InterpContext> {
-    let mut interp = interpreter(interpret_linker,config,name)?;
+pub fn interpret(context: &mut InterpContext, interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<()> {
+    let mut interp = interpreter(context,interpret_linker,config,name)?;
     while interp.more()? {}
-    Ok(interp.finish())
+    Ok(())
 }
 
-pub fn mini_interp_run(interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<InterpContext> {
+pub fn mini_interp_run(context: &mut InterpContext, interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<()> {
     let start_time = SystemTime::now();
-    let out = interpret(interpret_linker,config,name)?;
+    interpret(context,interpret_linker,config,name)?;
     print!("command time {}ms\n",start_time.elapsed().unwrap_or(Duration::new(0,0)).as_secs_f32()*1000.);
-    Ok(out)
+    Ok(())
 }
 
 pub fn mini_interp(instrs: &Vec<Instruction>, cl: &mut CompilerLink, config: &Config, name: &str) -> anyhow::Result<(HashMap<Register,Vec<usize>>,Vec<String>)> {
-    let md = ProgramMetadata::new(&name,None,&instrs);
+    let md = ProgramMetadata::new(name,None,instrs);
     cl.add(&md,instrs,config)?;
     let program = cl.serialize(config)?;
     let buffer = cbor_serialize(&program)?;
     print!("{}\n",hexdump(&buffer));
     let suite = make_interpret_suite()?;
-    let program = serde_cbor::from_slice(&buffer).context("deserializing")?;
+    let program = serde_cbor::from_slice(&buffer).context("deserialising")?;
     let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking")?;
-    let mut sf = StreamFactory::new();
-    sf.to_stdout(true);
-    interpret_linker.add_payload("std","stream",sf);
-    let mut ic = mini_interp_run(&interpret_linker,config,name)?;
-    let stream = std_stream(&mut ic)?;
+    let mut context = InterpContext::new();
+    context.add_payload("std","stream",&StreamFactory::new());
+    mini_interp_run(&mut context,&interpret_linker,config,name)?;
+    let stream = std_stream(&mut context)?;
     let strings = stream.take();
-    Ok((export_indexes(&mut ic)?,strings))
+    Ok((export_indexes(&mut context)?,strings))
 }
 
 pub fn make_interpret_suite() -> anyhow::Result<CommandInterpretSuite> {

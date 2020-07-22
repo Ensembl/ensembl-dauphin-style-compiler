@@ -38,6 +38,8 @@ use super::call::call;
 use super::linearize::linearize;
 use super::simplify::simplify;
 use super::pauses::pauses;
+use dauphin_interp::runtime::InterpContext;
+use dauphin_interp::stream::StreamFactory;
 use dauphin_interp::util::DauphinError;
 
 struct StepData<'a,'b> {
@@ -45,7 +47,8 @@ struct StepData<'a,'b> {
     defstore: &'a DefStore,
     resolver: &'a Resolver,
     context: &'a mut GenContext<'b>,
-    config: &'a Config
+    config: &'a Config,
+    icontext: &'a mut InterpContext
 }
 
 struct GenerateStep {
@@ -74,9 +77,12 @@ impl GenerateStep {
 
     fn run_real(&self, index: usize, config: &Config, compiler_link: &CompilerLink, defstore: &DefStore, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
         let start_time = SystemTime::now();
+        let mut icontext = InterpContext::new();
+        icontext.add_payload("std","stream",&StreamFactory::new());
         let mut data = StepData {
             linker: compiler_link,
-            defstore, resolver, context, config
+            defstore, resolver, context, config,
+            icontext: &mut icontext
         };
         (self.step)(&mut data)?;
         let duration = start_time.elapsed().unwrap_or(Duration::new(0,0));
@@ -119,8 +125,8 @@ impl GenerateMenu {
         gen_steps.push(GenerateStep::new("simplify", |step| { simplify(step.defstore,step.context) }));
         gen_steps.push(GenerateStep::new("linearize", |step| { linearize(step.context) }));
         gen_steps.push(GenerateStep::new("dealias", |step| { remove_aliases(step.context); Ok(()) }));
-        gen_steps.push(GenerateStep::new("compile-run", |step| { compile_run(step.linker,step.resolver,step.context,step.config,true,false) }));
-        opt_steps.insert("c".to_string(),GenerateStep::new("compile-run", |step| { compile_run(step.linker,step.resolver,step.context,step.config,false,false) }));
+        gen_steps.push(GenerateStep::new("compile-run", |step| { compile_run(step.icontext,step.linker,step.resolver,step.context,step.config,true,false) }));
+        opt_steps.insert("c".to_string(),GenerateStep::new("compile-run", |step| { compile_run(step.icontext,step.linker,step.resolver,step.context,step.config,false,false) }));
         opt_steps.insert("p".to_string(),GenerateStep::new("prune", |step| { prune(step.context); Ok(()) }));
         opt_steps.insert("u".to_string(),GenerateStep::new("reuse-regs", |step| { reuse_regs(step.context) }));
         opt_steps.insert("e".to_string(),GenerateStep::new("use-earliest", |step| { use_earliest_regs(step.context); Ok(()) }));
@@ -128,7 +134,7 @@ impl GenerateMenu {
         opt_steps.insert("a".to_string(),GenerateStep::new("assign-regs", |step| { assign_regs(step.context); Ok(()) }));
         opt_steps.insert("m".to_string(),GenerateStep::new("peephole", |step| { peephole_nil_append(step.context); peephole_linenum_remove(step.context); Ok(()) }));
         opt_steps.insert("r".to_string(),GenerateStep::new("retreat", |step| { retreat(step.context); Ok(()) }));
-        post_steps.push(GenerateStep::new("pauses", |step| { pauses(step.linker,step.resolver,step.defstore,step.context,step.config) }));
+        post_steps.push(GenerateStep::new("pauses", |step| { pauses(step.icontext,step.linker,step.resolver,step.defstore,step.context,step.config) }));
         GenerateMenu { gen_steps, opt_steps, post_steps }
     }
 

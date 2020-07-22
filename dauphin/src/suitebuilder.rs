@@ -104,10 +104,10 @@ mod test {
         cis.adjust(&ccs.serialize()).expect("h");
         
         /* now, our opcodes should be flipped to match ccs */
-        let mut context = InterpContext::new(&HashMap::new());
-        cis.get_deserializer(5).expect("e").deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
+        let mut context = InterpContext::new();
+        cis.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(5,*v.borrow());
-        cis.get_deserializer(12).expect("e").deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
+        cis.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
         context.finish();
     }
@@ -171,8 +171,8 @@ mod test {
         ccs.register(cs1).expect("a");
 
         cis.adjust(&ccs.serialize()).expect("d");
-        let mut context = InterpContext::new(&HashMap::new());
-        cis.get_deserializer(2).expect("e").deserialize(6,&vec![]).expect("f").execute(&mut context).expect("g");
+        let mut context = InterpContext::new();
+        cis.deserialize(2,&vec![]).expect("f").execute(&mut context).expect("g");
         // TODO trace command in payload to replace Fake*
         assert_eq!(2,*v.borrow());
         context.finish()

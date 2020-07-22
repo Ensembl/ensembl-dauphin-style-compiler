@@ -21,25 +21,9 @@ use std::process::exit;
 use serde_cbor;
 use dauphin_interp::make_core_interp;
 use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
-use dauphin_interp::runtime::{ StandardInterpretInstance, InterpretInstance };
-use dauphin_lib_std::{ make_std_interp, StreamFactory };
-
-fn bomb<A,E,T>(action: T, x: Result<A,E>) -> A where T: Fn() -> String, E: Display {
-    match x {
-        Ok(v) => v,
-        Err(e) => {
-            eprint!("{} Error {}\n",action(),e.to_string());
-            exit(2);
-        }
-    }
-}
-
-fn read_binary_file(filename: &str) -> Vec<u8> {
-    bomb(
-        || format!("Reading {}",filename),
-        read(filename)
-    )
-}
+use dauphin_interp::runtime::{ StandardInterpretInstance, InterpretInstance, InterpContext };
+use dauphin_lib_std::{ make_std_interp };
+use dauphin_interp::stream::{ StreamFactory };
 
 fn make_suite() -> anyhow::Result<CommandInterpretSuite> {
     let mut suite = CommandInterpretSuite::new();
@@ -48,29 +32,29 @@ fn make_suite() -> anyhow::Result<CommandInterpretSuite> {
     Ok(suite)     
 }
 
-fn interpreter<'a>(linker: &'a InterpreterLink, name: &str) -> anyhow::Result<Box<dyn InterpretInstance<'a> + 'a>> {
-    Ok(Box::new(StandardInterpretInstance::new(linker,name)?))
-}
-
-fn main() {
+fn main_real() -> anyhow::Result<()> {
     let binary_file = String::new();
     let name = String::new();
 
-    let suite = bomb(|| format!("could not construct library"),
-        make_suite()
-    );
-    let buffer = read_binary_file(&binary_file);
-    let program = bomb(|| format!("corrupted cbor in {}",binary_file),
-                    serde_cbor::from_slice(&buffer).map_err(|x| format!("{} while deserialising",x)));
-    let mut interpret_linker = bomb(|| format!("could not link binary"),
-        InterpreterLink::new(suite,&program)
-    );
+    let suite = make_suite()?;
+    let buffer = read(&binary_file).with_context(|| format!("reading {}",binary_file))?;
+    let program = serde_cbor::from_slice(&buffer).context("while deserialising")?;
+    let mut linker = InterpreterLink::new(suite,&program)?;
+    let mut context = InterpContext::new();
     let mut sf = StreamFactory::new();
     sf.to_stdout(true);
-    interpret_linker.add_payload("std","stream",sf);
-    let mut interp = bomb(|| format!(""),
-        interpreter(&interpret_linker,&name)
-    );
+    context.add_payload("std","stream",&sf);
+    let mut interp = Box::new(StandardInterpretInstance::new(&linker,&name,&mut context)).context("building interpreter")?;
     while interp.more().expect("interpreting") {}
-    interp.finish();    
+    context.finish();
+    Ok(())
+}
+
+fn main() {
+    match main_real() {
+        Ok(options) => {},
+        Err(error) => {
+            eprint!("Error: {}\n",error);
+        }
+    }
 }

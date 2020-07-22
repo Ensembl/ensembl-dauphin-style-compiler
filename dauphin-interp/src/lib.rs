@@ -22,6 +22,7 @@ pub mod types;
 
 pub mod command;
 pub mod runtime;
+pub mod stream;
 pub mod util;
 
 #[cfg(test)]

@@ -21,26 +21,26 @@ use crate::cli::Config;
 use crate::command::{ CompilerLink, Instruction, InstructionType, PreImageOutcome };
 use crate::model::{ PreImageContext };
 use crate::util::DFloat;
-use dauphin_interp::runtime::{ Register };
-use dauphin_interp::runtime::{ InterpValue, numbers_to_indexes };
+use dauphin_interp::runtime::{ Register, InterpValue, numbers_to_indexes, InterpContext };
 use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
-struct CompileRun<'a,'b> {
-    context: PreImageContext<'a>,
-    gen_context: &'a mut GenContext<'b>,
+struct CompileRun<'a,'b,'c> {
+    context: PreImageContext<'a,'b>,
+    gen_context: &'a mut GenContext<'c>,
 }
 
-impl<'a,'b> CompileRun<'a,'b> {
-    pub fn new(compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'b>, config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b>> {
+impl<'a,'b,'c> CompileRun<'a,'b,'c> {
+    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'c>, 
+                config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'c>> {
         let mut max_reg = 0;
         for instr in gen_context.get_instructions() {
             for reg in &instr.regs {
                 if reg.0 > max_reg { max_reg = reg.0; }
             }
         }
-        let context = PreImageContext::new(compiler_link,Box::new(resolver),config,max_reg,first,last);
+        let picontext = PreImageContext::new(context,compiler_link,Box::new(resolver),config,max_reg,first,last);
         Ok(CompileRun {
-            context,
+            context: picontext,
             gen_context
         })
     }
@@ -173,8 +173,8 @@ impl<'a,'b> CompileRun<'a,'b> {
     }
 }
 
-pub fn compile_run(compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, first: bool, last: bool) -> anyhow::Result<()> {
-    let mut pic = CompileRun::new(compiler_link,resolver,context,config,first,last)?;
+pub fn compile_run(icontext: &mut InterpContext, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, config: &Config, first: bool, last: bool) -> anyhow::Result<()> {
+    let mut pic = CompileRun::new(icontext,compiler_link,resolver,context,config,first,last)?;
     pic.preimage()?;
     Ok(())
 }

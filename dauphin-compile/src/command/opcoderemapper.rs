@@ -84,8 +84,7 @@ impl RemapperEndpoint {
             let opcode = cbor_int(opcode,None)? as u32;
             let opcode = self.remap_opcode(remapper,opcode)?;
             out.push(CborValue::Integer(opcode as i128));
-            let ds = cis.get_deserializer(opcode)?;
-            let (_,num_args) = ds.get_opcode_len()?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
+            let (_,num_args) = cis.get_opcode_len(opcode)?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
             let mut values = (0..num_args).map(|_| values.next().cloned())
                                 .collect::<Option<Vec<_>>>().ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
             out.append(&mut values);

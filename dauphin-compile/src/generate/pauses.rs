@@ -15,6 +15,7 @@
  */
 
 use anyhow::{ self, Context };
+use dauphin_interp::runtime::InterpContext;
 use dauphin_interp::util::DauphinError;
 use std::collections::{ HashMap };
 use std::fs::write;
@@ -107,9 +108,9 @@ impl ExecutionProfiler {
     }
 }
 
-pub fn pauses(compiler_link: &CompilerLink, resolver: &Resolver, defstore: &DefStore, context: &mut GenContext, config: &Config) -> anyhow::Result<()> {
+pub fn pauses(icontext: &mut InterpContext, compiler_link: &CompilerLink, resolver: &Resolver, defstore: &DefStore, context: &mut GenContext, config: &Config) -> anyhow::Result<()> {
     /* force compilerun to ensure timed instructions */
-    compile_run(compiler_link,resolver,context,config,false,true)?;
+    compile_run(icontext,compiler_link,resolver,context,config,false,true)?;
     let mut profiler = ExecutionProfiler::new();
     let mut instr_profile = vec![];
     let mut timer = 0.;

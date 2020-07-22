@@ -20,7 +20,7 @@ use dauphin_interp::types::RegisterSignature;
 use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, PreImageOutcome, Instruction, InstructionType };
 use dauphin_compile::model::{ PreImageContext };
 use dauphin_interp::util::DauphinError;
-use dauphin_lib_std::stream::Stream;
+use dauphin_interp::stream::Stream;
 use serde_cbor::Value as CborValue;
 
 pub struct DumpSigCommandType();

@@ -20,8 +20,8 @@ use dauphin_interp::types::{ SharedVec, RegisterSignature, XStructure, RegisterV
 use dauphin_interp::runtime::{ InterpContext, InterpValue, InterpNatural, Register, RegisterFile };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::cbor_array;
-use crate::stream::Stream;
 use serde_cbor::Value as CborValue;
+use dauphin_interp::stream::Stream;
 
 // XXX dedup
 pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {

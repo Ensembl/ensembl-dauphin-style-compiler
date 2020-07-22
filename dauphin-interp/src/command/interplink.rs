@@ -55,8 +55,7 @@ pub struct InterpreterLinkProgram {
 }
 
 pub struct InterpreterLink {
-    programs: HashMap<String,InterpreterLinkProgram>,
-    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
+    programs: HashMap<String,InterpreterLinkProgram>
 }
 
 impl InterpreterLink {
@@ -68,16 +67,11 @@ impl InterpreterLink {
         let mut out = vec![];
         while cursor.more() {
             let opcode = cbor_int(cursor.next()?,None)? as u32;
-            let ds = ips.get_deserializer(opcode)?;
-            let (_,num_args) = ds.get_opcode_len()?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
+            let (_,num_args) = ips.get_opcode_len(opcode)?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
             let args = cursor.next_n(num_args)?;
-            out.push(ds.deserialize(opcode,&args).context("deserializing program")?);
+            out.push(ips.deserialize(opcode,&args).context("deserializing program")?);
         }
         Ok(out)
-    }
-
-    pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
-        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
     }
 
     fn make_instruction(cbor: &CborValue) -> anyhow::Result<(String,Vec<Register>)> {
@@ -96,8 +90,7 @@ impl InterpreterLink {
 
     fn add_programs(mut ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
         let mut out = InterpreterLink {
-            programs: HashMap::new(),
-            payloads: ips.copy_payloads()
+            programs: HashMap::new()
         };
         let data = cbor_map(cbor,&vec!["version","suite","programs"])?;
         ips.adjust(data[1])?;
@@ -127,9 +120,5 @@ impl InterpreterLink {
 
     pub fn get_instructions(&self, name: &str) -> anyhow::Result<Option<&Vec<(String,Vec<Register>)>>> { 
         Ok(self.get_program(name)?.instructions.as_ref())
-    }
-
-    pub(crate) fn new_context(&self) -> InterpContext {
-        InterpContext::new(&self.payloads)
     }
 }

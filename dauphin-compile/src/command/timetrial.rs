@@ -51,7 +51,7 @@ pub fn regress(input: &[(f64,f64)]) -> anyhow::Result<(f64,f64)> {
 
 fn run_time_trial(command_type: &dyn TimeTrialCommandType, icom: &Box<dyn InterpCommand>, linker: &CompilerLink, _config: &Config, 
                     t: i64, loops: i64, dry: bool) -> anyhow::Result<f64> {
-    let mut context = linker.new_context();
+    let mut context = InterpContext::new();
     command_type.global_prepare(&mut context,t);
     let start_time = SystemTime::now();
     if dry {

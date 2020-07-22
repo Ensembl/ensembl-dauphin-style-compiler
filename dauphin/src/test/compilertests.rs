@@ -27,7 +27,7 @@ use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
 use dauphin_compile::command::{ CompilerLink, InstructionType, ProgramMetadata };
 use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call };
-use dauphin_lib_std::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ StreamFactory, Stream };
 
 // XXX move to common test utils
 fn make_type(defstore: &DefStore, name: &str) -> MemberType {
@@ -135,7 +135,8 @@ fn line_number_smoke() {
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
-    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
+    let mut context = context();
+    let message = comp_interpret(&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(message.contains("line-number.dp:10"));
 }
@@ -154,7 +155,8 @@ fn no_line_number_smoke() {
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
-    let message = comp_interpret(&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
+    let mut context = context();
+    let message = comp_interpret(&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(!message.contains(" at "));
 }
@@ -367,6 +369,12 @@ pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("No stream context"))?)
 }    
 
+fn context() -> InterpContext {
+    let mut ctx = InterpContext::new();
+    ctx.add_payload("std","stream",&StreamFactory::new());
+    ctx
+}
+
 #[test]
 fn test_multi_program() {
     let mut config = xxx_test_config();
@@ -380,9 +388,10 @@ fn test_multi_program() {
     let program = linker.serialize(&config).expect("serialize");
     let suite = make_interpret_suite().expect("c");
     let mut interpret_linker = InterpreterLink::new(suite,&program).map_err(|x| format!("{} while linking",x)).expect("d");
-    interpret_linker.add_payload("std","stream",StreamFactory::new());
-    let mut ic_a = mini_interp_run(&interpret_linker,&config,"prog2").expect("A");
-    let mut ic_b = mini_interp_run(&interpret_linker,&config,"prog1").expect("B");
+    let mut ic_a = context();
+    let mut ic_b = context();
+    mini_interp_run(&mut ic_a,&interpret_linker,&config,"prog2").expect("A");
+    mini_interp_run(&mut ic_b,&interpret_linker,&config,"prog1").expect("B");
     let s_a = std_stream(&mut ic_a).expect("d");
     let s_b = std_stream(&mut ic_b).expect("e");
     let a = &s_a.take();

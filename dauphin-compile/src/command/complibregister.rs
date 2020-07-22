@@ -32,7 +32,7 @@ pub struct CompLibRegister {
     commands: Vec<(Option<u32>,Box<dyn CommandType + 'static>)>,
     headers: Vec<(String,String)>,
     dynamic_data: Vec<Vec<u8>>,
-    payloads: HashMap<(String,String),Rc<Box<dyn PayloadFactory>>>
+    payloads: HashMap<(String,String),Rc<dyn PayloadFactory>>
 }
 
 impl CompLibRegister {
@@ -49,10 +49,10 @@ impl CompLibRegister {
     }
 
     pub fn add_payload<P>(&mut self, set: &str, name: &str, pf: P) where P: PayloadFactory + 'static {
-        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(Box::new(pf)));
+        self.payloads.insert((set.to_string(),name.to_string()),Rc::new(pf));
     }
 
-    pub fn drain_payloads(&mut self) -> HashMap<(String,String),Rc<Box<dyn PayloadFactory>>> {
+    pub fn drain_payloads(&mut self) -> HashMap<(String,String),Rc<dyn PayloadFactory>> {
         replace(&mut self.payloads, HashMap::new())
     }
 
