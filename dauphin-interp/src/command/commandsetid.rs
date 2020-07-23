@@ -75,7 +75,7 @@ impl CommandSetId {
 #[cfg(test)]
 mod test {
     use crate::command::{ CommandSetId };
-    use crate::test::cbor_cmp;
+    use dauphin_test_harness::cbor_cmp;
 
     #[test]
     fn test_commandsetid_smoke() {

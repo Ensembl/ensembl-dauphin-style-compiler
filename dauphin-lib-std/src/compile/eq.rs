@@ -408,14 +408,17 @@ pub(super) fn library_eq_command(set: &mut CompLibRegister) {
 
 #[cfg(test)]
 mod test {
-    use crate::test::{ xxx_test_config, compile };
+    use crate::test::{ make_compiler_suite, make_interpret_suite };
+    use dauphin_test_harness::{ xxx_test_config, compile };
 
     #[test]
     fn eq_smoke() {
         let mut config = xxx_test_config();
         //config.set_generate_debug(false);
         config.set_verbose(3);
-        let strings = compile(&config,"search:std/eq").expect("a");
+        let cs = make_compiler_suite(&config).expect("a");
+        let is = make_interpret_suite().expect("b");
+        let strings = compile(cs,&is,&config,"search:std/eq").expect("a");
         for s in &strings {
             print!("{}\n",s);
         }

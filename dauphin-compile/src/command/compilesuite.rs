@@ -19,7 +19,7 @@ use std::rc::Rc;
 use crate::cli::Config;
 use std::collections::{ HashMap, BTreeMap };
 use crate::command::{ CommandTrigger, CommandType };
-use dauphin_interp::command::{ CommandSetId, CommandDeserializer, CommandTypeId, OpcodeMapping, CommandSetVerifier, InterpreterLink };
+use dauphin_interp::command::{ CommandSetId, CommandDeserializer, CommandTypeId, OpcodeMapping, CommandSetVerifier };
 use dauphin_interp::runtime::{ PayloadFactory };
 use dauphin_interp::util::cbor::{ cbor_map_iter };
 use dauphin_interp::util::{ DauphinError };
@@ -191,11 +191,12 @@ mod test {
     use super::*;
     use std::cell::RefCell;
     use crate::command::{ CommandTrigger, Command, Instruction, InstructionSuperType, CompilerLink };
-    use dauphin_interp::command::{ CommandSetId, InterpLibRegister, Identifier, CommandInterpretSuite };
+    use dauphin_interp::command::{ CommandSetId, InterpLibRegister, Identifier, CommandInterpretSuite, InterpreterLink };
     use dauphin_interp::runtime::{ InterpContext };
     use dauphin_interp::util::templates::NoopDeserializer;
     use crate::command::{ CommandSchema, CommandType };
-    use crate::test::{ cbor_cmp, FakeDeserializer, xxx_test_config };
+    use dauphin_test_harness::{ cbor_cmp, FakeDeserializer };
+    use crate::test::xxx_test_config;
     use crate::core::{ NumberConstCommandType, ConstCommandType, BooleanConstCommandType, StringConstCommandType };
 
     fn fake_trigger(name: &str) -> CommandTrigger {

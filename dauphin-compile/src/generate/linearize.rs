@@ -349,33 +349,12 @@ mod test {
     use crate::resolver::common_resolver;
     use crate::parser::{ Parser };
     use super::super::codegen::generate_code;
-    use crate::test::{ mini_interp, xxx_test_config, make_compiler_suite };
+    use crate::test::{ xxx_test_config, make_compiler_suite };
     use crate::command::CompilerLink;
-    use super::super::dealias::remove_aliases;
-
-    #[test]
-    fn linearize_smoke() {
-        let config = xxx_test_config();
-        let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
-        let resolver = common_resolver(&config,&linker).expect("a");
-        let mut lexer = Lexer::new(&resolver,"");
-        lexer.import("search:codegen/linearize-smoke").expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
-        let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
-        call(&mut context).expect("j");
-        simplify(&defstore,&mut context).expect("k");
-        print!("{:?}\n",context);
-        linearize_real(&mut context).expect("linearize");
-        print!("{:?}\n",context);
-        remove_aliases(&mut context);
-        let values = mini_interp(&mut context.get_instructions(),&mut linker,&config,"main");
-        print!("{:?}",values);
-    }
 
     fn linearize_stable_pass() -> Vec<Instruction> {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/linearize-smoke").expect("cannot load file");

@@ -56,7 +56,7 @@ mod test {
     use dauphin_compile::command::{ CompilerLink, CompLibRegister };
     use dauphin_interp::util::templates::NoopDeserializer;
     use dauphin_interp::util::cbor::cbor_serialize;
-    use crate::test::{ FakeDeserializer, fake_command, xxx_test_config, fake_trigger };
+    use dauphin_test_harness::{ FakeDeserializer, fake_command, xxx_test_config, fake_trigger };
 
     // XXX dedup
     

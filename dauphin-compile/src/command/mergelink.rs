@@ -16,7 +16,6 @@
 
 use anyhow::{ self, Context };
 use std::collections::BTreeMap;
-use dauphin_interp::command::{ CommandInterpretSuite };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_take_map };
 use crate::command::{ OpcodeRemapper, RemapperEndpoint, VERSION, CommandCompileSuite, CompilerLink };

@@ -13,3 +13,6 @@ rust-ini="*"
 dauphin_interp = { path = "../dauphin-interp" }
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_lib_std = { path = "../dauphin-lib-std", features = ["compile"] }
+
+[dev-dependencies]
+dauphin_test_harness = { path = "../dauphin-test-harness" }

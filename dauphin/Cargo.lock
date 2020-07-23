@@ -162,6 +162,7 @@ dependencies = [
  "dauphin_interp",
  "dauphin_lib_buildtime",
  "dauphin_lib_std",
+ "dauphin_test_harness",
  "regex",
  "rustyline",
  "serde_cbor",
@@ -208,6 +209,16 @@ dependencies = [
 
 [[package]]
 name = "dauphin_lib_std"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dauphin_compile",
+ "dauphin_interp",
+ "serde_cbor",
+]
+
+[[package]]
+name = "dauphin_test_harness"
 version = "0.1.0"
 dependencies = [
  "anyhow",

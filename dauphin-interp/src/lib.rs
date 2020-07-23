@@ -25,9 +25,6 @@ pub mod runtime;
 pub mod stream;
 pub mod util;
 
-#[cfg(test)]
-pub mod test;
-
 pub mod core {
     pub mod core;
     mod consts;

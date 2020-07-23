@@ -97,7 +97,8 @@ mod test {
     use std::str::FromStr;
     use std::rc::Rc;
     use crate::resolver::common_resolver;
-    use crate::test::{ xxx_test_config, make_compiler_suite, load_testdata };
+    use crate::test::{ xxx_test_config, make_compiler_suite };
+    use dauphin_test_harness::load_testdata;
     use crate::command::CompilerLink;
 
     fn add_token(out: &mut String, token: &(Token,LexerPosition)) {
@@ -106,7 +107,7 @@ mod test {
 
     fn try_lex(path_in: &str) -> Vec<(Token,LexerPosition)> {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let mut path = String::from_str("search:").ok().unwrap();
         path.push_str(path_in);
         let resolver = Rc::new(common_resolver(&config,&linker).expect("a"));

@@ -31,8 +31,8 @@ mod compile {
     pub mod library;
 }
 
-#[cfg(test)]
-mod test;
+#[cfg(any(test,feature = "harness"))]
+pub mod test;
 
 #[cfg(any(feature = "compile",test))]
 pub use compile::library::make_std;

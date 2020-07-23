@@ -117,6 +117,17 @@ dependencies = [
  "anyhow 1.0.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "dauphin_compile 0.1.0",
  "dauphin_interp 0.1.0",
+ "dauphin_test_harness 0.1.0",
+ "serde_cbor 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "dauphin_test_harness"
+version = "0.1.0"
+dependencies = [
+ "anyhow 1.0.31 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dauphin_compile 0.1.0",
+ "dauphin_interp 0.1.0",
  "serde_cbor 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

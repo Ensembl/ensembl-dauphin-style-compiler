@@ -135,12 +135,23 @@ dependencies = [
  "dauphin_compile",
  "dauphin_interp",
  "dauphin_lib_std",
+ "dauphin_test_harness",
  "rust-ini",
  "serde_cbor",
 ]
 
 [[package]]
 name = "dauphin_lib_std"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "dauphin_compile",
+ "dauphin_interp",
+ "serde_cbor",
+]
+
+[[package]]
+name = "dauphin_test_harness"
 version = "0.1.0"
 dependencies = [
  "anyhow",

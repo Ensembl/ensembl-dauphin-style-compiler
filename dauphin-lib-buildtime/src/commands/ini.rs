@@ -87,13 +87,16 @@ impl Command for LoadIniCommand {
 
 #[cfg(test)]
 mod test {
-    use crate::test::{ compile, xxx_test_config };
+    use dauphin_test_harness::{ compile, xxx_test_config };
+    use crate::test::{ make_compiler_suite, make_interpret_suite };
     
     #[test]
     fn load_ini_smoke() {
         let mut config = xxx_test_config();
         config.add_file_search_path("*");
-        let strings = compile(&config,"search:buildtime/load_ini").expect("a");
+        let cs = make_compiler_suite(&config).expect("x");
+        let is = make_interpret_suite().expect("y");
+        let strings = compile(cs,&is,&config,"search:buildtime/load_ini").expect("a");
         for s in &strings {
             print!("{}\n",s);
         }

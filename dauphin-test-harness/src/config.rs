@@ -14,25 +14,20 @@
  *  limitations under the License.
  */
 
-use std::fs::read_to_string;
-use std::path::PathBuf;
+use dauphin_compile::cli::Config;
+use crate::files::{ find_testdata };
 
-pub fn find_testdata() -> PathBuf {
-    let mut dir = std::env::current_exe().expect("cannot get current exec path");
-    while dir.pop() {
-        let mut testdata = PathBuf::from(&dir);
-        testdata.push("testdata");
-        if testdata.exists() {
-            return testdata;
-        }
-    }
-    panic!("cannot find testdata directory");
-}
-
-pub fn load_testdata(tail: &[&str]) -> Result<String,String> {
-    let mut path = find_testdata();
-    for t in tail {
-        path.push(t);
-    }
-    read_to_string(path).map_err(|x| x.to_string())
+pub fn xxx_test_config() -> Config {
+    let mut cfg = Config::new();
+    cfg.set_root_dir(&find_testdata().to_string_lossy());
+    cfg.set_generate_debug(true);
+    cfg.set_unit_test(true);
+    cfg.set_verbose(3);
+    cfg.set_opt_level(2);
+    cfg.set_debug_run(true);
+    cfg.add_lib("buildtime");
+    cfg.add_file_search_path("*.dp");
+    cfg.add_file_search_path("parser/*.dp");
+    cfg.add_file_search_path("parser/import-subdir/*.dp");
+    cfg
 }

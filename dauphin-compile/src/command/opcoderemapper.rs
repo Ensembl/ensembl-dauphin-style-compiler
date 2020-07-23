@@ -105,7 +105,7 @@ mod test{
     use std::cell::RefCell;
     use std::rc::Rc;
     use crate::command::{ CommandCompileSuite, CommandSchema, CommandTrigger, CommandType, Instruction, Command, CompLibRegister };
-    use crate::test::{ FakeDeserializer, hexdump };
+    use dauphin_test_harness::{ FakeDeserializer, hexdump };
     use dauphin_interp::command::{ Identifier, InterpLibRegister, InterpreterLink };
     use dauphin_interp::util::DauphinError;
     use dauphin_interp::util::cbor::{ cbor_serialize };

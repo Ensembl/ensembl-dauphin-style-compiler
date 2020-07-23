@@ -1,5 +1,5 @@
 [package]
-name = "dauphin"
+name = "dauphin_test_harness"
 version = "0.1.0"
 authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
 edition = "2018"
@@ -7,15 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex="*"
-serde_cbor="*"
-clap="*"
-rustyline="*"
-anyhow="1.0"
-
+anyhow = "*"
+serde_cbor = "*"
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_interp = { path = "../dauphin-interp" }
-
-dauphin_lib_std = { path = "../dauphin-lib-std", features= ["compile"] }
-dauphin_lib_buildtime = { path = "../dauphin-lib-buildtime" }
-dauphin_test_harness = { path = "../dauphin-test-harness" }

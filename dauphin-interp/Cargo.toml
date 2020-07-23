@@ -15,4 +15,4 @@ anyhow="*"
 [dev-dependencies]
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_lib_std = { path = "../dauphin-lib-std", features = ["compile"] }
-
+dauphin_test_harness = { path = "../dauphin-test-harness" }

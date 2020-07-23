@@ -364,11 +364,12 @@ mod test {
     use crate::resolver::common_resolver;
     use crate::command::CompilerLink;
     use crate::parser::Parser;
-    use crate::test::{ xxx_test_config, make_compiler_suite, load_testdata };
+    use crate::test::{ xxx_test_config, make_compiler_suite };
+    use dauphin_test_harness::load_testdata;
 
     fn run_pass(filename: &str) -> Result<(),Vec<String>> {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("search:codegen/{}",filename)).expect("cannot load file");
@@ -382,7 +383,7 @@ mod test {
     #[test]
     fn codegen_smoke() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/generate-smoke2").expect("cannot load file");

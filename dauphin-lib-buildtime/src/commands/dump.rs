@@ -104,14 +104,17 @@ impl Command for PrintCompileCommand {
 
 #[cfg(test)]
 mod test {
-    use crate::test::{ compile, xxx_test_config };
+    use dauphin_test_harness::{ compile, xxx_test_config };
+    use crate::test::{ make_compiler_suite, make_interpret_suite };
 
     #[test]
     fn dump_sig() {
         let mut config = xxx_test_config();
         config.add_define(("yes".to_string(),"".to_string()));
         config.add_define(("hello".to_string(),"world".to_string()));
-        let strings = compile(&config,"search:buildtime/dump_sig").expect("a");
+        let cs = make_compiler_suite(&config).expect("x");
+        let is = make_interpret_suite().expect("y");    
+        let strings = compile(cs,&is,&config,"search:buildtime/dump_sig").expect("a");
         assert!(strings[0].contains("[0, 1]"));
         assert!(strings[1].contains("[1, 0]"));
         assert!(strings[2].contains("[1, 1]"));

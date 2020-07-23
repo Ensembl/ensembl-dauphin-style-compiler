@@ -14,12 +14,6 @@
  *  limitations under the License.
  */
 
-mod cbor;
 mod compile;
-mod config;
-mod files;
 
-pub use cbor::{ hexdump, cbor_cmp };
-pub use compile::{ compile, make_compiler_suite, comp_interpret, mini_interp };
-pub use files::{ load_testdata, find_testdata };
-pub use config::{ xxx_test_config };
+pub use compile::{ make_compiler_suite, make_interpret_suite };

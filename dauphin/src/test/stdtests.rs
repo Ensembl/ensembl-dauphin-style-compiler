@@ -14,7 +14,8 @@
  *  limitations under the License.
  */
 
-use crate::test::{ xxx_test_config, make_compiler_suite, mini_interp, load_testdata, compile, comp_interpret, make_interpret_suite, mini_interp_run };
+use crate::test::{ make_compiler_suite, compile, make_interpret_suite };
+use dauphin_test_harness::{ mini_interp, mini_interp_run, load_testdata, comp_interpret, xxx_test_config, compile };
 use dauphin_interp::types::{ MemberMode };
 use dauphin_interp::command::{ InterpreterLink };
 use dauphin_interp::runtime::{ InterpContext };
@@ -32,7 +33,9 @@ use dauphin_interp::stream::{ StreamFactory, Stream };
 #[test]
 fn print_smoke() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:std/print").expect("a");
+    let cs = make_compiler_suite(&config).expect("m");
+    let is = make_interpret_suite().expect("n");
+    let strings = compile(cs,&is,&config,"search:std/print").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -49,7 +52,9 @@ fn print_smoke() {
 #[test]
 fn assign_filtered() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:std/filterassign").expect("a");
+    let cs = make_compiler_suite(&config).expect("m");
+    let is = make_interpret_suite().expect("n");
+    let strings = compile(cs,&is,&config,"search:std/filterassign").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -59,7 +64,9 @@ fn assign_filtered() {
 #[test]
 fn assign_shallow() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:std/assignshallow").expect("a");
+    let cs = make_compiler_suite(&config).expect("m");
+    let is = make_interpret_suite().expect("n");
+    let strings = compile(cs,&is,&config,"search:std/assignshallow").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -88,7 +95,8 @@ fn extend_smoke() {
         }
         prev = Some(instr.clone());
     }
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("n");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -104,7 +112,8 @@ fn vector_append() {
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("n");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }

@@ -14,16 +14,8 @@
  *  limitations under the License.
  */
 
-mod cbor;
 mod compilertests;
 mod stdtests;
-mod commands;
 mod compile;
-mod config;
-mod files;
 
-pub use cbor::{ hexdump, cbor_cmp };
-pub use commands::{ FakeDeserializer, FakeInterpCommand, fake_command, fake_trigger };
-pub use compile::{ make_compiler_suite, mini_interp, compile, comp_interpret, mini_interp_run, make_interpret_suite };
-pub use config::{ xxx_test_config };
-pub use files::{ load_testdata };
+pub use compile::{ make_compiler_suite, make_interpret_suite };

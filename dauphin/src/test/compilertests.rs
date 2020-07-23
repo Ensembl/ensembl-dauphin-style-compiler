@@ -14,7 +14,8 @@
  *  limitations under the License.
  */
 
-use crate::test::{ xxx_test_config, make_compiler_suite, mini_interp, load_testdata, compile, comp_interpret, make_interpret_suite, mini_interp_run };
+use crate::test::{ make_compiler_suite, make_interpret_suite };
+use dauphin_test_harness::{ xxx_test_config, compile, load_testdata, mini_interp, comp_interpret, mini_interp_run };
 use dauphin_interp::types::{ MemberMode };
 use dauphin_interp::command::{ InterpreterLink };
 use dauphin_interp::runtime::InterpContext;
@@ -64,7 +65,8 @@ fn offset_enums() {
     let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"offset_enums::stest")).expect("b");
     assert_eq!(load_cmp("offset-enums.out"),regs.to_string());
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -96,7 +98,9 @@ fn typing_smoke() {
 fn assign_regs_smoke() {
     let mut config = xxx_test_config();
     config.set_opt_seq("pca");
-    let strings = compile(&config,"search:codegen/linearize-refsquare").expect("a");
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    let strings = compile(cs,&is,&config,"search:codegen/linearize-refsquare").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -106,7 +110,9 @@ fn assign_regs_smoke() {
 #[test]
 fn call_smoke() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:codegen/module-smoke").expect("a");
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    let strings = compile(cs,&is,&config,"search:codegen/module-smoke").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -115,7 +121,9 @@ fn call_smoke() {
 #[test]
 fn lvalue_regression() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:codegen/lvalue").expect("a");
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    let strings = compile(cs,&is,&config,"search:codegen/lvalue").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -136,7 +144,8 @@ fn line_number_smoke() {
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
-    let message = comp_interpret(&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
+    let is = make_interpret_suite().expect("m");
+    let message = comp_interpret(&is,&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(message.contains("line-number.dp:10"));
 }
@@ -156,7 +165,8 @@ fn no_line_number_smoke() {
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
-    let message = comp_interpret(&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
+    let is = make_interpret_suite().expect("m");
+    let message = comp_interpret(&is,&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
     assert!(!message.contains(" at "));
 }
@@ -164,7 +174,9 @@ fn no_line_number_smoke() {
 #[test]
 fn runnums_smoke() {
     let config = xxx_test_config();
-    let strings = compile(&config,"search:codegen/linearize-refsquare").expect("a");
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    let strings = compile(cs,&is,&config,"search:codegen/linearize-refsquare").expect("a");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -175,7 +187,9 @@ fn runnums_smoke() {
 fn size_hint() {
     let mut config = xxx_test_config();
     config.set_generate_debug(false);
-    let strings = compile(&config,"search:codegen/size-hint").expect("a");
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    let strings = compile(cs,&is,&config,"search:codegen/size-hint").expect("a");
     assert_eq!(vec!["\"hello world!\"", "1", "1", "3", "2", "2", "1000000000", "1000000000", "1000000000", "1000000000", "1000000000", "10", "10", "10", "1", "11", "11", "11"],strings);
     print!("{:?}\n",strings);
 }
@@ -218,7 +232,9 @@ fn simplify_smoke() {
 #[test]
 fn simplify_enum_nest() {
     let config = xxx_test_config();
-    compile(&config,"search:codegen/simplify-enum-nest").expect("a");    
+    let cs = make_compiler_suite(&config).expect("n");
+    let is = make_interpret_suite().expect("m");
+    compile(cs,&is,&config,"search:codegen/simplify-enum-nest").expect("a");    
 }
 
 #[test]
@@ -231,7 +247,8 @@ fn simplify_enum_lvalue() {
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }  
@@ -248,7 +265,8 @@ fn simplify_struct_lvalue() {
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -265,7 +283,8 @@ fn simplify_both_lvalue() {
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }  
@@ -282,7 +301,8 @@ fn dealias_smoke() {
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
-    let (values,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (values,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     print!("{:?}\n",values);
     for s in &strings {
         print!("{}\n",s);
@@ -306,7 +326,8 @@ fn reuse_regs_smoke() {
     let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
-    let (_,strings) = mini_interp(&instrs,&mut linker,&config,"main").expect("x");
+    let is = make_interpret_suite().expect("m");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
         print!("{}\n",s);
     }
@@ -398,4 +419,21 @@ fn test_multi_program() {
     let b = &s_b.take();    
     assert_eq!(vec!["prog2"],a.iter().map(|x| x).collect::<Vec<_>>());
     assert_eq!(vec!["prog1"],b.iter().map(|x| x).collect::<Vec<_>>());
+}
+
+#[test]
+fn linearize_smoke() {
+    let config = xxx_test_config();
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+    let resolver = common_resolver(&config,&linker).expect("a");
+    let mut lexer = Lexer::new(&resolver,"");
+    lexer.import("search:codegen/linearize-smoke").expect("cannot load file");
+    let p = Parser::new(&mut lexer);
+    let (stmts,defstore) = p.parse().expect("error").expect("error");
+    let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
+    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("b");
+    print!("{:?}\n",context);
+    let is = make_interpret_suite().expect("m");
+    let values = mini_interp(&is,&context.get_instructions(),&mut linker,&config,"main");
+    print!("{:?}",values);
 }

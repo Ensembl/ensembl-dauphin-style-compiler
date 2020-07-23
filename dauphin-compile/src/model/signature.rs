@@ -83,7 +83,8 @@ mod test {
     use crate::lexer::Lexer;
     use crate::parser::{ Parser, parse_type };
     use crate::generate::generate;
-    use crate::test::{ mini_interp, xxx_test_config, make_compiler_suite, load_testdata, cbor_cmp };
+    use dauphin_test_harness::{ load_testdata, cbor_cmp };
+    use crate::test::{ xxx_test_config, make_compiler_suite };
     use crate::model::{ DefStore, make_full_type };
     use crate::typeinf::{ MemberType };
     use dauphin_interp::types::{ FullType, MemberMode };
@@ -92,7 +93,7 @@ mod test {
     // XXX move to common test utils
     fn make_type(defstore: &DefStore, name: &str) -> MemberType {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("data:{}",name)).expect("cannot load file");
@@ -119,7 +120,7 @@ mod test {
     #[test]
     fn offset_smoke() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
@@ -135,7 +136,7 @@ mod test {
     #[test]
     fn test_cbor() {
         let config = xxx_test_config();
-        let linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+        let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
