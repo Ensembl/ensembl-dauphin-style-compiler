@@ -51,7 +51,7 @@ mod test {
     use std::cell::RefCell;
     use std::collections::HashMap;
     use super::*;
-    use dauphin_interp::command::{ InterpLibRegister, CommandSetId };
+    use dauphin_interp::command::{ InterpLibRegister, CommandSetId, InterpreterLink };
     use dauphin_interp::runtime::InterpContext;
     use dauphin_compile::command::{ CompilerLink, CompLibRegister };
     use dauphin_interp::util::templates::NoopDeserializer;
@@ -101,13 +101,13 @@ mod test {
         cs1.push(FakeDeserializer(v.clone(),5));
         cis.register(cs1).expect("f");
         //
-        cis.adjust(&ccs.serialize()).expect("h");
+        let ilink = InterpreterLink::new(&cis,&CompilerLink::new(ccs).serialize(&xxx_test_config()).expect("h")).expect("g");
         
         /* now, our opcodes should be flipped to match ccs */
         let mut context = InterpContext::new();
-        cis.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
+        ilink.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(5,*v.borrow());
-        cis.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
+        ilink.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
         context.finish();
     }
@@ -123,11 +123,13 @@ mod test {
         ccs.register(cs1).expect("a");
 
         let csi1 = CommandSetId::new("test",interpreter,0x1F3D4E7C72C86288);
-        let mut mis = CommandInterpretSuite::new();
+        let mut cis = CommandInterpretSuite::new();
         let mut cs1 = InterpLibRegister::new(&csi1);
         cs1.push(NoopDeserializer(5));
-        mis.register(cs1).expect("c");
-        mis.adjust(&ccs.serialize()).is_ok()
+        cis.register(cs1).expect("c");
+        InterpreterLink::new(&cis,&CompilerLink::new(ccs).serialize(&xxx_test_config()).expect("h")).is_ok()
+
+        //cis.adjust(&ccs.serialize()).is_ok()
     }
 
     #[test]
@@ -170,9 +172,10 @@ mod test {
         cs1.push("test1",Some(2),fake_command("c"));
         ccs.register(cs1).expect("a");
 
-        cis.adjust(&ccs.serialize()).expect("d");
+        let ilink = InterpreterLink::new(&cis,&CompilerLink::new(ccs).serialize(&xxx_test_config()).expect("h")).expect("g");
+
         let mut context = InterpContext::new();
-        cis.deserialize(2,&vec![]).expect("f").execute(&mut context).expect("g");
+        ilink.deserialize(2,&vec![]).expect("f").execute(&mut context).expect("g");
         // TODO trace command in payload to replace Fake*
         assert_eq!(2,*v.borrow());
         context.finish()
@@ -188,8 +191,8 @@ mod test {
         cs1.push("test1",Some(5),fake_command("c"));
         ccs.register(cs1).expect("a");
 
-        let mut mis = CommandInterpretSuite::new();
-        mis.adjust(&ccs.serialize()).expect_err("d");
+        let mut cis = CommandInterpretSuite::new();
+        InterpreterLink::new(&cis,&CompilerLink::new(ccs).serialize(&xxx_test_config()).expect("h")).map(|_| ()).expect_err("g");
     }
 
     #[test]
@@ -197,12 +200,12 @@ mod test {
         let ccs = CommandCompileSuite::new();
         let csi1 = CommandSetId::new("test",(1,1),0x1F3F9E7C72C86288);
 
-        let mut mis = CommandInterpretSuite::new();
+        let mut cis = CommandInterpretSuite::new();
         let mut cs1 = InterpLibRegister::new(&csi1);
         cs1.push(NoopDeserializer(5));
-        mis.register(cs1).expect("a");
+        cis.register(cs1).expect("a");
 
-        mis.adjust(&ccs.serialize()).expect("d");
+        InterpreterLink::new(&cis,&CompilerLink::new(ccs).serialize(&xxx_test_config()).expect("h")).expect("g");
     }
 
     #[test]

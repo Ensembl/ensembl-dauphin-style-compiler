@@ -18,7 +18,7 @@ use anyhow::{ self, Context };
 use crate::util::DauphinError;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::command::{ CommandInterpretSuite, InterpCommand };
+use crate::command::{ CommandInterpretSuite, CommandTypeId, InterpCommand, OpcodeMapping };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_int, cbor_map, cbor_array, cbor_entry, cbor_string, cbor_map_iter };
 use crate::runtime::{ InterpContext, PayloadFactory, Register };
@@ -54,12 +54,14 @@ pub struct InterpreterLinkProgram {
     instructions: Option<Vec<(String,Vec<Register>)>>
 }
 
-pub struct InterpreterLink {
-    programs: HashMap<String,InterpreterLinkProgram>
+pub struct InterpreterLink<'a> {
+    ips: &'a CommandInterpretSuite,
+    programs: HashMap<String,InterpreterLinkProgram>,
+    opcode_mapper: OpcodeMapping
 }
 
-impl InterpreterLink {
-    fn make_commands(ips: &CommandInterpretSuite, program: &CborValue) -> anyhow::Result<Vec<Box<dyn InterpCommand>>> {
+impl<'a> InterpreterLink<'a> {
+    fn make_commands(&mut self, program: &CborValue) -> anyhow::Result<Vec<Box<dyn InterpCommand>>> {
         let mut cursor = ProgramCursor {
             value: cbor_array(program,0,true)?,
             index: 0
@@ -67,9 +69,9 @@ impl InterpreterLink {
         let mut out = vec![];
         while cursor.more() {
             let opcode = cbor_int(cursor.next()?,None)? as u32;
-            let (_,num_args) = ips.get_opcode_len(opcode)?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
+            let (_,num_args) = self.get_opcode_len(opcode)?.ok_or_else(|| DauphinError::malformed("attempt to deserialize an unserializable"))?;
             let args = cursor.next_n(num_args)?;
-            out.push(ips.deserialize(opcode,&args).context("deserializing program")?);
+            out.push(self.deserialize(opcode,&args).context("deserializing program")?);
         }
         Ok(out)
     }
@@ -84,16 +86,18 @@ impl InterpreterLink {
         cbor_array(cbor,0,true)?.iter().map(|x| InterpreterLink::make_instruction(x)).collect()
     }
 
-    fn get_program<'a>(&'a self, name: &str) -> anyhow::Result<&'a InterpreterLinkProgram> {
+    fn get_program<'b>(&'b self, name: &str) -> anyhow::Result<&'b InterpreterLinkProgram> {
         Ok(self.programs.get(name).ok_or_else(|| DauphinError::config(&format!("No such program {}",name)))?)
     }
 
-    fn add_programs(mut ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
+    fn add_programs(ips: &'a CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink<'a>> {
         let mut out = InterpreterLink {
-            programs: HashMap::new()
+            ips,
+            programs: HashMap::new(),
+            opcode_mapper: OpcodeMapping::new(),
         };
         let data = cbor_map(cbor,&vec!["version","suite","programs"])?;
-        ips.adjust(data[1])?;
+        out.adjust(&data[1])?;
         let got_ver = cbor_int(data[0],None)? as u32;
         if got_ver != VERSION {
             return Err(DauphinError::integration(&format!("Incompatible code. got v{} understand v{}",got_ver,VERSION)));
@@ -102,15 +106,16 @@ impl InterpreterLink {
             let name = cbor_string(name)?;
             let cmds = cbor_entry(program,"cmds")?.ok_or_else(|| DauphinError::malformed("missing cmds section"))?;
             let symbols = cbor_entry(program,"symbols")?;
+            let commands = out.make_commands(cmds).context("building commands")?;
             out.programs.insert(name.to_string(),InterpreterLinkProgram {
-                commands: InterpreterLink::make_commands(&ips,cmds).context("building commands")?,
+                commands,
                 instructions: symbols.map(|x| InterpreterLink::make_instructions(x)).transpose().context("building debug symbols")?
             });
         }
         Ok(out)
     }
 
-    pub fn new(ips: CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
+    pub fn new(ips: &'a CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink<'a>> {
         InterpreterLink::add_programs(ips,cbor).context("parsing program")
     }
 
@@ -120,5 +125,29 @@ impl InterpreterLink {
 
     pub fn get_instructions(&self, name: &str) -> anyhow::Result<Option<&Vec<(String,Vec<Register>)>>> { 
         Ok(self.get_program(name)?.instructions.as_ref())
+    }
+
+    fn get_cid(&self, real_opcode: u32) -> anyhow::Result<&CommandTypeId> {
+        let (sid,offset) = self.opcode_mapper.decode_opcode(real_opcode)?;
+        Ok(self.ips.offset_to_command(&sid,offset)?)
+    }
+
+    pub fn get_opcode_len(&self, real_opcode: u32) -> anyhow::Result<Option<(u32,usize)>> {
+        Ok(self.ips.get_opcode_len(self.get_cid(real_opcode)?)?)
+    }
+
+    pub fn deserialize(&self, real_opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(self.ips.deserialize(self.get_cid(real_opcode)?,real_opcode,value)?)
+    }
+
+    pub fn adjust(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
+        self.opcode_mapper = OpcodeMapping::deserialize(cbor)?;
+        for (prog_sid,_) in self.opcode_mapper.iter() {
+            let stored_sid = self.ips.prog_to_stored_set(prog_sid)?;
+            if stored_sid.version().1 < prog_sid.version().1 {
+                return Err(DauphinError::integration(&format!("library too old. have {} need {}",stored_sid,prog_sid)));
+            }
+        }
+        Ok(())
     }
 }

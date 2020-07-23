@@ -29,7 +29,7 @@ pub struct CommandInterpretSuite {
     store: Rc<RefCell<Deserializer>>,
     offset_to_command: HashMap<(CommandSetId,u32),CommandTypeId>,
     opcode_mapper: OpcodeMapping,
-    minors: HashMap<(String,u32),u32>,
+    minors: HashMap<(String,u32),CommandSetId>,
     verifier: CommandSetVerifier,
     payloads: HashMap<(String,String),Rc<dyn PayloadFactory>>
 }
@@ -49,7 +49,7 @@ impl CommandInterpretSuite {
     fn register_real(&mut self, mut set: InterpLibRegister) -> anyhow::Result<()> {
         let sid = set.id().clone();
         let version = sid.version();
-        self.minors.insert((sid.name().to_string(),version.0),version.1);
+        self.minors.insert((sid.name().to_string(),version.0),sid.clone());
         for ds in set.drain_commands().drain(..) {
             if let Some((opcode,_)) = ds.get_opcode_len()? {
                 let cid = self.store.borrow_mut().add(ds);
@@ -74,34 +74,21 @@ impl CommandInterpretSuite {
         self.payloads.clone()
     }
 
-    pub fn opcode_mapper(&self) -> &OpcodeMapping { &self.opcode_mapper }
-
-    pub fn adjust(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
-        self.opcode_mapper = OpcodeMapping::deserialize(cbor)?;
-        for (sid,_) in self.opcode_mapper.iter() {
-            let name = sid.name().to_string();
-            let version = sid.version();
-            if let Some(stored_minor) = self.minors.get(&(name.clone(),version.0)) {
-                if *stored_minor < version.1 {
-                    return Err(DauphinError::integration(&format!("version of {}.{} too old. have {} need {}",name,version.0,stored_minor,version.1)));
-                }
-            } else {
-                return Err(DauphinError::integration(&format!("missing command suite {}.{}",name,version.0)));
-            }
-        }
-        Ok(())
+    pub fn default_opcode_mapper(&self) -> &OpcodeMapping { &self.opcode_mapper }
+    pub(super) fn offset_to_command(&self, set: &CommandSetId, offset: u32) -> anyhow::Result<&CommandTypeId> {
+        Ok(self.offset_to_command.get(&(set.clone(),offset)).ok_or(DauphinError::malformed(&format!("Unknown opcode {} offset {}",set,offset)))?)
     }
 
-    fn get_cid(&self, real_opcode: u32) -> anyhow::Result<&CommandTypeId> {
-        let (sid,offset) = self.opcode_mapper.decode_opcode(real_opcode)?;
-        Ok(self.offset_to_command.get(&(sid,offset)).ok_or(DauphinError::malformed(&format!("Unknown opcode {}",real_opcode)))?)
+    pub fn get_opcode_len(&self, cid: &CommandTypeId) -> anyhow::Result<Option<(u32,usize)>> {
+        Ok(self.store.borrow().get(cid)?.get_opcode_len()?)
     }
 
-    pub fn get_opcode_len(&self, real_opcode: u32) -> anyhow::Result<Option<(u32,usize)>> {
-        Ok(self.store.borrow().get(self.get_cid(real_opcode)?)?.get_opcode_len()?)
+    // TODO real_opcode to deserialize why?
+    pub fn deserialize(&self, cid: &CommandTypeId, real_opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        self.store.borrow().get(cid)?.deserialize(real_opcode,value)
     }
 
-    pub fn deserialize(&self, real_opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        self.store.borrow().get(self.get_cid(real_opcode)?)?.deserialize(real_opcode,value)
+    pub fn prog_to_stored_set(&self, prog: &CommandSetId) -> anyhow::Result<CommandSetId> {
+        Ok(self.minors.get(&(prog.name().to_string(),prog.version().0)).ok_or(DauphinError::malformed(&format!("Unknown library {}",prog)))?.clone())
     }
 }

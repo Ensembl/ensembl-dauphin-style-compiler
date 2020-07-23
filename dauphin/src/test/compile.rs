@@ -64,7 +64,8 @@ pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
 
 pub fn comp_interpret(context: &mut InterpContext, compiler_linker: &CompilerLink, config: &Config, name: &str) -> anyhow::Result<()> {
     let program = compiler_linker.serialize(config)?;
-    let mut interpret_linker = InterpreterLink::new(make_interpret_suite()?,&program).context("linking")?;
+    let isuite = &make_interpret_suite()?;
+    let mut interpret_linker = InterpreterLink::new(&isuite,&program).context("linking")?;
     interpret(context,&interpret_linker,config,name)?;
     Ok(())
 }
@@ -90,7 +91,7 @@ pub fn mini_interp(instrs: &Vec<Instruction>, cl: &mut CompilerLink, config: &Co
     print!("{}\n",hexdump(&buffer));
     let suite = make_interpret_suite()?;
     let program = serde_cbor::from_slice(&buffer).context("deserialising")?;
-    let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking")?;
+    let mut interpret_linker = InterpreterLink::new(&suite,&program).context("linking")?;
     let mut context = InterpContext::new();
     context.add_payload("std","stream",&StreamFactory::new());
     mini_interp_run(&mut context,&interpret_linker,config,name)?;

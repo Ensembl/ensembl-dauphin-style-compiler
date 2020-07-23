@@ -15,9 +15,10 @@
  */
 
 use anyhow::{ Context };
-
+use rustyline;
 use std::collections::HashMap;
 use std::fs::{ write, read };
+use std::io::{ self, BufRead, Write };
 use std::process::exit;
 use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
@@ -98,14 +99,14 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
     let p = Parser::new(&mut lexer);
     let (stmts,defstore) = match p.parse().context("parsing")? {
         Err(errors) => {
-            print!("{}\nCompilation failed\n",errors.join("\n"));
+            print!("{}\n",errors.join("\n"));
             return Ok(false);
         },
         Ok(x) => x
     };
     let instrs = match generate(&linker,&stmts,&defstore,&resolver,&config).context("generating code")? {
         Err(errors) => {
-            print!("{}\nCompilation failed\n",errors.join("\n"));
+            print!("{}\n",errors.join("\n"));
             return Ok(false);
         },
         Ok(x) => x
@@ -164,7 +165,7 @@ impl Action for RunAction {
             let suite = make_interpret_suite(config).context("building commands")?;
             let buffer = read_binary_file(filename)?;
             let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
-            let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking binary")?;
+            let mut interpret_linker = InterpreterLink::new(&suite,&program).context("linking binary")?;
             let mut interp = interpreter(&mut context,&interpret_linker,&config,config.get_run()).expect("interpreter");
             while interp.more().expect("interpreting") {}
         }
@@ -185,6 +186,21 @@ fn compile(config: &Config, command: &str) -> anyhow::Result<CborValue> {
     Ok(linker.serialize(config)?)
 }
 
+fn repl_compile(config: &Config, command: &str) -> anyhow::Result<Option<CborValue>> {
+    let lib = make_compiler_suite(&config).context("registering commands")?;
+    let mut linker = CompilerLink::new(lib);
+    let mut sf = StreamFactory::new();
+    sf.to_stdout(true);
+    linker.add_payload("std","stream",sf);
+    let resolver = common_resolver(&config,&linker).context("creating file-path resolver")?;
+    let source = format!("data:{}",command);
+    if compile_one(config,&resolver,&mut linker,&source,"main").with_context(|| format!("compiling {}",source))? {
+        Ok(Some(linker.serialize(config)?))
+    } else {
+        Ok(None)
+    }
+}
+
 struct ReplAction();
 
 impl Action for ReplAction {
@@ -194,34 +210,23 @@ impl Action for ReplAction {
         let mut sf = StreamFactory::new();
         sf.to_stdout(true);
         context.add_payload("std","stream",&sf);
-
+        let mut rl = rustyline::Editor::<()>::new();
         let isuite = make_interpret_suite(config).context("interpreter commands")?;
-        let mut act = r#"import "lib:std"; use "std"; print("hello");"#;
-        let program = compile(config,act).context("compiling")?;
-        let mut interpret_linker = InterpreterLink::new(isuite,&program).context("linking binary")?;
-        {
-            let mut interp = interpreter(&mut context,&interpret_linker,&config,"main").expect("interpreter");
-            while interp.more().expect("interpreting") {}
+        loop {
+            let readline = rl.readline("dauphin> ");
+            match readline {
+                Ok(line) => {
+                    rl.add_history_entry(&line);
+                    if let Some(program) = repl_compile(config,&line).context("compiling")? {
+                        let interpret_linker = InterpreterLink::new(&isuite,&program).context("linking binary")?;
+                        let mut interp = interpreter(&mut context,&interpret_linker,&config,"main").expect("interpreter");
+                        while interp.more().expect("interpreting") {}
+                    }
+                },
+                Err(_) => break
+            }
         }
         context.finish();
-
-
-
-
-        /*
-        for filename in config.get_binary_sources() {
-            let suite = make_interpret_suite(config).context("building commands")?;
-            let buffer = read_binary_file(filename)?;
-            let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
-            let mut interpret_linker = InterpreterLink::new(suite,&program).context("linking binary")?;
-            let mut sf = StreamFactory::new();
-            sf.to_stdout(true);
-            interpret_linker.add_payload("std","stream",sf);
-            let mut interp = interpreter(&interpret_linker,&config,config.get_run()).expect("interpreter");
-            while interp.more().expect("interpreting") {}
-            interp.finish();
-        }
-        */
         Ok(())
     }
 }
@@ -247,8 +252,8 @@ struct MergeAction();
 impl Action for MergeAction {
     fn name(&self) -> String { "merge".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
-        let cis = make_interpret_suite(config).context("building commands")?;
-        let mut mergelink = MergeLink::new(&cis);
+        let ccs = make_compiler_suite(config).context("building commands")?;
+        let mut mergelink = MergeLink::new(ccs);
         for filename in config.get_binary_sources() {
             let buffer = read_binary_file(filename)?;
             let data = serde_cbor::from_slice(&buffer).context("corrupted binary")?;

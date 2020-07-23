@@ -19,7 +19,7 @@ use std::rc::Rc;
 use crate::cli::Config;
 use std::collections::{ HashMap, BTreeMap };
 use crate::command::{ CommandTrigger, CommandType };
-use dauphin_interp::command::{ CommandSetId, CommandDeserializer, CommandTypeId, OpcodeMapping, CommandSetVerifier };
+use dauphin_interp::command::{ CommandSetId, CommandDeserializer, CommandTypeId, OpcodeMapping, CommandSetVerifier, InterpreterLink };
 use dauphin_interp::runtime::{ PayloadFactory };
 use dauphin_interp::util::cbor::{ cbor_map_iter };
 use dauphin_interp::util::{ DauphinError };
@@ -31,6 +31,7 @@ pub struct CommandCompileSuite {
     sets: Vec<CommandSetId>,
     set_commands: HashMap<CommandSetId,Vec<CommandTypeId>>,
     command_offsets: HashMap<CommandTypeId,(CommandSetId,u32)>,
+    offset_commands: HashMap<(CommandSetId,u32),CommandTypeId>,
     command_triggers: HashMap<CommandTypeId,CommandTrigger>,
     trigger_commands: HashMap<CommandTrigger,CommandTypeId>,
     interp_commands: HashMap<CommandTypeId,Box<dyn CommandDeserializer>>,
@@ -48,6 +49,7 @@ impl CommandCompileSuite {
             set_commands: HashMap::new(),
             command_triggers: HashMap::new(),
             command_offsets: HashMap::new(),
+            offset_commands: HashMap::new(),
             trigger_commands: HashMap::new(),
             interp_commands: HashMap::new(),
             headers: HashMap::new(),
@@ -81,6 +83,7 @@ impl CommandCompileSuite {
                 }
                 self.opcode_mapper.add_opcode(&sid,offset);
                 self.command_offsets.insert(cid.clone(),(sid.clone(),offset));
+                self.offset_commands.insert((sid.clone(),offset),cid.clone());
             }
             self.set_commands.entry(sid.clone()).or_insert_with(|| vec![]).push(cid.clone());
             let schema = self.store.get(&cid).get_schema();
@@ -128,6 +131,12 @@ impl CommandCompileSuite {
         Ok(self.interp_commands.get(cid))
     }
 
+    pub fn get_deserializer_by_opcode(&self, opcode: u32) -> anyhow::Result<&Box<dyn CommandDeserializer>> {
+        let (sid,offset) = self.opcode_mapper().decode_opcode(opcode)?;
+        let cid = self.offset_commands.get(&(sid,offset)).ok_or(DauphinError::internal(file!(),line!()))?;
+        Ok(self.interp_commands.get(cid).ok_or(DauphinError::internal(file!(),line!()))?)
+    }
+
     pub fn get_opcode_by_trigger(&self, trigger: &CommandTrigger) -> anyhow::Result<Option<u32>> {
         let cid = self.trigger_commands.get(trigger).ok_or(DauphinError::internal(file!(),line!()))?; /* unknown command */
         if let Some((sid,offset)) = self.command_offsets.get(cid) {
@@ -173,18 +182,20 @@ impl CommandCompileSuite {
         }
         Ok(())
     }
+
+    pub fn opcode_mapper(&self) -> &OpcodeMapping { &self.opcode_mapper }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use std::cell::RefCell;
-    use crate::command::{ CommandTrigger, Command, Instruction, InstructionSuperType };
+    use crate::command::{ CommandTrigger, Command, Instruction, InstructionSuperType, CompilerLink };
     use dauphin_interp::command::{ CommandSetId, InterpLibRegister, Identifier, CommandInterpretSuite };
     use dauphin_interp::runtime::{ InterpContext };
     use dauphin_interp::util::templates::NoopDeserializer;
     use crate::command::{ CommandSchema, CommandType };
-    use crate::test::{ cbor_cmp, FakeDeserializer };
+    use crate::test::{ cbor_cmp, FakeDeserializer, xxx_test_config };
     use crate::core::{ NumberConstCommandType, ConstCommandType, BooleanConstCommandType, StringConstCommandType };
 
     fn fake_trigger(name: &str) -> CommandTrigger {
@@ -260,6 +271,7 @@ mod test {
         ccs.register(cs2).expect("b");
         let opcode = ccs.get_opcode_by_trigger(&fake_trigger("nc")).expect("c");
         assert_eq!(Some(12),opcode);
+        let clink = CompilerLink::new(ccs);
 
         /* and here's the same thing, but subtly rearranged, at the interpreter end */
         let mut cis = CommandInterpretSuite::new();
@@ -279,12 +291,12 @@ mod test {
         cs2.push(FakeDeserializer(v.clone(),6));
         cis.register(cs2).expect("c");
 
-        cis.adjust(&ccs.serialize()).expect("e");
+        let ilink = InterpreterLink::new(&cis,&clink.serialize(&xxx_test_config()).expect("h")).expect("i");
 
         let mut context = InterpContext::new();
-        cis.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
+        ilink.deserialize(5,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(5,*v.borrow());
-        cis.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
+        ilink.deserialize(12,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(6,*v.borrow());
         context.finish();
     }
@@ -300,6 +312,7 @@ mod test {
         assert_eq!(&csi,cs.id());
     }
 
+    /*
     #[test]
     fn test_command_get() {
         let v : Rc<RefCell<u32>> = Rc::new(RefCell::new(0));
@@ -311,6 +324,7 @@ mod test {
         let mut cis = CommandInterpretSuite::new();
         cis.register(cs).expect("a");
         let mut context = InterpContext::new();
+        
         cis.deserialize(1,&vec![]).expect("f").execute(&mut context).expect("g");
         assert_eq!(1,*v.borrow());
         cis.deserialize(3,&vec![]).expect("f").execute(&mut context).expect("g");
@@ -318,6 +332,7 @@ mod test {
         assert!(cis.deserialize(4,&[]).is_err());
         context.finish();
     }
+    */
 
     fn trace_type(cs: &mut CompLibRegister, name: &str, opcode: u32) {
         match opcode {

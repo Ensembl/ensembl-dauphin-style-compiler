@@ -39,7 +39,7 @@ fn main_real() -> anyhow::Result<()> {
     let suite = make_suite()?;
     let buffer = read(&binary_file).with_context(|| format!("reading {}",binary_file))?;
     let program = serde_cbor::from_slice(&buffer).context("while deserialising")?;
-    let mut linker = InterpreterLink::new(suite,&program)?;
+    let mut linker = InterpreterLink::new(&suite,&program)?;
     let mut context = InterpContext::new();
     let mut sf = StreamFactory::new();
     sf.to_stdout(true);

@@ -19,20 +19,21 @@ use std::collections::BTreeMap;
 use dauphin_interp::command::{ CommandInterpretSuite };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_take_map };
-use crate::command::{ OpcodeRemapper, RemapperEndpoint, VERSION };
+use crate::command::{ OpcodeRemapper, RemapperEndpoint, VERSION, CommandCompileSuite, CompilerLink };
 use serde_cbor::Value as CborValue;
 
-pub struct MergeLink<'a> {
-    cis: &'a CommandInterpretSuite,
-    ocr: OpcodeRemapper<'a>,
+pub struct MergeLink {
+    clink: CompilerLink,
+    ocr: OpcodeRemapper,
     programs: BTreeMap<CborValue,CborValue>
 }
 
-impl<'a> MergeLink<'a> {
-    pub fn new(cis: &'a CommandInterpretSuite) -> MergeLink<'a> {
+impl MergeLink {
+    pub fn new(ccs: CommandCompileSuite) -> MergeLink {
+        let ocr = OpcodeRemapper::new(&ccs.opcode_mapper().clone());
         MergeLink {
-            cis,
-            ocr: OpcodeRemapper::new(&cis.opcode_mapper()),
+            clink: CompilerLink::new(ccs),
+            ocr,
             programs: BTreeMap::new()
         }
     }
@@ -45,7 +46,7 @@ impl<'a> MergeLink<'a> {
         for (name,program) in cbor_take_map(programs)? {
             let mut program = cbor_take_map(program)?;
             let commands = program.remove(&CborValue::Text("cmds".to_string())).ok_or_else(|| DauphinError::malformed("no cmds section"))?;
-            let cmds = rme.remap_program(&self.cis,&self.ocr,&commands).context("remapping")?;
+            let cmds = rme.remap_program(&self.clink,&self.ocr,&commands).context("remapping")?;
             program.insert(CborValue::Text("cmds".to_string()),cmds);
             self.programs.insert(name,CborValue::Map(program));
         }

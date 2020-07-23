@@ -387,7 +387,7 @@ fn test_multi_program() {
     make_program(&mut linker,&resolver,&config,"prog3","search:codegen/multiprog3").expect("cannot build prog3");
     let program = linker.serialize(&config).expect("serialize");
     let suite = make_interpret_suite().expect("c");
-    let mut interpret_linker = InterpreterLink::new(suite,&program).map_err(|x| format!("{} while linking",x)).expect("d");
+    let mut interpret_linker = InterpreterLink::new(&suite,&program).map_err(|x| format!("{} while linking",x)).expect("d");
     let mut ic_a = context();
     let mut ic_b = context();
     mini_interp_run(&mut ic_a,&interpret_linker,&config,"prog2").expect("A");
