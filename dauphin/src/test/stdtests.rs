@@ -81,8 +81,10 @@ fn extend_smoke() {
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:std/extend").expect("cannot load file");
-    let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let mut p = Parser::new(&mut lexer).expect("a");
+    p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let stmts = p.take_statements();
+    let defstore = p.get_defstore();
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
     let mut prev : Option<Instruction> = None;
     for instr in &instrs {
@@ -109,8 +111,10 @@ fn vector_append() {
     let resolver = common_resolver(&config,&linker).expect("a");
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import("search:std/vector-append").expect("cannot load file");
-    let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse().expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let mut p = Parser::new(&mut lexer).expect("a");
+    p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let stmts = p.take_statements();
+    let defstore = p.get_defstore();
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
     let is = make_interpret_suite().expect("n");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");

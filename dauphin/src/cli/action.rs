@@ -95,15 +95,17 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         print!("compiling {}\n",source);
     }
     let mut lexer = Lexer::new(&resolver,name);
+    let mut p = Parser::new(&mut lexer)?;
     lexer.import(source)?;
-    let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = match p.parse().context("parsing")? {
+    match p.parse(&mut lexer).context("parsing")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
             return Ok(false);
         },
-        Ok(x) => x
+        Ok(_) => {}
     };
+    let stmts = p.take_statements();
+    let defstore = p.get_defstore();
     let instrs = match generate(&linker,&stmts,&defstore,&resolver,&config).context("generating code")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
@@ -174,30 +176,52 @@ impl Action for RunAction {
     }
 }
 
-fn compile(config: &Config, command: &str) -> anyhow::Result<CborValue> {
-    let lib = make_compiler_suite(&config).context("registering commands")?;
-    let mut linker = CompilerLink::new(lib);
-    let mut sf = StreamFactory::new();
-    sf.to_stdout(true);
-    linker.add_payload("std","stream",sf);
-    let resolver = common_resolver(&config,&linker).context("creating file-path resolver")?;
-    let source = format!("data:{}",command);
-    compile_one(config,&resolver,&mut linker,&source,"main").with_context(|| format!("compiling {}",source))?;
-    Ok(linker.serialize(config)?)
+struct ReplContext<'a,'b> {
+    linker: &'b mut CompilerLink,
+    config: Config,
+    resolver: &'a Resolver,
+    lexer: Option<Lexer<'a>>,
+    parser: Option<Parser>
 }
 
-fn repl_compile(config: &Config, command: &str) -> anyhow::Result<Option<CborValue>> {
-    let lib = make_compiler_suite(&config).context("registering commands")?;
-    let mut linker = CompilerLink::new(lib);
-    let mut sf = StreamFactory::new();
-    sf.to_stdout(true);
-    linker.add_payload("std","stream",sf);
-    let resolver = common_resolver(&config,&linker).context("creating file-path resolver")?;
-    let source = format!("data:{}",command);
-    if compile_one(config,&resolver,&mut linker,&source,"main").with_context(|| format!("compiling {}",source))? {
-        Ok(Some(linker.serialize(config)?))
-    } else {
-        Ok(None)
+impl<'a,'b> ReplContext<'a,'b> {
+    fn new(config: &Config, linker: &'b mut CompilerLink, resolver: &'a Resolver) -> anyhow::Result<ReplContext<'a,'b>> {
+        let mut out = ReplContext {
+            config: config.clone(),
+            linker,
+            resolver,
+            lexer: None,
+            parser: None
+        };
+        out.lexer = Some(Lexer::new(&out.resolver,"main"));
+        out.parser = Some(Parser::new(out.lexer.as_mut().unwrap())?);
+        Ok(out)
+    }
+
+    fn generate_more(&mut self) -> anyhow::Result<Option<CborValue>> {
+        match self.parser.as_mut().unwrap().parse(&mut self.lexer.as_mut().unwrap()).context("parsing")? {
+            Err(errors) => {
+                print!("{}\n",errors.join("\n"));
+                return Ok(None);
+            },
+            Ok(_) => {}
+        };
+        let stmts = self.parser.as_mut().unwrap().take_statements();
+        let defstore = self.parser.as_ref().unwrap().get_defstore();
+        let instrs = match generate(&self.linker,&stmts,&defstore,&self.resolver,&self.config).context("generating code")? {
+            Err(errors) => {
+                print!("{}\n",errors.join("\n"));
+                return Ok(None);
+            },
+            Ok(x) => x
+        };
+        let md = ProgramMetadata::new("main",None,&instrs);
+        self.linker.add(&md,&instrs,&self.config).context("linking")?;
+        Ok(Some(self.linker.serialize(&self.config)?))
+    }
+
+    fn add_line(&mut self, line: &str) -> anyhow::Result<()> {
+        self.lexer.as_mut().unwrap().repl_line(line)
     }
 }
 
@@ -212,12 +236,17 @@ impl Action for ReplAction {
         context.add_payload("std","stream",&sf);
         let mut rl = rustyline::Editor::<()>::new();
         let isuite = make_interpret_suite(config).context("interpreter commands")?;
+        let lib = make_compiler_suite(&config).context("registering commands")?;
+        let mut clink = CompilerLink::new(lib);
+        let resolver = common_resolver(&config,&clink).context("creating file-path resolver")?;
+        let mut repl_context = ReplContext::new(config,&mut clink,&resolver)?;
         loop {
             let readline = rl.readline("dauphin> ");
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(&line);
-                    if let Some(program) = repl_compile(config,&line).context("compiling")? {
+                    repl_context.add_line(&line)?;
+                    if let Some(program) = repl_context.generate_more().context("compiling")? {
                         let interpret_linker = InterpreterLink::new(&isuite,&program).context("linking binary")?;
                         let mut interp = interpreter(&mut context,&interpret_linker,&config,"main").expect("interpreter");
                         while interp.more().expect("interpreting") {}

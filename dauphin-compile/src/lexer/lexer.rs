@@ -19,6 +19,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::collections::HashSet;
 use super::filelexer::{ FileLexer };
+use super::charsource::StringCharSource;
 use crate::resolver::Resolver;
 use super::inlinetokens::InlineTokens;
 use super::token::Token;
@@ -119,12 +120,22 @@ impl<'a> Lexer<'a> {
     pub fn import(&mut self, path: &str) -> anyhow::Result<()> {
         let resolver = self.files.iter().last().map(|f| f.get_resolver()).unwrap_or_else(|| &self.resolver);
         let out = resolver.resolve(path).map(|stream| {
-            self.files.push(FileLexer::new(stream.1,stream.0)); ()
+            self.files.push(FileLexer::new(stream.1,stream.0,false)); ()
         });
         error_locate_cb(|| {
             let p = self.position();
             (p.filename().to_string(),p.line())
         },out)
+    }
+
+    pub fn repl_line(&mut self, line: &str) -> anyhow::Result<()> {
+        if self.files.len() ==0 || !self.files.last().unwrap().is_immortal() {
+            self.files.push(FileLexer::new(self.resolver.clone(),Box::new(StringCharSource::new("repl","repl","".to_string())),true)); ()
+        }
+        if let Some(last) = self.files.last_mut() {
+            last.replace(line);
+        }
+        Ok(())
     }
 
     pub fn position(&self) -> LexerPosition {
@@ -147,7 +158,11 @@ impl<'a> Lexer<'a> {
         if let Some(last) = self.files.last_mut() {
             let tok = last.get(&self.inlines,allow_ops);
             if let Token::EndOfFile = tok {
-                self.files.pop();
+                if last.is_immortal() {
+                    return Token::EndOfLex;
+                } else {
+                    self.files.pop();
+                }
             }
             tok
         } else {

@@ -16,7 +16,7 @@
 
 use std::collections::HashSet;
 use std::rc::Rc;
-use super::charsource::{ CharSource, LocatedCharSource };
+use super::charsource::{ CharSource, LocatedCharSource, StringCharSource };
 use super::inlinetokens::InlineTokens;
 use super::getting::LexerGetting;
 use super::token::Token;
@@ -30,11 +30,12 @@ pub struct FileLexer {
     shorts: HashSet<String>,
     module: String,
     line: u32,
-    col: u32
+    col: u32,
+    immortal: bool
 }
 
 impl FileLexer {
-    pub fn new(resolver: Resolver, stream: Box<dyn CharSource>) -> FileLexer {
+    pub fn new(resolver: Resolver, stream: Box<dyn CharSource>, immortal: bool) -> FileLexer {
         let handle = FileContentsHandle::new(&stream.to_string());
         let module = stream.module().to_string();
         let mut out = FileLexer {
@@ -43,12 +44,14 @@ impl FileLexer {
             shorts: HashSet::new(),
             module, resolver,
             line: 0,
-            col: 0
+            col: 0,
+            immortal
         };
         out.shorts.insert("preamble".to_string());
         out
     }
 
+    pub fn is_immortal(&self) -> bool { self.immortal }
     pub fn get_module(&self) -> &str { &self.module }
     pub fn set_module(&mut self, module: &str) { self.module = module.to_string(); }
     pub fn get_resolver(&self) -> &Resolver { &self.resolver }
@@ -60,6 +63,11 @@ impl FileLexer {
         LexerPosition::new(self.stream.name(),self.line,self.col,Some(&self.handle))
     }
 
+    pub fn replace(&mut self, data: &str) {
+        let stream = StringCharSource::new("repl","repl",data.to_string());
+        self.stream = LocatedCharSource::new(Box::new(stream));
+    }
+
     pub fn get(&mut self, ops: &InlineTokens, mode: Option<bool>) -> Token {
         loop {
             let mut getting = LexerGetting::new();
@@ -69,6 +77,11 @@ impl FileLexer {
             self.col = col;
             getting.go(stream,ops,mode);
             if let Some(token) = getting.make_token() {
+                if let Token::EndOfFile = token {
+                    if self.immortal {
+                        return Token::EndOfLex;
+                    }
+                }
                 return token;
             }
         }
@@ -113,7 +126,7 @@ mod test {
         let resolver = Rc::new(common_resolver(&config,&linker).expect("a"));
         let source = resolver.resolve(&path);
         let (stream,resolver) = source.ok().unwrap();
-        let mut lexer = FileLexer::new(resolver,stream);
+        let mut lexer = FileLexer::new(resolver,stream,false);
         let mut ops = InlineTokens::new();
         ops.add(":=",false).ok();
         ops.add("==",false).ok();

@@ -96,8 +96,10 @@ pub fn compile(cs: CommandCompileSuite, is: &CommandInterpretSuite, config: &Con
     let resolver = common_resolver(&config,&linker)?;
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
-    let p = Parser::new(&mut lexer);
-    let (stmts,defstore) = p.parse()?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
+    let mut p = Parser::new(&mut lexer)?;
+    p.parse(&mut lexer)?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
+    let stmts = p.take_statements();
+    let defstore = p.get_defstore();
     let instrs = generate(&linker,&stmts,&defstore,&resolver,&config)?.expect("error");
     let (_,strings) = mini_interp(is,&instrs,&mut linker,&config,"main")?;
     Ok(strings)

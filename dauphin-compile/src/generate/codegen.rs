@@ -373,8 +373,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("search:codegen/{}",filename)).expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut p = Parser::new(&mut lexer).expect("k");
+        p.parse(&mut lexer).expect("error").expect("error");
+        let stmts = p.take_statements();
+        let defstore = p.get_defstore();
         let gen = CodeGen::new(&defstore,true);
         gen.go(&stmts).expect("go")?;
         Ok(())
@@ -387,8 +389,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/generate-smoke2").expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut p = Parser::new(&mut lexer).expect("k");
+        p.parse(&mut lexer).expect("error").expect("error");
+        let stmts = p.take_statements();
+        let defstore = p.get_defstore();
         let gencontext = generate_code(&defstore,&stmts,true).expect("codegen").expect("error");
         let cmds : Vec<String> = gencontext.get_instructions().iter().map(|e| format!("{:?}",e)).collect();
         let outdata = load_testdata(&["codegen","generate-smoke2.out"]).ok().unwrap();

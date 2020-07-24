@@ -124,8 +124,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut p = Parser::new(&mut lexer).expect("k");
+        p.parse(&mut lexer).expect("error").expect("error");
+        let stmts = p.take_statements();
+        let defstore = p.get_defstore();    
         generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
@@ -140,8 +142,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut p = Parser::new(&mut lexer).expect("k");
+        p.parse(&mut lexer).expect("error").expect("error");
+        let stmts = p.take_statements();
+        let defstore = p.get_defstore();    
         generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");

@@ -358,8 +358,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/linearize-smoke").expect("cannot load file");
-        let p = Parser::new(&mut lexer);
-        let (stmts,defstore) = p.parse().expect("error").expect("error");
+        let mut p = Parser::new(&mut lexer).expect("k");
+        p.parse(&mut lexer).expect("error").expect("error");
+        let stmts = p.take_statements();
+        let defstore = p.get_defstore();
         let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
         call(&mut context).expect("j");
         simplify(&defstore,&mut context).expect("k");
