@@ -181,7 +181,8 @@ struct ReplContext<'a,'b> {
     config: Config,
     resolver: &'a Resolver,
     lexer: Option<Lexer<'a>>,
-    parser: Option<Parser>
+    parser: Option<Parser>,
+    pending: bool
 }
 
 impl<'a,'b> ReplContext<'a,'b> {
@@ -191,7 +192,8 @@ impl<'a,'b> ReplContext<'a,'b> {
             linker,
             resolver,
             lexer: None,
-            parser: None
+            parser: None,
+            pending: false
         };
         out.lexer = Some(Lexer::new(&out.resolver,"main"));
         out.parser = Some(Parser::new(out.lexer.as_mut().unwrap())?);
@@ -199,7 +201,13 @@ impl<'a,'b> ReplContext<'a,'b> {
     }
 
     fn generate_more(&mut self) -> anyhow::Result<Option<CborValue>> {
-        match self.parser.as_mut().unwrap().parse(&mut self.lexer.as_mut().unwrap()).context("parsing")? {
+        let s = self.parser.as_mut().unwrap().parse(&mut self.lexer.as_mut().unwrap()).context("parsing")?;
+        if !self.lexer.as_ref().unwrap().exhausted() {
+            self.pending = true;
+            return Ok(None);
+        }
+        self.pending = false;
+        match s {
             Err(errors) => {
                 print!("{}\n",errors.join("\n"));
                 return Ok(None);
@@ -219,6 +227,8 @@ impl<'a,'b> ReplContext<'a,'b> {
         self.linker.add(&md,&instrs,&self.config).context("linking")?;
         Ok(Some(self.linker.serialize(&self.config)?))
     }
+
+    fn pending(&self) -> bool { self.pending }
 
     fn add_line(&mut self, line: &str) -> anyhow::Result<()> {
         self.lexer.as_mut().unwrap().repl_line(line)
@@ -241,7 +251,7 @@ impl Action for ReplAction {
         let resolver = common_resolver(&config,&clink).context("creating file-path resolver")?;
         let mut repl_context = ReplContext::new(config,&mut clink,&resolver)?;
         loop {
-            let readline = rl.readline("dauphin> ");
+            let readline = rl.readline(if repl_context.pending() {"+> " } else { "dauphin> " });
             match readline {
                 Ok(line) => {
                     rl.add_history_entry(&line);

@@ -31,7 +31,8 @@ pub struct FileLexer {
     module: String,
     line: u32,
     col: u32,
-    immortal: bool
+    immortal: bool,
+    backstop: usize
 }
 
 impl FileLexer {
@@ -45,10 +46,15 @@ impl FileLexer {
             module, resolver,
             line: 0,
             col: 0,
-            immortal
+            immortal,
+            backstop: 0
         };
         out.shorts.insert("preamble".to_string());
         out
+    }
+
+    fn move_backstop(&mut self) {
+        self.backstop = self.stream.pos();
     }
 
     pub fn is_immortal(&self) -> bool { self.immortal }
@@ -63,9 +69,14 @@ impl FileLexer {
         LexerPosition::new(self.stream.name(),self.line,self.col,Some(&self.handle))
     }
 
-    pub fn replace(&mut self, data: &str) {
-        let stream = StringCharSource::new("repl","repl",data.to_string());
-        self.stream = LocatedCharSource::new(Box::new(stream));
+    pub fn append(&mut self, data: &str) {
+        let data = format!(" {}",data);
+        self.stream.replace(self.backstop,&data);
+        self.backstop = 0;
+    }
+
+    pub fn exhausted(&self) -> bool {
+        self.stream.ws_to_end(self.backstop)
     }
 
     pub fn get(&mut self, ops: &InlineTokens, mode: Option<bool>) -> Token {
@@ -81,6 +92,9 @@ impl FileLexer {
                     if self.immortal {
                         return Token::EndOfLex;
                     }
+                }
+                if let Token::Other(';') = token {
+                    self.move_backstop();
                 }
                 return token;
             }

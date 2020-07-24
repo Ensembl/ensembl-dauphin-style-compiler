@@ -23,6 +23,8 @@ pub trait CharSource {
     fn advance(&mut self, num: usize) -> String;
     fn retreat(&mut self, num: usize) -> String;
     fn pos(&self) -> usize;
+    fn replace(&mut self, start: usize, data: &str);
+    fn ws_to_end(&self, start: usize) -> bool;
 }
 
 pub struct StringCharSource {
@@ -72,6 +74,24 @@ impl CharSource for StringCharSource {
     }
 
     fn pos(&self) -> usize { self.index }
+
+    fn replace(&mut self, pos: usize, data: &str) {
+        self.data = if pos < self.data.len() {
+            self.data[pos..].to_vec()
+        } else {
+            vec![]
+        };
+        self.data.extend(&mut data.chars());
+        self.index = 0;
+    }
+
+    fn ws_to_end(&self, start: usize) -> bool {
+        if start < self.data.len() {
+            self.data[start..].iter().all(|x| x.is_whitespace())
+        } else {
+            true
+        }
+    }
 }
 
 pub struct LocatedCharSource {
@@ -112,6 +132,8 @@ impl CharSource for LocatedCharSource {
     }
 
     fn pos(&self) -> usize { self.cs.pos() }
+    fn replace(&mut self, start:usize, data: &str) { self.cs.replace(start,data) }
+    fn ws_to_end(&self, start: usize) -> bool { self.cs.ws_to_end(start) }
 }
 
 impl LocatedCharSource {

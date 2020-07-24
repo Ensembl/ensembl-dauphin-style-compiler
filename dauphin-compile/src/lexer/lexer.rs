@@ -133,7 +133,7 @@ impl<'a> Lexer<'a> {
             self.files.push(FileLexer::new(self.resolver.clone(),Box::new(StringCharSource::new("repl","repl","".to_string())),true)); ()
         }
         if let Some(last) = self.files.last_mut() {
-            last.replace(line);
+            last.append(line);
         }
         Ok(())
     }
@@ -144,6 +144,10 @@ impl<'a> Lexer<'a> {
         } else {
             LexerPosition::new("EOF",0,0,None)
         }
+    }
+
+    pub fn exhausted(&self) -> bool {
+        self.files.last().map(|x| x.exhausted()).unwrap_or(true)
     }
 
     pub fn peek(&mut self, mode: Option<bool>, num: usize) -> Vec<Token> {
