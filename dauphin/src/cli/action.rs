@@ -15,10 +15,12 @@
  */
 
 use anyhow::{ Context };
-use rustyline;
+use rustyline::{ self, Editor };
+use dirs::home_dir;
 use std::collections::HashMap;
 use std::fs::{ write, read };
 use std::io::{ self, BufRead, Write };
+use std::path::PathBuf;
 use std::process::exit;
 use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
@@ -237,6 +239,21 @@ impl<'a,'b> ReplContext<'a,'b> {
 
 struct ReplAction();
 
+fn history_file() -> anyhow::Result<PathBuf> {
+    let home_dir = home_dir().ok_or_else(|| DauphinError::integration("could not get home directory"))?;
+    Ok(home_dir.join(".dauphin_history"))
+}
+
+fn load_history(rl: &mut Editor<()>) -> anyhow::Result<()> {
+    rl.load_history(&history_file()?)?;
+    Ok(())
+}
+
+fn save_history(rl: &mut Editor<()>) -> anyhow::Result<()> {
+    rl.save_history(&history_file()?)?;
+    Ok(())
+}
+
 impl Action for ReplAction {
     fn name(&self) -> String { "repl".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
@@ -245,6 +262,7 @@ impl Action for ReplAction {
         sf.to_stdout(true);
         context.add_payload("std","stream",&sf);
         let mut rl = rustyline::Editor::<()>::new();
+        load_history(&mut rl).unwrap_or(());
         let isuite = make_interpret_suite(config).context("interpreter commands")?;
         let lib = make_compiler_suite(&config).context("registering commands")?;
         let mut clink = CompilerLink::new(lib);
@@ -266,6 +284,7 @@ impl Action for ReplAction {
             }
         }
         context.finish();
+        save_history(&mut rl).unwrap_or(());
         Ok(())
     }
 }
