@@ -180,7 +180,12 @@ impl<'a> CodeGen<'a> {
                 let (lvalue_reg,fvalue_subreg,rvalue_subreg) = self.build_lvalue(x,false,false)?;
                 /* Unlike in a bracket, @ makes no sense in a filter as the array has already been lost */
                 let filterreg = self.build_rvalue(f,Some(&rvalue_subreg),None)?;
-                let fvalue_reg = addf!(self,Filter,fvalue_subreg.unwrap(),filterreg);
+                let fvalue_reg = if let Some(fvalue_subreg) = fvalue_subreg {
+                    addf!(self,Filter,fvalue_subreg,filterreg)
+                } else {
+                    let atreg = addf!(self,At,rvalue_subreg);
+                    addf!(self,Filter,atreg,filterreg)
+                };
                 let rvalue_reg = addf!(self,Filter,rvalue_subreg,filterreg);
                 Ok((lvalue_reg,Some(fvalue_reg),rvalue_reg))
             },
