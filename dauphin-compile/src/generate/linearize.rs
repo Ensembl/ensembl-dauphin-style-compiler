@@ -21,6 +21,7 @@ use crate::command::{ InstructionType, Instruction };
 use crate::util::DFloat;
 use crate::typeinf::{ MemberType };
 use super::gencontext::GenContext;
+use super::state::GenerateState;
 use dauphin_interp::types::BaseType;
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
@@ -36,6 +37,12 @@ use dauphin_interp::util::DauphinError;
  * instruction by instruction, converting instructions into their linearized, multi-register forms.
  */
 
+fn number_reg(state: &mut GenerateState) -> Register {
+    let out = state.regalloc().allocate();
+    state.types().set(&out,&MemberType::Base(BaseType::NumberType));
+    out
+}
+
 #[derive(Debug)]
 struct Linearized {
     index: Vec<(Register,Register)>,
@@ -44,14 +51,15 @@ struct Linearized {
 
 impl Linearized {
     fn new(context: &mut GenContext, type_: &MemberType, depth: usize) -> Linearized {
+        let state = context.state_mut();
         let mut indices = Vec::new();
         for _ in 0..depth {
-            let start = context.allocate_register(Some(&MemberType::Base(BaseType::NumberType)));
-            let len = context.allocate_register(Some(&MemberType::Base(BaseType::NumberType)));
-
+            let start = number_reg(state);
+            let len = number_reg(state);
             indices.push((start,len));
         }
-        let data = context.allocate_register(Some(&MemberType::Base(type_.get_base())));
+        let data = state.regalloc().allocate();
+        state.types().set(&data,&MemberType::Base(type_.get_base()));
         Linearized {
             index: indices,
             data
@@ -66,7 +74,8 @@ impl Linearized {
  */
 fn allocate_subregs(context: &mut GenContext) -> BTreeMap<Register,Linearized> {
     let mut targets = Vec::new();
-    for (reg,type_) in context.xxx_types().each_register() {
+    let state = context.state_mut();
+    for (reg,type_) in state.types().each_register() {
         let depth = type_.depth();
         if depth > 0 {
             targets.push((*reg,type_.clone(),depth));
@@ -81,14 +90,10 @@ fn allocate_subregs(context: &mut GenContext) -> BTreeMap<Register,Linearized> {
 
 /* UTILITY METHODS for procedures repeatedly used during linearization. */
 
-/* tmp_number_reg: allocate a new number register */
-fn tmp_number_reg(context: &mut GenContext) -> Register {
-    context.allocate_register(Some(&MemberType::Base(BaseType::NumberType)))
-}
-
 /* create a register containing the legnth of the layer beneath the top */
 fn lower_seq_length(context: &mut GenContext, lin: &Linearized, level: usize) -> Register {
-    let reg = tmp_number_reg(context);
+    let state = context.state_mut();
+    let reg = number_reg(state);
     if level == 0 {
         context.add(Instruction::new(InstructionType::Length,vec![reg,lin.data]));
     } else {
@@ -100,7 +105,8 @@ fn lower_seq_length(context: &mut GenContext, lin: &Linearized, level: usize) ->
 fn push_copy_level(context: &mut GenContext, lin_dst: &Linearized, lin_src: &Linearized, level: usize) {
     /* offset is offset in next layer down (be it index or data) */
     let offset = lower_seq_length(context,lin_dst,level);
-    let tmp = tmp_number_reg(context);
+    let state = context.state_mut();
+    let tmp = number_reg(state);
     context.add(Instruction::new(InstructionType::Copy,vec![tmp,lin_src.index[level].0]));
     context.add(Instruction::new(InstructionType::Add,vec![tmp,offset]));
     context.add(Instruction::new(InstructionType::Append,vec![lin_dst.index[level].0,tmp]));
@@ -110,7 +116,8 @@ fn push_copy_level(context: &mut GenContext, lin_dst: &Linearized, lin_src: &Lin
 fn push_top(context: &mut GenContext, lin_dst: &Linearized, lin_src: &Linearized, level: usize) {
     /* top level offset is current length of next level down plus offset in source */
     let src_len = lower_seq_length(context,lin_dst,level);
-    let tmp = tmp_number_reg(context);
+    let state = context.state_mut();
+    let tmp = number_reg(state);
     context.add(Instruction::new(InstructionType::Copy,vec![tmp,lin_src.index[level].0]));
     context.add(Instruction::new(InstructionType::Add,vec![tmp,src_len]));
     context.add(Instruction::new(InstructionType::Append,vec![lin_dst.index[level].0,tmp]));
@@ -277,12 +284,14 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
                 context.add(Instruction::new(InstructionType::Copy,vec![lin_dst.data,lin_src.data]));
                 src_len
             } else {
-                let src_len = tmp_number_reg(context);
+                let state = context.state_mut();
+                let src_len = number_reg(state);
                 context.add(Instruction::new(InstructionType::Length,vec![src_len,instr.regs[1]]));
                 context.add(Instruction::new(InstructionType::Copy,vec![lin_dst.data,instr.regs[1]]));
                 src_len
             };
-            let zero_reg = tmp_number_reg(context);
+            let state = context.state_mut();
+            let zero_reg = number_reg(state);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(0)),vec![zero_reg]));
             context.add(Instruction::new(InstructionType::Nil,vec![lin_dst.index[top_level].0]));
             context.add(Instruction::new(InstructionType::Nil,vec![lin_dst.index[top_level].1]));
@@ -362,9 +371,10 @@ mod test {
         p.parse(&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
         let defstore = p.get_defstore();
-        let mut context = generate_code(&defstore,&stmts,true).expect("codegen").expect("success");
+        let mut state = GenerateState::new(&defstore);
+        let mut context = generate_code(&mut state,&stmts,true).expect("codegen").expect("success");
         call(&mut context).expect("j");
-        simplify(&defstore,&mut context).expect("k");
+        simplify(&mut context).expect("k");
         linearize_real(&mut context).expect("linearize");
         print!("{:?}\n",context);
         context.get_instructions()

@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use anyhow;
+use anyhow::{ self, Context };
 use std::collections::HashMap;
 use super::gencontext::GenContext;
 use crate::command::{ Instruction, InstructionType };
@@ -25,39 +25,52 @@ use dauphin_interp::runtime::{ Register };
 use dauphin_interp::types::{ BaseType, MemberMode };
 use dauphin_interp::util::{ DauphinError, error_locate, triage_source_errors };
 use crate::model::DefStore;
-use crate::typeinf::{ExpressionType, SignatureMemberConstraint };
+use crate::generate::GenerateState;
+use crate::typeinf::{ExpressionType, SignatureMemberConstraint, get_constraint };
+
+pub fn add_untyped(context: &mut GenContext, instr: Instruction) -> anyhow::Result<()> {
+    let state = context.state_mut();
+    let constraint = get_constraint(&instr,&state.defstore()).with_context(|| format!("adding {:?}",instr))?;
+    state.typing().add(&constraint)?;
+    context.add(instr);
+    Ok(())
+}
+
+pub fn add_untyped_f(context: &mut GenContext, itype: InstructionType, mut regs_in: Vec<Register>) -> anyhow::Result<Register> {
+    let state = context.state_mut();
+    let dst = state.regalloc().allocate();
+    let mut regs = vec![dst];
+    regs.append(&mut regs_in);
+    let instr = Instruction::new(itype,regs);
+    add_untyped(context,instr)?;
+    Ok(dst)
+}
 
 macro_rules! addf {
     ($this:expr,$opcode:tt,$($regs:expr),*) => {
-        $this.context.add_untyped_f(InstructionType::$opcode,vec![$($regs),*])?
+        add_untyped_f(&mut $this.context,InstructionType::$opcode,vec![$($regs),*])?
     };
     ($this:expr,$opcode:tt($($args:expr),*),$($regs:expr),*) => {
-        $this.context.add_untyped_f(InstructionType::$opcode($($args),*),vec![$($regs),*])?
+        add_untyped_f(&mut $this.context,InstructionType::$opcode($($args),*),vec![$($regs),*])?
     };
     ($this:expr,$opcode:tt) => {
-        $this.context.add_untyped_f(InstructionType::$opcode,vec![])?
+        add_untyped_f(&mut $this.context,InstructionType::$opcode,vec![])?
     };
     ($this:expr,$opcode:tt($($args:expr),*)) => {
-        $this.context.add_untyped_f(InstructionType::$opcode($($args),*),vec![])?
+        add_untyped_f(&mut $this.context,InstructionType::$opcode($($args),*),vec![])?
     };
 }
 
-pub struct CodeGen<'a> {
-    context: GenContext<'a>,
-    defstore: &'a DefStore,
-    include_line_numbers: bool,
-    rvalue_regnames: HashMap<String,Register>,
-    lvalue_regnames: HashMap<String,Register>
+pub struct CodeGen<'a,'b> {
+    context: GenContext<'a,'b>,
+    include_line_numbers: bool
 }
 
-impl<'a> CodeGen<'a> {
-    fn new(defstore: &'a DefStore, include_line_numbers: bool) -> CodeGen {
+impl<'a,'b> CodeGen<'a,'b> {
+    fn new(state: &'b mut GenerateState<'a>, include_line_numbers: bool) -> CodeGen<'a,'b> {
         CodeGen {
-            context: GenContext::new(defstore),
-            defstore,
-            include_line_numbers,
-            lvalue_regnames: HashMap::new(),
-            rvalue_regnames: HashMap::new()
+            context: GenContext::new(state),
+            include_line_numbers
         }
     }
 
@@ -65,14 +78,14 @@ impl<'a> CodeGen<'a> {
         let tmp = addf!(self,Nil);
         for val in values {
             let r = self.build_rvalue(val,dollar,at)?;
-            self.context.add_untyped(Instruction::new(InstructionType::Append,vec![tmp,r]))?;
+            add_untyped(&mut self.context,Instruction::new(InstructionType::Append,vec![tmp,r]))?;
         }
         Ok(addf!(self,Star,tmp))
 
     }
 
     fn struct_rearrange(&mut self, s: &Identifier, x: Vec<Register>, got_names: &Vec<String>) -> anyhow::Result<Vec<Register>> {
-        let decl = self.defstore.get_struct_id(s)?;
+        let decl = self.context.state().defstore().get_struct_id(s)?;
         let gotpos : HashMap<String,usize> = got_names.iter().enumerate().map(|(i,e)| (e.to_string(),i)).collect();
         let mut out = Vec::new();
         for want_name in decl.get_names().iter() {
@@ -88,14 +101,13 @@ impl<'a> CodeGen<'a> {
     fn type_of(&mut self, expr: &Expression) -> anyhow::Result<ExpressionType> {
         Ok(match expr {
             Expression::Identifier(id) => {
-                if !self.rvalue_regnames.contains_key(id) {
-                    return Err(DauphinError::source(&format!("No such variable {:?}",id)));
-                }
-                self.context.get_partial_type(&self.rvalue_regnames[id])
+                let reg = self.context.state_mut().codegen_regnames().lookup_input(id)?.clone();
+                let state = self.context.state_mut();
+                state.typing().get(&reg)
             },
             Expression::Dot(x,f) => {
                 if let ExpressionType::Base(BaseType::StructType(name)) = self.type_of(x)? {
-                    let struct_ = self.defstore.get_struct_id(&name)?;
+                    let struct_ = self.context.state().defstore().get_struct_id(&name)?;
                     if let Some(type_) = struct_.get_member_type(f) {
                         type_.to_expressiontype()
                     } else {
@@ -107,7 +119,7 @@ impl<'a> CodeGen<'a> {
             },
             Expression::Pling(x,f) => {
                 if let ExpressionType::Base(BaseType::EnumType(name)) = self.type_of(x)? {
-                    let enum_ = self.defstore.get_enum_id(&name)?;
+                    let enum_ = self.context.state().defstore().get_enum_id(&name)?;
                     if let Some(type_) = enum_.get_branch_type(f) {
                         type_.to_expressiontype()
                     } else {
@@ -131,17 +143,12 @@ impl<'a> CodeGen<'a> {
         })
     }
 
-    fn build_lvalue(&mut self, expr: &Expression, top: bool, unfiltered_in: bool) -> anyhow::Result<(Register,Option<Register>,Register)> {
+    fn build_lvalue(&mut self, expr: &Expression, stomp: bool, unfiltered_in: bool) -> anyhow::Result<(Register,Option<Register>,Register)> {
         match expr {
             Expression::Identifier(id) => {
-                if top {
-                    // if it's a top level assignment allow type change
-                    self.lvalue_regnames.remove(id);
-                }
-                if !self.lvalue_regnames.contains_key(id) {
-                    self.lvalue_regnames.insert(id.clone(),self.context.allocate_register(None));
-                }
-                let real_reg = self.lvalue_regnames[id];
+                let state = self.context.state_mut();
+                let alloc = state.regalloc().clone();
+                let real_reg = self.context.state_mut().codegen_regnames().lookup_output(id,stomp,&alloc)?;
                 let lvalue_reg = addf!(self,Alias,real_reg);
                 Ok((lvalue_reg,None,real_reg))
             },
@@ -207,10 +214,7 @@ impl<'a> CodeGen<'a> {
     fn build_rvalue(&mut self, expr: &Expression, dollar: Option<&Register>, at: Option<&Register>) -> anyhow::Result<Register> {
         Ok(match expr {
             Expression::Identifier(id) => {
-                if !self.rvalue_regnames.contains_key(id) {
-                    return Err(DauphinError::source(&format!("Unset variable {:?}",id)));
-                }
-                self.rvalue_regnames[id]
+                self.context.state_mut().codegen_regnames().lookup_input(id)?.clone()
             },
             Expression::Number(n) =>        
                 addf!(self,NumberConst(DFloat::new_str(n).map_err(|_| DauphinError::source(&format!("Bad number '{:?}'",n)))?)),
@@ -224,7 +228,7 @@ impl<'a> CodeGen<'a> {
                     let r = self.build_rvalue(e,dollar,at)?;
                     subregs.push(r);
                 }
-                self.context.add_untyped_f(InstructionType::Operator(identifier.clone()),subregs)?
+                add_untyped_f(&mut self.context, InstructionType::Operator(identifier.clone()),subregs)?
             },
             Expression::CtorStruct(s,x,n) => {
                 let mut subregs = vec![];
@@ -233,7 +237,7 @@ impl<'a> CodeGen<'a> {
                     subregs.push(r);
                 }
                 let out = self.struct_rearrange(s,subregs,n)?;
-                self.context.add_untyped_f(InstructionType::CtorStruct(s.clone()),out)?
+                add_untyped_f(&mut self.context, InstructionType::CtorStruct(s.clone()),out)?
             },
             Expression::CtorEnum(e,b,x) => {
                 let subreg = self.build_rvalue(x,dollar,at)?;
@@ -241,7 +245,8 @@ impl<'a> CodeGen<'a> {
             },
             Expression::Dot(x,f) => {
                 let subreg = self.build_rvalue(x,dollar,at)?;
-                let stype = self.context.get_partial_type(&subreg);
+                let state = self.context.state_mut();
+                let stype = state.typing().get(&subreg);
                 if let ExpressionType::Base(BaseType::StructType(name)) = stype {
                     addf!(self,SValue(name.clone(),f.clone()),subreg)
                 } else {
@@ -250,7 +255,8 @@ impl<'a> CodeGen<'a> {
             },
             Expression::Query(x,f) => {
                 let subreg = self.build_rvalue(x,dollar,at)?;
-                let etype = self.context.get_partial_type(&subreg);
+                let state = self.context.state_mut();
+                let etype = state.typing().get(&subreg);
                 if let ExpressionType::Base(BaseType::EnumType(name)) = etype {
                     addf!(self,ETest(name.clone(),f.clone()),subreg)
                 } else {
@@ -259,7 +265,8 @@ impl<'a> CodeGen<'a> {
             },
             Expression::Pling(x,f) => {
                 let subreg = self.build_rvalue(x,dollar,at)?;
-                let etype = self.context.get_partial_type(&subreg);
+                let state = self.context.state_mut();
+                let etype = state.typing().get(&subreg);
                 if let ExpressionType::Base(BaseType::EnumType(name)) = etype {
                     addf!(self,EValue(name.clone(),f.clone()),subreg)
                 } else {
@@ -307,9 +314,9 @@ impl<'a> CodeGen<'a> {
     fn build_stmt(&mut self, stmt: &Statement) -> anyhow::Result<()> {
         let mut regs = Vec::new();
         let mut modes = Vec::new();
-        let procdecl = self.defstore.get_proc_id(&stmt.0)?;
+        let procdecl = self.context.state().defstore().get_proc_id(&stmt.0)?;
         if self.include_line_numbers {
-            self.context.add_untyped(Instruction::new(InstructionType::LineNumber(stmt.2.clone()),vec![]))?;    
+            add_untyped(&mut self.context,Instruction::new(InstructionType::LineNumber(stmt.2.clone()),vec![]))?;    
         }
         for (i,member) in procdecl.get_signature().each_member().enumerate() {
             match member {
@@ -328,13 +335,12 @@ impl<'a> CodeGen<'a> {
                 }
             }
         }
-        self.context.add_untyped(Instruction::new(InstructionType::Proc(stmt.0.clone(),modes),regs))?;
-        self.rvalue_regnames.extend(self.lvalue_regnames.drain());
-        self.lvalue_regnames = self.rvalue_regnames.clone();
+        add_untyped(&mut self.context,Instruction::new(InstructionType::Proc(stmt.0.clone(),modes),regs))?;
+        self.context.state_mut().codegen_regnames().commit();
         Ok(())
     }
 
-    fn go(mut self, stmts: &[Statement]) -> anyhow::Result<Result<GenContext<'a>,Vec<String>>> {
+    fn go(mut self, stmts: &[Statement]) -> anyhow::Result<Result<GenContext<'a,'b>,Vec<String>>> {
         let mut errors = vec![];
         for stmt in stmts {
             if let Err(e) = self.build_stmt(stmt) {
@@ -348,14 +354,17 @@ impl<'a> CodeGen<'a> {
                 Err(e) => Err(e)
             }
         } else {
-            self.context.generate_types();
+            let state = self.context.state_mut();
+            for (reg,expression_type) in state.typing().all_external() {
+                state.types().set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
+            }
             Ok(Ok(self.context))
         }
     }
 }
 
-pub fn generate_code<'a>(defstore: &'a DefStore, stmts: &Vec<Statement>, include_line_numbers: bool) -> anyhow::Result<Result<GenContext<'a>,Vec<String>>> {
-    let mut out = CodeGen::new(defstore,include_line_numbers).go(stmts)?;
+pub fn generate_code<'a,'b>(state: &'b mut GenerateState<'a>, stmts: &Vec<Statement>, include_line_numbers: bool) -> anyhow::Result<Result<GenContext<'a,'b>,Vec<String>>> {
+    let mut out = CodeGen::new(state,include_line_numbers).go(stmts)?;
     if let Ok(ref mut context) = out {
         context.phase_finished();
     }
@@ -382,7 +391,8 @@ mod test {
         p.parse(&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
         let defstore = p.get_defstore();
-        let gen = CodeGen::new(&defstore,true);
+        let mut state = GenerateState::new(&defstore);
+        let gen = CodeGen::new(&mut state,true);
         gen.go(&stmts).expect("go")?;
         Ok(())
     }
@@ -398,7 +408,8 @@ mod test {
         p.parse(&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
         let defstore = p.get_defstore();
-        let gencontext = generate_code(&defstore,&stmts,true).expect("codegen").expect("error");
+        let mut state = GenerateState::new(&defstore);
+        let gencontext = generate_code(&mut state,&stmts,true).expect("codegen").expect("error");
         let cmds : Vec<String> = gencontext.get_instructions().iter().map(|e| format!("{:?}",e)).collect();
         let outdata = load_testdata(&["codegen","generate-smoke2.out"]).ok().unwrap();
         print!("{}",cmds.join(""));

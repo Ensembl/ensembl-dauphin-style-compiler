@@ -27,7 +27,7 @@ use dauphin_interp::util::DauphinError;
 use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
 use dauphin_compile::command::{ CompilerLink, InstructionType, Instruction, InstructionSuperType };
 use dauphin_compile::model::{ DefStore, make_full_type };
-use dauphin_compile::generate::{ generate, generate_code, simplify, call };
+use dauphin_compile::generate::{ generate, generate_code, simplify, call, GenerateState };
 use dauphin_interp::stream::{ StreamFactory, Stream };
 
 #[test]
@@ -85,7 +85,8 @@ fn extend_smoke() {
     p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
     let defstore = p.get_defstore();
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
+    let mut state = GenerateState::new(&defstore);
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("j").expect("k");
     let mut prev : Option<Instruction> = None;
     for instr in &instrs {
         if let InstructionType::Call(id,_,_,_) = &instr.itype {
@@ -115,7 +116,8 @@ fn vector_append() {
     p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
     let defstore = p.get_defstore();
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config).expect("j").expect("k");
+    let mut state = GenerateState::new(&defstore);
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("j").expect("k");
     let is = make_interpret_suite().expect("n");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {

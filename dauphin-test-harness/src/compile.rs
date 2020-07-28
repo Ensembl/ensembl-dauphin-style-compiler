@@ -25,7 +25,7 @@ use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register, StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
 use dauphin_interp::stream::{ StreamFactory, Stream };
 use dauphin_interp::util::cbor::{ cbor_serialize };
-use dauphin_compile::generate::generate;
+use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::resolver::common_resolver;
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::parser::Parser;
@@ -100,7 +100,8 @@ pub fn compile(cs: CommandCompileSuite, is: &CommandInterpretSuite, config: &Con
     p.parse(&mut lexer)?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
     let stmts = p.take_statements();
     let defstore = p.get_defstore();
-    let instrs = generate(&linker,&stmts,&defstore,&resolver,&config)?.expect("error");
+    let mut state = GenerateState::new(&defstore);
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config)?.expect("error");
     let (_,strings) = mini_interp(is,&instrs,&mut linker,&config,"main")?;
     Ok(strings)
 }

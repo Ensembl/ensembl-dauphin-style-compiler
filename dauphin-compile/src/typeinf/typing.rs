@@ -22,7 +22,6 @@ use super::types::{ InstructionConstraint, ExpressionType };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::types::{ BaseType };
 use super::typesinternal::{ Key, TypeConstraint };
-use super::typemodel::TypeModel;
 use super::typestore::TypeStore;
 
 pub struct Typing {
@@ -101,15 +100,16 @@ impl Typing {
         ExpressionType::Base(BaseType::Invalid)
     }
 
-    pub fn to_model(&self, model: &mut TypeModel) {
+    pub fn all_external(&self) -> Vec<(Register,ExpressionType)> {
         let revmap : HashMap<usize,Register> = 
             HashMap::from_iter(self.regmap.iter().map(|(k,v)| (v.clone(),k.clone())));
-        for (key,expression_type) in self.store.get_all() {
+        self.store.get_all().filter_map(|(key,typ)| {
             if let Key::External(id) = key {
                 if let Some(reg) = revmap.get(id) {
-                    model.set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
+                    return Some((reg.clone(),typ));
                 }
             }
-        }
+            None
+        }).collect()
     }
 }

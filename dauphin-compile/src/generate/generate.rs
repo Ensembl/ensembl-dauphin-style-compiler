@@ -20,7 +20,7 @@ use std::fs::write;
 use std::time::{ SystemTime, Duration };
 use crate::cli::Config;
 use crate::command::{ Instruction, InstructionType, CompilerLink };
-use super::{ GenContext };
+use super::{ GenContext, GenerateState };
 use crate::model::DefStore;
 use crate::resolver::Resolver;
 use crate::parser::Statement;
@@ -42,11 +42,10 @@ use dauphin_interp::runtime::InterpContext;
 use dauphin_interp::stream::StreamFactory;
 use dauphin_interp::util::DauphinError;
 
-struct StepData<'a,'b> {
+struct StepData<'a,'b,'c> {
     linker: &'a CompilerLink,
-    defstore: &'a DefStore,
     resolver: &'a Resolver,
-    context: &'a mut GenContext<'b>,
+    context: &'a mut GenContext<'b,'c>,
     config: &'a Config,
     icontext: &'a mut InterpContext
 }
@@ -75,13 +74,13 @@ impl GenerateStep {
         }
     }
 
-    fn run_real(&self, index: usize, config: &Config, compiler_link: &CompilerLink, defstore: &DefStore, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
+    fn run_real<'a,'b>(&self, index: usize, config: &Config, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
         let start_time = SystemTime::now();
         let mut icontext = InterpContext::new();
         icontext.add_payload("std","stream",&StreamFactory::new());
         let mut data = StepData {
             linker: compiler_link,
-            defstore, resolver, context, config,
+            resolver, context, config,
             icontext: &mut icontext
         };
         (self.step)(&mut data)?;
@@ -93,7 +92,7 @@ impl GenerateStep {
             print!("{:?}\n",context);
         }
         if config.isset_profile() {
-            let filename = format!("{}-{}-{}.profile",defstore.get_source(),self.name,index);
+            let filename = format!("{}-{}-{}.profile",context.state().defstore().get_source(),self.name,index);
             let text = format!("step {}: {}. {} lines {:.2}ms\n{:?}\n",index,self.name,non_line_instructions(context),duration.as_secs_f32()*1000.,context);
             match write(filename,text) {
                 Ok(()) => {},
@@ -103,8 +102,8 @@ impl GenerateStep {
         Ok(())
     }
 
-    fn run(&self, index: usize, config: &Config, compiler_link: &CompilerLink, defstore: &DefStore, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
-        self.run_real(index,config,compiler_link,defstore,resolver,context).with_context(|| {
+    fn run<'a,'b>(&self, index: usize, config: &Config, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
+        self.run_real(index,config,compiler_link,resolver,context).with_context(|| {
             format!("generate step {}",self.name)
         })
     }
@@ -122,7 +121,7 @@ impl GenerateMenu {
         let mut opt_steps = HashMap::new();
         let mut post_steps = vec![];
         gen_steps.push(GenerateStep::new("call", |step| { call(step.context) }));
-        gen_steps.push(GenerateStep::new("simplify", |step| { simplify(step.defstore,step.context) }));
+        gen_steps.push(GenerateStep::new("simplify", |step| { simplify(step.context) }));
         gen_steps.push(GenerateStep::new("linearize", |step| { linearize(step.context) }));
         gen_steps.push(GenerateStep::new("dealias", |step| { remove_aliases(step.context); Ok(()) }));
         gen_steps.push(GenerateStep::new("compile-run", |step| { compile_run(step.icontext,step.linker,step.resolver,step.context,step.config,true,false) }));
@@ -134,23 +133,23 @@ impl GenerateMenu {
         opt_steps.insert("a".to_string(),GenerateStep::new("assign-regs", |step| { assign_regs(step.context); Ok(()) }));
         opt_steps.insert("m".to_string(),GenerateStep::new("peephole", |step| { peephole_nil_append(step.context); peephole_linenum_remove(step.context); Ok(()) }));
         opt_steps.insert("r".to_string(),GenerateStep::new("retreat", |step| { retreat(step.context); Ok(()) }));
-        post_steps.push(GenerateStep::new("pauses", |step| { pauses(step.icontext,step.linker,step.resolver,step.defstore,step.context,step.config) }));
+        post_steps.push(GenerateStep::new("pauses", |step| { pauses(step.icontext,step.linker,step.resolver,step.context,step.config) }));
         GenerateMenu { gen_steps, opt_steps, post_steps }
     }
 
-    fn run_steps(&self, config: &Config, sequence: &str, compiler_link: &CompilerLink, defstore: &DefStore, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
+    fn run_steps<'a,'b>(&self, config: &Config, sequence: &str, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
         let mut index = 1;
         for step in &self.gen_steps {
-            step.run(index,config,compiler_link,defstore,resolver,context)?;
+            step.run(index,config,compiler_link,resolver,context)?;
             index += 1;
         }
         for k in sequence.chars() {
             let step = self.opt_steps.get(&k.to_string()).ok_or_else(|| DauphinError::config(&format!("No such step '{}'",k)))?;
-            step.run(index,config,compiler_link,defstore,resolver,context)?;
+            step.run(index,config,compiler_link,resolver,context)?;
             index += 1;
         }
         for step in &self.post_steps {
-            step.run(index,config,compiler_link,defstore,resolver,context)?;
+            step.run(index,config,compiler_link,resolver,context)?;
             index += 1;
         }
         Ok(())
@@ -170,12 +169,12 @@ fn calculate_opt_seq(config: &Config) -> anyhow::Result<&str> {
     }
 }
 
-pub fn generate(compiler_link: &CompilerLink, stmts: &Vec<Statement>, defstore: &DefStore, 
+pub fn generate<'a,'b>(compiler_link: &CompilerLink, stmts: &Vec<Statement>, state: &'b mut GenerateState<'a>,
                 resolver: &Resolver, config: &Config) -> anyhow::Result<Result<Vec<Instruction>,Vec<String>>> {
-    match generate_code(&defstore,&stmts,config.get_generate_debug())? {
+    match generate_code(state,&stmts,config.get_generate_debug())? {
         Ok(mut context) => {
             let gm = GenerateMenu::new();
-            gm.run_steps(config,calculate_opt_seq(&config)?,compiler_link,defstore,resolver,&mut context)?;
+            gm.run_steps(config,calculate_opt_seq(&config)?,compiler_link,resolver,&mut context)?;
             Ok(Ok(context.get_instructions()))
         },
         Err(errors) => Ok(Err(errors))

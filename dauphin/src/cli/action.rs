@@ -33,7 +33,7 @@ use dauphin_interp::util::cbor::{ cbor_serialize };
 use dauphin_compile::lexer::{ Lexer };
 use dauphin_compile::parser::{ Parser };
 use dauphin_compile::resolver::{ common_resolver, Resolver };
-use dauphin_compile::generate::generate;
+use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::cli::Config;
 use dauphin_compile::command::{ CompilerLink, ProgramMetadata, MetaLink, MergeLink };
 use serde_cbor::Value as CborValue;
@@ -108,7 +108,8 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
     };
     let stmts = p.take_statements();
     let defstore = p.get_defstore();
-    let instrs = match generate(&linker,&stmts,&defstore,&resolver,&config).context("generating code")? {
+    let mut state = GenerateState::new(&defstore);
+    let instrs = match generate(&linker,&stmts,&mut state,&resolver,&config).context("generating code")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
             return Ok(false);
@@ -218,7 +219,8 @@ impl<'a,'b> ReplContext<'a,'b> {
         };
         let stmts = self.parser.as_mut().unwrap().take_statements();
         let defstore = self.parser.as_ref().unwrap().get_defstore();
-        let instrs = match generate(&self.linker,&stmts,&defstore,&self.resolver,&self.config).context("generating code")? {
+        let mut state = GenerateState::new(&defstore);
+        let instrs = match generate(&self.linker,&stmts,&mut state,&self.resolver,&self.config).context("generating code")? {
             Err(errors) => {
                 print!("{}\n",errors.join("\n"));
                 return Ok(None);

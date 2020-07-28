@@ -24,14 +24,14 @@ use crate::util::DFloat;
 use dauphin_interp::runtime::{ Register, InterpValue, numbers_to_indexes, InterpContext };
 use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
-struct CompileRun<'a,'b,'c> {
+struct CompileRun<'a,'b,'c,'d> {
     context: PreImageContext<'a,'b>,
-    gen_context: &'a mut GenContext<'c>,
+    gen_context: &'a mut GenContext<'c,'d>,
 }
 
-impl<'a,'b,'c> CompileRun<'a,'b,'c> {
-    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'c>, 
-                config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'c>> {
+impl<'a,'b,'c,'d> CompileRun<'a,'b,'c,'d> {
+    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'c,'d>, 
+                config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'c,'d>> {
         let mut max_reg = 0;
         for instr in gen_context.get_instructions() {
             for reg in &instr.regs {
@@ -76,7 +76,7 @@ impl<'a,'b,'c> CompileRun<'a,'b,'c> {
         } else {
             self.add(Instruction::new(InstructionType::Nil,vec![*reg]))?;
             for v in values {
-                let inter = self.gen_context.allocate_register(None);
+                let inter = self.gen_context.state_mut().regalloc().allocate();
                 self.add(cb(inter,v))?;
                 self.add(Instruction::new(InstructionType::Append,vec![*reg,inter]))?;
             }

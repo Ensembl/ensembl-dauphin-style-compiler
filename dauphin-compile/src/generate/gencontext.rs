@@ -18,20 +18,18 @@ use anyhow::{ self, Context };
 use std::fmt;
 use std::mem::swap;
 use crate::command::{ Instruction, InstructionType };
+use crate::generate::GenerateState;
 use crate::model::{ DefStore, RegisterAllocator };
 use crate::typeinf::{ ExpressionType, MemberType, TypeModel, Typing, get_constraint };
 use dauphin_interp::runtime::Register;
 
-pub struct GenContext<'a> {
-    defstore: &'a DefStore,
+pub struct GenContext<'a,'b> {
     input_instrs: Vec<(Instruction,f64)>,
     output_instrs: Vec<(Instruction,f64)>,
-    regalloc: RegisterAllocator,
-    types: TypeModel,
-    typing: Typing
+    generate_state: &'b mut GenerateState<'a>
 }
 
-impl<'a> fmt::Debug for GenContext<'a> {
+impl<'a,'b> fmt::Debug for GenContext<'a,'b> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let instr_str : Vec<String> = self.input_instrs.iter().map(|v| format!("{:?}",v.0)).collect();
         write!(f,"{}\n",instr_str.join(""))?;
@@ -39,19 +37,17 @@ impl<'a> fmt::Debug for GenContext<'a> {
     }
 }
 
-impl<'a> GenContext<'a> {
-    pub fn new(defstore: &'a DefStore) -> GenContext<'a> {
+impl<'a,'b> GenContext<'a,'b> {
+    pub fn new(generate_state: &'b mut GenerateState<'a>) -> GenContext<'a,'b> {
         GenContext {
-            defstore,
             input_instrs: Vec::new(),
             output_instrs: Vec::new(),
-            regalloc: RegisterAllocator::new(0),
-            types: TypeModel::new(),
-            typing: Typing::new()
+            generate_state
         }
     }
 
-    pub fn get_defstore(&self) -> &DefStore { self.defstore }
+    pub fn state(&self) -> &GenerateState<'a> { &self.generate_state }
+    pub fn state_mut(&mut self) -> &mut GenerateState<'a> { &mut self.generate_state }
 
     pub fn get_instructions(&self) -> Vec<Instruction> {
         self.input_instrs.iter().map(|x| x.0.clone()).collect()
@@ -59,29 +55,6 @@ impl<'a> GenContext<'a> {
 
     pub fn get_timed_instructions(&self) -> Vec<(Instruction,f64)> {
         self.input_instrs.to_vec()
-    }
-
-    pub fn add_untyped(&mut self, instr: Instruction) -> anyhow::Result<()> {
-        self.typing.add(&get_constraint(&instr,&self.defstore)?).with_context(|| format!("adding {:?}",instr))?;
-        self.output_instrs.push((instr,0.));
-        Ok(())
-    }
-
-    pub fn add_untyped_f(&mut self, itype: InstructionType, mut regs_in: Vec<Register>) -> anyhow::Result<Register> {
-        let dst = self.regalloc.allocate();
-        let mut regs = vec![dst];
-        regs.append(&mut regs_in);
-        let instr = Instruction::new(itype,regs);
-        self.add_untyped(instr)?;
-        Ok(dst)
-    }
-
-    pub fn get_partial_type(&self, reg: &Register) -> ExpressionType {
-        self.typing.get(reg)
-    }
-
-    pub fn generate_types(&mut self) {
-        self.typing.to_model(&mut self.types);
     }
 
     pub fn add(&mut self, instr: Instruction) {
@@ -92,18 +65,8 @@ impl<'a> GenContext<'a> {
         self.output_instrs.push((instr,time));
     }
 
-    pub fn allocate_register(&mut self, type_: Option<&MemberType>) -> Register {
-        let out = self.regalloc.allocate();
-        if let Some(type_) = type_ {
-            self.types.set(&out,type_);
-        }
-        out
-    }
-
     pub fn phase_finished(&mut self) {
         swap(&mut self.input_instrs, &mut self.output_instrs);
         self.output_instrs = Vec::new();
     }
-
-    pub fn xxx_types(&mut self) -> &mut TypeModel { &mut self.types }
 }

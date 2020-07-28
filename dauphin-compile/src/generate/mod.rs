@@ -29,10 +29,12 @@ mod simplify;
 mod retreat;
 mod reusedead;
 mod reuseregs;
+mod state;
 mod useearliest;
 
 pub use self::gencontext::GenContext;
 pub use self::generate::generate;
+pub use self::state::{ CodeGenRegNames, GenerateState };
 
 // For testing in another crate
 pub use self::codegen::generate_code;

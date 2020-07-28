@@ -14,11 +14,14 @@
  *  limitations under the License.
  */
 
-use std::collections::BTreeMap;
+use std::collections::{ BTreeMap, HashMap };
 use std::fmt;
+use std::iter::FromIterator;
 
 use super::types::MemberType;
+use super::typing::Typing;
 use dauphin_interp::runtime::Register;
+use dauphin_interp::types::{ BaseType };
 
 pub struct TypeModel {
     values: BTreeMap<Register,MemberType>
@@ -46,11 +49,17 @@ impl TypeModel {
         self.values.insert(reg.clone(),type_.clone());
     }
 
-    pub fn get(&mut self, reg: &Register) -> Option<&MemberType> {
+    pub fn get(&self, reg: &Register) -> Option<&MemberType> {
         self.values.get(reg)
     }
 
     pub fn each_register(&self) -> impl Iterator<Item=(&Register,&MemberType)> {
         self.values.iter()
+    }
+
+    pub fn from_constraints(&mut self, types: &Typing) {
+        for (reg,expression_type) in types.all_external() {
+            self.set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
+        }
     }
 }

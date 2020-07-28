@@ -82,7 +82,7 @@ mod test {
     use crate::resolver::common_resolver;
     use crate::lexer::Lexer;
     use crate::parser::{ Parser, parse_type };
-    use crate::generate::generate;
+    use crate::generate::{ generate, GenerateState };
     use dauphin_test_harness::{ load_testdata, cbor_cmp };
     use crate::test::{ xxx_test_config, make_compiler_suite };
     use crate::model::{ DefStore, make_full_type };
@@ -127,8 +127,9 @@ mod test {
         let mut p = Parser::new(&mut lexer).expect("k");
         p.parse(&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();    
-        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
+        let defstore = p.get_defstore();
+        let mut state = GenerateState::new(&defstore); 
+        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
@@ -145,8 +146,9 @@ mod test {
         let mut p = Parser::new(&mut lexer).expect("k");
         p.parse(&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();    
-        generate(&linker,&stmts,&defstore,&resolver,&xxx_test_config()).expect("j").expect("j");
+        let defstore = p.get_defstore();
+        let mut state = GenerateState::new(&defstore); 
+        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
         let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");
         cbor_cmp(&named,"cbor-signature-named.out");
