@@ -14,29 +14,26 @@
  *  limitations under the License.
  */
 
-use anyhow::{ self, Context };
+use anyhow::{ self };
 use std::mem::replace;
+use crate::generate::GenerateState;
 use crate::lexer::{ Lexer, Token };
-use crate::model::DefStore;
 use super::node::{ Statement, ParserStatement };
 use super::declare::declare;
 use super::parsestmt::{ parse_statement };
 use dauphin_interp::util::{ DauphinError, triage_source_errors };
 
 pub struct Parser {
-    defstore: DefStore,
     stmts: Vec<Statement>
 }
 
 impl Parser {
-    pub fn new(lexer: &mut Lexer) -> anyhow::Result<Parser> {
-        let source = lexer.get_source().to_string();
+    pub fn new(state: &mut GenerateState, lexer: &mut Lexer) -> anyhow::Result<Parser> {
         let mut p = Parser {
-            defstore: DefStore::new(&source),
             stmts: vec![]
         };
         lexer.import("preamble:").ok();
-        p.parse(lexer).and_then(|out| out.map_err(|e| {
+        p.parse(state,lexer).and_then(|out| out.map_err(|e| {
             let err = format!("parsing preamble: {}",e.join(". ").to_string());
             DauphinError::internal(file!(),line!()).context(err)
         }))?;
@@ -65,8 +62,8 @@ impl Parser {
         false
     }
 
-    fn recover_parse_statement(&mut self, lexer: &mut Lexer) -> Result<Vec<ParserStatement>,(anyhow::Error,bool)> {
-        parse_statement(lexer,&self.defstore,false).map_err(|e| {
+    fn recover_parse_statement(&mut self, state: &mut GenerateState, lexer: &mut Lexer) -> Result<Vec<ParserStatement>,(anyhow::Error,bool)> {
+        parse_statement(lexer,state.defstore(),false).map_err(|e| {
             if self.benign_error(&e) {
                 self.ffwd_error(lexer);
                 (e,true)
@@ -76,16 +73,16 @@ impl Parser {
         })
     }
 
-    fn run_declare(&mut self, lexer: &mut Lexer, stmt: &ParserStatement) -> anyhow::Result<bool> {
-        declare(&stmt,lexer,&mut self.defstore)
+    fn run_declare(&mut self, state: &mut GenerateState, lexer: &mut Lexer, stmt: &ParserStatement) -> anyhow::Result<bool> {
+        declare(&stmt,lexer,state.defstore_mut())
     }
 
-    fn get_non_declare(&mut self, lexer: &mut Lexer) -> Result<Vec<ParserStatement>,(anyhow::Error,bool)> {
+    fn get_non_declare(&mut self, state: &mut GenerateState, lexer: &mut Lexer) -> Result<Vec<ParserStatement>,(anyhow::Error,bool)> {
         let mut out = vec![];
-        match self.recover_parse_statement(lexer) {
+        match self.recover_parse_statement(state,lexer) {
             Ok(stmts) => {
                 for stmt in stmts.iter() {
-                    if !self.run_declare(lexer,stmt).map_err(|e| {
+                    if !self.run_declare(state,lexer,stmt).map_err(|e| {
                         let benign = self.benign_error(&e);
                         (e,benign)
                     })? {
@@ -109,10 +106,10 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self, lexer: &mut Lexer) -> anyhow::Result<Result<(),Vec<String>>> {
+    pub fn parse(&mut self, state: &mut GenerateState, lexer: &mut Lexer) -> anyhow::Result<Result<(),Vec<String>>> {
         let mut errors = vec![];
         loop {
-            match self.get_non_declare(lexer) {
+            match self.get_non_declare(state,lexer) {
                 Ok(mut stmts) => {
                     for stmt in stmts.drain(..) {
                         match stmt {
@@ -128,7 +125,6 @@ impl Parser {
         }
     }
 
-    pub fn get_defstore(&self) -> &DefStore { &self.defstore }
     pub fn take_statements(&mut self) -> Vec<Statement> { replace(&mut self.stmts,vec![]) }
 }
 
@@ -140,12 +136,13 @@ mod test {
     use dauphin_interp::util::DauphinError;
     use dauphin_test_harness::{ load_testdata };
     use crate::test::{ make_compiler_suite, xxx_test_config };
+    use crate::model::DefStore;
     use crate::command::CompilerLink;
 
-    fn last_statement(p: &mut Parser, lexer: &mut Lexer) -> anyhow::Result<ParserStatement> {
+    fn last_statement(p: &mut Parser, state: &mut GenerateState, lexer: &mut Lexer) -> anyhow::Result<ParserStatement> {
         let mut prev = Err(DauphinError::runtime("unexpected EOF"));
         loop {
-            let mut stmts = p.recover_parse_statement(lexer).map_err(|e| e.0)?;
+            let mut stmts = p.recover_parse_statement(state,lexer).map_err(|e| e.0)?;
             match stmts.pop() {
                 Some(ParserStatement::EndOfParse) => break,
                 Some(x) => prev = Ok(x),
@@ -160,10 +157,11 @@ mod test {
         let config = xxx_test_config();
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
+        let mut state = GenerateState::new("test");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("data: import \"x\";").ok();
-        assert_eq!(ParserStatement::Import("x".to_string()),last_statement(&mut p,&mut lexer).expect("w"));
+        assert_eq!(ParserStatement::Import("x".to_string()),last_statement(&mut p,&mut state,&mut lexer).expect("w"));
     }
 
     #[test]
@@ -171,10 +169,11 @@ mod test {
         let config = xxx_test_config();
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
+        let mut state = GenerateState::new("test");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("data: import \"data: $;\";").ok();
-        let err = p.parse(&mut lexer).ok().unwrap().expect_err("success");
+        let err = p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("success");
         assert_eq!("data: $;:1 $ encountered outside filter".to_string(),err[0]);
     }
 
@@ -183,11 +182,12 @@ mod test {
         let config = xxx_test_config();
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("A");
+        let mut state = GenerateState::new("test");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:import-search").expect("cannot load file");
         let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
-        assert_eq!(txt,p.parse(&mut lexer).ok().unwrap().expect_err("x")[0]);
+        assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
     #[test]
@@ -196,10 +196,11 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/import-smoke").expect("cannot load file");
         let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
-        assert_eq!(txt,p.parse(&mut lexer).ok().unwrap().expect_err("x")[0]);
+        assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
     #[test]
@@ -208,11 +209,11 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/parser-smoke").expect("cannot load file");
-        p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();    
         let mut out : Vec<String> = stmts.iter().map(|x| format!("{:?}",x)).collect();
         out.push("".to_string()); /* For trailing \n */
         let outdata = load_testdata(&["parser","parser-smoke.out"]).ok().unwrap();
@@ -225,10 +226,11 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/parser-nonest").expect("cannot load file");
         let txt = "parser-nonest.dp:5 $ encountered outside filter";
-        assert_eq!(txt,p.parse(&mut lexer).ok().unwrap().expect_err("x")[0]);
+        assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
     #[test]
@@ -237,10 +239,11 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
-        let mut p = Parser::new(&mut lexer).expect("k");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/id-clash").expect("cannot load file");
         let txt = "id-clash.dp:2 duplicate identifier: id_clash::assign";
-        assert_eq!(txt,p.parse(&mut lexer).ok().unwrap().expect_err("x")[0]);
+        assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
     fn make_identifier(module: &str,name: &str) -> Identifier {
@@ -257,14 +260,14 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
+        let mut state = GenerateState::new("test");
         lexer.import("search:parser/struct-smoke").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();
-        assert_eq!("struct struct_smoke::A { 0: number, 1: vec(number) }",print_struct(&defstore,"A"));
-        assert_eq!("struct struct_smoke::B { X: number, Y: vec(struct_smoke::A) }",print_struct(&defstore,"B"));
-        assert_eq!("struct struct_smoke::C {  }",print_struct(&defstore,"C"));
+        assert_eq!("struct struct_smoke::A { 0: number, 1: vec(number) }",print_struct(state.defstore(),"A"));
+        assert_eq!("struct struct_smoke::B { X: number, Y: vec(struct_smoke::A) }",print_struct(state.defstore(),"B"));
+        assert_eq!("struct struct_smoke::C {  }",print_struct(state.defstore(),"C"));
         assert_eq!("[assign(x,A {0: [1,2,3]}), assign(y,B {X: 23,Y: [x,x]})]",&format!("{:?}",stmts));
     }
 
@@ -279,13 +282,13 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:parser/enum-smoke").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
-        let stmts = p.take_statements();
-        let defstore = p.get_defstore();    
-        assert_eq!("enum enum_smoke::A { M: number, N: vec(number) }",print_enum(&defstore,"A"));
-        assert_eq!("enum enum_smoke::B { X: number, Y: vec(enum_smoke::A) }",print_enum(&defstore,"B"));
-        assert_eq!("enum enum_smoke::C {  }",print_enum(&defstore,"C"));
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let stmts = p.take_statements();   
+        assert_eq!("enum enum_smoke::A { M: number, N: vec(number) }",print_enum(state.defstore(),"A"));
+        assert_eq!("enum enum_smoke::B { X: number, Y: vec(enum_smoke::A) }",print_enum(state.defstore(),"B"));
+        assert_eq!("enum enum_smoke::C {  }",print_enum(state.defstore(),"C"));
         assert_eq!("[assign(x,B:Y [A:M 42,B:N [1,2,3]])]",&format!("{:?}",stmts));
     }
 
@@ -295,9 +298,10 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
+        let mut state = GenerateState::new("test");
         lexer.import("search:parser/short").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let stmts = p.take_statements();    
         let modules = stmts.iter().map(|x| (x.0).module().to_string()).collect::<Vec<_>>();
         assert_eq!(vec!["library1","library2","library2",
@@ -310,9 +314,10 @@ mod test {
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
+        let mut state = GenerateState::new("test");
         lexer.import("search:parser/macro").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
         let x = format!("{:?}",p.take_statements());
         print!("{}\n",x);
         assert_eq!("[assign(x,[[1,2,3],[4,5,6],[7,8,9]]), assign(z,0), incr(((x)[eq(@,0)])[eq(@,1)],1), incr(z,plus(0,1)), assign(z,plus(z,0))]",x);

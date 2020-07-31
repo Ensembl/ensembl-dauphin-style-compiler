@@ -96,10 +96,11 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
     if config.get_verbose() > 0 {
         print!("compiling {}\n",source);
     }
+    let mut state = GenerateState::new(name);
     let mut lexer = Lexer::new(&resolver,name);
-    let mut p = Parser::new(&mut lexer)?;
+    let mut p = Parser::new(&mut state,&mut lexer)?;
     lexer.import(source)?;
-    match p.parse(&mut lexer).context("parsing")? {
+    match p.parse(&mut state,&mut lexer).context("parsing")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
             return Ok(false);
@@ -107,8 +108,6 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         Ok(_) => {}
     };
     let stmts = p.take_statements();
-    let defstore = p.get_defstore();
-    let mut state = GenerateState::new(&defstore);
     let instrs = match generate(&linker,&stmts,&mut state,&resolver,&config).context("generating code")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
@@ -180,6 +179,7 @@ impl Action for RunAction {
 }
 
 struct ReplContext<'a,'b> {
+    state: GenerateState,
     linker: &'b mut CompilerLink,
     config: Config,
     resolver: &'a Resolver,
@@ -191,6 +191,7 @@ struct ReplContext<'a,'b> {
 impl<'a,'b> ReplContext<'a,'b> {
     fn new(config: &Config, linker: &'b mut CompilerLink, resolver: &'a Resolver) -> anyhow::Result<ReplContext<'a,'b>> {
         let mut out = ReplContext {
+            state: GenerateState::new("main"),
             config: config.clone(),
             linker,
             resolver,
@@ -199,12 +200,12 @@ impl<'a,'b> ReplContext<'a,'b> {
             pending: false
         };
         out.lexer = Some(Lexer::new(&out.resolver,"main"));
-        out.parser = Some(Parser::new(out.lexer.as_mut().unwrap())?);
+        out.parser = Some(Parser::new(&mut out.state,out.lexer.as_mut().unwrap())?);
         Ok(out)
     }
 
     fn generate_more(&mut self) -> anyhow::Result<Option<CborValue>> {
-        let s = self.parser.as_mut().unwrap().parse(&mut self.lexer.as_mut().unwrap()).context("parsing")?;
+        let s = self.parser.as_mut().unwrap().parse(&mut self.state,&mut self.lexer.as_mut().unwrap()).context("parsing")?;
         if !self.lexer.as_ref().unwrap().exhausted() {
             self.pending = true;
             return Ok(None);
@@ -218,9 +219,7 @@ impl<'a,'b> ReplContext<'a,'b> {
             Ok(_) => {}
         };
         let stmts = self.parser.as_mut().unwrap().take_statements();
-        let defstore = self.parser.as_ref().unwrap().get_defstore();
-        let mut state = GenerateState::new(&defstore);
-        let instrs = match generate(&self.linker,&stmts,&mut state,&self.resolver,&self.config).context("generating code")? {
+        let instrs = match generate(&self.linker,&stmts,&mut self.state,&self.resolver,&self.config).context("generating code")? {
             Err(errors) => {
                 print!("{}\n",errors.join("\n"));
                 return Ok(None);

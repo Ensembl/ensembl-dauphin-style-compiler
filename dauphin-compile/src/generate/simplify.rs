@@ -342,18 +342,18 @@ fn make_new_registers(context: &mut GenContext, member_types: &Vec<MemberType>, 
 
 fn extend_one(context: &mut GenContext, name: &Identifier) -> anyhow::Result<()> {
     if let Some(decl) = context.state().defstore().get_struct_id(name).ok() {
-        let member_types = decl.get_member_types();
+        let member_types = decl.get_member_types().clone();
         let base = BaseType::StructType(name.clone());
-        let new_registers = make_new_registers(context,member_types,base,false)?;
+        let new_registers = make_new_registers(context,&member_types,base,false)?;
         for instr in &context.get_instructions() {
-            extend_struct_instr(name,context,decl,instr,&new_registers)?;
+            extend_struct_instr(name,context,&decl,instr,&new_registers)?;
         }
     } else if let Some(decl) = context.state().defstore().get_enum_id(name).ok() {
         let member_types = decl.get_branch_types();
         let base = BaseType::EnumType(name.clone());
         let new_registers = make_new_registers(context,member_types,base,true)?;
         for instr in &context.get_instructions() {
-            extend_enum_instr(context,name,decl,instr,&new_registers)?;
+            extend_enum_instr(context,name,&decl,instr,&new_registers)?;
         }
     } else {
         return Err(DauphinError::internal(file!(),line!())); /* can only extend structs/enums */
@@ -363,8 +363,9 @@ fn extend_one(context: &mut GenContext, name: &Identifier) -> anyhow::Result<()>
 }
 
 pub fn simplify(context: &mut GenContext) -> anyhow::Result<()> {
-    for name in context.state().defstore().get_structenum_order().rev() {
-        extend_one(context,name)?;
+    let ids : Vec<Identifier> = context.state().defstore().get_structenum_order().cloned().collect::<Vec<_>>();
+    for name in ids.iter().rev() {
+        extend_one(context,&name)?;
     }
     Ok(())
 }

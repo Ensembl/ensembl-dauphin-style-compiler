@@ -42,10 +42,10 @@ use dauphin_interp::runtime::InterpContext;
 use dauphin_interp::stream::StreamFactory;
 use dauphin_interp::util::DauphinError;
 
-struct StepData<'a,'b,'c> {
+struct StepData<'a,'c> {
     linker: &'a CompilerLink,
     resolver: &'a Resolver,
-    context: &'a mut GenContext<'b,'c>,
+    context: &'a mut GenContext<'c>,
     config: &'a Config,
     icontext: &'a mut InterpContext
 }
@@ -92,7 +92,7 @@ impl GenerateStep {
             print!("{:?}\n",context);
         }
         if config.isset_profile() {
-            let filename = format!("{}-{}-{}.profile",context.state().defstore().get_source(),self.name,index);
+            let filename = format!("{}-{}-{}.profile",context.state().debug_name(),self.name,index);
             let text = format!("step {}: {}. {} lines {:.2}ms\n{:?}\n",index,self.name,non_line_instructions(context),duration.as_secs_f32()*1000.,context);
             match write(filename,text) {
                 Ok(()) => {},
@@ -169,7 +169,7 @@ fn calculate_opt_seq(config: &Config) -> anyhow::Result<&str> {
     }
 }
 
-pub fn generate<'a,'b>(compiler_link: &CompilerLink, stmts: &Vec<Statement>, state: &'b mut GenerateState<'a>,
+pub fn generate<'b>(compiler_link: &CompilerLink, stmts: &Vec<Statement>, state: &'b mut GenerateState,
                 resolver: &Resolver, config: &Config) -> anyhow::Result<Result<Vec<Instruction>,Vec<String>>> {
     match generate_code(state,&stmts,config.get_generate_debug())? {
         Ok(mut context) => {

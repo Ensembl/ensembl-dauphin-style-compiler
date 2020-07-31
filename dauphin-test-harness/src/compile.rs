@@ -29,6 +29,7 @@ use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::resolver::common_resolver;
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::parser::Parser;
+use dauphin_compile::model::DefStore;
 use crate::hexdump;
 
 pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance + 'a>> {
@@ -96,11 +97,10 @@ pub fn compile(cs: CommandCompileSuite, is: &CommandInterpretSuite, config: &Con
     let resolver = common_resolver(&config,&linker)?;
     let mut lexer = Lexer::new(&resolver,"");
     lexer.import(path).expect("cannot load file");
-    let mut p = Parser::new(&mut lexer)?;
-    p.parse(&mut lexer)?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
+    let mut state = GenerateState::new("test");
+    let mut p = Parser::new(&mut state,&mut lexer)?;
+    p.parse(&mut state,&mut lexer)?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
     let stmts = p.take_statements();
-    let defstore = p.get_defstore();
-    let mut state = GenerateState::new(&defstore);
     let instrs = generate(&linker,&stmts,&mut state,&resolver,&config)?.expect("error");
     let (_,strings) = mini_interp(is,&instrs,&mut linker,&config,"main")?;
     Ok(strings)

@@ -39,11 +39,11 @@ impl ComplexRegisters {
         match type_.get_base() {
             BaseType::StructType(name) => {
                 let struct_ = defstore.get_struct_id(&name)?;
-                self.from_struct(defstore,struct_,&path,&container)
+                self.from_struct(defstore,&struct_,&path,&container)
             },
             BaseType::EnumType(name) => {
                 let enum_ = defstore.get_enum_id(&name)?;
-                self.from_enum(defstore,enum_,&path,&container)
+                self.from_enum(defstore,&enum_,&path,&container)
             },
             base => {
                 self.0.add(path.clone(),VectorRegisters::new(container.depth(),base));
@@ -121,18 +121,17 @@ mod test {
     fn offset_smoke() {
         let config = xxx_test_config();
         let linker = CompilerLink::new(make_compiler_suite().expect("y"));
+        let mut state = GenerateState::new("test");
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("error").expect("error");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();
-        let mut state = GenerateState::new(&defstore); 
         generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
-        let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"boolean")).expect("a");
+        let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
-        let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
+        let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"vec(offset_smoke::etest3)")).expect("b");
         assert_eq!(load_cmp("offset-smoke.out"),format_pvec(&regs));
     }
 
@@ -143,13 +142,12 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/offset-smoke").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("error").expect("error");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();
-        let mut state = GenerateState::new(&defstore); 
         generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
-        let regs = make_full_type(&defstore,MemberMode::In,&make_type(&defstore,"vec(offset_smoke::etest3)")).expect("b");
+        let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");
         cbor_cmp(&named,"cbor-signature-named.out");
         let cr2 = FullType::deserialize(&named,true).expect("cbor d");

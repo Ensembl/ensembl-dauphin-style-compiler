@@ -23,6 +23,7 @@ use crate::parser::{ parse_error };
 use crate::typeinf::{ MemberType };
 use dauphin_interp::command::Identifier;
 
+#[derive(Clone)]
 pub struct StructEnumDef {
     type_: String,
     identifier: Identifier,
@@ -84,6 +85,7 @@ impl StructEnumDef {
     }
 }
 
+#[derive(Clone)]
 pub struct StructDef {
     common: StructEnumDef
 }
@@ -113,6 +115,7 @@ impl fmt::Debug for StructDef {
     }
 }
 
+#[derive(Clone)]
 pub struct EnumDef {
     common: StructEnumDef
 }

@@ -24,14 +24,14 @@ use crate::util::DFloat;
 use dauphin_interp::runtime::{ Register, InterpValue, numbers_to_indexes, InterpContext };
 use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
-struct CompileRun<'a,'b,'c,'d> {
+struct CompileRun<'a,'b,'d> {
     context: PreImageContext<'a,'b>,
-    gen_context: &'a mut GenContext<'c,'d>,
+    gen_context: &'a mut GenContext<'d>,
 }
 
-impl<'a,'b,'c,'d> CompileRun<'a,'b,'c,'d> {
-    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'c,'d>, 
-                config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'c,'d>> {
+impl<'a,'b,'d> CompileRun<'a,'b,'d> {
+    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'d>, 
+                config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'d>> {
         let mut max_reg = 0;
         for instr in gen_context.get_instructions() {
             for reg in &instr.regs {

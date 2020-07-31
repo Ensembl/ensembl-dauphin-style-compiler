@@ -146,12 +146,12 @@ pub fn pauses(icontext: &mut InterpContext, compiler_link: &CompilerLink, resolv
     if config.get_profile() {
         for (i,profile) in profiler.get_profiles().iter().enumerate() {
             let source_filename = fix_incoming_filename(profile.filename());
-            let filename = format!("{}-{}-{}-timing.profile",context.state().defstore().get_source(),source_filename,i);
+            let filename = format!("{}-{}-{}-timing.profile",context.state().debug_name(),source_filename,i);
             write(filename.clone(),profile.profile())
                 .map_err(|e| anyhow::Error::new(DauphinError::OSError(e)))
                 .with_context(|| format!("writing profile file {}",filename))?;    
         }
-        let filename = format!("{}-timing-binary.profile",context.state().defstore().get_source());
+        let filename = format!("{}-timing-binary.profile",context.state().debug_name());
         write(filename.clone(),instr_profile.join("\n"))
             .map_err(|e| anyhow::Error::new(DauphinError::OSError(e)))
             .with_context(|| format!("writing profile file {}",filename))?;

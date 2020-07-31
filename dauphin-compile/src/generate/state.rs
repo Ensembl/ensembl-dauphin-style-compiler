@@ -42,28 +42,32 @@ impl CodeGenRegNames {
     }
 }
 
-pub struct GenerateState<'a> {
+pub struct GenerateState {
+    debug_name: String,
     codegen_regnames: CodeGenRegNames,
     types: TypeModel,
     typing: Typing,
     regalloc: RegisterAllocator,
-    defstore: &'a DefStore
+    defstore: DefStore
 }
 
-impl<'a> GenerateState<'a> {
-    pub fn new(defstore: &'a DefStore) -> GenerateState<'a> {
+impl GenerateState {
+    pub fn new(debug_name: &str) -> GenerateState {
         GenerateState {
             codegen_regnames: CodeGenRegNames::new(),
+            debug_name: debug_name.to_string(),
             types: TypeModel::new(),
             typing: Typing::new(),
-            defstore,
-            regalloc: RegisterAllocator::new(0)
+            regalloc: RegisterAllocator::new(0),
+            defstore: DefStore::new()
         }
     }
 
+    pub fn debug_name(&self) -> &str { &self.debug_name }
     pub fn regalloc(&self) -> &RegisterAllocator { &self.regalloc }
     pub fn types(&mut self) -> &mut TypeModel { &mut self.types }
     pub fn typing(&mut self) -> &mut Typing { &mut self.typing }
-    pub fn defstore(&self) -> &'a DefStore { self.defstore }
+    pub fn defstore(&self) -> &DefStore { &self.defstore }
+    pub fn defstore_mut(&mut self) -> &mut DefStore { &mut self.defstore }
     pub fn codegen_regnames(&mut self) -> &mut CodeGenRegNames { &mut self.codegen_regnames }
 }

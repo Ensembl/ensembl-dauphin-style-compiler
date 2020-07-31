@@ -61,13 +61,13 @@ macro_rules! addf {
     };
 }
 
-pub struct CodeGen<'a,'b> {
-    context: GenContext<'a,'b>,
+pub struct CodeGen<'b> {
+    context: GenContext<'b>,
     include_line_numbers: bool
 }
 
-impl<'a,'b> CodeGen<'a,'b> {
-    fn new(state: &'b mut GenerateState<'a>, include_line_numbers: bool) -> CodeGen<'a,'b> {
+impl<'b> CodeGen<'b> {
+    fn new(state: &'b mut GenerateState, include_line_numbers: bool) -> CodeGen<'b> {
         CodeGen {
             context: GenContext::new(state),
             include_line_numbers
@@ -314,11 +314,11 @@ impl<'a,'b> CodeGen<'a,'b> {
     fn build_stmt(&mut self, stmt: &Statement) -> anyhow::Result<()> {
         let mut regs = Vec::new();
         let mut modes = Vec::new();
-        let procdecl = self.context.state().defstore().get_proc_id(&stmt.0)?;
         if self.include_line_numbers {
             add_untyped(&mut self.context,Instruction::new(InstructionType::LineNumber(stmt.2.clone()),vec![]))?;    
         }
-        for (i,member) in procdecl.get_signature().each_member().enumerate() {
+        let sig = self.context.state().defstore().get_proc_id(&stmt.0)?.get_signature().clone();
+        for (i,member) in sig.each_member().enumerate() {
             match member {
                 SignatureMemberConstraint::RValue(_) => {
                     modes.push(MemberMode::In);
@@ -340,7 +340,7 @@ impl<'a,'b> CodeGen<'a,'b> {
         Ok(())
     }
 
-    fn go(mut self, stmts: &[Statement]) -> anyhow::Result<Result<GenContext<'a,'b>,Vec<String>>> {
+    fn go(mut self, stmts: &[Statement]) -> anyhow::Result<Result<GenContext<'b>,Vec<String>>> {
         let mut errors = vec![];
         for stmt in stmts {
             if let Err(e) = self.build_stmt(stmt) {
@@ -363,7 +363,7 @@ impl<'a,'b> CodeGen<'a,'b> {
     }
 }
 
-pub fn generate_code<'a,'b>(state: &'b mut GenerateState<'a>, stmts: &Vec<Statement>, include_line_numbers: bool) -> anyhow::Result<Result<GenContext<'a,'b>,Vec<String>>> {
+pub fn generate_code<'b>(state: &'b mut GenerateState, stmts: &Vec<Statement>, include_line_numbers: bool) -> anyhow::Result<Result<GenContext<'b>,Vec<String>>> {
     let mut out = CodeGen::new(state,include_line_numbers).go(stmts)?;
     if let Ok(ref mut context) = out {
         context.phase_finished();
@@ -387,11 +387,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import(&format!("search:codegen/{}",filename)).expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("error").expect("error");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();
-        let mut state = GenerateState::new(&defstore);
         let gen = CodeGen::new(&mut state,true);
         gen.go(&stmts).expect("go")?;
         Ok(())
@@ -404,11 +403,10 @@ mod test {
         let resolver = common_resolver(&config,&linker).expect("a");
         let mut lexer = Lexer::new(&resolver,"");
         lexer.import("search:codegen/generate-smoke2").expect("cannot load file");
-        let mut p = Parser::new(&mut lexer).expect("k");
-        p.parse(&mut lexer).expect("error").expect("error");
+        let mut state = GenerateState::new("test");
+        let mut p = Parser::new(&mut state,&mut lexer).expect("k");
+        p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        let defstore = p.get_defstore();
-        let mut state = GenerateState::new(&defstore);
         let gencontext = generate_code(&mut state,&stmts,true).expect("codegen").expect("error");
         let cmds : Vec<String> = gencontext.get_instructions().iter().map(|e| format!("{:?}",e)).collect();
         let outdata = load_testdata(&["codegen","generate-smoke2.out"]).ok().unwrap();

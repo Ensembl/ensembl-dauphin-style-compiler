@@ -23,13 +23,13 @@ use crate::model::{ DefStore, RegisterAllocator };
 use crate::typeinf::{ ExpressionType, MemberType, TypeModel, Typing, get_constraint };
 use dauphin_interp::runtime::Register;
 
-pub struct GenContext<'a,'b> {
+pub struct GenContext<'b> {
     input_instrs: Vec<(Instruction,f64)>,
     output_instrs: Vec<(Instruction,f64)>,
-    generate_state: &'b mut GenerateState<'a>
+    generate_state: &'b mut GenerateState
 }
 
-impl<'a,'b> fmt::Debug for GenContext<'a,'b> {
+impl<'b> fmt::Debug for GenContext<'b> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let instr_str : Vec<String> = self.input_instrs.iter().map(|v| format!("{:?}",v.0)).collect();
         write!(f,"{}\n",instr_str.join(""))?;
@@ -37,8 +37,8 @@ impl<'a,'b> fmt::Debug for GenContext<'a,'b> {
     }
 }
 
-impl<'a,'b> GenContext<'a,'b> {
-    pub fn new(generate_state: &'b mut GenerateState<'a>) -> GenContext<'a,'b> {
+impl<'b> GenContext<'b> {
+    pub fn new(generate_state: &'b mut GenerateState) -> GenContext<'b> {
         GenContext {
             input_instrs: Vec::new(),
             output_instrs: Vec::new(),
@@ -46,8 +46,8 @@ impl<'a,'b> GenContext<'a,'b> {
         }
     }
 
-    pub fn state(&self) -> &GenerateState<'a> { &self.generate_state }
-    pub fn state_mut(&mut self) -> &mut GenerateState<'a> { &mut self.generate_state }
+    pub fn state(&self) -> &GenerateState { &self.generate_state }
+    pub fn state_mut(&mut self) -> &mut GenerateState { &mut self.generate_state }
 
     pub fn get_instructions(&self) -> Vec<Instruction> {
         self.input_instrs.iter().map(|x| x.0.clone()).collect()

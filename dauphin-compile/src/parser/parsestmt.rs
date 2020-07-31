@@ -82,7 +82,7 @@ fn parse_funcstmt(lexer: &mut Lexer, defstore: &DefStore)-> anyhow::Result<Vec<P
     let pos = lexer.position();
     let identifier = defstore.pattern_to_identifier(lexer,&pattern,true)?;
     match defstore.get_stmt_id(&identifier.0) {
-        Ok(s) => apply_macro(s,&exprs,lexer),
+        Ok(s) => apply_macro(&s,&exprs,lexer),
         Err(_) => {
             Ok(vec![ParserStatement::Regular(Statement(identifier.0,exprs,pos))])
         }

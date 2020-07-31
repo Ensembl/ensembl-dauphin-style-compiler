@@ -17,6 +17,7 @@
 use anyhow;
 use dauphin_interp::util::DauphinError;
 use std::collections::HashMap;
+use std::rc::Rc;
 use super::definition::{
     ExprMacro, StmtMacro, FuncDecl, ProcDecl, Inline, InlineMode
 };
@@ -28,17 +29,16 @@ use dauphin_interp::command::Identifier;
 
 #[derive(Debug)]
 pub enum IdentifierValue {
-    Expr(ExprMacro),
-    Stmt(StmtMacro),
-    Func(FuncDecl),
-    Proc(ProcDecl),
-    Struct(StructDef),
-    Enum(EnumDef)
+    Expr(Rc<ExprMacro>),
+    Stmt(Rc<StmtMacro>),
+    Func(Rc<FuncDecl>),
+    Proc(Rc<ProcDecl>),
+    Struct(Rc<StructDef>),
+    Enum(Rc<EnumDef>)
 }
 
 #[derive(Debug)]
 pub struct DefStore {
-    source: String,
     identifiers: IdentifierStore<IdentifierValue>,
     inlines_binary: HashMap<String,Inline>,
     inlines_unary: HashMap<String,Inline>,
@@ -47,9 +47,9 @@ pub struct DefStore {
 
 macro_rules! accessor {
     ($accessor:ident,$setter:ident,$branch:tt,$type:ty,$name:expr) => {
-        pub fn $accessor(&self, identifier: &Identifier) -> anyhow::Result<&$type> {
+        pub fn $accessor(&self, identifier: &Identifier) -> anyhow::Result<Rc<$type>> {
             if let IdentifierValue::$branch(out) = self.get_id(identifier)? {
-                Ok(out)
+                Ok(out.clone())
             } else {
                 Err(DauphinError::source(&format!("{} is not a {}",identifier,$name)))
             }
@@ -58,7 +58,7 @@ macro_rules! accessor {
         pub fn $setter(&mut self, data: $type, lexer: &Lexer) -> anyhow::Result<()> {
             let id = data.identifier().clone();
             self.detect_clash(&id,lexer)?;
-            let data = IdentifierValue::$branch(data);
+            let data = IdentifierValue::$branch(Rc::new(data));
             match data {
                 IdentifierValue::Struct(_) | IdentifierValue::Enum(_) => {
                     self.structenum_order.push(id.clone());
@@ -71,17 +71,14 @@ macro_rules! accessor {
     };
 }
 impl DefStore {
-    pub fn new(source: &str) -> DefStore {
+    pub fn new() -> DefStore {
         DefStore {
-            source: source.to_string(),
             identifiers: IdentifierStore::new(),
             inlines_binary: HashMap::new(),
             inlines_unary: HashMap::new(),
             structenum_order: Vec::new()
         }
     }
-
-    pub fn get_source(&self) -> &str { &self.source }
 
     fn detect_clash(&mut self, identifier: &Identifier, lexer: &Lexer) -> anyhow::Result<()> {
         if self.identifiers.contains_key(identifier) {
