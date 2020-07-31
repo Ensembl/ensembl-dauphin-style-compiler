@@ -16,7 +16,8 @@
 
 use anyhow;
 use std::collections::BTreeMap;
-
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::command::{ InstructionType, Instruction };
 use crate::util::DFloat;
 use crate::typeinf::{ MemberType };
@@ -43,15 +44,14 @@ fn number_reg(state: &mut GenerateState) -> Register {
     out
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 struct Linearized {
     index: Vec<(Register,Register)>,
     data: Register
 }
 
 impl Linearized {
-    fn new(context: &mut GenContext, type_: &MemberType, depth: usize) -> Linearized {
-        let state = context.state_mut();
+    fn new(state: &mut GenerateState, type_: &MemberType, depth: usize) -> Linearized {
         let mut indices = Vec::new();
         for _ in 0..depth {
             let start = number_reg(state);
@@ -65,27 +65,6 @@ impl Linearized {
             data
         }
     }
-}
-
-/* allocate_subregs performs the allocation of linearized registers in two stages. In the first, the type of each
- * register is examined and those of depth greater than zero are added to a todo list along with their depth. In the
- * second this todo list is iterated over and linearized versions created. Two stages are needed as the linearization
- * creates new registers during iteration.
- */
-fn allocate_subregs(context: &mut GenContext) -> BTreeMap<Register,Linearized> {
-    let mut targets = Vec::new();
-    let state = context.state_mut();
-    for (reg,type_) in state.types().each_register() {
-        let depth = type_.depth();
-        if depth > 0 {
-            targets.push((*reg,type_.clone(),depth));
-        }
-    }
-    let mut out = BTreeMap::new();
-    for (reg,type_,depth) in &targets {
-        out.insert(*reg,Linearized::new(context,type_,*depth));
-    }
-    out
 }
 
 /* UTILITY METHODS for procedures repeatedly used during linearization. */
@@ -124,7 +103,7 @@ fn push_top(context: &mut GenContext, lin_dst: &Linearized, lin_src: &Linearized
     context.add(Instruction::new(InstructionType::Append,vec![lin_dst.index[level].1,lin_src.index[level].1]));
 }
 
-fn linear_extend<F>(subregs: &BTreeMap<Register,Linearized>, dst: &Register, src: &Register, mut cb: F)
+fn linear_extend<F>(subregs: &LinearizeRegs, dst: &Register, src: &Register, mut cb: F)
         where F: FnMut(&Register,&Register) {
     if let Some(lin_src) = subregs.get(src) {
         let lin_dst = subregs.get(dst).unwrap();
@@ -138,7 +117,7 @@ fn linear_extend<F>(subregs: &BTreeMap<Register,Linearized>, dst: &Register, src
     }
 }
 
-fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearized> , instr: &Instruction) -> anyhow::Result<()> {
+fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegs, instr: &Instruction) -> anyhow::Result<()> {
     match &instr.itype {
         InstructionType::NumEq |
         InstructionType::ReFilter |
@@ -207,9 +186,9 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
         InstructionType::Append => {
             if let Some(lin_src) = subregs.get(&instr.regs[1]) {
                 let lin_dst = subregs.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
-                push_top(context,lin_dst,lin_src,lin_src.index.len()-1);
+                push_top(context,&lin_dst,&lin_src,lin_src.index.len()-1);
                 for level in (0..lin_src.index.len()-1).rev() {
-                    push_copy_level(context,lin_dst,lin_src,level);
+                    push_copy_level(context,&lin_dst,&lin_src,level);
                 }
                 context.add(Instruction::new(InstructionType::Append,vec![lin_dst.data,lin_src.data]));
             } else {
@@ -274,7 +253,7 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
             let top_level = lin_dst.index.len()-1;
             context.add(Instruction::new(InstructionType::Nil,vec![lin_dst.index[top_level].0]));
             let src_len = if let Some(lin_src) = subregs.get(&instr.regs[1]) {
-                let src_len = lower_seq_length(context,lin_src,top_level);
+                let src_len = lower_seq_length(context,&lin_src,top_level);
                 if top_level > 0 {
                     for level in 0..top_level {
                         context.add(Instruction::new(InstructionType::Copy,vec![lin_dst.index[level].0,lin_src.index[level].0]));
@@ -335,17 +314,48 @@ fn linearize_one(context: &mut GenContext, subregs: &BTreeMap<Register,Linearize
     Ok(())
 }
 
-fn linearize_real(context: &mut GenContext) -> anyhow::Result<BTreeMap<Register,Linearized>> {
-    let subregs = allocate_subregs(context);
-    for instr in &context.get_instructions().to_vec() {
-        linearize_one(context,&subregs,&instr)?;
+#[derive(Clone)]
+pub struct LinearizeRegsData(Rc<RefCell<BTreeMap<Register,Linearized>>>);
+
+impl LinearizeRegsData {
+    pub fn new() -> LinearizeRegsData {
+        LinearizeRegsData(Rc::new(RefCell::new(BTreeMap::new())))
     }
-    context.phase_finished();
-    Ok(subregs)
+}
+
+struct LinearizeRegs(LinearizeRegsData);
+
+impl LinearizeRegs {
+    fn new(data: &LinearizeRegsData) -> LinearizeRegs {
+        LinearizeRegs(data.clone())
+    }
+
+    fn allocate(&mut self, state: &mut GenerateState) {
+        let mut targets = Vec::new();
+        for (reg,type_) in state.types().each_register() {
+            let depth = type_.depth();
+            if depth > 0 && !(self.0).0.borrow().contains_key(reg) {
+                targets.push((*reg,type_.clone(),depth));
+            }
+        }
+        for (reg,type_,depth) in &targets {
+            (self.0).0.borrow_mut().insert(*reg,Linearized::new(state,type_,*depth));
+        }
+    }
+
+    fn get(&self, register: &Register) -> Option<Linearized> {
+        (self.0).0.borrow().get(register).cloned()
+    }
 }
 
 pub fn linearize(context: &mut GenContext) -> anyhow::Result<()> {
-    linearize_real(context)?;
+    let state = context.state_mut();
+    let mut regs = LinearizeRegs::new(state.linearize_regs_mut());
+    regs.allocate(state);
+    for instr in &context.get_instructions().to_vec() {
+        linearize_one(context,&regs,&instr)?;
+    }
+    context.phase_finished();
     Ok(())
 }
 
@@ -374,7 +384,7 @@ mod test {
         let mut context = generate_code(&mut state,&stmts,true).expect("codegen").expect("success");
         call(&mut context).expect("j");
         simplify(&mut context).expect("k");
-        linearize_real(&mut context).expect("linearize");
+        linearize(&mut context).expect("linearize");
         print!("{:?}\n",context);
         context.get_instructions()
     }

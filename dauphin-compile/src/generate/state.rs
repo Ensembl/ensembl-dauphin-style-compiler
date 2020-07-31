@@ -4,6 +4,7 @@ use dauphin_interp::util::DauphinError;
 use crate::model::{ DefStore, RegisterAllocator };
 use crate::typeinf::{ TypeModel, Typing };
 use crate::generate::simplify::SimplifyMapperData;
+use crate::generate::linearize::LinearizeRegsData;
 
 #[derive(Debug)]
 pub struct CodeGenRegNames {
@@ -50,7 +51,8 @@ pub struct GenerateState {
     typing: Typing,
     regalloc: RegisterAllocator,
     defstore: DefStore,
-    simplify_mapper: SimplifyMapperData
+    simplify_mapper: SimplifyMapperData,
+    linearize_regs: LinearizeRegsData
 }
 
 impl GenerateState {
@@ -62,10 +64,12 @@ impl GenerateState {
             typing: Typing::new(),
             regalloc: RegisterAllocator::new(0),
             defstore: DefStore::new(),
-            simplify_mapper: SimplifyMapperData::new()
+            simplify_mapper: SimplifyMapperData::new(),
+            linearize_regs: LinearizeRegsData::new(),
         }
     }
 
+    pub fn linearize_regs_mut(&mut self) -> &mut LinearizeRegsData { &mut self.linearize_regs }
     pub fn simplify_mapper(&self) -> &SimplifyMapperData { &self.simplify_mapper }
     pub fn debug_name(&self) -> &str { &self.debug_name }
     pub fn regalloc(&self) -> &RegisterAllocator { &self.regalloc }
