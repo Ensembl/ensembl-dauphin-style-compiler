@@ -3,6 +3,7 @@ use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
 use crate::model::{ DefStore, RegisterAllocator };
 use crate::typeinf::{ TypeModel, Typing };
+use crate::generate::simplify::SimplifyMapperData;
 
 #[derive(Debug)]
 pub struct CodeGenRegNames {
@@ -48,7 +49,8 @@ pub struct GenerateState {
     types: TypeModel,
     typing: Typing,
     regalloc: RegisterAllocator,
-    defstore: DefStore
+    defstore: DefStore,
+    simplify_mapper: SimplifyMapperData
 }
 
 impl GenerateState {
@@ -59,13 +61,16 @@ impl GenerateState {
             types: TypeModel::new(),
             typing: Typing::new(),
             regalloc: RegisterAllocator::new(0),
-            defstore: DefStore::new()
+            defstore: DefStore::new(),
+            simplify_mapper: SimplifyMapperData::new()
         }
     }
 
+    pub fn simplify_mapper(&self) -> &SimplifyMapperData { &self.simplify_mapper }
     pub fn debug_name(&self) -> &str { &self.debug_name }
     pub fn regalloc(&self) -> &RegisterAllocator { &self.regalloc }
-    pub fn types(&mut self) -> &mut TypeModel { &mut self.types }
+    pub fn types(&self) -> &TypeModel { &self.types }
+    pub fn types_mut(&mut self) -> &mut TypeModel { &mut self.types }
     pub fn typing(&mut self) -> &mut Typing { &mut self.typing }
     pub fn defstore(&self) -> &DefStore { &self.defstore }
     pub fn defstore_mut(&mut self) -> &mut DefStore { &mut self.defstore }

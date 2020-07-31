@@ -16,7 +16,7 @@
 
 use anyhow::{ self };
 use std::collections::{ HashMap };
-use dauphin_interp::command::{ CommandInterpretSuite, CommandSetId, OpcodeMapping, CommandDeserializer };
+use dauphin_interp::command::{ CommandSetId, OpcodeMapping };
 use crate::command::{ CommandCompileSuite, CompilerLink };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_array, cbor_int };
@@ -106,7 +106,7 @@ mod test{
     use std::rc::Rc;
     use crate::command::{ CommandCompileSuite, CommandSchema, CommandTrigger, CommandType, Instruction, Command, CompLibRegister };
     use dauphin_test_harness::{ FakeDeserializer, hexdump };
-    use dauphin_interp::command::{ Identifier, InterpLibRegister, InterpreterLink };
+    use dauphin_interp::command::{ Identifier, InterpLibRegister, InterpreterLink, CommandInterpretSuite };
     use dauphin_interp::util::DauphinError;
     use dauphin_interp::util::cbor::{ cbor_serialize };
     use super::*;

@@ -24,7 +24,6 @@ use dauphin_interp::command::{ Identifier };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::types::{ BaseType, MemberMode };
 use dauphin_interp::util::{ DauphinError, error_locate, triage_source_errors };
-use crate::model::DefStore;
 use crate::generate::GenerateState;
 use crate::typeinf::{ExpressionType, SignatureMemberConstraint, get_constraint };
 
@@ -356,7 +355,7 @@ impl<'b> CodeGen<'b> {
         } else {
             let state = self.context.state_mut();
             for (reg,expression_type) in state.typing().all_external() {
-                state.types().set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
+                state.types_mut().set(&reg,&expression_type.to_membertype(&BaseType::BooleanType));
             }
             Ok(Ok(self.context))
         }

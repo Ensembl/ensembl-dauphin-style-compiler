@@ -22,7 +22,6 @@ use std::fs::write;
 use super::gencontext::GenContext;
 use super::compilerun::compile_run;
 use crate::resolver::Resolver;
-use crate::model::{ DefStore };
 use crate::cli::Config;
 use crate::command::{ InstructionType, Instruction, CompilerLink };
 use crate::lexer::LexerPosition;

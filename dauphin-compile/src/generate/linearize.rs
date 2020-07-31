@@ -39,7 +39,7 @@ use dauphin_interp::util::DauphinError;
 
 fn number_reg(state: &mut GenerateState) -> Register {
     let out = state.regalloc().allocate();
-    state.types().set(&out,&MemberType::Base(BaseType::NumberType));
+    state.types_mut().set(&out,&MemberType::Base(BaseType::NumberType));
     out
 }
 
@@ -59,7 +59,7 @@ impl Linearized {
             indices.push((start,len));
         }
         let data = state.regalloc().allocate();
-        state.types().set(&data,&MemberType::Base(type_.get_base()));
+        state.types_mut().set(&data,&MemberType::Base(type_.get_base()));
         Linearized {
             index: indices,
             data

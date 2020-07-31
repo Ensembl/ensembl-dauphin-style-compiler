@@ -19,7 +19,6 @@ use rustyline::{ self, Editor };
 use dirs::home_dir;
 use std::collections::HashMap;
 use std::fs::{ write, read };
-use std::io::{ self, BufRead, Write };
 use std::path::PathBuf;
 use std::process::exit;
 use regex::Regex;

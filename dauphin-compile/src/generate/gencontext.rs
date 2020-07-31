@@ -20,8 +20,6 @@ use std::mem::swap;
 use crate::command::{ Instruction, InstructionType };
 use crate::generate::GenerateState;
 use crate::model::{ DefStore, RegisterAllocator };
-use crate::typeinf::{ ExpressionType, MemberType, TypeModel, Typing, get_constraint };
-use dauphin_interp::runtime::Register;
 
 pub struct GenContext<'b> {
     input_instrs: Vec<(Instruction,f64)>,

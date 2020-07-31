@@ -21,7 +21,6 @@ use std::time::{ SystemTime, Duration };
 use crate::cli::Config;
 use crate::command::{ Instruction, InstructionType, CompilerLink };
 use super::{ GenContext, GenerateState };
-use crate::model::DefStore;
 use crate::resolver::Resolver;
 use crate::parser::Statement;
 use super::dealias::remove_aliases;

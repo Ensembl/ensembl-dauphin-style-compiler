@@ -16,9 +16,11 @@
 
 use anyhow;
 use std::collections::HashMap;
+use std::rc::Rc;
+use std::cell::RefCell;
 use crate::command::{ Instruction, InstructionType };
 use crate::util::DFloat;
-use crate::model::{ DefStore, StructDef, EnumDef };
+use crate::model::{ StructDef, EnumDef };
 use crate::typeinf::{ ContainerType, MemberType };
 use crate::generate::GenerateState;
 use super::gencontext::GenContext;
@@ -49,7 +51,7 @@ use dauphin_interp::util::DauphinError;
 
 fn number_reg(state: &mut GenerateState) -> Register {
     let out = state.regalloc().allocate();
-    state.types().set(&out,&MemberType::Base(BaseType::NumberType));
+    state.types_mut().set(&out,&MemberType::Base(BaseType::NumberType));
     out
 }
 
@@ -64,7 +66,7 @@ macro_rules! instr_f {
         {
             let state = $context.state_mut();
             let x = state.regalloc().allocate();
-            state.types().set(&x,&MemberType::Base(BaseType::$type));
+            state.types_mut().set(&x,&MemberType::Base(BaseType::$type));
             instr!($context,$itype,x,$($regs),*);
             x
         }
@@ -75,24 +77,23 @@ fn allocate_registers(state: &mut GenerateState, member_types: &Vec<MemberType>,
     let mut out = Vec::new();
     if with_index {
         let reg = number_reg(state);
-        state.types().set(&reg,&container_type.construct(MemberType::Base(BaseType::NumberType)));
+        state.types_mut().set(&reg,&container_type.construct(MemberType::Base(BaseType::NumberType)));
         out.push(reg);
     }
     for member_type in member_types.iter() {
         let reg = state.regalloc().allocate();
-        state.types().set(&reg,&container_type.construct(member_type.clone()));
+        state.types_mut().set(&reg,&container_type.construct(member_type.clone()));
         out.push(reg);
     }
     out
 }
 
-fn extend_vertical<F>(in_: &Vec<Register>, mapping: &HashMap<Register,Vec<Register>>,mut cb: F) -> anyhow::Result<()>
+fn extend_vertical<F>(in_: &Vec<Register>, mapping: &SimplifyTypeMapperResult,mut cb: F) -> anyhow::Result<()>
         where F: FnMut(Vec<Register>) -> anyhow::Result<()> {
     let mut expanded = Vec::new();
     let mut len = None;
     for in_reg in in_.iter() {
-        let in_reg = in_reg.clone().clone();
-        let map = mapping.get(&in_reg).unwrap_or(&vec![in_reg]).clone();
+        let map = mapping.get(&in_reg).unwrap_or(&vec![*in_reg]).clone();
         if len.is_none() { len = Some(map.len()); }
         if map.len() != len.unwrap() { return Err(DauphinError::internal(file!(),line!())); /* mismatched register lengths */ }
         expanded.push(map);
@@ -110,7 +111,7 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
         MemberType::Vec(m) =>  {
             let state = context.state_mut();
             let subreg = state.regalloc().allocate();
-            state.types().set(&subreg,m);
+            state.types_mut().set(&subreg,m);
             instr!(context,Nil,subreg);
             instr!(context,Star,*reg,subreg);
         },
@@ -126,7 +127,7 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
                 for member_type in decl.get_member_types() {
                     let state = context.state_mut();
                     let r = state.regalloc().allocate();
-                    state.types().set(&r,member_type);
+                    state.types_mut().set(&r,member_type);
                     build_nil(context,&r,member_type)?;
                     subregs.push(r);
                 }
@@ -138,7 +139,7 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
                 let branch_type = decl.get_branch_types().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 let field_name = decl.get_names().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 let subreg = state.regalloc().allocate();
-                state.types().set(&subreg,branch_type);
+                state.types_mut().set(&subreg,branch_type);
                 build_nil(context,&subreg,branch_type)?;
                 context.add(Instruction::new(InstructionType::CtorEnum(name.clone(),field_name.clone()),vec![*reg,subreg]));
             }
@@ -147,7 +148,7 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
     Ok(())
 }
 
-fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
+fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &SimplifyTypeMapperResult) -> anyhow::Result<()> {
     Ok(match &instr.itype {
         InstructionType::Proc(_,_) |
         InstructionType::Operator(_) |
@@ -226,14 +227,14 @@ fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &HashMa
     })
 }
 
-fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &StructDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
+fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &StructDef, instr: &Instruction, mapping: &SimplifyTypeMapperResult) -> anyhow::Result<()> {
     /* because types topologically ordered and non-recursive
     * we know there's nothing to expand in the args in the else branches.
     */
     Ok(match &instr.itype {
         InstructionType::CtorStruct(name) => {
             if name == obj_name {
-                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+                let dests = mapping.get_or_fail(&instr.regs[0])?;
                 for i in 1..instr.regs.len() {
                     instr!(context,Copy,dests[i-1],instr.regs[i]);
                 }
@@ -243,13 +244,13 @@ fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &S
         },
 
         InstructionType::SValue(name,field) if name == obj_name => {
-            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let dests = mapping.get_or_fail(&instr.regs[1])?;
             let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
             instr!(context,Copy,instr.regs[0],dests[pos]);
         },
 
         InstructionType::RefSValue(name,field) if name == obj_name => {
-            let dests = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let dests = mapping.get_or_fail(&instr.regs[1])?;
             let pos = decl.get_names().iter().position(|n| n==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
             instr!(context,Alias,instr.regs[0],dests[pos]);
         },
@@ -258,13 +259,13 @@ fn extend_struct_instr(obj_name: &Identifier, context: &mut GenContext, decl: &S
     })
 }
 
-fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &EnumDef, instr: &Instruction, mapping: &HashMap<Register,Vec<Register>>) -> anyhow::Result<()> {
+fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &EnumDef, instr: &Instruction, mapping: &SimplifyTypeMapperResult) -> anyhow::Result<()> {
     /* because types topologically ordered and non-recursive we know there's nothing to expand in the args */
     Ok(match &instr.itype {
         InstructionType::CtorEnum(name,field) => {
             if name == obj_name {
                 let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
-                let dests = mapping.get(&instr.regs[0]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+                let dests = mapping.get_or_fail(&instr.regs[0])?;
                 for i in 1..dests.len() {
                     if i-1 == pos {
                         context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(i-1)),vec![dests[0]]));
@@ -282,7 +283,7 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
 
         InstructionType::FilterEValue(name,field) if name == obj_name => {
             let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let srcs = mapping.get_or_fail(&instr.regs[1])?;
             let state = context.state_mut();
             let posreg = number_reg(state);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
@@ -293,7 +294,7 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
 
         InstructionType::EValue(name,field) if name == obj_name => {
             let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let srcs = mapping.get_or_fail(&instr.regs[1])?;
             let state = context.state_mut();
             let posreg = number_reg(state);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
@@ -303,13 +304,13 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
 
         InstructionType::RefEValue(name,field) if name == obj_name => {
             let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let srcs = mapping.get_or_fail(&instr.regs[1])?;
             instr!(context,Alias,instr.regs[0],srcs[pos+1]);
         },
 
         InstructionType::ETest(name,field) if name == obj_name => {
             let pos = decl.get_names().iter().position(|v| v==field).ok_or_else(|| DauphinError::source(&format!("No such field {}\n",field)))?;
-            let srcs = mapping.get(&instr.regs[1]).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+            let srcs = mapping.get_or_fail(&instr.regs[1])?;
             let state = context.state_mut();
             let posreg = number_reg(state);
             context.add(Instruction::new(InstructionType::NumberConst(DFloat::new_usize(pos)),vec![posreg]));
@@ -320,40 +321,125 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
     })
 }
 
-fn make_new_registers(context: &mut GenContext, member_types: &Vec<MemberType>, base: BaseType, with_index: bool) -> anyhow::Result<HashMap<Register,Vec<Register>>> {
-    let mut target_registers = Vec::new();
-    /* which registers will we be expanding? */
-    let state = context.state_mut();
-    for (reg,reg_type) in state.types().each_register() {
-        if reg_type.get_base() == base {
-            target_registers.push(reg.clone());
+#[derive(Clone)]
+struct SimplifyTypeMapperResult(HashMap<Register,Vec<Register>>);
+
+impl SimplifyTypeMapperResult {
+    fn get(&self, reg: &Register) -> Option<&Vec<Register>> {
+        self.0.get(reg)
+    }
+
+    fn get_or_fail(&self, reg: &Register) -> anyhow::Result<&Vec<Register>> {
+        self.get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))
+    }
+}
+
+struct SimplifyTypeMapper {
+    member_types: Vec<MemberType>,
+    with_index: bool,
+    maps: SimplifyTypeMapperResult
+}
+
+impl SimplifyTypeMapper {
+    fn new(state: &GenerateState, base: &BaseType) -> anyhow::Result<SimplifyTypeMapper> {
+        let (member_types,with_index) = if let BaseType::EnumType(name) = base {
+            let decl = state.defstore().get_enum_id(name)?;
+            (decl.get_branch_types().to_vec(),true) 
+        } else if let BaseType::StructType(name) = base {
+            let decl = state.defstore().get_struct_id(name)?;
+            (decl.get_member_types().to_vec(),false)
+        } else {
+            return Err(DauphinError::internal(file!(),line!()));
+        };
+        Ok(SimplifyTypeMapper {
+            member_types,
+            with_index,
+            maps: SimplifyTypeMapperResult(HashMap::new())
+        })
+    }
+
+    fn add(&mut self, state: &mut GenerateState, reg: &Register) -> anyhow::Result<()> {
+        let type_ = state.types().get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
+        let maps = &mut self.maps.0;
+        if !maps.contains_key(reg) {
+            maps.insert(reg.clone(),allocate_registers(state,&self.member_types,self.with_index,type_.get_container()));
+        }
+        Ok(())
+    }
+
+    fn get_result(&self) -> SimplifyTypeMapperResult {
+        self.maps.clone()
+    }
+}
+
+#[derive(Clone)]
+pub struct SimplifyMapperData(Rc<RefCell<HashMap<BaseType,SimplifyTypeMapper>>>);
+
+impl SimplifyMapperData {
+    pub fn new() -> SimplifyMapperData {
+        SimplifyMapperData(Rc::new(RefCell::new(HashMap::new())))
+    }
+}
+
+struct SimplifyMapper {
+    data: SimplifyMapperData
+}
+
+impl SimplifyMapper {
+    fn new(data: &SimplifyMapperData) -> SimplifyMapper {
+        SimplifyMapper {
+            data: data.clone()
         }
     }
-    target_registers.sort();
-    /* create some new subregisters for them */
-    let mut new_registers = HashMap::new();
-    for reg in &target_registers {
-        let type_ = state.types().get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
-        new_registers.insert(reg.clone(),allocate_registers(state,member_types,with_index,type_.get_container()));
+
+    fn get_all_registers(&self, state: &mut GenerateState, base: &BaseType) -> Vec<Register> {
+        let mut target_registers = vec![];
+        /* which registers will we be expanding? */
+        for (reg,reg_type) in state.types().each_register() {
+            if &reg_type.get_base() == base {
+                target_registers.push(reg.clone());
+            }
+        }
+        target_registers.sort();
+        target_registers    
     }
-    /* move any refs which include our member forward to new origin */
-    Ok(new_registers)
+
+    fn process_type(&mut self, state: &mut GenerateState, base: BaseType) -> anyhow::Result<SimplifyTypeMapperResult> {
+        let mut types = self.data.0.borrow_mut();
+        if !types.contains_key(&base) {
+            types.insert(base.clone(),SimplifyTypeMapper::new(state,&base)?);
+        }
+        let regs = self.get_all_registers(state,&base);
+        let stm = types.get_mut(&base).unwrap();
+        for reg in &regs {
+            stm.add(state,&reg)?;
+        }
+        Ok(types.get(&base).unwrap().get_result())
+    }
+
+    fn process_identifier(&mut self, state: &mut GenerateState, name: &Identifier) -> anyhow::Result<SimplifyTypeMapperResult> {
+        Ok(if let Some(_) = state.defstore().get_struct_id(name).ok() {
+            let base = BaseType::StructType(name.clone());
+            self.process_type(state,base)?
+        } else if let Some(_) = state.defstore().get_enum_id(name).ok() {
+            let base = BaseType::EnumType(name.clone());
+            self.process_type(state,base)?
+        } else {
+            return Err(DauphinError::internal(file!(),line!())); /* can only extend structs/enums */
+        })
+    }
 }
 
 fn extend_one(context: &mut GenContext, name: &Identifier) -> anyhow::Result<()> {
+    let mut sm = SimplifyMapper::new(&context.state().simplify_mapper());
+    let stm = sm.process_identifier(context.state_mut(),name)?;
     if let Some(decl) = context.state().defstore().get_struct_id(name).ok() {
-        let member_types = decl.get_member_types().clone();
-        let base = BaseType::StructType(name.clone());
-        let new_registers = make_new_registers(context,&member_types,base,false)?;
         for instr in &context.get_instructions() {
-            extend_struct_instr(name,context,&decl,instr,&new_registers)?;
+            extend_struct_instr(name,context,&decl,instr,&stm)?;
         }
     } else if let Some(decl) = context.state().defstore().get_enum_id(name).ok() {
-        let member_types = decl.get_branch_types();
-        let base = BaseType::EnumType(name.clone());
-        let new_registers = make_new_registers(context,member_types,base,true)?;
         for instr in &context.get_instructions() {
-            extend_enum_instr(context,name,&decl,instr,&new_registers)?;
+            extend_enum_instr(context,name,&decl,instr,&stm)?;
         }
     } else {
         return Err(DauphinError::internal(file!(),line!())); /* can only extend structs/enums */
