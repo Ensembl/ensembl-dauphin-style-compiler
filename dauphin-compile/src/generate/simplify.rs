@@ -93,7 +93,7 @@ fn extend_vertical<F>(in_: &Vec<Register>, mapping: &SimplifyTypeMapperResult,mu
     let mut expanded = Vec::new();
     let mut len = None;
     for in_reg in in_.iter() {
-        let map = mapping.get(&in_reg).unwrap_or(&vec![*in_reg]).clone();
+        let map = mapping.get(&in_reg).unwrap_or(Rc::new(vec![*in_reg])).clone();
         if len.is_none() { len = Some(map.len()); }
         if map.len() != len.unwrap() { return Err(DauphinError::internal(file!(),line!())); /* mismatched register lengths */ }
         expanded.push(map);
@@ -322,14 +322,14 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
 }
 
 #[derive(Clone)]
-struct SimplifyTypeMapperResult(HashMap<Register,Vec<Register>>);
+struct SimplifyTypeMapperResult(HashMap<Register,Rc<Vec<Register>>>);
 
 impl SimplifyTypeMapperResult {
-    fn get(&self, reg: &Register) -> Option<&Vec<Register>> {
-        self.0.get(reg)
+    fn get(&self, reg: &Register) -> Option<Rc<Vec<Register>>> {
+        self.0.get(reg).cloned()
     }
 
-    fn get_or_fail(&self, reg: &Register) -> anyhow::Result<&Vec<Register>> {
+    fn get_or_fail(&self, reg: &Register) -> anyhow::Result<Rc<Vec<Register>>> {
         self.get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))
     }
 }
@@ -362,7 +362,7 @@ impl SimplifyTypeMapper {
         let type_ = state.types().get(reg).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
         let maps = &mut self.maps.0;
         if !maps.contains_key(reg) {
-            maps.insert(reg.clone(),allocate_registers(state,&self.member_types,self.with_index,type_.get_container()));
+            maps.insert(reg.clone(),Rc::new(allocate_registers(state,&self.member_types,self.with_index,type_.get_container())));
         }
         Ok(())
     }

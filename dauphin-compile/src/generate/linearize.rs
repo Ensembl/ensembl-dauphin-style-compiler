@@ -44,7 +44,7 @@ fn number_reg(state: &mut GenerateState) -> Register {
     out
 }
 
-#[derive(Clone,Debug)]
+#[derive(Debug)]
 struct Linearized {
     index: Vec<(Register,Register)>,
     data: Register
@@ -103,7 +103,7 @@ fn push_top(context: &mut GenContext, lin_dst: &Linearized, lin_src: &Linearized
     context.add(Instruction::new(InstructionType::Append,vec![lin_dst.index[level].1,lin_src.index[level].1]));
 }
 
-fn linear_extend<F>(subregs: &LinearizeRegs, dst: &Register, src: &Register, mut cb: F)
+fn linear_extend<F>(subregs: &LinearizeRegsResult, dst: &Register, src: &Register, mut cb: F)
         where F: FnMut(&Register,&Register) {
     if let Some(lin_src) = subregs.get(src) {
         let lin_dst = subregs.get(dst).unwrap();
@@ -117,7 +117,7 @@ fn linear_extend<F>(subregs: &LinearizeRegs, dst: &Register, src: &Register, mut
     }
 }
 
-fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegs, instr: &Instruction) -> anyhow::Result<()> {
+fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegsResult, instr: &Instruction) -> anyhow::Result<()> {
     match &instr.itype {
         InstructionType::NumEq |
         InstructionType::ReFilter |
@@ -315,11 +315,23 @@ fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegs, instr: &Inst
 }
 
 #[derive(Clone)]
-pub struct LinearizeRegsData(Rc<RefCell<BTreeMap<Register,Linearized>>>);
+pub struct LinearizeRegsData(BTreeMap<Register,Rc<Linearized>>);
 
 impl LinearizeRegsData {
     pub fn new() -> LinearizeRegsData {
-        LinearizeRegsData(Rc::new(RefCell::new(BTreeMap::new())))
+        LinearizeRegsData(BTreeMap::new())
+    }
+}
+
+struct LinearizeRegsResult(BTreeMap<Register,Rc<Linearized>>);
+
+impl LinearizeRegsResult {
+    fn new(data: &LinearizeRegsData) -> LinearizeRegsResult {
+        LinearizeRegsResult(data.0.clone())
+    }
+
+    fn get(&self, register: &Register) -> Option<Rc<Linearized>> {
+        self.0.get(register).cloned()
     }
 }
 
@@ -334,26 +346,26 @@ impl LinearizeRegs {
         let mut targets = Vec::new();
         for (reg,type_) in state.types().each_register() {
             let depth = type_.depth();
-            if depth > 0 && !(self.0).0.borrow().contains_key(reg) {
+            if depth > 0 && !(self.0).0.contains_key(reg) {
                 targets.push((*reg,type_.clone(),depth));
             }
         }
         for (reg,type_,depth) in &targets {
-            (self.0).0.borrow_mut().insert(*reg,Linearized::new(state,type_,*depth));
+            (self.0).0.insert(*reg,Rc::new(Linearized::new(state,type_,*depth)));
         }
-    }
-
-    fn get(&self, register: &Register) -> Option<Linearized> {
-        (self.0).0.borrow().get(register).cloned()
     }
 }
 
 pub fn linearize(context: &mut GenContext) -> anyhow::Result<()> {
+    {
     let state = context.state_mut();
     let mut regs = LinearizeRegs::new(state.linearize_regs_mut());
     regs.allocate(state);
+    }
+    let state = context.state();
+    let subregs = LinearizeRegsResult::new(state.linearize_regs());
     for instr in &context.get_instructions().to_vec() {
-        linearize_one(context,&regs,&instr)?;
+        linearize_one(context,&subregs,&instr)?;
     }
     context.phase_finished();
     Ok(())

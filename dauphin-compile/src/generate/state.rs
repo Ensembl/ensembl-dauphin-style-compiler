@@ -69,6 +69,7 @@ impl GenerateState {
         }
     }
 
+    pub fn linearize_regs(&self) -> &LinearizeRegsData { &self.linearize_regs }
     pub fn linearize_regs_mut(&mut self) -> &mut LinearizeRegsData { &mut self.linearize_regs }
     pub fn simplify_mapper(&self) -> &SimplifyMapperData { &self.simplify_mapper }
     pub fn debug_name(&self) -> &str { &self.debug_name }
