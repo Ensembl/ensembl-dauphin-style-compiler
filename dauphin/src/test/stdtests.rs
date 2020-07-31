@@ -85,7 +85,7 @@ fn extend_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("j").expect("k");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("j").expect("k");
     let mut prev : Option<Instruction> = None;
     for instr in &instrs {
         if let InstructionType::Call(id,_,_,_) = &instr.itype {
@@ -115,7 +115,7 @@ fn vector_append() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("j").expect("k");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("j").expect("k");
     let is = make_interpret_suite().expect("n");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {

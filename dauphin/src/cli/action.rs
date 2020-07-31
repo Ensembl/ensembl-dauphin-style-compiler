@@ -107,7 +107,7 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         Ok(_) => {}
     };
     let stmts = p.take_statements();
-    let instrs = match generate(&linker,&stmts,&mut state,&resolver,&config).context("generating code")? {
+    let instrs = match generate(&linker,&stmts,&mut state,&resolver,&config,true).context("generating code")? {
         Err(errors) => {
             print!("{}\n",errors.join("\n"));
             return Ok(false);
@@ -218,7 +218,7 @@ impl<'a,'b> ReplContext<'a,'b> {
             Ok(_) => {}
         };
         let stmts = self.parser.as_mut().unwrap().take_statements();
-        let instrs = match generate(&self.linker,&stmts,&mut self.state,&self.resolver,&self.config).context("generating code")? {
+        let instrs = match generate(&self.linker,&stmts,&mut self.state,&self.resolver,&self.config,false).context("generating code")? {
             Err(errors) => {
                 print!("{}\n",errors.join("\n"));
                 return Ok(None);

@@ -128,7 +128,7 @@ mod test {
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
+        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config(),true).expect("j").expect("j");
         let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"boolean")).expect("a");
         assert_eq!("*<0>/R",format_pvec(&regs));
         let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"vec(offset_smoke::etest3)")).expect("b");
@@ -146,7 +146,7 @@ mod test {
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         p.parse(&mut state,&mut lexer).expect("error").expect("error");
         let stmts = p.take_statements();
-        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config()).expect("j").expect("j");
+        generate(&linker,&stmts,&mut state,&resolver,&xxx_test_config(),true).expect("j").expect("j");
         let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(state.defstore(),"vec(offset_smoke::etest3)")).expect("b");
         let named = regs.serialize(true).expect("cbor a");
         cbor_cmp(&named,"cbor-signature-named.out");

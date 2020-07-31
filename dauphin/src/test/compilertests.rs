@@ -66,7 +66,7 @@ fn offset_enums() {
     let stmts = p.take_statements();
     let regs = make_full_type(state.defstore(),MemberMode::In,&make_type(&state.defstore(),"offset_enums::stest")).expect("b");
     assert_eq!(load_cmp("offset-enums.out"),regs.to_string());
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let is = make_interpret_suite().expect("m");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
@@ -86,7 +86,7 @@ fn typing_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let instrs_str : Vec<String> = instrs.iter().map(|v| format!("{:?}",v)).collect();
     print!("{}\n",instrs_str.join(""));
     let mut tp = Typing::new();
@@ -146,7 +146,7 @@ fn line_number_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
@@ -169,7 +169,7 @@ fn no_line_number_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let md = ProgramMetadata::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
@@ -258,7 +258,7 @@ fn simplify_enum_lvalue() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let is = make_interpret_suite().expect("m");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     for s in &strings {
@@ -277,7 +277,7 @@ fn simplify_struct_lvalue() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let is = make_interpret_suite().expect("m");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
@@ -297,7 +297,7 @@ fn simplify_both_lvalue() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let is = make_interpret_suite().expect("m");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
@@ -318,7 +318,7 @@ fn dealias_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let is = make_interpret_suite().expect("m");
     let (values,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
     print!("{:?}\n",values);
@@ -344,7 +344,7 @@ fn reuse_regs_smoke() {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     print!("{:?}",instrs.iter().map(|x| format!("{:?}",x)).collect::<Vec<_>>().join(""));
     let is = make_interpret_suite().expect("m");
     let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
@@ -372,7 +372,7 @@ fn pause_check(filename: &str) -> bool {
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let mut seen_force_pause = false;
     for instr in &instrs {
         if seen_force_pause {
@@ -403,7 +403,7 @@ fn make_program(linker: &mut CompilerLink, resolver: &Resolver, config: &Config,
     let mut p = Parser::new(&mut state,&mut lexer).expect("a");
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config).expect("m").expect("errors");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
     let md = ProgramMetadata::new(name,None,&instrs);
     linker.add(&md,&instrs,config)?;
     Ok(())

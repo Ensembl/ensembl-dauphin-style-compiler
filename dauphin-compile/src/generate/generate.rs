@@ -136,20 +136,22 @@ impl GenerateMenu {
         GenerateMenu { gen_steps, opt_steps, post_steps }
     }
 
-    fn run_steps<'a,'b>(&self, config: &Config, sequence: &str, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
+    fn run_steps<'a,'b>(&self, config: &Config, sequence: &str, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext, optimise: bool) -> anyhow::Result<()> {
         let mut index = 1;
         for step in &self.gen_steps {
             step.run(index,config,compiler_link,resolver,context)?;
             index += 1;
         }
-        for k in sequence.chars() {
-            let step = self.opt_steps.get(&k.to_string()).ok_or_else(|| DauphinError::config(&format!("No such step '{}'",k)))?;
-            step.run(index,config,compiler_link,resolver,context)?;
-            index += 1;
-        }
-        for step in &self.post_steps {
-            step.run(index,config,compiler_link,resolver,context)?;
-            index += 1;
+        if optimise {
+            for k in sequence.chars() {
+                let step = self.opt_steps.get(&k.to_string()).ok_or_else(|| DauphinError::config(&format!("No such step '{}'",k)))?;
+                step.run(index,config,compiler_link,resolver,context)?;
+                index += 1;
+            }
+            for step in &self.post_steps {
+                step.run(index,config,compiler_link,resolver,context)?;
+                index += 1;
+            }
         }
         Ok(())
     }
@@ -169,11 +171,11 @@ fn calculate_opt_seq(config: &Config) -> anyhow::Result<&str> {
 }
 
 pub fn generate<'b>(compiler_link: &CompilerLink, stmts: &Vec<Statement>, state: &'b mut GenerateState,
-                resolver: &Resolver, config: &Config) -> anyhow::Result<Result<Vec<Instruction>,Vec<String>>> {
+                resolver: &Resolver, config: &Config,  optimise: bool) -> anyhow::Result<Result<Vec<Instruction>,Vec<String>>> {
     match generate_code(state,&stmts,config.get_generate_debug())? {
         Ok(mut context) => {
             let gm = GenerateMenu::new();
-            gm.run_steps(config,calculate_opt_seq(&config)?,compiler_link,resolver,&mut context)?;
+            gm.run_steps(config,calculate_opt_seq(&config)?,compiler_link,resolver,&mut context,optimise)?;
             Ok(Ok(context.get_instructions()))
         },
         Err(errors) => Ok(Err(errors))

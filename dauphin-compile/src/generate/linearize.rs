@@ -44,7 +44,7 @@ fn number_reg(state: &mut GenerateState) -> Register {
     out
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 struct Linearized {
     index: Vec<(Register,Register)>,
     data: Register
@@ -315,11 +315,11 @@ fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegsResult, instr:
 }
 
 #[derive(Clone)]
-pub struct LinearizeRegsData(BTreeMap<Register,Rc<Linearized>>);
+pub struct LinearizeRegsData(Rc<RefCell<BTreeMap<Register,Linearized>>>);
 
 impl LinearizeRegsData {
     pub fn new() -> LinearizeRegsData {
-        LinearizeRegsData(BTreeMap::new())
+        LinearizeRegsData(Rc::new(RefCell::new(BTreeMap::new())))
     }
 }
 
@@ -327,7 +327,9 @@ struct LinearizeRegsResult(BTreeMap<Register,Rc<Linearized>>);
 
 impl LinearizeRegsResult {
     fn new(data: &LinearizeRegsData) -> LinearizeRegsResult {
-        LinearizeRegsResult(data.0.clone())
+        LinearizeRegsResult(data.0.borrow().iter().map(|(k,v)| {
+            (k.clone(),Rc::new(v.clone()))
+        }).collect())
     }
 
     fn get(&self, register: &Register) -> Option<Rc<Linearized>> {
@@ -346,12 +348,12 @@ impl LinearizeRegs {
         let mut targets = Vec::new();
         for (reg,type_) in state.types().each_register() {
             let depth = type_.depth();
-            if depth > 0 && !(self.0).0.contains_key(reg) {
+            if depth > 0 && !(self.0).0.borrow().contains_key(reg) {
                 targets.push((*reg,type_.clone(),depth));
             }
         }
         for (reg,type_,depth) in &targets {
-            (self.0).0.insert(*reg,Rc::new(Linearized::new(state,type_,*depth)));
+            (self.0).0.borrow_mut().insert(*reg,Linearized::new(state,type_,*depth));
         }
     }
 }

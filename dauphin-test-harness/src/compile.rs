@@ -101,7 +101,7 @@ pub fn compile(cs: CommandCompileSuite, is: &CommandInterpretSuite, config: &Con
     let mut p = Parser::new(&mut state,&mut lexer)?;
     p.parse(&mut state,&mut lexer)?.map_err(|e| DauphinError::runtime(&e.join(". ")))?;
     let stmts = p.take_statements();
-    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config)?.expect("error");
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true)?.expect("error");
     let (_,strings) = mini_interp(is,&instrs,&mut linker,&config,"main")?;
     Ok(strings)
 }
