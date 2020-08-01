@@ -116,7 +116,7 @@ impl Command for CopyCommand {
     }
 
     fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
-        Ok(if context.is_reg_valid(&self.1) && !context.is_last() {
+        Ok(if context.is_reg_valid(&self.1) {
             PreImagePrepare::Replace
         } else if let Some(size) = context.get_reg_size(&self.1) {
             PreImagePrepare::Keep(vec![(self.0.clone(),size)])
@@ -125,8 +125,12 @@ impl Command for CopyCommand {
         })
     }
     
-    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
-        Ok(PreImageOutcome::Constant(vec![self.0]))
+    fn preimage_post(&self, context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
+        if context.is_last() {
+            Ok(PreImageOutcome::SkipConstant(vec![self.0]))
+        } else {
+            Ok(PreImageOutcome::Constant(vec![self.0]))
+        }
     }
 
     fn execution_time(&self, context: &PreImageContext) -> f64 {

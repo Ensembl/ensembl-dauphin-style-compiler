@@ -170,7 +170,11 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> anyhow::Res
 
 pub fn get_constraint(instr: &Instruction, defstore: &DefStore) -> anyhow::Result<InstructionConstraint> {
     let mut out = Vec::new();
-    for (i,c) in get_constraints(&instr.itype, defstore)?.drain(..).enumerate() {
+    let mut constraints = get_constraints(&instr.itype, defstore)?;
+    if constraints.len() != instr.regs.len() {
+        return Err(DauphinError::source(&format!("incorrect number of arguments. Expected {} got {}",constraints.len(),instr.regs.len())));
+    }
+    for (i,c) in constraints.drain(..).enumerate() {
         out.push((c,instr.regs[i]));
     }
     Ok(InstructionConstraint::new(&out))

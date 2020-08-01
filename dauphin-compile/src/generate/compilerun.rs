@@ -153,6 +153,13 @@ impl<'a,'b,'d> CompileRun<'a,'b,'d> {
                 for reg in &regs {
                     self.make_constant(reg)?;
                 }
+            },
+            PreImageOutcome::SkipConstant(regs) => {
+                for reg in &regs {
+                    self.context.set_reg_valid(reg)?;
+                }
+                self.commit()?;
+                self.add(instr.clone())?;
             }
         }
         self.commit()?;

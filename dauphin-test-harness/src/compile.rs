@@ -29,7 +29,6 @@ use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::resolver::common_resolver;
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::parser::Parser;
-use dauphin_compile::model::DefStore;
 use crate::hexdump;
 
 pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a InterpreterLink, config: &Config, name: &str) -> anyhow::Result<Box<dyn InterpretInstance + 'a>> {

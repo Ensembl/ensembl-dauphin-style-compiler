@@ -16,6 +16,7 @@
 
 mod eq;
 mod library;
+mod map;
 mod numops;
 mod print;
 mod vector;

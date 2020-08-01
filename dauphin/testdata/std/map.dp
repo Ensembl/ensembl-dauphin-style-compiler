@@ -1,0 +1,16 @@
+import "lib:std";
+use "std";
+
+import "lib:buildtime";
+use "buildtime";
+
+hs1 := ["a","b","c"];
+hs2 := ["c","b","a"];
+alienate(hs1);
+set_size_hint(hs1,1);
+set_size_hint(hs1[],3);
+alienate(hs2);
+set_size_hint(hs2,1);
+set_size_hint(hs2[],3);
+y := lookup(["b","b","c","d"][],[hs1,hs2][],10);
+assert(y==[1,1,2,10][],true);

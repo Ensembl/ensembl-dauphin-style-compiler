@@ -25,6 +25,7 @@ mod compile {
     mod assign;
     mod eq;
     mod extend;
+    mod map;
     mod numops;
     mod print;
     mod vector;

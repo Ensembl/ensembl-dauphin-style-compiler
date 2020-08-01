@@ -58,6 +58,7 @@ pub enum PreImagePrepare {
 pub enum PreImageOutcome {
     Skip(Vec<(Register,usize)>),
     Constant(Vec<Register>),
+    SkipConstant(Vec<Register>),
     Replace(Vec<Instruction>)
 }
 

@@ -33,3 +33,7 @@ func format(_) becomes string;
 
 expr push(list,item) [list[] (+) item];
 expr append(list,items) [list[] (+) items[]];
+
+func lookup(string,vec(string),number) becomes number;
+//func in(string,vec(string)) becomes boolean;
+//func map(vec(number),vec(string)) becomes vec(string);

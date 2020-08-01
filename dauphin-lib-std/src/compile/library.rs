@@ -29,10 +29,11 @@ use super::eq::{ library_eq_command };
 use super::assign::{ library_assign_commands };
 use super::print::{ PrintCommandType, FormatCommandType };
 use super::vector::{ library_vector_commands };
+use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,0),0xDB806BE64887FAA9)
+    CommandSetId::new("std",(0,0),0x4B0504542866DA3D)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -163,7 +164,6 @@ impl Command for AlienateCommand {
 pub fn make_std() -> CompLibRegister {
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
-    /* 3 is free */
     set.push("len",None,LenCommandType());
     set.push("assert",Some(4),AssertCommandType());
     set.push("alienate",Some(13),AlienateCommandType());
@@ -173,6 +173,7 @@ pub fn make_std() -> CompLibRegister {
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);
     library_vector_commands(&mut set);
+    library_map_commands(&mut set);
     set.dynamic_data(include_bytes!("std-0.0.ddd"));
     set
 }

@@ -23,6 +23,7 @@ use super::eq::{ library_eq_command_interp };
 use super::numops::{ library_numops_commands_interp };
 use super::vector::{ library_vector_commands_interp };
 use super::print::{ library_print_commands_interp };
+use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
     CommandSetId::new("std",(0,0),0x8A07AE1254D6E44B)
@@ -61,5 +62,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     library_print_commands_interp(&mut set);
     library_numops_commands_interp(&mut set);
     library_vector_commands_interp(&mut set);
+    library_map_commands_interp(&mut set);
     set
 }
