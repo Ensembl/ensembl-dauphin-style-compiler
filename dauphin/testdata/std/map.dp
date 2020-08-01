@@ -14,3 +14,14 @@ set_size_hint(hs2,1);
 set_size_hint(hs2[],3);
 y := lookup(["b","b","c","d"][],[hs1,hs2][],10);
 assert(y==[1,1,2,10][],true);
+
+/* this is how string-keyed hashes should be emulated.
+ * lookup is efficient wrt large haystacks.
+ */
+struct hash { k: string, v: number };
+z := [ hash { k: "hello", v: 42 }, hash { k: "world", v: 43 } ];
+
+z1 := z[@==lookup("hello",[z[].k],0)].v;
+z2 := z[@==lookup("world",[z[].k],0)].v;
+assert(z1==42,true);
+assert(z2==43,true);

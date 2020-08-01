@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{ HashMap, HashSet };
 use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -41,6 +41,42 @@ impl InterpCommand for LookupInterpCommand {
     }
 }
 
+pub struct InInterpCommand(Register,Register,Register,Register,Register);
+
+impl InterpCommand for InInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+        let registers = context.registers_mut();
+        let needles = registers.get_strings(&self.1)?;
+        let haystack_offsets = registers.get_indexes(&self.3)?;
+        let haystack_lens = registers.get_indexes(&self.4)?;
+        let haystack_data = registers.get_strings(&self.2)?;
+        let num_haystacks = haystack_offsets.len();
+        let mut outputs = vec![];
+        for hs_index in 0..num_haystacks {
+            let hs_start = haystack_offsets[hs_index];
+            let hs_len = haystack_lens[hs_index];
+            let input : HashSet<String> = 
+                haystack_data[hs_start..(hs_start+hs_len)].iter().map(|v| {
+                    v.to_string()
+                }).collect();
+            let output : Vec<bool> = 
+                needles.iter().skip(hs_index).step_by(num_haystacks).map(|needle| {
+                    input.contains(needle)
+                }).collect();
+            outputs.push(output);
+        }
+        let mut merged = vec![];
+        let mut iters = outputs.iter().map(|x| x.iter()).collect::<Vec<_>>();
+        let mut index = 0;
+        while let Some(value) = iters[index].next() {
+            index = (index+1) % outputs.len();
+            merged.push(*value);
+        }
+        registers.write(&self.0,InterpValue::Boolean(merged));
+        Ok(())
+    }
+}
+
 pub struct LookupDeserializer();
 
 impl CommandDeserializer for LookupDeserializer {
@@ -53,6 +89,20 @@ impl CommandDeserializer for LookupDeserializer {
     }
 }
 
+
+pub struct InDeserializer();
+
+impl CommandDeserializer for InDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((21,5))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(InInterpCommand(
+            Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,
+            Register::deserialize(&value[2])?,Register::deserialize(&value[3])?,
+            Register::deserialize(&value[4])?)))
+    }
+}
+
 pub(super) fn library_map_commands_interp(set: &mut InterpLibRegister) {
     set.push(LookupDeserializer());
+    set.push(InDeserializer());
 }
