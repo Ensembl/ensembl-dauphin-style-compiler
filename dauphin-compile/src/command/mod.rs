@@ -36,4 +36,4 @@ pub use self::mergelink::MergeLink;
 pub use self::metadata::{ ProgramMetadata };
 pub use self::metalink::MetaLink;
 pub use self::opcoderemapper::{ OpcodeRemapper, RemapperEndpoint };
-pub use self::timetrial::{ TimeTrial, TimeTrialCommandType, trial_signature, trial_write };
+pub use self::timetrial::{ TimeTrial, TimeTrialCommandType, trial_signature, trial_write, trial_write_str };

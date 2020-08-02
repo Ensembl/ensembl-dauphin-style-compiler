@@ -137,6 +137,11 @@ pub fn trial_write<F>(context: &mut InterpContext, i: usize, t: usize, cb: F) wh
     context.registers_mut().write(&Register(i),InterpValue::Indexes(a));
 }
 
+pub fn trial_write_str<F>(context: &mut InterpContext, i: usize, t: usize, cb: F) where F: Fn(usize) -> usize {
+    let a : Vec<String> = (0..t).map(|x| format!("{}",cb(x as usize))).collect();
+    context.registers_mut().write(&Register(i),InterpValue::Strings(a));
+}
+
 pub fn trial_signature(layout: &[(MemberMode,usize,BaseType)]) -> RegisterSignature {
     let mut sigs = RegisterSignature::new();
     for (mode,depth,base) in layout {

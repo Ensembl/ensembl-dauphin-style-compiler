@@ -1,13 +1,46 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, CompLibRegister, Instruction, PreImagePrepare, PreImageOutcome, InstructionType };
+use dauphin_compile::cli::Config;
+use dauphin_compile::command::{ 
+    Command, CommandSchema, CommandType, CommandTrigger, CompLibRegister, Instruction, PreImagePrepare, PreImageOutcome, InstructionType,
+    TimeTrialCommandType, CompilerLink, trial_write, trial_signature, TimeTrial, trial_write_str
+};
 use dauphin_interp::command::{ Identifier, InterpCommand };
-use dauphin_interp::runtime::Register;
+use dauphin_interp::runtime::{ InterpContext, Register };
 use dauphin_interp::types::{ RegisterSignature, to_xstructure, XStructure, VectorRegisters, FullType, MemberMode, BaseType, ComplexPath, MemberDataFlow };
 use dauphin_interp::util::DauphinError;
+use dauphin_interp::util::cbor::{ cbor_make_map };
 use serde_cbor::Value as CborValue;
 use dauphin_compile::model::PreImageContext;
+
+struct LookupTimeTrial();
+
+impl TimeTrialCommandType for LookupTimeTrial {
+    fn timetrial_make_trials(&self) -> (i64,i64) { (1,10) }
+
+    fn global_prepare(&self, context: &mut InterpContext, t: i64) {
+        let t = t as usize;
+        trial_write_str(context,1,t*50,|x| x*2); // needles
+        trial_write_str(context,2,t*100,|x| x); // data
+        trial_write(context,3,1,|_| 0); // offset
+        trial_write(context,4,1,|_| t*100); // len
+        trial_write(context,5,1,|_| 1); // default
+        context.registers_mut().commit();
+    }
+
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
+        let regs = (0..6).map(|i| Register(i)).collect();
+        let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
+                                        (MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
+                                        (MemberMode::In,0,BaseType::NumberType)]);
+        Ok(Instruction::new(InstructionType::Call(Identifier::new("std","lookup"),true,sig,vec![
+            MemberDataFlow::Out,MemberDataFlow::In,
+            MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,
+            MemberDataFlow::In
+        ]),regs))
+    }
+}
 
 pub struct LookupCommand(Register,Register,Register,Register,Register,Register);
 
@@ -33,6 +66,31 @@ impl Command for LookupCommand {
     }
 }
 
+struct InTimeTrial();
+
+impl TimeTrialCommandType for InTimeTrial {
+    fn timetrial_make_trials(&self) -> (i64,i64) { (1,10) }
+
+    fn global_prepare(&self, context: &mut InterpContext, t: i64) {
+        let t = t as usize;
+        trial_write_str(context,1,t*50,|x| x*4); // needles
+        trial_write_str(context,2,t*100,|x| x); // data
+        trial_write(context,3,1,|_| 0); // offset
+        trial_write(context,4,1,|_| t*100); // len
+        context.registers_mut().commit();
+    }
+
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
+        let regs = (0..5).map(|i| Register(i)).collect();
+        let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
+                                        (MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
+        Ok(Instruction::new(InstructionType::Call(Identifier::new("std","in"),true,sig,vec![
+            MemberDataFlow::Out,MemberDataFlow::In,
+            MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In
+        ]),regs))
+    }
+}
+
 pub struct InCommand(Register,Register,Register,Register,Register);
 
 impl Command for InCommand {
@@ -54,6 +112,31 @@ impl Command for InCommand {
 
     fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
+    }
+}
+
+struct IndexTimeTrial();
+
+impl TimeTrialCommandType for IndexTimeTrial {
+    fn timetrial_make_trials(&self) -> (i64,i64) { (1,10) }
+
+    fn global_prepare(&self, context: &mut InterpContext, t: i64) {
+        let t = t as usize;
+        trial_write(context,1,1,|_| 0); // offset
+        trial_write(context,2,1,|_| t*100); // len
+        trial_write_str(context,3,t*100,|x| x); // data
+        trial_write_str(context,4,t*50,|x| x*2); // needles
+        context.registers_mut().commit();
+    }
+
+    fn timetrial_make_command(&self, _: i64, _linker: &CompilerLink, _config: &Config) -> anyhow::Result<Instruction> {
+        let regs = (0..5).map(|i| Register(i)).collect();
+        let sig = trial_signature(&vec![(MemberMode::Out,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),
+                                        (MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType),(MemberMode::In,0,BaseType::NumberType)]);
+        Ok(Instruction::new(InstructionType::Call(Identifier::new("std","_index"),true,sig,vec![
+            MemberDataFlow::Out,MemberDataFlow::In,
+            MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In
+        ]),regs))
     }
 }
 
@@ -225,7 +308,12 @@ impl CommandType for LookupCommandType {
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(LookupCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],it.regs[5])))
-    }    
+    }
+    
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
+        let timings = TimeTrial::run(&LookupTimeTrial(),linker,config)?;
+        Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
+    }
 }
 
 pub struct InCommandType();
@@ -241,6 +329,11 @@ impl CommandType for InCommandType {
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(InCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4])))
     }    
+
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
+        let timings = TimeTrial::run(&InTimeTrial(),linker,config)?;
+        Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
+    }
 }
 
 pub struct IndexCommandType();
@@ -277,6 +370,11 @@ impl CommandType for RealIndexCommandType {
             it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4]
         )))
     }    
+
+    fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
+        let timings = TimeTrial::run(&IndexTimeTrial(),linker,config)?;
+        Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
+    }
 }
 
 pub(super) fn library_map_commands(set: &mut CompLibRegister) {

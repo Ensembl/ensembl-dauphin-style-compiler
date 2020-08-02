@@ -10,6 +10,7 @@ edition = "2018"
 compile = ["dauphin_compile"]
 
 [dependencies]
+hashbrown = "*"
 serde_cbor = "*"
 anyhow="*"
 dauphin_interp = { path = "../dauphin-interp" }

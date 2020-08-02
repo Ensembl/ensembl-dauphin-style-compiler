@@ -1,4 +1,4 @@
-use std::collections::{ HashMap, HashSet };
+use hashbrown::{ HashMap, HashSet };
 use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, InterpNatural };
 use serde_cbor::Value as CborValue;
@@ -19,24 +19,29 @@ impl InterpCommand for LookupInterpCommand {
             let hs_start = haystack_offsets[hs_index];
             let hs_len = haystack_lens[hs_index];
             let default = defaults[hs_index%defaults.len()];
-            let input : HashMap<String,usize> = 
+            let input : HashMap<&str,usize> = 
                 haystack_data[hs_start..(hs_start+hs_len)].iter().enumerate().map(|(i,v)| {
-                    (v.to_string(),i)
+                    (v as &str,i)
                 }).collect();
             let output : Vec<usize> = 
                 needles.iter().skip(hs_index).step_by(num_haystacks).map(|needle| {
-                    *input.get(needle).unwrap_or(&default)
+                    *input.get(needle as &str).unwrap_or(&default)
                 }).collect();
             outputs.push(output);
         }
-        let mut merged = vec![];
-        let mut iters = outputs.iter().map(|x| x.iter()).collect::<Vec<_>>();
-        let mut index = 0;
-        while let Some(value) = iters[index].next() {
-            index = (index+1) % outputs.len();
-            merged.push(*value);
-        }
-        registers.write(&self.0,InterpValue::Indexes(merged));
+        let out = if outputs.len() > 1 {
+            let mut merged = vec![];
+            let mut iters = outputs.iter().map(|x| x.iter()).collect::<Vec<_>>();
+            let mut index = 0;
+            while let Some(value) = iters[index].next() {
+                index = (index+1) % outputs.len();
+                merged.push(*value);
+            }
+            merged
+        } else {
+            outputs.remove(0)
+        };
+        registers.write(&self.0,InterpValue::Indexes(out));
         Ok(())
     }
 }
@@ -55,24 +60,27 @@ impl InterpCommand for InInterpCommand {
         for hs_index in 0..num_haystacks {
             let hs_start = haystack_offsets[hs_index];
             let hs_len = haystack_lens[hs_index];
-            let input : HashSet<String> = 
-                haystack_data[hs_start..(hs_start+hs_len)].iter().map(|v| {
-                    v.to_string()
-                }).collect();
+            let input : HashSet<&str> = 
+                haystack_data[hs_start..(hs_start+hs_len)].iter().map(|x| x as &str).collect();
             let output : Vec<bool> = 
                 needles.iter().skip(hs_index).step_by(num_haystacks).map(|needle| {
-                    input.contains(needle)
+                    input.contains(needle as &str)
                 }).collect();
             outputs.push(output);
         }
-        let mut merged = vec![];
-        let mut iters = outputs.iter().map(|x| x.iter()).collect::<Vec<_>>();
-        let mut index = 0;
-        while let Some(value) = iters[index].next() {
-            index = (index+1) % outputs.len();
-            merged.push(*value);
-        }
-        registers.write(&self.0,InterpValue::Boolean(merged));
+        let out = if outputs.len() > 1 {
+            let mut merged = vec![];
+            let mut iters = outputs.iter().map(|x| x.iter()).collect::<Vec<_>>();
+            let mut index = 0;
+            while let Some(value) = iters[index].next() {
+                index = (index+1) % outputs.len();
+                merged.push(*value);
+            }
+            merged
+        } else {
+            outputs.remove(0)
+        };
+        registers.write(&self.0,InterpValue::Boolean(out));
         Ok(())
     }
 }
