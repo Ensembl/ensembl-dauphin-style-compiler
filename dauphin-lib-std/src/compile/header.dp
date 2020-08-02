@@ -36,4 +36,4 @@ expr append(list,items) [list[] (+) items[]];
 
 func lookup(string,vec(string),number) becomes number;
 func in(string,vec(string)) becomes boolean;
-//func index(number,vec(_A)) becomes vec(_A);
+func index(number,vec(_A)) becomes vec(_A);

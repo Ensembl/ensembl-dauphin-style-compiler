@@ -26,19 +26,13 @@ use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
 struct CompileRun<'a,'b,'d> {
     context: PreImageContext<'a,'b>,
-    gen_context: &'a mut GenContext<'d>,
+    gen_context: &'a mut GenContext<'d>
 }
 
 impl<'a,'b,'d> CompileRun<'a,'b,'d> {
     pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: &'a Resolver, gen_context: &'a mut GenContext<'d>, 
                 config: &Config, first: bool, last: bool) -> anyhow::Result<CompileRun<'a,'b,'d>> {
-        let mut max_reg = 0;
-        for instr in gen_context.get_instructions() {
-            for reg in &instr.regs {
-                if reg.0 > max_reg { max_reg = reg.0; }
-            }
-        }
-        let picontext = PreImageContext::new(context,compiler_link,Box::new(resolver),config,max_reg,first,last);
+        let picontext = PreImageContext::new(context,compiler_link,Box::new(resolver),config,&gen_context.state().regalloc(),first,last);
         Ok(CompileRun {
             context: picontext,
             gen_context

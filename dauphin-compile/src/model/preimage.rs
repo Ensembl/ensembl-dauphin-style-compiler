@@ -26,22 +26,22 @@ pub struct PreImageContext<'a,'b> {
     reg_sizes: HashMap<Register,usize>,
     compiler_link: CompilerLink,
     valid_registers: HashSet<Register>,
-    context: &'b mut InterpContext,
     regalloc: RegisterAllocator,
+    context: &'b mut InterpContext,
     config: Config,
     first: bool,
     last: bool
 }
 
 impl<'a,'b> PreImageContext<'a,'b> {
-    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, max_reg: usize, first: bool, last: bool) -> PreImageContext<'a,'b> {
+    pub fn new(context: &'b mut InterpContext, compiler_link: &CompilerLink, resolver: Box<&'a dyn ResolveFile>, config: &Config, regalloc: &RegisterAllocator, first: bool, last: bool) -> PreImageContext<'a,'b> {
         PreImageContext {
             resolver,
             reg_sizes: HashMap::new(),
             compiler_link: compiler_link.clone(),
             valid_registers: HashSet::new(),
+            regalloc: regalloc.clone(),
             context,
-            regalloc: RegisterAllocator::new(max_reg+1),
             config: config.clone(),
             first, last
         }

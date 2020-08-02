@@ -1,6 +1,6 @@
 use std::collections::{ HashMap, HashSet };
 use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand };
-use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
+use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, InterpNatural };
 use serde_cbor::Value as CborValue;
 
 pub struct LookupInterpCommand(Register,Register,Register,Register,Register,Register);
@@ -77,6 +77,46 @@ impl InterpCommand for InInterpCommand {
     }
 }
 
+pub struct IndexInterpCommand(Register,Register,Register,Register,Register,Register,Register);
+
+fn index_command<T>(dst: &mut Vec<T>, src: &[T], starts_out: &mut Vec<usize>, starts: &[usize], lengths_out: &mut Vec<usize>,
+                    lengths: &[usize], needles: &[usize]) where T: Clone {
+    for (offset,length) in starts.iter().zip(lengths.iter()) {
+        let pre_len = dst.len();
+        for needle in needles {
+            if needle >= length { break; }
+            dst.push(src[offset+needle].clone());
+        }
+        let post_len = dst.len();
+        starts_out.push(pre_len);
+        lengths_out.push(post_len-pre_len);
+    }
+}
+
+impl InterpCommand for IndexInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+        let registers = context.registers_mut();
+        let top_offset = registers.get_indexes(&self.3)?;
+        let top_length = registers.get_indexes(&self.4)?;
+        let needles = registers.get_indexes(&self.6)?;
+        let src = registers.get(&self.5).borrow().get_shared()?;
+        let natural = src.get_natural();
+        let dst = InterpValue::Empty;
+        let mut top_offset_out = vec![];
+        let mut top_length_out = vec![];
+        let dst = dauphin_interp::polymorphic!(dst,[&src],natural,(|d,s| {
+            index_command(d,s,
+                &mut top_offset_out,&top_offset,
+                &mut top_length_out,&top_length,
+                &needles)
+        }));
+        registers.write(&self.0,InterpValue::Indexes(top_offset_out));
+        registers.write(&self.1,InterpValue::Indexes(top_length_out));
+        registers.write(&self.2,dst);
+        Ok(())
+    }
+}
+
 pub struct LookupDeserializer();
 
 impl CommandDeserializer for LookupDeserializer {
@@ -102,7 +142,21 @@ impl CommandDeserializer for InDeserializer {
     }
 }
 
+pub struct IndexDeserializer();
+
+impl CommandDeserializer for IndexDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((22,7))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(IndexInterpCommand(
+            Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,
+            Register::deserialize(&value[2])?,Register::deserialize(&value[3])?,
+            Register::deserialize(&value[4])?,Register::deserialize(&value[5])?,
+            Register::deserialize(&value[6])?)))
+    }
+}
+
 pub(super) fn library_map_commands_interp(set: &mut InterpLibRegister) {
     set.push(LookupDeserializer());
     set.push(InDeserializer());
+    set.push(IndexDeserializer());
 }

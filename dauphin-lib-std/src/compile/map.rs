@@ -1,6 +1,11 @@
-use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, CompLibRegister, Instruction, PreImagePrepare, PreImageOutcome };
-use dauphin_interp::command::Identifier;
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use dauphin_compile::command::{ Command, CommandSchema, CommandType, CommandTrigger, CompLibRegister, Instruction, PreImagePrepare, PreImageOutcome, InstructionType };
+use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::Register;
+use dauphin_interp::types::{ RegisterSignature, to_xstructure, XStructure, VectorRegisters, FullType, MemberMode, BaseType, ComplexPath, MemberDataFlow };
+use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 use dauphin_compile::model::PreImageContext;
 
@@ -52,6 +57,171 @@ impl Command for InCommand {
     }
 }
 
+pub struct RealIndexCommand(Register,Register,Register,Register,Register,Register,Register);
+
+impl Command for RealIndexCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
+                     self.3.serialize(),self.4.serialize(),self.5.serialize(),
+                     self.6.serialize()]))
+    }
+
+    fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
+        Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && 
+                context.is_reg_valid(&self.3) && context.is_reg_valid(&self.4) && 
+                context.is_reg_valid(&self.5) && context.is_reg_valid(&self.6) && 
+                !context.is_last() {
+            PreImagePrepare::Replace
+        } else {
+            let mut sizes = vec![];
+            if let Some(a) = context.get_reg_size(&self.3) {
+                sizes.push((self.0.clone(),a));
+            }
+            if let Some(a) = context.get_reg_size(&self.4) {
+                sizes.push((self.1.clone(),a));
+            }
+            if let Some(a) = context.get_reg_size(&self.5) {
+                sizes.push((self.2.clone(),a));
+            }
+            PreImagePrepare::Keep(sizes)
+        })
+    }
+
+    fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
+        Ok(PreImageOutcome::Constant(vec![self.0,self.1,self.2]))
+    }
+}
+
+fn match_xs_map(out: &mut Vec<(Rc<RefCell<VectorRegisters>>,Rc<RefCell<VectorRegisters>>)>,
+                a: &HashMap<String,Rc<XStructure<VectorRegisters>>>, b: &HashMap<String,Rc<XStructure<VectorRegisters>>>) -> anyhow::Result<()> {
+    let mut a_keys : Vec<&String> = a.keys().collect();
+    let mut b_keys : Vec<&String> = b.keys().collect();
+    a_keys.sort();
+    b_keys.sort();
+    if a_keys != b_keys {
+        return Err(DauphinError::source("mismatched types in index"));
+    }
+    for key in &a_keys {
+        match_xs(out,a.get(*key).unwrap(),b.get(*key).unwrap())?;
+    }
+    Ok(())
+}
+
+fn match_xs(out: &mut Vec<(Rc<RefCell<VectorRegisters>>,Rc<RefCell<VectorRegisters>>)>, 
+            xs_out: &XStructure<VectorRegisters>, xs_in: &XStructure<VectorRegisters>) -> anyhow::Result<()> {
+    match (xs_out,xs_in) {
+        (XStructure::Simple(a),XStructure::Simple(b)) => {
+            out.push((a.clone(),b.clone()));
+        },
+        (XStructure::Vector(a),XStructure::Vector(b)) => { return match_xs(out,a,b); },
+        (XStructure::Struct(a_id,a_map),XStructure::Struct(b_id,b_map)) => {
+            if a_id != b_id {
+                return Err(DauphinError::source("mismatched types in index"));
+            }
+            match_xs_map(out,a_map,b_map)?;
+        }
+        (XStructure::Enum(a_id,a_order,a_map,a_disc),XStructure::Enum(b_id,b_order,b_map,b_disc)) => {
+            if a_id != b_id || a_order != b_order {
+                return Err(DauphinError::source("mismatched types in index"));
+            }
+            match_xs_map(out,a_map,b_map)?;
+            out.push((a_disc.clone(),b_disc.clone()));
+        }
+        _ => { return Err(DauphinError::source("mismatched types in index")); }
+    }
+    Ok(())
+}
+
+fn add_to_sig(sigs: &mut RegisterSignature, mode: &MemberMode, base: &BaseType) {
+    let mut cr = FullType::new_empty(*mode);
+    cr.add(ComplexPath::new_empty().add_levels(0),VectorRegisters::new(0,base.clone()));
+    sigs.add(cr);
+}
+
+pub struct IndexCommand(RegisterSignature,Vec<Register>);
+
+impl IndexCommand {
+    fn add_internal(&self, instrs: &mut Vec<Instruction>, out_pos: (usize,usize,usize), in_pos: (usize,usize,usize), needle: &Register, base: Option<&BaseType>) {
+        let out_regs = (self.1[out_pos.0],self.1[out_pos.1],self.1[out_pos.2]);
+        let in_regs = (self.1[in_pos.0],self.1[in_pos.1],self.1[in_pos.2]);
+        let mut sigs = RegisterSignature::new();
+        add_to_sig(&mut sigs,&MemberMode::Out,&BaseType::NumberType);
+        add_to_sig(&mut sigs,&MemberMode::Out,&BaseType::NumberType);
+        add_to_sig(&mut sigs,&MemberMode::Out,base.unwrap_or(&BaseType::NumberType));
+        add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
+        add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
+        add_to_sig(&mut sigs,&MemberMode::In ,base.unwrap_or(&BaseType::NumberType));
+        add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
+        let flows = vec![MemberDataFlow::Out,MemberDataFlow::Out,MemberDataFlow::Out,
+                         MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In];
+        instrs.push(Instruction::new(InstructionType::Call(Identifier::new("std","_index"),false,sigs,flows),vec![
+            out_regs.0,out_regs.1,out_regs.2,
+            in_regs.0,in_regs.1,in_regs.2,
+            needle.clone()
+        ]));
+    }
+
+    fn build_one_instr(&self, instrs: &mut Vec<Instruction>, out_vr: &VectorRegisters, index: &Register, in_vr: &VectorRegisters) -> anyhow::Result<()> {
+        if in_vr.depth() > 2 {
+            for depth in 0..(in_vr.depth()-2) {
+                instrs.push(Instruction::new(InstructionType::Copy,vec![
+                    self.1[out_vr.offset_pos(depth)?],
+                    self.1[in_vr.offset_pos(depth)?]
+                ]));
+                instrs.push(Instruction::new(InstructionType::Copy,vec![
+                    self.1[out_vr.length_pos(depth)?],
+                    self.1[in_vr.length_pos(depth)?]
+                ]));
+            }
+        }
+        if in_vr.depth() > 1 {
+            instrs.push(Instruction::new(InstructionType::Copy,vec![
+                self.1[out_vr.data_pos()],
+                self.1[in_vr.data_pos()]
+            ]));
+            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.offset_pos(out_vr.depth()-2)?),
+                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.offset_pos( in_vr.depth()-2)?),
+                              index,None);
+            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-2)?),
+                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-2)?),
+                              index,None);
+        } else {
+            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.data_pos()),
+                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.data_pos()),
+                              index,Some(in_vr.get_base()));
+        }
+        Ok(())
+    }
+
+    fn build_instrs(&self, context: &mut PreImageContext) -> anyhow::Result<Vec<Instruction>> {
+        let mut instrs = vec![];
+        let xs_out = to_xstructure(&self.0[0])?;
+        let xs_in = to_xstructure(&self.0[2])?;
+        let xs_index = to_xstructure(&self.0[1])?;
+        let index_pos = if let XStructure::Simple(vr) = xs_index { 
+            vr.borrow().data_pos()
+        } else { 
+            return Err(DauphinError::internal(file!(),line!()));
+        };
+        let mut out = vec![];
+        match_xs(&mut out,&xs_out,&xs_in)?;
+        for (out_vr,in_vr) in out {
+            self.build_one_instr(&mut instrs,&out_vr.borrow(),&self.1[index_pos],&in_vr.borrow())?;
+        }
+        Ok(instrs)
+    }
+}
+
+impl Command for IndexCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![]))
+    }
+
+    fn preimage(&self, context: &mut PreImageContext, _ic: Option<Box<dyn InterpCommand>>) -> anyhow::Result<PreImageOutcome> {
+        Ok(PreImageOutcome::Replace(self.build_instrs(context)?))
+    }
+}
+
 pub struct LookupCommandType();
 
 impl CommandType for LookupCommandType {
@@ -66,7 +236,6 @@ impl CommandType for LookupCommandType {
         Ok(Box::new(LookupCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],it.regs[5])))
     }    
 }
-
 
 pub struct InCommandType();
 
@@ -83,7 +252,45 @@ impl CommandType for InCommandType {
     }    
 }
 
+pub struct IndexCommandType();
+
+impl CommandType for IndexCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 0,
+            trigger: CommandTrigger::Command(Identifier::new("std","index"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(IndexCommand(sig.clone(),it.regs.to_vec())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }    
+}
+
+pub struct RealIndexCommandType();
+
+impl CommandType for RealIndexCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 7,
+            trigger: CommandTrigger::Command(Identifier::new("std","_index"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        Ok(Box::new(RealIndexCommand(
+            it.regs[0],it.regs[1],it.regs[2],it.regs[3],
+            it.regs[4],it.regs[5],it.regs[6])))
+    }    
+}
+
 pub(super) fn library_map_commands(set: &mut CompLibRegister) {
     set.push("lookup",Some(3),LookupCommandType());
     set.push("in",Some(21),InCommandType());
+    set.push("index",None,IndexCommandType());
+    set.push("_index",Some(22),RealIndexCommandType());
 }
