@@ -21,7 +21,9 @@ assert(y==[1,1,2,10][],true);
 struct hash { key: string, v: number };
 z := [ hash { key: "hello", v: 42 }, hash { key: "world", v: 43 } ];
 
-
+alienate(z);
+set_size_hint(z,1);
+set_size_hint(z[],300);
 
 z1 := index(lookup("hello",[z[].key],0),z).v;
 z2 := index(lookup("world",[z[].key],0),z).v;

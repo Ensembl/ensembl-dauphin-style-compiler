@@ -10,7 +10,7 @@ use dauphin_interp::command::{ Identifier, InterpCommand };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use dauphin_interp::types::{ RegisterSignature, to_xstructure, XStructure, VectorRegisters, FullType, MemberMode, BaseType, ComplexPath, MemberDataFlow };
 use dauphin_interp::util::DauphinError;
-use dauphin_interp::util::cbor::{ cbor_make_map };
+use dauphin_interp::util::cbor::{ cbor_make_map, cbor_map };
 use serde_cbor::Value as CborValue;
 use dauphin_compile::model::PreImageContext;
 
@@ -42,7 +42,7 @@ impl TimeTrialCommandType for LookupTimeTrial {
     }
 }
 
-pub struct LookupCommand(Register,Register,Register,Register,Register,Register);
+pub struct LookupCommand(Register,Register,Register,Register,Register,Register,Option<TimeTrial>);
 
 impl Command for LookupCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
@@ -63,6 +63,16 @@ impl Command for LookupCommand {
 
     fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
+    }
+
+    fn execution_time(&self, context: &PreImageContext) -> f64 {
+        if let Some(haystack) = context.get_reg_size(&self.2) {
+            if let Some(needles) = context.get_reg_size(&self.1) {
+                let t = (haystack as f64/100.).max(needles as f64/50.);
+                return self.6.as_ref().map(|x| x.evaluate(t)).unwrap_or(1.);
+            }   
+        }
+        1.
     }
 }
 
@@ -91,7 +101,7 @@ impl TimeTrialCommandType for InTimeTrial {
     }
 }
 
-pub struct InCommand(Register,Register,Register,Register,Register);
+pub struct InCommand(Register,Register,Register,Register,Register,Option<TimeTrial>);
 
 impl Command for InCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
@@ -112,6 +122,16 @@ impl Command for InCommand {
 
     fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
+    }
+
+    fn execution_time(&self, context: &PreImageContext) -> f64 {
+        if let Some(haystack) = context.get_reg_size(&self.2) {
+            if let Some(needles) = context.get_reg_size(&self.1) {
+                let t = (haystack as f64/100.).max(needles as f64/50.);
+                return self.5.as_ref().map(|x| x.evaluate(t)).unwrap_or(1.);
+            }   
+        }
+        1.
     }
 }
 
@@ -140,7 +160,7 @@ impl TimeTrialCommandType for IndexTimeTrial {
     }
 }
 
-pub struct RealIndexCommand(Register,Register,Register,Register,Register);
+pub struct RealIndexCommand(Register,Register,Register,Register,Register,Option<TimeTrial>);
 
 impl Command for RealIndexCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
@@ -164,6 +184,16 @@ impl Command for RealIndexCommand {
 
     fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
         Ok(PreImageOutcome::Constant(vec![self.0]))
+    }
+
+    fn execution_time(&self, context: &PreImageContext) -> f64 {
+        if let Some(haystack) = context.get_reg_size(&self.3) {
+            if let Some(needles) = context.get_reg_size(&self.4) {
+                let t = (haystack as f64/100.).max(needles as f64/50.);
+                return self.5.as_ref().map(|x| x.evaluate(t)).unwrap_or(1.);
+            }   
+        }
+        1.
     }
 }
 
@@ -296,7 +326,7 @@ impl Command for IndexCommand {
     }
 }
 
-pub struct LookupCommandType();
+pub struct LookupCommandType(Option<TimeTrial>);
 
 impl CommandType for LookupCommandType {
     fn get_schema(&self) -> CommandSchema {
@@ -307,16 +337,22 @@ impl CommandType for LookupCommandType {
     }
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
-        Ok(Box::new(LookupCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],it.regs[5])))
+        Ok(Box::new(LookupCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],it.regs[5],self.0.clone())))
     }
     
     fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&LookupTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
+
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
+        let t = cbor_map(value,&vec!["t"])?;
+        self.0 = Some(TimeTrial::deserialize(&t[0])?);
+        Ok(())
+    }
 }
 
-pub struct InCommandType();
+pub struct InCommandType(Option<TimeTrial>);
 
 impl CommandType for InCommandType {
     fn get_schema(&self) -> CommandSchema {
@@ -327,12 +363,18 @@ impl CommandType for InCommandType {
     }
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
-        Ok(Box::new(InCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4])))
+        Ok(Box::new(InCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],self.0.clone())))
     }    
 
     fn generate_dynamic_data(&self, linker: &CompilerLink, config: &Config) -> anyhow::Result<CborValue> {
         let timings = TimeTrial::run(&InTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
+    }
+
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
+        let t = cbor_map(value,&vec!["t"])?;
+        self.0 = Some(TimeTrial::deserialize(&t[0])?);
+        Ok(())
     }
 }
 
@@ -355,7 +397,7 @@ impl CommandType for IndexCommandType {
     }    
 }
 
-pub struct RealIndexCommandType();
+pub struct RealIndexCommandType(Option<TimeTrial>);
 
 impl CommandType for RealIndexCommandType {
     fn get_schema(&self) -> CommandSchema {
@@ -367,7 +409,7 @@ impl CommandType for RealIndexCommandType {
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(RealIndexCommand(
-            it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4]
+            it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4],self.0.clone()
         )))
     }    
 
@@ -375,11 +417,17 @@ impl CommandType for RealIndexCommandType {
         let timings = TimeTrial::run(&IndexTimeTrial(),linker,config)?;
         Ok(cbor_make_map(&vec!["t"],vec![timings.serialize()])?)
     }
+
+    fn use_dynamic_data(&mut self, value: &CborValue) -> anyhow::Result<()> {
+        let t = cbor_map(value,&vec!["t"])?;
+        self.0 = Some(TimeTrial::deserialize(&t[0])?);
+        Ok(())
+    }
 }
 
 pub(super) fn library_map_commands(set: &mut CompLibRegister) {
-    set.push("lookup",Some(3),LookupCommandType());
-    set.push("in",Some(21),InCommandType());
+    set.push("lookup",Some(3),LookupCommandType(None));
+    set.push("in",Some(21),InCommandType(None));
     set.push("index",None,IndexCommandType());
-    set.push("_index",Some(22),RealIndexCommandType());
+    set.push("_index",Some(22),RealIndexCommandType(None));
 }
