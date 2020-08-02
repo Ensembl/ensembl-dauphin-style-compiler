@@ -18,11 +18,13 @@ assert(y==[1,1,2,10][],true);
 /* this is how string-keyed hashes should be emulated.
  * lookup is efficient wrt large haystacks.
  */
-struct hash { k: string, v: number };
-z := [ hash { k: "hello", v: 42 }, hash { k: "world", v: 43 } ];
+struct hash { key: string, v: number };
+z := [ hash { key: "hello", v: 42 }, hash { key: "world", v: 43 } ];
 
-z1 := index(lookup("hello",[z[].k],0),z)[].v;
-z2 := index(lookup("world",[z[].k],0),z)[].v;
+
+
+z1 := index(lookup("hello",[z[].key],0),z).v;
+z2 := index(lookup("world",[z[].key],0),z).v;
 assert(z1==42,true);
 assert(z2==43,true);
 
@@ -30,4 +32,4 @@ enum test { A: vec(vec(number)), B: boolean };
 x := [ test:A [[42,43],[23,22]], test:B true ];
 y := index([0,1,0][],x);
 
-assert([y[]?A]==[true,false,true],true);
+assert(y?A==[true,false,true][],true);

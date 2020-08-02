@@ -57,19 +57,17 @@ impl Command for InCommand {
     }
 }
 
-pub struct RealIndexCommand(Register,Register,Register,Register,Register,Register,Register);
+pub struct RealIndexCommand(Register,Register,Register,Register,Register);
 
 impl Command for RealIndexCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
-                     self.3.serialize(),self.4.serialize(),self.5.serialize(),
-                     self.6.serialize()]))
+                     self.3.serialize(),self.4.serialize()]))
     }
 
     fn simple_preimage(&self, context: &mut PreImageContext) -> anyhow::Result<PreImagePrepare> { 
         Ok(if context.is_reg_valid(&self.1) && context.is_reg_valid(&self.2) && 
                 context.is_reg_valid(&self.3) && context.is_reg_valid(&self.4) && 
-                context.is_reg_valid(&self.5) && context.is_reg_valid(&self.6) && 
                 !context.is_last() {
             PreImagePrepare::Replace
         } else {
@@ -77,18 +75,12 @@ impl Command for RealIndexCommand {
             if let Some(a) = context.get_reg_size(&self.3) {
                 sizes.push((self.0.clone(),a));
             }
-            if let Some(a) = context.get_reg_size(&self.4) {
-                sizes.push((self.1.clone(),a));
-            }
-            if let Some(a) = context.get_reg_size(&self.5) {
-                sizes.push((self.2.clone(),a));
-            }
             PreImagePrepare::Keep(sizes)
         })
     }
 
     fn preimage_post(&self, _context: &mut PreImageContext) -> anyhow::Result<PreImageOutcome> {
-        Ok(PreImageOutcome::Constant(vec![self.0,self.1,self.2]))
+        Ok(PreImageOutcome::Constant(vec![self.0]))
     }
 }
 
@@ -141,8 +133,8 @@ fn add_to_sig(sigs: &mut RegisterSignature, mode: &MemberMode, base: &BaseType) 
 pub struct IndexCommand(RegisterSignature,Vec<Register>);
 
 impl IndexCommand {
-    fn add_internal(&self, instrs: &mut Vec<Instruction>, out_pos: (usize,usize,usize), in_pos: (usize,usize,usize), needle: &Register, base: Option<&BaseType>) {
-        let out_regs = (self.1[out_pos.0],self.1[out_pos.1],self.1[out_pos.2]);
+    fn add_internal(&self, instrs: &mut Vec<Instruction>, out_pos: usize, in_pos: (usize,usize,usize), needle: &Register, base: Option<&BaseType>) {
+        let out_reg = self.1[out_pos];
         let in_regs = (self.1[in_pos.0],self.1[in_pos.1],self.1[in_pos.2]);
         let mut sigs = RegisterSignature::new();
         add_to_sig(&mut sigs,&MemberMode::Out,&BaseType::NumberType);
@@ -155,9 +147,7 @@ impl IndexCommand {
         let flows = vec![MemberDataFlow::Out,MemberDataFlow::Out,MemberDataFlow::Out,
                          MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In];
         instrs.push(Instruction::new(InstructionType::Call(Identifier::new("std","_index"),false,sigs,flows),vec![
-            out_regs.0,out_regs.1,out_regs.2,
-            in_regs.0,in_regs.1,in_regs.2,
-            needle.clone()
+            out_reg,in_regs.0,in_regs.1,in_regs.2,needle.clone()
         ]));
     }
 
@@ -179,15 +169,15 @@ impl IndexCommand {
                 self.1[out_vr.data_pos()],
                 self.1[in_vr.data_pos()]
             ]));
-            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.offset_pos(out_vr.depth()-2)?),
-                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.offset_pos( in_vr.depth()-2)?),
+            self.add_internal(instrs,out_vr.offset_pos(out_vr.depth()-1)?,
+                                     (in_vr.offset_pos( in_vr.depth()-1)?,in_vr.length_pos( in_vr.depth()-1)?,in_vr.offset_pos( in_vr.depth()-2)?),
                               index,None);
-            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-2)?),
-                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-2)?),
+            self.add_internal(instrs,out_vr.length_pos(out_vr.depth()-1)?,
+                                     (in_vr.offset_pos( in_vr.depth()-1)?,in_vr.length_pos( in_vr.depth()-1)?,in_vr.length_pos( in_vr.depth()-2)?),
                               index,None);
         } else {
-            self.add_internal(instrs,(out_vr.offset_pos(out_vr.depth()-1)?,out_vr.length_pos(out_vr.depth()-1)?,out_vr.data_pos()),
-                                     ( in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.data_pos()),
+            self.add_internal(instrs,out_vr.data_pos(),
+                                     (in_vr.offset_pos( in_vr.depth()-1)?, in_vr.length_pos( in_vr.depth()-1)?, in_vr.data_pos()),
                               index,Some(in_vr.get_base()));
         }
         Ok(())
@@ -204,7 +194,8 @@ impl IndexCommand {
             return Err(DauphinError::internal(file!(),line!()));
         };
         let mut out = vec![];
-        match_xs(&mut out,&xs_out,&xs_in)?;
+        let extended_xs_out = XStructure::Vector(Rc::new(xs_out));
+        match_xs(&mut out,&extended_xs_out,&xs_in)?;
         for (out_vr,in_vr) in out {
             self.build_one_instr(&mut instrs,&out_vr.borrow(),&self.1[index_pos],&in_vr.borrow())?;
         }
@@ -276,15 +267,15 @@ pub struct RealIndexCommandType();
 impl CommandType for RealIndexCommandType {
     fn get_schema(&self) -> CommandSchema {
         CommandSchema {
-            values: 7,
+            values: 5,
             trigger: CommandTrigger::Command(Identifier::new("std","_index"))
         }
     }
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         Ok(Box::new(RealIndexCommand(
-            it.regs[0],it.regs[1],it.regs[2],it.regs[3],
-            it.regs[4],it.regs[5],it.regs[6])))
+            it.regs[0],it.regs[1],it.regs[2],it.regs[3],it.regs[4]
+        )))
     }    
 }
 
