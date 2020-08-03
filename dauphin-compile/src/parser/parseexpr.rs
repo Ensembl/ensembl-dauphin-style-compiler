@@ -145,6 +145,13 @@ fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::R
             Token::Number(num) => Expression::Number(num),
             Token::LiteralString(s) => Expression::LiteralString(s),
             Token::LiteralBytes(b) => Expression::LiteralBytes(b),
+            Token::Other('-') => {
+                if let Token::Number(num) = lexer.get() {
+                    Expression::Number(format!("-{}",num))
+                } else {
+                    Err(parse_error(&format!("Expected expression, not -"),lexer))?
+                }
+            },
             Token::Other('(') => {
                 let out = parse_expr(lexer,defstore,nested)?;
                 get_other(lexer,")")?;
