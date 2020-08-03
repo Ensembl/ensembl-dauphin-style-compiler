@@ -16,34 +16,40 @@
 
 use std::any::Any;
 use std::mem::replace;
+use std::collections::HashMap;
 use crate::runtime::{ Payload, PayloadFactory };
 
 pub struct Stream {
-    contents: Vec<String>,
+    contents: HashMap<u8,Vec<String>>,
     to_stdout: bool
 }
 
 impl Stream {
     pub fn new(to_stdout: bool) -> Stream {
         Stream {
-            contents: vec![],
+            contents: HashMap::new(),
             to_stdout
         }
+    }
+
+    fn entries(&mut self, level: u8) -> &mut Vec<String> {
+        self.contents.entry(level).or_insert_with(|| vec![])
     }
 
     pub fn to_stdout(&mut self, yn: bool) {
         self.to_stdout = yn;
     } 
 
-    pub fn add(&mut self, more: &str) {
-        self.contents.push(more.to_string());
+    pub fn add(&mut self, level: u8, more: &str) {
+        self.entries(level).push(more.to_string());
         if self.to_stdout {
-            print!("{}\n",more);
+            let lev_str = ["","WARNING: ","ERROR: "].get(level as usize).unwrap_or(&"");
+            print!("{}{}\n",lev_str,more);
         }
     }
 
-    pub fn take(&mut self) -> Vec<String> {
-        replace(&mut self.contents,vec![])
+    pub fn take(&mut self, level: u8) -> Vec<String> {
+        replace(self.entries(level),vec![])
     }
 }
 

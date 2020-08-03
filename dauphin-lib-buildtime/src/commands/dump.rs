@@ -95,7 +95,7 @@ impl Command for PrintCompileCommand {
             let text = context.context().registers().get_strings(&self.0)?;
             let stream = std_stream(context.context_mut())?;
             for s in text.iter() {
-                stream.add(s);
+                stream.add(0,s);
             }   
         }
         Ok(PreImageOutcome::Replace(vec![]))

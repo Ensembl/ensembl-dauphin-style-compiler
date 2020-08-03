@@ -29,7 +29,7 @@ inline "(+)" extend left 14;
 
 proc alienate(mask _A);
 
-proc print(string);
+proc notice(string);
 
 func format(_) becomes string;
 

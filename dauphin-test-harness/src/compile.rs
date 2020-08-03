@@ -87,7 +87,7 @@ pub fn mini_interp(is: &CommandInterpretSuite, instrs: &Vec<Instruction>, cl: &m
     context.add_payload("std","stream",&StreamFactory::new());
     mini_interp_run(&mut context,&interpret_linker,config,name)?;
     let stream = std_stream(&mut context)?;
-    let strings = stream.take();
+    let strings = stream.take(0);
     Ok((export_indexes(&mut context)?,strings))
 }
 

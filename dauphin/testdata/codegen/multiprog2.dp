@@ -1,4 +1,4 @@
 import "lib:std";
 use "std";
 
-print("prog2");
+notice("prog2");

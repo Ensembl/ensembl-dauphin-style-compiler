@@ -54,24 +54,24 @@ pub struct PrintCommandType();
 impl CommandType for PrintCommandType {
     fn get_schema(&self) -> CommandSchema {
         CommandSchema {
-            values: 1,
+            values: 3,
             trigger: CommandTrigger::Command(Identifier::new("std","print"))
         }
     }
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,_sig,_) = &it.itype {
-            Ok(Box::new(PrintCommand(it.regs[0])))
+            Ok(Box::new(PrintCommand(it.regs[0],it.regs[1],it.regs[2])))
         } else {
             Err(DauphinError::malformed("unexpected instruction"))
         }
     }    
 }
 
-pub struct PrintCommand(Register);
+pub struct PrintCommand(Register,Register,Register);
 
 impl Command for PrintCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
-        Ok(Some(vec![self.0.serialize()]))
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
     }    
 }

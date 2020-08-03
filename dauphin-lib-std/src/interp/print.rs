@@ -92,14 +92,22 @@ fn print(file: &RegisterFile, xs: &XStructure<SharedVec>, regs: &[Register], pat
     })
 }
 
-pub struct PrintInterpCommand(Register);
+pub struct PrintInterpCommand(Register,Register,Register);
 
 impl InterpCommand for PrintInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers();
-        let ss = registers.get_strings(&self.0)?;
-        for s in ss.iter() {
-            std_stream(context)?.add(s);
+        let texts = registers.get_strings(&self.2)?;
+        let yn = registers.get_boolean(&self.0)?;
+        let mut yn_iter = yn.iter().cycle();
+        let level = registers.get_indexes(&self.1)?;
+        let mut level_iter = level.iter().cycle();
+        for text in texts.iter() {
+            let yn = yn_iter.next().unwrap();
+            let level = level_iter.next().unwrap();
+            if *yn {
+                std_stream(context)?.add(*level as u8,text);
+            }
         }
         Ok(())
     }
@@ -138,9 +146,9 @@ impl InterpCommand for FormatInterpCommand {
 pub struct PrintDeserializer();
 
 impl CommandDeserializer for PrintDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((14,1))) }
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((14,3))) }
     fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        Ok(Box::new(PrintInterpCommand(Register::deserialize(value[0])?)))
+        Ok(Box::new(PrintInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }
 

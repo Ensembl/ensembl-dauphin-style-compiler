@@ -147,6 +147,7 @@ dependencies = [
  "anyhow",
  "dauphin_compile",
  "dauphin_interp",
+ "hashbrown",
  "serde_cbor",
 ]
 

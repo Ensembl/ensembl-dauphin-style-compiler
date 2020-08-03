@@ -439,8 +439,8 @@ fn test_multi_program() {
     mini_interp_run(&mut ic_b,&interpret_linker,&config,"prog1").expect("B");
     let s_a = std_stream(&mut ic_a).expect("d");
     let s_b = std_stream(&mut ic_b).expect("e");
-    let a = &s_a.take();
-    let b = &s_b.take();    
+    let a = &s_a.take(0);
+    let b = &s_b.take(0);    
     assert_eq!(vec!["prog2"],a.iter().map(|x| x).collect::<Vec<_>>());
     assert_eq!(vec!["prog1"],b.iter().map(|x| x).collect::<Vec<_>>());
 }

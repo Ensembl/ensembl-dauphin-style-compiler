@@ -27,7 +27,10 @@ inline "(+)" extend left 14;
 
 proc alienate(mask _A);
 
-proc print(string);
+proc print(boolean,number,string);
+stmt notice(text) { print(true,0,text); }
+stmt warn(text) { print(true,1,text); }
+stmt error(text) { print(true,2,text); }
 
 func format(_) becomes string;
 
