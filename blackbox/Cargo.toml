@@ -1,0 +1,13 @@
+[package]
+name = "blackbox"
+version = "0.0.0"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+
+[dependencies]
+hashbrown = "*"
+lazy_static = "*"
+owning_ref = "*"
+serde_json = "*"
+
+[features]
+use-blackbox = []

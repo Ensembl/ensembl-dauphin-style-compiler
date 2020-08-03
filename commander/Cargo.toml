@@ -1,0 +1,24 @@
+[package]
+name = "commander"
+edition = '2018'
+version = "0.0.1"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+
+[features]
+use-blackbox = ["blackbox/use-blackbox"]
+
+[dependencies]
+hashbrown="*"
+futures="^0.3.4"
+owning_ref="*"
+binary-heap-plus="*"
+ordered-float = "*"
+lazy_static="*"
+
+[dependencies.blackbox]
+version="0.0.0"
+path="../blackbox"
+
+[dependencies.identitynumber]
+version="0.0.0"
+path="../identitynumber"
