@@ -238,7 +238,7 @@ mod test {
         let mut x = Executor::new(integration.clone());
         let cfg = RunConfig::new(None,3,Some(20.));
         let ctx = x.new_agent(&cfg,"name");
-        let tc = x.add(tick_helper(ctx.clone(),&[0,0,0]),ctx);
+        let tc = x.add(tick_helper(&[0,0,0]),ctx);
         x.tick(10.);
         assert!(tc.task_state() == TaskResult::Done);
     }
@@ -272,7 +272,7 @@ mod test {
         let mut x = Executor::new(integration.clone());
         let cfg = RunConfig::new(None,3,Some(20.));
         let ctx = x.new_agent(&cfg,"test");
-        let tc = x.add(tick_helper(ctx.clone(),&[3]),ctx);
+        let tc = x.add(tick_helper(&[3]),ctx);
         x.tick(10.);
         assert!(tc.task_state() == TaskResult::Ongoing);
         x.tick(10.);
@@ -446,7 +446,7 @@ mod test {
         let ctx2 = ctx.clone();
         let step = async move {
             fosa2.await;
-            tick_helper(ctx2.clone(),&[0,1,1]).await;
+            tick_helper(&[0,1,1]).await;
             ctx2.timer(3.);
             PromiseFuture::<()>::new().await;
         };
@@ -512,11 +512,11 @@ mod test {
         let ctx2 = ctx.clone();
         let p = async move { 
             let a = async {
-                tick_helper(ctx2.clone(),&[4]).await;
+                tick_helper(&[4]).await;
                 Ok::<u64,()>(ctx2.get_tick_index())
             };
             let b = async { 
-                tick_helper(ctx2.clone(),&[0,0,0,0,1]).await;
+                tick_helper(&[0,0,0,0,1]).await;
                 Ok::<u64,()>(ctx2.get_tick_index())
             };
             future::join(a,b).await
@@ -543,7 +543,7 @@ mod test {
                 Ok::<u64,()>(ctx2.get_tick_index())
             };
             let b = async {
-                tick_helper(ctx2.clone(),&[0,0,1,0,0,1,0]).await;
+                tick_helper(&[0,0,1,0,0,1,0]).await;
                 Ok::<u64,()>(ctx2.get_tick_index())
             };
             future::join(a,b).await

@@ -137,6 +137,7 @@ impl ExecutorTasks {
         out
     }
 
+    #[allow(unused)]
     pub(super) fn len(&self) -> usize { self.tasks.len() }
 }
 

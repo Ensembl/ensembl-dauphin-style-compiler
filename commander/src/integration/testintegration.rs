@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex, MutexGuard };
+use crate::cdr_tick;
 use crate::agent::agent::Agent;
 use crate::integration::integration::{ Integration, SleepQuantity };
 
@@ -34,9 +35,9 @@ impl Integration for TestIntegration {
     fn sleep(&self, quantity: SleepQuantity) { self.sleeps.lock().unwrap().push(quantity); }
 }
 
-pub async fn tick_helper(ctx: Agent, ticks: &[u64]) {
+pub async fn tick_helper(ticks: &[u64]) {
     for tick in ticks {
-        ctx.tick(*tick).await;
+        cdr_tick(*tick).await;
     }
 }
 
@@ -85,15 +86,13 @@ mod test {
         let mut x = Executor::new(integration.clone());
         let cfg = RunConfig::new(None,3,None);
         let ctx = x.new_agent(&cfg,"test");
-        let ctx2 = ctx.clone();
         let p = async move {
-            let ctx3 = ctx2.clone();
             let a = Box::pin(async move {
-                ctx3.tick(2).await;
+                cdr_tick(2).await;
                 1_u32
             });
             let b = Box::pin(async move {
-                tick_helper(ctx2,&[0,0,0,0,0,1]).await;
+                tick_helper(&[0,0,0,0,0,1]).await;
                 2_u32
             });
             let x = future::select(a,b).await;
@@ -287,7 +286,7 @@ mod test {
                 Ok::<u32,()>(5)
             };
             let b = async {
-                tick_helper(ctx2.clone(),&[0,0,0,0,1]).await;
+                tick_helper(&[0,0,0,0,1]).await;
                 Ok::<u32,()>(2)
             };
             let c = async {
@@ -321,7 +320,7 @@ mod test {
                 Ok::<u32,u32>(5)
             };
             let b = async {
-                tick_helper(ctx2.clone(),&[0,0,0,0,1]).await;
+                tick_helper(&[0,0,0,0,1]).await;
                 Err::<u32,u32>(6)
             };
             future::try_join(a,b).await

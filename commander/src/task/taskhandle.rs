@@ -201,9 +201,8 @@ mod test {
         let cfg = RunConfig::new(None,3,None);
 
         let ctx = x.new_agent(&cfg,"test");
-        let ctx2 = ctx.clone();
         let a = async move {
-            tick_helper(ctx2,&[0,0,0]).await;
+            tick_helper(&[0,0,0]).await;
             42
         };
         let tc = x.add(a,ctx);

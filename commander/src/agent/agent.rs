@@ -18,6 +18,7 @@ use super::blockagent::BlockAgent;
 use super::finishagent::FinishAgent;
 use super::nameagent::NameAgent;
 use super::runagent::RunAgent;
+use super::taskrun::cdr_set_agent;
 
 /* An agent provides methods on behalf of an Executor for use within a future. It
  * is also ultimately responsible for executing the future and for destructors.
@@ -213,6 +214,7 @@ impl Agent {
     }
 
     pub(crate) fn more<R>(&self, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>, tick_index: u64, result: &mut Option<R>) -> bool {
+        cdr_set_agent(self);
         self.run_agent().set_tick_index(tick_index);
         if self.finish_agent().finished() {
             return false;
