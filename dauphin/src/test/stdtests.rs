@@ -141,3 +141,22 @@ fn map_smoke() {
         print!("{}\n",s);
     }
 }
+
+#[test]
+fn nil_value() {
+    let config = xxx_test_config();
+    let mut linker = CompilerLink::new(make_compiler_suite(&config).expect("y"));
+    let resolver = common_resolver(&config,&linker).expect("a");
+    let mut lexer = Lexer::new(&resolver,"");
+    lexer.import("search:std/nilvalue").expect("cannot load file");
+    let mut state = GenerateState::new("test");
+    let mut p = Parser::new(&mut state,&mut lexer).expect("a");
+    p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
+    let stmts = p.take_statements();
+    let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("j").expect("k");
+    let is = make_interpret_suite().expect("n");
+    let (_,strings) = mini_interp(&is,&instrs,&mut linker,&config,"main").expect("x");
+    for s in &strings {
+        print!("{}\n",s);
+    }
+}

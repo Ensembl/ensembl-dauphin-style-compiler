@@ -43,7 +43,8 @@ pub enum Expression {
     CtorStruct(Identifier,Vec<Expression>,Vec<String>),
     CtorEnum(Identifier,String,Box<Expression>),
     Dollar,
-    At
+    At,
+    NilValue(MemberType)
 }
 
 fn alpha_id(id: &str, args: &[Identifier], exprs: &[Expression]) -> anyhow::Result<Expression> {
@@ -115,6 +116,7 @@ impl fmt::Debug for Expression {
             Expression::Dot(expr,key) => write!(f,"{:?}.{}",expr,key),
             Expression::Query(expr,key) => write!(f,"{:?}?{}",expr,key),
             Expression::Pling(expr,key) => write!(f,"{:?}!{}",expr,key),
+            Expression::NilValue(typ) => write!(f,"#{:?}",typ),
             Expression::Dollar => write!(f,"$"),
             Expression::At => write!(f,"@"),
             Expression::Vector(x) => {

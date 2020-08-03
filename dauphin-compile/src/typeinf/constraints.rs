@@ -17,7 +17,7 @@
 use anyhow;
 use crate::command::{ Instruction, InstructionType };
 use crate::model::DefStore;
-use crate::typeinf::{ ArgumentConstraint, ArgumentExpressionConstraint, InstructionConstraint };
+use crate::typeinf::{ ArgumentConstraint, ArgumentExpressionConstraint, InstructionConstraint, MemberType };
 use dauphin_interp::types::{ BaseType, MemberMode };
 use dauphin_interp::util::DauphinError;
 
@@ -155,6 +155,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> anyhow::Res
         InstructionType::StringConst(_) => Ok(vec![fixed(BaseType::StringType)]),
         InstructionType::BytesConst(_) => Ok(vec![fixed(BaseType::BytesType)]),
         InstructionType::ReFilter => Ok(vec![fixed(BaseType::NumberType),fixed(BaseType::NumberType),fixed(BaseType::NumberType)]),
+        InstructionType::NilValue(t) => Ok(vec![ArgumentConstraint::NonReference(t.to_argumentexpressionconstraint())]),
 
         InstructionType::LineNumber(_) |
         InstructionType::Pause(_) |

@@ -157,7 +157,8 @@ fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &Simpli
         InstructionType::Add |
         InstructionType::SeqFilter |
         InstructionType::Pause(_) |
-        InstructionType::SeqAt =>
+        InstructionType::SeqAt |
+        InstructionType::NilValue(_) =>
             panic!("Impossible instruction! {:?}",instr),
 
         InstructionType::CtorStruct(_) |
@@ -448,7 +449,23 @@ fn extend_one(context: &mut GenContext, name: &Identifier) -> anyhow::Result<()>
     Ok(())
 }
 
+fn remove_nils(context: &mut GenContext) -> anyhow::Result<()> {
+    for instr in &context.get_instructions() {
+        match &instr.itype {
+            InstructionType::NilValue(typ) => {
+                build_nil(context,&instr.regs[0],&typ)?;
+            },
+            _ => {
+                context.add(instr.clone());
+            }
+        }
+    }
+    context.phase_finished();
+    Ok(())
+}
+
 pub fn simplify(context: &mut GenContext) -> anyhow::Result<()> {
+    remove_nils(context)?;
     let ids : Vec<Identifier> = context.state().defstore().get_structenum_order().cloned().collect::<Vec<_>>();
     for name in ids.iter().rev() {
         extend_one(context,&name)?;

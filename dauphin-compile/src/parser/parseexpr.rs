@@ -20,7 +20,7 @@ use crate::model::{ DefStore, InlineMode, ExprMacro };
 use super::node::{ Expression };
 use super::lexutil::{get_other, get_identifier };
 use crate::model::{ IdentifierPattern, IdentifierUse };
-use crate::parser::parse_error;
+use crate::parser::{ parse_error, parse_type };
 use dauphin_interp::command::Identifier;
 
 fn vec_ctor(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::Result<Expression> {
@@ -157,6 +157,9 @@ fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::R
             Token::Other('@') => {
                 require_filter(lexer,'@',nested)?;
                 Expression::At
+            },
+            Token::Other('#') => {
+                Expression::NilValue(parse_type(lexer,defstore)?)
             },
             Token::Operator(op) => parse_prefix(lexer,defstore,&op,nested)?,
             x => Err(parse_error(&format!("Expected expression, not {:?}",x),lexer))?

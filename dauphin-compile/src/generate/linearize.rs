@@ -144,7 +144,8 @@ fn linearize_one(context: &mut GenContext, subregs: &LinearizeRegsResult, instr:
         InstructionType::Add |
         InstructionType::SeqFilter |
         InstructionType::Pause(_) |
-        InstructionType::SeqAt =>
+        InstructionType::SeqAt |
+        InstructionType::NilValue(_) =>
             panic!("Impossible instruction {:?}",instr),
 
         InstructionType::Alias |

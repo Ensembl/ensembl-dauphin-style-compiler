@@ -103,5 +103,5 @@ print_vec([e[@>0]&[$<3]]);
 
 // test dollar: vecs and assign
 e := [[],[1,2],[3],[]];
-e[@>0]&[len($)==0] := [4];
+e[@>0]#[len($)==0] := [4];
 print_vec(e);

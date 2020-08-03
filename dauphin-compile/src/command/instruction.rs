@@ -24,6 +24,7 @@ use dauphin_interp::runtime::{ Register  };
 use dauphin_interp::types::{ RegisterSignature, MemberMode, MemberDataFlow };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_int };
+use crate::typeinf::MemberType;
 
 #[derive(Clone,Copy,PartialEq,Debug,Hash,Eq)]
 pub enum InstructionSuperType {
@@ -46,7 +47,8 @@ pub enum InstructionSuperType {
     StringConst,
     BytesConst,
     Call,
-    LineNumber
+    LineNumber,
+    NilValue
 }
 
 impl InstructionSuperType {
@@ -71,7 +73,8 @@ impl InstructionSuperType {
             InstructionSuperType::StringConst => 16,
             InstructionSuperType::BytesConst => 17,
             InstructionSuperType::Call => 18,
-            InstructionSuperType::LineNumber => 19
+            InstructionSuperType::LineNumber => 19,
+            InstructionSuperType::NilValue => 20
         })
     }
 
@@ -97,6 +100,7 @@ impl InstructionSuperType {
             17 => InstructionSuperType::BytesConst,
             18 => InstructionSuperType::Call,
             19 => InstructionSuperType::LineNumber,
+            20 => InstructionSuperType::NilValue,
             _ => Err(DauphinError::internal(file!(),line!()))? /* impossible in IntstructionSuperType deserialize */
         })
     }
@@ -138,7 +142,8 @@ pub enum InstructionType {
     Proc(Identifier,Vec<MemberMode>),
     Operator(Identifier),
     Call(Identifier,bool,RegisterSignature,Vec<MemberDataFlow>),
-    LineNumber(LexerPosition)
+    LineNumber(LexerPosition),
+    NilValue(MemberType)
 }
 
 impl InstructionType {
@@ -164,6 +169,7 @@ impl InstructionType {
             InstructionType::BytesConst(_) => InstructionSuperType::BytesConst,
             InstructionType::Call(_,_,_,_) => InstructionSuperType::Call,
             InstructionType::LineNumber(_) => InstructionSuperType::LineNumber,
+            InstructionType::NilValue(_) => InstructionSuperType::NilValue,
             _ => Err(DauphinError::internal(file!(),line!()))? /* format!("instruction has no supertype")) */
         })
     }
@@ -205,6 +211,7 @@ impl InstructionType {
             InstructionType::Call(_,_,_,_) => "call",
             InstructionType::Const(_) => "const",
             InstructionType::LineNumber(_) => "line",
+            InstructionType::NilValue(_) => "nilvalue",
         }.to_string();
         let mut out = vec![call.clone()];
         if let Some(prefixes) = match self {
@@ -229,6 +236,9 @@ impl InstructionType {
                 let mut more = vec![name.to_string()]; // XXX module
                 more.extend(types.iter().map(|x| x.to_string()).collect::<Vec<_>>());
                 Some(more)
+            },
+            InstructionType::NilValue(typ) => {
+                Some(vec![format!("{}",typ)])
             },
             _ => None
         } {

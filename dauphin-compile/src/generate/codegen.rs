@@ -221,6 +221,7 @@ impl<'b> CodeGen<'b> {
             Expression::LiteralBool(b) =>   addf!(self,BooleanConst(*b)),
             Expression::LiteralBytes(b) =>  addf!(self,BytesConst(b.to_vec())),
             Expression::Vector(v) =>        self.build_vec(v,dollar,at)?,
+            Expression::NilValue(t) =>      addf!(self,NilValue(t.clone())),
             Expression::Operator(identifier,x) => {
                 let mut subregs = vec![];
                 for e in x {
@@ -321,7 +322,8 @@ impl<'b> CodeGen<'b> {
             match member {
                 SignatureMemberConstraint::RValue(_) => {
                     modes.push(MemberMode::In);
-                    regs.push(self.build_rvalue(&stmt.1[i],None,None)?);
+                    let val = stmt.1.get(i).ok_or_else(|| DauphinError::source(&format!("incorrect number of arguments, got {} expected {}",stmt.1.len(),sig.each_member().count())))?;
+                    regs.push(self.build_rvalue(val,None,None)?);
                 },
                 SignatureMemberConstraint::LValue(_,stomp) => {
                     let (lvalue_reg,fvalue_reg,_) = self.build_lvalue(&stmt.1[i],*stomp,true)?;
