@@ -23,7 +23,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
-use dauphin_interp::command::InterpreterLink;
+use dauphin_interp::command::{ InterpreterLink, CommandInterpretSuite };
 use dauphin_interp::stream::{ StreamFactory };
 use dauphin_interp::runtime::{ InterpretInstance, DebugInterpretInstance, StandardInterpretInstance, InterpContext };
 use dauphin_compile::util::{ fix_filename };
@@ -254,6 +254,31 @@ fn save_history(rl: &mut Editor<()>) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn repl_run(repl_context: &mut ReplContext, context: &mut InterpContext, isuite: &CommandInterpretSuite, config: &Config) -> anyhow::Result<()> {
+    if let Some(program) = repl_context.generate_more().context("compiling")? {
+        let interpret_linker = InterpreterLink::new(&isuite,&program).context("linking binary")?;
+        let mut interp = interpreter(context,&interpret_linker,&config,"main").expect("interpreter");
+        while interp.more().expect("interpreting") {}
+    }
+    Ok(())
+}
+
+fn handle_runtime_errors(m: anyhow::Result<()>) -> anyhow::Result<()> {
+    match m {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            let mut squash = false;
+            if let Some(de) = e.downcast_ref::<DauphinError>() {
+                if let DauphinError::RuntimeError(r,_,_) | DauphinError::FloatingRuntimeError(r) = de {
+                    print!("runtime error: {}\n",r);
+                    squash = true;
+                }
+            }
+            if squash { Ok(()) } else { Err(e) }
+        }
+    }
+}
+
 impl Action for ReplAction {
     fn name(&self) -> String { "repl".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
@@ -274,11 +299,7 @@ impl Action for ReplAction {
                 Ok(line) => {
                     rl.add_history_entry(&line);
                     repl_context.add_line(&line)?;
-                    if let Some(program) = repl_context.generate_more().context("compiling")? {
-                        let interpret_linker = InterpreterLink::new(&isuite,&program).context("linking binary")?;
-                        let mut interp = interpreter(&mut context,&interpret_linker,&config,"main").expect("interpreter");
-                        while interp.more().expect("interpreting") {}
-                    }
+                    handle_runtime_errors(repl_run(&mut repl_context,&mut context,&isuite,config))?;
                 },
                 Err(_) => break
             }
