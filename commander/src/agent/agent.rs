@@ -217,7 +217,7 @@ impl Agent {
         cdr_set_agent(self);
         self.run_agent().set_tick_index(tick_index);
         if self.finish_agent().finished() {
-            return false;
+            return true;
         }
         let waker = self.block_agent().root_block().make_waker();
         let wr = &*waker_ref(&waker);

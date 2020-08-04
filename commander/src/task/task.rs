@@ -6,6 +6,8 @@
  * KillReason is an enum which gives a reason the task was killed.
  */
 
+use std::fmt;
+
 /// Summary of a given running task.
 /// 
 /// For diagnostics. The equivalent of a row in ps, top, TaskManager, etc.
@@ -54,6 +56,17 @@ pub enum KillReason {
     Cancelled,
     /// Not needed following slot being occupied by another task.
     NotNeeded
+}
+
+impl fmt::Display for KillReason {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let reason = match self {
+            KillReason::Timeout => "timeout",
+            KillReason::Cancelled => "cancelled",
+            KillReason::NotNeeded => "not-needed"
+        };
+        write!(f,"{}",reason)
+    }
 }
 
 /// What happened to a task in the end.

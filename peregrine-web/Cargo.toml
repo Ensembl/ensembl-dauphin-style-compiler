@@ -1,0 +1,37 @@
+[package]
+name = "peregrine-web"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow="*"
+owning_ref="*"
+wasm-bindgen = "*"
+lazy_static = "*"
+
+[dependencies.blackbox]
+version="*"
+path="../blackbox"
+
+
+[dependencies.commander]
+version="*"
+path="../commander"
+
+[dependencies.web-sys]
+version = "*"
+features = [
+  'console', 'CustomEvent', 'CustomEventInit',
+  'Document',
+  'Element',
+  'HtmlElement',
+  'Node',
+  'Window',
+]
+
+[dependencies.js-sys]
+version = "*"
