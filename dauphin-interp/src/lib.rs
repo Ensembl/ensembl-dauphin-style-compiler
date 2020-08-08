@@ -21,6 +21,7 @@ extern crate lazy_static;
 pub mod types;
 
 pub mod command;
+pub mod api;
 pub mod runtime;
 pub mod stream;
 pub mod util;
@@ -33,3 +34,7 @@ pub mod core {
 }
 
 pub use self::core::make_core_interp;
+pub use self::api::dauphin::Dauphin;
+pub use self::command::CommandInterpretSuite;
+pub use self::runtime::{ InterpretInstance, PayloadFactory };
+pub use self::stream::{ ConsoleStreamFactory, Stream, StreamConnector };

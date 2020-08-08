@@ -19,7 +19,7 @@ use std::time::{ SystemTime, Duration };
 use std::collections::HashMap;
 use std::rc::Rc;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction, ProgramMetadata };
+use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction, ProgramMetadataBuilder };
 use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::{ make_core_interp };
 use dauphin_lib_std::{ make_std_interp };

@@ -25,7 +25,7 @@ use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
 use dauphin_interp::command::{ InterpreterLink, CommandInterpretSuite };
 use dauphin_interp::stream::{ StreamFactory };
-use dauphin_interp::runtime::{ InterpretInstance, DebugInterpretInstance, StandardInterpretInstance, InterpContext };
+use dauphin_interp::runtime::{ InterpretInstance, DebugInterpretInstance, PartialInterpretInstance, InterpContext };
 use dauphin_compile::util::{ fix_filename };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_serialize };
@@ -34,7 +34,7 @@ use dauphin_compile::parser::{ Parser };
 use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CompilerLink, ProgramMetadata, MetaLink, MergeLink };
+use dauphin_compile::command::{ CompilerLink, ProgramMetadataBuilder, MetaLink, MergeLink };
 use serde_cbor::Value as CborValue;
 use serde_cbor::to_writer;
 
@@ -44,7 +44,7 @@ pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a Int
             return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name,context)?));
         }
     }
-    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name,context)?))
+    Ok(Box::new(PartialInterpretInstance::new(interpret_linker,name,context)?))
 }
 
 fn read_binary_file(filename: &str) -> anyhow::Result<Vec<u8>> {
@@ -84,8 +84,8 @@ impl Action for GenerateDynamicData {
 }
 
 fn munge_filename(source: &str) -> &str {
-    if let Some(name) = Regex::new(r".*/(.*?)\.dp").unwrap().captures_iter(source).next() {
-        name.get(1).unwrap().as_str()
+    if let Some(name) = Regex::new(r"(.*/)?(.*?)\.dp").unwrap().captures_iter(source).next() {
+        name.get(2).unwrap().as_str()
     } else {
         source
     }
@@ -93,7 +93,7 @@ fn munge_filename(source: &str) -> &str {
 
 fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, source: &str, name: &str) -> anyhow::Result<bool> {
     if config.get_verbose() > 0 {
-        print!("compiling {}\n",source);
+        print!("compiling {} (name={})\n",source,name);
     }
     let mut state = GenerateState::new(name);
     let mut lexer = Lexer::new(&resolver,name);
@@ -118,7 +118,7 @@ fn compile_one(config: &Config, resolver: &Resolver, linker: &mut CompilerLink, 
         "" => None,
         note => Some(note)
     };
-    let md = ProgramMetadata::new(&name,note,&instrs);
+    let md = ProgramMetadataBuilder::new(&name,note,&instrs);
     linker.add(&md,&instrs,config).context("linking")?;
     Ok(true)
 }
@@ -168,7 +168,7 @@ impl Action for RunAction {
             let suite = make_interpret_suite(config).context("building commands")?;
             let buffer = read_binary_file(filename)?;
             let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
-            let mut interpret_linker = InterpreterLink::new(&suite,&program).context("linking binary")?;
+            let interpret_linker = InterpreterLink::new(&suite,&program).context("linking binary")?;
             let mut interp = interpreter(&mut context,&interpret_linker,&config,config.get_run()).expect("interpreter");
             while interp.more().expect("interpreting") {}
         }
@@ -225,7 +225,7 @@ impl<'a,'b> ReplContext<'a,'b> {
             },
             Ok(x) => x
         };
-        let md = ProgramMetadata::new("main",None,&instrs);
+        let md = ProgramMetadataBuilder::new("main",None,&instrs);
         self.linker.add(&md,&instrs,&self.config).context("linking")?;
         Ok(Some(self.linker.serialize(&self.config)?))
     }

@@ -15,6 +15,7 @@
  */
 
 use anyhow;
+use std::rc::Rc;
 use std::slice::Iter;
 use crate::command::{ InterpCommand, InterpreterLink };
 use crate::util::{ DauphinError, error_locate_cb };
@@ -24,52 +25,101 @@ pub trait InterpretInstance {
     fn more(&mut self) -> anyhow::Result<bool>;
 }
 
-pub struct StandardInterpretInstance<'a,'b> {
-    commands: Iter<'a,Box<dyn InterpCommand>>,
+struct CommandGetter {
+    commands: Rc<Vec<Box<dyn InterpCommand>>>,
+    index: usize
+}
+
+impl CommandGetter {
+    pub fn new(commands: Rc<Vec<Box<dyn InterpCommand>>>) -> CommandGetter {
+        CommandGetter {
+            commands,
+            index: 0
+        }
+    }
+
+    pub fn next(&mut self) -> Option<&Box<dyn InterpCommand>> {
+        if self.index < self.commands.len() {
+            self.index += 1;
+            Some(&self.commands[self.index-1])
+        } else {
+            None
+        }
+    }
+}
+
+fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
+    while let Some(command) = commands.next() {
+        command.execute(context)?;
+        context.registers_mut().commit();
+        if context.test_pause() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn more(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
+    let out = more_internal(commands,context);
+    error_locate_cb(|| {
+        let line = context.get_line_number();
+        (line.0.to_string(),line.1)
+    },out)
+}
+
+pub struct PartialInterpretInstance<'b> {
+    commands: CommandGetter,
     context: &'b mut InterpContext
 }
 
-impl<'a,'b> StandardInterpretInstance<'a,'b> {
-    pub fn new(interpret_linker: &'a InterpreterLink, name: &str, context: &'b mut InterpContext) -> anyhow::Result<StandardInterpretInstance<'a,'b>> {
-        Ok(StandardInterpretInstance {
-            commands: interpret_linker.get_commands(name)?.iter(),
+impl<'b> PartialInterpretInstance<'b> {
+    pub fn new(interpret_linker: &InterpreterLink, name: &str, context: &'b mut InterpContext) -> anyhow::Result<PartialInterpretInstance<'b>> {
+        Ok(PartialInterpretInstance {
+            commands: CommandGetter::new(interpret_linker.get_commands(name)?),
             context
         })
     }
-
-    fn more_internal(&mut self) -> anyhow::Result<bool> {
-        while let Some(command) = self.commands.next() {
-            command.execute(self.context)?;
-            self.context.registers_mut().commit();
-            if self.context.test_pause() {
-                return Ok(true);
-            }
-        }
-        Ok(false)
-    }
 }
 
-impl<'a,'b> InterpretInstance for StandardInterpretInstance<'a,'b> {
+impl<'b> InterpretInstance for PartialInterpretInstance<'b> {
     fn more(&mut self) -> anyhow::Result<bool> {
-        let out = self.more_internal();
-        error_locate_cb(|| {
-            let line = self.context.get_line_number();
-            (line.0.to_string(),line.1)
-        },out)
+        more(&mut self.commands, &mut self.context)
     }
 }
 
-pub struct DebugInterpretInstance<'a,'b> {
-    commands: Iter<'a,Box<dyn InterpCommand>>,
+pub struct StandardInterpretInstance {
+    commands: CommandGetter,
+    context: InterpContext
+}
+
+impl StandardInterpretInstance {
+    pub fn new(interpret_linker: &InterpreterLink, name: &str) -> anyhow::Result<StandardInterpretInstance> {
+        Ok(StandardInterpretInstance {
+            commands: CommandGetter::new(interpret_linker.get_commands(name)?),
+            context: InterpContext::new()
+        })
+    }
+    
+    pub fn context_mut(&mut self) -> &mut InterpContext { &mut self.context }
+}
+
+impl InterpretInstance for StandardInterpretInstance {
+    fn more(&mut self) -> anyhow::Result<bool> {
+        more(&mut self.commands, &mut self.context)
+    }
+}
+
+pub struct DebugInterpretInstance<'b> {
+    commands: CommandGetter,
     context: &'b mut InterpContext,
     instrs: Vec<(String,Vec<Register>)>,
     index: usize
 }
 
-impl<'a,'b> DebugInterpretInstance<'a,'b> {
-    pub fn new(interpret_linker: &'a InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str, context: &'b mut InterpContext) -> anyhow::Result<DebugInterpretInstance<'a,'b>> {
+impl<'b> DebugInterpretInstance<'b> {
+    pub fn new(interpret_linker: &InterpreterLink, instrs: &[(String,Vec<Register>)], name: &str, context: &'b mut InterpContext) -> anyhow::Result<DebugInterpretInstance<'b>> {
         Ok(DebugInterpretInstance {
-            commands: interpret_linker.get_commands(name)?.iter(),
+            commands: CommandGetter::new(interpret_linker.get_commands(name)?),
             context,
             instrs: instrs.to_vec(),
             index: 0
@@ -96,7 +146,7 @@ impl<'a,'b> DebugInterpretInstance<'a,'b> {
     }
 }
 
-impl<'a,'b> InterpretInstance for DebugInterpretInstance<'a,'b> {
+impl<'b> InterpretInstance for DebugInterpretInstance<'b> {
     fn more(&mut self) -> anyhow::Result<bool> {
         let out = self.more_internal();
         error_locate_cb(|| {

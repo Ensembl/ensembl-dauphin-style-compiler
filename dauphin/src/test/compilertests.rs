@@ -25,7 +25,7 @@ use dauphin_compile::resolver::{ common_resolver, Resolver };
 use dauphin_compile::parser::{ Parser, parse_type };
 use dauphin_compile::lexer::Lexer;
 use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
-use dauphin_compile::command::{ CompilerLink, InstructionType, ProgramMetadata };
+use dauphin_compile::command::{ CompilerLink, InstructionType, ProgramMetadataBuilder };
 use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call, GenerateState };
 use dauphin_interp::stream::{ StreamFactory, Stream };
@@ -147,7 +147,7 @@ fn line_number_smoke() {
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
     let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
-    let md = ProgramMetadata::new("main",None,&instrs);
+    let md = ProgramMetadataBuilder::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
     let is = make_interpret_suite().expect("m");
@@ -170,7 +170,7 @@ fn no_line_number_smoke() {
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
     let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
-    let md = ProgramMetadata::new("main",None,&instrs);
+    let md = ProgramMetadataBuilder::new("main",None,&instrs);
     linker.add(&md,&instrs,&config).expect("a");
     let mut context = context();
     let is = make_interpret_suite().expect("m");
@@ -404,7 +404,7 @@ fn make_program(linker: &mut CompilerLink, resolver: &Resolver, config: &Config,
     p.parse(&mut state,&mut lexer).expect("parse").map_err(|e| DauphinError::runtime(&e.join(". "))).expect("parse");
     let stmts = p.take_statements();
     let instrs = generate(&linker,&stmts,&mut state,&resolver,&config,true).expect("m").expect("errors");
-    let md = ProgramMetadata::new(name,None,&instrs);
+    let md = ProgramMetadataBuilder::new(name,None,&instrs);
     linker.add(&md,&instrs,config)?;
     Ok(())
 }

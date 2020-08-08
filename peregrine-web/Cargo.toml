@@ -12,6 +12,7 @@ anyhow="*"
 owning_ref="*"
 wasm-bindgen = "*"
 lazy_static = "*"
+serde_cbor="*"
 
 [dependencies.blackbox]
 version="*"
@@ -21,6 +22,14 @@ path="../blackbox"
 [dependencies.commander]
 version="*"
 path="../commander"
+
+[dependencies.dauphin_interp]
+version="*"
+path="../dauphin-interp"
+
+[dependencies.dauphin_lib_std]
+version="*"
+path="../dauphin-lib-std"
 
 [dependencies.web-sys]
 version = "*"

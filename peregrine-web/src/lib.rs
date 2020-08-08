@@ -1,8 +1,13 @@
 use wasm_bindgen::prelude::*;
+use std::future::Future;
+use commander::RunSlot;
+use web_sys::console;
 
-mod scheduler {
+mod integration {
     mod bell;
     pub(crate) mod pgcommander;
+    pub(crate) mod pgdauphin;
+    mod stream;
 }
 
 mod util {
@@ -13,8 +18,10 @@ mod util {
 use std::sync::{ Arc, Mutex };
 use anyhow::{ self, Context };
 use commander::{ cdr_tick, cdr_timer };
-use crate::scheduler::pgcommander::PgCommander;
+use crate::integration::pgcommander::PgCommander;
+use crate::integration::pgdauphin::PgDauphin;
 use crate::util::error::{ js_throw, js_option };
+use serde_cbor::Value as CborValue;
 
 fn setup_commander() -> anyhow::Result<PgCommander> {
     let window = js_option(web_sys::window())?;
@@ -25,9 +32,33 @@ fn setup_commander() -> anyhow::Result<PgCommander> {
     Ok(commander)
 }
 
-fn setup() -> anyhow::Result<PgCommander> {
-    let pgc = setup_commander().context("setting up commander")?;
-    Ok(pgc)
+struct PeregrineWeb {
+    commander: PgCommander,
+    dauphin: PgDauphin
+}
+
+impl PeregrineWeb {
+    fn new() -> anyhow::Result<PeregrineWeb> {
+        Ok(PeregrineWeb {
+            commander: setup_commander().context("setting up commander")?,
+            dauphin: PgDauphin::new()?
+        })
+    }
+
+    pub fn add_task<F>(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: F) where F: Future<Output=anyhow::Result<()>> + 'static {
+        self.commander.add_task(name,prio,slot,timeout,f)
+    }
+
+    pub fn run(&mut self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>) -> anyhow::Result<()> {
+        let (dauphin,commander) = (&mut self.dauphin, &mut self.commander);
+        let task = dauphin.load(name)?;
+        commander.add_task(&format!("dauphin: '{}'",name),prio,slot,timeout,task.run());
+        Ok(())
+    }
+
+    pub fn add_binary(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
+        self.dauphin.add_binary(cbor)
+    }    
 }
 
 async fn test(frames: Arc<Mutex<u32>>) -> anyhow::Result<()> {
@@ -47,12 +78,21 @@ async fn test2(frames: Arc<Mutex<u32>>) -> anyhow::Result<()> {
     }
 }
 
+fn test_fn() -> anyhow::Result<()> {
+    let mut pg_web = js_throw(PeregrineWeb::new());
+    let frames = Arc::new(Mutex::new(0_u32));
+    pg_web.add_task("test",100,None,Some(10000.),test(frames.clone()));
+    pg_web.add_task("test2",100,None,Some(5000.),test2(frames));
+    let test = include_bytes!("test.dpb");
+    let prog : CborValue = serde_cbor::from_slice(test)?;
+    pg_web.add_binary(&prog)?;
+    pg_web.run("hello",0,None,None).expect("run");
+    Ok(())
+}
+
 // Called when the wasm module is instantiated
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
-    let pgc = js_throw(setup());
-    let frames = Arc::new(Mutex::new(0_u32));
-    pgc.add_task("test",100,None,Some(10000.),test(frames.clone()));
-    pgc.add_task("test2",100,None,Some(5000.),test2(frames));
+    js_throw(test_fn());
     Ok(())
 }

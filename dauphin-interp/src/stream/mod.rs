@@ -1,3 +1,3 @@
 mod stream;
 
-pub use stream::{ Stream, StreamFactory };
+pub use stream::{ Stream, ConsoleStreamFactory, StreamConnector };

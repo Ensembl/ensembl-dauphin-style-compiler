@@ -38,7 +38,7 @@ use super::linearize::linearize;
 use super::simplify::simplify;
 use super::pauses::pauses;
 use dauphin_interp::runtime::InterpContext;
-use dauphin_interp::stream::StreamFactory;
+use dauphin_interp::stream::ConsoleStreamFactory;
 use dauphin_interp::util::DauphinError;
 
 struct StepData<'a,'c> {
@@ -76,7 +76,7 @@ impl GenerateStep {
     fn run_real<'a,'b>(&self, index: usize, config: &Config, compiler_link: &CompilerLink, resolver: &Resolver, context: &mut GenContext) -> anyhow::Result<()> {
         let start_time = SystemTime::now();
         let mut icontext = InterpContext::new();
-        icontext.add_payload("std","stream",&StreamFactory::new());
+        icontext.add_payload("std","stream",&ConsoleStreamFactory::new());
         let mut data = StepData {
             linker: compiler_link,
             resolver, context, config,

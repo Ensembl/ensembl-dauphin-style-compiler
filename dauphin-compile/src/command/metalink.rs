@@ -2,14 +2,14 @@ use anyhow;
 use chrono::{ Local, DateTime };
 use std::collections::HashMap;
 use serde_cbor::Value as CborValue;
-use crate::command::ProgramMetadata;
+use crate::command::ProgramMetadataBuilder;
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_map, cbor_int, cbor_map_iter, cbor_string };
 
 pub(super) const VERSION : u32 = 0;
 
 pub struct MetaLink {
-    metadata: HashMap<String,ProgramMetadata>
+    metadata: HashMap<String,ProgramMetadataBuilder>
 }
 
 impl MetaLink {
@@ -28,7 +28,7 @@ impl MetaLink {
             return Err(DauphinError::integration(&format!("Incompatible code. got v{} understand v{}",got_ver,VERSION)));
         }
         for (name,program) in cbor_map_iter(data[2])? {
-            let metadata = ProgramMetadata::deserialize(cbor_map(program,&["metadata"])?[0])?;
+            let metadata = ProgramMetadataBuilder::deserialize(cbor_map(program,&["metadata"])?[0])?;
             self.metadata.insert(cbor_string(name)?,metadata);
         }
         Ok(())

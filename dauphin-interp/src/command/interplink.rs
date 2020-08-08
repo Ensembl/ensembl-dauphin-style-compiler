@@ -50,17 +50,17 @@ impl<'a> ProgramCursor<'a> {
 }
 
 pub struct InterpreterLinkProgram {
-    commands: Vec<Box<dyn InterpCommand>>,
+    commands: Rc<Vec<Box<dyn InterpCommand>>>,
     instructions: Option<Vec<(String,Vec<Register>)>>
 }
 
-pub struct InterpreterLink<'a> {
-    ips: &'a CommandInterpretSuite,
+pub struct InterpreterLink {
+    ips: CommandInterpretSuite,
     programs: HashMap<String,InterpreterLinkProgram>,
     opcode_mapper: OpcodeMapping
 }
 
-impl<'a> InterpreterLink<'a> {
+impl InterpreterLink {
     fn make_commands(&mut self, program: &CborValue) -> anyhow::Result<Vec<Box<dyn InterpCommand>>> {
         let mut cursor = ProgramCursor {
             value: cbor_array(program,0,true)?,
@@ -90,9 +90,13 @@ impl<'a> InterpreterLink<'a> {
         Ok(self.programs.get(name).ok_or_else(|| DauphinError::config(&format!("No such program {}",name)))?)
     }
 
-    fn add_programs(ips: &'a CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink<'a>> {
+    pub fn list_programs(&self) -> Vec<String> {
+        self.programs.keys().cloned().collect()
+    }
+
+    fn add_programs(ips: &CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
         let mut out = InterpreterLink {
-            ips,
+            ips: ips.clone(),
             programs: HashMap::new(),
             opcode_mapper: OpcodeMapping::new(),
         };
@@ -108,19 +112,19 @@ impl<'a> InterpreterLink<'a> {
             let symbols = cbor_entry(program,"symbols")?;
             let commands = out.make_commands(cmds).context("building commands")?;
             out.programs.insert(name.to_string(),InterpreterLinkProgram {
-                commands,
+                commands: Rc::new(commands),
                 instructions: symbols.map(|x| InterpreterLink::make_instructions(x)).transpose().context("building debug symbols")?
             });
         }
         Ok(out)
     }
 
-    pub fn new(ips: &'a CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink<'a>> {
+    pub fn new(ips: &CommandInterpretSuite, cbor: &CborValue) -> anyhow::Result<InterpreterLink> {
         InterpreterLink::add_programs(ips,cbor).context("parsing program")
     }
 
-    pub fn get_commands(&self, name: &str) -> anyhow::Result<&Vec<Box<dyn InterpCommand>>> {
-        Ok(&self.get_program(name)?.commands)
+    pub fn get_commands(&self, name: &str) -> anyhow::Result<Rc<Vec<Box<dyn InterpCommand>>>> {
+        Ok(self.get_program(name)?.commands.clone())
     }
 
     pub fn get_instructions(&self, name: &str) -> anyhow::Result<Option<&Vec<(String,Vec<Register>)>>> { 

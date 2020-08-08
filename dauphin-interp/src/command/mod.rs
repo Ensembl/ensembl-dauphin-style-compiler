@@ -14,20 +14,23 @@
  *  limitations under the License.
  */
 
+mod binary;
 mod command;
 mod commandsetid;
 mod deserializer;
 mod interplink;
 mod interplibregister;
 mod interpretsuite;
+mod metadata;
 mod misc;
 mod opcodemapping;
 
-pub use self::command::{ CommandDeserializer, CommandTypeId, InterpCommand };
+pub use self::command::{ CommandDeserializer, CommandTypeId, InterpCommand, };
 pub use self::commandsetid::{ CommandSetId };
 pub use self::deserializer::Deserializer;
 pub use self::interplibregister::InterpLibRegister;
 pub use self::interplink::InterpreterLink;
 pub use self::interpretsuite::CommandInterpretSuite;
+pub use self::metadata::ProgramMetadata;
 pub use self::misc::{ CommandSetVerifier, Identifier };
 pub use self::opcodemapping::OpcodeMapping;

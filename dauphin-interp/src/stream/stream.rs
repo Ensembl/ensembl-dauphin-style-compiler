@@ -19,16 +19,50 @@ use std::mem::replace;
 use std::collections::HashMap;
 use crate::runtime::{ Payload, PayloadFactory };
 
+pub trait StreamConnector {
+    fn notice(&self, msg: &str) -> anyhow::Result<()>;
+    fn warn(&self, msg: &str) -> anyhow::Result<()>;
+    fn error(&self, msg: &str) -> anyhow::Result<()>;
+}
+
+pub struct ConsoleStreamConnector();
+
+impl ConsoleStreamConnector {
+    pub fn new() -> ConsoleStreamConnector {
+        ConsoleStreamConnector()
+    }
+}
+
+impl StreamConnector for ConsoleStreamConnector {
+    fn notice(&self, msg: &str) -> anyhow::Result<()> {
+        print!("{}\n",msg);
+        Ok(())
+    }
+
+    fn warn(&self, msg: &str) -> anyhow::Result<()> {
+        print!("WARNING! {}\n",msg);
+        Ok(())
+    }
+
+    fn error(&self, msg: &str) -> anyhow::Result<()> {
+        print!("ERROR! {}\n",msg);
+        Ok(())
+    }
+}
+
 pub struct Stream {
+    connector: Box<dyn StreamConnector>,
     contents: HashMap<u8,Vec<String>>,
-    to_stdout: bool
+    send: bool,
+    keep: bool
 }
 
 impl Stream {
-    pub fn new(to_stdout: bool) -> Stream {
+    pub fn new(connector: Box<dyn StreamConnector>, keep: bool, send: bool) -> Stream {
         Stream {
+            connector,
             contents: HashMap::new(),
-            to_stdout
+            keep, send
         }
     }
 
@@ -36,20 +70,31 @@ impl Stream {
         self.contents.entry(level).or_insert_with(|| vec![])
     }
 
-    pub fn to_stdout(&mut self, yn: bool) {
-        self.to_stdout = yn;
-    } 
+    pub fn set_send(&mut self, yn: bool) {
+        self.send = yn;
+    }
 
-    pub fn add(&mut self, level: u8, more: &str) {
-        self.entries(level).push(more.to_string());
-        if self.to_stdout {
-            let lev_str = ["","WARNING: ","ERROR: "].get(level as usize).unwrap_or(&"");
-            print!("{}{}\n",lev_str,more);
-        }
+    pub fn set_keep(&mut self, yn: bool) {
+        self.keep = yn;
     }
 
     pub fn take(&mut self, level: u8) -> Vec<String> {
         replace(self.entries(level),vec![])
+    }
+
+    pub fn add(&mut self, level: u8, more: &str) {
+        if self.keep {
+            self.entries(level).push(more.to_string());
+        }
+        if self.send {
+            if level == 0 {
+                self.connector.notice(more);
+            } else if level == 1 {
+                self.connector.warn(more);
+            } else {
+                self.connector.error(more);
+            }
+        }
     }
 }
 
@@ -59,13 +104,13 @@ impl Payload for Stream {
     fn finish(&mut self) {}
 }
 
-pub struct StreamFactory {
+pub struct ConsoleStreamFactory {
     to_stdout: bool
 }
 
-impl StreamFactory {
-    pub fn new() -> StreamFactory {
-        StreamFactory{
+impl ConsoleStreamFactory {
+    pub fn new() -> ConsoleStreamFactory {
+        ConsoleStreamFactory{
             to_stdout: false
         }
     }
@@ -75,8 +120,8 @@ impl StreamFactory {
     }
 }
 
-impl PayloadFactory for StreamFactory {
+impl PayloadFactory for ConsoleStreamFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(Stream::new(self.to_stdout))
+        Box::new(Stream::new(Box::new(ConsoleStreamConnector::new()),true,self.to_stdout))
     }
 }

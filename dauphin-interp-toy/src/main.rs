@@ -21,7 +21,7 @@ use std::process::exit;
 use serde_cbor;
 use dauphin_interp::make_core_interp;
 use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
-use dauphin_interp::runtime::{ StandardInterpretInstance, InterpretInstance, InterpContext };
+use dauphin_interp::runtime::{ PartialInterpretInstance, InterpretInstance, InterpContext };
 use dauphin_lib_std::{ make_std_interp };
 use dauphin_interp::stream::{ StreamFactory };
 
@@ -44,7 +44,7 @@ fn main_real() -> anyhow::Result<()> {
     let mut sf = StreamFactory::new();
     sf.to_stdout(true);
     context.add_payload("std","stream",&sf);
-    let mut interp = Box::new(StandardInterpretInstance::new(&linker,&name,&mut context)).context("building interpreter")?;
+    let mut interp = Box::new(PartialInterpretInstance::new(&linker,&name,&mut context)).context("building interpreter")?;
     while interp.more().expect("interpreting") {}
     context.finish();
     Ok(())

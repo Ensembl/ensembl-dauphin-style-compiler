@@ -49,6 +49,10 @@ impl InterpContext {
         }
     }
 
+    pub fn add_payloads(&mut self, payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) {
+        self.payloads.extend(payloads.iter().map(|(k,v)| (k.clone(),v.make_payload())))
+    }
+
     pub fn add_payload(&mut self, lib: &str, name: &str, payload: &dyn PayloadFactory) {
         self.payloads.insert((lib.to_string(),name.to_string()),payload.make_payload());
     }

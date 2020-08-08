@@ -21,8 +21,9 @@ use std::iter::{ Iterator };
 use std::rc::Rc;
 use std::str::from_utf8;
 use crate::util::DauphinError;
+use std::usize;
 
-pub const MAX_USIZE : usize = 9007199254740991;
+pub const MAX_USIZE : usize = usize::MAX;
 
 fn print_value<T>(data: &[T]) -> String where T: std::fmt::Display {
     format!("[{}]",data.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))

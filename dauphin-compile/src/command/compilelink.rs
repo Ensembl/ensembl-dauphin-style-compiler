@@ -18,7 +18,7 @@ use anyhow::{ self, Context };
 use std::collections::{ BTreeMap, HashMap };
 use std::rc::Rc;
 use crate::cli::Config;
-use crate::command::{ Instruction, InstructionType, CommandCompileSuite, Command, CommandSchema, CommandTrigger, ProgramMetadata };
+use crate::command::{ Instruction, InstructionType, CommandCompileSuite, Command, CommandSchema, CommandTrigger, ProgramMetadataBuilder };
 use dauphin_interp::runtime::{ InterpContext, PayloadFactory };
 use dauphin_interp::command::{ CommandSetId, InterpCommand };
 use dauphin_interp::util::DauphinError;
@@ -114,13 +114,13 @@ impl CompilerLink {
         ])
     }
 
-    pub fn add(&mut self, md: &ProgramMetadata, instrs: &[Instruction], config: &Config) -> anyhow::Result<()> {
+    pub fn add(&mut self, md: &ProgramMetadataBuilder, instrs: &[Instruction], config: &Config) -> anyhow::Result<()> {
         let value = self.serialize_program(md,instrs,config).with_context(|| format!("serializing {}",md.name()))?;
         self.programs.insert(CborValue::Text(md.name().to_string()),value);
         Ok(())
     }
 
-    fn serialize_program(&self, md: &ProgramMetadata, instrs: &[Instruction], config: &Config) -> anyhow::Result<CborValue> {
+    fn serialize_program(&self, md: &ProgramMetadataBuilder, instrs: &[Instruction], config: &Config) -> anyhow::Result<CborValue> {
         let mut cmds_s = vec![];
         let mut symbols = vec![];
         for (i,instr) in instrs.iter().enumerate() {

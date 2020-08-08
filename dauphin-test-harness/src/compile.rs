@@ -20,10 +20,10 @@ use std::time::{ SystemTime, Duration };
 use std::collections::HashMap;
 use std::rc::Rc;
 use dauphin_compile::cli::Config;
-use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction, ProgramMetadata };
+use dauphin_compile::command::{ CommandCompileSuite, CompilerLink, Instruction, ProgramMetadataBuilder };
 use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
-use dauphin_interp::runtime::{ InterpContext, InterpValue, Register, StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
-use dauphin_interp::stream::{ StreamFactory, Stream };
+use dauphin_interp::runtime::{ InterpContext, InterpValue, Register, PartialInterpretInstance, DebugInterpretInstance, InterpretInstance };
+use dauphin_interp::stream::{ ConsoleStreamFactory, Stream };
 use dauphin_interp::util::cbor::{ cbor_serialize };
 use dauphin_compile::generate::{ generate, GenerateState };
 use dauphin_compile::resolver::common_resolver;
@@ -37,7 +37,7 @@ pub fn interpreter<'a>(context: &'a mut InterpContext, interpret_linker: &'a Int
             return Ok(Box::new(DebugInterpretInstance::new(interpret_linker,&instrs,name,context)?));
         }
     }
-    Ok(Box::new(StandardInterpretInstance::new(interpret_linker,name,context)?))
+    Ok(Box::new(PartialInterpretInstance::new(interpret_linker,name,context)?))
 }
 
 fn export_indexes(ic: &mut InterpContext) -> anyhow::Result<HashMap<Register,Vec<usize>>> {
@@ -52,7 +52,7 @@ fn export_indexes(ic: &mut InterpContext) -> anyhow::Result<HashMap<Register,Vec
 
 pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
     let p = context.payload("std","stream")?;
-    Ok(p.as_any_mut().downcast_mut().ok_or_else(|| DauphinError::runtime("missing stream"))?)
+    Ok(p.as_any_mut().downcast_mut::<Stream>().ok_or_else(|| DauphinError::runtime("missing stream"))?)
 }
 
 pub fn comp_interpret(is: &CommandInterpretSuite, context: &mut InterpContext, compiler_linker: &CompilerLink, config: &Config, name: &str) -> anyhow::Result<()> {
@@ -76,7 +76,7 @@ pub fn mini_interp_run(context: &mut InterpContext, interpret_linker: &Interpret
 }
 
 pub fn mini_interp(is: &CommandInterpretSuite, instrs: &Vec<Instruction>, cl: &mut CompilerLink, config: &Config, name: &str) -> anyhow::Result<(HashMap<Register,Vec<usize>>,Vec<String>)> {
-    let md = ProgramMetadata::new(name,None,instrs);
+    let md = ProgramMetadataBuilder::new(name,None,instrs);
     cl.add(&md,instrs,config)?;
     let program = cl.serialize(config)?;
     let buffer = cbor_serialize(&program)?;
@@ -84,7 +84,7 @@ pub fn mini_interp(is: &CommandInterpretSuite, instrs: &Vec<Instruction>, cl: &m
     let program = serde_cbor::from_slice(&buffer).context("deserialising")?;
     let interpret_linker = InterpreterLink::new(&is,&program).context("linking")?;
     let mut context = InterpContext::new();
-    context.add_payload("std","stream",&StreamFactory::new());
+    context.add_payload("std","stream",&ConsoleStreamFactory::new());
     mini_interp_run(&mut context,&interpret_linker,config,name)?;
     let stream = std_stream(&mut context)?;
     let strings = stream.take(0);
