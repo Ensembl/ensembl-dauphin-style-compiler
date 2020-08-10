@@ -7,17 +7,17 @@
  */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_enabled { () => { true }; }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_enabled { () => { false }; }
 
 /* logs */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_log {
     ($stream:expr,$($arg:tt)*) => {{
         if $crate::blackbox_is_enabled($stream) {
@@ -28,7 +28,7 @@ macro_rules! blackbox_log {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_log {
     ($stream:expr,$($arg:tt)*) => {
     }
@@ -37,7 +37,7 @@ macro_rules! blackbox_log {
 /* stack */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_stack {
     ($level:expr,$code:block) => {{
         $crate::blackbox_push($level);
@@ -48,7 +48,7 @@ macro_rules! blackbox_stack {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_stack {
     ($level:expr,$code:block) => {{
         $code
@@ -58,7 +58,7 @@ macro_rules! blackbox_stack {
 /* values */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_value {
     ($stream:expr,$name:expr,$amt:expr) => {{
         $crate::blackbox_value($stream,$name,$amt);
@@ -66,7 +66,7 @@ macro_rules! blackbox_value {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_value {
         ($stream:expr,$name:expr,$amt:expr) => {{}}
 }
@@ -74,7 +74,7 @@ macro_rules! blackbox_value {
 /* counts */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_count {
     ($stream:expr,$name:expr,$amt:expr) => {{
         $crate::blackbox_count($stream,$name,$amt);
@@ -82,13 +82,13 @@ macro_rules! blackbox_count {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_count {
         ($stream:expr,$name:expr,$amt:expr) => {{}}
 }
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_set_count {
     ($stream:expr,$name:expr,$amt:expr) => {{
         $crate::blackbox_set_count($stream,$name,$amt);
@@ -96,13 +96,13 @@ macro_rules! blackbox_set_count {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_set_count {
         ($stream:expr,$name:expr,$amt:expr) => {{}}
 }
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_reset_count {
     ($stream:expr,$name:expr) => {{
         $crate::blackbox_reset_count($stream,$name);
@@ -110,7 +110,7 @@ macro_rules! blackbox_reset_count {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_reset_count {
         ($stream:expr,$name:expr) => {{}}
 }
@@ -118,7 +118,7 @@ macro_rules! blackbox_reset_count {
 /* elapsed */
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_start {
     ($stream:expr,$name:expr,$point:expr) => {{
         $crate::blackbox_start($stream,$name,Some($point));
@@ -126,13 +126,13 @@ macro_rules! blackbox_start {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_start {
     ($stream:expr,$name:expr,$point:expr) => {{}}
 }
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_end {
     ($stream:expr,$name:expr,$point:expr) => {{
         $crate::blackbox_end($stream,$name,Some($point));
@@ -140,13 +140,13 @@ macro_rules! blackbox_end {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_end {
     ($stream:expr,$name:expr,$point:expr) => {{}}
 }
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_time {
     ($stream:expr,$name:expr,$code:block) => {{
         $crate::blackbox_start($stream,$name,None);
@@ -157,7 +157,7 @@ macro_rules! blackbox_time {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_time {
     ($stream:expr,$name:expr,$code:block) => {{
         $code
@@ -165,7 +165,7 @@ macro_rules! blackbox_time {
 }
 
 #[macro_export]
-#[cfg(any(blackbox,test,feature = "use-blackbox"))]
+#[cfg(any(blackbox,test))]
 macro_rules! blackbox_metronome {
     ($stream:expr,$name:expr) => {{
         $crate::blackbox_metronome($stream,$name);
@@ -173,7 +173,7 @@ macro_rules! blackbox_metronome {
 }
 
 #[macro_export]
-#[cfg(not(any(blackbox,test,feature = "use-blackbox")))]
+#[cfg(not(any(blackbox,test)))]
 macro_rules! blackbox_metronome {
         ($stream:expr,$name:expr) => {{}}
 }

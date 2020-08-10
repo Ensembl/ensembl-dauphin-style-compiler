@@ -24,7 +24,7 @@ use std::process::exit;
 use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
 use dauphin_interp::command::{ InterpreterLink, CommandInterpretSuite };
-use dauphin_interp::stream::{ StreamFactory };
+use dauphin_interp::stream::{ ConsoleStreamFactory };
 use dauphin_interp::runtime::{ InterpretInstance, DebugInterpretInstance, PartialInterpretInstance, InterpContext };
 use dauphin_compile::util::{ fix_filename };
 use dauphin_interp::util::DauphinError;
@@ -130,7 +130,7 @@ impl Action for CompileAction {
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
         let lib = make_compiler_suite(&config).context("registering commands")?;
         let mut linker = CompilerLink::new(lib);
-        let mut sf = StreamFactory::new();
+        let mut sf = ConsoleStreamFactory::new();
         sf.to_stdout(true);
         linker.add_payload("std","stream",sf);
         let resolver = common_resolver(&config,&linker).context("creating file-path resolver")?;
@@ -161,7 +161,7 @@ impl Action for RunAction {
     fn name(&self) -> String { "run".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
         let mut context = InterpContext::new();
-        let mut sf = StreamFactory::new();
+        let mut sf = ConsoleStreamFactory::new();
         sf.to_stdout(true);
         context.add_payload("std","stream",&sf);
         for filename in config.get_binary_sources() {
@@ -283,7 +283,7 @@ impl Action for ReplAction {
     fn name(&self) -> String { "repl".to_string() }
     fn execute(&self, config: &Config) -> anyhow::Result<()> {
         let mut context = InterpContext::new();
-        let mut sf = StreamFactory::new();
+        let mut sf = ConsoleStreamFactory::new();
         sf.to_stdout(true);
         context.add_payload("std","stream",&sf);
         let mut rl = rustyline::Editor::<()>::new();

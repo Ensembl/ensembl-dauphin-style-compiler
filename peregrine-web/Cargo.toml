@@ -13,11 +13,15 @@ owning_ref="*"
 wasm-bindgen = "*"
 lazy_static = "*"
 serde_cbor="*"
+once_cell="*"
+serde_json="*"
+fnv="*"
+base64="*"
 
 [dependencies.blackbox]
 version="*"
 path="../blackbox"
-
+features=[]
 
 [dependencies.commander]
 version="*"
@@ -40,6 +44,7 @@ features = [
   'HtmlElement',
   'Node',
   'Window',
+  'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 
 [dependencies.js-sys]

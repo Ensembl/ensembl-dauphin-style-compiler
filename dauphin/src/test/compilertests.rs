@@ -28,7 +28,7 @@ use dauphin_compile::typeinf::{ MemberType, Typing, get_constraint };
 use dauphin_compile::command::{ CompilerLink, InstructionType, ProgramMetadataBuilder };
 use dauphin_compile::model::{ DefStore, make_full_type };
 use dauphin_compile::generate::{ generate, generate_code, simplify, call, GenerateState };
-use dauphin_interp::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ ConsoleStreamFactory, Stream };
 
 // XXX move to common test utils
 fn make_type(defstore: &DefStore, name: &str) -> MemberType {
@@ -416,7 +416,7 @@ pub fn std_stream(context: &mut InterpContext) -> anyhow::Result<&mut Stream> {
 
 fn context() -> InterpContext {
     let mut ctx = InterpContext::new();
-    ctx.add_payload("std","stream",&StreamFactory::new());
+    ctx.add_payload("std","stream",&ConsoleStreamFactory::new());
     ctx
 }
 

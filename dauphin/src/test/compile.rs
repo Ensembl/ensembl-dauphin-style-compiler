@@ -24,7 +24,7 @@ use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::{ make_core_interp };
 use dauphin_lib_std::{ make_std_interp };
 use dauphin_interp::runtime::{ InterpContext, InterpValue };
-use dauphin_interp::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ ConsoleStreamFactory, Stream };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::cbor_serialize;
@@ -49,7 +49,7 @@ pub fn make_compiler_suite(config: &Config) -> anyhow::Result<CommandCompileSuit
     let mut suite = CommandCompileSuite::new();
     suite.register(make_core())?;
     let mut std = make_std();
-    let mut sf = StreamFactory::new();
+    let mut sf = ConsoleStreamFactory::new();
     sf.to_stdout(true);
     std.add_payload("std","stream",sf);
     suite.register(std)?;    

@@ -14,8 +14,10 @@
  *  limitations under the License.
  */
 
+use blackbox::{ blackbox_log };
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ StreamConnector, Stream };
+use commander::{ cdr_get_name };
 use web_sys::console;
 
 pub struct WebStreamConnector();
@@ -26,19 +28,41 @@ impl WebStreamConnector {
     }
 }
 
+#[cfg(console)]
 impl StreamConnector for WebStreamConnector {
     fn notice(&self, msg: &str) -> anyhow::Result<()> {
         console::log_1(&format!("{}\n",msg).into());
+        blackbox_log!("notice","dauphin '{}': {}",cdr_get_name(),msg);
         Ok(())
     }
 
     fn warn(&self, msg: &str) -> anyhow::Result<()> {
         console::warn_1(&format!("{}\n",msg).into());
+        blackbox_log!("warn","dauphin '{}': {}",cdr_get_name(),msg);
         Ok(())
     }
 
     fn error(&self, msg: &str) -> anyhow::Result<()> {
         console::error_1(&format!("{}\n",msg).into());
+        blackbox_log!("error","dauphin '{}': {}",cdr_get_name(),msg);
+        Ok(())
+    }
+}
+
+#[cfg(not(console))]
+impl StreamConnector for WebStreamConnector {
+    fn notice(&self, msg: &str) -> anyhow::Result<()> {
+        blackbox_log!("notice","dauphin '{}': {}",cdr_get_name(),msg);
+        Ok(())
+    }
+
+    fn warn(&self, msg: &str) -> anyhow::Result<()> {
+        blackbox_log!("warn","dauphin '{}': {}",cdr_get_name(),msg);
+        Ok(())
+    }
+
+    fn error(&self, msg: &str) -> anyhow::Result<()> {
+        blackbox_log!("error","dauphin '{}': {}",cdr_get_name(),msg);
         Ok(())
     }
 }

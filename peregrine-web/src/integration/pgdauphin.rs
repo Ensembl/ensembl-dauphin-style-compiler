@@ -1,9 +1,8 @@
 use anyhow;
-use dauphin_interp::{ CommandInterpretSuite, Dauphin, InterpretInstance, PayloadFactory, make_core_interp };
+use dauphin_interp::{ CommandInterpretSuite, Dauphin, InterpretInstance, make_core_interp };
 use dauphin_lib_std::make_std_interp;
 use commander::cdr_tick;
 use crate::integration::stream::WebStreamFactory;
-use super::pgcommander::PgCommander;
 use serde_cbor::Value as CborValue;
 
 fn command_suite() -> anyhow::Result<CommandInterpretSuite> {

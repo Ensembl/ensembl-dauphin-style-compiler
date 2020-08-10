@@ -1,9 +1,14 @@
+use std::fmt;
 use anyhow::{ self, anyhow as err };
 use wasm_bindgen::JsValue;
 use web_sys::console;
 
 pub(crate) fn js_error<T>(e: Result<T,JsValue>) -> anyhow::Result<T> {
     e.map_err(|e| err!(e.as_string().unwrap_or("mystery error".to_string())))
+}
+
+pub(crate) fn display_error<T,E>(e: Result<T,E>) -> anyhow::Result<T> where E: fmt::Display {
+    e.map_err(|e| err!(e.to_string()))
 }
 
 pub(crate) fn js_option<T>(e: Option<T>) -> anyhow::Result<T> {
