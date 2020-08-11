@@ -64,7 +64,38 @@ impl<T> XStructure<T> {
             XStructure::Enum(_,_,kvs,_) => kvs.iter().next().unwrap().1.any(),
             XStructure::Simple(t) => t.borrow()
         }
-    }    
+    }
+
+    fn max_rec_choose<V,I,U>(&self, it: I) -> Option<(V,U)> where I: Iterator<Item=Option<(V,U)>>, V: Ord {
+        let mut out = None;
+        for val in it {
+            if let Some((v,t)) = val {
+                let mut beaten = false;
+                if let Some((ref v_max,_)) = out {
+                    if v <= *v_max {
+                        beaten = true;
+                    }
+                }
+                if !beaten {
+                    out = Some((v,t));
+                }
+            }
+        }
+        out
+    }
+
+    fn max_rec<F,V>(&self, f: &F, default: &V) -> Option<(V,Ref<T>)> where F: Fn(&T) -> V, V: Ord+Clone {
+        match self {
+            XStructure::Vector(inner) => inner.max_rec(f,default),
+            XStructure::Struct(_,kvs) => self.max_rec_choose(kvs.values().map(|x| x.max_rec(f,default))),
+            XStructure::Enum(_,_,kvs,_) => self.max_rec_choose(kvs.values().map(|x| x.max_rec(f,default))),
+            XStructure::Simple(t) => Some((f(&t.as_ref().borrow()),t.borrow()))
+        }
+    }
+
+    pub fn max<F,V>(&self, f: F, default: V) -> Option<Ref<T>> where F: Fn(&T) -> V, V: Ord+Clone {
+        self.max_rec(&f,&default).map(|x| x.1)
+    }
 }
 
 #[derive(Debug)]
@@ -112,21 +143,31 @@ fn enum_split<T>(paths: &[XPath<T>]) -> (Vec<XPath<T>>,Option<XPath<T>>) {
 }
 
 fn convert<T>(paths: &[XPath<T>]) -> anyhow::Result<XStructure<T>> {
+    /* Is it a simple path? If so, exit */
     if paths.iter().filter(|x| x.0.len()!=0).count() == 0 {
-        /* simple */
         return Ok(XStructure::Simple(paths[0].1.clone()));
     }
+    /* Not a simple path, so a vec, enum, or struct */
+    /* All XPaths at the head this level should be Vector or Part, no mixtures.
+     * Extract heads into "names" a vec of their XPathEl members or None (if vector).
+     */
     let (paths,disc) = enum_split(paths);
     let mut paths : Vec<XPath<T>> = paths.iter().map(|x| x.clone()).collect();
     let heads : Vec<XPathEl> = paths.iter_mut().map(|x| x.0.remove(0)).collect();
-    let names : Option<Vec<(Identifier,String)>> = heads.iter().map(|x| if let XPathEl::Part(x,y) = x { Some((x.clone(),y.clone())) } else { None } ).collect();
+    let names : Option<Vec<(Identifier,String)>> = heads.iter().map(|x| {
+        if let XPathEl::Part(x,y) = x { Some((x.clone(),y.clone())) } else { None }
+    }).collect();
     if let Some(names) = names {
+        /* We have a struct or enum */
         let mut mapping = HashMap::new();
         let mut obj_name = None;
         let mut name_order = vec![];
         for (i,name) in names.iter().enumerate() {
-            mapping.entry(name.1.clone()).or_insert(vec![]).push(paths[i].clone());
-            name_order.push(name.1.clone());
+            if !mapping.contains_key(&name.1) {
+                mapping.insert(name.1.clone(),vec![]);
+                name_order.push(name.1.clone());
+            }
+            mapping.get_mut(&name.1).unwrap().push(paths[i].clone());
             obj_name = Some(name.0.clone());
         }
         let obj_name = obj_name.as_ref().ok_or_else(|| DauphinError::internal(file!(),line!()) /* empty arm in sig */)?.clone();
@@ -140,6 +181,7 @@ fn convert<T>(paths: &[XPath<T>]) -> anyhow::Result<XStructure<T>> {
             Ok(XStructure::Struct(obj_name,entries))
         }
     } else {
+        /* We have a vector. Recurse with remaining path components. */
         Ok(XStructure::Vector(Rc::new(convert(&paths)?)))
     }
 }

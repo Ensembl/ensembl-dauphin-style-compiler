@@ -143,7 +143,7 @@ pub enum InstructionType {
     Operator(Identifier),
     Call(Identifier,bool,RegisterSignature,Vec<MemberDataFlow>),
     LineNumber(LexerPosition),
-    NilValue(MemberType)
+    NilValue(MemberType,Option<String>)
 }
 
 impl InstructionType {
@@ -169,7 +169,7 @@ impl InstructionType {
             InstructionType::BytesConst(_) => InstructionSuperType::BytesConst,
             InstructionType::Call(_,_,_,_) => InstructionSuperType::Call,
             InstructionType::LineNumber(_) => InstructionSuperType::LineNumber,
-            InstructionType::NilValue(_) => InstructionSuperType::NilValue,
+            InstructionType::NilValue(_,_) => InstructionSuperType::NilValue,
             _ => Err(DauphinError::internal(file!(),line!()))? /* format!("instruction has no supertype")) */
         })
     }
@@ -211,7 +211,7 @@ impl InstructionType {
             InstructionType::Call(_,_,_,_) => "call",
             InstructionType::Const(_) => "const",
             InstructionType::LineNumber(_) => "line",
-            InstructionType::NilValue(_) => "nilvalue",
+            InstructionType::NilValue(_,_) => "nilvalue",
         }.to_string();
         let mut out = vec![call.clone()];
         if let Some(prefixes) = match self {
@@ -237,8 +237,12 @@ impl InstructionType {
                 more.extend(types.iter().map(|x| x.to_string()).collect::<Vec<_>>());
                 Some(more)
             },
-            InstructionType::NilValue(typ) => {
-                Some(vec![format!("{}",typ)])
+            InstructionType::NilValue(typ,branch) => {
+                if let Some(branch) = branch {
+                    Some(vec![format!("{}",typ),branch.to_string()])
+                } else {
+                    Some(vec![format!("{}",typ)])
+                }
             },
             _ => None
         } {

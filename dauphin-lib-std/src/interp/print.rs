@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+use std::cell::Ref;
 use std::rc::Rc;
 use dauphin_interp::command::{ InterpCommand, InterpLibRegister, CommandDeserializer };
 use dauphin_interp::types::{ SharedVec, RegisterSignature, XStructure, RegisterVectorSource, VectorRegisters, to_xstructure };
@@ -45,9 +46,11 @@ fn vr_lookup_data(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Resul
     let mut position = first;
     for (i,index) in path.iter().enumerate() {
         let offset_val = sv.get_offset(sv.depth()-1-i)?;
-        position = offset_val[position] + index;
+        position = offset_val[position%offset_val.len()] + index;
     }
-    Ok((sv.get_data().clone(),position))
+    let data = sv.get_data().clone();
+    let data_len = data.len();
+    Ok((data,position%data_len))
 }
 
 fn vr_lookup_len(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Result<usize> {
@@ -60,10 +63,20 @@ fn vr_lookup_len(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Result
     Ok(len_val[position])
 }
 
+fn longest(xs: &XStructure<SharedVec>) -> Ref<SharedVec> {
+    xs.max(|sv| {
+        if sv.depth() >0 {
+            sv.get_length(sv.depth()-1).map(|x| x.len()).unwrap_or(0)
+        } else {
+            sv.get_data().len()
+        }
+    }, 0).unwrap_or_else(|| xs.any())
+}
+
 fn print(file: &RegisterFile, xs: &XStructure<SharedVec>, regs: &[Register], path: &[usize], first: usize) -> anyhow::Result<String> {
     Ok(match xs {
         XStructure::Vector(xs_inner) => {
-            let sv = xs.any();
+            let sv = longest(xs);
             let len = vr_lookup_len(&sv,path,first)?;
             let mut out = vec![];
             for i in 0..len {
@@ -131,7 +144,7 @@ impl InterpCommand for FormatInterpCommand {
         let xs = to_xstructure(&self.1[1])?;
         let vs = RegisterVectorSource::new(&self.0);
         let xs2 = xs.derive(&mut (|vr: &VectorRegisters| SharedVec::new(context,&vs,vr)))?;
-        let sv = xs2.any();
+        let sv = longest(&xs2);
         let num = if sv.depth() > 0 { sv.get_offset(sv.depth()-1)?.len() } else { sv.get_data().len() };
         let registers = context.registers_mut();
         let mut out = vec![];

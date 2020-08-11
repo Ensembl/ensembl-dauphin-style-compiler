@@ -221,7 +221,7 @@ impl<'b> CodeGen<'b> {
             Expression::LiteralBool(b) =>   addf!(self,BooleanConst(*b)),
             Expression::LiteralBytes(b) =>  addf!(self,BytesConst(b.to_vec())),
             Expression::Vector(v) =>        self.build_vec(v,dollar,at)?,
-            Expression::NilValue(t) =>      addf!(self,NilValue(t.clone())),
+            Expression::NilValue(t,b) =>    addf!(self,NilValue(t.clone(),b.clone())),
             Expression::Operator(identifier,x) => {
                 let mut subregs = vec![];
                 for e in x {

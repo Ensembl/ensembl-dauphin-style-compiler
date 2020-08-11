@@ -1,0 +1,37 @@
+use "std";
+
+struct hotspot {
+  start: number,
+  end: number,
+  top: number,
+  bottom: number,
+  cursor: string  
+};
+
+struct rectangle {
+  start: number,
+  end: number,
+  top: number,
+  bottom: number,
+  colour: string  
+};
+
+enum shape {
+  hotspot: hotspot,
+  rectangle: rectangle
+};
+
+expr get_some_data() [[1000,2000,3000],[20,20,20]];
+expr process_data(data) [["protein_coding","protein_coding","ncRNA"]];
+expr de_run_length_encode(x) x;
+expr my_ini_file(a,b) "blue";
+
+stmt draw_those_things(x) { notice(format(x)); }
+
+expr column(x,data)  data[@==x][];
+
+expr make_rectangles(col,rec) len([col]) (*) shape:rectangle rec;
+
+
+
+

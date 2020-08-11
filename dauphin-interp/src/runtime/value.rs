@@ -23,7 +23,7 @@ use std::str::from_utf8;
 use crate::util::DauphinError;
 use std::usize;
 
-pub const MAX_USIZE : usize = usize::MAX;
+pub const MAX_USIZE : usize = 1073741824;
 
 fn print_value<T>(data: &[T]) -> String where T: std::fmt::Display {
     format!("[{}]",data.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", "))

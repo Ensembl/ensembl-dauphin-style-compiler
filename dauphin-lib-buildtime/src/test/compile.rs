@@ -21,7 +21,7 @@ use dauphin_compile::core::make_core;
 use dauphin_interp::command::{ CommandInterpretSuite };
 use dauphin_interp::{ make_core_interp };
 use dauphin_lib_std::{ make_std_interp };
-use dauphin_interp::stream::{ StreamFactory };
+use dauphin_interp::stream::{ ConsoleStreamFactory };
 use dauphin_lib_std::make_std;
 use crate::make_buildtime;
 
@@ -36,7 +36,7 @@ pub fn make_compiler_suite(_config: &Config) -> anyhow::Result<CommandCompileSui
     let mut suite = CommandCompileSuite::new();
     suite.register(make_core())?;
     let mut std = make_std();
-    let mut sf = StreamFactory::new();
+    let mut sf = ConsoleStreamFactory::new();
     sf.to_stdout(true);
     std.add_payload("std","stream",sf);
     suite.register(std)?;

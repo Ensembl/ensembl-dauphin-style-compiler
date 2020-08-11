@@ -26,15 +26,9 @@ use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::{ make_core_interp };
 use crate::{ make_std_interp };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register, StandardInterpretInstance, DebugInterpretInstance, InterpretInstance };
-use dauphin_interp::stream::{ StreamFactory, Stream };
+use dauphin_interp::stream::{ ConsoleStreamFactory, Stream };
 use dauphin_interp::util::cbor::{ cbor_serialize };
 use crate::make_std;
-//use dauphin_lib_buildtime::make_buildtime;
-use dauphin_compile::generate::generate;
-use dauphin_compile::resolver::common_resolver;
-use dauphin_compile::lexer::Lexer;
-use dauphin_compile::parser::Parser;
-use dauphin_test_harness::hexdump;
 
 pub fn make_interpret_suite() -> anyhow::Result<CommandInterpretSuite> {
     let mut suite = CommandInterpretSuite::new();
@@ -47,7 +41,7 @@ pub fn make_compiler_suite(config: &Config) -> anyhow::Result<CommandCompileSuit
     let mut suite = CommandCompileSuite::new();
     suite.register(make_core())?;
     let mut std = make_std();
-    let mut sf = StreamFactory::new();
+    let mut sf = ConsoleStreamFactory::new();
     sf.to_stdout(true);
     std.add_payload("std","stream",sf);
     suite.register(std)?;

@@ -25,6 +25,9 @@ proc assert(boolean,boolean);
 func extend(_A,_A) becomes _A;
 inline "(+)" extend left 14;
 
+func repeat(number,_A) becomes _A;
+inline "(*)" repeat left 14;
+
 proc alienate(mask _A);
 
 proc print(boolean,number,string);

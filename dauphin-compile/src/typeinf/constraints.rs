@@ -155,7 +155,7 @@ pub fn get_constraints(it: &InstructionType, defstore: &DefStore) -> anyhow::Res
         InstructionType::StringConst(_) => Ok(vec![fixed(BaseType::StringType)]),
         InstructionType::BytesConst(_) => Ok(vec![fixed(BaseType::BytesType)]),
         InstructionType::ReFilter => Ok(vec![fixed(BaseType::NumberType),fixed(BaseType::NumberType),fixed(BaseType::NumberType)]),
-        InstructionType::NilValue(t) => Ok(vec![ArgumentConstraint::NonReference(t.to_argumentexpressionconstraint())]),
+        InstructionType::NilValue(t,_) => Ok(vec![ArgumentConstraint::NonReference(t.to_argumentexpressionconstraint())]),
 
         InstructionType::LineNumber(_) |
         InstructionType::Pause(_) |

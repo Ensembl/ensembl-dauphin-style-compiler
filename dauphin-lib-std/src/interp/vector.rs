@@ -60,7 +60,7 @@ impl InterpCommand for VectorAppendInterpCommand {
         let registers = context.registers_mut();
         let rightval = registers.get(&self.1);
         let rightval = rightval.borrow_mut().get_shared()?;
-        let filter = registers.len(&self.2)?;
+        let filter = registers.get_indexes(&self.2)?[0];
         let leftval = registers.get(&self.0);
         let leftval = leftval.borrow_mut().get_exclusive()?;
         let leftdata = append_data(leftval,&rightval,filter)?.0;
@@ -86,7 +86,7 @@ pub struct VectorAppendIndexesInterpCommand(Register,Register,Register,Register,
 impl InterpCommand for VectorAppendIndexesInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
         let registers = context.registers_mut();
-        let copies = registers.len(&self.4)?;
+        let copies = registers.get_indexes(&self.4)?[0];
         if copies == 0 { return Ok(()) }
         let rightval = registers.get_indexes(&self.1)?;
         let start = registers.get_indexes(&self.2)?[0];

@@ -22,11 +22,11 @@ func __query__() becomes _;
 func __pling__() becomes _;
 func __ref__() becomes _;
 func __sqctor__() becomes _;
-inline "[" __sqopen__ suffix 4;
-inline "[" __sqctor__ prefix 4;
-inline "." __dot__ suffix 4;
-inline "?" __query__ suffix 4;
-inline "!" __pling__ suffix 4;
-inline "#[" __ref__ suffix 4;
+inline "[" __sqopen__ suffix 1;
+inline "[" __sqctor__ prefix 1;
+inline "." __dot__ suffix 1;
+inline "?" __query__ suffix 3;
+inline "!" __pling__ suffix 3;
+inline "#[" __ref__ suffix 1;
 
 "##;

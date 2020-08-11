@@ -106,7 +106,7 @@ fn extend_vertical<F>(in_: &Vec<Register>, mapping: &SimplifyTypeMapperResult,mu
 }
 
 /* Some easy value for unused enum branches */
-fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> anyhow::Result<()> {
+fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType, branch: &Option<String>) -> anyhow::Result<()> {
     match type_ {
         MemberType::Vec(m) =>  {
             let state = context.state_mut();
@@ -128,7 +128,7 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
                     let state = context.state_mut();
                     let r = state.regalloc().allocate();
                     state.types_mut().set(&r,member_type);
-                    build_nil(context,&r,member_type)?;
+                    build_nil(context,&r,member_type,&None)?;
                     subregs.push(r);
                 }
                 context.add(Instruction::new(InstructionType::CtorStruct(name.clone()),subregs));
@@ -136,11 +136,20 @@ fn build_nil(context: &mut GenContext, reg: &Register, type_: &MemberType) -> an
             BaseType::EnumType(name) => {
                 let state = context.state_mut();
                 let decl = state.defstore().get_enum_id(name)?;
-                let branch_type = decl.get_branch_types().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
-                let field_name = decl.get_names().get(0).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+                let field_index = if let Some(branch) = branch {
+                    if let Some(index) = decl.get_names().iter().position(|x| x==branch) {
+                        index
+                    } else {
+                        return Err(DauphinError::source(&format!("No such branch: {:?}",branch)));
+                    }
+                } else {
+                    0
+                };
+                let field_name = decl.get_names().get(field_index).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
+                let branch_type = decl.get_branch_types().get(field_index).ok_or_else(|| DauphinError::internal(file!(),line!()))?;
                 let subreg = state.regalloc().allocate();
                 state.types_mut().set(&subreg,branch_type);
-                build_nil(context,&subreg,branch_type)?;
+                build_nil(context,&subreg,branch_type,&None)?;
                 context.add(Instruction::new(InstructionType::CtorEnum(name.clone(),field_name.clone()),vec![*reg,subreg]));
             }
         }
@@ -158,7 +167,7 @@ fn extend_common(context: &mut GenContext, instr: &Instruction, mapping: &Simpli
         InstructionType::SeqFilter |
         InstructionType::Pause(_) |
         InstructionType::SeqAt |
-        InstructionType::NilValue(_) =>
+        InstructionType::NilValue(_,_) =>
             panic!("Impossible instruction! {:?}",instr),
 
         InstructionType::CtorStruct(_) |
@@ -274,7 +283,7 @@ fn extend_enum_instr(context: &mut GenContext, obj_name: &Identifier, decl: &Enu
                     } else {
                         let state = context.state_mut();
                         let type_ = state.types().get(&dests[i]).ok_or_else(|| DauphinError::internal(file!(),line!()))?.clone();
-                        build_nil(context,&dests[i],&type_)?;
+                        build_nil(context,&dests[i],&type_,&None)?;
                     }
                 }
             } else {
@@ -452,8 +461,8 @@ fn extend_one(context: &mut GenContext, name: &Identifier) -> anyhow::Result<()>
 fn remove_nils(context: &mut GenContext) -> anyhow::Result<()> {
     for instr in &context.get_instructions() {
         match &instr.itype {
-            InstructionType::NilValue(typ) => {
-                build_nil(context,&instr.regs[0],&typ)?;
+            InstructionType::NilValue(typ,branch) => {
+                build_nil(context,&instr.regs[0],&typ,branch)?;
             },
             _ => {
                 context.add(instr.clone());

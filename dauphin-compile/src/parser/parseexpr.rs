@@ -166,7 +166,14 @@ fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::R
                 Expression::At
             },
             Token::Other('#') => {
-                Expression::NilValue(parse_type(lexer,defstore)?)
+                let typ = parse_type(lexer,defstore)?;
+                let branch = if lexer.peek(None,1)[0] == Token::Other(':') {
+                    get_other(lexer,":")?;
+                    Some(get_identifier(lexer)?)
+                } else {
+                    None
+                };
+                Expression::NilValue(typ,branch)
             },
             Token::Operator(op) => parse_prefix(lexer,defstore,&op,nested)?,
             x => Err(parse_error(&format!("Expected expression, not {:?}",x),lexer))?
@@ -193,10 +200,12 @@ fn parse_suffix(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identi
         "__query__" if identifier.1 => Expression::Query(Box::new(left),get_identifier(lexer)?),
         "__pling__" if identifier.1 => Expression::Pling(Box::new(left),get_identifier(lexer)?),
         "__ref__" if identifier.1 => {
-            if let Expression::Bracket(op,key) = parse_brackets(lexer,defstore,left)? {
-                Expression::Filter(op,key)
-            } else {
-                Err(parse_error("Expected filter",lexer))?
+            match parse_brackets(lexer,defstore,left)? {
+                Expression::Bracket(op,key) => Expression::Filter(op,key),
+                Expression::Square(left) => Expression::Filter(left,Box::new(Expression::LiteralBool(true))),
+                _ => {
+                    Err(parse_error("Expected filter",lexer))?
+                }
             }
         },
         _ => Expression::Operator(identifier.0.clone(),vec![left])

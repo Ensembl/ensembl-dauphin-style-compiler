@@ -24,8 +24,8 @@ use dauphin_interp::command::InterpCommand;
 use dauphin_interp::types::{ VectorRegisters, MemberMode, RegisterSignature };
 use serde_cbor::Value as CborValue;
 use dauphin_interp::util::DauphinError;
-use dauphin_compile::util::{ vector_push_instrs, vector_update_offsets, vector_update_lengths, vector_copy };
-use super::extend::ExtendCommandType;
+use dauphin_compile::util::{ vector_add_instrs, vector_update_offsets, vector_update_lengths, vector_copy };
+use super::extend::{ ExtendCommandType, RepeatCommandType };
 use super::library::std;
 
 fn preimage_instrs(regs: &Vec<Register>) -> anyhow::Result<Vec<Instruction>> {
@@ -47,8 +47,8 @@ fn copy_deep_instrs<'d>(context: &mut PreImageContext, left: &VectorRegisters, r
     let reg_off = if depth > 1 { right.offset_pos(depth-2)? } else { right.data_pos() };
     out.push(Instruction::new(InstructionType::Length,vec![stride,regs[reg_off]]));
     let filter_len = context.new_register();
-    out.push(Instruction::new(InstructionType::Copy,vec![filter_len,filter.clone()]));
-    out.append(&mut vector_push_instrs(context,left,right,&filter_len,regs)?);
+    out.push(Instruction::new(InstructionType::Length,vec![filter_len,filter.clone()]));
+    out.append(&mut vector_add_instrs(context,left,right,&filter_len,regs)?);
     let zero = context.new_register();
     out.push(Instruction::new(InstructionType::Const(vec![0]),vec![zero]));
     out.push(vector_update_offsets(left,right,&start,&stride,filter,regs,depth-1)?);
@@ -116,4 +116,5 @@ impl Command for AssignCommand {
 pub(super) fn library_assign_commands(set: &mut CompLibRegister) {
     set.push("assign",None,AssignCommandType());
     set.push("extend",None,ExtendCommandType::new());
+    set.push("repeat",None,RepeatCommandType::new());
 }

@@ -1,0 +1,40 @@
+import "lib:std"; use "std";
+import "search:demo2"; use "demo2";
+
+/* Get some compile-time data */
+
+gene_colour := my_ini_file("colours.ini","gene");
+
+
+/* Get some remote data */
+
+data := get_some_data();
+more_data := process_data(data);
+
+
+/* Make some rectangles */
+
+shapes := make_rectangles(column(0,data),rectangle {
+  start: 0,
+  end : 0,
+  top: 0,
+  bottom: 10,
+  colour: gene_colour
+});
+
+shapes!rectangle.start := column(0,data);
+shapes!rectangle.end := column(0,data) + de_run_length_encode(column(1,data));
+
+
+/* Make ncRNA green and skinny */
+
+nc_rna := column(0,more_data)=="ncRNA";
+shapes#[nc_rna]!rectangle.colour := "green";
+shapes#[nc_rna]!rectangle.top (+=) 2;
+shapes#[nc_rna]!rectangle.bottom (+=) -2;
+
+
+/* Draw them */
+
+draw_those_things(shapes);
+
