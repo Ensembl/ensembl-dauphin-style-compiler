@@ -68,7 +68,7 @@ impl CommanderState {
     }
 
     fn schedule(&self) -> anyhow::Result<()> {
-        let window = js_option(web_sys::window()).context("getting window")?;
+        let window = js_option(web_sys::window(),"cannot get window")?;
         let mut state = self.sleep_state.lock().unwrap();
         if let Some((_,handle)) = state.timeout.take() {
             window.clear_timeout_with_handle(handle);

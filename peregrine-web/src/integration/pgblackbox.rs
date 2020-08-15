@@ -1,12 +1,13 @@
 use anyhow::{ self, Context };
 use std::hash::Hasher;
 use std::sync::Mutex;
-use blackbox::{ Integration, blackbox_integration, blackbox_take_json };
+use blackbox::{ Integration, blackbox_config, blackbox_integration, blackbox_take_json };
 use commander::{ cdr_timer };
 use js_sys::Date;
 use js_sys::Math::random;
-use web_sys::{ XmlHttpRequest, XmlHttpRequestResponseType };
+use web_sys::{ XmlHttpRequest, XmlHttpRequestResponseType, console };
 use lazy_static::lazy_static;
+use crate::util::ajax::PgAjax;
 use crate::util::error::{ display_error, js_error, js_warn };
 use serde_json::Value as JsonValue;
 use fnv::FnvHasher;
@@ -41,14 +42,13 @@ fn instance_id() -> String {
     base64::encode(h.finish().to_string())[0..5].to_string()
 }
 
-fn send_data(url: &str, data: &JsonValue) -> anyhow::Result<()> {
-    let xhr = js_error(XmlHttpRequest::new())?;
-    js_error(xhr.open("POST",url))?;
-    js_error(xhr.set_request_header("Content-Type", "application/json"))?;
-    xhr.set_response_type(XmlHttpRequestResponseType::Arraybuffer);
+async fn send_data(url: &str, data: &JsonValue) -> anyhow::Result<()> {
+    let mut ajax = PgAjax::new("POST",url);
     let mut buffer = Vec::new();
     display_error(serde_json::to_writer(&mut buffer,&data))?;
-    js_error(xhr.send_with_opt_u8_array(Some(&buffer)))?;
+    ajax.set_body(buffer);
+    let response = ajax.get_json().await.context("sending blackbox data")?;
+    blackbox_config(&response);
     Ok(())
 }
 
@@ -56,7 +56,7 @@ pub async fn pgblackbox_sync() -> anyhow::Result<()> {
     loop {
         if let Some(url) = &*ENDPOINT.lock().unwrap() {
             let data = blackbox_take_json();
-            js_warn(send_data(url,&data).context("sending blackbox"));
+            js_warn(send_data(url,&data).await.context("sending blackbox"));
         }
         cdr_timer(10000.).await;
     }

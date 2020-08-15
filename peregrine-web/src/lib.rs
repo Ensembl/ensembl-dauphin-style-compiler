@@ -13,6 +13,7 @@ mod integration {
 }
 
 mod util {
+    pub(crate) mod ajax;
     pub(crate) mod error;
     pub(crate) mod safeelement;
 }
@@ -28,9 +29,9 @@ use crate::util::error::{ js_throw, js_option };
 use serde_cbor::Value as CborValue;
 
 fn setup_commander() -> anyhow::Result<PgCommander> {
-    let window = js_option(web_sys::window())?;
-    let document = js_option(window.document())?;
-    let html = js_option(document.body().clone())?;
+    let window = js_option(web_sys::window(),"cannot get window")?;
+    let document = js_option(window.document(),"cannot get document")?;
+    let html = js_option(document.body().clone(),"cannot get body")?;
     let commander = PgCommander::new(&html)?;
     commander.start();
     Ok(commander)
@@ -91,8 +92,8 @@ impl PeregrineWeb {
 async fn test(frames: Arc<Mutex<u32>>) -> anyhow::Result<()> {
     loop {
         cdr_timer(1000.).await;
-        let window = js_option(web_sys::window())?;
-        let document = js_option(window.document())?;
+        let window = js_option(web_sys::window(),"cannot get window")?;
+        let document = js_option(window.document(),"cannot get document")?;
         let el = document.get_element_by_id("loop").expect("missing element");
         el.set_inner_html(&format!("{}",frames.lock().unwrap()));
     }

@@ -11,8 +11,8 @@ pub(crate) fn display_error<T,E>(e: Result<T,E>) -> anyhow::Result<T> where E: f
     e.map_err(|e| err!(e.to_string()))
 }
 
-pub(crate) fn js_option<T>(e: Option<T>) -> anyhow::Result<T> {
-    e.ok_or_else(|| err!("unexpected unwrap failure"))
+pub(crate) fn js_option<T>(e: Option<T>, msg: &'static str) -> anyhow::Result<T> {
+    e.ok_or_else(|| err!(msg))
 }
 
 pub(crate) fn console_error(s: &str) {

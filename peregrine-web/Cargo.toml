@@ -10,13 +10,19 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow="*"
 owning_ref="*"
-wasm-bindgen = "*"
+wasm-bindgen-futures = "*"
 lazy_static = "*"
 serde_cbor="*"
 once_cell="*"
 serde_json="*"
 fnv="*"
 base64="*"
+
+[dependencies.wasm-bindgen]
+version="*"
+features = [
+  'serde-serialize'
+]
 
 [dependencies.blackbox]
 version="*"
@@ -41,8 +47,9 @@ features = [
   'console', 'CustomEvent', 'CustomEventInit',
   'Document',
   'Element',
-  'HtmlElement',
+  'HtmlElement', 'Headers',
   'Node',
+  'Request', 'RequestInit', 'RequestMode', 'Response',
   'Window',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
