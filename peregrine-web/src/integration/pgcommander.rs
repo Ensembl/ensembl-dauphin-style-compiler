@@ -1,5 +1,6 @@
 use anyhow::{ self, Context, anyhow as err };
 use blackbox::blackbox_log;
+use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use std::future::Future;
 use owning_ref::MutexGuardRefMut;
@@ -10,6 +11,7 @@ use js_sys::Date;
 use crate::util::error::{ js_error, js_option, js_throw, console_error, js_warn };
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
+use peregrine_core::PgCommander;
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -98,7 +100,7 @@ impl CommanderState {
     }
 }
 
-async fn catch_errors<F>(f: F) where F: Future<Output=anyhow::Result<()>> {
+async fn catch_errors(f: Pin<Box<dyn Future<Output=anyhow::Result<()>>>>) {
     js_warn(f.await.with_context(|| format!("async: {}",cdr_get_name())));
 }
 
@@ -113,13 +115,13 @@ async fn finish(res: TaskHandle<()>, name: String) {
 }
 
 #[derive(Clone)]
-pub struct PgCommander {
+pub struct PgCommanderWeb {
     state: CommanderState,
     bell_receiver: BellReceiver
 }
 
-impl PgCommander {
-    pub fn new(el: &HtmlElement) -> anyhow::Result<PgCommander> {
+impl PgCommanderWeb {
+    pub fn new(el: &HtmlElement) -> anyhow::Result<PgCommanderWeb> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             raf_pending: None,
@@ -135,7 +137,7 @@ impl PgCommander {
             sleep_state,
             executor: Arc::new(Mutex::new(Executor::new(integration)))
         };
-        let mut out = PgCommander {
+        let mut out = PgCommanderWeb {
             state: state.clone(),
             bell_receiver
         };
@@ -145,24 +147,26 @@ impl PgCommander {
         });
         Ok(out)
     }
+}
 
-    pub fn start(&self) {
+impl PgCommander for PgCommanderWeb {
+    fn start(&self) {
         self.state.tick();
     }
 
-    pub fn executor(&self) -> anyhow::Result<MutexGuardRefMut<Executor>> {
+    fn executor(&self) -> anyhow::Result<MutexGuardRefMut<Executor>> {
         Ok(MutexGuardRefMut::new(self.state.executor.lock().map_err(|_| err!("poisoned lock"))?))
     }
 
-    pub fn add_task<F>(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: F) where F: Future<Output=anyhow::Result<()>> + 'static {
+    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>) {
         let mut exe = self.executor().expect("executor");
         let rc = RunConfig::new(slot,prio,timeout);
         let agent = exe.new_agent(&rc,name);
-        let res = exe.add(catch_errors(f),agent);
+        let res = exe.add_pin(Box::pin(catch_errors(f)),agent);
         let rc2 = RunConfig::new(None,prio,None);
         let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
         exe.add(finish(res,name.to_string()),agent);
-    }    
+    }
 }
 
 #[derive(Clone)]

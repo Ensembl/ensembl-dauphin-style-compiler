@@ -22,17 +22,18 @@ use std::sync::{ Arc, Mutex };
 use anyhow::{ self, Context };
 use blackbox::{ blackbox_enable };
 use commander::{ cdr_tick, cdr_timer };
-use crate::integration::pgcommander::PgCommander;
-use crate::integration::pgdauphin::PgDauphin;
+use crate::integration::pgcommander::PgCommanderWeb;
+use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
 use crate::util::error::{ js_throw, js_option };
 use serde_cbor::Value as CborValue;
+use peregrine_core::{ PgCore, PgCommander };
 
-fn setup_commander() -> anyhow::Result<PgCommander> {
+fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let html = js_option(document.body().clone(),"cannot get body")?;
-    let commander = PgCommander::new(&html)?;
+    let commander = PgCommanderWeb::new(&html)?;
     commander.start();
     Ok(commander)
 }
@@ -40,16 +41,15 @@ fn setup_commander() -> anyhow::Result<PgCommander> {
 //static PEREGRINEWEB: Lazy<Mutex<PeregrineWeb>> = Lazy::new(|| Mutex::new(js_throw(PeregrineWeb::new())));
 
 struct PeregrineWeb {
-    commander: PgCommander,
-    dauphin: PgDauphin
+    core: PgCore
 }
 
 impl PeregrineWeb {
     fn new() -> anyhow::Result<PeregrineWeb> {
         pgblackbox_setup();
+        let commander = setup_commander().context("setting up commander")?; 
         let mut out = PeregrineWeb {
-            commander: setup_commander().context("setting up commander")?,
-            dauphin: PgDauphin::new()?
+            core: PgCore::new(Box::new(commander),Box::new(PgDauphinIntegrationWeb()))?
         };
         out.setup()?;
         Ok(out)
@@ -71,21 +71,6 @@ impl PeregrineWeb {
     fn setup(&mut self) -> anyhow::Result<()> {
         self.setup_blackbox();
         Ok(())
-    }
-
-    pub fn add_task<F>(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: F) where F: Future<Output=anyhow::Result<()>> + 'static {
-        self.commander.add_task(name,prio,slot,timeout,f)
-    }
-
-    pub fn run(&mut self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>) -> anyhow::Result<()> {
-        let (dauphin,commander) = (&mut self.dauphin, &mut self.commander);
-        let task = dauphin.load(name)?;
-        commander.add_task(&format!("dauphin: '{}'",name),prio,slot,timeout,task.run());
-        Ok(())
-    }
-
-    pub fn add_binary(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
-        self.dauphin.add_binary(cbor)
     }
 }
 
@@ -109,12 +94,12 @@ async fn test2(frames: Arc<Mutex<u32>>) -> anyhow::Result<()> {
 fn test_fn() -> anyhow::Result<()> {
     let mut pg_web = js_throw(PeregrineWeb::new());
     let frames = Arc::new(Mutex::new(0_u32));
-    pg_web.add_task("test",100,None,Some(10000.),test(frames.clone()));
-    pg_web.add_task("test2",100,None,Some(5000.),test2(frames));
+    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(frames.clone())));
+    pg_web.core.add_task("test2",100,None,Some(5000.),Box::pin(test2(frames)));
     let test = include_bytes!("test.dpb");
     let prog : CborValue = serde_cbor::from_slice(test)?;
-    pg_web.add_binary(&prog)?;
-    pg_web.run("hello",0,None,None).expect("run");
+    pg_web.core.add_binary(&prog)?;
+    pg_web.core.run("hello",0,None,None).expect("run");
     Ok(())
 }
 

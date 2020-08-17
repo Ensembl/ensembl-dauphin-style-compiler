@@ -78,13 +78,13 @@ mod test {
     #[test]
     fn axis() {
         let mut axis = VareaAxis::new();
-        axis.add(&1,Box::new(Discrete::new(0)));
+        axis.add(&1,Box::new(Discrete::new(&[0])));
         let r : Box<dyn VareaIndexItem> = Box::new(RTreeRange::new(0,100));
         let r = all(axis.lookup(&r));
         assert_eq!(Vec::<VareaId>::new(),r);
         let mut rm = axis.add(&2,Box::new(RTreeRange::new(2,25)));
         axis.add(&3,Box::new(RTreeRange::new(12,14)));
-        let r : Box<dyn VareaIndexItem> = Box::new(Discrete::new(0));
+        let r : Box<dyn VareaIndexItem> = Box::new(Discrete::new(&[0]));
         let r = all(axis.lookup(&r));
         assert_eq!(vec![1],r);
         let r : Box<dyn VareaIndexItem> = Box::new(RTreeRange::new(2,8));

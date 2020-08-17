@@ -75,8 +75,8 @@ mod test {
 
     fn item(k:u32) -> VareaItem {
         let mut t = VareaItem::new();
-        t.add("x",Discrete::new(k/10));
-        t.add("y",Discrete::new(k%2));
+        t.add("x",Discrete::new(&[k/10]));
+        t.add("y",Discrete::new(&[k%2]));
         t
     }
 
@@ -86,7 +86,7 @@ mod test {
 
     fn search_x(k:u32) -> VareaItem {
         let mut t = VareaItem::new();
-        t.add("x",Discrete::new(k));
+        t.add("x",Discrete::new(&[k]));
         t
     }
 

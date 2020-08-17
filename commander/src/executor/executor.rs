@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::pin::Pin;
 use crate::agent::agent::Agent;
 use crate::integration::integration::{ Integration, SleepQuantity };
 use crate::integration::reentering::ReenteringIntegration;
@@ -62,8 +63,13 @@ impl Executor {
     }
 
     /// Add given future and agent to the executor for running.
-    pub fn add<R,T>(&mut self, run: T, mut agent: Agent) -> TaskHandle<R> where R: 'static, T: Future<Output=R>+'static {
-        let handle = TaskHandle::new(&mut agent,Box::pin(run));
+    pub fn add<R,T>(&mut self, run: T, agent: Agent) -> TaskHandle<R> where R: 'static, T: Future<Output=R>+'static {
+        self.add_pin(Box::pin(run),agent)
+    }
+
+    /// Add given future and agent to the executor for running.
+    pub fn add_pin<R>(&mut self, run: Pin<Box<dyn Future<Output=R>>>, mut agent: Agent) -> TaskHandle<R> where R: 'static {
+        let handle = TaskHandle::new(&mut agent,run);
         self.try_add_task(Box::new(handle.clone()),agent);
         handle
     }

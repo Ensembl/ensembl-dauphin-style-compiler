@@ -53,7 +53,7 @@ impl Dauphin {
         self.payloads.insert((module.to_string(),name.to_string()),pf);
     }
 
-    pub fn add_binary(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
+    pub fn add_binary(&mut self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
         let (instance,programs) = DauphinInstance::new(&self.suite,cbor)?;
         let instance = Rc::new(instance);
         for program in &programs {
@@ -66,12 +66,12 @@ impl Dauphin {
         self.mapping.keys().cloned().collect()
     }
 
-    pub fn run(&self, name: &str) -> anyhow::Result<()> {
+    pub fn run(&self, binary_name: &str, name: &str) -> anyhow::Result<()> {
         let instance = self.mapping.get(name).ok_or(DauphinError::runtime(&format!("No such program: {}",name)))?;
         instance.run(name,&self.payloads)
     }
 
-    pub fn run_stepwise(&self, name: &str) -> anyhow::Result<impl InterpretInstance> {
+    pub fn run_stepwise(&self, binary_name: &str, name: &str) -> anyhow::Result<impl InterpretInstance> {
         let instance = self.mapping.get(name).ok_or(DauphinError::runtime(&format!("No such program: {}",name)))?;
         instance.run_stepwise(name,&self.payloads)
     }
