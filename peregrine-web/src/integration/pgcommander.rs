@@ -11,7 +11,7 @@ use js_sys::Date;
 use crate::util::error::{ js_error, js_option, js_throw, console_error, js_warn };
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
-use peregrine_core::PgCommander;
+use peregrine_core::Commander;
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -149,7 +149,7 @@ impl PgCommanderWeb {
     }
 }
 
-impl PgCommander for PgCommanderWeb {
+impl Commander for PgCommanderWeb {
     fn start(&self) {
         self.state.tick();
     }

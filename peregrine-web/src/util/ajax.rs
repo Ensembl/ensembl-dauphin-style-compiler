@@ -1,3 +1,4 @@
+use std::future::Future;
 use anyhow::{ self, Context };
 use wasm_bindgen::{ JsCast, JsValue };
 use js_sys::{ Array, Uint8Array };
@@ -5,6 +6,8 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{ Request, RequestInit, RequestMode, Response };
 use crate::util::error::{ js_option, js_error, display_error };
 use serde_json::Value as JsonValue;
+use url::Url;
+use serde_cbor::Value as CborValue;
 
 pub struct PgAjax {
     method: String,
@@ -22,7 +25,7 @@ fn u8_slice_to_typed_array(v: &[u8]) -> Uint8Array {
 }
 
 impl PgAjax {
-    pub fn new(method: &str, url: &str) -> PgAjax {
+    pub fn new(method: &str, url: &Url) -> PgAjax {
         PgAjax {
             method: method.to_string(),
             url: url.to_string(),
@@ -37,6 +40,11 @@ impl PgAjax {
 
     pub fn set_body(&mut self, body: Vec<u8>) {
         self.body = Some(body);
+    }
+
+    pub fn set_body_cbor(&mut self, value: &CborValue) -> anyhow::Result<()> {
+        self.set_body(serde_cbor::to_vec(&value).context("building trace bytes")?);
+        Ok(())
     }
 
     async fn get(&self) -> anyhow::Result<JsValue> {
@@ -61,5 +69,14 @@ impl PgAjax {
         let json = js_error(JsFuture::from(js_error(response.json())?).await)?;
         let json : JsonValue = display_error(json.into_serde()).context("not JSON")?;
         Ok(json)
+    }
+
+    pub async fn get_cbor(&mut self) -> anyhow::Result<CborValue> {
+        self.add_request_header("Content-Type","application/cbor");
+        let response = self.get().await?;
+        let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
+        let cbor = js_error(JsFuture::from(js_error(response.text())?).await)?;
+        let cbor : CborValue = display_error(cbor.into_serde()).context("not SBOR")?;
+        Ok(cbor)
     }
 }

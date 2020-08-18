@@ -17,6 +17,8 @@ once_cell="*"
 serde_json="*"
 fnv="*"
 base64="*"
+async-trait="*"
+url="*"
 
 [dependencies.wasm-bindgen]
 version="*"

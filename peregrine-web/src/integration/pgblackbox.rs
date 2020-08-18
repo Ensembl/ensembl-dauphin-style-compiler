@@ -12,9 +12,10 @@ use crate::util::error::{ display_error, js_error, js_warn };
 use serde_json::Value as JsonValue;
 use fnv::FnvHasher;
 use base64;
+use url::Url;
 
 lazy_static! {
-    static ref ENDPOINT: Mutex<Option<String>> = Mutex::new(None);
+    static ref ENDPOINT: Mutex<Option<Url>> = Mutex::new(None);
 }
 
 pub struct PgBlackboxIntegration(String);
@@ -42,7 +43,7 @@ fn instance_id() -> String {
     base64::encode(h.finish().to_string())[0..5].to_string()
 }
 
-async fn send_data(url: &str, data: &JsonValue) -> anyhow::Result<()> {
+async fn send_data(url: &Url, data: &JsonValue) -> anyhow::Result<()> {
     let mut ajax = PgAjax::new("POST",url);
     let mut buffer = Vec::new();
     display_error(serde_json::to_writer(&mut buffer,&data))?;
@@ -67,6 +68,6 @@ pub fn pgblackbox_setup() {
     blackbox_integration(PgBlackboxIntegration::new(&instance_id));
 }
 
-pub fn pgblackbox_endpoint(endpoint: Option<&str>) {
-    *ENDPOINT.lock().unwrap() = endpoint.map(|x| x.to_string());
+pub fn pgblackbox_endpoint(endpoint: Option<&Url>) {
+    *ENDPOINT.lock().unwrap() = endpoint.cloned();
 }

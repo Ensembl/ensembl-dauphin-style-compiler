@@ -9,6 +9,7 @@ mod integration {
     pub(crate) mod pgcommander;
     pub(crate) mod pgdauphin;
     pub(crate) mod pgblackbox;
+    pub(crate) mod pgchannel;
     mod stream;
 }
 
@@ -22,12 +23,13 @@ use std::sync::{ Arc, Mutex };
 use anyhow::{ self, Context };
 use blackbox::{ blackbox_enable };
 use commander::{ cdr_tick, cdr_timer };
+use crate::integration::pgchannel::PgChannel;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
 use crate::util::error::{ js_throw, js_option };
 use serde_cbor::Value as CborValue;
-use peregrine_core::{ PgCore, PgCommander };
+use peregrine_core::{ PgCore, PgCommander, PgDauphin, Commander, RequestManager };
 
 fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     let window = js_option(web_sys::window(),"cannot get window")?;
@@ -47,9 +49,12 @@ struct PeregrineWeb {
 impl PeregrineWeb {
     fn new() -> anyhow::Result<PeregrineWeb> {
         pgblackbox_setup();
-        let commander = setup_commander().context("setting up commander")?; 
+        let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
+        let dauphin = PgDauphin::new(Box::new(PgDauphinIntegrationWeb()))?;
+
+        let manager = RequestManager::new(PgChannel(),&dauphin,&commander);
         let mut out = PeregrineWeb {
-            core: PgCore::new(Box::new(commander),Box::new(PgDauphinIntegrationWeb()))?
+            core: PgCore::new(&commander,&dauphin,&manager)?
         };
         out.setup()?;
         Ok(out)

@@ -44,7 +44,7 @@ pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> anyhow::Result<Vec<&'
                 })?);
             }
         },
-        _ => { err!("expected map") }
+        _ => { bail!("expected map") }
     }
     Ok(out)
 }
@@ -55,7 +55,14 @@ pub fn cbor_map_iter(cbor: &CborValue) -> anyhow::Result<impl Iterator<Item=(&Cb
             Ok(m.iter())
         },
         _ => {
-            bail!(err!("expected map"))
+            bail!("expected map")
         }
+    }
+}
+
+pub fn cbor_bool(cbor: &CborValue) -> anyhow::Result<bool> {
+    match cbor {
+        CborValue::Bool(x) => Ok(*x),
+        _ => bail!("expected bool")
     }
 }
