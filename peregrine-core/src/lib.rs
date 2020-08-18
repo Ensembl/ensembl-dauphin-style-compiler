@@ -17,8 +17,7 @@ mod request {
     pub(crate) mod packet;
     pub(crate) mod program;
     pub(crate) mod request;
-    pub use self::channel::{ Channel, ChannelLocation, PacketPriority };
-    pub use self::manager::ChannelIntegration;
+    pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
     pub use self::manager::RequestManager;
 }
 

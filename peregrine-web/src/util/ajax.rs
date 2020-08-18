@@ -2,8 +2,10 @@ use std::future::Future;
 use anyhow::{ self, Context };
 use wasm_bindgen::{ JsCast, JsValue };
 use js_sys::{ Array, Uint8Array };
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{ Request, RequestInit, RequestMode, Response };
+use web_sys;
+use web_sys::{ AbortController, Request, RequestInit, RequestMode, Response };
 use crate::util::error::{ js_option, js_error, display_error };
 use serde_json::Value as JsonValue;
 use url::Url;
@@ -13,6 +15,7 @@ pub struct PgAjax {
     method: String,
     url: String,
     headers: Vec<(String,String)>,
+    timeout: Option<f64>,
     body: Option<Vec<u8>>
 }
 
@@ -30,12 +33,17 @@ impl PgAjax {
             method: method.to_string(),
             url: url.to_string(),
             headers: vec![],
-            body: None
+            body: None,
+            timeout: None
         }
     }
 
     pub fn add_request_header(&mut self, key: &str, value: &str) {
         self.headers.push((key.to_string(),value.to_string()))
+    }
+
+    pub fn set_timeout(&mut self, timeout: f64) {
+        self.timeout = Some(timeout);
     }
 
     pub fn set_body(&mut self, body: Vec<u8>) {
@@ -47,12 +55,25 @@ impl PgAjax {
         Ok(())
     }
 
+    fn add_timeout(&self, init: &mut RequestInit, timeout: f64) -> anyhow::Result<()> {
+        let controller = js_error(AbortController::new())?;
+        let signal = controller.signal();
+        init.signal(Some(&signal));
+        let closure = Closure::once_into_js(Box::new(move || controller.abort()) as Box<dyn Fn()>);
+        let window = display_error(web_sys::window().ok_or("cannot get window object"))?;
+        js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),timeout as i32))?;
+        Ok(())
+    }
+
     async fn get(&self) -> anyhow::Result<JsValue> {
         let mut init = RequestInit::new();
         init.method(&self.method).mode(RequestMode::Cors);
         if let Some(body) = &self.body {
             let js_body = u8_slice_to_typed_array(body);
             init.body(Some(&js_body));
+        }
+        if let Some(timeout) = self.timeout {
+            self.add_timeout(&mut init,timeout)?;
         }
         let req = js_error(Request::new_with_str_and_init(&self.url,&init))?;
         for (k,v) in &self.headers {

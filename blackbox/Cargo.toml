@@ -2,6 +2,7 @@
 name = "blackbox"
 version = "0.0.0"
 authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+edition="2018"
 
 [dependencies]
 hashbrown = "*"

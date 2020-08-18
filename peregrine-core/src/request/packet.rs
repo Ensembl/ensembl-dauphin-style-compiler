@@ -33,6 +33,14 @@ impl RequestPacket {
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
         Ok(CborValue::Map(map))
     }
+
+    pub fn fail(&self) -> ResponsePacket {
+        let mut response = ResponsePacket::new();
+        for r in &self.requests {
+            response.add_response(r.fail());
+        }
+        response
+    }
 }
 
 pub struct ResponsePacketBuilderBuilder {
@@ -63,18 +71,27 @@ impl ResponsePacketBuilderBuilder {
 
 impl ResponsePacketBuilder {
     pub fn new_packet(&self, value: &CborValue) -> anyhow::Result<ResponsePacket> {
-        ResponsePacket::new(value,&self.builders).context("parsing server response")
+        ResponsePacket::deserialize(value,&self.builders).context("parsing server response")
     }
 }
 
 pub struct ResponsePacket {
-    channel_identity: String,
     responses: Vec<CommandResponse>,
     programs: Vec<SuppliedBundle>
 }
 
 impl ResponsePacket {
-    pub(crate) fn channel_identity(&self) -> &str { &self.channel_identity }
+    fn new() -> ResponsePacket {
+        ResponsePacket {
+            responses: vec![],
+            programs: vec![]
+        }
+    }
+
+    fn add_response(&mut self, response: CommandResponse) {
+        self.responses.push(response);
+    }
+
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
     pub(crate) fn responses(&self) -> &[CommandResponse] { &self.responses }
     pub(crate) fn take_responses(&mut self) -> Vec<CommandResponse> {
@@ -88,15 +105,14 @@ impl ResponsePacket {
         Ok(CommandResponse::new(msgid,builder.deserialize(&values[2])?))
     }
 
-    fn new(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
-        let values = cbor_map(value,&["id","responses","programs"])?;
+    fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
+        let values = cbor_map(value,&["responses","programs"])?;
         let mut responses = vec![];
-        for v in cbor_array(&values[1],0,true)? {
+        for v in cbor_array(&values[0],0,true)? {
             responses.push(ResponsePacket::deserialize_response(v,builders)?);
         }
-        let programs : anyhow::Result<_> = cbor_array(&values[2],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
+        let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
         Ok(ResponsePacket {
-            channel_identity: cbor_string(&values[0])?,
             responses,
             programs: programs?
         })

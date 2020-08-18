@@ -14,6 +14,10 @@ serde_cbor="*"
 url="*"
 futures="*"
 
+[dependencies.blackbox]
+version="*"
+path="../blackbox"
+
 [dependencies.varea]
 version="*"
 path="../varea"

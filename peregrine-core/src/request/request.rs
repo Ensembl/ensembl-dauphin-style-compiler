@@ -8,7 +8,7 @@ use std::rc::Rc;
 pub trait RequestType {
     fn type_index(&self) -> u8;
     fn serialize(&self) -> anyhow::Result<CborValue>;
-    fn to_failure(self) -> Box<dyn ResponseType>;
+    fn to_failure(&self) -> Box<dyn ResponseType>;
 }
 
 #[derive(Clone)]
@@ -20,6 +20,9 @@ impl CommandRequest {
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.0 }
+    pub(crate) fn fail(&self) -> CommandResponse {
+        CommandResponse::new(self.0,self.1.to_failure())
+    }
 
     pub fn serialize(&self) -> anyhow::Result<CborValue> {
         let typ = self.1.type_index();

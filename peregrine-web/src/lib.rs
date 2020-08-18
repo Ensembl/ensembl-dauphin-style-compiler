@@ -10,6 +10,7 @@ mod integration {
     pub(crate) mod pgdauphin;
     pub(crate) mod pgblackbox;
     pub(crate) mod pgchannel;
+    pub(crate) mod pgconsole;
     mod stream;
 }
 
@@ -24,6 +25,7 @@ use anyhow::{ self, Context };
 use blackbox::{ blackbox_enable };
 use commander::{ cdr_tick, cdr_timer };
 use crate::integration::pgchannel::PgChannel;
+use crate::integration::pgconsole::PgConsole;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
@@ -51,8 +53,8 @@ impl PeregrineWeb {
         pgblackbox_setup();
         let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
         let dauphin = PgDauphin::new(Box::new(PgDauphinIntegrationWeb()))?;
-
-        let manager = RequestManager::new(PgChannel(),&dauphin,&commander);
+        let console = PgConsole::new(10,30.);
+        let manager = RequestManager::new(PgChannel::new(&console),&dauphin,&commander);
         let mut out = PeregrineWeb {
             core: PgCore::new(&commander,&dauphin,&manager)?
         };

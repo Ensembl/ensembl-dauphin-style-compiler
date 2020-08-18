@@ -1,5 +1,6 @@
 use std::any::Any;
 use anyhow::{ self, anyhow as err, bail };
+use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
 use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
@@ -30,14 +31,21 @@ impl BootstrapCommandRequest {
     }
 
     async fn execute(self, mut manager: RequestManager) -> anyhow::Result<()> {
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing bootstrap request");
+        blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-request",1);
         let commander = self.commander.clone();
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
         let mut backoff = Backoff::new();
         match backoff.backoff_two_messages::<BootstrapCommandResponse,BootstrapFailure,_>(
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime).await? {
-            Ok(b) => Ok(b.bootstrap(&dauphin,&loader,&commander).await?),
+            Ok(b) => {
+                blackbox_log!(&format!("channel-{}",self.channel.to_string()),"bootstrap response received");
+                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1);
+                Ok(b.bootstrap(&dauphin,&loader,&commander).await?)
+            }
             Err(_) => {
+                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1);
                 bail!("failed to bootstrap to '{}'. backend missing?",self.channel);
             }
         }
@@ -47,7 +55,7 @@ impl BootstrapCommandRequest {
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
     fn serialize(&self) -> anyhow::Result<CborValue> { Ok(CborValue::Null) }
-    fn to_failure(self) -> Box<dyn ResponseType> { Box::new(BootstrapFailure{}) }
+    fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(BootstrapFailure{}) }
 }
 
 pub struct BootstrapCommandResponse {

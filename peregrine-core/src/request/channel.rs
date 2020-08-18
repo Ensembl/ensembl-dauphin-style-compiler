@@ -1,3 +1,5 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
 use std::rc::Rc;
 use anyhow::{ self, Context, anyhow as err };
@@ -7,11 +9,16 @@ use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
 
+pub trait ChannelIntegration {
+    fn set_timeout(&self, channel: &Channel, timeout: f64);
+    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>;
+    fn error(&self, channel: &Channel, message: &str);
+}
+
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum ChannelLocation {
     HttpChannel(Url)
 }
-
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct Channel(Arc<ChannelLocation>);

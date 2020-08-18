@@ -9,7 +9,7 @@ extern crate serde_json;
 mod api {
    pub(crate) mod globals;
    #[macro_use]
-   pub(crate) mod macros;
+   pub mod macros;
 }
 
 mod model {
@@ -68,3 +68,4 @@ pub use crate::api::globals::{
     blackbox_metronome, blackbox_is_enabled, blackbox_set_count, blackbox_model,
     blackbox_format, blackbox_clear, blackbox_use_threadlocals, blackbox_value
 };
+pub use crate::api::macros;

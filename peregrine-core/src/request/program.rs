@@ -2,6 +2,7 @@ use std::any::Any;
 use std::collections::{ HashMap, HashSet };
 use std::sync::{ Arc, Mutex };
 use anyhow::{ bail };
+use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_bool, cbor_string, cbor_map, cbor_map_iter };
 use crate::util::singlefile::SingleFile;
@@ -48,6 +49,7 @@ struct ProgramCommandRequest {
 
 impl ProgramCommandRequest {
     pub(crate) fn new(channel: &Channel, name: &str) -> ProgramCommandRequest {
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"requesting program {}",name);
         ProgramCommandRequest {
             channel: channel.clone(),
             name: name.to_string()
@@ -67,7 +69,7 @@ impl RequestType for ProgramCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }
-    fn to_failure(self) -> Box<dyn ResponseType> {
+    fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(ProgramCommandResponse{ success: false })
     }
 }

@@ -2,11 +2,20 @@ use anyhow::{ anyhow as err };
 use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
+use super::pgconsole::{ PgConsole, PgConsoleLevel };
 use url::Url;
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Mutex;
 
-pub struct PgChannel();
+pub struct PgChannel(PgConsole,Mutex<HashMap<Channel,Option<f64>>>);
+
+impl PgChannel {
+    pub fn new(console: &PgConsole) -> PgChannel {
+        PgChannel(console.clone(),Mutex::new(HashMap::new()))
+    }
+}
 
 fn add_priority(a: &Url, prio: PacketPriority) -> anyhow::Result<Url> {
     let mut z = a.clone();
@@ -19,10 +28,13 @@ fn add_priority(a: &Url, prio: PacketPriority) -> anyhow::Result<Url> {
     Ok(z)
 }
 
-async fn send(channel: Channel, prio: PacketPriority, data: CborValue) -> anyhow::Result<CborValue> {
+async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: Option<f64>) -> anyhow::Result<CborValue> {
     match channel.location().as_ref() {
         ChannelLocation::HttpChannel(url) => {
             let mut ajax = PgAjax::new("POST",&add_priority(url,prio)?);
+            if let Some(timeout) = timeout {
+                ajax.set_timeout(timeout);
+            }
             ajax.set_body_cbor(&data)?;
             ajax.get_cbor().await
         }
@@ -32,6 +44,15 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue) -> anyhow
 /* using sync trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
     fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>> {
-        Box::pin(send(channel,prio,data))
+        let timeout = self.1.lock().unwrap().get(&channel).and_then(|x| x.clone());
+        Box::pin(send(channel,prio,data,timeout))
+    }
+
+    fn error(&self, _channel: &Channel, msg: &str) {
+        self.0.message(PgConsoleLevel::Error,msg);
+    }
+
+    fn set_timeout(&self, channel: &Channel, timeout: f64) {
+        self.1.lock().unwrap().insert(channel.clone(),Some(timeout));
     }
 }

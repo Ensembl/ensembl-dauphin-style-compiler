@@ -50,7 +50,7 @@ impl PgCore {
     }
 
     pub fn add_binary(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
-        self.dauphin.add_binary("test",cbor)
+        self.dauphin.add_binary_direct("test",cbor)
     }
 
     pub fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {

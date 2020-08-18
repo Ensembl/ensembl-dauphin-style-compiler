@@ -1,4 +1,5 @@
 use anyhow::{ bail };
+use blackbox::blackbox_count;
 use commander::cdr_timer;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
@@ -25,9 +26,11 @@ impl Backoff {
             let resp = manager.execute(channel.clone(),prio.clone(),Box::new(req.clone())).await?;
             match resp.into_any().downcast::<S>() {
                 Ok(b) => {
+                    blackbox_count!(&format!("channel-{}",channel.to_string()),"success",1);
                     return Ok(Ok(b));
                 },
                 Err(e) => {
+                    blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1);
                     match e.downcast::<F>() {
                         Ok(_) => {},
                         Err(_) => {

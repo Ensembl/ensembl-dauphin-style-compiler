@@ -38,6 +38,7 @@ path="../commander"
 [dependencies.web-sys]
 version = "*"
 features = [
+  'AbortController', 'AbortSignal',
   'console', 'CustomEvent', 'CustomEventInit',
   'Document',
   'Element',

@@ -1,4 +1,5 @@
 use anyhow::{ self, anyhow as err };
+use blackbox::blackbox_log;
 use dauphin_interp::{ CommandInterpretSuite, Dauphin, InterpretInstance, make_core_interp };
 use dauphin_lib_std::make_std_interp;
 use commander::cdr_tick;
@@ -6,10 +7,8 @@ use serde_cbor::Value as CborValue;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use crate::request::channel::Channel;
-use crate::request::manager::RequestManager;
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
-use crate::run::PgCommander;
 
 pub trait PgDauphinIntegration {
     fn add_payloads(&self, dauphin: &mut Dauphin);
@@ -61,31 +60,44 @@ impl PgDauphin {
         }))))
     }
 
-    pub fn add_binary(&self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
+    pub fn add_binary_direct(&self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
         self.0.lock().unwrap().dauphin.add_binary(binary_name,cbor)
+    }
+
+    fn binary_name(&self, channel: &Channel, name_of_bundle: &str) -> String {
+        let channel_name = channel.to_string();
+        format!("{}-{}-{}",channel_name.len(),channel_name,name_of_bundle)
+    }
+
+    pub fn add_binary(&self, channel: &Channel, name_of_bundle: &str, cbor: &CborValue) -> anyhow::Result<()> {
+        self.add_binary_direct(&self.binary_name(channel,name_of_bundle),cbor)
     }
 
     pub fn load(&self, binary_name: &str, name: &str) -> anyhow::Result<PgDauphinProcess> {
         PgDauphinProcess::new(&self.0.lock().unwrap().dauphin, binary_name, name)
     }
 
-    pub fn add_programs(&self, response: &ResponsePacket) -> anyhow::Result<()> {
-        let channel = response.channel_identity();
+    pub fn add_programs(&self, channel: &Channel, response: &ResponsePacket) -> anyhow::Result<()> {
         for bundle in response.programs().iter() {
-            let program_name = format!("{}-{}-{}",channel.len(),channel,bundle.bundle_name());
-            self.add_binary(&program_name,bundle.program())?;
-            let mut data = self.0.lock().unwrap();
+            blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered bundle {}",bundle.bundle_name());
+            self.add_binary(channel,bundle.bundle_name(),bundle.program())?;
+            let data = self.0.lock().unwrap();
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                data.names.insert((channel.to_string(),in_channel_name.to_string()),
-                                  Some((program_name.clone(),in_bundle_name.to_string())));
+                blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered program {}",in_channel_name);
+                self.register(channel,in_channel_name,&self.binary_name(channel,bundle.bundle_name()),in_bundle_name);
             }
         }
         Ok(())
     }
 
-    pub fn mark_missing(&self, channel: &Channel, program_name: &str) {
+    pub fn register(&self, channel: &Channel, name_in_channel: &str, name_of_bundle: &str, name_in_bundle: &str) {
+        let binary_name = self.binary_name(channel,name_of_bundle);
+        self.0.lock().unwrap().names.insert((channel.to_string(),name_in_channel.to_string()),Some((binary_name,name_in_bundle.to_string())));
+    }
+
+    pub fn mark_missing(&self, channel: &Channel, name_in_channel: &str) {
         let mut data = self.0.lock().unwrap();
-        data.names.insert((channel.channel_name(),program_name.to_string()),None);
+        data.names.insert((channel.channel_name(),name_in_channel.to_string()),None);
     }
 
     pub async fn load_program(&self, loader: &ProgramLoader, channel: &Channel, program_name: &str) -> anyhow::Result<PgDauphinProcess> {

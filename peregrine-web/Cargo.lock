@@ -319,6 +319,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow 1.0.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "async-trait 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blackbox 0.0.0",
  "commander 0.0.1",
  "dauphin_interp 0.1.0",
  "dauphin_lib_std 0.1.0",
