@@ -293,6 +293,7 @@ dependencies = [
  "futures",
  "owning_ref",
  "serde_cbor",
+ "serde_json",
  "url",
  "varea",
 ]

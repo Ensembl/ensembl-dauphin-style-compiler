@@ -21,7 +21,7 @@ impl PgConsoleData {
             this_interval: 0.,
             num_this_interval: 0,
             max_per_interval,
-            interval
+            interval: interval * 1000.
         }
     }
 

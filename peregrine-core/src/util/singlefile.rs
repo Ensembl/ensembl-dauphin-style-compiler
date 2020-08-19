@@ -48,6 +48,7 @@ impl<K,V> SingleFile<K,V> where K: Clone+Hash+PartialEq+Eq, V: 'static {
             let task_task = replace(&mut task.task,Box::pin(async { bail!("placeholder") }));
             let task = convert_task(task,Box::pin(run_task(task_task,promise.clone())));
             data.promises.insert(key.clone(),promise);
+            data.commander.add_task(task);
         }
         data.promises.get_mut(&key).unwrap().clone().await
     }

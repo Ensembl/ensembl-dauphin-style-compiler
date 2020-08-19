@@ -4,7 +4,7 @@ use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use std::future::Future;
 use owning_ref::MutexGuardRefMut;
-use commander::{ cdr_get_name, Executor, Integration, RunConfig, RunSlot, SleepQuantity, TaskHandle, TaskResult };
+use commander::{ cdr_get_name, Executor, Integration, RunConfig, RunSlot, SleepQuantity, TaskHandle, TaskResult, cdr_new_agent, cdr_add, cdr_in_agent };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
@@ -154,18 +154,22 @@ impl Commander for PgCommanderWeb {
         self.state.tick();
     }
 
-    fn executor(&self) -> anyhow::Result<MutexGuardRefMut<Executor>> {
-        Ok(MutexGuardRefMut::new(self.state.executor.lock().map_err(|_| err!("poisoned lock"))?))
-    }
-
     fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>) {
-        let mut exe = self.executor().expect("executor");
         let rc = RunConfig::new(slot,prio,timeout);
-        let agent = exe.new_agent(&rc,name);
-        let res = exe.add_pin(Box::pin(catch_errors(f)),agent);
         let rc2 = RunConfig::new(None,prio,None);
-        let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
-        exe.add(finish(res,name.to_string()),agent);
+        if cdr_in_agent() {
+            let agent = cdr_new_agent(Some(rc),name);
+            let res = cdr_add(Box::pin(catch_errors(f)),agent);
+            let agent = cdr_new_agent(Some(rc2),&format!("{}-finisher",name));
+            cdr_add(finish(res,name.to_string()),agent);
+        } else {
+            let mut exe = self.state.executor.lock().unwrap();
+            let agent = exe.new_agent(&rc,name);
+            let res = exe.add_pin(Box::pin(catch_errors(f)),agent);
+            let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
+            exe.add(finish(res,name.to_string()),agent);
+    
+        }        
     }
 }
 

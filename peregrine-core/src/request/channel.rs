@@ -24,6 +24,10 @@ pub enum ChannelLocation {
 pub struct Channel(Arc<ChannelLocation>);
 
 impl Channel {
+    pub fn new(location: &ChannelLocation) -> Channel {
+        Channel(Arc::new(location.clone()))
+    }
+
     pub(crate) fn channel_name(&self) -> String {
         match self.0.as_ref() {
             ChannelLocation::HttpChannel(url) => format!("url({})",url)

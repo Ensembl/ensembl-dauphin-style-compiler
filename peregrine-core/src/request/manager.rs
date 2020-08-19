@@ -29,6 +29,29 @@ struct RequestQueueData {
     priority: PacketPriority
 }
 
+impl RequestQueueData {
+    fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
+        if let Some(ref e) = msg.as_ref().err() {
+            self.integration.error(&self.channel,&e.to_string());
+        }
+        msg
+    }
+
+    async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+        let channel = self.channel.clone();
+        let priority = self.priority.clone();
+        let integration = self.integration.clone();
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
+        blackbox_count!(&format!("channel-",channel.to_string()),"packets",1);
+        let response = blackbox_time!(&format!("channel-",channel.to_string()),"roundtrip",{
+            integration.get_sender(channel,priority,packet.serialize()?).await?
+        });
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
+        let response = self.builder.new_packet(&response)?;
+        Ok(response)
+    }
+}
+
 #[derive(Clone)]
 struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
@@ -65,14 +88,6 @@ impl RequestQueue {
         Ok(())
     }
 
-    fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
-        if let Some(ref e) = msg.as_ref().err() {
-            let data = self.0.lock().unwrap();
-            data.integration.error(&data.channel,&e.to_string());
-        }
-        msg
-    }
-
     async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>)> {
         let pending = self.0.lock().unwrap().pending.clone();
         let mut requests = pending.get_multi().await;
@@ -86,35 +101,18 @@ impl RequestQueue {
         Ok((packet,channels))
     }
 
-    async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
-        let data = self.0.lock().unwrap();
-        let channel = data.channel.clone();
-        let priority = data.priority.clone();
-        let integration = data.integration.clone();
-        drop(data);
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
-        blackbox_count!(&format!("channel-",channel.to_string()),"packets",1);
-        let response = blackbox_time!(&format!("channel-",channel.to_string()),"roundtrip",{
-            integration.get_sender(channel,priority,packet.serialize()?).await?
-        });
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
-        let data = self.0.lock().unwrap();
-        let response = data.builder.new_packet(&response)?;
-        drop(data);
-        Ok(response)
-    }
-
     async fn send_or_fail_packet(&self, packet: &RequestPacket) -> ResponsePacket {
-        match self.report(self.send_packet(packet).await) {
+        let data = self.0.lock().unwrap();
+        match data.report(data.send_packet(packet).await) {
             Ok(r) => r,
             Err(_) => packet.fail()
         }
     }
 
     fn add_programs(&self, channel: &Channel, response: &ResponsePacket) {
-        for bundle in response.programs().iter() {
+        for bundle in response.programs().clone().iter() {
             let data = self.0.lock().unwrap();
-            match self.report(data.dauphin.add_binary(channel,bundle.bundle_name(),bundle.program())) {
+            match data.report(data.dauphin.add_binary(channel,bundle.bundle_name(),bundle.program())) {
                 Ok(_) => {
                     for (in_channel_name,in_bundle_name) in bundle.name_map() {
                         data.dauphin.register(channel,in_channel_name,bundle.bundle_name(),in_bundle_name);
@@ -130,8 +128,8 @@ impl RequestQueue {
     }
 
     fn process_responses(&self, response: &mut ResponsePacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
-        let data = self.0.lock().unwrap();
-        self.add_programs(&data.channel,response);
+        let channel = self.0.lock().unwrap().channel.clone();
+        self.add_programs(&channel,response);
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(channel) = channels.remove(&id) {

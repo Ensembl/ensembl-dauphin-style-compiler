@@ -111,7 +111,8 @@ impl PgDauphin {
         }
         let data = self.0.lock().unwrap();
         let (bundle_name,in_bundle_name) = data.names.get(&key).as_ref().unwrap().as_ref()
-            .ok_or(err!("Failed channel/program = {}/{}",channel_name,program_name))?;
+            .ok_or(err!("Failed channel/program = {}/{}",channel_name,program_name))?.to_owned();
+        drop(data);
         self.load(&bundle_name,&in_bundle_name)
     }
 }

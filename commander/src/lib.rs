@@ -287,7 +287,8 @@ extern crate owning_ref;
 pub use crate::agent::agent::Agent;
 pub use crate::agent::taskrun::{
   cdr_set_agent, cdr_get_name, cdr_set_name, cdr_add_timer, cdr_add_ticks_timer, cdr_new_agent, cdr_add,
-  cdr_finish, cdr_get_config, cdr_get_tick_index, cdr_tick, cdr_timer, cdr_turnstile, cdr_named_wait, cdr_tidy
+  cdr_finish, cdr_get_config, cdr_get_tick_index, cdr_tick, cdr_timer, cdr_turnstile, cdr_named_wait, cdr_tidy,
+  cdr_in_agent
 };
 pub use crate::executor::executor::Executor;
 pub use crate::corefutures::promisefuture::PromiseFuture;

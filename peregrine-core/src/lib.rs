@@ -37,6 +37,20 @@ mod util {
     pub mod singlefile;
 }
 
+#[cfg(test)]
+mod test {
+    pub(crate) mod integrations {
+        mod channel;
+        mod commander;
+        mod console;
+        mod dauphin;
+        pub(crate) use self::console::TestConsole;
+        pub(crate) use self::channel::{ TestChannelIntegration, cbor_matches };
+        pub(crate) use self::commander::{ TestCommander };
+        pub(crate) use self::dauphin::{ TestDauphinIntegration, test_program };
+    }
+}
+
 pub use self::run::{ PgCommander, PgDauphin, Commander, PgDauphinIntegration };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager };
 pub use self::run::PgCore;

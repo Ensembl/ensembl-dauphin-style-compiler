@@ -125,3 +125,108 @@ pub(super) fn bootstrap_commands(rspbb: &mut ResponsePacketBuilderBuilder) {
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
     rspbb.register(1,Box::new(BootstrapFailureBuilderType()));
 }
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::{ Channel, Commander, ChannelLocation };
+    use super::super::program::ProgramLoader;
+    use crate::request::bootstrap::bootstrap;
+    use crate::test::integrations::{ TestChannelIntegration, TestDauphinIntegration, TestConsole, TestCommander, cbor_matches, test_program };
+    use serde_json::json;
+    use url::Url;
+
+    fn url(idx: u32) -> Url {
+        Url::parse(&(format!("http://a.com/{}",idx))).expect("b")
+    }
+
+    #[test]
+    fn test_bootstrap() {
+        let console = TestConsole::new();
+        let chi = TestChannelIntegration::new(&console);
+        let di = TestDauphinIntegration::new(&console);
+        let dauphin = PgDauphin::new(Box::new(di)).expect("d");
+        let cdri = TestCommander::new(&console);
+        let comm = PgCommander::new(Box::new(cdri.clone()));
+        let rm = RequestManager::new(chi.clone(),&dauphin,&comm);
+        let loader = ProgramLoader::new(&comm,&rm).expect("c");
+        chi.add_response(json! {
+            {
+                "responses": [
+                    [0,0,[[0,url(2).to_string()],"boot"]]
+                ],
+                "programs": []
+            }
+        },vec![]);
+        chi.add_response(json! {
+            {
+                "responses": [
+                    [1,2,true]
+                ],
+                "programs": [
+                    ["test","$0",{ "boot": "hello" }]
+                ]
+            }
+        },vec![test_program()]);
+        bootstrap(&rm,&loader,&comm,&dauphin,Channel::new(&ChannelLocation::HttpChannel(url(1)))).expect("b");
+        for _ in 0..30 {
+            cdri.tick();
+        }
+        let reqs = chi.get_requests();
+        assert!(cbor_matches(&json! {
+            {
+               "requests": [
+                   [0,0,null]
+               ] 
+            }
+        },&reqs[0]));
+        assert!(cbor_matches(&json! {
+            {
+               "requests": [
+                   [1,1,[[0,url(2).to_string()],"boot"]]
+               ] 
+            }
+        },&reqs[1]));
+        let v = console.take_all();
+        let v : Vec<_> = v.iter().filter(|x| x.contains("world")).collect();
+        assert!(v.len()>0);
+    }
+
+    #[test]
+    fn test_bootstrap_short() {
+        let console = TestConsole::new();
+        let chi = TestChannelIntegration::new(&console);
+        let di = TestDauphinIntegration::new(&console);
+        let dauphin = PgDauphin::new(Box::new(di)).expect("d");
+        let cdri = TestCommander::new(&console);
+        let comm = PgCommander::new(Box::new(cdri.clone()));
+        let rm = RequestManager::new(chi.clone(),&dauphin,&comm);
+        let loader = ProgramLoader::new(&comm,&rm).expect("c");
+        chi.add_response(json! {
+            {
+                "responses": [
+                    [0,0,[[0,url(1).to_string()],"boot"]]
+                ],
+                "programs": [
+                    ["test","$0",{ "boot": "hello" }]
+                ]
+            }
+        },vec![test_program()]);
+        bootstrap(&rm,&loader,&comm,&dauphin,Channel::new(&ChannelLocation::HttpChannel(url(1)))).expect("b");
+        for _ in 0..30 {
+            cdri.tick();
+        }
+        let reqs = chi.get_requests();
+        assert!(cbor_matches(&json! {
+            {
+               "requests": [
+                   [0,0,null]
+               ] 
+            }
+        },&reqs[0]));
+        let v = console.take_all();
+        let v : Vec<_> = v.iter().filter(|x| x.contains("world")).collect();
+        assert!(v.len()>0);
+    }
+}

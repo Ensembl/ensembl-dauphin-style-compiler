@@ -65,7 +65,7 @@ impl ProgramCommandRequest {
 }
 
 impl RequestType for ProgramCommandRequest {
-    fn type_index(&self) -> u8 { 0 }
+    fn type_index(&self) -> u8 { 1 }
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }

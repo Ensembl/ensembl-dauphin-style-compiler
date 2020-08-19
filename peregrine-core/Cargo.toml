@@ -11,6 +11,7 @@ anyhow="*"
 async-trait="*"
 owning_ref="*"
 serde_cbor="*"
+serde_json="*"
 url="*"
 futures="*"
 

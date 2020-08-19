@@ -25,7 +25,7 @@ use anyhow::{ self, Context };
 use blackbox::{ blackbox_enable };
 use commander::{ cdr_tick, cdr_timer };
 use crate::integration::pgchannel::PgChannel;
-use crate::integration::pgconsole::PgConsole;
+use crate::integration::pgconsole::{ PgConsole, PgConsoleLevel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };

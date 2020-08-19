@@ -41,7 +41,7 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: 
     }
 }
 
-/* using sync trait gives odd errors re Send */
+/* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
     fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>> {
         let timeout = self.1.lock().unwrap().get(&channel).and_then(|x| x.clone());

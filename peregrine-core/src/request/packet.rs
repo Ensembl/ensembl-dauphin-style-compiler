@@ -93,7 +93,6 @@ impl ResponsePacket {
     }
 
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn responses(&self) -> &[CommandResponse] { &self.responses }
     pub(crate) fn take_responses(&mut self) -> Vec<CommandResponse> {
         replace(&mut self.responses,vec![])
     }

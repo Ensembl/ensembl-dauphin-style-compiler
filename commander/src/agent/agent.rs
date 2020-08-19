@@ -214,7 +214,7 @@ impl Agent {
     }
 
     pub(crate) fn more<R>(&self, future: &mut Pin<Box<dyn Future<Output=R> + 'static>>, tick_index: u64, result: &mut Option<R>) -> bool {
-        cdr_set_agent(self);
+        cdr_set_agent(Some(self));
         self.run_agent().set_tick_index(tick_index);
         if self.finish_agent().finished() {
             return true;
@@ -228,6 +228,8 @@ impl Agent {
             self.run_one_main(context,future,result);
         }
         self.finish_agent().check_tidiers();
-        self.finish_agent().finished()
+        let out = self.finish_agent().finished();
+        cdr_set_agent(None);
+        out
     }
 }

@@ -9,8 +9,12 @@ thread_local! {
     static AGENT: RefCell<Option<Agent>> = RefCell::new(None);
 }
 
-pub fn cdr_set_agent(agent: &Agent) {
-    AGENT.with(|a| { *a.borrow_mut() = Some(agent.clone()) });
+pub fn cdr_set_agent(agent: Option<&Agent>) {
+    AGENT.with(|a| { *a.borrow_mut() = agent.cloned() });
+}
+
+pub fn cdr_in_agent() -> bool {
+    AGENT.with(|a| a.borrow().is_some())
 }
 
 pub fn cdr_get_name() -> String {
