@@ -2,13 +2,22 @@ use anyhow::{ self, anyhow as err };
 use blackbox::blackbox_log;
 use dauphin_interp::{ CommandInterpretSuite, Dauphin, InterpretInstance, make_core_interp };
 use dauphin_lib_std::make_std_interp;
-use commander::cdr_tick;
+use commander::{ cdr_tick, RunSlot, CommanderStream };
 use serde_cbor::Value as CborValue;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
+use super::pgcommander::{ PgCommander, PgCommanderTaskSpec };
 use crate::request::channel::Channel;
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
+
+pub struct PgDauphinTaskSpec {
+    pub prio: i8, 
+    pub slot: Option<RunSlot>, 
+    pub timeout: Option<f64>,
+    pub channel: Channel,
+    pub program_name: String
+}
 
 pub trait PgDauphinIntegration {
     fn add_payloads(&self, dauphin: &mut Dauphin);
@@ -42,7 +51,63 @@ impl PgDauphinProcess {
     }
 }
 
+struct DauphinRunnerRequest {
+    task: PgCommanderTaskSpec<()>,
+    finishstream: CommanderStream<DauphinResponse>
+}
+
+impl DauphinRunnerRequest {
+    fn new(task: PgCommanderTaskSpec<()>) -> DauphinRunnerRequest {
+        DauphinRunnerRequest {
+            task,
+            finishstream: CommanderStream::new()
+        }
+    }
+
+    fn waiter(&self) -> CommanderStream<DauphinResponse> {
+        self.finishstream.clone()
+    }
+}
+
+struct DauphinResponse {
+
+}
+
+impl DauphinResponse {
+    fn new() -> DauphinResponse {
+        DauphinResponse {
+
+        }
+    }
+}
+
+async fn run_task(commander: &PgCommander, req: DauphinRunnerRequest) -> anyhow::Result<()> {
+    let task = PgCommanderTaskSpec {
+        name: req.task.name.to_string(),
+        prio: req.task.prio,
+        slot: req.task.slot.clone(),
+        timeout: req.task.timeout,
+        task: Box::pin(async {
+            req.task.task.await?;
+            req.finishstream.add(DauphinResponse::new());
+            Ok(())
+        })
+    };
+    commander.add_task(task);
+    Ok(())
+}
+
+async fn runner(commander: PgCommander, stream: CommanderStream<DauphinRunnerRequest>) -> anyhow::Result<()> {
+    loop {
+        let mut request = stream.get_multi().await;
+        for r in request.drain(..) {
+            run_task(&commander,r).await?;    
+        }
+    }
+}
+
 struct PgDauphinData {
+    requests: CommanderStream<DauphinRunnerRequest>,
     dauphin: Dauphin,
     names: HashMap<(String,String),Option<(String,String)>>,
 }
@@ -55,9 +120,20 @@ impl PgDauphin {
         let mut dauphin = Dauphin::new(command_suite()?);
         integration.add_payloads(&mut dauphin);
         Ok(PgDauphin(Arc::new(Mutex::new(PgDauphinData {
+            requests: CommanderStream::new(),
             dauphin,
             names: HashMap::new(),
         }))))
+    }
+
+    pub fn start_runner(&self, commander: &PgCommander) {
+        commander.add_task(PgCommanderTaskSpec {
+            name: "dauphin runner".to_string(),
+            prio: 2,
+            slot: None,
+            timeout: None,
+            task: Box::pin(runner(commander.clone(),self.0.lock().unwrap().requests.clone()))
+        });
     }
 
     pub fn add_binary_direct(&self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
@@ -103,14 +179,25 @@ impl PgDauphin {
         data.names.insert((channel.channel_name(),name_in_channel.to_string()),None);
     }
 
-    pub async fn load_program(&self, loader: &ProgramLoader, channel: &Channel, program_name: &str) -> anyhow::Result<PgDauphinProcess> {
-        if !self.is_present(channel,program_name) {
-            loader.load(channel,program_name).await?;
+    pub async fn run_program(&self, loader: &ProgramLoader, spec: PgDauphinTaskSpec) -> anyhow::Result<()> {
+        if !self.is_present(&spec.channel,&spec.program_name) {
+            loader.load(&spec.channel,&spec.program_name).await?;
         }
         let data = self.0.lock().unwrap();
-        let (bundle_name,in_bundle_name) = data.names.get(&(channel.to_string(),program_name.to_string())).as_ref().unwrap().as_ref()
-            .ok_or(err!("Failed channel/program = {}/{}",channel.to_string(),program_name))?.to_owned();
+        let (bundle_name,in_bundle_name) = data.names.get(&(spec.channel.to_string(),spec.program_name.to_string())).as_ref().unwrap().as_ref()
+            .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name))?.to_owned();
         drop(data);
-        self.load(&bundle_name,&in_bundle_name)
+        let process = self.load(&bundle_name,&in_bundle_name)?;
+        let drr = DauphinRunnerRequest::new(PgCommanderTaskSpec {
+            name: format!("dauphin: {}",spec.program_name),
+            prio: spec.prio,
+            slot: spec.slot.clone(),
+            timeout: spec.timeout,
+            task: Box::pin(process.run())
+        });
+        let waiter = drr.waiter().clone();
+        self.0.lock().unwrap().requests.add(drr);
+        waiter.get().await;
+        Ok(())
     }
 }

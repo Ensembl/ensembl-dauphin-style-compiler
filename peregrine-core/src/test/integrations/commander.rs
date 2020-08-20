@@ -101,7 +101,6 @@ impl Commander for TestCommander {
             let res = exe.add_pin(Box::pin(catch_errors(console,f)),agent);
             let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
             exe.add(finish(console2,res,name.to_string()),agent);
-    
         }        
     }
 }

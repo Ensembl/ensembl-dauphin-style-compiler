@@ -30,7 +30,7 @@ mod run {
     pub use self::core::PgCore;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec };
-    pub use self::pgdauphin::PgDauphin;
+    pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
 }
 
 mod util {

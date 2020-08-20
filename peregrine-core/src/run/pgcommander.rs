@@ -16,7 +16,6 @@ pub struct PgCommanderTaskSpec<T> {
     pub task: Pin<Box<dyn Future<Output=anyhow::Result<T>> + 'static>>
 }
 
-
 #[derive(Clone)]
 pub struct PgCommander(Arc<Mutex<Box<dyn Commander>>>);
 
