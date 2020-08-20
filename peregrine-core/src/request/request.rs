@@ -20,6 +20,7 @@ impl CommandRequest {
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.0 }
+    pub(crate) fn request(&self) -> &Box<dyn RequestType> { self.1.as_ref() }
     pub(crate) fn fail(&self) -> CommandResponse {
         CommandResponse::new(self.0,self.1.to_failure())
     }

@@ -3,6 +3,7 @@ use std::sync::{ Arc, Mutex };
 use std::future::Future;
 use std::pin::Pin;
 use crate::{ Channel, ChannelIntegration, PacketPriority };
+use commander::cdr_timer;
 use super::console::TestConsole;
 use serde_cbor::Value as CborValue;
 #[cfg(test)]
@@ -69,6 +70,7 @@ pub struct TestChannelIntegration {
     timeouts: Arc<Mutex<Vec<(Channel,f64)>>>,
     requests: Arc<Mutex<Vec<CborValue>>>,
     responses: Arc<Mutex<Vec<CborValue>>>,
+    wait: Arc<Mutex<f64>>
 }
 
 impl TestChannelIntegration {
@@ -77,7 +79,8 @@ impl TestChannelIntegration {
             console: console.clone(),
             timeouts: Arc::new(Mutex::new(vec![])),
             requests: Arc::new(Mutex::new(vec![])),
-            responses: Arc::new(Mutex::new(vec![]))
+            responses: Arc::new(Mutex::new(vec![])),
+            wait: Arc::new(Mutex::new(0.))
         }
     }
 
@@ -92,6 +95,8 @@ impl TestChannelIntegration {
     pub fn get_requests(&self) -> Vec<CborValue> {
         self.requests.lock().unwrap().drain(..).collect()
     }
+
+    pub fn wait(&mut self, w: f64) { *self.wait.lock().unwrap() = w; }
 }
 
 impl ChannelIntegration for TestChannelIntegration {
@@ -101,7 +106,13 @@ impl ChannelIntegration for TestChannelIntegration {
         if resp.lock().unwrap().len() == 0 {
             panic!("unit test didn't provide enough responses!");
         }
-        Box::pin(async move { Ok(resp.lock().unwrap().remove(0)) })
+        let wait = *self.wait.lock().unwrap();
+        Box::pin(async move { 
+            if wait > 0. {
+                cdr_timer(wait).await;
+            }
+            Ok(resp.lock().unwrap().remove(0))
+        })
     }
 
     fn error(&self, _channel: &Channel, msg: &str) {

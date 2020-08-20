@@ -14,7 +14,7 @@ use std::sync::{ Arc, Mutex };
  */
 
 struct Timeout<S> {
-    callback: Box<dyn FnMut() + 'static>,
+    callback: Box<dyn FnOnce() + 'static>,
     state: S
 }
 
@@ -29,7 +29,7 @@ impl<T,S> TimersState<T,S> where T: Ord+Clone {
         }
     }
 
-    fn add<C>(&mut self, state: S, timeout: T, callback: C) where C: FnMut() + 'static, T: Ord {
+    fn add<C>(&mut self, state: S, timeout: T, callback: C) where C: FnOnce() + 'static, T: Ord {
         self.timeouts.entry(timeout).or_insert_with(|| {
             Vec::new()
         }).push(Timeout {
@@ -67,7 +67,7 @@ impl<T,S> TimersState<T,S> where T: Ord+Clone {
         while let Some(min) = self.min() {
             if min > now { break; }
             if let Some(mut timeouts) = self.timeouts.remove(&min) {
-                for timeout in timeouts.iter_mut() {
+                for timeout in timeouts.drain(..) {
                     (timeout.callback)();
                 }
             }
@@ -91,7 +91,7 @@ impl<T,S> TimerSet<T,S> where T: Ord + Clone {
         TimerSet(Arc::new(Mutex::new(TimersState::new())))
     }
 
-    pub(super) fn add<C>(&mut self, state: S, timeout: T, callback: C) where C: FnMut() + 'static, T: Ord {
+    pub(super) fn add<C>(&mut self, state: S, timeout: T, callback: C) where C: FnOnce() + 'static, T: Ord {
         self.0.lock().unwrap().add(state,timeout,callback);
     }
 

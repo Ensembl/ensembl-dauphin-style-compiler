@@ -95,14 +95,14 @@ impl Agent {
     /// Add a callback to be run by the executor in a tick after the given timeout.
     /// 
     /// Lower-level than `timer()` and not generally as useful an interface to the same functionality.
-    pub fn add_timer<T>(&self, timeout: f64, callback: T) where T: FnMut() + 'static {
+    pub fn add_timer<T>(&self, timeout: f64, callback: T) where T: FnOnce() + 'static {
         self.run_agent().add_timer(timeout,callback);
     }
 
     /// Add a callback to be run by the executor after the given number of ticks. zero implies a yield.
     /// 
     /// Lower-level than `tick()` and not generally as useful an interface to the same functionality.
-    pub fn add_ticks_timer<T>(&self, ticks: u64, callback: T) where T: FnMut() + 'static {
+    pub fn add_ticks_timer<T>(&self, ticks: u64, callback: T) where T: FnOnce() + 'static {
         self.run_agent().add_ticks_timer(ticks,callback);
     }
 

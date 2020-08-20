@@ -81,7 +81,6 @@ impl PgDauphin {
         for bundle in response.programs().iter() {
             blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered bundle {}",bundle.bundle_name());
             self.add_binary(channel,bundle.bundle_name(),bundle.program())?;
-            let data = self.0.lock().unwrap();
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered program {}",in_channel_name);
                 self.register(channel,in_channel_name,&self.binary_name(channel,bundle.bundle_name()),in_bundle_name);

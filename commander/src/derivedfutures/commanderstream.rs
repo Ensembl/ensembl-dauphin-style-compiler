@@ -4,6 +4,7 @@ use std::sync::{ Arc, Mutex };
 use crate::corefutures::promisefuture::PromiseFuture;
 
 struct CommanderStreamState<T> {
+    first: bool,
     data: VecDeque<T>,
     waiters: VecDeque<PromiseFuture<T>>
 }
@@ -11,16 +12,27 @@ struct CommanderStreamState<T> {
 impl<T> CommanderStreamState<T> {
     fn new() -> CommanderStreamState<T> {
         CommanderStreamState {
+            first: true,
             data: VecDeque::new(),
             waiters: VecDeque::new()
         }
     }
 
     fn add(&mut self, item: T) {
+        self.first = false;
         if let Some(waiter) = self.waiters.pop_front() {
             waiter.satisfy(item);
         } else {
             self.data.push_back(item);
+        }
+    }
+
+    fn add_first(&mut self, item: T) -> bool {
+        if self.first {
+            self.add(item);
+            true
+        } else {
+            false
         }
     }
 
@@ -59,6 +71,11 @@ impl<T> CommanderStream<T> {
     /// Add to queue.
     pub fn add(&self, item: T) {
         self.0.lock().unwrap().add(item);
+    }
+
+    /// Add to queue if first item to be added, otherwise no-op.
+    pub fn add_first(&self, item: T) -> bool {
+        self.0.lock().unwrap().add_first(item)
     }
 
     /// Get head of queue or wait.

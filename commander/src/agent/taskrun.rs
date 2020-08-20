@@ -25,11 +25,11 @@ pub fn cdr_set_name(name: &str) {
     AGENT.with(|a| { a.borrow_mut().as_mut().unwrap().set_name(name) });
 }
 
-pub fn cdr_add_timer<T>(timeout: f64, callback: T) where T: FnMut() + 'static {
+pub fn cdr_add_timer<T>(timeout: f64, callback: T) where T: FnOnce() + 'static {
     AGENT.with(|a| { a.borrow_mut().as_mut().unwrap().add_timer(timeout,callback) });
 }
 
-pub fn cdr_add_ticks_timer<T>(ticks: u64, callback: T) where T: FnMut() + 'static {
+pub fn cdr_add_ticks_timer<T>(ticks: u64, callback: T) where T: FnOnce() + 'static {
     AGENT.with(|a| { a.borrow_mut().as_mut().unwrap().add_ticks_timer(ticks,callback) });
 }
 

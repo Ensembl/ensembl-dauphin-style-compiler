@@ -50,11 +50,11 @@ impl RunAgent {
         handle2
     }
 
-    pub(super) fn add_timer<T>(&self, timeout: f64, callback: T) where T: FnMut() + 'static {
+    pub(super) fn add_timer<T>(&self, timeout: f64, callback: T) where T: FnOnce() + 'static {
         self.task_request_link.add(Request::Timer(timeout,Box::new(callback)));
     }
 
-    pub(super) fn add_ticks_timer<T>(&self, ticks: u64, callback: T) where T: FnMut() + 'static {
+    pub(super) fn add_ticks_timer<T>(&self, ticks: u64, callback: T) where T: FnOnce() + 'static {
         self.task_request_link.add(Request::Tick(self.tick_index+ticks,Box::new(callback)));
     }
 

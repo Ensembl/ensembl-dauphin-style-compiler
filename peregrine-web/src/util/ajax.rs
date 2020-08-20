@@ -97,7 +97,7 @@ impl PgAjax {
         let response = self.get().await?;
         let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
         let cbor = js_error(JsFuture::from(js_error(response.text())?).await)?;
-        let cbor : CborValue = display_error(cbor.into_serde()).context("not SBOR")?;
+        let cbor : CborValue = display_error(cbor.into_serde()).context("not CBOR")?;
         Ok(cbor)
     }
 }

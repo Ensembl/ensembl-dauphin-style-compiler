@@ -1,7 +1,7 @@
 use anyhow::{ bail };
 use blackbox::blackbox_count;
 use commander::cdr_timer;
-use super::channel::{ Channel, PacketPriority, ChannelIntegration };
+use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::request::RequestType;
 
@@ -80,5 +80,5 @@ impl Backoff {
                 bail!("Unexpected response to request");
             }
         }
-}
+    }
 }

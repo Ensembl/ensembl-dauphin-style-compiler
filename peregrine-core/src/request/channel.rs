@@ -1,10 +1,8 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
-use std::rc::Rc;
 use anyhow::{ self, Context, anyhow as err };
 use std::sync::Arc;
-use async_trait::async_trait;
 use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
@@ -74,20 +72,5 @@ impl Channel {
             _ => Err(err!("bad channel type in deserialize"))?
         };
         Ok(Channel(Arc::new(data)))
-    }
-}
-
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::test::helpers::{ TestHelpers, urlc };
-
-    #[test]
-    fn timeout() {
-        let h = TestHelpers::new();
-        let channel = Channel::new(&ChannelLocation::HttpChannel(urlc(1)));
-        h.manager.set_timeout(&channel,42.);
-        assert_eq!(vec![(channel,42.)],h.channel.get_timeouts());
     }
 }

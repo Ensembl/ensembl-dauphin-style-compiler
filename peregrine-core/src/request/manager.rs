@@ -1,6 +1,6 @@
 use anyhow::Context;
 use blackbox::{ blackbox_time, blackbox_count, blackbox_log };
-use commander::CommanderStream;
+use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::future::Future;
@@ -11,7 +11,7 @@ use super::bootstrap::bootstrap_commands;
 use super::program::program_commands;
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
-use super::request::{ CommandRequest, CommandResponse, RequestType, ResponseType };
+use super::request::{ CommandRequest, RequestType, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use serde_cbor::Value as CborValue;
@@ -29,7 +29,8 @@ struct RequestQueueData {
     pending: CommanderStream<(CommandRequest,CommanderStream<Box<dyn ResponseType>>)>,
     integration: Rc<dyn ChannelIntegration>,
     channel: Channel,
-    priority: PacketPriority
+    priority: PacketPriority,
+    timeout: Option<f64>
 }
 
 impl RequestQueueData {
@@ -64,14 +65,34 @@ impl RequestQueueData {
         }
     }
 
-    fn process_responses(&self, response: &mut ResponsePacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    fn process_responses(&self, response: &mut ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let channel = self.channel.clone();
         self.add_programs(&channel,response);
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
-            if let Some(channel) = channels.remove(&id) {
-                blackbox_count!(&format!("channel-",channel.to_string()),"responses",1);
-                channel.add(r.into_response());
+            if let Some(stream) = streams.remove(&id) {
+                blackbox_count!(&format!("channel-",self.channel.to_string()),"responses",1);
+                stream.add(r.into_response());
+            }
+        }
+    }
+
+    fn set_timeout(&mut self, timeout: f64) {
+        self.timeout = Some(timeout);
+    }
+
+    fn timeout(&self, streams: Vec<(Box<dyn ResponseType>,CommanderStream<Box<dyn ResponseType>>)>) {
+        if let Some(timeout) = self.timeout {
+            for (response,stream) in streams {
+                let stream = stream.clone();
+                let channel = self.channel.clone();
+                let integration = self.integration.clone();
+                cdr_add_timer(timeout, move || {
+                    if stream.add_first(response) {
+                        blackbox_log!(&format!("channel-",channel.to_string()),"timeout on channel '{}'",channel.to_string());
+                        integration.error(&channel,&format!("timeout on channel '{}'",channel.to_string()));
+                    }
+                });
             }
         }
     }
@@ -81,14 +102,15 @@ impl RequestQueueData {
 struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, integration: &Rc<dyn ChannelIntegration>, channel: &Channel, priority: PacketPriority) -> anyhow::Result<RequestQueue> {
+    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, integration: &Rc<dyn ChannelIntegration>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             dauphin: dauphin.clone(),
             builder: register_responses(),
             pending: CommanderStream::new(),
             integration: integration.clone(),
             channel: channel.clone(),
-            priority
+            priority: priority.clone(),
+            timeout: None
         })));
         out.start(commander)?;
         Ok(out)
@@ -118,19 +140,22 @@ impl RequestQueue {
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();
+        let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
-            blackbox_count!(&format!("channel-",channel.to_string()),"requests",1);
-            channels.insert(r.message_id(),c);
+            blackbox_count!(&format!("channel-",self.channel.to_string()),"requests",1);
+            channels.insert(r.message_id(),c.clone());
+            timeouts.push((r.request().to_failure(),c));
             packet.add(r);
         }
+        self.0.lock().unwrap().timeout(timeouts);
         Ok((packet,channels))
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
         let sender = self.0.lock().unwrap().make_packet_sender(packet)?;
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
-        blackbox_count!(&format!("channel-",channel.to_string()),"packets",1);
-        let response = blackbox_time!(&format!("channel-",channel.to_string()),"roundtrip",{
+        blackbox_count!(&format!("channel-",self.channel.to_string()),"packets",1);
+        let response = blackbox_time!(&format!("channel-",self.channel.to_string()),"roundtrip",{
             sender.await?
         });
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
@@ -153,6 +178,10 @@ impl RequestQueue {
 
     fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> anyhow::Result<T> {
         a.with_context(|| format!("{} {}",msg,self.0.lock().unwrap().channel.to_string()))
+    }
+
+    fn set_timeout(&mut self, timeout: f64) {
+        self.0.lock().unwrap().set_timeout(timeout);
     }
 
     async fn main_loop(self) -> anyhow::Result<()> {
@@ -186,24 +215,30 @@ impl RequestManagerData {
         self.integration.error(channel,msg);
     }
 
+    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<&mut RequestQueue> {
+        Ok(match self.queues.entry((channel.clone(),priority.clone())) {
+            Entry::Vacant(e) => { 
+                let commander = self.commander.clone();
+                let integration = self.integration.clone();
+                e.insert(RequestQueue::new(&commander,&self.dauphin,&integration,&channel,&priority)?)
+            },
+            Entry::Occupied(e) => { e.into_mut() }
+        })
+    }
+
     pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<CommanderStream<Box<dyn ResponseType>>> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
         let response_channel = CommanderStream::new();
-        match self.queues.entry((channel.clone(),priority.clone())) {
-            Entry::Vacant(e) => { 
-                let commander = self.commander.clone();
-                let integration = self.integration.clone();
-                e.insert(RequestQueue::new(&commander,&self.dauphin,&integration,&channel,priority)?)
-            },
-            Entry::Occupied(e) => { e.into_mut() }
-        }.queue_command(request,response_channel.clone());
+        self.get_queue(&channel,&priority)?.queue_command(request,response_channel.clone());
         Ok(response_channel)
     }
 
-    pub fn set_timeout(&self, channel: &Channel, timeout: f64) {
+    pub fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
+        self.get_queue(channel,priority)?.set_timeout(timeout);
         self.integration.set_timeout(channel,timeout);
+        Ok(())
     }
 }
 
@@ -215,8 +250,8 @@ impl RequestManager {
         RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,dauphin,commander))))
     }
 
-    pub fn set_timeout(&self, channel: &Channel, timeout: f64) {
-        self.0.lock().unwrap().set_timeout(channel,timeout);
+    pub fn set_timeout(&self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
+        self.0.lock().unwrap().set_timeout(channel,priority,timeout)
     }
 
     pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Box<dyn ResponseType>> {

@@ -1,14 +1,14 @@
 use std::any::Any;
-use anyhow::{ self, anyhow as err, bail };
+use anyhow::{ self, bail };
 use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
+use crate::util::cbor::{ cbor_array, cbor_string };
 use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
 use crate::run::PgDauphin;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::program::ProgramLoader;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType, CommandResponse };
+use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::packet::{ ResponsePacketBuilderBuilder };
 use super::backoff::Backoff;
 
@@ -267,5 +267,36 @@ mod test {
         let v = h.console.take_all();
         let v : Vec<_> = v.iter().filter(|x| x.contains("PERMANENT ERROR")).collect();
         assert!(v.len()>0);
+    }
+
+    #[test]
+    fn timeout() {
+        let mut h = TestHelpers::new();
+        let channel = Channel::new(&ChannelLocation::HttpChannel(urlc(1)));
+        h.manager.set_timeout(&channel,&PacketPriority::RealTime,42.).expect("a");
+        assert_eq!(vec![(channel,42.)],h.channel.get_timeouts());
+        h.channel.wait(100.);
+        for _ in 0..20 {
+            h.channel.add_response(json! {
+                {
+                    "responses": [
+                        [2,0,[[0,urlc(1).to_string()],"boot"]]
+                    ],
+                    "programs": [
+                        ["test","$0",{ "boot": "hello" }]
+                    ]
+                }
+            },vec![test_program()]);
+        }
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        for _ in 0..50 {
+            h.run(10);
+            h.commander_inner.add_time(1000.);
+        }
+        let v = h.console.take_all();
+        let w : Vec<_> = v.iter().filter(|x| x.contains("PERMANENT ERROR")).collect();
+        assert!(w.len()>0);
+        let w : Vec<_> = v.iter().filter(|x| x.contains("timeout on channel")).collect();
+        assert!(w.len()>0);
     }
 }
