@@ -1,11 +1,11 @@
 use anyhow::{ bail };
 use blackbox::blackbox_count;
 use commander::cdr_timer;
-use super::channel::{ Channel, PacketPriority };
+use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::RequestManager;
 use super::request::RequestType;
 
-const BACKOFF: &'static [u32] = &[ 0, 1, 1, 1, 100, 100, 100, 500, 500, 500, 5000, 5000, 5000, 15000, 15000 ];
+const BACKOFF: &'static [u32] = &[ 0, 1, 1, 1, 100, 100, 100, 500, 500, 500, 5000, 5000, 5000 ];
 
 pub struct Backoff(usize);
 
@@ -30,6 +30,7 @@ impl Backoff {
                     return Ok(Ok(b));
                 },
                 Err(e) => {
+                    manager.error(&channel,&format!("temporary(?) failure of {}",channel.to_string()));
                     blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1);
                     match e.downcast::<F>() {
                         Ok(_) => {},

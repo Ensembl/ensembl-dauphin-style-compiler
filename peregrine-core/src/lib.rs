@@ -28,7 +28,7 @@ mod run {
     pub use pgdauphin::PgDauphinIntegration;
     pub use self::core::PgCore;
     pub use self::pgcommander::Commander;
-    pub use self::pgcommander::PgCommander;
+    pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec };
     pub use self::pgdauphin::PgDauphin;
 }
 
@@ -49,8 +49,9 @@ mod test {
         pub(crate) use self::commander::{ TestCommander };
         pub(crate) use self::dauphin::{ TestDauphinIntegration, test_program };
     }
+    pub(crate) mod helpers;
 }
 
-pub use self::run::{ PgCommander, PgDauphin, Commander, PgDauphinIntegration };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, PgDauphinIntegration };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager };
 pub use self::run::PgCore;

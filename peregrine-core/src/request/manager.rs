@@ -3,6 +3,8 @@ use blackbox::{ blackbox_time, blackbox_count, blackbox_log };
 use commander::CommanderStream;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::bootstrap::bootstrap_commands;
@@ -12,6 +14,7 @@ use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, Respo
 use super::request::{ CommandRequest, CommandResponse, RequestType, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use serde_cbor::Value as CborValue;
 
 fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
@@ -30,25 +33,47 @@ struct RequestQueueData {
 }
 
 impl RequestQueueData {
+    fn make_packet_sender(&self, packet: &RequestPacket) -> anyhow::Result<Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>> {
+        let channel = self.channel.clone();
+        let priority = self.priority.clone();
+        let integration = self.integration.clone();
+        Ok(integration.get_sender(channel,priority,packet.serialize()?))
+    }
+
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Some(ref e) = msg.as_ref().err() {
-            self.integration.error(&self.channel,&e.to_string());
+            self.integration.error(&self.channel,&format!("error: {}",e));
         }
         msg
     }
 
-    async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+    fn add_programs(&self, channel: &Channel, response: &ResponsePacket) {
+        for bundle in response.programs().clone().iter() {
+            match self.report(self.dauphin.add_binary(channel,bundle.bundle_name(),bundle.program())) {
+                Ok(_) => {
+                    for (in_channel_name,in_bundle_name) in bundle.name_map() {
+                        self.dauphin.register(channel,in_channel_name,bundle.bundle_name(),in_bundle_name);
+                    }
+                },
+                Err(_) => {
+                    for (in_channel_name,_) in bundle.name_map() {
+                        self.dauphin.mark_missing(channel,in_channel_name);
+                    }
+                }
+            }
+        }
+    }
+
+    fn process_responses(&self, response: &mut ResponsePacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let channel = self.channel.clone();
-        let priority = self.priority.clone();
-        let integration = self.integration.clone();
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
-        blackbox_count!(&format!("channel-",channel.to_string()),"packets",1);
-        let response = blackbox_time!(&format!("channel-",channel.to_string()),"roundtrip",{
-            integration.get_sender(channel,priority,packet.serialize()?).await?
-        });
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
-        let response = self.builder.new_packet(&response)?;
-        Ok(response)
+        self.add_programs(&channel,response);
+        for r in response.take_responses().drain(..) {
+            let id = r.message_id();
+            if let Some(channel) = channels.remove(&id) {
+                blackbox_count!(&format!("channel-",channel.to_string()),"responses",1);
+                channel.add(r.into_response());
+            }
+        }
     }
 }
 
@@ -101,47 +126,29 @@ impl RequestQueue {
         Ok((packet,channels))
     }
 
+    async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+        let sender = self.0.lock().unwrap().make_packet_sender(packet)?;
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
+        blackbox_count!(&format!("channel-",channel.to_string()),"packets",1);
+        let response = blackbox_time!(&format!("channel-",channel.to_string()),"roundtrip",{
+            sender.await?
+        });
+        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
+        let response = self.0.lock().unwrap().builder.new_packet(&response)?;
+        Ok(response)
+    }
+
     async fn send_or_fail_packet(&self, packet: &RequestPacket) -> ResponsePacket {
-        let data = self.0.lock().unwrap();
-        match data.report(data.send_packet(packet).await) {
+        let res = self.send_packet(packet).await;
+        match self.0.lock().unwrap().report(res) {
             Ok(r) => r,
             Err(_) => packet.fail()
         }
     }
 
-    fn add_programs(&self, channel: &Channel, response: &ResponsePacket) {
-        for bundle in response.programs().clone().iter() {
-            let data = self.0.lock().unwrap();
-            match data.report(data.dauphin.add_binary(channel,bundle.bundle_name(),bundle.program())) {
-                Ok(_) => {
-                    for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                        data.dauphin.register(channel,in_channel_name,bundle.bundle_name(),in_bundle_name);
-                    }
-                },
-                Err(_) => {
-                    for (in_channel_name,_) in bundle.name_map() {
-                        data.dauphin.mark_missing(channel,in_channel_name);
-                    }
-                }
-            }
-        }
-    }
-
-    fn process_responses(&self, response: &mut ResponsePacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
-        let channel = self.0.lock().unwrap().channel.clone();
-        self.add_programs(&channel,response);
-        for r in response.take_responses().drain(..) {
-            let id = r.message_id();
-            if let Some(channel) = channels.remove(&id) {
-                blackbox_count!(&format!("channel-",channel.to_string()),"responses",1);
-                channel.add(r.into_response());
-            }
-        }
-    }
-
     async fn process_request(&self, request: &mut RequestPacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let mut response = self.send_or_fail_packet(request).await;
-        self.process_responses(&mut response,channels);
+        self.0.lock().unwrap().process_responses(&mut response,channels);
     }
 
     fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> anyhow::Result<T> {
@@ -173,6 +180,10 @@ impl RequestManagerData {
             next_id: 0,
             queues: HashMap::new()
         }
+    }
+
+    fn error(&self, channel: &Channel, msg: &str) {
+        self.integration.error(channel,msg);
     }
 
     pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<CommanderStream<Box<dyn ResponseType>>> {
@@ -210,5 +221,9 @@ impl RequestManager {
 
     pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Box<dyn ResponseType>> {
         Ok(self.0.lock().unwrap().execute(channel,priority,request)?.get().await)
+    }
+
+    pub fn error(&self, channel: &Channel, msg: &str) {
+        self.0.lock().unwrap().error(channel,msg);
     }
 }

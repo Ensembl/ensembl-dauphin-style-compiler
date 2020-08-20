@@ -95,23 +95,22 @@ impl PgDauphin {
         self.0.lock().unwrap().names.insert((channel.to_string(),name_in_channel.to_string()),Some((binary_name,name_in_bundle.to_string())));
     }
 
+    pub fn is_present(&self, channel: &Channel, name_in_channel: &str) -> bool {
+        self.0.lock().unwrap().names.get(&(channel.to_string(),name_in_channel.to_string())).and_then(|x| x.as_ref()).is_some()
+    }
+
     pub fn mark_missing(&self, channel: &Channel, name_in_channel: &str) {
         let mut data = self.0.lock().unwrap();
         data.names.insert((channel.channel_name(),name_in_channel.to_string()),None);
     }
 
     pub async fn load_program(&self, loader: &ProgramLoader, channel: &Channel, program_name: &str) -> anyhow::Result<PgDauphinProcess> {
-        let channel_name = channel.channel_name();
-        let key = (channel_name.to_string(),program_name.to_string());
-        let data = self.0.lock().unwrap();
-        let missing = !data.names.contains_key(&key);
-        drop(data);
-        if missing {
+        if !self.is_present(channel,program_name) {
             loader.load(channel,program_name).await?;
         }
         let data = self.0.lock().unwrap();
-        let (bundle_name,in_bundle_name) = data.names.get(&key).as_ref().unwrap().as_ref()
-            .ok_or(err!("Failed channel/program = {}/{}",channel_name,program_name))?.to_owned();
+        let (bundle_name,in_bundle_name) = data.names.get(&(channel.to_string(),program_name.to_string())).as_ref().unwrap().as_ref()
+            .ok_or(err!("Failed channel/program = {}/{}",channel.to_string(),program_name))?.to_owned();
         drop(data);
         self.load(&bundle_name,&in_bundle_name)
     }

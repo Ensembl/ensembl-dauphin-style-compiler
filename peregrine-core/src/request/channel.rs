@@ -15,12 +15,12 @@ pub trait ChannelIntegration {
     fn error(&self, channel: &Channel, message: &str);
 }
 
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum ChannelLocation {
     HttpChannel(Url)
 }
 
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct Channel(Arc<ChannelLocation>);
 
 impl Channel {
@@ -74,5 +74,20 @@ impl Channel {
             _ => Err(err!("bad channel type in deserialize"))?
         };
         Ok(Channel(Arc::new(data)))
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test::helpers::{ TestHelpers, urlc };
+
+    #[test]
+    fn timeout() {
+        let h = TestHelpers::new();
+        let channel = Channel::new(&ChannelLocation::HttpChannel(urlc(1)));
+        h.manager.set_timeout(&channel,42.);
+        assert_eq!(vec![(channel,42.)],h.channel.get_timeouts());
     }
 }

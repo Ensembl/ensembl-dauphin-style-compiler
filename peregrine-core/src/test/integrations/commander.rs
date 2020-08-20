@@ -26,7 +26,6 @@ impl TestCommanderIntegration {
 
 impl Integration for TestCommanderIntegration {
     fn current_time(&self) -> f64 {
-        *self.now.lock().unwrap() += 1.;
         *self.now.lock().unwrap()
     }
 
@@ -35,16 +34,23 @@ impl Integration for TestCommanderIntegration {
 
 #[derive(Clone)]
 pub struct TestCommander {
+    integration: TestCommanderIntegration,
     console: TestConsole,
     executor: Arc<Mutex<Executor>>
 }
 
 impl TestCommander {
     pub(crate) fn new(console: &TestConsole) -> TestCommander {
+        let integration = TestCommanderIntegration::new();
         TestCommander {
-            executor: Arc::new(Mutex::new(Executor::new(TestCommanderIntegration::new()))),
+            integration: integration.clone(),
+            executor: Arc::new(Mutex::new(Executor::new(integration))),
             console: console.clone()
         }
+    }
+
+    pub(crate) fn add_time(&self, time: f64) {
+        self.integration.add_time(time);
     }
 
     pub(crate) fn tick(&self) {
