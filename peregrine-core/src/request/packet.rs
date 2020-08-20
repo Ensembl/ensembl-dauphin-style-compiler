@@ -1,13 +1,11 @@
-use anyhow::{ self, Context, anyhow as err, bail };
-use commander::cdr_timer;
+use anyhow::{ self, Context, anyhow as err };
 use std::collections::{ BTreeMap, HashMap };
 use std::mem::replace;
 use std::rc::Rc;
 use serde_cbor::Value as CborValue;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType, CommandResponse, CommandRequest };
+use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
 use super::program::SuppliedBundle;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
-
+use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
 
 pub struct RequestPacket {
     requests: Vec<CommandRequest>

@@ -1,7 +1,7 @@
 // TODO tied failures
 
 use std::any::Any;
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self };
 use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 
@@ -43,7 +43,7 @@ impl CommandResponse {
 }
 
 pub trait ResponseType {
-    fn as_any(&self) -> &Any;
+    fn as_any(&self) -> &dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 

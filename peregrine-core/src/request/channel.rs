@@ -5,7 +5,7 @@ use anyhow::{ self, Context, anyhow as err };
 use std::sync::Arc;
 use url::Url;
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_string, cbor_map, cbor_map_iter };
+use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
 
 pub trait ChannelIntegration {
     fn set_timeout(&self, channel: &Channel, timeout: f64);

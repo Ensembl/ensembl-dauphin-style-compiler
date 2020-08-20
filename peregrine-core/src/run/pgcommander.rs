@@ -1,8 +1,7 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
-use commander::{ Executor, RunSlot };
-use owning_ref::MutexGuardRefMut;
+use commander::{ RunSlot };
 
 pub trait Commander {
     fn start(&self);
@@ -25,8 +24,6 @@ impl PgCommander {
     pub fn new(c: Box<dyn Commander>) -> PgCommander {
         PgCommander(Arc::new(Mutex::new(c)))
     }
-
-    pub(crate) fn start(&self) { self.0.lock().unwrap().start() }
 
     pub fn add_task(&self, t: PgCommanderTaskSpec<()>) {
         self.0.lock().unwrap().add_task(&t.name,t.prio,t.slot,t.timeout,t.task)

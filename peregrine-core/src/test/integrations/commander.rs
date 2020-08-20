@@ -5,7 +5,6 @@ use std::sync::{ Arc, Mutex };
 use commander::{ Integration, SleepQuantity, Executor, RunSlot, RunConfig, cdr_get_name, TaskHandle, TaskResult, cdr_in_agent, cdr_new_agent, cdr_add };
 use crate::Commander;
 use super::console::TestConsole;
-use owning_ref::MutexGuardRefMut;
 
 #[derive(Clone)]
 pub struct TestCommanderIntegration {

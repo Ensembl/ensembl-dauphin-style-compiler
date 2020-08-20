@@ -1,15 +1,14 @@
 use std::any::Any;
-use std::collections::{ HashMap, HashSet };
+use std::collections::{ HashMap };
 use std::sync::{ Arc, Mutex };
-use anyhow::{ bail };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_bool, cbor_string, cbor_map, cbor_map_iter };
+use crate::util::cbor::{ cbor_array, cbor_bool, cbor_string, cbor_map_iter };
 use crate::util::singlefile::SingleFile;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::packet::ResponsePacketBuilderBuilder;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType, CommandResponse };
+use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
@@ -139,9 +138,8 @@ mod test {
     use super::*;
     use crate::{ Channel, ChannelLocation };
     use crate::test::helpers::{ TestHelpers, urlc };
-    use crate::test::integrations::{ TestChannelIntegration, TestDauphinIntegration, TestConsole, TestCommander, cbor_matches, test_program };
+    use crate::test::integrations::{ cbor_matches, test_program };
     use serde_json::json;
-    use url::Url;
 
     #[test]
     fn test_program_command() {
