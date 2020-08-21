@@ -31,6 +31,10 @@ impl RequestManagerData {
         self.integration.error(channel,msg);
     }
 
+    fn warn(&self, channel: &Channel, msg: &str) {
+        self.integration.warn(channel,msg);
+    }
+
     fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<&mut RequestQueue> {
         Ok(match self.queues.entry((channel.clone(),priority.clone())) {
             Entry::Vacant(e) => { 
@@ -76,5 +80,9 @@ impl RequestManager {
 
     pub fn error(&self, channel: &Channel, msg: &str) {
         self.0.lock().unwrap().error(channel,msg);
+    }
+
+    pub fn warn(&self, channel: &Channel, msg: &str) {
+        self.0.lock().unwrap().warn(channel,msg);
     }
 }

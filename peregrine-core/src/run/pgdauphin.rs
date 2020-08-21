@@ -10,6 +10,7 @@ use super::pgcommander::{ PgCommander, PgCommanderTaskSpec };
 use crate::request::channel::Channel;
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
+use crate::PgConsole;
 
 pub struct PgDauphinTaskSpec {
     pub prio: i8, 
@@ -81,7 +82,7 @@ impl DauphinResponse {
     }
 }
 
-async fn run_task(commander: &PgCommander, req: DauphinRunnerRequest) -> anyhow::Result<()> {
+fn run_task(commander: &PgCommander, console: &Box<dyn PgConsole>, req: DauphinRunnerRequest) -> anyhow::Result<()> {
     let task = PgCommanderTaskSpec {
         name: req.task.name.to_string(),
         prio: req.task.prio,
@@ -93,15 +94,16 @@ async fn run_task(commander: &PgCommander, req: DauphinRunnerRequest) -> anyhow:
             Ok(())
         })
     };
+    console.error(&format!("Adding {}",task.name));
     commander.add_task(task);
     Ok(())
 }
 
-async fn runner(commander: PgCommander, stream: CommanderStream<DauphinRunnerRequest>) -> anyhow::Result<()> {
+async fn runner(commander: PgCommander, console: Box<dyn PgConsole>, stream: CommanderStream<DauphinRunnerRequest>) -> anyhow::Result<()> {
     loop {
         let mut request = stream.get_multi().await;
         for r in request.drain(..) {
-            run_task(&commander,r).await?;    
+            run_task(&commander,&console,r)?;
         }
     }
 }
@@ -126,13 +128,13 @@ impl PgDauphin {
         }))))
     }
 
-    pub fn start_runner(&self, commander: &PgCommander) {
+    pub fn start_runner(&self, commander: &PgCommander, console: Box<dyn PgConsole>) {
         commander.add_task(PgCommanderTaskSpec {
             name: "dauphin runner".to_string(),
             prio: 2,
             slot: None,
             timeout: None,
-            task: Box::pin(runner(commander.clone(),self.0.lock().unwrap().requests.clone()))
+            task: Box::pin(runner(commander.clone(),console,self.0.lock().unwrap().requests.clone()))
         });
     }
 

@@ -38,6 +38,7 @@ fn json_to_cbor(json: &JsonValue) -> CborValue {
 
 pub fn cbor_matches(json: &JsonValue, cbor: &CborValue) -> bool {
     match (json,cbor) {
+        (JsonValue::String(a),_) if a == "$$" => true,
         (JsonValue::Null,CborValue::Null) => true,
         (JsonValue::Bool(a),CborValue::Bool(b)) => a==b,
         (JsonValue::Number(a),CborValue::Integer(b)) => a.as_i64().unwrap()==*b as i64,
@@ -116,6 +117,10 @@ impl ChannelIntegration for TestChannelIntegration {
     }
 
     fn error(&self, _channel: &Channel, msg: &str) {
+        self.console.message(msg);
+    }
+
+    fn warn(&self, _channel: &Channel, msg: &str) {
         self.console.message(msg);
     }
 

@@ -6,10 +6,10 @@ use crate::util::cbor::{ cbor_array, cbor_string };
 use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use super::channel::{ Channel, PacketPriority };
+use super::failure::GeneralFailure;
 use super::manager::RequestManager;
 use super::program::ProgramLoader;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
-use super::packet::{ ResponsePacketBuilderBuilder };
 use super::backoff::Backoff;
 
 #[derive(Clone)]
@@ -34,8 +34,8 @@ impl BootstrapCommandRequest {
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
         let mut backoff = Backoff::new();
-        match backoff.backoff_two_messages::<BootstrapCommandResponse,BootstrapFailure,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime).await? {
+        match backoff.backoff::<BootstrapCommandResponse,_,_>(
+                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(b) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"bootstrap response received");
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1);
@@ -44,7 +44,7 @@ impl BootstrapCommandRequest {
             Err(_) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1);
                 manager.error(&self.channel,&format!("PERMANENT ERROR channel {} failed to bootstrap. genome browser cannot start",self.channel.to_string()));
-                bail!("failed to bootstrap to '{}'. backend missing?",self.channel);
+                bail!("failed to bootstrap to '{}'. backend error",self.channel);
             }
         }
     }
@@ -53,7 +53,7 @@ impl BootstrapCommandRequest {
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
     fn serialize(&self) -> anyhow::Result<CborValue> { Ok(CborValue::Null) }
-    fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(BootstrapFailure{}) }
+    fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
 }
 
 pub struct BootstrapCommandResponse {
@@ -90,23 +90,8 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub struct BootstrapFailure {
-}
-
-impl ResponseType for BootstrapFailure {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
-}
-
-pub struct BootstrapFailureBuilderType();
-impl ResponseBuilderType for BootstrapFailureBuilderType {
-    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(BootstrapFailure{}))
-    }
-}
-
 pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel) -> anyhow::Result<()> {
-    let req = BootstrapCommandRequest::new(dauphin,loader,channel);
+    let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
     let boot_proc = req.execute(requests.clone());
     commander.add_task(PgCommanderTaskSpec {
         name: "bootstrap".to_string(),
@@ -118,10 +103,6 @@ pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &
     Ok(())
 }
 
-pub(super) fn bootstrap_commands(rspbb: &mut ResponsePacketBuilderBuilder) {
-    rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
-    rspbb.register(1,Box::new(BootstrapFailureBuilderType()));
-}
 
 
 #[cfg(test)]
@@ -159,6 +140,7 @@ mod test {
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
             {
+                "channel": "$$",
                "requests": [
                    [0,0,null]
                ] 
@@ -166,6 +148,7 @@ mod test {
         },&reqs[0]));
         assert!(cbor_matches(&json! {
             {
+                "channel": "$$",
                "requests": [
                    [1,1,[[0,urlc(2).to_string()],"boot"]]
                ] 
@@ -192,9 +175,11 @@ mod test {
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
         h.run(30);
         let reqs = h.channel.get_requests();
+        print!("{:?}\n",reqs[0]);
         assert!(cbor_matches(&json! {
             {
-               "requests": [
+                "channel": "$$",
+                "requests": [
                    [0,0,null]
                ] 
             }
@@ -228,6 +213,7 @@ mod test {
         for i in 0..2 {
             assert!(cbor_matches(&json! {
                 {
+                    "channel": "$$",
                 "requests": [
                     [i,0,null]
                 ] 
@@ -254,6 +240,7 @@ mod test {
         for i in 0..2 {
             assert!(cbor_matches(&json! {
                 {
+                    "channel": "$$",
                 "requests": [
                     [i,0,null]
                 ] 

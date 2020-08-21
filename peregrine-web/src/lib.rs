@@ -25,13 +25,14 @@ use anyhow::{ self, Context };
 use blackbox::{ blackbox_enable };
 use commander::{ cdr_tick, cdr_timer };
 use crate::integration::pgchannel::PgChannel;
-use crate::integration::pgconsole::{ PgConsole, PgConsoleLevel };
+use crate::integration::pgconsole::{ PgConsoleWeb, PgConsoleLevel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
 use crate::util::error::{ js_throw, js_option };
 use serde_cbor::Value as CborValue;
-use peregrine_core::{ PgCore, PgCommander, PgDauphin, Commander, RequestManager };
+use peregrine_core::{ PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation };
+pub use url::Url;
 
 fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     let window = js_option(web_sys::window(),"cannot get window")?;
@@ -51,10 +52,12 @@ struct PeregrineWeb {
 impl PeregrineWeb {
     fn new() -> anyhow::Result<PeregrineWeb> {
         pgblackbox_setup();
-        let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
+        let console = PgConsoleWeb::new(60,60.);
         let dauphin = PgDauphin::new(Box::new(PgDauphinIntegrationWeb()))?;
-        let console = PgConsole::new(10,30.);
-        let manager = RequestManager::new(PgChannel::new(&console),&dauphin,&commander);
+        let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
+        let manager = RequestManager::new(PgChannel::new(Box::new(console.clone())),&dauphin,&commander);
+        let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
+        dauphin.start_runner(&commander,Box::new(console));     
         let mut out = PeregrineWeb {
             core: PgCore::new(&commander,&dauphin,&manager)?
         };
@@ -100,13 +103,7 @@ async fn test2(frames: Arc<Mutex<u32>>) -> anyhow::Result<()> {
 
 fn test_fn() -> anyhow::Result<()> {
     let mut pg_web = js_throw(PeregrineWeb::new());
-    let frames = Arc::new(Mutex::new(0_u32));
-    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(frames.clone())));
-    pg_web.core.add_task("test2",100,None,Some(5000.),Box::pin(test2(frames)));
-    let test = include_bytes!("test.dpb");
-    let prog : CborValue = serde_cbor::from_slice(test)?;
-    pg_web.core.add_binary(&prog)?;
-    pg_web.core.run("hello",0,None,None).expect("run");
+    pg_web.core.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
     Ok(())
 }
 

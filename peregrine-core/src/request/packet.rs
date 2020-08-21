@@ -3,6 +3,7 @@ use std::collections::{ BTreeMap, HashMap };
 use std::mem::replace;
 use std::rc::Rc;
 use serde_cbor::Value as CborValue;
+use super::channel::Channel;
 use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
 use super::program::SuppliedBundle;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
@@ -22,13 +23,14 @@ impl RequestPacket {
         self.requests.push(request);
     }
 
-    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self, channel: &Channel) -> anyhow::Result<CborValue> {
         let mut map = BTreeMap::new();
         let mut requests = vec![];
         for r in &self.requests {
             requests.push(r.serialize()?);
         }
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
+        map.insert(CborValue::Text("channel".to_string()),channel.serialize()?);
         Ok(CborValue::Map(map))
     }
 
@@ -99,14 +101,19 @@ impl ResponsePacket {
         let values = cbor_array(value,3,false)?;
         let msgid = cbor_int(&values[0],None)? as u64;
         let builder = builders.get(&(cbor_int(&values[1],Some(255))? as u8)).ok_or(err!("bad response type"))?;
-        Ok(CommandResponse::new(msgid,builder.deserialize(&values[2])?))
+        let payload = builder.deserialize(&values[2]).with_context(
+            || format!("deserializing individual response payload (type {})",cbor_int(&values[1],None).unwrap_or(-1))
+        )?;
+        Ok(CommandResponse::new(msgid,payload))
     }
 
     fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
         let values = cbor_map(value,&["responses","programs"])?;
         let mut responses = vec![];
         for v in cbor_array(&values[0],0,true)? {
-            responses.push(ResponsePacket::deserialize_response(v,builders)?);
+            responses.push(ResponsePacket::deserialize_response(v,builders).with_context(
+                || format!("deserializing individual response payload (type {})",cbor_int(&values[1],None).unwrap_or(-1))
+            )?);
         }
         let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
         Ok(ResponsePacket {

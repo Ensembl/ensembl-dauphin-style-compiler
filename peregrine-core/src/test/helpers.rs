@@ -25,7 +25,7 @@ impl TestHelpers {
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
         let manager = RequestManager::new(channel.clone(),&dauphin,&commander);
         let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
-        dauphin.start_runner(&commander);
+        dauphin.start_runner(&commander,Box::new(console.clone()));
         TestHelpers {
             console, channel, dauphin, commander_inner, commander,
             manager, loader

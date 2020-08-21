@@ -1,13 +1,14 @@
+use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
 use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_bool, cbor_string, cbor_map_iter };
+use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
 use crate::util::singlefile::SingleFile;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::packet::ResponsePacketBuilderBuilder;
+use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::run::{ PgCommander, PgDauphin };
@@ -32,7 +33,7 @@ impl SuppliedBundle {
             names
         })
     }
-
+    
     pub(crate) fn bundle_name(&self) -> &str { &self.bundle_name }
     pub(crate) fn program(&self) -> &CborValue { &self.program }
     pub(crate) fn name_map(&self) -> impl Iterator<Item=(&str,&str)> {
@@ -55,11 +56,23 @@ impl ProgramCommandRequest {
         }
     }
 
-    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> anyhow::Result<bool> {
+    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> anyhow::Result<()> {
         let mut backoff = Backoff::new();
-        let resp = backoff.backoff_one_message::<ProgramCommandResponse,_,_>(
-                        manager,self.clone(),&self.channel,PacketPriority::RealTime,|s| s.success).await?;
-        Ok(resp.is_ok() && dauphin.is_present(&self.channel,&self.name))
+        let channel = self.channel.clone();
+        let name = self.name.clone();
+        backoff.backoff::<ProgramCommandResponse,_,_>(
+            manager,self.clone(),&self.channel,PacketPriority::RealTime, move |_| {
+                if dauphin.is_present(&channel,&name) {
+                    None
+                } else {
+                    Some(GeneralFailure::new("program was returned but did not load successfully"))
+                }
+            }
+        ).await??;
+        if !dauphin.is_present(&self.channel,&self.name) {
+            bail!("program did not load");
+        }
+        Ok(())
     }
 }
 
@@ -69,13 +82,11 @@ impl RequestType for ProgramCommandRequest {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(ProgramCommandResponse{ success: false })
+        Box::new(GeneralFailure::new("program loading failed"))
     }
 }
 
-struct ProgramCommandResponse {
-    success: bool
-}
+struct ProgramCommandResponse {}
 
 impl ResponseType for ProgramCommandResponse {
     fn as_any(&self) -> &dyn Any { self }
@@ -85,22 +96,16 @@ impl ResponseType for ProgramCommandResponse {
 pub struct ProgramResponseBuilderType();
 
 impl ResponseBuilderType for ProgramResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(ProgramCommandResponse {
-            success: cbor_bool(value)?
-        }))
+    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
+        Ok(Box::new(ProgramCommandResponse {}))
     }
 }
 
-pub(super) fn program_commands(rspbb: &mut ResponsePacketBuilderBuilder) {
-    rspbb.register(2,Box::new(ProgramResponseBuilderType()));
-}
-
 struct ProgramLoaderData {
-    single_file: SingleFile<(Channel,String),bool>
+    single_file: SingleFile<(Channel,String),()>
 }
 
-async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: Channel, name: String) -> anyhow::Result<bool> {
+async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: Channel, name: String) -> anyhow::Result<()> {
     let req = ProgramCommandRequest::new(&channel,&name);
     req.execute(&mut manager,&dauphin).await
 }
@@ -128,7 +133,7 @@ impl ProgramLoader {
         Ok(out)
     }
 
-    pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<bool> {
+    pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
         self.0.lock().unwrap().single_file.request((channel.clone(),name.to_string())).await
     }
 }
@@ -160,8 +165,8 @@ mod test {
         let success2 = success.clone();
         let mut manager = h.manager.clone();
         h.task(async move {
-            let r = pcr.execute(&mut manager,&dauphin2).await?;
-            *success2.lock().unwrap() = Some(r);
+            let r = pcr.execute(&mut manager,&dauphin2).await;
+            *success2.lock().unwrap() = Some(r.is_ok());
             Ok(())
         });
         h.run(30);
@@ -169,6 +174,7 @@ mod test {
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
             {
+                "channel": "$$",
                "requests": [
                    [0,1,[[0,urlc(1).to_string()],"test2"]]
                ] 
@@ -196,15 +202,16 @@ mod test {
         let success2 = success.clone();
         let mut manager = h.manager.clone();
         h.task(async move {
-            let r = pcr.execute(&mut manager,&dauphin2).await?;
-            *success2.lock().unwrap() = Some(r);
+            let r = pcr.execute(&mut manager,&dauphin2).await;
+            *success2.lock().unwrap() = Some(r.is_ok());
             Ok(())
         });
         h.run(30);
-        assert_eq!(Some(false),*success.lock().unwrap());
+        assert_eq!(false,success.lock().unwrap().unwrap());
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
             {
+                "channel": "$$",
                "requests": [
                    [0,1,[[0,urlc(1).to_string()],"test2"]]
                ] 

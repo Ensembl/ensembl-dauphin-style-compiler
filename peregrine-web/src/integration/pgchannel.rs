@@ -1,19 +1,19 @@
 use anyhow::{ anyhow as err };
-use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration };
+use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, PgConsole };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
-use super::pgconsole::{ PgConsole, PgConsoleLevel };
+use super::pgconsole::{ PgConsoleLevel };
 use url::Url;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Mutex;
 
-pub struct PgChannel(PgConsole,Mutex<HashMap<Channel,Option<f64>>>);
+pub struct PgChannel(Box<dyn PgConsole>,Mutex<HashMap<Channel,Option<f64>>>);
 
 impl PgChannel {
-    pub fn new(console: &PgConsole) -> PgChannel {
-        PgChannel(console.clone(),Mutex::new(HashMap::new()))
+    pub fn new(console: Box<dyn PgConsole>) -> PgChannel {
+        PgChannel(console,Mutex::new(HashMap::new()))
     }
 }
 
@@ -48,8 +48,12 @@ impl ChannelIntegration for PgChannel {
         Box::pin(send(channel,prio,data,timeout))
     }
 
+    fn warn(&self, _channel: &Channel, msg: &str) {
+        self.0.warn(msg);
+    }
+
     fn error(&self, _channel: &Channel, msg: &str) {
-        self.0.message(PgConsoleLevel::Error,msg);
+        self.0.error(msg);
     }
 
     fn set_timeout(&self, channel: &Channel, timeout: f64) {

@@ -1,6 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use js_sys::Date;
 use web_sys::console;
+use peregrine_core::{ PgConsole };
 
 pub enum PgConsoleLevel {
     Notice,
@@ -41,7 +42,7 @@ impl PgConsoleData {
         let now = self.interval(Date::now());
         if now.floor() > self.this_interval.floor() {
             if self.num_this_interval > self.max_per_interval {
-                self.log(PgConsoleLevel::Notice,&format!("... and {} more messages in the last {}s",self.num_this_interval-self.max_per_interval,self.interval));
+                self.log(PgConsoleLevel::Notice,&format!("... and {} more messages in the last {}s",self.num_this_interval-self.max_per_interval,self.interval/1000.));
             }
             self.this_interval = now;
             self.num_this_interval = 0;
@@ -51,21 +52,27 @@ impl PgConsoleData {
     }
 
     pub fn message(&mut self, level: PgConsoleLevel, msg: &str) {
-        if !self.suppress() {
+        if !self.suppress() || true {
             self.log(level,msg);
         }
     }
 }
 
 #[derive(Clone)]
-pub struct PgConsole(Arc<Mutex<PgConsoleData>>);
+pub struct PgConsoleWeb(Arc<Mutex<PgConsoleData>>);
 
-impl PgConsole {
-    pub fn new(max_per_interval: u32, interval: f64) -> PgConsole {
-        PgConsole(Arc::new(Mutex::new(PgConsoleData::new(max_per_interval,interval))))
+impl PgConsoleWeb {
+    pub fn new(max_per_interval: u32, interval: f64) -> PgConsoleWeb {
+        PgConsoleWeb(Arc::new(Mutex::new(PgConsoleData::new(max_per_interval,interval))))
+    }
+}
+
+impl PgConsole for PgConsoleWeb {
+    fn warn(&self, msg: &str) {
+        self.0.lock().unwrap().message(PgConsoleLevel::Warn,msg);
     }
 
-    pub fn message(&self, level: PgConsoleLevel, msg: &str) {
-        self.0.lock().unwrap().message(level,msg);
+    fn error(&self, msg: &str) {
+        self.0.lock().unwrap().message(PgConsoleLevel::Error,msg);
     }
 }

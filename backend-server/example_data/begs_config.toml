@@ -1,0 +1,6 @@
+[core]
+boot="boot"
+files="begs"
+
+[begs.test]
+hello="boot"

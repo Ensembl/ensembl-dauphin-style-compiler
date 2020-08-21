@@ -44,7 +44,7 @@ pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> anyhow::Result<Vec<&'
                 })?);
             }
         },
-        _ => { bail!("expected map") }
+        _ => { bail!("expected map got {:?}",cbor) }
     }
     Ok(out)
 }

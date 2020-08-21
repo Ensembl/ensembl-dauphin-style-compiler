@@ -2,9 +2,15 @@ use std::fmt;
 use anyhow::{ self, anyhow as err };
 use wasm_bindgen::JsValue;
 use web_sys::console;
+use serde_json::Value as JsonValue;
+
+fn error_to_string(v: JsValue) -> String {
+    let x : JsonValue = v.into_serde().unwrap();
+    format!("{} {}",x.to_string(),v.as_string().unwrap_or("mystery error".to_string()))
+}
 
 pub(crate) fn js_error<T>(e: Result<T,JsValue>) -> anyhow::Result<T> {
-    e.map_err(|e| err!(e.as_string().unwrap_or("mystery error".to_string())))
+    e.map_err(|e| err!(error_to_string(e)))
 }
 
 pub(crate) fn display_error<T,E>(e: Result<T,E>) -> anyhow::Result<T> where E: fmt::Display {

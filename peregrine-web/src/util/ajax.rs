@@ -27,6 +27,14 @@ fn u8_slice_to_typed_array(v: &[u8]) -> Uint8Array {
     }
 }
 
+fn typed_array_to_vec_u8(v: &Uint8Array) -> Vec<u8> {
+    // see https://github.com/rustwasm/wasm-bindgen/pull/1147
+    let len = v.length() as usize;
+    let mut out = vec![0;len];
+    v.copy_to(&mut out);
+    out
+}
+
 impl PgAjax {
     pub fn new(method: &str, url: &Url) -> PgAjax {
         PgAjax {
@@ -96,8 +104,9 @@ impl PgAjax {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await?;
         let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
-        let cbor = js_error(JsFuture::from(js_error(response.text())?).await)?;
-        let cbor : CborValue = display_error(cbor.into_serde()).context("not CBOR")?;
+        let array_buffer_value = js_error(JsFuture::from(js_error(response.array_buffer())?).await)?;
+        let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
+        let cbor = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
         Ok(cbor)
     }
 }

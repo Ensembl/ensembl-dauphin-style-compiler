@@ -6,8 +6,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use super::bootstrap::bootstrap_commands;
-use super::program::program_commands;
+use super::bootstrap::BootstrapResponseBuilderType;
+use super::failure::GeneralFailureBuilderType;
+use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
 use super::request::{ CommandRequest, ResponseType };
@@ -17,8 +18,9 @@ use serde_cbor::Value as CborValue;
 
 fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
-    bootstrap_commands(&mut rspbb);
-    program_commands(&mut rspbb);
+    rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
+    rspbb.register(1,Box::new(GeneralFailureBuilderType()));
+    rspbb.register(2,Box::new(ProgramResponseBuilderType()));
     rspbb.build()
 }
 
@@ -37,12 +39,12 @@ impl RequestQueueData {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
-        Ok(integration.get_sender(channel,priority,packet.serialize()?))
+        Ok(integration.get_sender(channel,priority,packet.serialize(&self.channel)?))
     }
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Some(ref e) = msg.as_ref().err() {
-            self.integration.error(&self.channel,&format!("error: {}",e));
+            self.integration.error(&self.channel,&format!("error: {:?}",e));
         }
         msg
     }
@@ -158,7 +160,7 @@ impl RequestQueue {
             sender.await?
         });
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
-        let response = self.0.lock().unwrap().builder.new_packet(&response)?;
+        let response = self.0.lock().unwrap().builder.new_packet(&response).context("Building response packet")?;
         Ok(response)
     }
 
