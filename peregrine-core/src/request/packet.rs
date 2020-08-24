@@ -1,12 +1,13 @@
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self, Context, anyhow as err, bail };
 use std::collections::{ BTreeMap, HashMap };
 use std::mem::replace;
 use std::rc::Rc;
 use serde_cbor::Value as CborValue;
 use super::channel::Channel;
 use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
+use crate::core::stick::{ Stick, StickId, StickTopology };
 use super::program::SuppliedBundle;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
+use crate::util::cbor::{ cbor_array, cbor_int, cbor_map, cbor_string, cbor_map_iter };
 
 pub struct RequestPacket {
     requests: Vec<CommandRequest>
@@ -77,14 +78,16 @@ impl ResponsePacketBuilder {
 
 pub struct ResponsePacket {
     responses: Vec<CommandResponse>,
-    programs: Vec<SuppliedBundle>
+    programs: Vec<SuppliedBundle>,
+    sticks: Vec<Stick>
 }
 
 impl ResponsePacket {
     fn new() -> ResponsePacket {
         ResponsePacket {
             responses: vec![],
-            programs: vec![]
+            programs: vec![],
+            sticks: vec![]
         }
     }
 
@@ -93,6 +96,7 @@ impl ResponsePacket {
     }
 
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
+    pub(crate) fn sticks(&self) -> &[Stick] { &self.sticks }
     pub(crate) fn take_responses(&mut self) -> Vec<CommandResponse> {
         replace(&mut self.responses,vec![])
     }
@@ -107,8 +111,20 @@ impl ResponsePacket {
         Ok(CommandResponse::new(msgid,payload))
     }
 
+    fn deserialize_stick(name: &str, value: &CborValue) -> anyhow::Result<Stick> {
+        let values = cbor_map(value,&["size","topology","tags"])?;
+        let size = cbor_int(&values[0],None)? as u64;
+        let topology = match cbor_int(&values[1],None)? {
+            0 => StickTopology::Linear,
+            1 => StickTopology::Circular,
+            _ => bail!("bad packet (stick topology)")
+        };
+        let tags : anyhow::Result<Vec<String>> = cbor_array(&values[2],0,true)?.iter().map(|x| cbor_string(x)).collect();
+        Ok(Stick::new(&StickId::new(name),size,topology,&tags?))
+    }
+
     fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
-        let values = cbor_map(value,&["responses","programs"])?;
+        let values = cbor_map(value,&["responses","programs","sticks"])?;
         let mut responses = vec![];
         for v in cbor_array(&values[0],0,true)? {
             responses.push(ResponsePacket::deserialize_response(v,builders).with_context(
@@ -116,9 +132,11 @@ impl ResponsePacket {
             )?);
         }
         let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
+        let sticks : anyhow::Result<Vec<Stick>> = cbor_map_iter(&values[2])?.map(|(k,v)| ResponsePacket::deserialize_stick(&cbor_string(k)?,v)).collect();
         Ok(ResponsePacket {
             responses,
-            programs: programs?
+            programs: programs?,
+            sticks: sticks?
         })
     }
 }

@@ -1,6 +1,8 @@
 use std::future::Future;
 use super::integrations::{ TestCommander, TestChannelIntegration, TestDauphinIntegration, TestConsole };
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
+use crate::index::stickstore::StickStore;
+use crate::request::{ Channel, ChannelLocation };
 use crate::request::program::ProgramLoader;
 use url::Url;
 
@@ -23,8 +25,11 @@ impl TestHelpers {
         let dauphin = PgDauphin::new(Box::new(dauphin)).expect("d");
         let commander_inner = TestCommander::new(&console);
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
-        let manager = RequestManager::new(channel.clone(),&dauphin,&commander);
+        let mut manager = RequestManager::new(channel.clone(),&commander);
+        let stick_store = StickStore::new(&commander,&manager,&Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://a.com/1").expect("e")))).expect("f"); // XXX
         let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
+        manager.add_receiver(Box::new(dauphin.clone()));
+        manager.add_receiver(Box::new(stick_store.clone()));
         dauphin.start_runner(&commander,Box::new(console.clone()));
         TestHelpers {
             console, channel, dauphin, commander_inner, commander,

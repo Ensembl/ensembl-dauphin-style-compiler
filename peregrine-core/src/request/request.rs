@@ -8,7 +8,7 @@ use std::rc::Rc;
 pub trait RequestType {
     fn type_index(&self) -> u8;
     fn serialize(&self) -> anyhow::Result<CborValue>;
-    fn to_failure(&self) -> Box<dyn ResponseType>;
+    fn to_failure(&self) -> Rc<dyn ResponseType>;
 }
 
 #[derive(Clone)]
@@ -31,15 +31,15 @@ impl CommandRequest {
     }
 }
 
-pub struct CommandResponse(u64,Box<dyn ResponseType>);
+pub struct CommandResponse(u64,Rc<dyn ResponseType>);
 
 impl CommandResponse {
-    pub(crate) fn new(msgid: u64, rt: Box<dyn ResponseType>) -> CommandResponse {
+    pub(crate) fn new(msgid: u64, rt: Rc<dyn ResponseType>) -> CommandResponse {
         CommandResponse(msgid,rt)
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.0 }
-    pub(crate) fn into_response(self) -> Box<dyn ResponseType> { self.1 }
+    pub(crate) fn into_response(self) -> Rc<dyn ResponseType> { self.1 }
 }
 
 pub trait ResponseType {
@@ -48,5 +48,5 @@ pub trait ResponseType {
 }
 
 pub trait ResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>>;
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>>;
 }

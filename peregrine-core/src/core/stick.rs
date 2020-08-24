@@ -1,12 +1,40 @@
-/* At the moment, sticks are just strings. They will probably become more elaborate.
- * This abstraction should make that transition easier.
- */
+use std::collections::HashSet;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
-pub struct Stick(String);
+pub struct StickId(String);
+
+impl StickId {
+    pub fn new(name: &str) -> StickId {
+        StickId(name.to_string())
+    }
+
+    pub fn get_id(&self) -> &str { &self.0 }
+}
+
+#[derive(Clone)]
+pub enum StickTopology {
+    Linear,
+    Circular
+}
+
+#[derive(Clone)]
+pub struct Stick {
+    id: StickId,
+    size: u64,
+    topology: StickTopology,
+    tags: HashSet<String>
+}
 
 impl Stick {
-    fn new(name: &str) -> Stick {
-        Stick(name.to_string())
+    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String]) -> Stick {
+        Stick {
+            id: id.clone(),
+            size, topology,
+            tags: tags.iter().cloned().collect()
+        }
     }
+
+    pub fn get_id(&self) -> &StickId { &self.id }
+    pub fn size(&self) -> u64 { self.size }
+    pub fn tags(&self) -> &HashSet<String> { &self.tags }
 }

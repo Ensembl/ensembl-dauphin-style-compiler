@@ -1,6 +1,8 @@
+use crate::lock;
 use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
+use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
@@ -49,7 +51,7 @@ struct ProgramCommandRequest {
 
 impl ProgramCommandRequest {
     pub(crate) fn new(channel: &Channel, name: &str) -> ProgramCommandRequest {
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"requesting program {}",name);
+        blackbox_log!(&format!("channel-{}",channel.to_string()),"requesting program {}",name);
         ProgramCommandRequest {
             channel: channel.clone(),
             name: name.to_string()
@@ -81,8 +83,8 @@ impl RequestType for ProgramCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("program loading failed"))
+    fn to_failure(&self) -> Rc<dyn ResponseType> {
+        Rc::new(GeneralFailure::new("program loading failed"))
     }
 }
 
@@ -96,18 +98,18 @@ impl ResponseType for ProgramCommandResponse {
 pub struct ProgramResponseBuilderType();
 
 impl ResponseBuilderType for ProgramResponseBuilderType {
-    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(ProgramCommandResponse {}))
+    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+        Ok(Rc::new(ProgramCommandResponse {}))
     }
-}
-
-struct ProgramLoaderData {
-    single_file: SingleFile<(Channel,String),()>
 }
 
 async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: Channel, name: String) -> anyhow::Result<()> {
     let req = ProgramCommandRequest::new(&channel,&name);
     req.execute(&mut manager,&dauphin).await
+}
+
+struct ProgramLoaderData {
+    single_file: SingleFile<(Channel,String),()>
 }
 
 #[derive(Clone)]
@@ -134,7 +136,7 @@ impl ProgramLoader {
     }
 
     pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.0.lock().unwrap().single_file.request((channel.clone(),name.to_string())).await
+        lock!(self.0).single_file.request((channel.clone(),name.to_string())).await
     }
 }
 
@@ -186,16 +188,18 @@ mod test {
     #[test]
     fn test_program_force_fail_command() {
         let h = TestHelpers::new();
-        h.channel.add_response(json! {
-            {
-                "responses": [
-                    [0,2,true]
-                ],
-                "programs": [
-                    ["test","BAD PROGRAM",{ "test2": "hello" }]
-                ]
-            }
-        },vec![]);
+        for i in 0..20 {
+            h.channel.add_response(json! {
+                {
+                    "responses": [
+                        [i,2,true]
+                    ],
+                    "programs": [
+                        ["test","BAD PROGRAM",{ "test2": "hello" }]
+                    ]
+                }
+            },vec![]);
+        }
         let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
         let dauphin2 = h.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
@@ -206,7 +210,10 @@ mod test {
             *success2.lock().unwrap() = Some(r.is_ok());
             Ok(())
         });
-        h.run(30);
+        for _ in 0..2000 {
+            h.run(30);
+            h.commander_inner.add_time(100.);
+        }
         assert_eq!(false,success.lock().unwrap().unwrap());
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {

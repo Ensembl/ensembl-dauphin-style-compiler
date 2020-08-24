@@ -1,5 +1,6 @@
 use anyhow::{ self, anyhow as err };
 use blackbox::blackbox_log;
+use crate::lock;
 use dauphin_interp::{ CommandInterpretSuite, Dauphin, InterpretInstance, make_core_interp };
 use dauphin_lib_std::make_std_interp;
 use commander::{ cdr_tick, RunSlot, CommanderStream };
@@ -7,7 +8,8 @@ use serde_cbor::Value as CborValue;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use super::pgcommander::{ PgCommander, PgCommanderTaskSpec };
-use crate::request::channel::Channel;
+use crate::request::channel::{ Channel, ChannelIntegration };
+use crate::request::manager::{ PayloadReceiver, RequestManager };
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
 use crate::PgConsole;
@@ -134,12 +136,12 @@ impl PgDauphin {
             prio: 2,
             slot: None,
             timeout: None,
-            task: Box::pin(runner(commander.clone(),console,self.0.lock().unwrap().requests.clone()))
+            task: Box::pin(runner(commander.clone(),console,lock!(self.0).requests.clone()))
         });
     }
 
     pub fn add_binary_direct(&self, binary_name: &str, cbor: &CborValue) -> anyhow::Result<()> {
-        self.0.lock().unwrap().dauphin.add_binary(binary_name,cbor)
+        lock!(self.0).dauphin.add_binary(binary_name,cbor)
     }
 
     fn binary_name(&self, channel: &Channel, name_of_bundle: &str) -> String {
@@ -152,15 +154,15 @@ impl PgDauphin {
     }
 
     pub fn load(&self, binary_name: &str, name: &str) -> anyhow::Result<PgDauphinProcess> {
-        PgDauphinProcess::new(&self.0.lock().unwrap().dauphin, binary_name, name)
+        PgDauphinProcess::new(&lock!(self.0).dauphin, binary_name, name)
     }
 
     pub fn add_programs(&self, channel: &Channel, response: &ResponsePacket) -> anyhow::Result<()> {
         for bundle in response.programs().iter() {
-            blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered bundle {}",bundle.bundle_name());
+            blackbox_log!(&format!("channel-{}",channel.to_string()),"registered bundle {}",bundle.bundle_name());
             self.add_binary(channel,bundle.bundle_name(),bundle.program())?;
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                blackbox_log!(&format!("channel-{}",self.channel.to_string()),"registered program {}",in_channel_name);
+                blackbox_log!(&format!("channel-{}",channel.to_string()),"registered program {}",in_channel_name);
                 self.register(channel,in_channel_name,&self.binary_name(channel,bundle.bundle_name()),in_bundle_name);
             }
         }
@@ -169,15 +171,15 @@ impl PgDauphin {
 
     pub fn register(&self, channel: &Channel, name_in_channel: &str, name_of_bundle: &str, name_in_bundle: &str) {
         let binary_name = self.binary_name(channel,name_of_bundle);
-        self.0.lock().unwrap().names.insert((channel.to_string(),name_in_channel.to_string()),Some((binary_name,name_in_bundle.to_string())));
+        lock!(self.0).names.insert((channel.to_string(),name_in_channel.to_string()),Some((binary_name,name_in_bundle.to_string())));
     }
 
     pub fn is_present(&self, channel: &Channel, name_in_channel: &str) -> bool {
-        self.0.lock().unwrap().names.get(&(channel.to_string(),name_in_channel.to_string())).and_then(|x| x.as_ref()).is_some()
+        lock!(self.0).names.get(&(channel.to_string(),name_in_channel.to_string())).and_then(|x| x.as_ref()).is_some()
     }
 
     pub fn mark_missing(&self, channel: &Channel, name_in_channel: &str) {
-        let mut data = self.0.lock().unwrap();
+        let mut data = lock!(self.0);
         data.names.insert((channel.channel_name(),name_in_channel.to_string()),None);
     }
 
@@ -185,7 +187,7 @@ impl PgDauphin {
         if !self.is_present(&spec.channel,&spec.program_name) {
             loader.load(&spec.channel,&spec.program_name).await?;
         }
-        let data = self.0.lock().unwrap();
+        let data = lock!(self.0);
         let (bundle_name,in_bundle_name) = data.names.get(&(spec.channel.to_string(),spec.program_name.to_string())).as_ref().unwrap().as_ref()
             .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name))?.to_owned();
         drop(data);
@@ -198,8 +200,28 @@ impl PgDauphin {
             task: Box::pin(process.run())
         });
         let waiter = drr.waiter().clone();
-        self.0.lock().unwrap().requests.add(drr);
+        lock!(self.0).requests.add(drr);
         waiter.get().await;
         Ok(())
+    }
+}
+
+impl PayloadReceiver for PgDauphin {
+    fn receive(&self, channel: &Channel, response: &ResponsePacket, channel_itn: &ChannelIntegration) {
+        for bundle in response.programs().clone().iter() {
+            match self.add_binary(channel,bundle.bundle_name(),bundle.program()) {
+                Ok(_) => {
+                    for (in_channel_name,in_bundle_name) in bundle.name_map() {
+                        self.register(channel,in_channel_name,bundle.bundle_name(),in_bundle_name);
+                    }
+                },
+                Err(e) => {
+                    channel_itn.error(&channel,&format!("error: {:?}",e));
+                    for (in_channel_name,_) in bundle.name_map() {
+                        self.mark_missing(channel,in_channel_name);
+                    }
+                }
+            }
+        }
     }
 }

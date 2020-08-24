@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::rc::Rc;
 use anyhow::{ self, bail };
 use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
@@ -30,7 +31,7 @@ impl BootstrapCommandRequest {
 
     async fn execute(self, mut manager: RequestManager) -> anyhow::Result<()> {
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing bootstrap request");
-        blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-request",1);
+        blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-request",1.);
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
         let mut backoff = Backoff::new();
@@ -38,11 +39,11 @@ impl BootstrapCommandRequest {
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(b) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"bootstrap response received");
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1);
+                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1.);
                 Ok(b.bootstrap(&dauphin,&loader).await?)
             }
             Err(_) => {
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1);
+                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1.);
                 manager.error(&self.channel,&format!("PERMANENT ERROR channel {} failed to bootstrap. genome browser cannot start",self.channel.to_string()));
                 bail!("failed to bootstrap to '{}'. backend error",self.channel);
             }
@@ -53,7 +54,7 @@ impl BootstrapCommandRequest {
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
     fn serialize(&self) -> anyhow::Result<CborValue> { Ok(CborValue::Null) }
-    fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
+    fn to_failure(&self) -> Rc<dyn ResponseType> { Rc::new(GeneralFailure::new("bootstrap failed")) }
 }
 
 pub struct BootstrapCommandResponse {
@@ -81,9 +82,9 @@ impl BootstrapCommandResponse {
 
 pub struct BootstrapResponseBuilderType();
 impl ResponseBuilderType for BootstrapResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
         let values = cbor_array(value,2,false)?;
-        Ok(Box::new(BootstrapCommandResponse {
+        Ok(Rc::new(BootstrapCommandResponse {
             channel: Channel::deserialize(&values[0])?,
             name: cbor_string(&values[1])?
         }))

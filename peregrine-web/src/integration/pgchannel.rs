@@ -1,5 +1,5 @@
-use anyhow::{ anyhow as err };
-use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, PgConsole };
+use anyhow::{ anyhow as err, bail };
+use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, PgConsole, lock };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
 use super::pgconsole::{ PgConsoleLevel };
@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Mutex;
+use web_sys::console;
 
 pub struct PgChannel(Box<dyn PgConsole>,Mutex<HashMap<Channel,Option<f64>>>);
 
@@ -36,7 +37,8 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: 
                 ajax.set_timeout(timeout);
             }
             ajax.set_body_cbor(&data)?;
-            ajax.get_cbor().await
+            let out = ajax.get_cbor().await;
+            out
         }
     }
 }
@@ -44,7 +46,7 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: 
 /* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
     fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>> {
-        let timeout = self.1.lock().unwrap().get(&channel).and_then(|x| x.clone());
+        let timeout = lock!(self.1).get(&channel).and_then(|x| x.clone());
         Box::pin(send(channel,prio,data,timeout))
     }
 

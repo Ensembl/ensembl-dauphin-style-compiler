@@ -2,6 +2,12 @@ mod core {
     pub mod focus;
     pub mod stick;
     pub mod track;
+    pub use stick::{ StickId, Stick };
+}
+
+mod index {
+    pub(crate) mod stickstore;
+    pub use self::stickstore::StickStore;
 }
 
 mod panel {
@@ -19,6 +25,7 @@ mod request {
     pub(crate) mod queue;
     pub(crate) mod program;
     pub(crate) mod request;
+    pub(crate) mod stick;
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
     pub use self::program::ProgramLoader;
     pub use self::manager::RequestManager;
@@ -40,6 +47,7 @@ mod run {
 mod util {
     pub mod cbor;
     pub mod singlefile;
+    pub mod unlock;
 }
 
 #[cfg(test)]
@@ -57,6 +65,8 @@ mod test {
     pub(crate) mod helpers;
 }
 
+pub use self::core::{ Stick, StickId };
+pub use self::index::StickStore;
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, PgDauphinIntegration };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager };
 pub use self::run::PgCore;

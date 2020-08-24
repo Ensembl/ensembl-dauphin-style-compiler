@@ -1,3 +1,4 @@
+use crate::lock;
 use std::future::Future;
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -41,7 +42,7 @@ impl<K,V> SingleFile<K,V> where K: Clone+Hash+PartialEq+Eq, V: 'static {
     }
 
     pub async fn request(&self, key: K) -> anyhow::Result<V> {
-        let mut data = self.0.lock().unwrap();
+        let mut data = lock!(self.0);
         if !data.promises.contains_key(&key) {
             let promise = PromiseFuture::new();
             let mut task = (data.getter)(&key);

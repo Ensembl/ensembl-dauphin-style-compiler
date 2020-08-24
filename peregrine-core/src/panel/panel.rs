@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 use varea::{ VareaItem, Discrete, RTreeRange };
 use crate::core::focus::Focus;
-use crate::core::stick::Stick;
+use crate::core::stick::StickId;
 use crate::core::track::Track;
 use super::scale::Scale;
 
 pub struct PanelSliceId {
-    stick: Stick,
+    stick: StickId,
     scale: Scale,
     index: u64,
     focus: Focus,
@@ -14,7 +14,7 @@ pub struct PanelSliceId {
 }
 
 impl PanelSliceId {
-    pub fn new(stick: Stick, scale: Scale, index: u64, focus: Focus, track: Track) -> PanelSliceId {
+    pub fn new(stick: StickId, scale: Scale, index: u64, focus: Focus, track: Track) -> PanelSliceId {
         PanelSliceId {
             stick, scale, index, focus, track
         }
@@ -32,7 +32,7 @@ impl PanelSliceId {
 }
 
 pub struct PanelSliceRange {
-    stick: Option<Stick>,
+    stick: Option<StickId>,
     scale: Option<(Scale,Scale)>,
     index: Option<(u64,u64)>,
     focus: Option<Focus>,
@@ -50,7 +50,7 @@ impl PanelSliceRange {
         }
     }
 
-    pub fn set_stick(&mut self, stick: Stick) { self.stick = Some(stick); }
+    pub fn set_stick(&mut self, stick: StickId) { self.stick = Some(stick); }
     pub fn set_scale(&mut self, a: Scale, b: Scale) { self.scale = Some((a,b)); }
     pub fn set_index(&mut self, a: u64, b: u64) { self.index = Some((a,b)); }
     pub fn set_focus(&mut self, f: Focus) { self.focus = Some(f); }

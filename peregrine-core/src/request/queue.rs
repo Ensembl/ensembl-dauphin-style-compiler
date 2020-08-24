@@ -1,4 +1,5 @@
-use anyhow::Context;
+use anyhow::{ Context, bail };
+use crate::lock;
 use blackbox::{ blackbox_time, blackbox_count, blackbox_log };
 use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
@@ -10,10 +11,12 @@ use super::bootstrap::BootstrapResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
 use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
+use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
 use super::request::{ CommandRequest, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use super::stick::StickResponseBuilderType;
 use serde_cbor::Value as CborValue;
 
 fn register_responses() -> ResponsePacketBuilder {
@@ -21,13 +24,14 @@ fn register_responses() -> ResponsePacketBuilder {
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
     rspbb.register(1,Box::new(GeneralFailureBuilderType()));
     rspbb.register(2,Box::new(ProgramResponseBuilderType()));
+    rspbb.register(3,Box::new(StickResponseBuilderType()));
     rspbb.build()
 }
 
 struct RequestQueueData {
-    dauphin: PgDauphin,
+    receiver: PayloadReceiverCollection,
     builder: ResponsePacketBuilder,
-    pending: CommanderStream<(CommandRequest,CommanderStream<Box<dyn ResponseType>>)>,
+    pending_send: CommanderStream<(CommandRequest,CommanderStream<Rc<dyn ResponseType>>)>,
     integration: Rc<dyn ChannelIntegration>,
     channel: Channel,
     priority: PacketPriority,
@@ -49,30 +53,13 @@ impl RequestQueueData {
         msg
     }
 
-    fn add_programs(&self, channel: &Channel, response: &ResponsePacket) {
-        for bundle in response.programs().clone().iter() {
-            match self.report(self.dauphin.add_binary(channel,bundle.bundle_name(),bundle.program())) {
-                Ok(_) => {
-                    for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                        self.dauphin.register(channel,in_channel_name,bundle.bundle_name(),in_bundle_name);
-                    }
-                },
-                Err(_) => {
-                    for (in_channel_name,_) in bundle.name_map() {
-                        self.dauphin.mark_missing(channel,in_channel_name);
-                    }
-                }
-            }
-        }
-    }
-
-    fn process_responses(&self, response: &mut ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    fn process_responses(&self, response: &mut ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
         let channel = self.channel.clone();
-        self.add_programs(&channel,response);
+        self.receiver.receive(&channel,response,self.integration.as_ref());
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(stream) = streams.remove(&id) {
-                blackbox_count!(&format!("channel-",self.channel.to_string()),"responses",1);
+                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"responses",1.);
                 stream.add(r.into_response());
             }
         }
@@ -82,7 +69,7 @@ impl RequestQueueData {
         self.timeout = Some(timeout);
     }
 
-    fn timeout(&self, streams: Vec<(Box<dyn ResponseType>,CommanderStream<Box<dyn ResponseType>>)>) {
+    fn timeout(&self, streams: Vec<(Rc<dyn ResponseType>,CommanderStream<Rc<dyn ResponseType>>)>) {
         if let Some(timeout) = self.timeout {
             for (response,stream) in streams {
                 let stream = stream.clone();
@@ -90,7 +77,7 @@ impl RequestQueueData {
                 let integration = self.integration.clone();
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
-                        blackbox_log!(&format!("channel-",channel.to_string()),"timeout on channel '{}'",channel.to_string());
+                        blackbox_log!(&format!("channel-{}",channel.to_string()),"timeout on channel '{}'",channel.to_string());
                         integration.error(&channel,&format!("timeout on channel '{}'",channel.to_string()));
                     }
                 });
@@ -103,26 +90,26 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, integration: &Rc<dyn ChannelIntegration>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<dyn ChannelIntegration>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
-            dauphin: dauphin.clone(),
+            receiver: receiver.clone(),
             builder: register_responses(),
-            pending: CommanderStream::new(),
+            pending_send: CommanderStream::new(),
             integration: integration.clone(),
             channel: channel.clone(),
             priority: priority.clone(),
-            timeout: None
+            timeout: None,
         })));
         out.start(commander)?;
         Ok(out)
     }
 
-    pub(crate) fn queue_command(&mut self, request: CommandRequest, channel: CommanderStream<Box<dyn ResponseType>>) {
-        self.0.lock().unwrap().pending.add((request,channel));
+    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<Rc<dyn ResponseType>>) {
+        lock!(self.0).pending_send.add((request,stream));
     }
 
     fn start(&self, commander: &PgCommander) -> anyhow::Result<()> {
-        let data = self.0.lock().unwrap();
+        let data = lock!(self.0);
         let name = format!("backend: '{}' {}",data.channel.to_string(),data.priority.to_string());
         drop(data);
         let self2 = self.clone();
@@ -136,59 +123,59 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>)> {
-        let pending = self.0.lock().unwrap().pending.clone();
+    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>)> {
+        let pending = lock!(self.0).pending_send.clone();
+        let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();
         let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
-            blackbox_count!(&format!("channel-",self.channel.to_string()),"requests",1);
+            blackbox_count!(&format!("channel-{}",channel.to_string()),"requests",1.);
             channels.insert(r.message_id(),c.clone());
             timeouts.push((r.request().to_failure(),c));
             packet.add(r);
         }
-        self.0.lock().unwrap().timeout(timeouts);
+        lock!(self.0).timeout(timeouts);
         Ok((packet,channels))
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
-        let sender = self.0.lock().unwrap().make_packet_sender(packet)?;
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"sending packet");
-        blackbox_count!(&format!("channel-",self.channel.to_string()),"packets",1);
-        let response = blackbox_time!(&format!("channel-",self.channel.to_string()),"roundtrip",{
-            sender.await?
-        });
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"received response");
-        let response = self.0.lock().unwrap().builder.new_packet(&response).context("Building response packet")?;
+        let channel = lock!(self.0).channel.clone();
+        let sender = lock!(self.0).make_packet_sender(packet)?;
+        blackbox_log!(&format!("channel-{}",channel.to_string()),"sending packet");
+        blackbox_count!(&format!("channel-{}",channel.to_string()),"packets",1.);
+        let response = sender.await?;
+        blackbox_log!(&format!("channel-{}",channel.to_string()),"received response");
+        let response = lock!(self.0).builder.new_packet(&response).context("Building response packet")?;
         Ok(response)
     }
 
     async fn send_or_fail_packet(&self, packet: &RequestPacket) -> ResponsePacket {
         let res = self.send_packet(packet).await;
-        match self.0.lock().unwrap().report(res) {
+        match lock!(self.0).report(res) {
             Ok(r) => r,
             Err(_) => packet.fail()
         }
     }
 
-    async fn process_request(&self, request: &mut RequestPacket, channels: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
         let mut response = self.send_or_fail_packet(request).await;
-        self.0.lock().unwrap().process_responses(&mut response,channels);
+        lock!(self.0).process_responses(&mut response,streams);
     }
 
     fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> anyhow::Result<T> {
-        a.with_context(|| format!("{} {}",msg,self.0.lock().unwrap().channel.to_string()))
+        a.with_context(|| format!("{} {}",msg,lock!(self.0).channel.to_string()))
     }
 
     pub(crate) fn set_timeout(&mut self, timeout: f64) {
-        self.0.lock().unwrap().set_timeout(timeout);
+        lock!(self.0).set_timeout(timeout);
     }
 
     async fn main_loop(self) -> anyhow::Result<()> {
         loop {
-            let (mut request,mut channels) = self.err_context(self.build_packet().await,"preparing to send data")?;
-            self.process_request(&mut request,&mut channels).await;
+            let (mut request,mut streams) = self.err_context(self.build_packet().await,"preparing to send data")?;
+            self.process_request(&mut request,&mut streams).await;
         }
     }
 }

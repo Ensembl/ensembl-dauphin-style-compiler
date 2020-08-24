@@ -4,7 +4,7 @@ from typing import Any
 from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Response, Handler
-from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler
+from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler
 
 data_accessor = DataAccessor()        
 
@@ -13,6 +13,8 @@ def type_to_handler(typ: int) -> Any:
         return BootstrapHandler()
     elif typ == 1:
         return ProgramHandler()
+    elif typ == 2:
+        return StickHandler()
     else:
         return ErrorHandler("unsupported command type ({0})".format(typ))
 
@@ -23,14 +25,17 @@ def process_request(channel: Any, typ: int,payload: Any):
 def process_packet(packet_cbor: Any) -> Any:
     channel = packet_cbor["channel"]
     response = []
+    sticks = {}
     bundles = set()
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
         r = process_request(channel,typ,payload)
         response.append([msgid,r.typ,r.payload])
         bundles |= r.bundles
+        sticks.update(r.sticks)
     begs_files = data_accessor.begs_files
     return {
         "responses": response,
-        "programs": [ begs_files.add_bundle(x) for x in bundles ]
+        "programs": [ begs_files.add_bundle(x) for x in bundles ],
+        "sticks": sticks
     }

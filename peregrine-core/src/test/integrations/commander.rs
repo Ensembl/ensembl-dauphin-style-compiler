@@ -53,8 +53,8 @@ impl TestCommander {
     }
 
     pub(crate) fn tick(&self) {
-        print!("tick\n");
         self.executor.lock().unwrap().tick(1.);
+        self.add_time(1.);
     }
 }
 

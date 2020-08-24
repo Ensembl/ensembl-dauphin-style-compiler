@@ -1,3 +1,4 @@
+use crate::lock;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
@@ -25,6 +26,6 @@ impl PgCommander {
     }
 
     pub fn add_task(&self, t: PgCommanderTaskSpec<()>) {
-        self.0.lock().unwrap().add_task(&t.name,t.prio,t.slot,t.timeout,t.task)
+        lock!(self.0).add_task(&t.name,t.prio,t.slot,t.timeout,t.task)
     }
 }

@@ -1,16 +1,11 @@
 use std::any::Any;
+use std::rc::Rc;
 use anyhow::{ self, bail };
-use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
 use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
-use super::channel::{ Channel, PacketPriority };
-use super::manager::RequestManager;
-use super::program::ProgramLoader;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
-use super::packet::{ ResponsePacketBuilderBuilder };
-use super::backoff::Backoff;
 
 pub struct GeneralFailure {
     message: String
@@ -31,8 +26,8 @@ impl ResponseType for GeneralFailure {
 
 pub struct GeneralFailureBuilderType();
 impl ResponseBuilderType for GeneralFailureBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(GeneralFailure{
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+        Ok(Rc::new(GeneralFailure{
             message: cbor_string(value)?
         }))
     }

@@ -42,6 +42,7 @@ ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",
 )
 BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(example_data_dir,"begs_config.toml"))
+DATA_FILES: str = config("DATA_FILES", default=os.path.join(example_data_dir,"data"))
 
 # logging configuration
 
