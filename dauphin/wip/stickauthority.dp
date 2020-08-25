@@ -1,0 +1,3 @@
+import "lib:std"; use "std";
+
+notice("stick-authority");

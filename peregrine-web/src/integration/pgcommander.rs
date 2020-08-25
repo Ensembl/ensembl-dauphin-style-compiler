@@ -168,7 +168,6 @@ impl Commander for PgCommanderWeb {
             let res = exe.add_pin(Box::pin(catch_errors(f)),agent);
             let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
             exe.add(finish(res,name.to_string()),agent);
-    
         }        
     }
 }

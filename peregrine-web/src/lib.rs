@@ -17,13 +17,16 @@ mod util {
 }
 
 use anyhow::{ self, Context };
+use blackbox::{ blackbox_enable };
 use crate::integration::pgchannel::PgChannel;
 use crate::integration::pgconsole::{ PgConsoleWeb, PgConsoleLevel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
 use crate::util::error::{ js_throw, js_option };
-use peregrine_core::{ PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId };
+use peregrine_core::{ PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, add_stick_authority, StickAuthorityStore };
+use peregrine_dauphin_queue::{ PgDauphinQueue };
+use peregrine_dauphin::peregrine_dauphin;
 pub use url::Url;
 
 fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
@@ -49,10 +52,12 @@ impl PeregrineWeb {
         let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
         let mut manager = RequestManager::new(PgChannel::new(Box::new(console.clone())),&commander);
         let stick_store = StickStore::new(&commander,&manager,&Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
-        let dauphin = PgDauphin::new(Box::new(PgDauphinIntegrationWeb()))?;
+        let stick_authority_store = StickAuthorityStore::new();
+        let pdq = PgDauphinQueue::new();
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&stick_authority_store);
+        let dauphin = PgDauphin::new(&pdq)?;
         manager.add_receiver(Box::new(dauphin.clone()));
         manager.add_receiver(Box::new(stick_store.clone()));
-        dauphin.start_runner(&commander,Box::new(console));     
         let mut out = PeregrineWeb {
             core: PgCore::new(&commander,&dauphin,&manager)?,
             stick_store: stick_store.clone()
@@ -80,10 +85,12 @@ impl PeregrineWeb {
     }
 }
 
-async fn test(stick_store: StickStore) -> anyhow::Result<()> {
+async fn test(core: PgCore, stick_store: StickStore) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
+    let channel = Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?));
+    add_stick_authority(&core.manager,&core.loader,&core.dauphin,&channel).await?;
     el.set_inner_html(&format!("{:?}",stick_store.lookup(&StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.tags()));
     Ok(())
 }
@@ -91,7 +98,7 @@ async fn test(stick_store: StickStore) -> anyhow::Result<()> {
 fn test_fn() -> anyhow::Result<()> {
     let mut pg_web = js_throw(PeregrineWeb::new());
     pg_web.core.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
-    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.stick_store.clone())));
+    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.core.clone(),pg_web.stick_store.clone())));
     Ok(())
 }
 

@@ -23,6 +23,7 @@ use dauphin_lib_std::make_std;
 use dauphin_interp::make_core_interp;
 use dauphin_compile::core::{ make_core };
 use dauphin_lib_buildtime::{ make_buildtime };
+use dauphin_lib_peregrine::{ make_peregrine, make_peregrine_interp };
 
 pub fn make_compiler_suite(config: &Config) -> anyhow::Result<CommandCompileSuite> {
     let mut suite = CommandCompileSuite::new();
@@ -33,6 +34,9 @@ pub fn make_compiler_suite(config: &Config) -> anyhow::Result<CommandCompileSuit
     if config.get_libs().contains(&"buildtime".to_string()) {
         suite.register(make_buildtime()).context("registering buildtime commands")?;
     }
+    if config.get_libs().contains(&"peregrine".to_string()) {
+        suite.register(make_peregrine()).context("registering peregrine commands")?;
+    }
     Ok(suite)
 }
 
@@ -41,6 +45,9 @@ pub fn make_interpret_suite(config: &Config) -> anyhow::Result<CommandInterpretS
     suite.register(make_core_interp()).context("registering core interp commands")?;
     if !config.get_nostd() {
         suite.register(make_std_interp()).context("registering std interp commands")?;
+    }
+    if config.get_libs().contains(&"peregrine".to_string()) {
+        suite.register(make_peregrine_interp()).context("registering peregrine commands")?;
     }
     Ok(suite)
 }

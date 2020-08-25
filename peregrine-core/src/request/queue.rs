@@ -17,6 +17,7 @@ use super::request::{ CommandRequest, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
+use super::stickauthority::StickAuthorityResponseBuilderType;
 use serde_cbor::Value as CborValue;
 
 fn register_responses() -> ResponsePacketBuilder {
@@ -25,6 +26,7 @@ fn register_responses() -> ResponsePacketBuilder {
     rspbb.register(1,Box::new(GeneralFailureBuilderType()));
     rspbb.register(2,Box::new(ProgramResponseBuilderType()));
     rspbb.register(3,Box::new(StickResponseBuilderType()));
+    rspbb.register(4,Box::new(StickAuthorityResponseBuilderType()));
     rspbb.build()
 }
 
@@ -51,18 +53,6 @@ impl RequestQueueData {
             self.integration.error(&self.channel,&format!("error: {:?}",e));
         }
         msg
-    }
-
-    fn process_responses(&self, response: &mut ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
-        let channel = self.channel.clone();
-        self.receiver.receive(&channel,response,self.integration.as_ref());
-        for r in response.take_responses().drain(..) {
-            let id = r.message_id();
-            if let Some(stream) = streams.remove(&id) {
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"responses",1.);
-                stream.add(r.into_response());
-            }
-        }
     }
 
     fn set_timeout(&mut self, timeout: f64) {
@@ -159,9 +149,23 @@ impl RequestQueue {
         }
     }
 
+    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
+        let channel = lock!(self.0).channel.clone();
+        let itn = lock!(self.0).integration.clone();
+        let receiver = lock!(self.0).receiver.clone();
+        let mut response = receiver.receive(&channel,response,&itn).await;
+        for r in response.take_responses().drain(..) {
+            let id = r.message_id();
+            if let Some(stream) = streams.remove(&id) {
+                blackbox_count!(&format!("channel-{}",channel.to_string()),"responses",1.);
+                stream.add(r.into_response());
+            }
+        }
+    }
+
     async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
-        let mut response = self.send_or_fail_packet(request).await;
-        lock!(self.0).process_responses(&mut response,streams);
+        let response = self.send_or_fail_packet(request).await;
+        self.process_responses(response,streams).await;
     }
 
     fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> anyhow::Result<T> {

@@ -4,7 +4,7 @@ from typing import Any
 from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Response, Handler
-from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler
+from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
 
 data_accessor = DataAccessor()        
 
@@ -15,6 +15,8 @@ def type_to_handler(typ: int) -> Any:
         return ProgramHandler()
     elif typ == 2:
         return StickHandler()
+    elif typ == 3:
+        return StickAuthorityHandler()
     else:
         return ErrorHandler("unsupported command type ({0})".format(typ))
 

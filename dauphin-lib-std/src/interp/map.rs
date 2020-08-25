@@ -1,6 +1,6 @@
 use hashbrown::{ HashMap, HashSet };
 use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand };
-use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, InterpNatural };
+use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 
 pub struct LookupInterpCommand(Register,Register,Register,Register,Register,Register);
@@ -124,7 +124,6 @@ impl CommandDeserializer for LookupDeserializer {
             Register::deserialize(&value[4])?,Register::deserialize(&value[5])?)))
     }
 }
-
 
 pub struct InDeserializer();
 

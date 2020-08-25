@@ -7,7 +7,11 @@ mod core {
 
 mod index {
     pub(crate) mod stickstore;
+    pub(crate) mod stickauthority;
+    pub(crate) mod stickauthoritystore;
     pub use self::stickstore::StickStore;
+    pub use self::stickauthoritystore::StickAuthorityStore;
+    pub use self::stickauthoritystore::add_stick_authority;
 }
 
 mod panel {
@@ -26,22 +30,24 @@ mod request {
     pub(crate) mod program;
     pub(crate) mod request;
     pub(crate) mod stick;
+    pub(crate) mod stickauthority;
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
-    pub use self::program::ProgramLoader;
+    pub use self::program::{ ProgramLoader };
     pub use self::manager::RequestManager;
 }
 
 mod run {
     pub mod console;
     mod core;
+    pub mod instancepayload;
     pub mod pgcommander;
     pub mod pgdauphin;
-    pub use pgdauphin::PgDauphinIntegration;
     pub use self::core::PgCore;
     pub use self::console::PgConsole;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec };
     pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
+    pub use self::instancepayload::InstancePayload;
 }
 
 mod util {
@@ -58,15 +64,15 @@ mod test {
         mod console;
         mod dauphin;
         pub(crate) use self::console::TestConsole;
-        pub(crate) use self::channel::{ TestChannelIntegration, cbor_matches };
+        pub(crate) use self::channel::{ TestChannelIntegration, cbor_matches, cbor_matches_print };
         pub(crate) use self::commander::{ TestCommander };
-        pub(crate) use self::dauphin::{ TestDauphinIntegration, test_program };
+        pub(crate) use self::dauphin::FakeDauphinReceiver;
     }
     pub(crate) mod helpers;
 }
 
 pub use self::core::{ Stick, StickId };
-pub use self::index::StickStore;
-pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, PgDauphinIntegration };
+pub use self::index::{ StickStore, add_stick_authority, StickAuthorityStore };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager };
 pub use self::run::PgCore;

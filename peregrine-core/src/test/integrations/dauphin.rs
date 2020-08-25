@@ -1,66 +1,42 @@
-use dauphin_interp::Dauphin;
-use crate::PgDauphinIntegration;
-use serde_cbor::{ self, Value as CborValue };
-use dauphin_interp::runtime::{ Payload, PayloadFactory };
-use dauphin_interp::{ StreamConnector, Stream };
-use super::console::TestConsole;
+use anyhow::{ anyhow as err };
+use crate::lock;
+use std::sync::{ Arc, Mutex };
+use crate::{ PgCommander, PgCommanderTaskSpec };
+use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec, PgDauphinTaskSpec };
+use crate::util::cbor::cbor_string;
 
-pub struct TestStreamConnector(TestConsole);
+#[derive(Clone)]
+pub struct FakeDauphinReceiver(Arc<Mutex<Vec<PgDauphinLoadTaskSpec>>>,Arc<Mutex<Vec<PgDauphinRunTaskSpec>>>);
 
-impl StreamConnector for TestStreamConnector {
-    fn notice(&self, msg: &str) -> anyhow::Result<()> {
-        self.0.message(msg);
-        Ok(())
-    }
-
-    fn warn(&self, msg: &str) -> anyhow::Result<()> {
-        self.0.message(msg);
-        Ok(())
-    }
-
-    fn error(&self, msg: &str) -> anyhow::Result<()> {
-        self.0.message(msg);
-        Ok(())
+async fn main_loop(_commander: PgCommander, fdr: FakeDauphinReceiver, pdq: PgDauphinQueue) -> anyhow::Result<()> {
+    loop {
+        let e = pdq.get().await;
+        let ok = match e.task {
+            PgDauphinTaskSpec::Load(a) => { let ok = cbor_string(&a.data).unwrap_or("bad".to_string()) == "ok"; lock!(fdr.0).push(a); ok },
+            PgDauphinTaskSpec::Run(a) => { lock!(fdr.1).push(a); true }
+        };
+        e.channel.add(if ok { Ok(()) } else { Err(err!("simulated error")) })
     }
 }
 
-pub struct TestStreamFactory {
-    console: TestConsole
-}
-
-impl TestStreamFactory {
-    pub fn new(console: &TestConsole) -> TestStreamFactory {
-        TestStreamFactory {
-            console: console.clone()
-        }
+impl FakeDauphinReceiver {
+    pub fn new(commander: &PgCommander, pdq: &PgDauphinQueue) -> FakeDauphinReceiver {
+        let fdr = FakeDauphinReceiver(Arc::new(Mutex::new(vec![])),Arc::new(Mutex::new(vec![])));
+        commander.add_task(PgCommanderTaskSpec {
+            name: "dauphin runner".to_string(),
+            prio: 2,
+            slot: None,
+            timeout: None,
+            task: Box::pin(main_loop(commander.clone(),fdr.clone(),pdq.clone()))
+        });
+        fdr
     }
-}
 
-impl PayloadFactory for TestStreamFactory {
-    fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(Stream::new(Box::new(TestStreamConnector(self.console.clone())),false,true))
+    pub fn take_loads(&self) -> Vec<PgDauphinLoadTaskSpec> {
+        lock!(self.0).drain(..).collect()
     }
-}
 
-pub struct TestDauphinIntegration {
-    console: TestConsole
-}
-
-impl TestDauphinIntegration {
-    pub fn new(console: &TestConsole) -> TestDauphinIntegration {
-        TestDauphinIntegration {
-            console: console.clone()
-        }
+    pub fn take_runs(&self) -> Vec<PgDauphinRunTaskSpec> {
+        lock!(self.1).drain(..).collect()
     }
-}
-
-impl PgDauphinIntegration for TestDauphinIntegration {
-    fn add_payloads(&self, dauphin: &mut Dauphin) {
-        dauphin.add_payload_factory("std","stream",Box::new(TestStreamFactory::new(&self.console)));
-    }
-}
-
-pub fn test_program() -> CborValue {
-    let bytes = include_bytes!("../test.dpb");
-    serde_cbor::from_slice(bytes).expect("bad test program")
 }

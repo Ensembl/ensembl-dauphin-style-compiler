@@ -10,11 +10,13 @@ use crate::request::manager::RequestManager;
 use crate::request::program::ProgramLoader;
 use crate::request::channel::Channel;
 
+#[derive(Clone)]
 pub struct PgCore {
-    loader: ProgramLoader,
-    manager: RequestManager,
-    commander: PgCommander,
-    dauphin: PgDauphin
+    // XXX pub
+    pub loader: ProgramLoader,
+    pub manager: RequestManager,
+    pub commander: PgCommander,
+    pub dauphin: PgDauphin
 }
 
 impl PgCore {
@@ -34,21 +36,6 @@ impl PgCore {
             prio,slot,timeout,
             task: f
         })
-    }
-
-    pub fn run(&mut self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>) -> anyhow::Result<()> {
-        let (dauphin,commander) = (&mut self.dauphin, &mut self.commander);
-        let task = dauphin.load("test",name)?;
-        commander.add_task(PgCommanderTaskSpec {
-            name: format!("dauphin: '{}'",name),
-            prio,slot,timeout,
-            task: Box::pin(task.run())
-        });
-        Ok(())
-    }
-
-    pub fn add_binary(&mut self, cbor: &CborValue) -> anyhow::Result<()> {
-        self.dauphin.add_binary_direct("test",cbor)
     }
 
     pub fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {

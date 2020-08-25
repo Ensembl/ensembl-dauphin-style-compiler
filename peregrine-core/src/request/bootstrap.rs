@@ -69,6 +69,7 @@ impl ResponseType for BootstrapCommandResponse {
 
 impl BootstrapCommandResponse {
     async fn bootstrap(&self, dauphin: &PgDauphin, loader: &ProgramLoader) -> anyhow::Result<()> {
+        blackbox_log!("bootstrap","bootstrapping using {} {}",self.channel.to_string(),self.name);
         dauphin.run_program(loader,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
@@ -111,7 +112,7 @@ mod test {
     use super::*;
     use crate::{ Channel, ChannelLocation };
     use crate::request::bootstrap::bootstrap;
-    use crate::test::integrations::{ cbor_matches, test_program };
+    use crate::test::integrations::{ cbor_matches, cbor_matches_print };
     use serde_json::json;
     use crate::test::helpers::{ TestHelpers, urlc };
 
@@ -123,7 +124,8 @@ mod test {
                 "responses": [
                     [0,0,[[0,urlc(2).to_string()],"boot"]]
                 ],
-                "programs": []
+                "programs": [],
+                "sticks": {}
             }
         },vec![]);
         h.channel.add_response(json! {
@@ -132,10 +134,11 @@ mod test {
                     [1,2,true]
                 ],
                 "programs": [
-                    ["test","$0",{ "boot": "hello" }]
-                ]
+                    ["test","ok",{ "boot": "hello" }]
+                ],
+                "sticks": {}
             }
-        },vec![test_program()]);
+        },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
         h.run(30);
         let reqs = h.channel.get_requests();
@@ -155,9 +158,9 @@ mod test {
                ] 
             }
         },&reqs[1]));
-        let v = h.console.take_all();
-        let v : Vec<_> = v.iter().filter(|x| x.contains("world")).collect();
-        assert!(v.len()>0);
+        let d = h.fdr.take_loads();
+        assert_eq!(1,d.len());
+        assert_eq!("ok",cbor_string(&d[0].data).expect("a"));
     }
 
     #[test]
@@ -169,10 +172,11 @@ mod test {
                     [0,0,[[0,urlc(1).to_string()],"boot"]]
                 ],
                 "programs": [
-                    ["test","$0",{ "boot": "hello" }]
-                ]
+                    ["test","ok",{ "boot": "hello" }]
+                ],
+                "sticks": {}
             }
-        },vec![test_program()]);
+        },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
         h.run(30);
         let reqs = h.channel.get_requests();
@@ -185,9 +189,9 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        let v = h.console.take_all();
-        let v : Vec<_> = v.iter().filter(|x| x.contains("world")).collect();
-        assert!(v.len()>0);
+        let d = h.fdr.take_loads();
+        assert_eq!(1,d.len());
+        assert_eq!("ok",cbor_string(&d[0].data).expect("a"));
     }
 
     #[test]
@@ -201,10 +205,11 @@ mod test {
                     [2,0,[[0,urlc(1).to_string()],"boot"]]
                 ],
                 "programs": [
-                    ["test","$0",{ "boot": "hello" }]
-                ]
+                    ["test","ok",{ "boot": "hello" }]
+                ],
+                "sticks": {}
             }
-        },vec![test_program()]);
+        },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
         for _ in 0..5 {
             h.run(30);
@@ -221,9 +226,9 @@ mod test {
                 }
             },&reqs[i]));
         }
-        let v = h.console.take_all();
-        let v : Vec<_> = v.iter().filter(|x| x.contains("world")).collect();
-        assert!(v.len()>0);
+        let d = h.fdr.take_loads();
+        assert_eq!(1,d.len());
+        assert_eq!("ok",cbor_string(&d[0].data).expect("a"))
     }
 
     #[test]
@@ -239,12 +244,12 @@ mod test {
         }
         let reqs = h.channel.get_requests();
         for i in 0..2 {
-            assert!(cbor_matches(&json! {
+            assert!(cbor_matches_print(&json! {
                 {
                     "channel": "$$",
                 "requests": [
                     [i,0,null]
-                ] 
+                ]
                 }
             },&reqs[i]));
         }
@@ -267,10 +272,10 @@ mod test {
                         [2,0,[[0,urlc(1).to_string()],"boot"]]
                     ],
                     "programs": [
-                        ["test","$0",{ "boot": "hello" }]
+                        ["test","ok",{ "boot": "hello" }]
                     ]
                 }
-            },vec![test_program()]);
+            },vec![]);
         }
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
         for _ in 0..50 {

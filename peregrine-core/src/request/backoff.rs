@@ -47,7 +47,10 @@ impl Backoff {
                 None => {
                     blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1.);
                     match resp.as_any().downcast_ref::<GeneralFailure>() {
-                        Some(e) => { last_error = Some(resp.clone()); },
+                        Some(e) => { 
+                            manager.error(&channel,e.message());
+                            last_error = Some(resp.clone());
+                        },
                         None => {
                             bail!("Unexpected response to request");
                         }
@@ -55,6 +58,7 @@ impl Backoff {
                 }
             }
             manager.warn(&channel,&format!("temporary(?) failure of {}",channel.to_string()));
+
         }
         match last_error.unwrap().as_any().downcast_ref::<GeneralFailure>() {
             Some(e) => Ok(Err(err!(e.message().to_string()))),

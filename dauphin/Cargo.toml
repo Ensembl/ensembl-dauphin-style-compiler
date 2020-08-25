@@ -19,4 +19,5 @@ dauphin_interp = { path = "../dauphin-interp" }
 
 dauphin_lib_std = { path = "../dauphin-lib-std", features= ["compile"] }
 dauphin_lib_buildtime = { path = "../dauphin-lib-buildtime" }
+dauphin_lib_peregrine = { path = "../dauphin-lib-peregrine", features= ["compile"] }
 dauphin_test_harness = { path = "../dauphin-test-harness" }

@@ -10,6 +10,7 @@ class BegsFiles(object):
         with open(BEGS_CONFIG) as f:
             toml_file = toml.loads(f.read())            
         self.boot_program = toml_file["core"]["boot"]
+        self.stickauthority_program = toml_file["core"].get("stickauthority")
         self.bundle_contents = {}
         self.program_map = {}
         self.program = {}

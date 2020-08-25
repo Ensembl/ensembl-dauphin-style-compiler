@@ -1,8 +1,10 @@
+use anyhow::bail;
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
 use anyhow::{ self, Context, anyhow as err };
 use std::sync::Arc;
+use regex::Regex;
 use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
@@ -19,12 +21,30 @@ pub enum ChannelLocation {
     HttpChannel(Url)
 }
 
+impl ChannelLocation {
+    pub fn parse(base: &ChannelLocation, value: &str) -> anyhow::Result<ChannelLocation> {
+        if let Some(parsed) = Regex::new(r"(.*?)\((.*)\)").unwrap().captures_iter(value).next() {
+            match parsed.get(1).map(|x| x.as_str()) {
+                Some("url") => Ok(ChannelLocation::HttpChannel(Url::parse(parsed.get(1).ok_or(err!("unparsable channel URL"))?.as_str())?)),
+                Some("self") => Ok(base.clone()),
+                _ => bail!("unparsable channel string!")
+            }
+        } else {
+            bail!("unparsable channel string!");
+        }
+    }
+}
+
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct Channel(Arc<ChannelLocation>);
 
 impl Channel {
     pub fn new(location: &ChannelLocation) -> Channel {
         Channel(Arc::new(location.clone()))
+    }
+
+    pub fn parse(base: &Channel, value: &str) -> anyhow::Result<Channel> {
+        Ok(Channel(Arc::new(ChannelLocation::parse(&base.0,value)?)))
     }
 
     pub(crate) fn channel_name(&self) -> String {

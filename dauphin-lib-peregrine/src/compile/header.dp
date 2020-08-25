@@ -1,0 +1,3 @@
+module "peregrine";
+
+proc add_stick_authority(string);

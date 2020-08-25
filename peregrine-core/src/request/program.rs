@@ -145,7 +145,7 @@ mod test {
     use super::*;
     use crate::{ Channel, ChannelLocation };
     use crate::test::helpers::{ TestHelpers, urlc };
-    use crate::test::integrations::{ cbor_matches, test_program };
+    use crate::test::integrations::{ cbor_matches };
     use serde_json::json;
 
     #[test]
@@ -157,10 +157,11 @@ mod test {
                     [0,2,true]
                 ],
                 "programs": [
-                    ["test","$0",{ "test2": "hello" }]
-                ]
+                    ["test","ok",{ "test2": "hello" }]
+                ],
+                "sticks": {}
             }
-        },vec![test_program()]);
+        },vec![]);
         let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
         let dauphin2 = h.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
@@ -196,7 +197,8 @@ mod test {
                     ],
                     "programs": [
                         ["test","BAD PROGRAM",{ "test2": "hello" }]
-                    ]
+                    ],
+                    "sticks": {}
                 }
             },vec![]);
         }

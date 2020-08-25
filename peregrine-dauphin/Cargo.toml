@@ -1,0 +1,39 @@
+[package]
+name = "peregrine_dauphin"
+version = "0.1.0"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow="*"
+serde_cbor="*"
+
+[dependencies.commander]
+version="*"
+path="../commander"
+
+[dependencies.peregrine_dauphin_queue]
+version="*"
+path="../peregrine-dauphin-queue"
+
+[dependencies.peregrine_core]
+version="*"
+path="../peregrine-core"
+
+[dependencies.dauphin_interp]
+version="*"
+path="../dauphin-interp"
+
+[dependencies.dauphin_lib_std]
+version="*"
+path="../dauphin-lib-std"
+
+[dependencies.dauphin_lib_peregrine]
+version="*"
+path="../dauphin-lib-peregrine"
+
+[dependencies.blackbox]
+version="*"
+path="../blackbox"

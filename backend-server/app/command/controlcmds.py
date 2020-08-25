@@ -42,3 +42,12 @@ class StickHandler(Handler):
             return r
         else:
             return Response(1,"Unknown stick {0}".format(stick_name))
+
+class StickAuthorityHandler(Handler):
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+        sa_prog = data_accessor.begs_files.stickauthority_program
+        if sa_prog != None:
+            r = Response(4,[channel,sa_prog])
+        else:
+            return Response(1,"I am not a stick authority")
+        return r

@@ -59,3 +59,11 @@ path="../dauphin-interp"
 [dependencies.peregrine_core]
 version="*"
 path="../peregrine-core"
+
+[dependencies.peregrine_dauphin_queue]
+version="*"
+path="../peregrine-dauphin-queue"
+
+[dependencies.peregrine_dauphin]
+version="*"
+path="../peregrine-dauphin"

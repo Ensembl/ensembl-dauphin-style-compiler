@@ -2,6 +2,9 @@
 use crate::lock;
 use std::sync::{ Arc, Mutex };
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
+use std::rc::Rc;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use anyhow::bail;
 use crate::util::singlefile::SingleFile;
@@ -77,9 +80,13 @@ impl StickStore {
 }
 
 impl PayloadReceiver for StickStore {
-    fn receive(&self, channel: &Channel, response: &ResponsePacket, channel_itn: &ChannelIntegration) {
-        for stick in response.sticks().iter() {
-            self.add(stick);
-        }
+    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<dyn ChannelIntegration>) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
+        let store = self.clone();
+        Box::pin(async move {
+            for stick in response.sticks().iter() {
+                store.add(stick);
+            }
+            response
+        })
     }
 }

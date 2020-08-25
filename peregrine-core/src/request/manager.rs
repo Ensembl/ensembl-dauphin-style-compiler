@@ -3,6 +3,8 @@ use anyhow::bail;
 use commander::{ CommanderStream };
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
@@ -12,17 +14,23 @@ use super::request::{ CommandRequest, RequestType, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 
 pub trait PayloadReceiver {
-    fn receive(&self, channel: &Channel, response: &ResponsePacket, itn: &dyn ChannelIntegration);
+    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<dyn ChannelIntegration>) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
 }
 
 #[derive(Clone)]
 pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Box<dyn PayloadReceiver>>>>);
 
 impl PayloadReceiver for PayloadReceiverCollection {
-    fn receive(&self, channel: &Channel, response: &ResponsePacket, itn: &dyn ChannelIntegration) {
-        for receiver in lock!(self.0).iter() {
-            receiver.receive(channel,response,itn);
-        }
+    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<dyn ChannelIntegration>) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
+        let all = self.0.clone();
+        let itn = itn.clone();
+        let channel = channel.clone();
+        Box::pin(async move {
+            for receiver in lock!(all).iter() {
+                response = receiver.receive(&channel,response,&itn).await;
+            }
+            response
+        })
     }
 }
 
@@ -98,7 +106,8 @@ impl RequestManager {
 
     pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Rc<dyn ResponseType>> {
         let m = lock!(self.0).execute(channel,priority,request)?;
-        Ok(m.get().await)
+        let out = Ok(m.get().await);
+        out
     }
 
     pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {

@@ -84,7 +84,7 @@ impl Action for GenerateDynamicData {
 }
 
 fn munge_filename(source: &str) -> &str {
-    if let Some(name) = Regex::new(r"(.*/)?(.*?)\.dp").unwrap().captures_iter(source).next() {
+    if let Some(name) = Regex::new(r"(.*/)*(.*?)\..*").unwrap().captures_iter(source).next() {
         name.get(2).unwrap().as_str()
     } else {
         source

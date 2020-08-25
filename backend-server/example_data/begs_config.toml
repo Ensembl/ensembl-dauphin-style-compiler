@@ -1,6 +1,13 @@
 [core]
 boot="boot"
+stickauthority="stickauthority"
 files="begs"
 
 [begs.test]
-hello="boot"
+hello="hello"
+
+[begs.stick]
+stickauthority="stickauthority"
+
+[begs.boot]
+boot="boot"

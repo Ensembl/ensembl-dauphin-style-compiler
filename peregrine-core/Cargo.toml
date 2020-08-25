@@ -14,6 +14,7 @@ serde_cbor="*"
 serde_json="*"
 url="*"
 futures="*"
+regex="*"
 
 [dependencies.blackbox]
 version="*"
@@ -27,10 +28,10 @@ path="../varea"
 version="*"
 path="../commander"
 
+[dependencies.peregrine_dauphin_queue]
+version="*"
+path="../peregrine-dauphin-queue"
+
 [dependencies.dauphin_interp]
 version="*"
 path="../dauphin-interp"
-
-[dependencies.dauphin_lib_std]
-version="*"
-path="../dauphin-lib-std"
