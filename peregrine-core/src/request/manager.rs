@@ -110,6 +110,10 @@ impl RequestManager {
         out
     }
 
+    pub fn execute_background(&self, channel: &Channel, request: Box<dyn RequestType>) -> anyhow::Result<()> {
+        lock!(self.0).execute(channel.clone(),PacketPriority::Batch,request).map(|_| ())
+    }
+
     pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
         lock!(self.0).add_receiver(receiver);
     }

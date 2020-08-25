@@ -11,7 +11,6 @@ mod index {
     pub(crate) mod stickauthoritystore;
     pub use self::stickstore::StickStore;
     pub use self::stickauthoritystore::StickAuthorityStore;
-    pub use self::stickauthoritystore::add_stick_authority;
 }
 
 mod panel {
@@ -72,7 +71,7 @@ mod test {
 }
 
 pub use self::core::{ Stick, StickId };
-pub use self::index::{ StickStore, add_stick_authority, StickAuthorityStore };
+pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager };
 pub use self::run::PgCore;

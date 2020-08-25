@@ -10,7 +10,13 @@ class BegsFiles(object):
         with open(BEGS_CONFIG) as f:
             toml_file = toml.loads(f.read())            
         self.boot_program = toml_file["core"]["boot"]
-        self.stickauthority_program = toml_file["core"].get("stickauthority")
+        stick_authority = toml_file.get("stick-authority")
+        if stick_authority != None:
+            self.stickauthority_startup_program = stick_authority["startup"]
+            self.stickauthority_lookup_program = stick_authority["lookup"]
+        else:
+            self.stickauthority_startup_program = None
+            self.stickauthority_lookup_program = None
         self.bundle_contents = {}
         self.program_map = {}
         self.program = {}

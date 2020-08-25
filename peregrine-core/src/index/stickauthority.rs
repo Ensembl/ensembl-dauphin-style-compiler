@@ -2,21 +2,26 @@ use blackbox::blackbox_log;
 use crate::lock;
 use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
-use crate::request::stickauthority::get_stick_authority_program;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::sync::{ Arc, Mutex };
 
 pub struct StickAuthority {
     channel: Channel,
-    program_name: String
+    startup_program_name: String,
+    resolution_program_name: String
 }
 
 impl StickAuthority {
-    pub fn new(channel: &Channel, program_name: &str) -> StickAuthority {
+    pub fn new(channel: &Channel, startup_program_name: &str, resolution_program_name: &str) -> StickAuthority {
         blackbox_log!("stickauthority","");
         StickAuthority {
             channel: channel.clone(),
-            program_name: program_name.to_string()
+            startup_program_name: startup_program_name.to_string(),
+            resolution_program_name: resolution_program_name.to_string(),
         }
     }
+
+    pub fn channel(&self) -> &Channel { &self.channel }
+    pub fn startup_program(&self) -> &str { &self.startup_program_name }
+    pub fn lookup_program(&self) -> &str { &self.resolution_program_name }
 }

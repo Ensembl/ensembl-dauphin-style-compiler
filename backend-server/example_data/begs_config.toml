@@ -1,13 +1,17 @@
 [core]
 boot="boot"
-stickauthority="stickauthority"
 files="begs"
+
+[stick-authority]
+startup="sa-startup"
+lookup="sa-lookup"
 
 [begs.test]
 hello="hello"
 
 [begs.stick]
-stickauthority="stickauthority"
+startup="sa-startup"
+lookup="sa-lookup"
 
 [begs.boot]
 boot="boot"

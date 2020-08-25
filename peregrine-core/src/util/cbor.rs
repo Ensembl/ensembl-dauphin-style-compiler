@@ -10,7 +10,7 @@ pub fn cbor_array<'a>(cbor: &'a CborValue, len: usize, or_more: bool) -> anyhow:
         },
         _ => {}
     }
-    Err(err!(format!("expected map got {:?}",cbor)))
+    Err(err!(format!("expected array len={:?} or_more={:?} got {:?}",len,or_more,cbor)))
 }
 
 pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> anyhow::Result<i128>  {

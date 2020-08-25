@@ -11,7 +11,7 @@ use crate::util::singlefile::SingleFile;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
-use crate::index::StickAuthorityStore;
+use crate::index::stickauthority::StickAuthority;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::run::{ PgCommander, PgDauphin };
@@ -25,11 +25,11 @@ impl StickAuthorityCommandRequest {
         StickAuthorityCommandRequest {}
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<(Channel,String)> {
+    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<StickAuthority> {
         let mut backoff = Backoff::new();
         blackbox_log!("stickauthority","registering authority at {}",channel.to_string());
         let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
-        Ok((response.channel.clone(),response.name.to_string()))
+        Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name))
     }
 }
 
@@ -45,7 +45,8 @@ impl RequestType for StickAuthorityCommandRequest {
 
 struct StickAuthorityCommandResponse {
     channel: Channel,
-    name: String
+    startup_name: String,
+    lookup_name: String
 }
 
 impl ResponseType for StickAuthorityCommandResponse {
@@ -57,17 +58,19 @@ pub struct StickAuthorityResponseBuilderType();
 
 impl ResponseBuilderType for StickAuthorityResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
-        let values = cbor_array(value,2,false)?;
+        let values = cbor_array(value,3,false)?;
         let channel = Channel::deserialize(&values[0])?;
-        let name = cbor_string(&values[1])?;
+        let startup_name = cbor_string(&values[1])?;
+        let lookup_name = cbor_string(&values[2])?;
         Ok(Rc::new(StickAuthorityCommandResponse {
             channel,
-            name: name.to_string()
+            startup_name: startup_name.to_string(),
+            lookup_name: lookup_name.to_string()
         }))
     }
 }
 
-pub async fn get_stick_authority_program(mut manager: RequestManager, channel: Channel) -> anyhow::Result<(Channel,String)> {
+pub async fn get_stick_authority(mut manager: RequestManager, channel: Channel) -> anyhow::Result<StickAuthority> {
     let req = StickAuthorityCommandRequest::new();
     req.execute(&channel,&mut manager).await
 }

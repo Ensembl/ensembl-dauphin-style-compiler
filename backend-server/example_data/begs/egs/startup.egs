@@ -1,0 +1,4 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+notice("stick authority startup");

@@ -113,7 +113,7 @@ struct ProgramLoaderData {
 }
 
 #[derive(Clone)]
-pub struct ProgramLoader(Arc<Mutex<ProgramLoaderData>>);
+pub struct ProgramLoader(Arc<Mutex<ProgramLoaderData>>,RequestManager);
 
 impl ProgramLoader {
     pub fn new(commander: &PgCommander, manager: &RequestManager, dauphin: &PgDauphin) -> anyhow::Result<ProgramLoader> {
@@ -131,12 +131,17 @@ impl ProgramLoader {
                     task: Box::pin(load_program(manager,dauphin,channel.clone(),name.to_string()))
                 }
             })
-        })));
+        })),
+        manager.clone());
         Ok(out)
     }
 
     pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
         lock!(self.0).single_file.request((channel.clone(),name.to_string())).await
+    }
+
+    pub fn load_background(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
+        self.1.execute_background(channel,Box::new(ProgramCommandRequest::new(channel,name)))
     }
 }
 
