@@ -32,7 +32,6 @@ impl TestHelpers {
         let fdr = FakeDauphinReceiver::new(&commander,&pdq);
         let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
         manager.add_receiver(Box::new(dauphin.clone()));
-        manager.add_receiver(Box::new(stick_store.clone()));
         TestHelpers {
             console, channel, dauphin, commander_inner, commander,
             manager, loader, fdr

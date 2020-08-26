@@ -15,78 +15,55 @@ use crate::request::packet::ResponsePacket;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 
-struct StickLoaderData {
-    single_file: SingleFile<StickId,()>
+#[derive(Clone)]
+pub struct StickStore {
+    single_file: SingleFile<StickId,()>,
+    store: Arc<Mutex<HashMap<StickId,Option<Stick>>>>
 }
 
-#[derive(Clone)]
-pub struct StickLoader(Arc<Mutex<StickLoaderData>>);
-
-impl StickLoader {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, channel: &Channel) -> anyhow::Result<StickLoader> {
-        let manager2 = manager.clone();
+impl StickStore {
+    pub fn new(commander: &PgCommander, manager: &RequestManager, channel: &Channel) -> anyhow::Result<StickStore> {
+        let store = Arc::new(Mutex::new(HashMap::new()));
         let channel = channel.clone();
-        let out = StickLoader(Arc::new(Mutex::new(StickLoaderData {
+        let manager2 = manager.clone();
+        let store2 = store.clone();
+        Ok(StickStore {
             single_file: SingleFile::new(commander,move |stick_id : &StickId| {
                 let manager = manager2.clone();
+                let stick_id = stick_id.clone();
+                let channel = channel.clone();
+                let store = store2.clone();
                 PgCommanderTaskSpec {
                     name: format!("stick-loader-{}-{}",channel,stick_id.get_id()),
                     prio: 3,
                     timeout: None,
                     slot: None,
-                    task: Box::pin(get_stick(manager,channel.clone(),stick_id.clone()))
+                    task: Box::pin(async move {
+                        let stick = get_stick(manager,channel.clone(),stick_id.clone()).await.ok();
+                        lock!(store).insert(stick_id.clone(),stick);
+                        Ok(())
+                    })
                 }
-            })
-        })));
-        Ok(out)
-    }
-
-    pub async fn load(&self, stick_id: &StickId) -> anyhow::Result<()> {
-        lock!(self.0).single_file.request(stick_id.clone()).await
-    }
-}
-
-#[derive(Clone)]
-pub struct StickStore {
-    loader: StickLoader,
-    store: Arc<Mutex<HashMap<StickId,Stick>>>
-}
-
-impl StickStore {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, channel: &Channel) -> anyhow::Result<StickStore> {
-        Ok(StickStore {
-            loader: StickLoader::new(commander,manager,channel)?,
-            store: Arc::new(Mutex::new(HashMap::new()))
+            }),
+            store
         })
     }
 
-    pub(crate) fn add(&self, stick: &Stick) {
-        lock!(self.store).insert(stick.get_id().clone(),stick.clone());
+    pub(crate) fn add(&self, id: &StickId, stick: Option<&Stick>) {
+        lock!(self.store).insert(id.clone(),stick.cloned());
     }
 
-    pub async fn lookup(&self, id: &StickId) -> anyhow::Result<Stick> {
+    pub async fn lookup(&self, id: &StickId) -> anyhow::Result<Option<Stick>> {
         let stick = lock!(self.store).get(id).cloned();
         if let Some(stick) = stick {
             Ok(stick.clone())
         } else {
-            self.loader.load(id).await?;
+            self.single_file.request(id.clone()).await?;
             if let Some(stick) = lock!(self.store).get(id) {
                 Ok(stick.clone())
             } else {
                 bail!(format!("unexpected failure retrieving stick {}",id.get_id()));
             }
         }
-    }
-}
-
-impl PayloadReceiver for StickStore {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<dyn ChannelIntegration>) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
-        let store = self.clone();
-        Box::pin(async move {
-            for stick in response.sticks().iter() {
-                store.add(stick);
-            }
-            response
-        })
     }
 }

@@ -17,14 +17,35 @@
 use anyhow;
 use serde_cbor::Value as CborValue;
 use crate::runtime::InterpContext;
+use std::future::Future;
+use std::pin::Pin;
 
 pub trait CommandDeserializer {
     fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>>;
     fn deserialize(&self, opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>>;
 }
 
+pub struct AsyncBlock<'a> {
+    f: Box<dyn FnOnce(&'a mut InterpContext) -> Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'a>>>
+}
+
+impl<'a> AsyncBlock<'a> {
+    pub fn new(f: Box<dyn FnOnce(&'a mut InterpContext) -> Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'a>>>) -> AsyncBlock {
+        AsyncBlock { f }
+    }
+
+    pub async fn execute(self, context: &'a mut InterpContext) -> anyhow::Result<()> {
+        (self.f)(context).await
+    }
+}
+
+pub enum CommandResult<'a> {
+    SyncResult(),
+    AsyncResult(AsyncBlock<'a>)
+}
+
 pub trait InterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()>;
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult>;
 }
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]

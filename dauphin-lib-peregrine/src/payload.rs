@@ -18,10 +18,11 @@ use std::any::Any;
 use blackbox::{ blackbox_log };
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_core::{ StickAuthorityStore };
+use peregrine_core::{ StickAuthorityStore, RequestManager };
 
 pub struct PeregrinePayload {
-    sas: StickAuthorityStore
+    sas: StickAuthorityStore,
+    manager: RequestManager
 }
 
 impl Payload for PeregrinePayload {
@@ -31,23 +32,27 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(sas: &StickAuthorityStore) -> PeregrinePayload {
+    fn new(sas: &StickAuthorityStore, manager: &RequestManager) -> PeregrinePayload {
         PeregrinePayload {
-            sas: sas.clone()
+            sas: sas.clone(),
+            manager: manager.clone()
         }
     }
 
     pub fn stick_authority_store(&self) -> &StickAuthorityStore { &self.sas }
+    pub fn manager(&self) -> &RequestManager { &self.manager }
 }
 
 #[derive(Clone)]
 pub struct PeregrinePayloadFactory {
+    manager: RequestManager,
     sas: StickAuthorityStore
 }
 
 impl PeregrinePayloadFactory {
-    pub fn new(sas: &StickAuthorityStore) -> PeregrinePayloadFactory {
+    pub fn new(manager: &RequestManager, sas: &StickAuthorityStore) -> PeregrinePayloadFactory {
         PeregrinePayloadFactory {
+            manager: manager.clone(),
             sas: sas.clone()
         }
     }
@@ -55,10 +60,10 @@ impl PeregrinePayloadFactory {
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.sas))
+        Box::new(PeregrinePayload::new(&self.sas,&self.manager))
     }
 }
 
-pub fn add_peregrine_payloads(dauphin: &mut Dauphin, sas: &StickAuthorityStore) {
-    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(sas)))
+pub fn add_peregrine_payloads(dauphin: &mut Dauphin, manager: &RequestManager, sas: &StickAuthorityStore) {
+    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(manager,sas)))
 }

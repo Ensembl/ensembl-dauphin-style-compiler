@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use dauphin_interp::command::{ InterpCommand, CommandDeserializer, InterpLibRegister };
+use dauphin_interp::command::{ InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register };
 use serde_cbor::Value as CborValue;
 
@@ -81,7 +81,7 @@ impl CommandDeserializer for BinBoolDeserializer {
 pub struct InterpBinBoolInterpCommand(InterpBinBoolOp,Register,Register,Register);
 
 impl InterpCommand for InterpBinBoolInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let a = registers.get_numbers(&self.2)?;
         let b = &registers.get_numbers(&self.3)?;
@@ -91,7 +91,7 @@ impl InterpCommand for InterpBinBoolInterpCommand {
             c.push(self.0.evaluate(*a_val,b[i%b_len]));
         }
         registers.write(&self.1,InterpValue::Boolean(c));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -111,7 +111,7 @@ impl CommandDeserializer for BinNumDeserializer {
 pub struct InterpBinNumInterpCommand(InterpBinNumOp,Register,Register,Register);
 
 impl InterpCommand for InterpBinNumInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let a = registers.get_numbers(&self.2)?;
         let b = &registers.get_numbers(&self.3)?;
@@ -121,7 +121,7 @@ impl InterpCommand for InterpBinNumInterpCommand {
             c.push(self.0.evaluate(*a_val,b[i%b_len]));
         }
         registers.write(&self.1,InterpValue::Numbers(c));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -166,7 +166,7 @@ impl CommandDeserializer for NumModDeserializer {
 pub struct InterpNumModInterpCommand(InterpNumModOp,Register,Register,Option<Register>);
 
 impl InterpNumModInterpCommand {
-    fn execute_unfiltered(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute_unfiltered(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let b = &registers.get_numbers(&self.2)?;
         let mut a = registers.take_numbers(&self.1)?;
@@ -175,10 +175,10 @@ impl InterpNumModInterpCommand {
             self.0.evaluate(a_val,b[i%b_len]);
         }
         registers.write(&self.1,InterpValue::Numbers(a));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 
-    fn execute_filtered(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute_filtered(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let filter : &[usize] = &context.registers_mut().get_indexes(self.3.as_ref().unwrap())?;
         let registers = context.registers_mut();
         let b = &registers.get_numbers(&self.2)?;
@@ -188,12 +188,12 @@ impl InterpNumModInterpCommand {
             self.0.evaluate(&mut a[*pos],b[i%b_len]);
         }
         registers.write(&self.1,InterpValue::Numbers(a));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
 impl InterpCommand for InterpNumModInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         if self.3.is_some() {
             self.execute_filtered(context)
         } else {

@@ -1,3 +1,13 @@
 module "peregrine";
 
 proc add_stick_authority(string);
+func get_stick_id() becomes string;
+
+struct stick {
+    id: string,
+    size: number,
+    topology: number,
+    tags: vec(string)
+};
+
+func get_stick_data(string,string) becomes stick;

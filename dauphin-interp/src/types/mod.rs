@@ -22,4 +22,4 @@ pub use self::vectorcopy::{ vector_update_poly, append_data };
 pub use self::vectorregisters::VectorRegisters;
 pub use self::vectorsource::{ RegisterVectorSource, VectorSource };
 pub use self::writevec::WriteVec;
-pub use self::xstructure::{ XStructure, to_xstructure };
+pub use self::xstructure::{ XStructure, to_xstructure, map_xstructure };

@@ -78,16 +78,14 @@ impl ResponsePacketBuilder {
 
 pub struct ResponsePacket {
     responses: Vec<CommandResponse>,
-    programs: Vec<SuppliedBundle>,
-    sticks: Vec<Stick>
+    programs: Vec<SuppliedBundle>
 }
 
 impl ResponsePacket {
     fn new() -> ResponsePacket {
         ResponsePacket {
             responses: vec![],
-            programs: vec![],
-            sticks: vec![]
+            programs: vec![]
         }
     }
 
@@ -96,7 +94,6 @@ impl ResponsePacket {
     }
 
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn sticks(&self) -> &[Stick] { &self.sticks }
     pub(crate) fn take_responses(&mut self) -> Vec<CommandResponse> {
         replace(&mut self.responses,vec![])
     }
@@ -124,7 +121,7 @@ impl ResponsePacket {
     }
 
     fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
-        let values = cbor_map(value,&["responses","programs","sticks"])?;
+        let values = cbor_map(value,&["responses","programs"])?;
         let mut responses = vec![];
         for v in cbor_array(&values[0],0,true)? {
             responses.push(ResponsePacket::deserialize_response(v,builders).with_context(
@@ -132,11 +129,9 @@ impl ResponsePacket {
             )?);
         }
         let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
-        let sticks : anyhow::Result<Vec<Stick>> = cbor_map_iter(&values[2])?.map(|(k,v)| ResponsePacket::deserialize_stick(&cbor_string(k)?,v)).collect();
         Ok(ResponsePacket {
             responses,
-            programs: programs?,
-            sticks: sticks?
+            programs: programs?
         })
     }
 }

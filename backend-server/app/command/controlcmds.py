@@ -32,14 +32,13 @@ class StickHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
         (stick_name,) = payload
         if stick_name in data_accessor.data_model.sticks:
-            r = Response(3,[])
             chromosome = data_accessor.data_model.sticks[stick_name]
-            r.add_stick(stick_name,{
+            return Response(3,{
+                "id": stick_name,
                 "size": chromosome.size,
                 "topology": 0 if chromosome.topology == "linear" else 1,
                 "tags": [t for t in chromosome.tags]
             })
-            return r
         else:
             return Response(1,"Unknown stick {0}".format(stick_name))
 

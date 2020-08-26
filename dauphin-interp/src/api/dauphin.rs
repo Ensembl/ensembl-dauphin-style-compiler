@@ -23,16 +23,6 @@ impl DauphinInstance {
         Ok((DauphinInstance { linker },progs))
     }
 
-    fn run(&self, name: &str, payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<()> {
-        let mut interp = self.run_stepwise(name,payloads,more_payloads)?;
-        let inter = &mut interp;
-        loop {
-            let out = inter.more().expect("interpreting");
-            if !out { break; }
-        }
-        Ok(())
-    }
-
     fn run_stepwise(&self, name: &str, payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<impl InterpretInstance> {
         let mut interp = StandardInterpretInstance::new(&self.linker,name)?;
         interp.context_mut().add_payloads(payloads);
@@ -65,11 +55,6 @@ impl Dauphin {
 
     pub fn list(&self) -> Vec<String> {
         self.mapping.keys().cloned().collect()
-    }
-
-    pub fn run(&self, binary_name: &str, name: &str, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<()> {
-        let instance = self.mapping.get(name).ok_or(DauphinError::runtime(&format!("No such program: {}",name)))?;
-        instance.run(name,&self.payloads,more_payloads)
     }
 
     pub fn run_stepwise(&self, binary_name: &str, name: &str, more_payloads: &HashMap<(String,String),Box<dyn PayloadFactory>>) -> anyhow::Result<impl InterpretInstance> {

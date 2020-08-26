@@ -410,7 +410,7 @@ pub(super) fn library_eq_command(set: &mut CompLibRegister) {
 mod test {
     use crate::test::{ make_compiler_suite, make_interpret_suite };
     use dauphin_test_harness::{ xxx_test_config, compile };
-
+    
     #[test]
     fn eq_smoke() {
         let mut config = xxx_test_config();

@@ -15,6 +15,7 @@ struct SingleFileData<K,V> {
     promises: HashMap<K,PromiseFuture<anyhow::Result<V>>>
 }
 
+#[derive(Clone)]
 pub struct SingleFile<K,V>(Arc<Mutex<SingleFileData<K,V>>>);
 
 fn convert_task<F,G>(a: PgCommanderTaskSpec<F>, task: Pin<Box<dyn Future<Output=anyhow::Result<G>> + 'static>>) -> PgCommanderTaskSpec<G> {

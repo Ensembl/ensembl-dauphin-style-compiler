@@ -5,8 +5,8 @@ use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
-use crate::core::stick::{ Stick, StickId };
-use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
+use crate::core::stick::{ Stick, StickId, StickTopology };
+use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
 use crate::util::singlefile::SingleFile;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
@@ -29,10 +29,10 @@ impl StickCommandRequest {
         }
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<()> {
+    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new();
-        backoff.backoff::<StickCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
-        Ok(())
+        let r = backoff.backoff::<StickCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
+        Ok(r.stick.clone())
     }
 }
 
@@ -46,7 +46,9 @@ impl RequestType for StickCommandRequest {
     }
 }
 
-struct StickCommandResponse {}
+struct StickCommandResponse {
+    stick: Stick
+}
 
 impl ResponseType for StickCommandResponse {
     fn as_any(&self) -> &dyn Any { self }
@@ -56,12 +58,20 @@ impl ResponseType for StickCommandResponse {
 pub struct StickResponseBuilderType();
 
 impl ResponseBuilderType for StickResponseBuilderType {
-    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
-        Ok(Rc::new(StickCommandResponse {}))
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+        let values = cbor_map(value,&["id","size","topology","tags"])?;
+        let size = cbor_int(&values[1],None)? as u64;
+        let topology = match cbor_int(&values[2],None)? {
+            0 => StickTopology::Linear,
+            1 => StickTopology::Circular,
+            _ => bail!("bad packet (stick topology)")
+        };
+        let tags : anyhow::Result<Vec<String>> = cbor_array(&values[3],0,true)?.iter().map(|x| cbor_string(x)).collect();
+        Ok(Rc::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?) }))
     }
 }
 
-pub async fn get_stick(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<()> {
+pub async fn get_stick(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<Stick> {
     let req = StickCommandRequest::new(&name);
     req.execute(&channel,&mut manager).await
 }

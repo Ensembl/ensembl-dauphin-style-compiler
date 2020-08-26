@@ -1,12 +1,12 @@
 use hashbrown::{ HashMap, HashSet };
-use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand };
+use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 
 pub struct LookupInterpCommand(Register,Register,Register,Register,Register,Register);
 
 impl InterpCommand for LookupInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let needles = registers.get_strings(&self.1)?;
         let haystack_offsets = registers.get_indexes(&self.3)?;
@@ -42,14 +42,14 @@ impl InterpCommand for LookupInterpCommand {
             outputs.remove(0)
         };
         registers.write(&self.0,InterpValue::Indexes(out));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
 pub struct InInterpCommand(Register,Register,Register,Register,Register);
 
 impl InterpCommand for InInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let needles = registers.get_strings(&self.1)?;
         let haystack_offsets = registers.get_indexes(&self.3)?;
@@ -81,7 +81,7 @@ impl InterpCommand for InInterpCommand {
             outputs.remove(0)
         };
         registers.write(&self.0,InterpValue::Boolean(out));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -97,7 +97,7 @@ fn index_command<T>(dst: &mut Vec<T>, src: &[T], starts: &[usize],lengths: &[usi
 }
 
 impl InterpCommand for IndexInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let top_offset = registers.get_indexes(&self.1)?;
         let top_length = registers.get_indexes(&self.2)?;
@@ -109,7 +109,7 @@ impl InterpCommand for IndexInterpCommand {
             index_command(d,s,&top_offset,&top_length,&needles)
         }));
         registers.write(&self.0,dst);
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

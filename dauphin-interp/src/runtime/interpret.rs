@@ -15,14 +15,16 @@
  */
 
 use anyhow;
+use std::pin::Pin;
+use std::future::Future;
 use std::rc::Rc;
 use std::slice::Iter;
-use crate::command::{ InterpCommand, InterpreterLink };
+use crate::command::{ InterpCommand, InterpreterLink, CommandResult };
 use crate::util::{ DauphinError, error_locate_cb };
 use crate::runtime::{ Register, InterpContext };
 
 pub trait InterpretInstance {
-    fn more(&mut self) -> anyhow::Result<bool>;
+    fn more<'a>(&'a mut self) -> Pin<Box<dyn Future<Output=anyhow::Result<bool>> + 'a>>;
 }
 
 struct CommandGetter {
@@ -48,9 +50,14 @@ impl CommandGetter {
     }
 }
 
-fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
+async fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
     while let Some(command) = commands.next() {
-        command.execute(context)?;
+        match command.execute(context)? {
+            CommandResult::SyncResult() => {},
+            CommandResult::AsyncResult(asy) => {
+                asy.execute(context).await?;
+            }
+        }
         context.registers_mut().commit();
         if context.test_pause() {
             return Ok(true);
@@ -59,8 +66,8 @@ fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext) -> a
     Ok(false)
 }
 
-fn more(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
-    let out = more_internal(commands,context);
+async fn more(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
+    let out = more_internal(commands,context).await;
     error_locate_cb(|| {
         let line = context.get_line_number();
         (line.0.to_string(),line.1)
@@ -82,8 +89,8 @@ impl<'b> PartialInterpretInstance<'b> {
 }
 
 impl<'b> InterpretInstance for PartialInterpretInstance<'b> {
-    fn more(&mut self) -> anyhow::Result<bool> {
-        more(&mut self.commands, &mut self.context)
+    fn more<'c>(&'c mut self) -> Pin<Box<dyn Future<Output=anyhow::Result<bool>> + 'c>> {
+        Box::pin(more(&mut self.commands, &mut self.context))
     }
 }
 
@@ -104,8 +111,8 @@ impl StandardInterpretInstance {
 }
 
 impl InterpretInstance for StandardInterpretInstance {
-    fn more(&mut self) -> anyhow::Result<bool> {
-        more(&mut self.commands, &mut self.context)
+    fn more<'b>(&'b mut self) -> Pin<Box<dyn Future<Output=anyhow::Result<bool>> + 'b>> {
+        Box::pin(more(&mut self.commands, &mut self.context))
     }
 }
 
@@ -126,14 +133,19 @@ impl<'b> DebugInterpretInstance<'b> {
         })
     }
 
-    fn more_internal(&mut self) -> anyhow::Result<bool> {
+    async fn more_internal(&mut self) -> anyhow::Result<bool> {
         let idx = self.index;
         self.index += 1;
         if let Some(command) = self.commands.next() {
             let (instr,regs) = &self.instrs[idx];
             print!("{}",self.context.registers_mut().dump_many(&regs)?);
             print!("{}",instr);
-            command.execute(self.context)?;
+            match command.execute(&mut self.context)? {
+                CommandResult::SyncResult() => {},
+                CommandResult::AsyncResult(asy) => {
+                    asy.execute(&mut self.context).await?;
+                }
+            }
             self.context.registers_mut().commit();
             print!("{}",self.context.registers_mut().dump_many(&regs)?);
             if self.context.test_pause() {
@@ -147,11 +159,13 @@ impl<'b> DebugInterpretInstance<'b> {
 }
 
 impl<'b> InterpretInstance for DebugInterpretInstance<'b> {
-    fn more(&mut self) -> anyhow::Result<bool> {
-        let out = self.more_internal();
-        error_locate_cb(|| {
-            let line = self.context.get_line_number();
-            (line.0.to_string(),line.1)
-        },out)
+    fn more<'c>(&'c mut self) -> Pin<Box<dyn Future<Output=anyhow::Result<bool>> + 'c>> {
+        Box::pin(async move {
+            let out = self.more_internal().await;
+            error_locate_cb(|| {
+                let line = self.context.get_line_number();
+                (line.0.to_string(),line.1)
+            },out)
+        })
     }
 }

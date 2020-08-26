@@ -16,7 +16,7 @@
 
 use anyhow;
 use std::rc::Rc;
-use crate::command::{ CommandDeserializer, CommandSetId, InterpCommand, InterpLibRegister };
+use crate::command::{ CommandDeserializer, CommandSetId, InterpLibRegister, InterpCommand, CommandResult };
 use crate::runtime::{ Register, InterpValue, InterpContext };
 use crate::util::DauphinError;
 use crate::types::arbitrate_type;
@@ -35,9 +35,9 @@ impl CommandDeserializer for NilDeserializer {
 pub struct NilInterpCommand(Register);
 
 impl InterpCommand for NilInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         context.registers_mut().write(&self.0,InterpValue::Empty);
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -53,9 +53,9 @@ impl CommandDeserializer for CopyDeserializer {
 pub struct CopyInterpCommand(Register,Register);
 
 impl InterpCommand for CopyInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         context.registers_mut().copy(&self.0,&self.1)?;
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -71,13 +71,13 @@ impl CommandDeserializer for AppendDeserializer {
 pub struct AppendInterpCommand(Register,Register);
 
 impl InterpCommand for AppendInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src = registers.get(&self.1).borrow().get_shared()?;
         let dstr = registers.get(&self.0);
         let dst = dstr.borrow_mut().get_exclusive()?;
         registers.write(&self.0,append(dst,&src)?);
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -107,11 +107,11 @@ impl CommandDeserializer for LengthDeserializer {
 pub struct LengthInterpCommand(Register,Register);
 
 impl InterpCommand for LengthInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let len = registers.get(&self.1).borrow().get_shared()?.len();
         registers.write(&self.0,InterpValue::Indexes(vec![len]));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -127,7 +127,7 @@ impl CommandDeserializer for AddDeserializer {
 pub struct AddInterpCommand(Register,Register);
 
 impl InterpCommand for AddInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = registers.take_indexes(&self.0)?;
@@ -136,7 +136,7 @@ impl InterpCommand for AddInterpCommand {
             dst[i] += src[i%src_len];
         }
         registers.write(&self.0,InterpValue::Indexes(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -152,7 +152,7 @@ impl CommandDeserializer for ReFilterDeserializer {
 pub struct ReFilterInterpCommand(Register,Register,Register);
 
 impl InterpCommand for ReFilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src : &[usize] = &registers.get_indexes(&self.1)?;
         let indexes : &[usize] = &registers.get_indexes(&self.2)?;
@@ -161,7 +161,7 @@ impl InterpCommand for ReFilterInterpCommand {
             dst.push(src[*x]);
         }
         registers.write(&self.0,InterpValue::Indexes(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -177,7 +177,7 @@ impl CommandDeserializer for NumEqDeserializer {
 pub struct NumEqInterpCommand(Register,Register,Register);
 
 impl InterpCommand for NumEqInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src1 = &registers.get_indexes(&self.1)?;
         let src2 = &registers.get_indexes(&self.2)?;
@@ -187,7 +187,7 @@ impl InterpCommand for NumEqInterpCommand {
             dst.push(src1[i] == src2[i%src2len]);
         }
         registers.write(&self.0,InterpValue::Boolean(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -222,13 +222,13 @@ impl CommandDeserializer for FilterDeserializer {
 pub struct FilterInterpCommand(Register,Register,Register);
 
 impl InterpCommand for FilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let filter_val = registers.get_boolean(&self.2)?;
         let src = registers.get(&self.1);
         let src = src.borrow().get_shared()?;
         registers.write(&self.0,filter(&src,&filter_val)?);
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -245,7 +245,7 @@ impl CommandDeserializer for RunDeserializer {
 pub struct RunInterpCommand(Register,Register,Register,Register);
 
 impl InterpCommand for RunInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let start = &registers.get_indexes(&self.1)?;
         let len = &registers.get_indexes(&self.2)?;
@@ -261,7 +261,7 @@ impl InterpCommand for RunInterpCommand {
             }
         }
         registers.write(&self.0,InterpValue::Indexes(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -277,7 +277,7 @@ impl CommandDeserializer for AtDeserializer {
 pub struct AtInterpCommand(Register,Register);
 
 impl InterpCommand for AtInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = vec![];
@@ -285,7 +285,7 @@ impl InterpCommand for AtInterpCommand {
             dst.push(i);
         }
         registers.write(&self.0,InterpValue::Indexes(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -323,14 +323,14 @@ impl CommandDeserializer for SeqFilterDeserializer {
 pub struct SeqFilterInterpCommand(Register,Register,Register,Register);
 
 impl InterpCommand for SeqFilterInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src = registers.get(&self.1);
         let start = registers.get_indexes(&self.2)?;
         let len = registers.get_indexes(&self.3)?;
         let src = src.borrow().get_shared()?;
         registers.write(&self.0,seq_filter(&src,&start,&len)?);
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -346,7 +346,7 @@ impl CommandDeserializer for SeqAtDeserializer {
 pub struct SeqAtInterpCommand(Register,Register,Register);
 
 impl InterpCommand for SeqAtInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let src = &registers.get_indexes(&self.1)?;
         let mut dst = vec![];
@@ -356,7 +356,7 @@ impl InterpCommand for SeqAtInterpCommand {
             }
         }
         registers.write(&self.0,InterpValue::Indexes(dst));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -372,9 +372,9 @@ impl CommandDeserializer for PauseDeserializer {
 pub struct PauseInterpCommand();
 
 impl InterpCommand for PauseInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         context.do_pause();
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

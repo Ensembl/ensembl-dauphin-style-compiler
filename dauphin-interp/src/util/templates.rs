@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use crate::command::{ CommandDeserializer, InterpCommand };
+use crate::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use crate::runtime::{ InterpContext };
 use crate::util::DauphinError;
 use serde_cbor::Value as CborValue;
@@ -22,7 +22,7 @@ use serde_cbor::Value as CborValue;
 pub struct ErrorInterpCommand();
 
 impl InterpCommand for ErrorInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         Err(DauphinError::malformed("compile time command somehow ended up in binary"))
     }
 }
@@ -30,8 +30,8 @@ impl InterpCommand for ErrorInterpCommand {
 pub struct NoopInterpCommand();
 
 impl InterpCommand for NoopInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
-        Ok(())
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        Ok(CommandResult::SyncResult())
     }
 }
 

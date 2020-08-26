@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use dauphin_interp::command::{ InterpCommand, CommandDeserializer, InterpLibRegister };
+use dauphin_interp::command::{ InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, Register };
 use dauphin_interp::types::{ vector_update_poly, append_data };
 use serde_cbor::Value as CborValue;
@@ -22,7 +22,7 @@ use serde_cbor::Value as CborValue;
 pub struct VectorCopyShallowInterpCommand(Register,Register,Register);
 
 impl InterpCommand for VectorCopyShallowInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let rightval = registers.get(&self.1);
         let rightval = rightval.borrow_mut().get_shared()?;
@@ -31,7 +31,7 @@ impl InterpCommand for VectorCopyShallowInterpCommand {
         let leftval = leftval.borrow_mut().get_exclusive()?;
         let leftval = vector_update_poly(leftval,&rightval,&filter)?;
         registers.write(&self.0,leftval);
-        Ok(())    
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -56,7 +56,7 @@ impl CommandDeserializer for VectorAppendDeserializer {
 pub struct VectorAppendInterpCommand(Register,Register,Register);
 
 impl InterpCommand for VectorAppendInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let rightval = registers.get(&self.1);
         let rightval = rightval.borrow_mut().get_shared()?;
@@ -65,7 +65,7 @@ impl InterpCommand for VectorAppendInterpCommand {
         let leftval = leftval.borrow_mut().get_exclusive()?;
         let leftdata = append_data(leftval,&rightval,filter)?.0;
         registers.write(&self.0,leftdata);
-        Ok(())    
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -84,10 +84,10 @@ impl CommandDeserializer for VectorAppendIndexesDeserializer {
 pub struct VectorAppendIndexesInterpCommand(Register,Register,Register,Register,Register);
 
 impl InterpCommand for VectorAppendIndexesInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let copies = registers.get_indexes(&self.4)?[0];
-        if copies == 0 { return Ok(()) }
+        if copies == 0 { return Ok(CommandResult::SyncResult()) }
         let rightval = registers.get_indexes(&self.1)?;
         let start = registers.get_indexes(&self.2)?[0];
         let stride = registers.get_indexes(&self.3)?[0];
@@ -108,7 +108,7 @@ impl InterpCommand for VectorAppendIndexesInterpCommand {
             }
         }
         registers.write(&self.0,InterpValue::Indexes(leftval));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -127,7 +127,7 @@ impl CommandDeserializer for VectorUpdateIndexesDeserializer {
 pub struct VectorUpdateIndexesInterpCommand(Register,Register,Register,Register,Register);
 
 impl InterpCommand for VectorUpdateIndexesInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let rightval = registers.get_indexes(&self.1)?;
         let filter = registers.get_indexes(&self.2)?;
@@ -147,7 +147,7 @@ impl InterpCommand for VectorUpdateIndexesInterpCommand {
             }
         }
         registers.write(&self.0,InterpValue::Indexes(leftval));
-        Ok(())    
+        Ok(CommandResult::SyncResult())
     }
 }
 

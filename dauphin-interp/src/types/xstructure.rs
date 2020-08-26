@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+ use anyhow::bail;
 use std::cell::{ RefCell, Ref };
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -192,4 +193,41 @@ pub fn to_xstructure(sig: &FullType) -> anyhow::Result<XStructure<VectorRegister
         xpaths.push(to_xpath(cp,vr)?);
     }
     Ok(convert(&xpaths)?.derive(&mut (|x| Ok((*x).clone())))?)
+}
+
+fn map_xstructure_vr(out: &mut [usize], vr: &VectorRegisters, mapping: &[usize]) -> anyhow::Result<()> {
+    for (i,r) in mapping.iter().enumerate() {
+        out[*r] = if i == 0 {
+            vr.data_pos()
+        } else if i%2 == 0 {
+            vr.length_pos((i-2)/2)?
+        } else {
+            vr.offset_pos((i-1)/2)?
+        };
+    }
+    Ok(())
+}
+
+pub fn map_xstructure(out: &mut [usize], xs: &XStructure<VectorRegisters>, mapping: &XStructure<Vec<usize>>) -> anyhow::Result<()> {
+    match (xs,mapping) {
+        (XStructure::Simple(vr),XStructure::Simple(mp)) => map_xstructure_vr(out,&vr.borrow(),&mp.borrow())?,
+        (XStructure::Vector(vr),XStructure::Vector(mp)) => map_xstructure(out,vr.as_ref(),mp.as_ref())?,
+        (XStructure::Struct(_,kv_a),XStructure::Struct(_,kv_b)) => {
+            for (k_b,v_b) in kv_b.iter() {
+                if let Some(v_a) = kv_a.get(k_b) {
+                    map_xstructure(out,v_a,v_b)?;
+                }
+            }
+        },
+        (XStructure::Enum(_,_,kv_a,d_a),XStructure::Enum(_,_,kv_b,d_b)) => {
+            for (k_b,v_b) in kv_b.iter() {
+                if let Some(v_a) = kv_a.get(k_b) {
+                    map_xstructure(out,v_a,v_b)?;
+                }
+            }
+            out[d_b.borrow()[0]] = d_a.borrow().data_pos();
+        },
+        _ => bail!("mismatched xstructures!")
+    }
+    Ok(())
 }

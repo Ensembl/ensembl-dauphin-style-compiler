@@ -14,7 +14,7 @@ pub struct PgCommanderTaskSpec<T> {
     pub prio: i8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
-    pub task: Pin<Box<dyn Future<Output=anyhow::Result<T>> + 'static>>
+    pub task: Pin<Box<dyn Future<Output=anyhow::Result<T>>>>
 }
 
 #[derive(Clone)]

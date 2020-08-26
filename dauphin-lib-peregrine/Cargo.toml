@@ -21,10 +21,6 @@ dauphin_compile = { path = "../dauphin-compile", optional = true }
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_test_harness = { path = "../dauphin-test-harness" }
 
-[dependencies.web-sys]
-version="*"
-features=["console"]
-
 [dependencies.blackbox]
 version="*"
 path="../blackbox"

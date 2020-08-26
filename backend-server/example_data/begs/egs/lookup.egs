@@ -2,4 +2,7 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
 notice("stick authority lookup");
+notice(get_stick_id());
+x := get_stick_data("self()",get_stick_id());
+notice(format(x));
 

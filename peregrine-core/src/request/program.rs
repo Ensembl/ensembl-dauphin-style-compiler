@@ -164,7 +164,6 @@ mod test {
                 "programs": [
                     ["test","ok",{ "test2": "hello" }]
                 ],
-                "sticks": {}
             }
         },vec![]);
         let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
@@ -202,8 +201,7 @@ mod test {
                     ],
                     "programs": [
                         ["test","BAD PROGRAM",{ "test2": "hello" }]
-                    ],
-                    "sticks": {}
+                    ]
                 }
             },vec![]);
         }

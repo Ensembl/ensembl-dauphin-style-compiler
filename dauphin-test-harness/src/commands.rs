@@ -17,7 +17,7 @@
 use anyhow;
 use std::cell::RefCell;
 use std::rc::Rc;
-use dauphin_interp::command::{ CommandDeserializer, InterpCommand, Identifier };
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, Identifier, CommandResult };
 use dauphin_interp::runtime::{ InterpContext };
 use dauphin_interp::util::DauphinError;
 use dauphin_compile::command::{ Instruction, Command, CommandSchema, CommandTrigger, CommandType };
@@ -26,9 +26,9 @@ use serde_cbor::Value as CborValue;
 pub struct FakeInterpCommand(Rc<RefCell<u32>>,u32);
 
 impl InterpCommand for FakeInterpCommand {
-    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         *self.0.borrow_mut() = self.1;
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

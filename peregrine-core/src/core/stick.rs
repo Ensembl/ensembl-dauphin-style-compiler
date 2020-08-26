@@ -11,13 +11,22 @@ impl StickId {
     pub fn get_id(&self) -> &str { &self.0 }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub enum StickTopology {
     Linear,
     Circular
 }
 
-#[derive(Clone)]
+impl StickTopology {
+    pub fn to_number(&self) -> u8 {
+        match self {
+            StickTopology::Linear => 0,
+            StickTopology::Circular => 1
+        }
+    }
+}
+
+#[derive(Clone,Debug)]
 pub struct Stick {
     id: StickId,
     size: u64,
@@ -37,4 +46,5 @@ impl Stick {
     pub fn get_id(&self) -> &StickId { &self.id }
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
+    pub fn topology(&self) -> &StickTopology { &self.topology }
 }

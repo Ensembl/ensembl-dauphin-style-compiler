@@ -25,7 +25,7 @@ mod metadata;
 mod misc;
 mod opcodemapping;
 
-pub use self::command::{ CommandDeserializer, CommandTypeId, InterpCommand, };
+pub use self::command::{ CommandDeserializer, CommandTypeId, AsyncBlock, InterpCommand, CommandResult };
 pub use self::commandsetid::{ CommandSetId };
 pub use self::deserializer::Deserializer;
 pub use self::interplibregister::InterpLibRegister;

@@ -15,6 +15,7 @@ crc="*"
 regex="*"
 chrono="*"
 users="*"
+futures="*"
 
 dauphin_interp = { path = "../dauphin-interp" }
 

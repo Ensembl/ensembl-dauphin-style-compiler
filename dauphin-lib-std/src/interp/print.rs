@@ -14,9 +14,10 @@
  *  limitations under the License.
  */
 
+use anyhow::{ anyhow as err, bail };
 use std::cell::Ref;
 use std::rc::Rc;
-use dauphin_interp::command::{ InterpCommand, InterpLibRegister, CommandDeserializer };
+use dauphin_interp::command::{ InterpCommand, InterpLibRegister, CommandDeserializer, CommandResult };
 use dauphin_interp::types::{ SharedVec, RegisterSignature, XStructure, RegisterVectorSource, VectorRegisters, to_xstructure };
 use dauphin_interp::runtime::{ InterpContext, InterpValue, InterpNatural, Register, RegisterFile };
 use dauphin_interp::util::DauphinError;
@@ -34,11 +35,11 @@ fn print_simple(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Result<
     let (data,offset) = vr_lookup_data(sv,path,first)?;
     Ok(match data.get_natural() {
         InterpNatural::Empty => "".to_string(),
-        InterpNatural::Indexes => format!("{}",data.to_rc_indexes()?.0[offset]),
-        InterpNatural::Numbers => format!("{}",data.to_rc_numbers()?.0[offset]),
-        InterpNatural::Boolean => format!("{}",data.to_rc_boolean()?.0[offset]),
-        InterpNatural::Strings => format!("\"{}\"",data.to_rc_strings()?.0[offset]),
-        InterpNatural::Bytes => format!("\'{}\'",data.to_rc_bytes()?.0[offset].iter().map(|x| format!("{:02x}",x)).collect::<Vec<_>>().join("")),
+        InterpNatural::Indexes => format!("{}",data.to_rc_indexes()?.0.get(offset).ok_or(err!("corrupt data 1"))?),
+        InterpNatural::Numbers => format!("{}",data.to_rc_numbers()?.0.get(offset).ok_or(err!("corrupt data 2"))?),
+        InterpNatural::Boolean => format!("{}",data.to_rc_boolean()?.0.get(offset).ok_or(err!("corrupt data 3"))?),
+        InterpNatural::Strings => format!("\"{}\"",data.to_rc_strings()?.0.get(offset).ok_or(err!("corrupt data 4"))?),
+        InterpNatural::Bytes => format!("\'{}\'",data.to_rc_bytes()?.0.get(offset).ok_or(err!("corrupt data 5"))?.iter().map(|x| format!("{:02x}",x)).collect::<Vec<_>>().join(""))
     })
 }
 
@@ -46,10 +47,12 @@ fn vr_lookup_data(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Resul
     let mut position = first;
     for (i,index) in path.iter().enumerate() {
         let offset_val = sv.get_offset(sv.depth()-1-i)?;
-        position = offset_val[position%offset_val.len()] + index;
+        if offset_val.len() == 0 { bail!("corrupt data 6") }
+        position = offset_val.get(position%offset_val.len()).ok_or(err!("corrupt data 7"))? + index;
     }
     let data = sv.get_data().clone();
     let data_len = data.len();
+    if data_len == 0 { bail!("corrupt data 8") }
     Ok((data,position%data_len))
 }
 
@@ -57,10 +60,10 @@ fn vr_lookup_len(sv: &SharedVec, path: &[usize], first: usize) -> anyhow::Result
     let mut position = first;
     for (i,index) in path.iter().enumerate() {
         let offset_val = sv.get_offset(sv.depth()-1-i)?;
-        position = offset_val[position] + index;
+        position = offset_val.get(position).ok_or(err!("corrupt data 10"))? + index;
     }
     let len_val = sv.get_length(sv.depth()-1-path.len())?;
-    Ok(len_val[position])
+    Ok(*len_val.get(position).ok_or(err!("corrupt data 9"))?)
 }
 
 fn longest(xs: &XStructure<SharedVec>) -> Ref<SharedVec> {
@@ -108,7 +111,7 @@ fn print(file: &RegisterFile, xs: &XStructure<SharedVec>, regs: &[Register], pat
 pub struct PrintInterpCommand(Register,Register,Register);
 
 impl InterpCommand for PrintInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers();
         let texts = registers.get_strings(&self.2)?;
         let yn = registers.get_boolean(&self.0)?;
@@ -122,7 +125,7 @@ impl InterpCommand for PrintInterpCommand {
                 std_stream(context)?.add(*level as u8,text);
             }
         }
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -140,7 +143,7 @@ impl CommandDeserializer for FormatDeserializer {
 pub struct FormatInterpCommand(Vec<Register>,RegisterSignature);
 
 impl InterpCommand for FormatInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let xs = to_xstructure(&self.1[1])?;
         let vs = RegisterVectorSource::new(&self.0);
         let xs2 = xs.derive(&mut (|vr: &VectorRegisters| SharedVec::new(context,&vs,vr)))?;
@@ -152,7 +155,7 @@ impl InterpCommand for FormatInterpCommand {
             out.push(print(&registers,&xs2,&self.0,&vec![],i)?);
         }
         registers.write(&self.0[0],InterpValue::Strings(out));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

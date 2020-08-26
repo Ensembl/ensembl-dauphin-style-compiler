@@ -75,7 +75,8 @@ impl BootstrapCommandResponse {
             slot: None,
             timeout: None,
             channel: self.channel.clone(),
-            program_name: self.name.to_string()
+            program_name: self.name.to_string(),
+            payloads: None
         }).await?;
         Ok(())
     }
@@ -124,8 +125,7 @@ mod test {
                 "responses": [
                     [0,0,[[0,urlc(2).to_string()],"boot"]]
                 ],
-                "programs": [],
-                "sticks": {}
+                "programs": []
             }
         },vec![]);
         h.channel.add_response(json! {
@@ -135,8 +135,7 @@ mod test {
                 ],
                 "programs": [
                     ["test","ok",{ "boot": "hello" }]
-                ],
-                "sticks": {}
+                ]
             }
         },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
@@ -173,8 +172,7 @@ mod test {
                 ],
                 "programs": [
                     ["test","ok",{ "boot": "hello" }]
-                ],
-                "sticks": {}
+                ]
             }
         },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
@@ -206,8 +204,7 @@ mod test {
                 ],
                 "programs": [
                     ["test","ok",{ "boot": "hello" }]
-                ],
-                "sticks": {}
+                ]
             }
         },vec![]);
         bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");

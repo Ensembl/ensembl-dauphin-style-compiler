@@ -16,7 +16,7 @@
 
 use std::fmt::Debug;
 use std::rc::Rc;
-use dauphin_interp::command::{ CommandDeserializer, InterpCommand, InterpLibRegister };
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{ Register };
 use dauphin_interp::types::{
     SharedVec, RegisterVectorSource, VectorRegisters,
@@ -105,13 +105,13 @@ impl CommandDeserializer for EqCompareDeserializer {
 pub struct EqCompareInterpCommand(VectorRegisters,VectorRegisters,Vec<Register>);
 
 impl InterpCommand for EqCompareInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let vs = RegisterVectorSource::new(&self.2);
         let a = SharedVec::new(context,&vs,&self.0)?;
         let b = SharedVec::new(context,&vs,&self.1)?;
         let result = compare(&a,&b)?;
         context.registers_mut().write(&self.2[0],InterpValue::Boolean(result));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -141,14 +141,14 @@ impl EqShallowInterpCommand {
 }
 
 impl InterpCommand for EqShallowInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let a_data = context.registers().get(&self.1);
         let b_data = context.registers().get(&self.2);
         let a_data = a_data.borrow().get_shared()?;
         let b_data = b_data.borrow().get_shared()?;
         let result = self.compare(&a_data,&b_data)?;
         context.registers_mut().write(&self.0,InterpValue::Boolean(result));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 
@@ -166,7 +166,7 @@ impl CommandDeserializer for AllDeserializer {
 pub struct AllInterpCommand(Vec<Register>);
 
 impl InterpCommand for AllInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let mut out = context.registers().get_boolean(&self.0[1])?.to_vec();
         for reg in &self.0[2..] {
             let more = context.registers().get_boolean(reg)?;
@@ -176,7 +176,7 @@ impl InterpCommand for AllInterpCommand {
             }
         }
         context.registers_mut().write(&self.0[0],InterpValue::Boolean(out));
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

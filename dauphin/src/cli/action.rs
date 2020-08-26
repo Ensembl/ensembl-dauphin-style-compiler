@@ -21,6 +21,7 @@ use std::collections::HashMap;
 use std::fs::{ write, read };
 use std::path::PathBuf;
 use std::process::exit;
+use futures::executor::block_on;
 use regex::Regex;
 use crate::suitebuilder::{ make_compiler_suite, make_interpret_suite };
 use dauphin_interp::command::{ InterpreterLink, CommandInterpretSuite };
@@ -170,7 +171,7 @@ impl Action for RunAction {
             let program = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
             let interpret_linker = InterpreterLink::new(&suite,&program).context("linking binary")?;
             let mut interp = interpreter(&mut context,&interpret_linker,&config,config.get_run()).expect("interpreter");
-            while interp.more().expect("interpreting") {}
+            while block_on(interp.more()).expect("interpreting") {}
         }
         context.finish();
         Ok(())
@@ -258,7 +259,7 @@ fn repl_run(repl_context: &mut ReplContext, context: &mut InterpContext, isuite:
     if let Some(program) = repl_context.generate_more().context("compiling")? {
         let interpret_linker = InterpreterLink::new(&isuite,&program).context("linking binary")?;
         let mut interp = interpreter(context,&interpret_linker,&config,"main").expect("interpreter");
-        while interp.more().expect("interpreting") {}
+        while block_on(interp.more()).expect("interpreting") {}
     }
     Ok(())
 }

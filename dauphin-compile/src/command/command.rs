@@ -21,8 +21,9 @@ use crate::command::{ Instruction, InstructionSuperType, CompilerLink };
 use crate::model::PreImageContext;
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_array, cbor_int };
-use dauphin_interp::command::{ Identifier, InterpCommand };
+use dauphin_interp::command::{ Identifier, InterpCommand, CommandResult };
 use dauphin_interp::runtime::Register;
+use futures::executor::block_on;
 use serde_cbor::Value as CborValue;
 
 #[derive(Eq,PartialEq,Hash,Clone,Debug)]
@@ -93,7 +94,12 @@ pub trait Command {
         Ok(match self.simple_preimage(context)? {
             PreImagePrepare::Replace => {
                 let ic = ic.ok_or_else(|| DauphinError::internal(file!(),line!()))?; /* cannot deserialize despite replace response */
-                ic.execute(context.context_mut())?;
+                match ic.execute(context.context_mut())? {
+                    CommandResult::SyncResult() => {},
+                    CommandResult::AsyncResult(asy) => {
+                        block_on(asy.execute(context.context_mut()))?;
+                    }
+                }
                 self.preimage_post(context)?
             },
             PreImagePrepare::Keep(sizes) => {

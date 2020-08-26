@@ -5,6 +5,7 @@ use crate::request::program::ProgramLoader;
 use crate::request::stickauthority::get_stick_authority;
 use super::stickauthority::StickAuthority;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
+use crate::core::{ Stick, StickId };
 use std::sync::{ Arc, Mutex };
 use crate::{ PgCommander, PgCommanderTaskSpec };
 
@@ -23,6 +24,10 @@ impl StickAuthorityStoreData {
         blackbox_log!("stickauthority","added stick authority channel={} startup={} lookup={}",
                         stickauthority.channel(),stickauthority.startup_program(),stickauthority.lookup_program());
         self.authorities.push(stickauthority);
+    }
+
+    fn each(&self) -> impl Iterator<Item=&StickAuthority> {
+        self.authorities.iter()
     }
 }
 
@@ -61,6 +66,17 @@ impl StickAuthorityStore {
         });
         Ok(())
     }
+
+    pub async fn lookup(&self, stick_id: StickId) -> anyhow::Result<Option<Stick>> {
+        // TODO async
+        let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
+        for a in &authorities {
+            if let Some(stick) = a.lookup(self.dauphin.clone(),self.loader.clone(),stick_id.clone()).await? {
+                return Ok(Some(stick));
+            }
+        }
+        Ok(None)
+    }
 }
 
 async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dauphin: PgDauphin, data: Arc<Mutex<StickAuthorityStoreData>>, channel: Channel) -> anyhow::Result<()> {
@@ -74,7 +90,8 @@ async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dau
         slot: None,
         timeout: None,
         channel: channel.clone(),
-        program_name
+        program_name,
+        payloads: None
     }).await?;
     loader.load_background(&channel,&lookup_name)?;
     Ok(())

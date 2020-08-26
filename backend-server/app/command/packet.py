@@ -27,17 +27,14 @@ def process_request(channel: Any, typ: int,payload: Any):
 def process_packet(packet_cbor: Any) -> Any:
     channel = packet_cbor["channel"]
     response = []
-    sticks = {}
     bundles = set()
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
         r = process_request(channel,typ,payload)
         response.append([msgid,r.typ,r.payload])
         bundles |= r.bundles
-        sticks.update(r.sticks)
     begs_files = data_accessor.begs_files
     return {
         "responses": response,
-        "programs": [ begs_files.add_bundle(x) for x in bundles ],
-        "sticks": sticks
+        "programs": [ begs_files.add_bundle(x) for x in bundles ]
     }

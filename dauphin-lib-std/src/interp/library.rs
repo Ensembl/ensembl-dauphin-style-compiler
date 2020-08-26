@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister };
+use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
@@ -41,7 +41,7 @@ impl CommandDeserializer for AssertDeserializer {
 pub struct AssertInterpCommand(Register,Register);
 
 impl InterpCommand for AssertInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<()> {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let a = &registers.get_boolean(&self.0)?;
         let b = &registers.get_boolean(&self.1)?;
@@ -50,7 +50,7 @@ impl InterpCommand for AssertInterpCommand {
                 return Err(DauphinError::runtime(&format!("assertion failed index={}!",i)));
             }
         }
-        Ok(())
+        Ok(CommandResult::SyncResult())
     }
 }
 

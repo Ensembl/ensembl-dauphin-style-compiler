@@ -22,7 +22,8 @@ pub struct PgDauphinTaskSpec {
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
     pub channel: Channel,
-    pub program_name: String
+    pub program_name: String,
+    pub payloads: Option<HashMap<String,Box<dyn Any>>>
 }
 
 struct PgDauphinData {
@@ -95,7 +96,7 @@ impl PgDauphin {
         let data = lock!(self.0);
         let (bundle_name,in_bundle_name) = data.names.get(&(spec.channel.to_string(),spec.program_name.to_string())).as_ref().unwrap().as_ref()
             .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name))?.to_owned();
-        let mut payloads : HashMap<String,Box<dyn Any>> = HashMap::new();
+        let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
         payloads.insert("channel".to_string(),Box::new(spec.channel.clone()));
         let pdq = data.pdq.clone();
         drop(data);

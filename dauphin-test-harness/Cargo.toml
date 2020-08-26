@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "*"
+futures = "*"
 serde_cbor = "*"
 dauphin_compile = { path = "../dauphin-compile" }
 dauphin_interp = { path = "../dauphin-interp" }

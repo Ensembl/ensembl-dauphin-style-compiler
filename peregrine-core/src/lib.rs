@@ -33,6 +33,7 @@ mod request {
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
     pub use self::program::{ ProgramLoader };
     pub use self::manager::RequestManager;
+    pub use self::stick::get_stick;
 }
 
 mod run {
@@ -73,5 +74,5 @@ mod test {
 pub use self::core::{ Stick, StickId };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager };
+pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, get_stick };
 pub use self::run::PgCore;

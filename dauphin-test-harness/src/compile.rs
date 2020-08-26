@@ -16,6 +16,7 @@
 
 use anyhow::{ self, Context };
 use dauphin_interp::util::{ DauphinError };
+use futures::executor::block_on;
 use std::time::{ SystemTime, Duration };
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -64,7 +65,7 @@ pub fn comp_interpret(is: &CommandInterpretSuite, context: &mut InterpContext, c
 
 pub fn interpret(context: &mut InterpContext, interpret_linker: &InterpreterLink, config: &Config, name: &str) -> anyhow::Result<()> {
     let mut interp = interpreter(context,interpret_linker,config,name)?;
-    while interp.more()? {}
+    while block_on(interp.more())? {}
     Ok(())
 }
 
