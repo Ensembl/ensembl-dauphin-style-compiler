@@ -1,8 +1,8 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-notice("stick authority lookup");
-notice(get_stick_id());
-x := get_stick_data("self()",get_stick_id());
-notice(format(x));
+notice("stick authority lookup 2020-08-26 20:45");
 
+stick := get_stick_data("self()",get_stick_id());
+stick.tags := push(stick.tags,"extra");
+add_stick(stick);

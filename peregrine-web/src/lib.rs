@@ -53,15 +53,15 @@ impl PeregrineWeb {
         let console = PgConsoleWeb::new(60,60.);
         let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
         let mut manager = RequestManager::new(PgChannel::new(Box::new(console.clone())),&commander);
-        let stick_store = StickStore::new(&commander,&manager,&Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq)?;
         let loader = ProgramLoader::new(&commander,&manager,&dauphin)?;
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store);
+        let stick_store = StickStore::new(&commander,&stick_authority_store)?;
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store);
         manager.add_receiver(Box::new(dauphin.clone()));
         let mut out = PeregrineWeb {
-            core: PgCore::new(&commander,&dauphin,&manager,&stick_authority_store)?,
+            core: PgCore::new(&commander,&dauphin,&manager,&stick_store)?,
             stick_store: stick_store.clone()
         };
         out.setup()?;
@@ -87,12 +87,12 @@ impl PeregrineWeb {
     }
 }
 
-async fn test(core: PgCore, stick_store: StickStore) -> anyhow::Result<()> {
+async fn test(core: PgCore) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
     cdr_timer(5000.).await;
-    let tags = core.stick_authority_store.lookup(StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.map(|x| x.tags().clone()).unwrap_or(HashSet::new());
+    let tags = core.stick_store.get(&StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.as_ref().as_ref().map(|x| x.tags().clone()).unwrap_or(HashSet::new());
     cdr_timer(1000.).await;
     el.set_inner_html(&format!("{:?}",tags));
     Ok(())
@@ -101,7 +101,7 @@ async fn test(core: PgCore, stick_store: StickStore) -> anyhow::Result<()> {
 fn test_fn() -> anyhow::Result<()> {
     let mut pg_web = js_throw(PeregrineWeb::new());
     pg_web.core.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
-    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.core.clone(),pg_web.stick_store.clone())));
+    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.core.clone())));
     Ok(())
 }
 

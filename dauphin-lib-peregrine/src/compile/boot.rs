@@ -98,4 +98,42 @@ impl CommandType for GetStickDataCommandType {
     }
 }
 
+/*                         0: name  1: size  2: topo  3:tags/D 4: tags/A0 5: tags/B0  */
+pub struct AddStickCommand(Register,Register,Register,Register,Register,Register);
 
+impl Command for AddStickCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![
+            self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize(),
+            self.4.serialize(),self.5.serialize()
+        ]))
+    }
+}
+
+pub struct AddStickCommandType();
+
+impl CommandType for AddStickCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 6,
+            trigger: CommandTrigger::Command(Identifier::new("peregrine","add_stick"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            let mut xs_kv : HashMap<String,Rc<XStructure<Vec<usize>>>> = HashMap::new();
+            xs_kv.insert("name".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![0])))));
+            xs_kv.insert("size".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![1])))));
+            xs_kv.insert("topology".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![2])))));
+            xs_kv.insert("tags".to_string(),Rc::new(XStructure::Vector(Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![3,4,5])))))));
+            let xs = XStructure::Struct(Identifier::new("peregrine","stick"),xs_kv);
+            let mut pos = [0,0,0,0,0,0];
+            map_xstructure(&mut pos,&to_xstructure(&sig[0])?,&xs)?;
+            let regs : Vec<_> = pos.iter().map(|x| it.regs[*x]).collect();
+            Ok(Box::new(AddStickCommand(regs[0],regs[1],regs[2],regs[3],regs[4],regs[5])))
+        } else {
+            Err(DauphinError::internal(file!(),line!()))
+        }
+    }
+}

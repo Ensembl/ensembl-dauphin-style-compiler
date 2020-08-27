@@ -18,10 +18,11 @@ use std::any::Any;
 use blackbox::{ blackbox_log };
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_core::{ StickAuthorityStore, RequestManager };
+use peregrine_core::{ StickAuthorityStore, StickStore, RequestManager };
 
 pub struct PeregrinePayload {
     sas: StickAuthorityStore,
+    ss: StickStore,
     manager: RequestManager
 }
 
@@ -32,27 +33,31 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(sas: &StickAuthorityStore, manager: &RequestManager) -> PeregrinePayload {
+    fn new(sas: &StickAuthorityStore, ss: &StickStore, manager: &RequestManager) -> PeregrinePayload {
         PeregrinePayload {
             sas: sas.clone(),
+            ss: ss.clone(),
             manager: manager.clone()
         }
     }
 
     pub fn stick_authority_store(&self) -> &StickAuthorityStore { &self.sas }
+    pub fn stick_store(&self) -> &StickStore { &self.ss }
     pub fn manager(&self) -> &RequestManager { &self.manager }
 }
 
 #[derive(Clone)]
 pub struct PeregrinePayloadFactory {
     manager: RequestManager,
+    ss: StickStore,
     sas: StickAuthorityStore
 }
 
 impl PeregrinePayloadFactory {
-    pub fn new(manager: &RequestManager, sas: &StickAuthorityStore) -> PeregrinePayloadFactory {
+    pub fn new(manager: &RequestManager, ss: &StickStore, sas: &StickAuthorityStore) -> PeregrinePayloadFactory {
         PeregrinePayloadFactory {
             manager: manager.clone(),
+            ss: ss.clone(),
             sas: sas.clone()
         }
     }
@@ -60,10 +65,10 @@ impl PeregrinePayloadFactory {
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.sas,&self.manager))
+        Box::new(PeregrinePayload::new(&self.sas,&self.ss,&self.manager))
     }
 }
 
-pub fn add_peregrine_payloads(dauphin: &mut Dauphin, manager: &RequestManager, sas: &StickAuthorityStore) {
-    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(manager,sas)))
+pub fn add_peregrine_payloads(dauphin: &mut Dauphin, manager: &RequestManager, ss: &StickStore, sas: &StickAuthorityStore) {
+    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(manager,ss,sas)))
 }

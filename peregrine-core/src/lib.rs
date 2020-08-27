@@ -2,7 +2,7 @@ mod core {
     pub mod focus;
     pub mod stick;
     pub mod track;
-    pub use stick::{ StickId, Stick };
+    pub use stick::{ StickId, Stick, StickTopology };
 }
 
 mod index {
@@ -33,7 +33,7 @@ mod request {
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
     pub use self::program::{ ProgramLoader };
     pub use self::manager::RequestManager;
-    pub use self::stick::get_stick;
+    pub use self::stick::issue_stick_request;
 }
 
 mod run {
@@ -52,6 +52,8 @@ mod run {
 
 mod util {
     pub mod cbor;
+    pub mod fuse;
+    pub mod memoized;
     pub mod singlefile;
     pub mod unlock;
 }
@@ -71,8 +73,8 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::core::{ Stick, StickId };
+pub use self::core::{ Stick, StickId, StickTopology };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, get_stick };
+pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;

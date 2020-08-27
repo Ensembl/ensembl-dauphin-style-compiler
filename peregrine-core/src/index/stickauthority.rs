@@ -29,7 +29,7 @@ impl StickAuthority {
     pub fn startup_program(&self) -> &str { &self.startup_program_name }
     pub fn lookup_program(&self) -> &str { &self.resolution_program_name }
 
-    pub async fn lookup(&self, dauphin: PgDauphin, loader: ProgramLoader, id: StickId) -> anyhow::Result<Option<Stick>> {
+    pub async fn try_lookup(&self, dauphin: PgDauphin, loader: ProgramLoader, id: StickId) -> anyhow::Result<()> {
         let mut payloads = HashMap::new();
         payloads.insert("stick_id".to_string(),Box::new(id) as Box<dyn Any>);
         dauphin.run_program(&loader,PgDauphinTaskSpec {
@@ -40,6 +40,6 @@ impl StickAuthority {
             program_name: self.resolution_program_name.clone(),
             payloads: Some(payloads)
         }).await?;
-        Ok(None)
+        Ok(())
     }
 }

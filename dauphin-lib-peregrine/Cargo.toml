@@ -28,3 +28,7 @@ path="../blackbox"
 [dependencies.peregrine_core]
 version="*"
 path="../peregrine-core"
+
+[dependencies.web-sys]
+version="*"
+features=["console"]

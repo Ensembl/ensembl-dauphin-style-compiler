@@ -1,3 +1,4 @@
+use anyhow::bail;
 use std::collections::HashSet;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
@@ -18,6 +19,14 @@ pub enum StickTopology {
 }
 
 impl StickTopology {
+    pub fn from_number(n: u8) -> anyhow::Result<StickTopology> {
+        Ok(match n {
+            0 => StickTopology::Linear,
+            1 => StickTopology::Circular,
+            _ => bail!("bad topology number")
+        })
+    }
+
     pub fn to_number(&self) -> u8 {
         match self {
             StickTopology::Linear => 0,

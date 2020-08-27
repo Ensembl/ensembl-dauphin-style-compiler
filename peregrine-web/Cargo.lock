@@ -105,6 +105,7 @@ dependencies = [
  "peregrine_core 0.1.0",
  "serde_cbor 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 2.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys 0.3.44 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

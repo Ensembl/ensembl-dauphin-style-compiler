@@ -1,6 +1,6 @@
 use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
-use peregrine_core::{ PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager };
+use peregrine_core::{ PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager, StickStore };
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
 use dauphin_lib_std::make_std_interp;
@@ -75,10 +75,10 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, commander: PgCommander, pdq: PgDauphinQueue, manager: RequestManager, sas: StickAuthorityStore) -> anyhow::Result<()> {
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, commander: PgCommander, pdq: PgDauphinQueue, manager: RequestManager, sas: StickAuthorityStore, ss: StickStore) -> anyhow::Result<()> {
     let mut dauphin = Dauphin::new(command_suite()?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&manager,&sas);
+    add_peregrine_payloads(&mut dauphin,&manager,&ss,&sas);
     loop {
         let e = pdq.get().await;
         match e.task {
@@ -88,13 +88,13 @@ async fn main_loop(integration: Box<dyn PgDauphinIntegration>, commander: PgComm
     }
 }
 
-pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, commander: &PgCommander, pdq: &PgDauphinQueue, manager: &RequestManager, sas: &StickAuthorityStore) {
+pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, commander: &PgCommander, pdq: &PgDauphinQueue, manager: &RequestManager, sas: &StickAuthorityStore, ss: &StickStore) {
     commander.add_task(PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,commander.clone(),pdq.clone(),manager.clone(),sas.clone()))
+        task: Box::pin(main_loop(integration,commander.clone(),pdq.clone(),manager.clone(),sas.clone(),ss.clone()))
     });
 
 }

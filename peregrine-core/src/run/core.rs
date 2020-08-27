@@ -9,27 +9,27 @@ use crate::request::bootstrap::bootstrap;
 use crate::request::manager::RequestManager;
 use crate::request::program::ProgramLoader;
 use crate::request::channel::Channel;
-use crate::index::StickAuthorityStore;
+use crate::index::StickStore;
 
 #[derive(Clone)]
 pub struct PgCore {
     // XXX pub
     pub loader: ProgramLoader,
-    pub stick_authority_store: StickAuthorityStore,
+    pub stick_store: StickStore,
     pub manager: RequestManager,
     pub commander: PgCommander,
     pub dauphin: PgDauphin
 }
 
 impl PgCore {
-    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, sas: &StickAuthorityStore) -> anyhow::Result<PgCore> {
+    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore) -> anyhow::Result<PgCore> {
         let loader = ProgramLoader::new(&commander,manager,&dauphin)?;
         Ok(PgCore {
             loader,
             manager: manager.clone(),
             commander: commander.clone(),
             dauphin: dauphin.clone(),
-            stick_authority_store: sas.clone()
+            stick_store: ss.clone()
         })
     }
 

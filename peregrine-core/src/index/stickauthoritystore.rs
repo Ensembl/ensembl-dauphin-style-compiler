@@ -67,15 +67,12 @@ impl StickAuthorityStore {
         Ok(())
     }
 
-    pub async fn lookup(&self, stick_id: StickId) -> anyhow::Result<Option<Stick>> {
-        // TODO async
+    pub async fn try_lookup(&self, stick_id: StickId) -> anyhow::Result<()> {
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            if let Some(stick) = a.lookup(self.dauphin.clone(),self.loader.clone(),stick_id.clone()).await? {
-                return Ok(Some(stick));
-            }
+            a.try_lookup(self.dauphin.clone(),self.loader.clone(),stick_id.clone()).await.unwrap_or(());
         }
-        Ok(None)
+        Ok(())
     }
 }
 

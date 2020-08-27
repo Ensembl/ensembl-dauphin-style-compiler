@@ -71,7 +71,7 @@ impl ResponseBuilderType for StickResponseBuilderType {
     }
 }
 
-pub async fn get_stick(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<Stick> {
+pub async fn issue_stick_request(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<Stick> {
     let req = StickCommandRequest::new(&name);
     req.execute(&channel,&mut manager).await
 }

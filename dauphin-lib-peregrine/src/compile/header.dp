@@ -11,3 +11,4 @@ struct stick {
 };
 
 func get_stick_data(string,string) becomes stick;
+proc add_stick(stick);

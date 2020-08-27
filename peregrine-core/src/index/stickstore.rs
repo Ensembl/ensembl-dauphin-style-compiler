@@ -7,63 +7,49 @@ use std::pin::Pin;
 use std::rc::Rc;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use anyhow::bail;
+use crate::index::StickAuthorityStore;
 use crate::util::singlefile::SingleFile;
-use crate::request::stick::get_stick;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::request::packet::ResponsePacket;
+use crate::request::stick::issue_stick_request;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use crate::util::memoized::Memoized;
 
 #[derive(Clone)]
 pub struct StickStore {
-    single_file: SingleFile<StickId,()>,
-    store: Arc<Mutex<HashMap<StickId,Option<Stick>>>>
+    store: Memoized<StickId,Option<Stick>>
 }
 
 impl StickStore {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, channel: &Channel) -> anyhow::Result<StickStore> {
-        let store = Arc::new(Mutex::new(HashMap::new()));
-        let channel = channel.clone();
-        let manager2 = manager.clone();
-        let store2 = store.clone();
+    pub fn new(commander: &PgCommander, sas: &StickAuthorityStore) -> anyhow::Result<StickStore> {
+        let commander = commander.clone();
+        let sas = sas.clone();
         Ok(StickStore {
-            single_file: SingleFile::new(commander,move |stick_id : &StickId| {
-                let manager = manager2.clone();
+            store: Memoized::new(move |stick_id: &StickId, result| {
                 let stick_id = stick_id.clone();
-                let channel = channel.clone();
-                let store = store2.clone();
-                PgCommanderTaskSpec {
-                    name: format!("stick-loader-{}-{}",channel,stick_id.get_id()),
+                let sas = sas.clone();
+                commander.add_task(PgCommanderTaskSpec {
+                    name: format!("stick-loader-{}",stick_id.get_id()),
                     prio: 3,
                     timeout: None,
                     slot: None,
                     task: Box::pin(async move {
-                        let stick = get_stick(manager,channel.clone(),stick_id.clone()).await.ok();
-                        lock!(store).insert(stick_id.clone(),stick);
+                        sas.try_lookup(stick_id).await.unwrap_or(());
+                        result.resolve(None);
                         Ok(())
                     })
-                }
-            }),
-            store
+                })
+            })
         })
     }
 
-    pub(crate) fn add(&self, id: &StickId, stick: Option<&Stick>) {
-        lock!(self.store).insert(id.clone(),stick.cloned());
+    pub fn add(&self, key: StickId, value: Option<Stick>) {
+        self.store.add(key,value);
     }
 
-    pub async fn lookup(&self, id: &StickId) -> anyhow::Result<Option<Stick>> {
-        let stick = lock!(self.store).get(id).cloned();
-        if let Some(stick) = stick {
-            Ok(stick.clone())
-        } else {
-            self.single_file.request(id.clone()).await?;
-            if let Some(stick) = lock!(self.store).get(id) {
-                Ok(stick.clone())
-            } else {
-                bail!(format!("unexpected failure retrieving stick {}",id.get_id()));
-            }
-        }
+    pub async fn get(&self, key: &StickId) -> anyhow::Result<Arc<Option<Stick>>> {
+        self.store.get(key).await
     }
 }

@@ -1,12 +1,8 @@
 use dauphin_interp::command::{ CommandSetId, CommandDeserializer, InterpLibRegister };
-use dauphin_interp::runtime::{ InterpContext, Register };
-use dauphin_interp::util::DauphinError;
-use dauphin_interp::util::templates::NoopDeserializer;
-use serde_cbor::Value as CborValue;
-use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer };
+use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0xF46A437CCCFD5602)
+    CommandSetId::new("peregrine",(0,0),0xE4F0C0276A75C1A9)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -14,5 +10,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AddStickAuthorityDeserializer());
     set.push(GetStickIdDeserializer());
     set.push(GetStickDataDeserializer());
+    set.push(AddStickDeserializer());
     set
 }

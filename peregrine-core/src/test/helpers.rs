@@ -2,7 +2,7 @@ use std::future::Future;
 use std::rc::Rc;
 use super::integrations::{ TestCommander, TestChannelIntegration, TestConsole, FakeDauphinReceiver };
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
-use crate::{ Channel, ChannelLocation, ProgramLoader, StickStore };
+use crate::{ Channel, ChannelLocation, ProgramLoader, StickStore, StickAuthorityStore };
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
 use url::Url;
@@ -26,11 +26,12 @@ impl TestHelpers {
         let commander_inner = TestCommander::new(&console);
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
         let mut manager = RequestManager::new(channel.clone(),&commander);
-        let stick_store = StickStore::new(&commander,&manager,&Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://a.com/1").expect("e")))).expect("f"); // XXX
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq).expect("d");
         let fdr = FakeDauphinReceiver::new(&commander,&pdq);
         let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
+        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
+        let stick_store = StickStore::new(&commander,&stick_authority_store);
         manager.add_receiver(Box::new(dauphin.clone()));
         TestHelpers {
             console, channel, dauphin, commander_inner, commander,
