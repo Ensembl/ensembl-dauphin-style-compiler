@@ -23,7 +23,7 @@ pub struct PgCore {
 
 impl PgCore {
     pub fn new(commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore) -> anyhow::Result<PgCore> {
-        let loader = ProgramLoader::new(&commander,manager,&dauphin)?;
+        let loader = ProgramLoader::new(&commander,manager,&dauphin);
         Ok(PgCore {
             loader,
             manager: manager.clone(),

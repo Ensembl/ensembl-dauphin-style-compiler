@@ -55,7 +55,7 @@ impl PeregrineWeb {
         let mut manager = RequestManager::new(PgChannel::new(Box::new(console.clone())),&commander);
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq)?;
-        let loader = ProgramLoader::new(&commander,&manager,&dauphin)?;
+        let loader = ProgramLoader::new(&commander,&manager,&dauphin);
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
         let stick_store = StickStore::new(&commander,&stick_authority_store)?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store);

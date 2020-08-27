@@ -29,7 +29,7 @@ impl TestHelpers {
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq).expect("d");
         let fdr = FakeDauphinReceiver::new(&commander,&pdq);
-        let loader = ProgramLoader::new(&commander,&manager,&dauphin).expect("c");
+        let loader = ProgramLoader::new(&commander,&manager,&dauphin);
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
         let stick_store = StickStore::new(&commander,&stick_authority_store);
         manager.add_receiver(Box::new(dauphin.clone()));

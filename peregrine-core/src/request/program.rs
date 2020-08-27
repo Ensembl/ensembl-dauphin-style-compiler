@@ -7,7 +7,7 @@ use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
-use crate::util::singlefile::SingleFile;
+use crate::util::memoized::Memoized;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
@@ -108,40 +108,45 @@ async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: 
     req.execute(&mut manager,&dauphin).await
 }
 
-struct ProgramLoaderData {
-    single_file: SingleFile<(Channel,String),()>
+#[derive(Clone)]
+pub struct ProgramLoader {
+    store: Memoized<(Channel,String),()>,
+    manager: RequestManager
 }
 
-#[derive(Clone)]
-pub struct ProgramLoader(Arc<Mutex<ProgramLoaderData>>,RequestManager);
-
 impl ProgramLoader {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, dauphin: &PgDauphin) -> anyhow::Result<ProgramLoader> {
-        let manager2 = manager.clone();
-        let dauphin2 = dauphin.clone();
-        let out = ProgramLoader(Arc::new(Mutex::new(ProgramLoaderData {
-            single_file: SingleFile::new(commander,move |(channel,name) : &(Channel,String)| {
-                let manager = manager2.clone();
-                let dauphin = dauphin2.clone();
-                PgCommanderTaskSpec {
+    pub fn new(commander: &PgCommander, manager: &RequestManager, dauphin: &PgDauphin) -> ProgramLoader {
+        let manager = manager.clone();
+        let dauphin = dauphin.clone();
+        let commander = commander.clone();
+        ProgramLoader {
+            manager: manager.clone(),
+            store: Memoized::new(move |key: &(Channel,String),result| {
+                let (channel,name) = (key.0.clone(),key.1.clone());
+                let manager = manager.clone();
+                let dauphin = dauphin.clone();
+                commander.add_task(PgCommanderTaskSpec {
                     name: format!("program-loader-{}-{}",channel,name),
                     prio: 3,
                     timeout: None,
                     slot: None,
-                    task: Box::pin(load_program(manager,dauphin,channel.clone(),name.to_string()))
-                }
+                    task: Box::pin(async move {
+                        load_program(manager,dauphin,channel,name).await.unwrap_or(());
+                        result.resolve(());
+                        Ok(())
+                    })
+                })
             })
-        })),
-        manager.clone());
-        Ok(out)
+        }
     }
 
     pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        lock!(self.0).single_file.request((channel.clone(),name.to_string())).await
+        self.store.get(&(channel.clone(),name.to_string())).await.unwrap_or(Arc::new(()));
+        Ok(())
     }
 
     pub fn load_background(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.1.execute_background(channel,Box::new(ProgramCommandRequest::new(channel,name)))
+        self.manager.execute_background(channel,Box::new(ProgramCommandRequest::new(channel,name)))
     }
 }
 

@@ -7,7 +7,6 @@ use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId };
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
-use crate::util::singlefile::SingleFile;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;

@@ -1,4 +1,3 @@
-
 use crate::lock;
 use std::sync::{ Arc, Mutex };
 use std::collections::HashMap;
@@ -8,7 +7,6 @@ use std::rc::Rc;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use anyhow::bail;
 use crate::index::StickAuthorityStore;
-use crate::util::singlefile::SingleFile;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::request::packet::ResponsePacket;

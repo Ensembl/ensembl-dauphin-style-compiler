@@ -54,7 +54,6 @@ mod util {
     pub mod cbor;
     pub mod fuse;
     pub mod memoized;
-    pub mod singlefile;
     pub mod unlock;
 }
 
