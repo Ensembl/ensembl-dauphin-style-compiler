@@ -13,6 +13,7 @@ compile = ["dauphin_compile"]
 anyhow="*"
 serde_cbor="*"
 url="*"
+owning_ref="*"
 
 dauphin_interp = { path = "../dauphin-interp" }
 dauphin_compile = { path = "../dauphin-compile", optional = true }

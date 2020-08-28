@@ -146,7 +146,7 @@ impl ProgramLoader {
     }
 
     pub fn load_background(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.manager.execute_background(channel,Box::new(ProgramCommandRequest::new(channel,name)))
+        self.store.get_no_wait(&(channel.clone(),name.to_string()))
     }
 }
 

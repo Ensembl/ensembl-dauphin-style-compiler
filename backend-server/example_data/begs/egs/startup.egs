@@ -1,4 +1,10 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-notice("stick authority startup");
+notice("stick authority startup 2020-08-28 02:32");
+
+p := panel_new();
+panel_add_tag(p,"local");
+panel_add_track(p,"gene");
+panel_set_scale(p,10,12);
+panel_apply(p,"self()","hello");

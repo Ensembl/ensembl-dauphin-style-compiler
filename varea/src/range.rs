@@ -65,7 +65,6 @@ pub struct RTreeNodeVareaWalker(Rc<RefCell<BTreeMap<VareaId,RTreeRange>>>,RTreeR
 impl VareaWalker for RTreeNodeVareaWalker {
     fn next_from(&self, start: VareaId) -> Option<VareaId> {
         self.0.borrow().range(start..).filter(|(_,r)| {
-            print!("  cand ({},{}) against ({},{}) {}||{}\n",r.0,r.1,(self.1).0,(self.1).1,r.1 <= (self.1).0,r.0 >= (self.1).1);
             !(r.1 <= (self.1).0 || r.0 >= (self.1).1)
         }).map(|(k,_)| k).next().cloned()
     }
@@ -129,7 +128,7 @@ impl VareaIndex for RTree {
         if let Ok(r) = item.into_any().downcast::<RTreeRange>() {
             let slot = self.slot(r.0,r.1);
             while slot >= self.levels.len() as u32 {
-                self.levels.push(RTreeLevel::new(self.levels.len() as u32));
+                self.levels.push(RTreeLevel::new(self.levels.len() as u32 + self.merge));
             }
             Box::new(self.levels[slot as usize].add(&r,*id))
         } else {

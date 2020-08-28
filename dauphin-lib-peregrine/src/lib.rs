@@ -14,20 +14,29 @@
  *  limitations under the License.
  */
 
+mod util;
+
 /* interp */
 mod interp {
     mod boot;
+    mod panel;
     pub mod library;
 }
 pub use interp::library::make_peregrine_interp;
 
-mod payload;
-pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
+mod payloads {
+    mod panelbuilder;
+    mod payload;
+    pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
+}
+
+pub use payloads::add_peregrine_payloads;
 
 /* compile */
 #[cfg(any(feature = "compile",test))]
 mod compile {
     mod boot;
+    mod panel;
     pub mod library;
 }
 

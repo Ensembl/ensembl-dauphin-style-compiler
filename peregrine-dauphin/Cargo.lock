@@ -106,6 +106,7 @@ dependencies = [
  "anyhow",
  "blackbox",
  "dauphin_interp",
+ "owning_ref",
  "peregrine_core",
  "serde_cbor",
  "url",

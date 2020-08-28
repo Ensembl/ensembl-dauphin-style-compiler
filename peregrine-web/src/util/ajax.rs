@@ -1,7 +1,6 @@
-use std::future::Future;
 use anyhow::{ self, Context };
 use wasm_bindgen::{ JsCast, JsValue };
-use js_sys::{ Array, Uint8Array };
+use js_sys::{ Uint8Array };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys;

@@ -4,32 +4,37 @@ use super::pgdauphin::{ PgDauphin };
 use std::future::Future;
 use std::pin::Pin;
 use commander::{ RunSlot };
-use serde_cbor::Value as CborValue;
+use crate::PanelProgram;
 use crate::request::bootstrap::bootstrap;
 use crate::request::manager::RequestManager;
 use crate::request::program::ProgramLoader;
 use crate::request::channel::Channel;
 use crate::index::StickStore;
+use crate::util::miscpromises::CountingPromise;
 
 #[derive(Clone)]
 pub struct PgCore {
     // XXX pub
+    pub booted: CountingPromise,
     pub loader: ProgramLoader,
     pub stick_store: StickStore,
     pub manager: RequestManager,
     pub commander: PgCommander,
-    pub dauphin: PgDauphin
+    pub dauphin: PgDauphin,
+    pub panel_program: PanelProgram
 }
 
 impl PgCore {
-    pub fn new(commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore) -> anyhow::Result<PgCore> {
+    pub fn new(booted: &CountingPromise, commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore, pp: &PanelProgram) -> anyhow::Result<PgCore> {
         let loader = ProgramLoader::new(&commander,manager,&dauphin);
         Ok(PgCore {
-            loader,
+            loader, 
+            booted: booted.clone(),
             manager: manager.clone(),
             commander: commander.clone(),
             dauphin: dauphin.clone(),
-            stick_store: ss.clone()
+            stick_store: ss.clone(),
+            panel_program: pp.clone()
         })
     }
 
@@ -42,6 +47,6 @@ impl PgCore {
     }
 
     pub fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {
-        bootstrap(&self.manager,&self.loader,&self.commander,&self.dauphin,channel)
+        bootstrap(&self.manager,&self.loader,&self.commander,&self.dauphin,channel,&self.booted)
     }
 }

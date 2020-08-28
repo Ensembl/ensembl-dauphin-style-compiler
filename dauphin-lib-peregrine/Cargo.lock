@@ -193,6 +193,7 @@ dependencies = [
  "dauphin_compile",
  "dauphin_interp",
  "dauphin_test_harness",
+ "owning_ref",
  "peregrine_core",
  "serde_cbor",
  "url",

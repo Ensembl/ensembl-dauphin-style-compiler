@@ -1,3 +1,4 @@
+use crate::simple_command;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -10,51 +11,8 @@ use dauphin_interp::types::{ to_xstructure, XStructure, map_xstructure };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
-pub struct AddStickAuthorityCommand(Register);
-
-impl Command for AddStickAuthorityCommand {
-    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
-        Ok(Some(vec![self.0.serialize()]))
-    }
-}
-
-pub struct AddStickAuthorityCommandType();
-
-impl CommandType for AddStickAuthorityCommandType {
-    fn get_schema(&self) -> CommandSchema {
-        CommandSchema {
-            values: 1,
-            trigger: CommandTrigger::Command(Identifier::new("peregrine","add_stick_authority"))
-        }
-    }
-
-    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
-        Ok(Box::new(AddStickAuthorityCommand(it.regs[0])))
-    }
-}
-
-pub struct GetStickIdCommand(Register);
-
-impl Command for GetStickIdCommand {
-    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
-        Ok(Some(vec![self.0.serialize()]))
-    }
-}
-
-pub struct GetStickIdCommandType();
-
-impl CommandType for GetStickIdCommandType {
-    fn get_schema(&self) -> CommandSchema {
-        CommandSchema {
-            values: 1,
-            trigger: CommandTrigger::Command(Identifier::new("peregrine","get_stick_id"))
-        }
-    }
-
-    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
-        Ok(Box::new(GetStickIdCommand(it.regs[0])))
-    }
-}
+simple_command!(AddStickAuthorityCommand,AddStickAuthorityCommandType,"peregrine","add_stick_authority",1,(0));
+simple_command!(GetStickIdCommand,GetStickIdCommandType,"peregrine","get_stick_id",1,(0));
 
 /*                             0: name  1: size  2: topo  3:tags/D 4: tags/A0 5: tags/B0 6: channel 7: id */
 pub struct GetStickDataCommand(Register,Register,Register,Register,Register,Register,Register,Register);

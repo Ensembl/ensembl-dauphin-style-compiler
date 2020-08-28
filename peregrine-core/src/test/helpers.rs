@@ -2,7 +2,7 @@ use std::future::Future;
 use std::rc::Rc;
 use super::integrations::{ TestCommander, TestChannelIntegration, TestConsole, FakeDauphinReceiver };
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
-use crate::{ Channel, ChannelLocation, ProgramLoader, StickStore, StickAuthorityStore };
+use crate::{ Channel, ChannelLocation, ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
 use url::Url;
@@ -21,6 +21,7 @@ pub struct TestHelpers {
 
 impl TestHelpers {
     pub(crate) fn new() -> TestHelpers {
+        let booted = CountingPromise::new();
         let console = TestConsole::new();
         let channel = TestChannelIntegration::new(&console);
         let commander_inner = TestCommander::new(&console);
@@ -31,7 +32,7 @@ impl TestHelpers {
         let fdr = FakeDauphinReceiver::new(&commander,&pdq);
         let loader = ProgramLoader::new(&commander,&manager,&dauphin);
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
-        let stick_store = StickStore::new(&commander,&stick_authority_store);
+        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted);
         manager.add_receiver(Box::new(dauphin.clone()));
         TestHelpers {
             console, channel, dauphin, commander_inner, commander,

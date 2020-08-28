@@ -1,9 +1,11 @@
-#[derive(Clone)]
+use std::fmt;
+
+#[derive(Clone,Debug)]
 pub struct Scale(u64);
 
 impl Scale {
     pub fn new(scale: u64) -> Scale {
-        Scale::new(scale)
+        Scale(scale)
     }
 
     /* direction-agnostic next scale, eg for ranges */

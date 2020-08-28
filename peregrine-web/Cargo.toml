@@ -19,6 +19,7 @@ fnv="*"
 base64="*"
 async-trait="*"
 url="*"
+console_error_panic_hook="*"
 
 [dependencies.wasm-bindgen]
 version="*"

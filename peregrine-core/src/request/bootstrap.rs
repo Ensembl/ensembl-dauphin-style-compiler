@@ -12,6 +12,7 @@ use super::manager::RequestManager;
 use super::program::ProgramLoader;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::backoff::Backoff;
+use crate::util::miscpromises::CountingPromise;
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
@@ -93,7 +94,8 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel) -> anyhow::Result<()> {
+pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) -> anyhow::Result<()> {
+    let booted_promise = booted_promise.clone();
     let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
     let boot_proc = req.execute(requests.clone());
     commander.add_task(PgCommanderTaskSpec {
@@ -101,11 +103,14 @@ pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &
         prio: 4,
         slot: None,
         timeout: None,
-        task: Box::pin(boot_proc)
+        task: Box::pin(async move {
+            boot_proc.await.unwrap_or(());
+            booted_promise.unlock();
+            Ok(())
+        })
     });
     Ok(())
 }
-
 
 
 #[cfg(test)]
@@ -138,7 +143,8 @@ mod test {
                 ]
             }
         },vec![]);
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        let booted = CountingPromise::new();
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
         h.run(30);
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
@@ -175,7 +181,8 @@ mod test {
                 ]
             }
         },vec![]);
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        let booted = CountingPromise::new();
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
         h.run(30);
         let reqs = h.channel.get_requests();
         print!("{:?}\n",reqs[0]);
@@ -207,7 +214,8 @@ mod test {
                 ]
             }
         },vec![]);
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        let booted = CountingPromise::new();
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
         for _ in 0..5 {
             h.run(30);
             h.commander_inner.add_time(100.);
@@ -234,7 +242,8 @@ mod test {
         for _ in 0..100 {
             h.channel.add_response(json! { "nonsense" },vec![]);
         }
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        let booted = CountingPromise::new();
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
         for _ in 0..25 {
             h.run(10);
             h.commander_inner.add_time(10000.);
@@ -274,7 +283,8 @@ mod test {
                 }
             },vec![]);
         }
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1)))).expect("b");
+        let booted = CountingPromise::new();
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
         for _ in 0..50 {
             h.run(10);
             h.commander_inner.add_time(1000.);

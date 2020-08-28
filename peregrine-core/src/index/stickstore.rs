@@ -14,17 +14,20 @@ use crate::request::stick::issue_stick_request;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::memoized::Memoized;
+use crate::CountingPromise;
 
 #[derive(Clone)]
 pub struct StickStore {
+    booted: CountingPromise,
     store: Memoized<StickId,Option<Stick>>
 }
 
 impl StickStore {
-    pub fn new(commander: &PgCommander, sas: &StickAuthorityStore) -> anyhow::Result<StickStore> {
+    pub fn new(commander: &PgCommander, sas: &StickAuthorityStore, booted: &CountingPromise) -> anyhow::Result<StickStore> {
         let commander = commander.clone();
         let sas = sas.clone();
         Ok(StickStore {
+            booted: booted.clone(),
             store: Memoized::new(move |stick_id: &StickId, result| {
                 let stick_id = stick_id.clone();
                 let sas = sas.clone();
@@ -48,6 +51,7 @@ impl StickStore {
     }
 
     pub async fn get(&self, key: &StickId) -> anyhow::Result<Arc<Option<Stick>>> {
+        self.booted.wait().await;
         self.store.get(key).await
     }
 }

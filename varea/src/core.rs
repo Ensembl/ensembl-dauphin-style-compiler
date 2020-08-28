@@ -1,6 +1,6 @@
 use std::collections::{ BTreeMap, HashMap };
 use crate::axis::{ VareaIndexItem, VareaIndexRemover, VareaAxis };
-use crate::walkers::AndVareaSearch;
+use crate::walkers::{ AllVareaSearch, AndVareaSearch };
 #[cfg(test)]
 use std::fmt::Debug;
 
@@ -86,7 +86,11 @@ impl<T> VareaStore<T> {
                 walkers.push(index.lookup(axis_item));
             }
         }
-        AndVareaSearch::new(walkers)
+        if walkers.len() > 0 {
+            AndVareaSearch::new(walkers)
+        } else {
+            AllVareaSearch::new(self)
+        }
     }
 
     pub fn lookup<'a>(&'a self, search: VareaSearch) -> VareaStoreMatches<'a,T> {

@@ -6,7 +6,7 @@
 pub struct Track(String);
 
 impl Track {
-    fn new(name: &str) -> Track {
+    pub fn new(name: &str) -> Track {
         Track(name.to_string())
     }
 }

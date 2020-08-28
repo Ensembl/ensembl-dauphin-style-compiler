@@ -1,3 +1,4 @@
+use anyhow::Context;
 use blackbox::blackbox_log;
 use crate::lock;
 use crate::request::{ Channel, RequestManager };
@@ -7,7 +8,7 @@ use super::stickauthority::StickAuthority;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use crate::core::{ Stick, StickId };
 use std::sync::{ Arc, Mutex };
-use crate::{ PgCommander, PgCommanderTaskSpec };
+use crate::{ PgCommander, PgCommanderTaskSpec, CountingPromise };
 
 struct StickAuthorityStoreData {
     authorities: Vec<StickAuthority>
@@ -51,18 +52,24 @@ impl StickAuthorityStore {
         }
     }
 
-    pub fn add(&self, channel: &Channel) -> anyhow::Result<()> {
+    pub fn add(&self, channel: &Channel, booted: &CountingPromise) -> anyhow::Result<()> {
         let channel = channel.clone();
         let manager = self.manager.clone();
         let loader = self.loader.clone();
         let dauphin = self.dauphin.clone();
         let data = self.data.clone();
+        booted.lock();
+        let booted = booted.clone();
         self.commander.add_task(PgCommanderTaskSpec {
             name: format!("stick authority loader: {}",channel.to_string()),
             prio: 2,
             slot: None,
             timeout: None,
-            task: Box::pin(add_stick_authority(manager,loader,dauphin,data,channel))
+            task: Box::pin(async move {
+                add_stick_authority(manager,loader,dauphin,data,channel).await.context("adding stick authority")?;
+                booted.unlock();
+                Ok(())
+            })
         });
         Ok(())
     }

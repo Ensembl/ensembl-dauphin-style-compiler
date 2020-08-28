@@ -1,3 +1,5 @@
+use crate::simple_interp_command;
+use crate::util::{ get_instance, get_peregrine };
 use anyhow::{ bail, anyhow as err };
 use blackbox::blackbox_log;
 use peregrine_core::{ Channel, ChannelLocation, InstancePayload };
@@ -5,67 +7,39 @@ use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCom
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_core::{ StickId, issue_stick_request, Stick, StickTopology };
 use serde_cbor::Value as CborValue;
-use std::pin::Pin;
-use std::future::Future;
-use crate::PeregrinePayload;
+use crate::payloads::PeregrinePayload;
 use web_sys::console;
 
-pub struct AddStickAuthorityInterpCommand(Register);
+simple_interp_command!(AddStickAuthorityInterpCommand,AddStickAuthorityDeserializer,0,1,(0));
+simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
+simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4,5));
 
 impl InterpCommand for AddStickAuthorityInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let mut self_channel = None;
-        if let Some(instance) = context.payload("peregrine","instance")?.as_any_mut().downcast_mut::<InstancePayload>() {
-            if let Some(channel) = instance.get("channel") {
-                if let Some(channel) = channel.downcast_ref::<Channel>() {
-                    self_channel = Some(channel.clone());
-                }
-            }
-        }
-        let self_channel = self_channel.ok_or_else(|| err!("could not get self channel"))?;
+        let self_channel = get_instance::<Channel>(context,"channel")?;
         let registers = context.registers_mut();
         let authorities = registers.get_strings(&self.0)?;
         if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
             for auth in authorities.iter() {
-                pc.stick_authority_store().add(&Channel::parse(&self_channel,auth)?)?;
+                pc.stick_authority_store().add(&Channel::parse(&self_channel,auth)?,pc.booted())?;
             }
         }
         Ok(CommandResult::SyncResult())
     }
 }
 
-pub struct GetStickIdInterpCommand(Register);
-
 impl InterpCommand for GetStickIdInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let mut my_stick_id = None;
-        if let Some(instance) = context.payload("peregrine","instance")?.as_any_mut().downcast_mut::<InstancePayload>() {
-            if let Some(stick_id) = instance.get("stick_id") {
-                if let Some(stick_id) = stick_id.downcast_ref::<StickId>() {
-                    my_stick_id = Some(stick_id.clone());
-                }
-            }
-        }
-        let my_stick_id = my_stick_id.ok_or_else(|| err!("could not get stick id"))?;
+        let my_stick_id = get_instance::<StickId>(context,"stick_id")?;
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Strings(vec![my_stick_id.get_id().to_string()]));
         Ok(CommandResult::SyncResult())
     }
 }
 
-#[derive(Clone)]
-pub struct GetStickDataInterpCommand(Register,Register,Register,Register,Register,Register,Register,Register);
-
 async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> anyhow::Result<()> {
-    let mut self_channel = None;
-    if let Some(instance) = context.payload("peregrine","instance")?.as_any_mut().downcast_mut::<InstancePayload>() {
-        if let Some(channel) = instance.get("channel") {
-            if let Some(channel) = channel.downcast_ref::<Channel>() {
-                self_channel = Some(channel.clone());
-            }
-        }
-    }
-    let self_channel = self_channel.ok_or_else(|| err!("could not get self channel"))?;    
+    let self_channel = get_instance::<Channel>(context,"channel")?;
     let registers = context.registers_mut();
     let channel_iter = registers.get_strings(&cmd.6)?;
     let mut channel_iter = channel_iter.iter().cycle();
@@ -77,18 +51,17 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     let mut tags_lengths = vec![];
     let mut tags_data = vec![];
     drop(registers);
-    if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
-        for stick_id in id_strings.iter() {
-            let channel_name = channel_iter.next().unwrap();
-            let stick = issue_stick_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,StickId::new(stick_id)).await?;
-            id_strings_out.push(stick.get_id().get_id().to_string());
-            sizes.push(stick.size() as f64);
-            topologies.push(stick.topology().to_number() as usize);
-            let mut tags: Vec<_> = stick.tags().iter().cloned().collect();
-            tags_offsets.push(tags_data.len());
-            tags_lengths.push(tags.len());
-            tags_data.append(&mut tags);
-        }
+    let pc = get_peregrine(context)?;
+    for stick_id in id_strings.iter() {
+        let channel_name = channel_iter.next().unwrap();
+        let stick = issue_stick_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,StickId::new(stick_id)).await?;
+        id_strings_out.push(stick.get_id().get_id().to_string());
+        sizes.push(stick.size() as f64);
+        topologies.push(stick.topology().to_number() as usize);
+        let mut tags: Vec<_> = stick.tags().iter().cloned().collect();
+        tags_offsets.push(tags_data.len());
+        tags_lengths.push(tags.len());
+        tags_data.append(&mut tags);
     }
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Strings(id_strings_out));
@@ -107,8 +80,6 @@ impl InterpCommand for GetStickDataInterpCommand {
     }
 }
 
-pub struct AddStickInterpCommand(Register,Register,Register,Register,Register,Register);
-
 impl InterpCommand for AddStickInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
@@ -117,12 +88,10 @@ impl InterpCommand for AddStickInterpCommand {
         let tags_data = registers.get_strings(&self.3)?;
         let tags_offsets = registers.get_indexes(&self.4)?;
         let tags_lengths = registers.get_indexes(&self.5)?;
-        
         let mut sizes = sizes.iter().cycle();
         let mut topologies = topologies.iter().cycle();
         let mut tags_offsets = tags_offsets.iter().cycle();
         let mut tags_lengths = tags_lengths.iter().cycle();
-
         let ids = registers.get_strings(&self.0)?;
         let mut sticks = vec![];
         for id in ids.iter() {
@@ -133,53 +102,12 @@ impl InterpCommand for AddStickInterpCommand {
             let tags = tags_data[(*tags_offset..(tags_offset+tags_length))].to_vec();
             sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags));
         }
-        if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
-            let stick_store = pc.stick_store();
-            for stick in sticks.drain(..) {
-                console::error_1(&format!("stick {:?}",stick).into());
-                stick_store.add(stick.get_id().clone(),Some(stick));
-            }
+        let pc = get_peregrine(context)?;
+        let stick_store = pc.stick_store();
+        for stick in sticks.drain(..) {
+            console::error_1(&format!("stick {:?}",stick).into());
+            stick_store.add(stick.get_id().clone(),Some(stick));
         }
         Ok(CommandResult::SyncResult())
-    }
-}
-
-pub struct AddStickAuthorityDeserializer();
-
-impl CommandDeserializer for AddStickAuthorityDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((0,1))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        Ok(Box::new(AddStickAuthorityInterpCommand(Register::deserialize(&value[0])?)))
-    }
-}
-
-pub struct GetStickIdDeserializer();
-
-impl CommandDeserializer for GetStickIdDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((1,1))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        Ok(Box::new(GetStickIdInterpCommand(Register::deserialize(&value[0])?)))
-    }
-}
-
-pub struct GetStickDataDeserializer();
-
-impl CommandDeserializer for GetStickDataDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((2,8))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        Ok(Box::new(GetStickDataInterpCommand(
-            Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?,Register::deserialize(&value[3])?,
-            Register::deserialize(&value[4])?,Register::deserialize(&value[5])?,Register::deserialize(&value[6])?,Register::deserialize(&value[7])?)))
-    }
-}
-
-pub struct AddStickDeserializer();
-
-impl CommandDeserializer for AddStickDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((3,6))) }
-    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
-        Ok(Box::new(AddStickInterpCommand(
-            Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,Register::deserialize(&value[2])?,Register::deserialize(&value[3])?,
-            Register::deserialize(&value[4])?,Register::deserialize(&value[5])?)))
     }
 }

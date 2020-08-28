@@ -1,8 +1,11 @@
 mod core {
     pub mod focus;
+    mod scale;
     pub mod stick;
     pub mod track;
+    pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
+    pub use track::Track;
 }
 
 mod index {
@@ -15,7 +18,11 @@ mod index {
 
 mod panel {
     mod panel;
-    mod scale;
+
+    pub(crate) mod panelprogram;
+    mod panelprogramstore;
+    pub use self::panel::PanelSliceRange;
+    pub use self::panelprogram::PanelProgram;
 }
 
 mod request {
@@ -54,7 +61,10 @@ mod util {
     pub mod cbor;
     pub mod fuse;
     pub mod memoized;
+    pub mod miscpromises;
     pub mod unlock;
+
+    pub use self::miscpromises::CountingPromise;
 }
 
 #[cfg(test)]
@@ -72,8 +82,10 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::core::{ Stick, StickId, StickTopology };
+pub use self::core::{ Stick, StickId, StickTopology, Track, Scale };
 pub use self::index::{ StickStore, StickAuthorityStore };
+pub use self::panel::{ PanelProgram, PanelSliceRange };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;
+pub use self::util::CountingPromise;

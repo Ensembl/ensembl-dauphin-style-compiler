@@ -18,15 +18,15 @@ pub trait PayloadReceiver {
 }
 
 #[derive(Clone)]
-pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Box<dyn PayloadReceiver>>>>);
+pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Rc<Box<dyn PayloadReceiver>>>>>);
 
 impl PayloadReceiver for PayloadReceiverCollection {
     fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<dyn ChannelIntegration>) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
-        let all = self.0.clone();
+        let all = lock!(self.0).clone();
         let itn = itn.clone();
         let channel = channel.clone();
         Box::pin(async move {
-            for receiver in lock!(all).iter() {
+            for receiver in all.iter() {
                 response = receiver.receive(&channel,response,&itn).await;
             }
             response
@@ -54,7 +54,7 @@ impl RequestManagerData {
     }
 
     pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
-        lock!(self.receiver.0).push(receiver);
+        lock!(self.receiver.0).push(Rc::new(receiver));
     }
 
     fn error(&self, channel: &Channel, msg: &str) {

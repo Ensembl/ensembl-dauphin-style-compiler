@@ -12,3 +12,9 @@ struct stick {
 
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
+
+func panel_new() becomes number;
+proc panel_add_tag(number,string);
+proc panel_add_track(number,string);
+proc panel_set_scale(number,number,number);
+proc panel_apply(number,string,string);

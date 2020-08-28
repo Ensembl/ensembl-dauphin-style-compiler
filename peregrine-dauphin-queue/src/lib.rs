@@ -45,7 +45,6 @@ impl PgDauphinQueue {
 
     pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> anyhow::Result<()> {
         blackbox_log!("dauphin","queueing load {}",task.bundle_name);
-        let name = task.bundle_name.to_string();
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Load(task),
@@ -58,7 +57,6 @@ impl PgDauphinQueue {
 
     pub async fn run(&self, task: PgDauphinRunTaskSpec) -> anyhow::Result<()> {
         blackbox_log!("dauphin","queueing run {} {}",task.bundle_name,task.in_bundle_name);
-        let name = (task.bundle_name.to_string(),task.in_bundle_name.to_string());
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Run(task),
