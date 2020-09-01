@@ -3,6 +3,7 @@ mod core {
     mod scale;
     pub mod stick;
     pub mod track;
+    pub use self::focus::Focus;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
     pub use track::Track;
@@ -18,11 +19,11 @@ mod index {
 
 mod panel {
     mod panel;
-
-    pub(crate) mod panelprogram;
     mod panelprogramstore;
-    pub use self::panel::PanelSliceRange;
-    pub use self::panelprogram::PanelProgram;
+    mod panelrunstore;
+    pub use self::panel::{ Panel, PanelProgramRegion };
+    pub use self::panelrunstore::PanelRunStore;
+    pub use self::panelprogramstore::PanelProgramStore;
 }
 
 mod request {
@@ -57,6 +58,15 @@ mod run {
     pub use self::instancepayload::InstancePayload;
 }
 
+mod shape {
+    mod core;
+    mod rectangle;
+    mod text;
+    mod zoo;
+
+    pub use self::core::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd };
+}
+
 mod util {
     pub mod cbor;
     pub mod fuse;
@@ -82,10 +92,11 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::core::{ Stick, StickId, StickTopology, Track, Scale };
+pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::panel::{ PanelProgram, PanelSliceRange };
+pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegion };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;
+pub use self::shape::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd };
 pub use self::util::CountingPromise;

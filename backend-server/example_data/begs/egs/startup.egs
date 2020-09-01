@@ -7,4 +7,4 @@ p := panel_new();
 panel_add_tag(p,"local");
 panel_add_track(p,"gene");
 panel_set_scale(p,10,12);
-panel_apply(p,"self()","hello");
+panel_apply(p,"self()","gene");

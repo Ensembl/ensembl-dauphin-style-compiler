@@ -646,7 +646,6 @@ dependencies = [
  "serde_json",
  "url",
  "varea",
- "web-sys",
 ]
 
 [[package]]
@@ -657,7 +656,6 @@ dependencies = [
  "blackbox",
  "commander",
  "serde_cbor",
- "web-sys",
 ]
 
 [[package]]

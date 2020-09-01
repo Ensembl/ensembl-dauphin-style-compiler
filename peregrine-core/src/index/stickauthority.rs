@@ -17,7 +17,6 @@ pub struct StickAuthority {
 
 impl StickAuthority {
     pub fn new(channel: &Channel, startup_program_name: &str, resolution_program_name: &str) -> StickAuthority {
-        blackbox_log!("stickauthority","");
         StickAuthority {
             channel: channel.clone(),
             startup_program_name: startup_program_name.to_string(),

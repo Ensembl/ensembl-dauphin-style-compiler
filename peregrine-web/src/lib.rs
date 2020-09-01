@@ -28,7 +28,7 @@ use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblack
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
-    CountingPromise, PanelProgram, PanelSliceRange, Scale
+    CountingPromise, PanelProgramStore, PanelProgramRegion, Scale, PanelRunStore, Panel, Focus, Track
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
@@ -63,11 +63,12 @@ impl PeregrineWeb {
         let loader = ProgramLoader::new(&commander,&manager,&dauphin);
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
         let stick_store = StickStore::new(&commander,&stick_authority_store,&booted)?;
-        let panel_program = PanelProgram::new(&dauphin,&loader,&booted);
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store,&booted,&panel_program);
+        let panel_program_store = PanelProgramStore::new();
+        let panel_run_store = PanelRunStore::new(128,&commander,&dauphin,&loader,&stick_store,&panel_program_store,&booted);
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store,&booted,&panel_program_store);
         manager.add_receiver(Box::new(dauphin.clone()));
         let mut out = PeregrineWeb {
-            core: PgCore::new(&booted,&commander,&dauphin,&manager,&stick_store,&panel_program)?,
+            core: PgCore::new(&booted,&commander,&dauphin,&manager,&stick_store,&panel_run_store)?,
             stick_store: stick_store.clone()
         };
         out.setup()?;
@@ -97,13 +98,10 @@ async fn test(core: PgCore) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
-    let mut pr = PanelSliceRange::new();
-    pr.set_stick_tags(&["local".to_string(),"other".to_string()]);
-    pr.set_scale(Scale::new(11),Scale::new(12));
-    pr.set_index(1000,1005);
-    core.panel_program.run(&pr).await?;
-    let tags = core.stick_store.get(&StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.as_ref().as_ref().map(|x| x.tags().clone()).unwrap_or(HashSet::new());
-    el.set_inner_html(&format!("{:?}",tags));
+    let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),1000,Scale::new(10),Focus::new(None),Track::new("gene"));
+    core.panel_run_store.run(&panel).await?;
+    //let tags = core.stick_store.get(&StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.as_ref().as_ref().map(|x| x.tags().clone()).unwrap_or(HashSet::new());
+    //el.set_inner_html(&format!("{:?}",tags));
     Ok(())
 }
 

@@ -19,12 +19,15 @@ mod util;
 /* interp */
 mod interp {
     mod boot;
+    mod geometry;
     mod panel;
+    mod shape;
     pub mod library;
 }
 pub use interp::library::make_peregrine_interp;
 
 mod payloads {
+    mod geometrybuilder;
     mod panelbuilder;
     mod payload;
     pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
@@ -36,7 +39,9 @@ pub use payloads::add_peregrine_payloads;
 #[cfg(any(feature = "compile",test))]
 mod compile {
     mod boot;
+    mod geometry;
     mod panel;
+    mod shape;
     pub mod library;
 }
 

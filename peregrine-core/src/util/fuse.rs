@@ -2,48 +2,48 @@ use crate::lock;
 use std::sync::{ Arc, Mutex };
 use commander::PromiseFuture;
 
-struct FuseState {
-    fused: bool,
-    promises: Vec<PromiseFuture<()>>
+struct FuseState<V> {
+    fused: Option<V>,
+    promises: Vec<PromiseFuture<V>>
 }
 
-impl FuseState {
-    fn new() -> FuseState {
+impl<V> FuseState<V> where V: Clone {
+    fn new() -> FuseState<V> {
         FuseState {
-            fused: false,
+            fused: None,
             promises: vec![]
         }
     }
 
-    fn add(&mut self, promise: PromiseFuture<()>) {
-        if self.fused {
-            promise.satisfy(());
+    fn add(&mut self, promise: PromiseFuture<V>) {
+        if let Some(value) = &self.fused {
+            promise.satisfy(value.clone());
         } else {
             self.promises.push(promise);
         }
     }
 
-    fn fuse(&mut self) {
-        self.fused = true;
+    fn fuse(&mut self, value: V) {
+        self.fused = Some(value.clone());
         for p in &self.promises {
-            p.satisfy(());
+            p.satisfy(value.clone());
         }
     }
 }
 
 #[derive(Clone)]
-pub struct FusePromise(Arc<Mutex<FuseState>>);
+pub struct FusePromise<V>(Arc<Mutex<FuseState<V>>>);
 
-impl FusePromise {
-    pub fn new() -> FusePromise {
+impl<V> FusePromise<V> where V: Clone {
+    pub fn new() -> FusePromise<V> {
         FusePromise(Arc::new(Mutex::new(FuseState::new())))
     }
 
-    pub fn add(&mut self, promise: PromiseFuture<()>) {
+    pub fn add(&mut self, promise: PromiseFuture<V>) {
         lock!(self.0).add(promise);
     }
 
-    pub fn fuse(&mut self) {
-        lock!(self.0).fuse();
+    pub fn fuse(&mut self, value: V) {
+        lock!(self.0).fuse(value);
     }
 }

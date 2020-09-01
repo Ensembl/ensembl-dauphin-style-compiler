@@ -6,7 +6,7 @@
 pub struct Focus(Option<String>);
 
 impl Focus {
-    fn new(name: Option<&str>) -> Focus {
+    pub fn new(name: Option<&str>) -> Focus {
         Focus(name.map(|x| x.to_string()))
     }
 }

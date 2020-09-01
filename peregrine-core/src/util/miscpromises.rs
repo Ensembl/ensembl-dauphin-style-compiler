@@ -4,10 +4,10 @@ use super::fuse::FusePromise;
 use commander::PromiseFuture;
 
 #[derive(Clone)]
-pub struct LockPromise(Arc<Mutex<(u64,FusePromise)>>);
+pub struct LockPromise(Arc<Mutex<(u64,FusePromise<()>)>>);
 
 impl LockPromise {
-    pub fn new(fp: &FusePromise) -> LockPromise {
+    pub fn new(fp: &FusePromise<()>) -> LockPromise {
         LockPromise(Arc::new(Mutex::new((1,fp.clone()))))
     }
 
@@ -24,14 +24,14 @@ impl LockPromise {
         }
         drop(v);
         if let Some(mut fuse) = fuse {
-            fuse.fuse();
+            fuse.fuse(());
         }
     }
 }
 
 pub struct CountingPromiseData {
     lock: LockPromise,
-    fuse: FusePromise
+    fuse: FusePromise<()>
 }
 
 #[derive(Clone)]

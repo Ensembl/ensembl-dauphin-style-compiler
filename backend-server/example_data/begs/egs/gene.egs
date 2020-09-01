@@ -1,0 +1,10 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+notice("gene 2020-08-29 03:31");
+
+start := [100,200,300,400,500][];
+end   := [150,240,330,420,510][];
+
+rectangle2(interval(start,end),pin_start(0),pin_end(0),
+           interval(0,10),pin_start(0),pin_end(0));

@@ -1,7 +1,6 @@
 use crate::simple_interp_command;
-use anyhow::{ bail, anyhow as err };
 use peregrine_core::{ Track, Scale, Channel };
-use dauphin_interp::command::{ InterpLibRegister, CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
@@ -92,14 +91,14 @@ impl InterpCommand for DataSourceInterpCommand {
         let programs : Vec<(_,_)> = prog_names.iter().zip(channels.iter().cycle()).map(|(x,y)| (y.to_string(),x.to_string())).collect();
         drop(registers);
         let peregrine = get_peregrine(context)?;
-        let panel_program = peregrine.panel_program().clone();
+        let panel_program_store = peregrine.panel_program_store().clone();
         let panel_builder = peregrine.panel_builder().clone();
         let mut programs = programs.iter().cycle();
         for panel_id in &panel_ids {
             let (channel,name) = programs.next().unwrap();
             let channel = Channel::parse(&self_channel,channel)?;
             let panel = panel_builder.get(*panel_id)?;
-            panel_program.register(&panel.lock().unwrap(),&channel,name);
+            panel_program_store.add(&panel.lock().unwrap(),&channel,name);
         }
         Ok(CommandResult::SyncResult())
     }

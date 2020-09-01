@@ -1,5 +1,5 @@
 use dauphin_compile::command::{ 
-    Command, CommandSchema, CommandType, CommandTrigger, Instruction, InstructionType
+    Command, CommandSchema, CommandType, CommandTrigger, Instruction,
 };
 use dauphin_interp::command::{ Identifier };
 use dauphin_interp::runtime::{ Register };

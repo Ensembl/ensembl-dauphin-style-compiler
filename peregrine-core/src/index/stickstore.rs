@@ -9,8 +9,6 @@ use anyhow::bail;
 use crate::index::StickAuthorityStore;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
-use crate::request::packet::ResponsePacket;
-use crate::request::stick::issue_stick_request;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::memoized::Memoized;

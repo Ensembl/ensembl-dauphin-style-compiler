@@ -1,8 +1,5 @@
 module "peregrine";
 
-proc add_stick_authority(string);
-func get_stick_id() becomes string;
-
 struct stick {
     id: string,
     size: number,
@@ -10,6 +7,12 @@ struct stick {
     tags: vec(string)
 };
 
+struct seaendpair { value: number };
+struct seaend { value: number };
+struct shipend { value: number };
+
+proc add_stick_authority(string);
+func get_stick_id() becomes string;
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
 
@@ -18,3 +21,19 @@ proc panel_add_tag(number,string);
 proc panel_add_track(number,string);
 proc panel_set_scale(number,number,number);
 proc panel_apply(number,string,string);
+
+func interval(number,number) becomes seaendpair;
+func screen_start_pair(number,number) becomes seaendpair;
+func screen_end_pair(number,number) becomes seaendpair;
+func screen_span_pair(number,number) becomes seaendpair;
+
+func position(number) becomes seaend;
+func screen_start(number) becomes seaend;
+func screen_end(number) becomes seaend;
+
+func pin_start(number) becomes shipend;
+func pin_centre(number) becomes shipend;
+func pin_end(number) becomes shipend;
+
+proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend);
+proc rectangle1(seaend,shipend,number,seaend,shipend,number);
