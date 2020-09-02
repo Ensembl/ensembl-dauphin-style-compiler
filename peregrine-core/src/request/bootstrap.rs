@@ -86,7 +86,7 @@ impl BootstrapCommandResponse {
 pub struct BootstrapResponseBuilderType();
 impl ResponseBuilderType for BootstrapResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
-        let values = cbor_array(value,2,false)?;
+        let values = cbor_array(&value,2,false)?;
         Ok(Rc::new(BootstrapCommandResponse {
             channel: Channel::deserialize(&values[0])?,
             name: cbor_string(&values[1])?

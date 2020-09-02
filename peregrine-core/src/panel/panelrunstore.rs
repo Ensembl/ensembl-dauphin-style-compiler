@@ -50,6 +50,7 @@ async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader,
     booted.wait().await;
     let mut payloads = HashMap::new();
     let pro = PanelRunOutput::new();
+    payloads.insert("panel".to_string(),Box::new(panel_run.panel.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(pro.clone()) as Box<dyn Any>);
     dauphin.run_program(&loader,PgDauphinTaskSpec {
         prio: 1,
@@ -103,12 +104,6 @@ impl PanelRunStore {
     pub async fn run(&self, panel: &Panel) -> anyhow::Result<Arc<PanelRunOutput>> {
         let panel_run = panel.build_panel_run(&self.stick_store,&self.panel_program_store).await?;
         let output = self.store.get(&panel_run).await?;
-        if panel.scale() != panel_run.panel.scale() {
-            Ok(Arc::new(PanelRunOutput {
-                zoo: output.zoo.filter(panel.min_value() as f64,panel.max_value() as f64)
-            }))
-        } else {
-            Ok(output)
-        }
+        Ok(output)
     }
 }

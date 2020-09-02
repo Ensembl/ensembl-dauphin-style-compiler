@@ -1,6 +1,4 @@
-/* At the moment, tracks are just strings. They will probably become more elaborate.
- * This abstraction should make that transition easier.
- */
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct Track(String);
@@ -8,5 +6,11 @@ pub struct Track(String);
 impl Track {
     pub fn new(name: &str) -> Track {
         Track(name.to_string())
+    }
+
+    pub fn name(&self) -> &str { &self.0 }
+
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+        Ok(CborValue::Text(self.0.clone()))
     }
 }

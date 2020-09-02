@@ -66,3 +66,10 @@ pub fn cbor_bool(cbor: &CborValue) -> anyhow::Result<bool> {
         _ => bail!("expected bool")
     }
 }
+
+pub fn cbor_bytes(cbor: &CborValue) -> anyhow::Result<&Vec<u8>> {
+    match cbor {
+        CborValue::Bytes(b) => Ok(b),
+        _ => bail!("expected bytes")
+    }
+}

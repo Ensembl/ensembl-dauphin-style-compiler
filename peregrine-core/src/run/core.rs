@@ -9,7 +9,7 @@ use crate::request::manager::RequestManager;
 use crate::request::program::ProgramLoader;
 use crate::request::channel::Channel;
 use crate::index::StickStore;
-use crate::panel::PanelRunStore;
+use crate::panel::PanelStore;
 use crate::util::miscpromises::CountingPromise;
 
 #[derive(Clone)]
@@ -21,11 +21,11 @@ pub struct PgCore {
     pub manager: RequestManager,
     pub commander: PgCommander,
     pub dauphin: PgDauphin,
-    pub panel_run_store: PanelRunStore
+    pub panel_store: PanelStore
 }
 
 impl PgCore {
-    pub fn new(booted: &CountingPromise, commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore, prs: &PanelRunStore) -> anyhow::Result<PgCore> {
+    pub fn new(booted: &CountingPromise, commander: &PgCommander, dauphin: &PgDauphin, manager: &RequestManager, ss: &StickStore, ps: &PanelStore) -> anyhow::Result<PgCore> {
         let loader = ProgramLoader::new(&commander,manager,&dauphin);
         Ok(PgCore {
             loader, 
@@ -34,7 +34,7 @@ impl PgCore {
             commander: commander.clone(),
             dauphin: dauphin.clone(),
             stick_store: ss.clone(),
-            panel_run_store: prs.clone()
+            panel_store: ps.clone()
         })
     }
 

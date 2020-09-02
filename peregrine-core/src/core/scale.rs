@@ -1,4 +1,4 @@
-use std::fmt;
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);
@@ -22,5 +22,9 @@ impl Scale {
 
     pub fn bp_in_scale(&self) -> u64 {
         1 << self.0
+    }
+
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+        Ok(CborValue::Integer(self.0 as i128))
     }
 }

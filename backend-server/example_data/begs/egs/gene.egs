@@ -3,6 +3,10 @@ import "lib:peregrine"; use "peregrine";
 
 notice("gene 2020-08-29 03:31");
 
+panel := get_panel();
+
+notice(format(panel.scale));
+
 // run at scale 11, ie 2048 per panel, we simulate panel 500: 1024000 - 1026048
 
 start := [1024000,1025000,1026000][];

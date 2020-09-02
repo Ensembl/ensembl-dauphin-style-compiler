@@ -8,6 +8,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::bootstrap::BootstrapResponseBuilderType;
+use super::data::DataResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
 use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
@@ -27,6 +28,7 @@ fn register_responses() -> ResponsePacketBuilder {
     rspbb.register(2,Box::new(ProgramResponseBuilderType()));
     rspbb.register(3,Box::new(StickResponseBuilderType()));
     rspbb.register(4,Box::new(StickAuthorityResponseBuilderType()));
+    rspbb.register(5,Box::new(DataResponseBuilderType()));
     rspbb.build()
 }
 

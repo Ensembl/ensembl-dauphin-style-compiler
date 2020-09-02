@@ -6,6 +6,7 @@ use crate::core::{ Scale, StickId };
 use crate::index::StickStore;
 use super::panelprogramstore::PanelProgramStore;
 use super::panelrunstore::PanelRun;
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug)]
 pub struct PanelProgramRegion {
@@ -67,7 +68,18 @@ impl Panel {
         Panel { stick, scale, focus, track, index }
     }
 
+    pub fn stick_id(&self) -> &StickId { &self.stick }
+    pub fn track(&self) -> &Track { &self.track }
+    pub fn focus(&self) -> &Focus { &self.focus }
+    pub fn index(&self) -> u64 { self.index }
     pub fn scale(&self) -> &Scale { &self.scale }
+
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+        Ok(CborValue::Array(vec![
+            self.stick.serialize()?,self.scale.serialize()?,self.focus().serialize()?,
+            self.track.serialize()?,CborValue::Integer(self.index as i128)
+        ]))
+    }
 
     pub fn min_value(&self) -> u64 {
         self.scale.bp_in_scale() * self.index

@@ -19,6 +19,7 @@ mod util;
 /* interp */
 mod interp {
     mod boot;
+    mod data;
     mod geometry;
     mod panel;
     mod shape;
@@ -39,6 +40,7 @@ pub use payloads::add_peregrine_payloads;
 #[cfg(any(feature = "compile",test))]
 mod compile {
     mod boot;
+    mod data;
     mod geometry;
     mod panel;
     mod shape;

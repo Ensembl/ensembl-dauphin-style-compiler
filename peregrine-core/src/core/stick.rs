@@ -1,5 +1,6 @@
 use anyhow::bail;
 use std::collections::HashSet;
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
@@ -10,6 +11,10 @@ impl StickId {
     }
 
     pub fn get_id(&self) -> &str { &self.0 }
+
+    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+        Ok(CborValue::Text(self.0.clone()))
+    }
 }
 
 #[derive(Clone,Debug)]

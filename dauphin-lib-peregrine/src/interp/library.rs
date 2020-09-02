@@ -1,5 +1,6 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
+use super::data::{ GetPanelDeserializer };
 use super::panel::{ NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
@@ -10,7 +11,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x81B8D9C006008C3)
+    CommandSetId::new("peregrine",(0,0),0x906A287CC3CE859)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -36,5 +37,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(PinEndDeserializer());
     set.push(Rectangle2Deserializer());
     set.push(Rectangle1Deserializer());
+    set.push(GetPanelDeserializer());
     set
 }

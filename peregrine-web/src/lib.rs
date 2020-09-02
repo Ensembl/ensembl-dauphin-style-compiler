@@ -28,7 +28,7 @@ use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblack
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
-    CountingPromise, PanelProgramStore, PanelProgramRegion, Scale, PanelRunStore, Panel, Focus, Track
+    CountingPromise, PanelProgramStore, PanelProgramRegion, Scale, PanelRunStore, Panel, Focus, Track, PanelStore
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
@@ -64,11 +64,12 @@ impl PeregrineWeb {
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
         let stick_store = StickStore::new(&commander,&stick_authority_store,&booted)?;
         let panel_program_store = PanelProgramStore::new();
-        let panel_run_store = PanelRunStore::new(128,&commander,&dauphin,&loader,&stick_store,&panel_program_store,&booted);
+        let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&loader,&stick_store,&panel_program_store,&booted);
+        let panel_store = PanelStore::new(128,&commander,&panel_run_store);
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store,&booted,&panel_program_store);
         manager.add_receiver(Box::new(dauphin.clone()));
         let mut out = PeregrineWeb {
-            core: PgCore::new(&booted,&commander,&dauphin,&manager,&stick_store,&panel_run_store)?,
+            core: PgCore::new(&booted,&commander,&dauphin,&manager,&stick_store,&panel_store)?,
             stick_store: stick_store.clone()
         };
         out.setup()?;
@@ -98,9 +99,9 @@ async fn test(core: PgCore) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
-    let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),1001,Scale::new(10),Focus::new(None),Track::new("gene"));
-    let out = core.panel_run_store.run(&panel).await?;
-    el.set_inner_html(&format!("{:?}",out.zoo()));
+    let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),1000,Scale::new(10),Focus::new(None),Track::new("gene"));
+    let out = core.panel_store.run(&panel).await?;
+    el.set_inner_html(&format!("{:?}",out));
     Ok(())
 }
 
