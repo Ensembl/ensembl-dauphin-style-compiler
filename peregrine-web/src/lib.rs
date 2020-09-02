@@ -98,10 +98,9 @@ async fn test(core: PgCore) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
-    let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),1000,Scale::new(10),Focus::new(None),Track::new("gene"));
-    core.panel_run_store.run(&panel).await?;
-    //let tags = core.stick_store.get(&StickId::new("homo_sapiens_GCA_000001405_27:1")).await?.as_ref().as_ref().map(|x| x.tags().clone()).unwrap_or(HashSet::new());
-    //el.set_inner_html(&format!("{:?}",tags));
+    let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),1001,Scale::new(10),Focus::new(None),Track::new("gene"));
+    let out = core.panel_run_store.run(&panel).await?;
+    el.set_inner_html(&format!("{:?}",out.zoo()));
     Ok(())
 }
 

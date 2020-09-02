@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::collections::HashMap;
 use crate::lock;
 use std::sync::{ Arc, Mutex };
@@ -6,6 +7,7 @@ use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::ProgramLoader;
 use crate::run::{ PgCommander, PgDauphin, PgCommanderTaskSpec, PgDauphinTaskSpec };
+use crate::shape::ShapeZoo;
 use crate::util::memoized::Memoized;
 use crate::CountingPromise;
 use super::panel::Panel;
@@ -29,13 +31,26 @@ impl PanelRun {
     }
 }
 
+#[derive(Clone)]
 pub struct PanelRunOutput {
-    // XXX
+    zoo: ShapeZoo
+}
+
+impl PanelRunOutput {
+    fn new() -> PanelRunOutput {
+        PanelRunOutput {
+            zoo: ShapeZoo::new()
+        }
+    }
+
+    pub fn zoo(&self) -> &ShapeZoo { &self.zoo }
 }
 
 async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader, panel_run: &PanelRun) -> anyhow::Result<PanelRunOutput> {
     booted.wait().await;
-    let payloads = HashMap::new();
+    let mut payloads = HashMap::new();
+    let pro = PanelRunOutput::new();
+    payloads.insert("out".to_string(),Box::new(pro.clone()) as Box<dyn Any>);
     dauphin.run_program(&loader,PgDauphinTaskSpec {
         prio: 1,
         slot: None,
@@ -44,7 +59,7 @@ async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader,
         program_name: panel_run.program.clone(),
         payloads: Some(payloads)
     }).await?;
-    Ok(PanelRunOutput {})
+    Ok(pro)
 }
 
 #[derive(Clone)]
@@ -87,6 +102,13 @@ impl PanelRunStore {
 
     pub async fn run(&self, panel: &Panel) -> anyhow::Result<Arc<PanelRunOutput>> {
         let panel_run = panel.build_panel_run(&self.stick_store,&self.panel_program_store).await?;
-        self.store.get(&panel_run).await
+        let output = self.store.get(&panel_run).await?;
+        if panel.scale() != panel_run.panel.scale() {
+            Ok(Arc::new(PanelRunOutput {
+                zoo: output.zoo.filter(panel.min_value() as f64,panel.max_value() as f64)
+            }))
+        } else {
+            Ok(output)
+        }
     }
 }

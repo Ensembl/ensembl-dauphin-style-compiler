@@ -5,7 +5,7 @@ use crate::request::Channel;
 use super::panel::PanelProgramRegion;
 
 pub struct PanelProgramStoreData {
-    store: VareaStore<(Channel,String)>
+    store: VareaStore<(Channel,String,PanelProgramRegion)>
 }
 
 impl PanelProgramStoreData {
@@ -17,14 +17,14 @@ impl PanelProgramStoreData {
 
     fn add(&mut self, panel_slice_range: &PanelProgramRegion, channel: &Channel, name: &str) {
         let varea_item = panel_slice_range.to_varea_item();
-        self.store.add(varea_item,(channel.clone(),name.to_string()));
+        self.store.add(varea_item,(channel.clone(),name.to_string(),panel_slice_range.clone()));
     }
 
-    fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String)> {
+    fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String,PanelProgramRegion)> {
         let varea_item = panel_slice_range.to_varea_item();
         let varea_search_term = self.store.search_item(&varea_item);
         let mut varea_matches = self.store.lookup(varea_search_term);
-        varea_matches.next().map(|(c,n)| (c.clone(),n.to_string()))
+        varea_matches.next().map(|(c,n,ppr)| (c.clone(),n.to_string(),ppr.clone()))
     }
 }
 
@@ -40,7 +40,7 @@ impl PanelProgramStore {
         lock!(self.0).add(panel_slice_range,channel,name);
     }
 
-    pub fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String)> {
+    pub fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String,PanelProgramRegion)> {
         lock!(self.0).get(panel_slice_range)
     }
 }

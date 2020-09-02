@@ -6,9 +6,8 @@ use crate::core::{ Scale, StickId };
 use crate::index::StickStore;
 use super::panelprogramstore::PanelProgramStore;
 use super::panelrunstore::PanelRun;
-use crate::request::Channel;
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub struct PanelProgramRegion {
     stick_tags: Option<Vec<String>>,
     scale: Option<(Scale,Scale)>,
@@ -68,6 +67,16 @@ impl Panel {
         Panel { stick, scale, focus, track, index }
     }
 
+    pub fn scale(&self) -> &Scale { &self.scale }
+
+    pub fn min_value(&self) -> u64 {
+        self.scale.bp_in_scale() * self.index
+    }
+
+    pub fn max_value(&self) -> u64 {
+        self.scale.bp_in_scale() * (self.index+1)
+    }
+
     fn map_scale(&self, scale: &Scale) -> u64 {
         self.index >> (scale.get_index() - self.scale.get_index())
     }
@@ -93,7 +102,7 @@ impl Panel {
         ppr.set_scale(self.scale.clone(),self.scale.next_scale());
         ppr.set_focus(self.focus.clone());
         ppr.set_tracks(&[self.track.clone()]);
-        let (channel,prog) = panel_program_store.get(&ppr)
+        let (channel,prog,ppr) = panel_program_store.get(&ppr)
             .ok_or_else(|| err!("no program to render this track!"))?;
         let candidate = self.to_candidate(&ppr)?;
         Ok(PanelRun::new(channel,&prog,&candidate))

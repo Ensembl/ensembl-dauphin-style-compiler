@@ -22,7 +22,7 @@ mod panel {
     mod panelprogramstore;
     mod panelrunstore;
     pub use self::panel::{ Panel, PanelProgramRegion };
-    pub use self::panelrunstore::PanelRunStore;
+    pub use self::panelrunstore::{ PanelRunStore, PanelRunOutput };
     pub use self::panelprogramstore::PanelProgramStore;
 }
 
@@ -64,7 +64,8 @@ mod shape {
     mod text;
     mod zoo;
 
-    pub use self::core::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd };
+    pub use self::core::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis };
+    pub use self::zoo::ShapeZoo;
 }
 
 mod util {
@@ -94,9 +95,9 @@ mod test {
 
 pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegion };
+pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegion, PanelRunOutput };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;
-pub use self::shape::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd };
+pub use self::shape::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis };
 pub use self::util::CountingPromise;

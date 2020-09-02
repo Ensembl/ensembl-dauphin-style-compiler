@@ -8,18 +8,19 @@ impl Scale {
         Scale(scale)
     }
 
-    /* direction-agnostic next scale, eg for ranges */
     pub fn prev_scale(&self) -> Scale {
         Scale(self.0-1)
     }
 
-    /* direction-agnostic next scale, eg for ranges */
     pub fn next_scale(&self) -> Scale {
         Scale(self.0+1)
     }
 
-    /* an index for ranges. Don't compute with this! */
     pub fn get_index(&self) -> u64 {
         self.0
+    }
+
+    pub fn bp_in_scale(&self) -> u64 {
+        1 << self.0
     }
 }

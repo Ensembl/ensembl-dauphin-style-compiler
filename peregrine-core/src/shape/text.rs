@@ -1,6 +1,7 @@
 use super::core::{ ShapeSet, Texture };
 use super::zoo::{ ShapeZoo };
 
+#[derive(Debug)]
 pub struct TextTexture {
 
 }
