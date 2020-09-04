@@ -26,8 +26,8 @@ impl ResponseType for GeneralFailure {
 
 pub struct GeneralFailureBuilderType();
 impl ResponseBuilderType for GeneralFailureBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
-        Ok(Rc::new(GeneralFailure{
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
+        Ok(Box::new(GeneralFailure{
             message: cbor_string(value)?
         }))
     }

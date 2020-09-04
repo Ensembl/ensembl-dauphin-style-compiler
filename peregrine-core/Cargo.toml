@@ -15,6 +15,7 @@ serde_json="*"
 url="*"
 futures="*"
 regex="*"
+lazy_static="*"
 
 [dependencies.blackbox]
 version="*"

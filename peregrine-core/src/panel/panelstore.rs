@@ -1,19 +1,9 @@
-use std::any::Any;
-use std::collections::HashMap;
-use crate::lock;
-use std::sync::{ Arc, Mutex };
-use crate::index::StickAuthorityStore;
-use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
-use crate::request::manager::{ RequestManager, PayloadReceiver };
-use crate::ProgramLoader;
-use crate::run::{ PgCommander, PgDauphin, PgCommanderTaskSpec, PgDauphinTaskSpec };
+use std::sync::{ Arc };
+use crate::run::{ PgCommander, PgCommanderTaskSpec };
 use crate::shape::ShapeZoo;
 use crate::util::memoized::Memoized;
-use crate::CountingPromise;
 use super::panel::Panel;
-use crate::index::StickStore;
 use super::panelrunstore::PanelRunStore;
-use web_sys::console;
 
 #[derive(Clone)]
 pub struct PanelStore {

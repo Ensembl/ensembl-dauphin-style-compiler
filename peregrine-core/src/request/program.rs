@@ -83,8 +83,8 @@ impl RequestType for ProgramCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }
-    fn to_failure(&self) -> Rc<dyn ResponseType> {
-        Rc::new(GeneralFailure::new("program loading failed"))
+    fn to_failure(&self) -> Box<dyn ResponseType> {
+        Box::new(GeneralFailure::new("program loading failed"))
     }
 }
 
@@ -98,8 +98,8 @@ impl ResponseType for ProgramCommandResponse {
 pub struct ProgramResponseBuilderType();
 
 impl ResponseBuilderType for ProgramResponseBuilderType {
-    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
-        Ok(Rc::new(ProgramCommandResponse {}))
+    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
+        Ok(Box::new(ProgramCommandResponse {}))
     }
 }
 

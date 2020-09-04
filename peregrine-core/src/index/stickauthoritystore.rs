@@ -97,6 +97,8 @@ async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dau
         program_name,
         payloads: None
     }).await?;
-    loader.load_background(&channel,&lookup_name)?;
+    if !dauphin.is_present(&channel,&lookup_name) {
+        loader.load_background(&channel,&lookup_name)?;
+    }
     Ok(())
 }

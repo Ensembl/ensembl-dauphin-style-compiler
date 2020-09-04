@@ -18,10 +18,12 @@ mod index {
 }
 
 mod panel {
+    mod datastore;
     mod panel;
     mod panelprogramstore;
     mod panelrunstore;
     mod panelstore;
+    pub use self::datastore::DataStore;
     pub use self::panel::{ Panel, PanelProgramRegion };
     pub use self::panelrunstore::{ PanelRunStore, PanelRunOutput };
     pub use self::panelprogramstore::PanelProgramStore;
@@ -98,7 +100,7 @@ mod test {
 
 pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegion, PanelRunOutput, PanelStore };
+pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegion, PanelRunOutput, PanelStore, DataStore };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;

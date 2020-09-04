@@ -17,7 +17,7 @@ pub struct DataResponse {
 }
 
 #[derive(Clone)]
-struct DataCommandRequest {
+pub struct DataCommandRequest {
     channel: Channel,
     name: String,
     panel: Panel
@@ -32,7 +32,7 @@ impl DataCommandRequest {
         }
     }
 
-    async fn execute(self, mut manager: RequestManager) -> anyhow::Result<()> {
+    pub async fn execute(self, mut manager: RequestManager) -> anyhow::Result<Box<DataResponse>> {
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing data request");
         blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-request",1.);
         let mut backoff = Backoff::new();
@@ -41,7 +41,7 @@ impl DataCommandRequest {
             Ok(d) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"data response received");
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-success",1.);
-                Ok(())
+                Ok(d)
             },
             Err(_) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-fail",1.);
@@ -56,8 +56,8 @@ impl RequestType for DataCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.panel.serialize()?]))
     }
-    fn to_failure(&self) -> Rc<dyn ResponseType> {
-        Rc::new(GeneralFailure::new("data loading failed"))
+    fn to_failure(&self) -> Box<dyn ResponseType> {
+        Box::new(GeneralFailure::new("data loading failed"))
     }
 }
 
@@ -69,7 +69,7 @@ impl ResponseType for DataResponse {
 pub struct DataResponseBuilderType();
 
 impl ResponseBuilderType for DataResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
         let mut data_response = DataResponse {
             data: HashMap::new()
         };
@@ -78,6 +78,6 @@ impl ResponseBuilderType for DataResponseBuilderType {
             // TODO clean, copy-free path
             data_response.data.insert(cbor_string(key)?,cbor_bytes(value)?.clone());
         }
-        Ok(Rc::new(data_response))
+        Ok(Box::new(data_response))
     }
 }

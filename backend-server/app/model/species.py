@@ -26,5 +26,5 @@ class Species(object):
             for line in f.readlines():
                 parts = line.strip().split("\t")
                 seq_hash = hashes[parts[0]]
-                chrom = Chromosome(parts[0],int(parts[1]),seq_hash,self)
+                chrom = Chromosome(files_dir,parts[0],int(parts[1]),seq_hash,self)
                 self.chromosomes[chrom.name] = chrom

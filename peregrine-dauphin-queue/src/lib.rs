@@ -44,26 +44,29 @@ impl PgDauphinQueue {
     }
 
     pub async fn load(&self, task: PgDauphinLoadTaskSpec) -> anyhow::Result<()> {
-        blackbox_log!("dauphin","queueing load {}",task.bundle_name);
+        let bundle_name = task.bundle_name.clone();
+        blackbox_log!("dauphin","queueing load {}",bundle_name);
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Load(task),
             channel: waiter.clone()
         });
         let out = waiter.get().await;
-        blackbox_log!("dauphin","finished loading {} success={:?}",name,out.is_ok());
+        blackbox_log!("dauphin","finished loading {} success={:?}",bundle_name,out.is_ok());
         out
     }
 
     pub async fn run(&self, task: PgDauphinRunTaskSpec) -> anyhow::Result<()> {
-        blackbox_log!("dauphin","queueing run {} {}",task.bundle_name,task.in_bundle_name);
+        let bundle_name = task.bundle_name.clone();
+        let in_bundle_name = task.in_bundle_name.clone();
+        blackbox_log!("dauphin","queueing run {} {}",bundle_name,task.in_bundle_name);
         let waiter = CommanderStream::new();
         self.queue.add(PgDauphinQueueEntry {
             task: PgDauphinTaskSpec::Run(task),
             channel: waiter.clone()
         });
         let out = waiter.get().await;
-        blackbox_log!("dauphin","finished {} {} success={:?}",name.0,name.1,out.is_ok());
+        blackbox_log!("dauphin","finished {} {} success={:?}",bundle_name,in_bundle_name,out.is_ok());
         out
     }
 

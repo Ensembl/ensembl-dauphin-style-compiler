@@ -35,7 +35,7 @@ fn register_responses() -> ResponsePacketBuilder {
 struct RequestQueueData {
     receiver: PayloadReceiverCollection,
     builder: ResponsePacketBuilder,
-    pending_send: CommanderStream<(CommandRequest,CommanderStream<Rc<dyn ResponseType>>)>,
+    pending_send: CommanderStream<(CommandRequest,CommanderStream<Box<dyn ResponseType>>)>,
     integration: Rc<dyn ChannelIntegration>,
     channel: Channel,
     priority: PacketPriority,
@@ -61,7 +61,7 @@ impl RequestQueueData {
         self.timeout = Some(timeout);
     }
 
-    fn timeout(&self, streams: Vec<(Rc<dyn ResponseType>,CommanderStream<Rc<dyn ResponseType>>)>) {
+    fn timeout(&self, streams: Vec<(Box<dyn ResponseType>,CommanderStream<Box<dyn ResponseType>>)>) {
         if let Some(timeout) = self.timeout {
             for (response,stream) in streams {
                 let stream = stream.clone();
@@ -96,7 +96,7 @@ impl RequestQueue {
         Ok(out)
     }
 
-    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<Rc<dyn ResponseType>>) {
+    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<Box<dyn ResponseType>>) {
         lock!(self.0).pending_send.add((request,stream));
     }
 
@@ -115,7 +115,7 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>)> {
+    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>)> {
         let pending = lock!(self.0).pending_send.clone();
         let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
@@ -151,7 +151,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
+    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let channel = lock!(self.0).channel.clone();
         let itn = lock!(self.0).integration.clone();
         let receiver = lock!(self.0).receiver.clone();
@@ -165,7 +165,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<Rc<dyn ResponseType>>>) {
+    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let response = self.send_or_fail_packet(request).await;
         self.process_responses(response,streams).await;
     }

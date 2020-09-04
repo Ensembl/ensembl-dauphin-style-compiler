@@ -77,6 +77,14 @@ impl CommanderState {
         }
         let quantity = state.quantity.lock().unwrap().clone();
         match quantity {
+            SleepQuantity::Yesterday => {
+                let handle = self.clone();
+                let closure = Closure::wrap(Box::new(move || {
+                    handle.timer_tick();
+                }) as Box<dyn Fn()>);
+                let handle = js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),0))?;
+                state.timeout = Some((closure,handle));
+            },
             SleepQuantity::Forever => {},
             SleepQuantity::None => {
                 let handle = self.clone();

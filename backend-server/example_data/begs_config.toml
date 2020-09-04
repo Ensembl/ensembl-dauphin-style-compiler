@@ -18,3 +18,4 @@ boot="boot"
 
 [begs.render]
 gene="gene"
+gene-text="gene-text"

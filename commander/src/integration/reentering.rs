@@ -12,14 +12,14 @@ use super::sleepcatcher::SleepCatcherIntegration;
 
 #[derive(Clone)]
 pub(crate) struct ReenteringIntegration {
-    force_no_delay: Arc<Mutex<bool>>,
+    yesterday: Arc<Mutex<bool>>,
     integration: SleepCatcherIntegration
 }
 
 impl ReenteringIntegration {
     pub(crate) fn new<T>(integration: T) -> ReenteringIntegration where T: Integration + 'static {
         ReenteringIntegration {
-            force_no_delay: Arc::new(Mutex::new(false)),
+            yesterday: Arc::new(Mutex::new(false)),
             integration: SleepCatcherIntegration::new(integration)
         }
     }
@@ -29,22 +29,22 @@ impl ReenteringIntegration {
     }
 
     pub(crate) fn sleep(&self, amount: SleepQuantity) {
-        let force_no_delay = self.force_no_delay.lock().unwrap();
-        if !*force_no_delay {
+        let yesterday = self.yesterday.lock().unwrap();
+        if !*yesterday {
             self.integration.sleep(amount);
         }
     }
 
     pub(crate) fn cause_reentry(&self) {
-        let mut force_no_delay = self.force_no_delay.lock().unwrap();
-        if !*force_no_delay {
-            self.integration.sleep(SleepQuantity::None);
+        let mut yesterday = self.yesterday.lock().unwrap();
+        if !*yesterday {
+            *yesterday = true;
+            self.integration.sleep(SleepQuantity::Yesterday);
         }
-        *force_no_delay = true;
     }
 
     pub(crate) fn reentering(&mut self) {
-        *self.force_no_delay.lock().unwrap() = false;
+        *self.yesterday.lock().unwrap() = false;
     }
 }
 

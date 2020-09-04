@@ -19,6 +19,8 @@ struct panel {
     focus: string
 };
 
+struct datasource { value: number };
+
 proc add_stick_authority(string);
 func get_stick_id() becomes string;
 func get_stick_data(string,string) becomes stick;
@@ -47,3 +49,4 @@ proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number);
 
 func get_panel() becomes panel;
+func get_data(string,string,panel) becomes datasource;

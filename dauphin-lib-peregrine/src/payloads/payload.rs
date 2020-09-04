@@ -15,10 +15,9 @@
  */
 
 use std::any::Any;
-use blackbox::{ blackbox_log };
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_core::{ StickAuthorityStore, StickStore, RequestManager, CountingPromise, PanelProgramStore };
+use peregrine_core::{ StickAuthorityStore, StickStore, RequestManager, CountingPromise, PanelProgramStore, DataStore };
 use super::panelbuilder::PanelBuilder;
 use super::geometrybuilder::GeometryBuilder;
 
@@ -29,7 +28,8 @@ pub struct PeregrinePayload {
     manager: RequestManager,
     panel_program_store: PanelProgramStore,
     panel_builder: PanelBuilder,
-    geometry_builder: GeometryBuilder
+    geometry_builder: GeometryBuilder,
+    data_store: DataStore
 }
 
 impl Payload for PeregrinePayload {
@@ -39,7 +39,8 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(sas: &StickAuthorityStore, ss: &StickStore, manager: &RequestManager, booted: &CountingPromise, panel_program_store: &PanelProgramStore) -> PeregrinePayload {
+    fn new(sas: &StickAuthorityStore, ss: &StickStore, manager: &RequestManager, booted: &CountingPromise, panel_program_store: &PanelProgramStore,
+            data_store: &DataStore) -> PeregrinePayload {
         PeregrinePayload {
             booted: booted.clone(),
             sas: sas.clone(),
@@ -48,6 +49,7 @@ impl PeregrinePayload {
             manager: manager.clone(),
             panel_builder: PanelBuilder::new(),
             geometry_builder: GeometryBuilder::new(),
+            data_store: data_store.clone()
         }
     }
 
@@ -58,6 +60,7 @@ impl PeregrinePayload {
     pub fn panel_builder(&self) -> &PanelBuilder { &self.panel_builder }
     pub fn panel_program_store(&self) -> &PanelProgramStore { &self.panel_program_store }
     pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
+    pub fn data_store(&self) -> &DataStore { &self.data_store }
 }
 
 #[derive(Clone)]
@@ -66,28 +69,32 @@ pub struct PeregrinePayloadFactory {
     ss: StickStore,
     sas: StickAuthorityStore,
     pps: PanelProgramStore,
-    booted: CountingPromise
+    booted: CountingPromise,
+    ds: DataStore
 }
 
 impl PeregrinePayloadFactory {
-    pub fn new(manager: &RequestManager, ss: &StickStore, sas: &StickAuthorityStore, booted: &CountingPromise, pps: &PanelProgramStore) -> PeregrinePayloadFactory {
+    pub fn new(manager: &RequestManager, ss: &StickStore, sas: &StickAuthorityStore, booted: &CountingPromise, pps: &PanelProgramStore,
+                ds: &DataStore) -> PeregrinePayloadFactory {
         PeregrinePayloadFactory {
             booted: booted.clone(),
             manager: manager.clone(),
             pps: pps.clone(),
             ss: ss.clone(),
-            sas: sas.clone()
+            sas: sas.clone(),
+            ds: ds.clone()
         }
     }
 }
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.sas,&self.ss,&self.manager,&self.booted,&self.pps))
+        Box::new(PeregrinePayload::new(&self.sas,&self.ss,&self.manager,&self.booted,&self.pps,&self.ds))
     }
 }
 
 pub fn add_peregrine_payloads(dauphin: &mut Dauphin, manager: &RequestManager, ss: &StickStore, 
-                                sas: &StickAuthorityStore, booted: &CountingPromise, panel_program: &PanelProgramStore) {
-    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(manager,ss,sas,booted,panel_program)))
+                                sas: &StickAuthorityStore, booted: &CountingPromise, panel_program: &PanelProgramStore,
+                                data_store: &DataStore) {
+    dauphin.add_payload_factory("peregrine","core",Box::new(PeregrinePayloadFactory::new(manager,ss,sas,booted,panel_program,data_store)))
 }

@@ -15,6 +15,8 @@
 /// Used in `Integration.sleep()` to indicate how long polling may be suspended.
 #[derive(PartialEq,Clone,Debug)]
 pub enum SleepQuantity {
+    /// Call me immediately!
+    Yesterday,
     /// Do not suspend. Carry on polling.
     None,
     /// Polling may be suspnded for time given (in integration time units).

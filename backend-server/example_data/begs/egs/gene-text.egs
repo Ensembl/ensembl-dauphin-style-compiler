@@ -1,8 +1,10 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
+//notice("gene-text 2020-09-02 23:29");
+
 data := get_data("self()","gene",get_panel());
-//notice(format(data));
+notice(format(data));
 //notice("still here!");
 
 //notice(format(panel.scale));

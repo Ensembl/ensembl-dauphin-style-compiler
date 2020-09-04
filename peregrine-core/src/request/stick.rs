@@ -40,8 +40,8 @@ impl RequestType for StickCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Array(vec![CborValue::Text(self.stick_id.get_id().to_string())]))
     }
-    fn to_failure(&self) -> Rc<dyn ResponseType> {
-        Rc::new(GeneralFailure::new("loading stick info failed"))
+    fn to_failure(&self) -> Box<dyn ResponseType> {
+        Box::new(GeneralFailure::new("loading stick info failed"))
     }
 }
 
@@ -57,7 +57,7 @@ impl ResponseType for StickCommandResponse {
 pub struct StickResponseBuilderType();
 
 impl ResponseBuilderType for StickResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
         let values = cbor_map(value,&["id","size","topology","tags"])?;
         let size = cbor_int(&values[1],None)? as u64;
         let topology = match cbor_int(&values[2],None)? {
@@ -66,7 +66,7 @@ impl ResponseBuilderType for StickResponseBuilderType {
             _ => bail!("bad packet (stick topology)")
         };
         let tags : anyhow::Result<Vec<String>> = cbor_array(&values[3],0,true)?.iter().map(|x| cbor_string(x)).collect();
-        Ok(Rc::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?) }))
+        Ok(Box::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?) }))
     }
 }
 

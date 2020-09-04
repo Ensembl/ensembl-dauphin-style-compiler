@@ -37,8 +37,8 @@ impl RequestType for StickAuthorityCommandRequest {
     fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Null)
     }
-    fn to_failure(&self) -> Rc<dyn ResponseType> {
-        Rc::new(GeneralFailure::new("loading stick info failed"))
+    fn to_failure(&self) -> Box<dyn ResponseType> {
+        Box::new(GeneralFailure::new("loading stick info failed"))
     }
 }
 
@@ -56,12 +56,12 @@ impl ResponseType for StickAuthorityCommandResponse {
 pub struct StickAuthorityResponseBuilderType();
 
 impl ResponseBuilderType for StickAuthorityResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
         let values = cbor_array(value,3,false)?;
         let channel = Channel::deserialize(&values[0])?;
         let startup_name = cbor_string(&values[1])?;
         let lookup_name = cbor_string(&values[2])?;
-        Ok(Rc::new(StickAuthorityCommandResponse {
+        Ok(Box::new(StickAuthorityCommandResponse {
             channel,
             startup_name: startup_name.to_string(),
             lookup_name: lookup_name.to_string()

@@ -76,7 +76,7 @@ impl RequestManagerData {
         })
     }
 
-    pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<CommanderStream<Rc<dyn ResponseType>>> {
+    pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<CommanderStream<Box<dyn ResponseType>>> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
@@ -104,7 +104,7 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Rc<dyn ResponseType>> {
+    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Box<dyn ResponseType>> {
         let m = lock!(self.0).execute(channel,priority,request)?;
         let out = Ok(m.get().await);
         out

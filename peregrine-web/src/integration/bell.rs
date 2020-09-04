@@ -1,11 +1,13 @@
-use anyhow::{ self, Context };
+use anyhow::{ self, Context, anyhow as err };
+use blackbox::blackbox_log;
 use std::sync::{ Arc, Mutex };
 use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
 use web_sys::{ CustomEvent, CustomEventInit, HtmlElement };
-use crate::util::error::js_error;
+use crate::util::error::{ js_error, js_throw };
 use crate::util::safeelement::SafeElement;
 use wasm_bindgen::JsCast;
+use js_sys::Date;
 
 lazy_static! {
     static ref IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -38,10 +40,16 @@ impl BellSender {
 }
 
 struct BellReceiverState {
-    callbacks: Arc<Mutex<Vec<Box<dyn FnMut() + 'static>>>>,
+    callbacks: Arc<Mutex<Vec<Box<dyn Fn() + 'static>>>>,
     name: String,
     el: HtmlElement,
     closure: Option<Closure<dyn Fn()>>
+}
+
+fn run_callbacks(callbacks: Arc<Mutex<Vec<Box<dyn Fn()>>>>) {
+    for cb in callbacks.lock().unwrap().iter_mut() {
+        (cb)();
+    }
 }
 
 impl BellReceiverState {
@@ -56,17 +64,21 @@ impl BellReceiverState {
         Ok(out)
     }
 
-    fn add(&mut self, callback: Box<dyn FnMut() + 'static>) {
+    fn add(&mut self, callback: Box<dyn Fn() + 'static>) {
         self.callbacks.lock().unwrap().push(callback);
     }
 
     fn call_dom(&mut self) -> anyhow::Result<()> {
         let callbacks = self.callbacks.clone();
         self.closure = Some(Closure::wrap(Box::new(move || {
-            for cb in callbacks.lock().unwrap().iter_mut() {
-                (cb)();
-            }
-        }) as Box<dyn Fn()>));
+            let x = Date::now();
+            let callbacks = callbacks.clone();
+            let closure = Closure::once_into_js(move || {
+                run_callbacks(callbacks);
+            });
+            let window = js_throw(web_sys::window().ok_or(err!("cannot get window object")));
+            js_throw(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),0).map_err(|_| err!("cannot set zero timeout")));
+        })));
         js_error(self.el.add_event_listener_with_callback(&self.name,self.closure.as_ref().unwrap().as_ref().unchecked_ref()))?;
         Ok(())
     }
@@ -88,7 +100,7 @@ impl BellReceiver {
         Ok(BellReceiver(Arc::new(Mutex::new(BellReceiverState::new(identity,el)?))))
     }
 
-    pub fn add<T>(&mut self, callback: T) where T: FnMut() + 'static {
+    pub fn add<T>(&mut self, callback: T) where T: Fn() + 'static {
         self.0.lock().unwrap().add(Box::new(callback));
     }
 }

@@ -462,6 +462,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "lazy_static",
  "owning_ref",
  "peregrine_dauphin_queue",
  "regex",

@@ -55,7 +55,7 @@ impl BootstrapCommandRequest {
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
     fn serialize(&self) -> anyhow::Result<CborValue> { Ok(CborValue::Null) }
-    fn to_failure(&self) -> Rc<dyn ResponseType> { Rc::new(GeneralFailure::new("bootstrap failed")) }
+    fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
 }
 
 pub struct BootstrapCommandResponse {
@@ -85,9 +85,9 @@ impl BootstrapCommandResponse {
 
 pub struct BootstrapResponseBuilderType();
 impl ResponseBuilderType for BootstrapResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Rc<dyn ResponseType>> {
+    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
         let values = cbor_array(&value,2,false)?;
-        Ok(Rc::new(BootstrapCommandResponse {
+        Ok(Box::new(BootstrapCommandResponse {
             channel: Channel::deserialize(&values[0])?,
             name: cbor_string(&values[1])?
         }))

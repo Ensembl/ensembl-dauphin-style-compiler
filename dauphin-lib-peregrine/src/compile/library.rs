@@ -5,7 +5,7 @@ use dauphin_compile::command::{
 use dauphin_interp::command::{ CommandSetId, Identifier };
 use crate::make_peregrine_interp;
 use super::boot::{ AddStickAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType };
-use super::data::{ GetPanelCommandType };
+use super::data::{ GetPanelCommandType, GetDataCommandType };
 use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType };
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
@@ -14,11 +14,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x906A287CC3CE859)
-}
-
-pub(super) fn peregrine(name: &str) -> Identifier {
-    Identifier::new("peregrine",name)
+    CommandSetId::new("peregrine",(0,0),0x48EEFA8E2686FACA)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -45,6 +41,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("rectangle2",Some(19),Rectangle2CommandType());
     set.push("rectangle1",Some(20),Rectangle1CommandType());
     set.push("get_panel",Some(21),GetPanelCommandType());
+    set.push("get_data",Some(22),GetDataCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

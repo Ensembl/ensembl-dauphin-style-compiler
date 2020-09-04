@@ -5,6 +5,7 @@ from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Response, Handler
 from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
+from .datacmd import DataHandler
 
 data_accessor = DataAccessor()        
 
@@ -17,6 +18,8 @@ def type_to_handler(typ: int) -> Any:
         return StickHandler()
     elif typ == 3:
         return StickAuthorityHandler()
+    elif typ == 4:
+        return DataHandler()
     else:
         return ErrorHandler("unsupported command type ({0})".format(typ))
 
@@ -29,6 +32,7 @@ def process_packet(packet_cbor: Any) -> Any:
     response = []
     bundles = set()
     for p in packet_cbor["requests"]:
+        logging.warn("{0}".format(str(p)))
         (msgid,typ,payload) = p
         r = process_request(channel,typ,payload)
         response.append([msgid,r.typ,r.payload])

@@ -165,7 +165,7 @@ impl Executor {
 
     fn calculate_sleep(&self, now: f64) -> SleepQuantity {
         if self.get_tasks().any_runnable() {
-            SleepQuantity::None            
+            SleepQuantity::None
         } else {
             self.get_timings().calculate_sleep(now)
         }

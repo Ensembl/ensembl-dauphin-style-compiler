@@ -31,7 +31,7 @@ impl SleepCatcherIntegration {
     pub(super) fn sleep(&self, amount: SleepQuantity) {
         let mut prev_sleep = self.prev_sleep.lock().unwrap();
         match amount {
-            SleepQuantity::Forever | SleepQuantity::None => {
+            SleepQuantity::Forever | SleepQuantity::None | SleepQuantity::Yesterday => {
                 if prev_sleep.is_some() && *prev_sleep.as_ref().unwrap() == amount {
                     return;
                 }

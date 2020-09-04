@@ -1,4 +1,5 @@
 use anyhow::bail;
+use lazy_static::lazy_static;
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
@@ -8,6 +9,10 @@ use regex::Regex;
 use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
+
+lazy_static! {
+    static ref CHANNEL_RE: Regex = Regex::new(r"(.*?)\((.*)\)").unwrap();
+}
 
 pub trait ChannelIntegration {
     fn set_timeout(&self, channel: &Channel, timeout: f64);
@@ -23,7 +28,7 @@ pub enum ChannelLocation {
 
 impl ChannelLocation {
     pub fn parse(base: &ChannelLocation, value: &str) -> anyhow::Result<ChannelLocation> {
-        if let Some(parsed) = Regex::new(r"(.*?)\((.*)\)").unwrap().captures_iter(value).next() {
+        if let Some(parsed) = CHANNEL_RE.captures_iter(value).next() {
             match parsed.get(1).map(|x| x.as_str()) {
                 Some("url") => Ok(ChannelLocation::HttpChannel(Url::parse(parsed.get(1).ok_or(err!("unparsable channel URL"))?.as_str())?)),
                 Some("self") => Ok(base.clone()),
