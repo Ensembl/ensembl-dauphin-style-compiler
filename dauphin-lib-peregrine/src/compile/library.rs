@@ -1,11 +1,14 @@
-use anyhow;
 use dauphin_compile::command::{
-    CompLibRegister, Instruction, InstructionType
+    CompLibRegister
 };
-use dauphin_interp::command::{ CommandSetId, Identifier };
+use dauphin_interp::command::{ CommandSetId };
 use crate::make_peregrine_interp;
 use super::boot::{ AddStickAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType };
-use super::data::{ GetPanelCommandType, GetDataCommandType };
+use super::data::{ GetPanelCommandType, GetDataCommandType, DataStreamCommandType };
+use super::decompress::{
+    InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
+    ClassifyCommandType, SplitStringCommandType
+};
 use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType };
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
@@ -14,7 +17,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x48EEFA8E2686FACA)
+    CommandSetId::new("peregrine",(0,0),0xB08A8820BAB0494B)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -42,6 +45,15 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("rectangle1",Some(20),Rectangle1CommandType());
     set.push("get_panel",Some(21),GetPanelCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
+    set.push("data_stream",Some(23),DataStreamCommandType());
+    set.push("inflate_bytes",Some(24),InflateBytesCommandType());
+    set.push("inflate_string",Some(25),InflateStringCommandType());
+    set.push("lesqlite2",Some(26),Lesqlite2CommandType());
+    set.push("zigzag",Some(27),ZigzagCommandType());
+    set.push("delta",Some(28),DeltaCommandType());
+    // 29 is unused
+    set.push("classify",Some(30),ClassifyCommandType());
+    set.push("split_string",Some(31),SplitStringCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

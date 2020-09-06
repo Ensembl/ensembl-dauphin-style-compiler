@@ -96,3 +96,5 @@ impl CommandType for GetDataCommandType {
         }
     }
 }
+
+simple_command!(DataStreamCommand,DataStreamCommandType,"peregrine","data_stream",3,(0,1,2));

@@ -16,14 +16,6 @@ def delta(input: List[int]) -> List[int]:
         value = item
     return output
 
-def alternate(input: List[int]) -> List[int]:
-    mul : int = 1
-    output : List[int] = []
-    for item in input:
-        output.append(item*mul)
-        mul = -mul
-    return output
-
 def zigzag(input: List[int]) -> List[int]:
     output : List[int] = []
     for item in input:
@@ -47,8 +39,8 @@ def lesqlite2(input: List[int]) -> ByteString:
             (a,b) = divmod(item-16562,65536)
             (b,c) = divmod(b,256)
             output.append(242+a)
-            output.append(b)
             output.append(c)
+            output.append(b)
         else:
             pos = len(output)
             output.append(247)

@@ -50,3 +50,13 @@ proc rectangle1(seaend,shipend,number,seaend,shipend,number);
 
 func get_panel() becomes panel;
 func get_data(string,string,panel) becomes datasource;
+
+func data_stream(datasource,string) becomes bytes;
+func inflate_bytes(bytes) becomes bytes;
+func inflate_string(bytes) becomes string;
+func lesqlite2(bytes) becomes number;
+func zigzag(number) becomes number;
+func delta(number) becomes number;
+func alternate(number) becomes number;
+func classify(string,number) becomes string;
+func split_string(string) becomes vec(string);

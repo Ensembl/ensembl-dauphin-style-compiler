@@ -11,6 +11,7 @@ use crate::shape::ShapeZoo;
 use crate::util::memoized::Memoized;
 use crate::CountingPromise;
 use super::panel::Panel;
+use super::programdata::ProgramData;
 use crate::index::StickStore;
 use super::panelprogramstore::PanelProgramStore;
 
@@ -52,6 +53,7 @@ async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader,
     let pro = PanelRunOutput::new();
     payloads.insert("panel".to_string(),Box::new(panel_run.panel.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(pro.clone()) as Box<dyn Any>);
+    payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     dauphin.run_program(&loader,PgDauphinTaskSpec {
         prio: 1,
         slot: None,

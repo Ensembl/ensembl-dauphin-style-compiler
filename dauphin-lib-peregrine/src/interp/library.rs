@@ -1,6 +1,11 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
-use super::data::{ GetPanelDeserializer, GetDataDeserializer };
+use super::data::{ GetPanelDeserializer, GetDataDeserializer, DataStreamDeserializer };
+use super::decompress::{ 
+    InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
+    ClassifyDeserializer, SplitStringDeserializer
+};
+
 use super::panel::{ NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
@@ -11,7 +16,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x48EEFA8E2686FACA)
+    CommandSetId::new("peregrine",(0,0),0xB08A8820BAB0494B)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -39,5 +44,14 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(Rectangle1Deserializer());
     set.push(GetPanelDeserializer());
     set.push(GetDataDeserializer());
+    set.push(DataStreamDeserializer());
+    set.push(InflateBytesDeserializer());
+    set.push(InflateStringDeserializer());
+    set.push(Lesqlite2Deserializer());
+    set.push(ZigzagDeserializer());
+    set.push(DeltaDeserializer());
+    // unused
+    set.push(ClassifyDeserializer());
+    set.push(SplitStringDeserializer());
     set
 }

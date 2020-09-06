@@ -3,16 +3,34 @@ import "lib:peregrine"; use "peregrine";
 
 //notice("gene-text 2020-09-02 23:29");
 
-data := get_data("self()","gene",get_panel());
-notice(format(data));
-//notice("still here!");
+/* 
+ * actually get the data from the server/
+ */
 
-//notice(format(panel.scale));
+data := get_data("self()","gene",get_panel());
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+gene_desc := split_string(inflate_string(data_stream(data,"gene_descs")))[];
+start := delta(zigzag(lesqlite2(inflate_bytes(data_stream(data,"starts")))));
+length := delta(zigzag(lesqlite2(inflate_bytes(data_stream(data,"lengths")))));
+end := start + length;
+gene_designation_keys := split_string(inflate_string(data_stream(data,"gene_designations_keys")))[];
+gene_designation_values := lesqlite2(inflate_bytes(data_stream(data,"gene_designations_values")));
+gene_designation := classify(gene_designation_keys,gene_designation_values);
+
+/*
+ * style and draw the data.
+ */
+
+//notice(format([start]));
+//notice(format([end]));
+//notice(format(gene_designation));
 
 // run at scale 11, ie 2048 per panel, we simulate panel 500: 1024000 - 1026048
-
-start := [1024000,1025000,1026000][];
-end   := [1024010,1025020,1026030][];
 
 rectangle2(interval(start,end),pin_start(0),pin_end(0),
            interval(0,10),pin_start(0),pin_end(0));

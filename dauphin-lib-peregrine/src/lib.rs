@@ -20,6 +20,7 @@ mod util;
 mod interp {
     mod boot;
     mod data;
+    mod decompress;
     mod geometry;
     mod panel;
     mod shape;
@@ -41,6 +42,7 @@ pub use payloads::add_peregrine_payloads;
 mod compile {
     mod boot;
     mod data;
+    mod decompress;
     mod geometry;
     mod panel;
     mod shape;

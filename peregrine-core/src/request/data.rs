@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{ bail, anyhow as err };
 use blackbox::{ blackbox_log, blackbox_count };
 use std::any::Any;
 use std::collections::HashMap;
@@ -64,6 +64,12 @@ impl RequestType for DataCommandRequest {
 impl ResponseType for DataResponse {
     fn as_any(&self) -> &dyn Any { self }
     fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+}
+
+impl DataResponse {
+    pub fn get(&self, name: &str) -> anyhow::Result<&Vec<u8>> {
+        self.data.get(name).ok_or_else(|| err!("no such data {}",name))
+    }
 }
 
 pub struct DataResponseBuilderType();
