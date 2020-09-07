@@ -21,5 +21,5 @@ mod vectorcopy;
 pub use dfloat::DFloat;
 pub use fileutil::{ fix_filename, fix_incoming_filename, filename_to_name };
 pub use vectorcopy::{
-    vector_add_instrs, vector_update_offsets, vector_update_lengths, vector_copy, vector_append_data, vector_append_indexes, vector_register_copy_instrs
+    vector_add_instrs, vector_update_offsets, vector_update_lengths, vector_copy, vector_append_data, vector_append_indexes_offsets, vector_append_indexes_lengths, vector_register_copy_instrs
 };

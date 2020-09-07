@@ -22,7 +22,7 @@ use dauphin_interp::command::InterpCommand;
 use dauphin_interp::runtime::Register;
 use dauphin_interp::types::{ FullType, RegisterSignature };
 use dauphin_interp::util::DauphinError;
-use dauphin_compile::util::{ vector_add_instrs, vector_append_data, vector_append_indexes, vector_register_copy_instrs };
+use dauphin_compile::util::{ vector_add_instrs, vector_append_data, vector_append_indexes_offsets, vector_append_indexes_lengths, vector_register_copy_instrs };
 use serde_cbor::Value as CborValue;
 use super::library::std;
 
@@ -62,9 +62,9 @@ fn extend_real(out: &mut Vec<Instruction>, context: &mut PreImageContext, dst: &
             out.append(&mut vector_add_instrs(context,z.1,b.1,&copies,regs)?);
             /* push top layer... */
             /* ... push one copy of the top offset reg of b onto z with offset start and stride zero */
-            out.push(vector_append_indexes(z.1,b.1,&start,&stride,&copies,regs,depth-1)?);
-            /* ... push one copy of the top lenght reg of b onto z with given reg containing zero */
-            out.push(vector_append_indexes(z.1,b.1,&zero,&zero,&copies,regs,depth-1)?);
+            out.push(vector_append_indexes_offsets(z.1,b.1,&start,&stride,&copies,regs,depth-1)?);
+            /* ... push one copy of the top length reg of b onto z with given reg containing zero */
+            out.push(vector_append_indexes_lengths(z.1,b.1,&zero,&copies,regs,depth-1)?);
         } else {
             /* ... if it's not a vector, simply append one copy of it */
             out.push(vector_append_data(z.1,b.1,&copies_reg.unwrap_or(&one),&regs)?);

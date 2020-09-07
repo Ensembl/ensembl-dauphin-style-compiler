@@ -62,11 +62,18 @@ pub fn call_flat(lib: &str, name: &str, pure_: bool, spec: &str) -> anyhow::Resu
     do_call_flat(lib,name,pure_,spec).map_err(|_| DauphinError::internal(file!(),line!()))
 }
 
-pub fn vector_append_indexes(dst: &VectorRegisters, src: &VectorRegisters, 
+pub fn vector_append_indexes_offsets(dst: &VectorRegisters, src: &VectorRegisters, 
                              start: &Register, stride: &Register, copies: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
     let itype = call_flat("std","_vector_append_indexes",false,"L0ioR0R0R0R0")?;
     Ok(Instruction::new(itype,vec![regs[dst.offset_pos(level)?].clone(),regs[src.offset_pos(level)?].clone(),
                                          start.clone(),stride.clone(),copies.clone()]))
+}
+
+pub fn vector_append_indexes_lengths(dst: &VectorRegisters, src: &VectorRegisters, 
+    zero: &Register, copies: &Register, regs: &[Register], level: usize) -> anyhow::Result<Instruction> {
+let itype = call_flat("std","_vector_append_indexes",false,"L0ioR0R0R0R0")?;
+Ok(Instruction::new(itype,vec![regs[dst.length_pos(level)?].clone(),regs[src.length_pos(level)?].clone(),
+                zero.clone(),zero.clone(),copies.clone()]))
 }
 
 pub fn vector_update_offsets(dst: &VectorRegisters, src: &VectorRegisters, 
@@ -104,8 +111,8 @@ pub fn vector_add_instrs(context: &mut PreImageContext, dst: &VectorRegisters, s
         let stride = context.new_register();
         let off = if level > 0 { src.offset_pos(level-1)? } else { src.data_pos() };
         out.push(Instruction::new(InstructionType::Length,vec![stride,regs[off]]));
-        out.push(vector_append_indexes(dst,src,&start,&stride,copies,regs,level)?);
-        out.push(vector_append_indexes(dst,src,&zero,&zero,copies,regs,level)?);
+        out.push(vector_append_indexes_offsets(dst,src,&start,&stride,copies,regs,level)?);
+        out.push(vector_append_indexes_lengths(dst,src,&zero,copies,regs,level)?);
     }
     /* bottom-level */
     out.push(vector_append_data(dst,src,copies,&regs)?);
