@@ -24,6 +24,7 @@ use dauphin_interp::command::{ CommandInterpretSuite, InterpreterLink };
 use dauphin_interp::runtime::{ PartialInterpretInstance, InterpretInstance, InterpContext };
 use dauphin_lib_std::{ make_std_interp };
 use dauphin_interp::stream::{ ConsoleStreamFactory };
+use futures::executor::block_on;
 
 fn make_suite() -> anyhow::Result<CommandInterpretSuite> {
     let mut suite = CommandInterpretSuite::new();
@@ -39,13 +40,13 @@ fn main_real() -> anyhow::Result<()> {
     let suite = make_suite()?;
     let buffer = read(&binary_file).with_context(|| format!("reading {}",binary_file))?;
     let program = serde_cbor::from_slice(&buffer).context("while deserialising")?;
-    let mut linker = InterpreterLink::new(&suite,&program)?;
+    let linker = InterpreterLink::new(&suite,&program)?;
     let mut context = InterpContext::new();
     let mut sf = ConsoleStreamFactory::new();
     sf.to_stdout(true);
     context.add_payload("std","stream",&sf);
     let mut interp = Box::new(PartialInterpretInstance::new(&linker,&name,&mut context)).context("building interpreter")?;
-    while interp.more().expect("interpreting") {}
+    while block_on(interp.more()).expect("interpreting") {}
     context.finish();
     Ok(())
 }
