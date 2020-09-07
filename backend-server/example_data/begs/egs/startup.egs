@@ -5,12 +5,12 @@ import "lib:peregrine"; use "peregrine";
 p := panel_new();
 panel_add_tag(p,"local");
 panel_add_track(p,"gene");
-panel_set_scale(p,22,50);
+panel_set_scale(p,25,50);
 panel_apply(p,"self()","gene");
 
 /* most zoomed out gene view: no structure, but with labels */
 p := panel_new();
 panel_add_tag(p,"local");
 panel_add_track(p,"gene");
-panel_set_scale(p,19,22);
+panel_set_scale(p,19,25);
 panel_apply(p,"self()","gene-text");

@@ -66,6 +66,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     out['strands'] = compress(lesqlite2([x=='+' for x in strands.values()]))
     out['gene_designations_keys'] = compress("\0".join(gene_designations_keys))
     out['gene_designations_values'] = compress(lesqlite2(gene_designations_values))
+    logging.warn("got {0} genes".format(len(genes)))
     for (k,v) in out.items():
         logging.warn("len({0}) = {1}".format(k,len(v)))
     return Response(5,{ 'data': out })

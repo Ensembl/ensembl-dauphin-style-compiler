@@ -23,7 +23,7 @@ use dauphin_interp::command::Identifier;
 
 lazy_static! {
     static ref KEYWORDS: Vec<&'static str> = {
-        vec!["reserved","struct","enum","func","proc","expr","stmt","inline","import","becomes","mask","stomp","module"]
+        vec!["reserved","struct","enum","func","proc","expr","stmt","inline","import","becomes","mask","stomp","module","use"]
     };
 }
 

@@ -14,13 +14,14 @@ data := get_data("self()","gene",get_panel());
  * the transforms applied there in reverse order.
  */
 
-gene_desc := split_string(inflate_string(data_stream(data,"gene_descs")))[];
-start := delta(zigzag(lesqlite2(inflate_bytes(data_stream(data,"starts")))));
-length := delta(zigzag(lesqlite2(inflate_bytes(data_stream(data,"lengths")))));
-end := start + length;
-gene_designation_keys := split_string(inflate_string(data_stream(data,"gene_designations_keys")))[];
-gene_designation_values := lesqlite2(inflate_bytes(data_stream(data,"gene_designations_values")));
-gene_designation := classify(gene_designation_keys,gene_designation_values);
+gene_id := string_seq(data,"gene_ids");
+gene_name := string_seq(data,"gene_names");
+gene_desc := string_seq(data,"gene_descs");
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
+strand := positive_seq(data,"strands");
+designated_transcript_id := string_seq(data,"designated_transcript_ids");
 
 /*
  * style and draw the data.
@@ -29,8 +30,6 @@ gene_designation := classify(gene_designation_keys,gene_designation_values);
 //notice(format([start]));
 //notice(format([end]));
 //notice(format(gene_designation));
-
-// run at scale 11, ie 2048 per panel, we simulate panel 500: 1024000 - 1026048
 
 rectangle2(interval(start,end),pin_start(0),pin_end(0),
            interval(0,10),pin_start(0),pin_end(0));
