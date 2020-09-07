@@ -4,7 +4,7 @@ import "lib:peregrine"; use "peregrine";
 //notice("gene-text 2020-09-02 23:29");
 
 /* 
- * actually get the data from the server/
+ * actually get the data from the server
  */
 
 data := get_data("self()","gene",get_panel());
@@ -20,16 +20,33 @@ gene_desc := string_seq(data,"gene_descs");
 start := delta_seq(data,"starts");
 end := start + delta_seq(data,"lengths");
 gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
+gene_biotype := classified_seq(data,"gene_biotype_keys","gene_biotype_values");
 strand := positive_seq(data,"strands");
 designated_transcript_id := string_seq(data,"designated_transcript_ids");
 
 /*
- * style and draw the data.
+ * sort out which allotment and track the data goes into.
+ *
+ * There are separate allotments for protein_coding and non-protein_coding
+ * and also for forward and reverse strand. As usual there is a fifth 
+ * allotment for a focus-feature.
+ *
+ * For the data on each allotment there are currently two tracks: the
+ * main data and the labels.
  */
+
+notice(format(gene_biotype));
+into_pc_allotment := [""];
+
+/*
+ * draw the data.
+ */
+
+// the main rectangles
+rectangle_on_genome(start,end,5);
+
 
 //notice(format([start]));
 //notice(format([end]));
 //notice(format(gene_designation));
 
-rectangle2(interval(start,end),pin_start(0),pin_end(0),
-           interval(0,10),pin_start(0),pin_end(0));

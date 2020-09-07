@@ -20,19 +20,22 @@ use serde_cbor::Value as CborValue;
 
 #[derive(Copy,Clone)]
 pub enum InterpBinNumOp {
-    Plus
+    Plus,
+    Minus
 }
 
 impl InterpBinNumOp {
     fn evaluate(&self, a: f64, b: f64) -> f64 {
         match self {
-            InterpBinNumOp::Plus => a + b
+            InterpBinNumOp::Plus => a + b,
+            InterpBinNumOp::Minus => a - b
         }
     }
 
     pub fn name(&self) -> &str {
         match self {
             InterpBinNumOp::Plus => "plus",
+            InterpBinNumOp::Minus => "minus",
         }
     }
 }
@@ -209,4 +212,5 @@ pub(super) fn library_numops_commands_interp(set: &mut InterpLibRegister) {
     set.push(BinBoolDeserializer(InterpBinBoolOp::GtEq,8));
     set.push(NumModDeserializer(InterpNumModOp::Incr,11));
     set.push(BinNumDeserializer(InterpBinNumOp::Plus,12));
+    set.push(BinNumDeserializer(InterpBinNumOp::Minus,23));
 }

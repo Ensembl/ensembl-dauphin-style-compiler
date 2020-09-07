@@ -2,7 +2,7 @@
     "name": "dauphin-egs-file-extension",
     "displayName": "Dauphin .egs file extension",
     "description": "Syntax highlighting etc for .egs fil",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "engines": {
         "vscode": "^1.48.0"
     },

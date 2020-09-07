@@ -6,6 +6,9 @@
 			"include": "#keywords"
 		},
 		{
+			"include": "#types"
+		},
+		{
 			"include": "#strings"
 		},
 		{
@@ -23,7 +26,13 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.egs",
-				"match": "\\b(reserved|struct|enum|func|proc|expr|stmt|inline|import|becomes|mask|stomp|module|use|boolean|number|string|bytes|vec)\\b"
+				"match": "\\b(reserved|struct|enum|func|proc|expr|stmt|inline|import|becomes|mask|stomp|module|use|\\@|\\$)\\b"
+			}]
+		},
+		"types": {
+			"patterns": [{
+				"name": "support.type.egs",
+				"match": "\\b(boolean|number|string|bytes|vec)\\b"
 			}]
 		},
 		"functions": {

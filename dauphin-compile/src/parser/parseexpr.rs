@@ -37,7 +37,14 @@ fn parse_prefix(lexer: &mut Lexer, defstore: &DefStore, op: &str, nested: bool) 
     Ok(match &identifier.0.name()[..] {
         "__star__" if identifier.1 => Expression::Star(Box::new(parse_expr_level(lexer,defstore,Some(prec),true,nested)?)),
         "__sqctor__" if identifier.1 => vec_ctor(lexer,defstore,nested)?,
-        _ => Expression::Operator(identifier.0.clone(),vec![parse_expr_level(lexer,defstore,Some(prec),true,nested)?])
+        _ => {
+            let after = parse_expr_level(lexer,defstore,Some(prec),true,nested)?;
+            if let Ok(em) = defstore.get_expr_id(&identifier.0) {
+                em.expression(&[after]).map_err(|e| parse_error(&e.to_string(),lexer))?
+            } else {
+                Expression::Operator(identifier.0.clone(),vec![after])
+            }
+        }
     })
 }
 
@@ -145,13 +152,6 @@ fn parse_atom(lexer: &mut Lexer, defstore: &DefStore, nested: bool) -> anyhow::R
             Token::Number(num) => Expression::Number(num),
             Token::LiteralString(s) => Expression::LiteralString(s),
             Token::LiteralBytes(b) => Expression::LiteralBytes(b),
-            Token::Other('-') => {
-                if let Token::Number(num) = lexer.get() {
-                    Expression::Number(format!("-{}",num))
-                } else {
-                    Err(parse_error(&format!("Expected expression, not -"),lexer))?
-                }
-            },
             Token::Other('(') => {
                 let out = parse_expr(lexer,defstore,nested)?;
                 get_other(lexer,")")?;
@@ -208,7 +208,13 @@ fn parse_suffix(lexer: &mut Lexer, defstore: &DefStore, left: Expression, identi
                 }
             }
         },
-        _ => Expression::Operator(identifier.0.clone(),vec![left])
+        _ => {
+            if let Ok(em) = defstore.get_expr_id(&identifier.0) {
+                em.expression(&[left]).map_err(|e| parse_error(&e.to_string(),lexer))?
+            } else {
+                Expression::Operator(identifier.0.clone(),vec![left])
+            }
+        }
     })
 }
 

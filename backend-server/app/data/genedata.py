@@ -35,6 +35,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     gene_sizes = {}
     gene_names = {}
     gene_descs = {}
+    gene_biotypes = {}
     strands = {}
     designated_transcript = collections.defaultdict(lambda: (-1,None))
     for line in data:
@@ -45,6 +46,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
         gene_sizes[line.gene_id] = (line.gene_start,line.gene_end)
         gene_names[line.gene_id] = line.gene_name or line.gene_id
         gene_descs[line.gene_id] = line.gene_description
+        gene_biotypes[line.gene_id] = line.gene_biotype
         strands[line.gene_id] = line.strand
         # store candidate designated transcript
         (dt_grade_stored,_) = designated_transcript[line.gene_id]
@@ -57,6 +59,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     gene_designations = [ designated_transcript[gene][1].transcript_designation for gene in genes ]
     designated_transcript_ids = [ designated_transcript[gene][1].transcript_id for gene in genes ]
     (gene_designations_keys,gene_designations_values) = classify(gene_designations)
+    (gene_biotypes_keys,gene_biotypes_values) = classify(gene_biotypes)
     out['starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in gene_sizes ]))))
     out['lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in gene_sizes ]))))
     out['gene_names'] = compress(gene_names)
@@ -66,6 +69,8 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     out['strands'] = compress(lesqlite2([x=='+' for x in strands.values()]))
     out['gene_designations_keys'] = compress("\0".join(gene_designations_keys))
     out['gene_designations_values'] = compress(lesqlite2(gene_designations_values))
+    out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
+    out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
     logging.warn("got {0} genes".format(len(genes)))
     for (k,v) in out.items():
         logging.warn("len({0}) = {1}".format(k,len(v)))

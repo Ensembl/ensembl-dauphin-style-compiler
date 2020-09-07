@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,0),0xFA290B613AE95980)
+    CommandSetId::new("std",(0,0),0x96B656206DCD6B98)
 }
 
 pub(super) fn std(name: &str) -> Identifier {

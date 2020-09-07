@@ -48,6 +48,11 @@ func pin_end(number) becomes shipend;
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number);
 
+stmt rectangle_on_genome(start,end,half_height) {
+    rectangle2(interval(start,end),pin_start(0),pin_end(0),
+               interval(-half_height,half_height),pin_start(0),pin_end(0));
+}
+
 func get_panel() becomes panel;
 func get_data(string,string,panel) becomes datasource;
 

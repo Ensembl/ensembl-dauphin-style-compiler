@@ -15,6 +15,12 @@ inline "<" lt left 6;
 func plus(number,number) becomes number;
 inline "+" plus left 4;
 
+func minus(number,number) becomes number;
+inline "-" minus left 4;
+
+expr unary_minus(a) 0-a;
+inline "-" unary_minus prefix 3;
+
 proc incr(mask number, number);
 inline "(+=)" incr left 14;
 

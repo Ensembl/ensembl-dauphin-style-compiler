@@ -18,6 +18,10 @@ Very incomplete. Just for basic syntax highlighting for now.
 
 ## Release Notes
 
-### 1.0.0
+### 0.0.2
+
+Lovelier colours to prevent wall-of-purple in header-like files.
+
+### 0.0.1
 
 Initial release of .egs file support mainly for syntax highlighting. Also supports old extension of .dp for now.
