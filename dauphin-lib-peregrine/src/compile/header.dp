@@ -60,3 +60,8 @@ func delta(number) becomes number;
 func alternate(number) becomes number;
 func classify(string,number) becomes string;
 func split_string(string) becomes vec(string);
+
+expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
+expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];
+expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(data,name)));
+expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
