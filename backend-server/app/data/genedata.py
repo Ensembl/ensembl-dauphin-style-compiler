@@ -56,6 +56,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
     gene_names = "\0".join([ gene_names[gene] for gene in genes ])
     gene_descs = "\0".join([ gene_descs[gene] for gene in genes ])
+    gene_biotypes = [ gene_biotypes[gene] for gene in genes ]
     gene_designations = [ designated_transcript[gene][1].transcript_designation for gene in genes ]
     designated_transcript_ids = [ designated_transcript[gene][1].transcript_id for gene in genes ]
     (gene_designations_keys,gene_designations_values) = classify(gene_designations)
@@ -66,7 +67,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     out['gene_descs'] = compress(gene_descs)
     out['gene_ids'] = compress("\0".join(genes))
     out['designated_transcript_ids'] = compress("\0".join(designated_transcript_ids))
-    out['strands'] = compress(lesqlite2([x=='+' for x in strands.values()]))
+    out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_designations_keys'] = compress("\0".join(gene_designations_keys))
     out['gene_designations_values'] = compress(lesqlite2(gene_designations_values))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))

@@ -1,8 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-//notice("gene-text 2020-09-02 23:29");
-
 /* 
  * actually get the data from the server
  */
@@ -20,7 +18,7 @@ gene_desc := string_seq(data,"gene_descs");
 start := delta_seq(data,"starts");
 end := start + delta_seq(data,"lengths");
 gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
-gene_biotype := classified_seq(data,"gene_biotype_keys","gene_biotype_values");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
 designated_transcript_id := string_seq(data,"designated_transcript_ids");
 
@@ -35,18 +33,16 @@ designated_transcript_id := string_seq(data,"designated_transcript_ids");
  * main data and the labels.
  */
 
-notice(format(gene_biotype));
-into_pc_allotment := [""];
+allotment_idx := len([gene_id]) (*) 0;
+
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+
+allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd"]);
 
 /*
  * draw the data.
  */
 
 // the main rectangles
-rectangle_on_genome(start,end,5);
-
-
-//notice(format([start]));
-//notice(format([end]));
-//notice(format(gene_designation));
-
+rectangle_on_genome(start,end,5,allotment);

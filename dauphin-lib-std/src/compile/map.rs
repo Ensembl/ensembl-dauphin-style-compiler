@@ -250,14 +250,12 @@ impl IndexCommand {
         let out_reg = self.1[out_pos];
         let in_regs = (self.1[in_pos.0],self.1[in_pos.1],self.1[in_pos.2]);
         let mut sigs = RegisterSignature::new();
-        add_to_sig(&mut sigs,&MemberMode::Out,&BaseType::NumberType);
-        add_to_sig(&mut sigs,&MemberMode::Out,&BaseType::NumberType);
         add_to_sig(&mut sigs,&MemberMode::Out,base.unwrap_or(&BaseType::NumberType));
         add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
         add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
         add_to_sig(&mut sigs,&MemberMode::In ,base.unwrap_or(&BaseType::NumberType));
         add_to_sig(&mut sigs,&MemberMode::In ,&BaseType::NumberType);
-        let flows = vec![MemberDataFlow::Out,MemberDataFlow::Out,MemberDataFlow::Out,
+        let flows = vec![MemberDataFlow::Out,
                          MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In,MemberDataFlow::In];
         instrs.push(Instruction::new(InstructionType::Call(Identifier::new("std","_index"),false,sigs,flows),vec![
             out_reg,in_regs.0,in_regs.1,in_regs.2,needle.clone()

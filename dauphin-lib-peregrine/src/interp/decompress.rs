@@ -137,8 +137,6 @@ impl InterpCommand for ClassifyInterpCommand {
         let registers = context.registers_mut();
         let keys = registers.get_strings(&self.1)?;
         let values = registers.get_indexes(&self.2)?;
-        console::log_1(&format!("keys {:?}",keys).into());
-        console::log_1(&format!("values {:?}",values).into());
         let mut out = vec![];
         for v in values.iter() {
             out.push(keys.get(*v).ok_or_else(|| err!("bad index in classify"))?.to_string());
