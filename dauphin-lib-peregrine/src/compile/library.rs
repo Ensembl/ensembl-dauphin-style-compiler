@@ -12,12 +12,13 @@ use super::decompress::{
 use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType };
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
-    ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType
+    ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
+    PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType
 };
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0xEAE1F98BA1603375)
+    CommandSetId::new("peregrine",(0,0),0x356B673951E1F125)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -51,9 +52,11 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("lesqlite2",Some(26),Lesqlite2CommandType());
     set.push("zigzag",Some(27),ZigzagCommandType());
     set.push("delta",Some(28),DeltaCommandType());
-    // 29 is unused
+    set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
+    set.push("patina_hollow",Some(32),PatinaHollowCommandType());
+    set.push("colour",Some(33),DirectColourCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

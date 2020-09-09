@@ -9,14 +9,15 @@ use super::decompress::{
 use super::panel::{ NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
-    ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer
+    ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
+    PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer
 };
 use super::shape::{
     Rectangle2Deserializer, Rectangle1Deserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0xEAE1F98BA1603375)
+    CommandSetId::new("peregrine",(0,0),0x356B673951E1F125)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -50,8 +51,10 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(Lesqlite2Deserializer());
     set.push(ZigzagDeserializer());
     set.push(DeltaDeserializer());
-    // unused
+    set.push(PatinaFilledDeserializer());
     set.push(ClassifyDeserializer());
     set.push(SplitStringDeserializer());
+    set.push(PatinaHollowDeserializer());
+    set.push(DirectColourDeserializer());
     set
 }

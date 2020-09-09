@@ -10,6 +10,8 @@ struct stick {
 struct seaendpair { value: number };
 struct seaend { value: number };
 struct shipend { value: number };
+struct directcolour { value: number };
+struct patina { value: number };
 
 struct panel {
     stick: string,
@@ -44,14 +46,17 @@ func screen_end(number) becomes seaend;
 func pin_start(number) becomes shipend;
 func pin_centre(number) becomes shipend;
 func pin_end(number) becomes shipend;
+func colour(number,number,number) becomes directcolour;
+func patina_filled(directcolour) becomes patina;
+func patina_hollow(directcolour) becomes patina;
 
-proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,string);
-proc rectangle1(seaend,shipend,number,seaend,shipend,number,string);
+proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string);
+proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string);
 
-stmt rectangle_on_genome(start,end,half_height,allotment) {
+stmt rectangle_on_genome(start,end,half_height,patina,allotment) {
     rectangle2(interval(start,end),pin_start(0),pin_end(0),
                interval(-half_height,half_height),pin_start(0),pin_end(0),
-               allotment);
+               patina,allotment);
 }
 
 func get_panel() becomes panel;

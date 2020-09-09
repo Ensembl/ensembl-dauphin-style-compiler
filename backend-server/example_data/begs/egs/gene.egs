@@ -13,5 +13,5 @@ start := [1024000,1025000,1026000][];
 end   := [1024010,1025020,1026030][];
 
 rectangle2(interval(start,end),pin_start(0),pin_end(0),
-           interval(0,10),pin_start(0),pin_end(0),"test");
+           interval(0,10),pin_start(0),pin_end(0),patina_filled(colour(0,0,0)),"test");
            

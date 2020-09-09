@@ -1,13 +1,15 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock };
+use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour };
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
 enum GeometryBuilderEntry {
     SeaEndPair(Arc<SeaEndPair>),
     SeaEnd(Arc<SeaEnd>),
-    ShipEnd(Arc<ShipEnd>)
+    ShipEnd(Arc<ShipEnd>),
+    DirectColour(Arc<DirectColour>),
+    Patina(Arc<Patina>)
 }
 
 impl GeometryBuilderEntry {
@@ -16,6 +18,8 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::SeaEndPair(_) => "seaendpair",
             GeometryBuilderEntry::SeaEnd(_) => "seaend",
             GeometryBuilderEntry::ShipEnd(_) => "shipend",
+            GeometryBuilderEntry::DirectColour(_) => "directcolour",
+            GeometryBuilderEntry::Patina(_) => "patina"
         }
     }
 }
@@ -73,6 +77,14 @@ impl GeometryBuilder {
         entry_branch!(lock!(self.0).get(id)?,ShipEnd,"shipend")
     }
 
+    pub fn patina(&self, id: u32) -> anyhow::Result<ArcRef<Patina>> {
+        entry_branch!(lock!(self.0).get(id)?,Patina,"patina")
+    }
+
+    pub fn direct_colour(&self, id: u32) -> anyhow::Result<ArcRef<DirectColour>> {
+        entry_branch!(lock!(self.0).get(id)?,DirectColour,"directcolour")
+    }
+
     pub fn add_seaendpair(&self, item: SeaEndPair) -> u32 {
         lock!(self.0).add(GeometryBuilderEntry::SeaEndPair(Arc::new(item)))
     }
@@ -83,5 +95,13 @@ impl GeometryBuilder {
 
     pub fn add_shipend(&self, item: ShipEnd) -> u32 {
         lock!(self.0).add(GeometryBuilderEntry::ShipEnd(Arc::new(item)))
+    }
+
+    pub fn add_patina(&self, item: Patina) -> u32 {
+        lock!(self.0).add(GeometryBuilderEntry::Patina(Arc::new(item)))
+    }
+
+    pub fn add_direct_colour(&self, item: DirectColour) -> u32 {
+        lock!(self.0).add(GeometryBuilderEntry::DirectColour(Arc::new(item)))
     }
 }

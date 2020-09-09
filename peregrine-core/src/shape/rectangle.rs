@@ -7,6 +7,7 @@ enum RectShape {
     DoubleAnchor(AnchorPair,Patina,Vec<String>)
 }
 
+// XXX filter allotments too!
 impl RectShape {
     fn filter(self, min_value: f64, max_value: f64) -> RectShape {
         match self {

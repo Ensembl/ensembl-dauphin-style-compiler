@@ -18,3 +18,7 @@ simple_command!(ScreenEndCommand,ScreenEndCommandType,"peregrine","screen_end",2
 simple_command!(PinStartCommand,PinStartCommandType,"peregrine","pin_start",2,(0,1));
 simple_command!(PinCentreCommand,PinCentreCommandType,"peregrine","pin_centre",2,(0,1));
 simple_command!(PinEndCommand,PinEndCommandType,"peregrine","pin_end",2,(0,1));
+
+simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",2,(0,1));
+simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",2,(0,1));
+simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","colour",4,(0,1,2,3));

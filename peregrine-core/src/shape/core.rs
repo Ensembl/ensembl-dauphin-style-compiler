@@ -18,7 +18,7 @@ pub enum Colour {
     Spot(DirectColour)
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub enum Patina {
     Filled(Colour),
     Hollow(Colour),

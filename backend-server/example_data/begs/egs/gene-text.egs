@@ -23,7 +23,7 @@ strand := positive_seq(data,"strands");
 designated_transcript_id := string_seq(data,"designated_transcript_ids");
 
 /*
- * sort out which allotment and track the data goes into.
+ * Which allotment and track does data go into?
  *
  * There are separate allotments for protein_coding and non-protein_coding
  * and also for forward and reverse strand. As usual there is a fifth 
@@ -41,8 +41,18 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd"]);
 
 /*
+ * What colour is it?
+ *
+ * (driven by allotment for gene)
+ */
+
+non_pc_colour := colour(250,250,250);
+pc_colour := colour(128,128,128);
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+
+/*
  * draw the data.
  */
 
 // the main rectangles
-rectangle_on_genome(start,end,5,allotment);
+rectangle_on_genome(start,end,5,patina,allotment);
