@@ -1,5 +1,5 @@
-use std::sync::Arc;
-use super::core::{ AnchorPair, Patina, ShapeSet, SingleAnchor };
+ use std::sync::Arc;
+use super::core::{ AnchorPair, Patina, ShapeSet, SingleAnchor, filter };
 
 #[derive(Debug)]
 enum RectShape {
@@ -10,9 +10,13 @@ enum RectShape {
 // XXX filter allotments too!
 impl RectShape {
     fn filter(self, min_value: f64, max_value: f64) -> RectShape {
+        let which = match &self {
+            RectShape::SingleAnchor(anchor,_,_) => anchor.matches(min_value,max_value),
+            RectShape::DoubleAnchor(anchor,_,_) => anchor.matches(min_value,max_value),
+        };
         match self {
-            RectShape::SingleAnchor(anchor,patina,allotment) => RectShape::SingleAnchor(anchor.filter(min_value,max_value),patina,allotment),
-            RectShape::DoubleAnchor(anchor,patina,allotment) => RectShape::DoubleAnchor(anchor.filter(min_value,max_value),patina,allotment),
+            RectShape::SingleAnchor(anchor,patina,allotment) => RectShape::SingleAnchor(anchor.filter(&which),patina.filter(&which),filter(allotment,&which)),
+            RectShape::DoubleAnchor(anchor,patina,allotment) => RectShape::DoubleAnchor(anchor.filter(&which),patina.filter(&which),filter(allotment,&which)),
         }
     }
 }
