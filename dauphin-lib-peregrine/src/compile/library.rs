@@ -13,12 +13,12 @@ use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType,
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
     ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
-    PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType
+    PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType
 };
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x356B673951E1F125)
+    CommandSetId::new("peregrine",(0,0),0x8AF8B73F699A91D4)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -57,6 +57,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("split_string",Some(31),SplitStringCommandType());
     set.push("patina_hollow",Some(32),PatinaHollowCommandType());
     set.push("colour",Some(33),DirectColourCommandType());
+    set.push("zmenu",Some(34),ZMenuCommandType());
+    set.push("patina_zmenu",Some(35),PatinaZMenuCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

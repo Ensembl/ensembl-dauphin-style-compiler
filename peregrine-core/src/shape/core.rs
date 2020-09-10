@@ -1,11 +1,8 @@
+use std::collections::HashMap;
 use std::sync::Arc;
+use super::zmenu::ZMenu;
 
 pub trait Texture : std::fmt::Debug {
-
-}
-
-#[derive(Clone,Debug)]
-pub struct ZMenu {
 
 }
 
@@ -23,7 +20,7 @@ pub enum Patina {
     Filled(Colour),
     Hollow(Colour),
     Texture(Vec<Arc<dyn Texture>>),
-    ZMenu(Vec<ZMenu>)
+    ZMenu(ZMenu,HashMap<String,Vec<String>>)
 }
 
 #[derive(Clone,Debug)]

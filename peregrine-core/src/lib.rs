@@ -69,9 +69,11 @@ mod shape {
     mod core;
     mod rectangle;
     mod text;
+    mod zmenu;
     mod zoo;
 
     pub use self::core::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis };
+    pub use self::zmenu::ZMenu;
     pub use self::zoo::ShapeZoo;
 }
 
@@ -106,5 +108,8 @@ pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, PanelProgramRegi
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;
-pub use self::shape::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis };
+pub use self::shape::{ 
+    ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
+    ZMenu
+};
 pub use self::util::CountingPromise;

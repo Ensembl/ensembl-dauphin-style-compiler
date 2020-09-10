@@ -12,6 +12,7 @@ struct seaend { value: number };
 struct shipend { value: number };
 struct directcolour { value: number };
 struct patina { value: number };
+struct zmenutmpl { value: number };
 
 struct panel {
     stick: string,
@@ -47,8 +48,10 @@ func pin_start(number) becomes shipend;
 func pin_centre(number) becomes shipend;
 func pin_end(number) becomes shipend;
 func colour(number,number,number) becomes directcolour;
+func zmenu(string) becomes zmenutmpl;
 func patina_filled(directcolour) becomes patina;
 func patina_hollow(directcolour) becomes patina;
+func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string);

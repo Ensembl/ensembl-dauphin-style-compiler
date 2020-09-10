@@ -38,6 +38,8 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     gene_biotypes = {}
     strands = {}
     designated_transcript = collections.defaultdict(lambda: (-1,None))
+    transcript_biotypes = {}
+    transcript_designations = {}
     for line in data:
         line = TranscriptFileLine(line)
         if line.gene_id not in seen_genes:
@@ -48,6 +50,8 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
         gene_descs[line.gene_id] = line.gene_description
         gene_biotypes[line.gene_id] = line.gene_biotype
         strands[line.gene_id] = line.strand
+        transcript_biotypes[line.transcript_id] = line.transcript_biotype
+        transcript_designations[line.transcript_id] = line.transcript_designation
         # store candidate designated transcript
         (dt_grade_stored,_) = designated_transcript[line.gene_id]
         dt_grade = transcript_grade(line.transcript_designation,line.transcript_biotype)
@@ -59,8 +63,12 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     gene_biotypes = [ gene_biotypes[gene] for gene in genes ]
     gene_designations = [ designated_transcript[gene][1].transcript_designation for gene in genes ]
     designated_transcript_ids = [ designated_transcript[gene][1].transcript_id for gene in genes ]
+    designated_transcript_biotypes = [ transcript_biotypes[transcript] for transcript in designated_transcript_ids ]
+    designated_transcript_designations = [ transcript_designations[transcript] for transcript in designated_transcript_ids ]
     (gene_designations_keys,gene_designations_values) = classify(gene_designations)
     (gene_biotypes_keys,gene_biotypes_values) = classify(gene_biotypes)
+    (designated_transcript_biotypes_keys,designated_transcript_biotypes_values) = classify(designated_transcript_biotypes)
+    (designated_transcript_designations_keys,designated_transcript_designations_values) = classify(designated_transcript_designations)
     out['starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in gene_sizes ]))))
     out['lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in gene_sizes ]))))
     out['gene_names'] = compress(gene_names)
@@ -72,6 +80,10 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     out['gene_designations_values'] = compress(lesqlite2(gene_designations_values))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
+    out['designated_transcript_biotypes_keys'] = compress("\0".join(designated_transcript_biotypes_keys))
+    out['designated_transcript_biotypes_values'] = compress(lesqlite2(designated_transcript_biotypes_values))
+    out['designated_transcript_designations_keys'] = compress("\0".join(designated_transcript_designations_keys))
+    out['designated_transcript_designations_values'] = compress(lesqlite2(designated_transcript_designations_values))
     logging.warn("got {0} genes".format(len(genes)))
     for (k,v) in out.items():
         logging.warn("len({0}) = {1}".format(k,len(v)))

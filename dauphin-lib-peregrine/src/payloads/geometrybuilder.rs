@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour };
+use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu };
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
@@ -9,7 +9,8 @@ enum GeometryBuilderEntry {
     SeaEnd(Arc<SeaEnd>),
     ShipEnd(Arc<ShipEnd>),
     DirectColour(Arc<DirectColour>),
-    Patina(Arc<Patina>)
+    Patina(Arc<Patina>),
+    ZMenu(Arc<ZMenu>)
 }
 
 impl GeometryBuilderEntry {
@@ -19,7 +20,8 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::SeaEnd(_) => "seaend",
             GeometryBuilderEntry::ShipEnd(_) => "shipend",
             GeometryBuilderEntry::DirectColour(_) => "directcolour",
-            GeometryBuilderEntry::Patina(_) => "patina"
+            GeometryBuilderEntry::Patina(_) => "patina",
+            GeometryBuilderEntry::ZMenu(_) => "zmenu"
         }
     }
 }
@@ -58,6 +60,18 @@ impl GeometryBuilderData {
     }
 }
 
+macro_rules! builder_type {
+    ($read:ident,$write:ident,$typ:tt,$type_name:expr) => {
+        pub fn $read(&self, id: u32) -> anyhow::Result<ArcRef<$typ>> {
+            entry_branch!(lock!(self.0).get(id)?,$typ,$type_name)
+        }
+
+        pub fn $write(&self, item: $typ) -> u32 {
+            lock!(self.0).add(GeometryBuilderEntry::$typ(Arc::new(item)))
+        }
+    };
+}
+
 pub struct GeometryBuilder(Arc<Mutex<GeometryBuilderData>>);
 
 impl GeometryBuilder {
@@ -65,43 +79,10 @@ impl GeometryBuilder {
         GeometryBuilder(Arc::new(Mutex::new(GeometryBuilderData::new())))
     }
 
-    pub fn seaendpair(&self, id: u32) -> anyhow::Result<ArcRef<SeaEndPair>> {
-        entry_branch!(lock!(self.0).get(id)?,SeaEndPair,"seaendpair")
-    }
-
-    pub fn seaend(&self, id: u32) -> anyhow::Result<ArcRef<SeaEnd>> {
-        entry_branch!(lock!(self.0).get(id)?,SeaEnd,"seaend")
-    }
-
-    pub fn shipend(&self, id: u32) -> anyhow::Result<ArcRef<ShipEnd>> {
-        entry_branch!(lock!(self.0).get(id)?,ShipEnd,"shipend")
-    }
-
-    pub fn patina(&self, id: u32) -> anyhow::Result<ArcRef<Patina>> {
-        entry_branch!(lock!(self.0).get(id)?,Patina,"patina")
-    }
-
-    pub fn direct_colour(&self, id: u32) -> anyhow::Result<ArcRef<DirectColour>> {
-        entry_branch!(lock!(self.0).get(id)?,DirectColour,"directcolour")
-    }
-
-    pub fn add_seaendpair(&self, item: SeaEndPair) -> u32 {
-        lock!(self.0).add(GeometryBuilderEntry::SeaEndPair(Arc::new(item)))
-    }
-
-    pub fn add_seaend(&self, item: SeaEnd) -> u32 {
-        lock!(self.0).add(GeometryBuilderEntry::SeaEnd(Arc::new(item)))
-    }
-
-    pub fn add_shipend(&self, item: ShipEnd) -> u32 {
-        lock!(self.0).add(GeometryBuilderEntry::ShipEnd(Arc::new(item)))
-    }
-
-    pub fn add_patina(&self, item: Patina) -> u32 {
-        lock!(self.0).add(GeometryBuilderEntry::Patina(Arc::new(item)))
-    }
-
-    pub fn add_direct_colour(&self, item: DirectColour) -> u32 {
-        lock!(self.0).add(GeometryBuilderEntry::DirectColour(Arc::new(item)))
-    }
+    builder_type!(seaendpair,add_seaendpair,SeaEndPair,"seaendpair");
+    builder_type!(seaend,add_seaend,SeaEnd,"seaend");
+    builder_type!(shipend,add_shipend,ShipEnd,"shipend");
+    builder_type!(patina,add_patina,Patina,"patina");
+    builder_type!(direct_colour,add_direct_colour,DirectColour,"directcolour");
+    builder_type!(zmenu,add_zmenu,ZMenu,"zmenu");
 }

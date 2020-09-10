@@ -21,6 +21,10 @@ gene_designation := classified_seq(data,"gene_designation_keys","gene_designatio
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
 designated_transcript_id := string_seq(data,"designated_transcript_ids");
+designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
+designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
+strand_string := len([strand]) (*) "negative strand";
+strand_string#[strand>0] := "positive strand";
 
 /*
  * Which allotment and track does data go into?
@@ -51,8 +55,24 @@ pc_colour := colour(128,128,128);
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
 /*
- * draw the data.
+ * prepare the zmenus
  */
 
-// the main rectangles
+// TODO multiline strings
+
+/* transcript part of zmenu */
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
+                                      [designated_transcript_id,designated_transcript_biotype,strand_string,designated_transcript_designation]);
+
+/* gene part of zmenu */
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[gene_name,gene_id]);
+
+/*
+ * draw everything!
+ */
+
 rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);

@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use anyhow::{ bail, anyhow as err };
-use peregrine_core::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina };
+use peregrine_core::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -8,6 +8,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use crate::util::{ get_peregrine };
+use owning_ref::ArcRef;
 
 simple_interp_command!(IntervalInterpCommand,IntervalDeserializer,9,3,(0,1,2));
 simple_interp_command!(ScreenStartPairInterpCommand,ScreenStartPairDeserializer,10,3,(0,1,2));
@@ -21,6 +22,8 @@ simple_interp_command!(ScreenEndInterpCommand,ScreenEndDeserializer,15,2,(0,1));
 simple_interp_command!(PinStartInterpCommand,PinStartDeserializer,16,2,(0,1));
 simple_interp_command!(PinCentreInterpCommand,PinCentreDeserializer,17,2,(0,1));
 simple_interp_command!(PinEndInterpCommand,PinEndDeserializer,18,2,(0,1));
+simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,34,2,(0,1));
+simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,35,8,(0,1,2,3,4,5,6,7));
 
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,32,2,(0,1));
@@ -200,3 +203,64 @@ impl InterpCommand for PatinaHollowInterpCommand {
     }
 }
 
+impl InterpCommand for ZMenuInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let specs = registers.get_strings(&self.1)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let mut out = vec![];
+        for spec in &specs {
+            let zmenu = ZMenu::new(spec)?;
+            out.push(geometry_builder.add_zmenu(zmenu) as usize);
+        }
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<HashMap<String,Vec<String>>> {
+    let mut out = HashMap::new();
+    let value_pos = value_a.iter().zip(value_b.iter().cycle());
+    let kv = keys.iter().zip(value_pos.cycle());
+    for (key,(value_start,value_length)) in kv {
+        let values = &value_d[*value_start..(*value_start+*value_length)];
+        out.insert(key.to_string(),values.to_vec());
+    }
+    Ok(out)
+}
+
+/* 0: out/patina  1: zmenu  2: key/D  3: key/A  4: key/B  5: value/D  6: value/A  7: value/B */
+impl InterpCommand for PatinaZMenuInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let zmenu_ids = registers.get_indexes(&self.1)?;
+        let key_d = registers.get_strings(&self.2)?.to_vec();
+        let key_a = registers.get_indexes(&self.3)?;
+        let key_b = registers.get_indexes(&self.4)?;
+        let value_d = registers.get_strings(&self.5)?.to_vec();
+        let value_a = registers.get_indexes(&self.6)?.to_vec();
+        let value_b = registers.get_indexes(&self.7)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let zmenus : anyhow::Result<Vec<_>> = zmenu_ids.iter().map(|id| geometry_builder.zmenu(*id as u32)).collect();
+        let zmenus = zmenus?;
+        let key_pos = key_a.iter().zip(key_b.iter().cycle());
+        let each = zmenus.iter().zip(key_pos.cycle());
+        let mut payload = vec![];
+        for (zmenu,(key_start,key_length)) in each {
+            let keys = &key_d[*key_start..(*key_start+*key_length)];
+            let values = make_values(keys,&value_d,&value_a,&value_b)?;
+            let patina = Patina::ZMenu(zmenu.as_ref().clone(),values);
+            payload.push(geometry_builder.add_patina(patina) as usize);
+        }
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(payload));
+        Ok(CommandResult::SyncResult())
+    }
+}

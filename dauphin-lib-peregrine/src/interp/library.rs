@@ -10,14 +10,14 @@ use super::panel::{ NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializ
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
     ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
-    PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer
+    PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer
 };
 use super::shape::{
     Rectangle2Deserializer, Rectangle1Deserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x356B673951E1F125)
+    CommandSetId::new("peregrine",(0,0),0x8AF8B73F699A91D4)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -56,5 +56,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(SplitStringDeserializer());
     set.push(PatinaHollowDeserializer());
     set.push(DirectColourDeserializer());
+    set.push(ZMenuDeserializer());
+    set.push(PatinaZMenuDeserializer());
     set
 }
