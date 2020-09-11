@@ -39,27 +39,26 @@ func interval(number,number) becomes seaendpair;
 func screen_start_pair(number,number) becomes seaendpair;
 func screen_end_pair(number,number) becomes seaendpair;
 func screen_span_pair(number,number) becomes seaendpair;
-
 func position(number) becomes seaend;
 func screen_start(number) becomes seaend;
 func screen_end(number) becomes seaend;
-
 func pin_start(number) becomes shipend;
 func pin_centre(number) becomes shipend;
 func pin_end(number) becomes shipend;
+
 func colour(number,number,number) becomes directcolour;
 func zmenu(string) becomes zmenutmpl;
 func patina_filled(directcolour) becomes patina;
 func patina_hollow(directcolour) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 
-proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string);
-proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string);
+proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string,string);
+proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string,string);
 
-stmt rectangle_on_genome(start,end,half_height,patina,allotment) {
+stmt rectangle_on_genome(start,end,half_height,patina,allotment,track) {
     rectangle2(interval(start,end),pin_start(0),pin_end(0),
                interval(-half_height,half_height),pin_start(0),pin_end(0),
-               patina,allotment);
+               patina,allotment,track);
 }
 
 func get_panel() becomes panel;

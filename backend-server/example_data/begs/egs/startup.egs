@@ -6,7 +6,7 @@ p := panel_new();
 panel_add_tag(p,"local");
 panel_add_track(p,"gene");
 panel_set_scale(p,25,50);
-panel_apply(p,"self()","gene");
+panel_apply(p,"self()","gene-text");
 
 /* most zoomed out gene view: no structure, but with labels */
 p := panel_new();

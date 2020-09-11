@@ -8,8 +8,8 @@ use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
 use web_sys::console;
 
-simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,8,(0,1,2,3,4,5,6,7));
-simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,9,(0,1,2,3,4,5,6,7,8));
+simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,9,(0,1,2,3,4,5,6,7,8));
 
 impl InterpCommand for Rectangle2InterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -22,6 +22,7 @@ impl InterpCommand for Rectangle2InterpCommand {
         let ship_y1_id = registers.get_indexes(&self.5)?.to_vec();
         let patina_id = registers.get_indexes(&self.6)?.to_vec();
         let allotment = registers.get_strings(&self.7)?.to_vec();
+        let track = registers.get_strings(&self.8)?.to_vec();
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
@@ -34,9 +35,9 @@ impl InterpCommand for Rectangle2InterpCommand {
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
         let zoo = out.zoo();
-        zoo.rectangle().add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
+        zoo.add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
-                                        patina,allotment);
+                                        patina,allotment,track);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -52,6 +53,7 @@ impl InterpCommand for Rectangle1InterpCommand {
         let size_y = registers.get_numbers(&self.5)?.to_vec();
         let patina_id = registers.get_indexes(&self.6)?.to_vec();
         let allotment = registers.get_strings(&self.7)?.to_vec();
+        let track = registers.get_strings(&self.8)?.to_vec();
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
@@ -62,9 +64,9 @@ impl InterpCommand for Rectangle1InterpCommand {
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
         let zoo = out.zoo();
-        zoo.rectangle().add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x,size_x),
+        zoo.add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x,size_x),
                                                      SingleAnchorAxis(sea_y,ship_y,size_y)),
-                                        patina,allotment);
+                                        patina,allotment,track);
         Ok(CommandResult::SyncResult())
     }
 }

@@ -67,7 +67,7 @@ mod run {
 
 mod shape {
     mod core;
-    mod rectangle;
+    mod trackshapes;
     mod text;
     mod zmenu;
     mod zoo;
