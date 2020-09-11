@@ -2,10 +2,10 @@ use crate::lock;
 use std::sync::{ Arc, Mutex };
 use varea::VareaStore;
 use crate::request::Channel;
-use super::panel::PanelProgramRegion;
+use super::programregion::ProgramRegion;
 
 pub struct PanelProgramStoreData {
-    store: VareaStore<(Channel,String,PanelProgramRegion)>
+    store: VareaStore<(Channel,String,ProgramRegion)>
 }
 
 impl PanelProgramStoreData {
@@ -15,12 +15,12 @@ impl PanelProgramStoreData {
         }
     }
 
-    fn add(&mut self, panel_slice_range: &PanelProgramRegion, channel: &Channel, name: &str) {
+    fn add(&mut self, panel_slice_range: &ProgramRegion, channel: &Channel, name: &str) {
         let varea_item = panel_slice_range.to_varea_item();
         self.store.add(varea_item,(channel.clone(),name.to_string(),panel_slice_range.clone()));
     }
 
-    fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String,PanelProgramRegion)> {
+    fn get(&self, panel_slice_range: &ProgramRegion) -> Option<(Channel,String,ProgramRegion)> {
         let varea_item = panel_slice_range.to_varea_item();
         let varea_search_term = self.store.search_item(&varea_item);
         let mut varea_matches = self.store.lookup(varea_search_term);
@@ -36,11 +36,11 @@ impl PanelProgramStore {
         PanelProgramStore(Arc::new(Mutex::new(PanelProgramStoreData::new())))
     }
 
-    pub fn add(&self, panel_slice_range: &PanelProgramRegion, channel: &Channel, name: &str) {
+    pub fn add(&self, panel_slice_range: &ProgramRegion, channel: &Channel, name: &str) {
         lock!(self.0).add(panel_slice_range,channel,name);
     }
 
-    pub fn get(&self, panel_slice_range: &PanelProgramRegion) -> Option<(Channel,String,PanelProgramRegion)> {
+    pub fn get(&self, panel_slice_range: &ProgramRegion) -> Option<(Channel,String,ProgramRegion)> {
         lock!(self.0).get(panel_slice_range)
     }
 }

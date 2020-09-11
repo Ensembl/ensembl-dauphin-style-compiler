@@ -1,11 +1,11 @@
-use peregrine_core::{ lock, PanelProgramRegion };
+use peregrine_core::{ lock, ProgramRegion };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 
 struct PanelBuilderData {
     next_id: usize,
-    panels: HashMap<usize,Arc<Mutex<PanelProgramRegion>>>
+    panels: HashMap<usize,Arc<Mutex<ProgramRegion>>>
 }
 
 impl PanelBuilderData {
@@ -17,14 +17,14 @@ impl PanelBuilderData {
     }
 
     fn allocate(&mut self) -> usize {
-        let psr = Arc::new(Mutex::new(PanelProgramRegion::new()));
+        let psr = Arc::new(Mutex::new(ProgramRegion::new()));
         let id = self.next_id;
         self.panels.insert(id,psr.clone());
         self.next_id += 1;
         id
     }
 
-    fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<PanelProgramRegion>>> {
+    fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<ProgramRegion>>> {
         Ok(self.panels.get(&id).ok_or(err!("bad panel id"))?.clone())
     }
 }
@@ -41,7 +41,7 @@ impl PanelBuilder {
         lock!(self.0).allocate()
     }
 
-    pub fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<PanelProgramRegion>>> {
+    pub fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<ProgramRegion>>> {
         lock!(self.0).get(id)
     }
 }

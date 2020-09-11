@@ -10,6 +10,7 @@ simple_interp_command!(AddTagInterpCommand,AddTagDeserializer,5,2,(0,1));
 simple_interp_command!(AddTrackInterpCommand,AddTrackDeserializer,6,2,(0,1));
 simple_interp_command!(SetScaleInterpCommand,SetScaleDeserializer,7,3,(0,1,2));
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,3,(0,1,2));
+simple_interp_command!(PanelSetMaxScaleJumpInterpCommand,PanelSetMaxScaleJumpDeserializer,40,2,(0,1));
 
 impl InterpCommand for NewPanelInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -99,6 +100,25 @@ impl InterpCommand for DataSourceInterpCommand {
             let channel = Channel::parse(&self_channel,channel)?;
             let panel = panel_builder.get(*panel_id)?;
             panel_program_store.add(&panel.lock().unwrap(),&channel,name);
+        }
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PanelSetMaxScaleJumpInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let panel_ids = registers.get_indexes(&self.0)?.to_vec();
+        let max_jump = registers.get_indexes(&self.1)?.to_vec();
+        let mut max_jump_iter = max_jump.iter().cycle();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        for panel_id in &panel_ids {
+            let max_jump = max_jump_iter.next().unwrap();
+            let panel = peregrine.panel_builder().get(*panel_id)?;
+            let mut panel = panel.lock().unwrap();
+            panel.set_max_scale_jump(*max_jump as u32);
+            drop(panel);
         }
         Ok(CommandResult::SyncResult())
     }

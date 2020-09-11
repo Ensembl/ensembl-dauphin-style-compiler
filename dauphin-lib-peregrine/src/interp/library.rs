@@ -6,7 +6,10 @@ use super::decompress::{
     ClassifyDeserializer, SplitStringDeserializer
 };
 
-use super::panel::{ NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer };
+use super::panel::{ 
+    NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer,
+    PanelSetMaxScaleJumpDeserializer
+};
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
     ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
@@ -18,7 +21,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x737D8BDD884A78BA)
+    CommandSetId::new("peregrine",(0,0),0xAAEE123877191698)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -63,5 +66,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
+    set.push(PanelSetMaxScaleJumpDeserializer());
     set
 }

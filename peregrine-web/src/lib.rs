@@ -28,12 +28,11 @@ use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblack
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
-    CountingPromise, PanelProgramStore, PanelProgramRegion, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore
+    CountingPromise, PanelProgramStore, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
 pub use url::Url;
-use web_sys::console;
 
 fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     let window = js_option(web_sys::window(),"cannot get window")?;

@@ -9,7 +9,10 @@ use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType
 };
-use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType };
+use super::panel::{ 
+    NewPanelCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType,
+    SetMaxScaleJumpCommandType
+};
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
     ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
@@ -19,7 +22,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x737D8BDD884A78BA)
+    CommandSetId::new("peregrine",(0,0),0xAAEE123877191698)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -64,6 +67,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("text",Some(37),TextCommandType());
     set.push("plotter",Some(38),PlotterCommandType());
     set.push("wiggle",Some(39),WiggleCommandType());
+    set.push("panel_set_max_scale_jump",Some(40),SetMaxScaleJumpCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

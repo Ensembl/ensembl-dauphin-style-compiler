@@ -7,6 +7,7 @@ struct stick {
     tags: vec(string)
 };
 
+struct panelid { value: number };
 struct seaendpair { value: number };
 struct seaend { value: number };
 struct shipend { value: number };
@@ -31,11 +32,12 @@ func get_stick_id() becomes string;
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
 
-func panel_new() becomes number;
-proc panel_add_tag(number,string);
-proc panel_add_track(number,string);
-proc panel_set_scale(number,number,number);
-proc panel_apply(number,string,string);
+func panel_new() becomes panelid;
+proc panel_add_tag(panelid,string);
+proc panel_add_track(panelid,string);
+proc panel_set_scale(panelid,number,number);
+proc panel_set_max_scale_jump(panelid,number);
+proc panel_apply(panelid,string,string);
 
 func interval(number,number) becomes seaendpair;
 func screen_start_pair(number,number) becomes seaendpair;
