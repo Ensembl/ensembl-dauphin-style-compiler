@@ -52,6 +52,25 @@ pub trait Texture : std::fmt::Debug {
 pub struct DirectColour(pub u8,pub u8,pub u8);
 
 #[derive(Clone,Debug)]
+pub struct Pen(pub String,pub f64,pub Vec<DirectColour>);
+
+impl Pen {
+    pub fn bulk(self, len: usize, primary: bool) -> Pen {
+        Pen(self.0,self.1,bulk(self.2,len,primary))
+    }
+
+    pub fn filter(&self, which: &[bool], primary: bool) -> Pen {
+        Pen(self.0.clone(),self.1.clone(),filter(&self.2,which,primary))
+    }
+
+    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<Pen> {
+        let font = self.0;
+        let size = self.1;
+        track_split(self.2,mapping,primary).drain(..).map(move |x| Pen(font.clone(),size,x)).collect()
+    }
+}
+
+#[derive(Clone,Debug)]
 pub enum Colour {
     Direct(Vec<DirectColour>),
     Spot(DirectColour)
@@ -171,22 +190,6 @@ impl ShipEnd {
         }
     }
 
-    fn map_all<F>(&self, cb: F) -> ShipEnd where F: Fn(&[f64]) -> Vec<f64> {
-        match self {
-            ShipEnd::Min(x) => ShipEnd::Min(cb(x)),
-            ShipEnd::Centre(x) => ShipEnd::Centre(cb(x)),
-            ShipEnd::Max(x) => ShipEnd::Max(cb(x))
-        }
-    }
-
-    fn map_all_into<F>(self, cb: F) -> ShipEnd where F: Fn(Vec<f64>) -> Vec<f64> {
-        match self {
-            ShipEnd::Min(x) => ShipEnd::Min(cb(x)),
-            ShipEnd::Centre(x) => ShipEnd::Centre(cb(x)),
-            ShipEnd::Max(x) => ShipEnd::Max(cb(x))
-        }
-    }
-
     fn split(self, mapping: &[usize], primary: bool) -> Vec<ShipEnd> {
         match self {
             ShipEnd::Min(x) => track_split(x,mapping,primary).drain(..).map(|x| ShipEnd::Min(x)).collect(),
@@ -196,7 +199,11 @@ impl ShipEnd {
     }
 
     fn filter(&self, which: &[bool], primary: bool) -> ShipEnd {
-        self.map_all(|x| filter(x,which,primary))
+        match self {
+            ShipEnd::Min(x) => ShipEnd::Min(filter(x,which,primary)),
+            ShipEnd::Centre(x) => ShipEnd::Centre(filter(x,which,primary)),
+            ShipEnd::Max(x) => ShipEnd::Max(filter(x,which,primary))
+        }
     }
 }
 
@@ -306,7 +313,7 @@ impl SeaEndPair {
 }
 
 #[derive(Clone,Debug)]
-pub struct SingleAnchorAxis(pub SeaEnd,pub ShipEnd,pub Vec<f64>);
+pub struct SingleAnchorAxis(pub SeaEnd,pub ShipEnd);
 
 impl SingleAnchorAxis {
     pub fn len(&self) -> usize {
@@ -314,7 +321,7 @@ impl SingleAnchorAxis {
     }
 
     pub fn bulk(self, len: usize, primary: bool) -> SingleAnchorAxis {
-        SingleAnchorAxis(self.0.bulk(len,primary),self.1.bulk(len,false),bulk(self.2,len,false))
+        SingleAnchorAxis(self.0.bulk(len,primary),self.1.bulk(len,false))
     }
 
     fn matches(&self, min_value: f64, max_value: f64) -> Vec<bool> {
@@ -322,17 +329,16 @@ impl SingleAnchorAxis {
     }
 
     fn split(self, mapping: &[usize], primary: bool) -> Vec<SingleAnchorAxis> {
-        let (sea,ship,delta) = (self.0,self.1,self.2);
+        let (sea,ship) = (self.0,self.1);
         let mut sea = sea.split(mapping,primary);
         let mut ship = ship.split(mapping,false);
-        let mut delta = track_split(delta,mapping,false);
-        let it = sea.drain(..).zip(ship.drain(..).zip(delta.drain(..)));
-        it.map(|(sea,(ship,delta))| SingleAnchorAxis(sea,ship,delta)).collect()
+        let it = sea.drain(..).zip(ship.drain(..));
+        it.map(|(sea,ship)| SingleAnchorAxis(sea,ship)).collect()
     }
 
     fn filter(&self, which: &[bool], primary: bool) -> SingleAnchorAxis {
-        let (sea,ship,delta) = (&self.0,&self.1,&self.2);
-        SingleAnchorAxis(sea.filter(which,primary),ship.filter(which,false),filter(&delta,which,false))
+        let (sea,ship) = (&self.0,&self.1);
+        SingleAnchorAxis(sea.filter(which,primary),ship.filter(which,false))
     }
 }
 

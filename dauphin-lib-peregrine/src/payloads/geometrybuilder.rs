@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu };
+use peregrine_core::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu, Pen };
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
@@ -10,7 +10,8 @@ enum GeometryBuilderEntry {
     ShipEnd(Arc<ShipEnd>),
     DirectColour(Arc<DirectColour>),
     Patina(Arc<Patina>),
-    ZMenu(Arc<ZMenu>)
+    ZMenu(Arc<ZMenu>),
+    Pen(Arc<Pen>)
 }
 
 impl GeometryBuilderEntry {
@@ -21,7 +22,8 @@ impl GeometryBuilderEntry {
             GeometryBuilderEntry::ShipEnd(_) => "shipend",
             GeometryBuilderEntry::DirectColour(_) => "directcolour",
             GeometryBuilderEntry::Patina(_) => "patina",
-            GeometryBuilderEntry::ZMenu(_) => "zmenu"
+            GeometryBuilderEntry::ZMenu(_) => "zmenu",
+            GeometryBuilderEntry::Pen(_) => "pen"
         }
     }
 }
@@ -85,4 +87,5 @@ impl GeometryBuilder {
     builder_type!(patina,add_patina,Patina,"patina");
     builder_type!(direct_colour,add_direct_colour,DirectColour,"directcolour");
     builder_type!(zmenu,add_zmenu,ZMenu,"zmenu");
+    builder_type!(pen,add_pen,Pen,"pen");
 }

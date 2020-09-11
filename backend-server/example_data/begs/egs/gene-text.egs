@@ -52,7 +52,7 @@ allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd
 track := allotment;
 
 /*
- * What colour is it?
+ * What colour? What font? etc
  *
  * (driven by allotment for gene)
  */
@@ -60,6 +60,8 @@ track := allotment;
 non_pc_colour := colour(250,250,250);
 pc_colour := colour(128,128,128);
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+
+textpen := pen("Lato",12,colour(250,250,250));
 
 /*
  * prepare the zmenus
@@ -72,8 +74,6 @@ zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
                                       [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation]][]);
 
-notice(format([designated_transcript_id,designated_transcript_biotype,strand_string,designated_transcript_designation]));
-
 /* gene part of zmenu */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
 ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id]][]);
@@ -85,3 +85,4 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
 rectangle_on_genome(start,end,5,patina,allotment,track);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment,track);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment,track);
+text_underneath(start,8,textpen,gene_name,allotment,track);

@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use anyhow::{ bail, anyhow as err };
-use peregrine_core::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu };
+use peregrine_core::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -28,6 +28,7 @@ simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,35,8,(0,
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,32,2,(0,1));
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,33,4,(0,1,2,3));
+simple_interp_command!(PenInterpCommand,PenDeserializer,36,4,(0,1,2,3));
 
 fn seaendpair<F>(context: &mut InterpContext, out: &Register, starts: &Register, ends: &Register, cb: F) -> anyhow::Result<()>
                 where F: FnOnce(Vec<f64>,Vec<f64>) -> SeaEndPair {
@@ -261,6 +262,26 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(payload));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PenInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let font = registers.get_strings(&self.1)?[0].to_string();
+        let size = registers.get_numbers(&self.2)?[0];
+        let colour_ids = registers.get_indexes(&self.3)?;
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
+        let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
+        let pen = Pen(font,size,colours);
+        let id = geometry_builder.add_pen(pen);
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));
         Ok(CommandResult::SyncResult())
     }
 }

@@ -13,6 +13,7 @@ struct shipend { value: number };
 struct directcolour { value: number };
 struct patina { value: number };
 struct zmenutmpl { value: number };
+struct penspec { value: number };
 
 struct panel {
     stick: string,
@@ -51,14 +52,20 @@ func zmenu(string) becomes zmenutmpl;
 func patina_filled(directcolour) becomes patina;
 func patina_hollow(directcolour) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
+func pen(string,number,directcolour) becomes penspec;
 
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string,string);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string,string);
+proc text(seaend,shipend,seaend,shipend,penspec,string,string,string);
 
 stmt rectangle_on_genome(start,end,half_height,patina,allotment,track) {
     rectangle2(interval(start,end),pin_start(0),pin_end(0),
                interval(-half_height,half_height),pin_start(0),pin_end(0),
                patina,allotment,track);
+}
+
+stmt text_underneath(x,y,pen_spec,the_text,allotment,track) {
+    text(position(x),pin_start(0),position(y),pin_start(0),pen_spec,the_text,allotment,track);
 }
 
 func get_panel() becomes panel;

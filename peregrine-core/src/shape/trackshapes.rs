@@ -1,34 +1,52 @@
-use std::collections::HashMap;
-use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk };
+use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen};
 
 #[derive(Debug)]
-enum RectShape {
-    SingleAnchor(SingleAnchor,Patina,Vec<String>),
-    DoubleAnchor(AnchorPair,Patina,Vec<String>)
+enum Shape {
+    SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
+    DoubleAnchorRect(AnchorPair,Patina,Vec<String>),
+    Text(SingleAnchor,Pen,Vec<String>,Vec<String>)
 }
 
-impl RectShape {
-    fn filter(&self, min_value: f64, max_value: f64) -> RectShape {
+impl Shape {
+    fn filter(&self, min_value: f64, max_value: f64) -> Shape {
         match self {
-            RectShape::SingleAnchor(anchor,patina,allotment) => {
+            Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
+                let count = anchor.len();
+                let anchor = anchor.clone().bulk(count,true);
+                let patina = patina.clone().bulk(count,false);
+                let x_size = bulk(x_size.clone(),count,false);
+                let y_size = bulk(y_size.clone(),count,false);
+                let allotment = bulk(allotment.clone(),count,false);
+                let which = anchor.matches(min_value,max_value);
+                Shape::SingleAnchorRect(anchor.filter(&which,true),
+                                        patina.filter(&which,false),
+                                        filter(&allotment,&which,false),
+                                        filter(&x_size,&which,false),
+                                        filter(&y_size,&which,false))
+
+            },
+            Shape::DoubleAnchorRect(anchor,patina,allotment) => {
                 let count = anchor.len();
                 let anchor = anchor.clone().bulk(count,true);
                 let patina = patina.clone().bulk(count,false);
                 let allotment = bulk(allotment.clone(),count,false);
                 let which = anchor.matches(min_value,max_value);
-                RectShape::SingleAnchor(anchor.filter(&which,true),
+                Shape::DoubleAnchorRect(anchor.filter(&which,true),
                                         patina.filter(&which,false),
                                         filter(&allotment,&which,false))
             },
-            RectShape::DoubleAnchor(anchor,patina,allotment) => {
+
+            Shape::Text(anchor,pen,allotment,text) => {
                 let count = anchor.len();
                 let anchor = anchor.clone().bulk(count,true);
-                let patina = patina.clone().bulk(count,false);
+                let pen = pen.clone().bulk(count,false);                
                 let allotment = bulk(allotment.clone(),count,false);
+                let text = bulk(text.clone(),count,false);
                 let which = anchor.matches(min_value,max_value);
-                RectShape::DoubleAnchor(anchor.filter(&which,true),
-                                        patina.filter(&which,false),
-                                        filter(&allotment,&which,false))
+                Shape::Text(anchor.filter(&which,true),
+                            pen.filter(&which,false),
+                            filter(&text,&which,false),
+                            filter(&allotment,&which,false))
             }
         }
     }
@@ -36,7 +54,7 @@ impl RectShape {
 
 #[derive(Debug)]
 pub struct TrackShapes {
-    shapes: Vec<RectShape>
+    shapes: Vec<Shape>
 }
 
 impl TrackShapes {
@@ -46,12 +64,16 @@ impl TrackShapes {
         }
     }
 
-    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<String>) {
-        self.shapes.push(RectShape::SingleAnchor(anchors,patina,allotments));
+    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
+        self.shapes.push(Shape::SingleAnchorRect(anchors,patina,allotments,x_size,y_size));
     }
 
     pub fn add_rectangle_2(&mut self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>) {
-        self.shapes.push(RectShape::DoubleAnchor(anchors,patina,allotments));
+        self.shapes.push(Shape::DoubleAnchorRect(anchors,patina,allotments));
+    }
+
+    pub fn add_text(&mut self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>) {
+        self.shapes.push(Shape::Text(anchors,pen,text,allotments));
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> TrackShapes {

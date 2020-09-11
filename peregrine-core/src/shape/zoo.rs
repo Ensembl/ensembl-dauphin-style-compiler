@@ -4,7 +4,7 @@ use std::collections::hash_map::Entry;
 use std::sync::{ Arc, Mutex };
 use super::trackshapes::TrackShapes;
 use owning_ref::MutexGuardRefMut;
-use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk };
+use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk, Pen };
 
 struct TrackSorter(Vec<String>);
 
@@ -80,7 +80,7 @@ impl ShapeZoo {
         }
     }
 
-    pub fn add_rectangle_1(&self, anchors: SingleAnchor, patina: Patina, allotments: Vec<String>, tracks: Vec<String>) {
+    pub fn add_rectangle_1(&self, anchors: SingleAnchor, x_size: Vec<f64>, y_size: Vec<f64>, patina: Patina, allotments: Vec<String>, tracks: Vec<String>) {
         let (track_map,track_names) = track_sort(&tracks);
         let track_map = bulk(track_map,anchors.len(),true);
         let count = anchors.len();
@@ -88,12 +88,16 @@ impl ShapeZoo {
         let mut anchors = anchors.split(&track_map,true);
         let mut allotments = track_split(allotments,&track_map,false);
         let mut patinas = patina.split(&track_map,false);
+        let mut x_size = track_split(x_size,&track_map,false);
+        let mut y_size = track_split(y_size,&track_map,false);
+        let sz_it = x_size.drain(..).zip(y_size.drain(..));
         let it =
             anchors.drain(..)
             .zip(patinas.drain(..))
-            .zip(allotments.drain(..));
-        for (i,((anchors,patinas),allotments)) in it.enumerate() {
-            self.track_shapes(&track_names[i]).add_rectangle_1(anchors,patinas,allotments);
+            .zip(allotments.drain(..))
+            .zip(sz_it);
+        for (i,(((anchors,patinas),allotments),(x_size,y_size))) in it.enumerate() {
+            self.track_shapes(&track_names[i]).add_rectangle_1(anchors,patinas,allotments,x_size,y_size);
         }
     }
 
@@ -111,6 +115,25 @@ impl ShapeZoo {
             .zip(allotments.drain(..));
         for (i,((anchors,patinas),allotments)) in it.enumerate() {
             self.track_shapes(&track_names[i]).add_rectangle_2(anchors,patinas,allotments);
+        }
+    }
+
+    pub fn add_text(&self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>, tracks: Vec<String>) {
+        let (track_map,track_names) = track_sort(&tracks);
+        let track_map = bulk(track_map,anchors.len(),true);
+        let count = anchors.len();
+        let anchors = anchors.bulk(count,true);
+        let mut anchors = anchors.split(&track_map,true);
+        let mut allotments = track_split(allotments,&track_map,false);
+        let mut pen = pen.split(&track_map,false);
+        let mut text = track_split(text,&track_map,false);
+        let it =
+            anchors.drain(..)
+            .zip(pen.drain(..))
+            .zip(text.drain(..))
+            .zip(allotments.drain(..));
+        for (i,(((anchors,pen),text),allotments)) in it.enumerate() {
+            self.track_shapes(&track_names[i]).add_text(anchors,pen,text,allotments);
         }
     }
 }
