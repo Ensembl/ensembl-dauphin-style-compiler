@@ -13,12 +13,13 @@ use super::panel::{ NewPanelCommandType, AddTagCommandType, AddTrackCommandType,
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
     ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
-    PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType
+    PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
+    PlotterCommandType
 };
-use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType };
+use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0x1A2FBF1E27E50B97)
+    CommandSetId::new("peregrine",(0,0),0x737D8BDD884A78BA)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -61,6 +62,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("patina_zmenu",Some(35),PatinaZMenuCommandType());
     set.push("pen",Some(36),PenCommandType());
     set.push("text",Some(37),TextCommandType());
+    set.push("plotter",Some(38),PlotterCommandType());
+    set.push("wiggle",Some(39),WiggleCommandType());
     set.add_header("peregrine",include_str!("header.dp"));
     set
 }

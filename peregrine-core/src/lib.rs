@@ -72,7 +72,9 @@ mod shape {
     mod zmenu;
     mod zoo;
 
-    pub use self::core::{ ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis };
+    pub use self::core::{ 
+        ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
+    };
     pub use self::zmenu::ZMenu;
     pub use self::zoo::ShapeZoo;
 }
@@ -110,6 +112,6 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::run::PgCore;
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen
+    ZMenu, Pen, Plotter
 };
 pub use self::util::CountingPromise;

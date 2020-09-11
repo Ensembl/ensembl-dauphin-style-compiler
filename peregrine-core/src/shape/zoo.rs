@@ -4,7 +4,7 @@ use std::collections::hash_map::Entry;
 use std::sync::{ Arc, Mutex };
 use super::trackshapes::TrackShapes;
 use owning_ref::MutexGuardRefMut;
-use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk, Pen };
+use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk, Pen, Plotter };
 
 struct TrackSorter(Vec<String>);
 
@@ -135,5 +135,9 @@ impl ShapeZoo {
         for (i,(((anchors,pen),text),allotments)) in it.enumerate() {
             self.track_shapes(&track_names[i]).add_text(anchors,pen,text,allotments);
         }
+    }
+
+    pub fn add_wiggle(&self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: String, track: String) {
+        self.track_shapes(&track).add_wiggle(min,max,plotter,values,allotment);
     }
 }

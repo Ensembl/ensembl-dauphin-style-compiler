@@ -14,6 +14,7 @@ struct directcolour { value: number };
 struct patina { value: number };
 struct zmenutmpl { value: number };
 struct penspec { value: number };
+struct plotterspec { value: number };
 
 struct panel {
     stick: string,
@@ -53,10 +54,12 @@ func patina_filled(directcolour) becomes patina;
 func patina_hollow(directcolour) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func pen(string,number,directcolour) becomes penspec;
+func plotter(number,directcolour) becomes plotterspec;
 
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,string,string);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string,string);
 proc text(seaend,shipend,seaend,shipend,penspec,string,string,string);
+proc wiggle(number,number,plotterspec,number,boolean,string,string);
 
 stmt rectangle_on_genome(start,end,half_height,patina,allotment,track) {
     rectangle2(interval(start,end),pin_start(0),pin_end(0),

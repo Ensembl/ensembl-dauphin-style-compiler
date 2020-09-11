@@ -71,6 +71,9 @@ impl Pen {
 }
 
 #[derive(Clone,Debug)]
+pub struct Plotter(pub f64, pub DirectColour);
+
+#[derive(Clone,Debug)]
 pub enum Colour {
     Direct(Vec<DirectColour>),
     Spot(DirectColour)

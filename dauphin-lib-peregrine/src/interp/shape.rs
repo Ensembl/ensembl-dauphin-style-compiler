@@ -10,6 +10,7 @@ use crate::util::{ get_instance, get_peregrine };
 simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,9,(0,1,2,3,4,5,6,7,8));
 simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,9,(0,1,2,3,4,5,6,7,8));
 simple_interp_command!(TextInterpCommand,TextDeserializer,37,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,39,7,(0,1,2,3,4,5,6));
 
 impl InterpCommand for Rectangle2InterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -94,6 +95,28 @@ impl InterpCommand for TextInterpCommand {
         let out = get_instance::<PanelRunOutput>(context,"out")?;
         let zoo = out.zoo();
         zoo.add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotment,track);
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for WiggleInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let x_min = registers.get_numbers(&self.0)?[0];
+        let x_max = registers.get_numbers(&self.1)?[0];
+        let plotter_id = registers.get_indexes(&self.2)?[0];
+        let mut values = registers.get_numbers(&self.3)?.to_vec();
+        let present = registers.get_boolean(&self.4)?.to_vec();
+        let allotment = registers.get_strings(&self.5)?[0].clone();
+        let track = registers.get_strings(&self.6)?[0].clone();
+        let values = values.drain(..).zip(present.iter().cycle()).map(|(v,p)| if *p { Some(v) } else { None }).collect();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry = peregrine.geometry_builder();
+        let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
+        let out = get_instance::<PanelRunOutput>(context,"out")?;
+        let zoo = out.zoo();
+        zoo.add_wiggle(x_min,x_max,plotter,values,allotment,track);
         Ok(CommandResult::SyncResult())
     }
 }
