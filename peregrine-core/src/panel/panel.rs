@@ -37,11 +37,11 @@ impl Panel {
     }
 
     pub fn min_value(&self) -> u64 {
-        self.scale.bp_in_scale() * self.index
+        self.scale.bp_in_carriage() * self.index
     }
 
     pub fn max_value(&self) -> u64 {
-        self.scale.bp_in_scale() * (self.index+1)
+        self.scale.bp_in_carriage() * (self.index+1)
     }
 
     fn map_scale(&self, scale: &Scale) -> u64 {

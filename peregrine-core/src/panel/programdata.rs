@@ -2,7 +2,6 @@ use anyhow::{ anyhow as err };
 use crate::request::data::DataResponse;
 use crate::lock;
 use std::sync::{ Arc, Mutex };
-use owning_ref::MutexGuardRef;
 
 pub struct ProgramDataData {
     data: Vec<Arc<Box<DataResponse>>>

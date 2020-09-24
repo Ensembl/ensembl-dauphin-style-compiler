@@ -1,4 +1,5 @@
 use serde_cbor::Value as CborValue;
+use std::fmt::{ self, Display, Formatter };
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct Track(String);
@@ -12,5 +13,11 @@ impl Track {
 
     pub fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Text(self.0.clone()))
+    }
+}
+
+impl Display for Track {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f,"{}",self.0)
     }
 }

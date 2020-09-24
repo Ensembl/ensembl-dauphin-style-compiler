@@ -1,5 +1,5 @@
 use crate::lock;
-use std::sync::{ Arc, Mutex };
+use std::sync::{ Arc };
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;

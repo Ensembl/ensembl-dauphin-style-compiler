@@ -2,7 +2,6 @@ use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
 use std::rc::Rc;
-use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId };

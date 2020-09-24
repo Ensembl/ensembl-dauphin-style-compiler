@@ -1,4 +1,5 @@
 use serde_cbor::Value as CborValue;
+use std::fmt::{ self, Display, Formatter };
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Focus(Option<String>);
@@ -16,5 +17,11 @@ impl Focus {
         } else {
             Ok(CborValue::Null)
         }
+    }
+}
+
+impl Display for Focus {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f,"{}",self.0.as_ref().map(|x| &x as &str).unwrap_or("none"))
     }
 }

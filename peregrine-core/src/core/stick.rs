@@ -1,6 +1,7 @@
 use anyhow::bail;
 use std::collections::HashSet;
 use serde_cbor::Value as CborValue;
+use std::fmt::{ self, Display, Formatter };
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
@@ -14,6 +15,13 @@ impl StickId {
 
     pub fn serialize(&self) -> anyhow::Result<CborValue> {
         Ok(CborValue::Text(self.0.clone()))
+    }
+}
+
+
+impl Display for StickId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f,"{}",self.0)
     }
 }
 

@@ -2,11 +2,9 @@ use crate::lock;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{ Arc, Mutex };
-use super::trackshapes::TrackShapes;
+use super::shapelist::ShapeList;
 use owning_ref::MutexGuardRefMut;
 use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk, Pen, Plotter };
-
-struct TrackSorter(Vec<String>);
 
 fn track_sort(tracks: &[String]) -> (Vec<usize>, Vec<String>) {
     let mut next_idx = 0;
@@ -31,51 +29,51 @@ fn track_sort(tracks: &[String]) -> (Vec<usize>, Vec<String>) {
 
 
 #[derive(Debug)]
-pub struct ShapeZooData {
-    shapes: HashMap<String,TrackShapes>
+pub struct ShapeOutputData {
+    shapes: HashMap<String,ShapeList>
 }
 
-impl ShapeZooData {
-    fn new() -> ShapeZooData {
-        ShapeZooData {
+impl ShapeOutputData {
+    fn new() -> ShapeOutputData {
+        ShapeOutputData {
             shapes: HashMap::new()
         }
     }
 
-    fn track(&mut self, track: &str) -> &mut TrackShapes {
-        self.shapes.entry(track.to_string()).or_insert_with(|| TrackShapes::new())
+    fn track(&mut self, track: &str) -> &mut ShapeList {
+        self.shapes.entry(track.to_string()).or_insert_with(|| ShapeList::new())
     }
 
-    fn filter(&self, min_value: f64, max_value: f64) -> ShapeZooData {
+    fn filter(&self, min_value: f64, max_value: f64) -> ShapeOutputData {
         let mut new_shapes = HashMap::new();
         for (track,shapes) in self.shapes.iter() {
             new_shapes.insert(track.to_string(),shapes.filter(min_value,max_value));
         }
-        ShapeZooData {
+        ShapeOutputData {
             shapes: new_shapes
         }
     }
 }
 
 #[derive(Clone,Debug)]
-pub struct ShapeZoo {
-    data: Arc<Mutex<ShapeZooData>>
+pub struct ShapeOutput {
+    data: Arc<Mutex<ShapeOutputData>>
 }
 
-impl ShapeZoo {
-    pub fn new() -> ShapeZoo {
-        ShapeZoo {
-            data: Arc::new(Mutex::new(ShapeZooData::new()))
+impl ShapeOutput {
+    pub fn new() -> ShapeOutput {
+        ShapeOutput {
+            data: Arc::new(Mutex::new(ShapeOutputData::new()))
         }
     }
 
-    pub fn track_shapes(&self, track: &str) -> MutexGuardRefMut<ShapeZooData,TrackShapes> {
+    pub fn track_shapes(&self, track: &str) -> MutexGuardRefMut<ShapeOutputData,ShapeList> {
         MutexGuardRefMut::new(self.data.lock().unwrap()).map_mut(|x| x.track(track))
     }
 
-    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeZoo {
+    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeOutput {
         let data = lock!(self.data).filter(min_value,max_value);
-        ShapeZoo {
+        ShapeOutput {
             data: Arc::new(Mutex::new(data))
         }
     }

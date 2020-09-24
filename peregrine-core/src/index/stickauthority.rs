@@ -6,7 +6,6 @@ use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
-use std::sync::{ Arc, Mutex };
 
 #[derive(Clone)]
 pub struct StickAuthority {

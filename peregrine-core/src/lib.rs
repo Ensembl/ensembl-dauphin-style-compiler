@@ -1,8 +1,11 @@
 mod core {
+    pub mod api;
     pub mod focus;
     mod scale;
     pub mod stick;
     pub mod track;
+
+    pub use api::{ PeregrineData, PeregrineIntegration };
     pub use self::focus::Focus;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
@@ -69,16 +72,29 @@ mod run {
 
 mod shape {
     mod core;
-    mod trackshapes;
+    mod shape;
+    mod shapelist;
     mod text;
     mod zmenu;
-    mod zoo;
+    mod shapeoutput;
 
     pub use self::core::{ 
         ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
     };
     pub use self::zmenu::ZMenu;
-    pub use self::zoo::ShapeZoo;
+    pub use self::shapelist::ShapeList;
+    pub use self::shapeoutput::ShapeOutput;
+}
+
+mod train {
+    mod carriage;
+    mod carriageset;
+    mod train;
+    mod trainset;
+    mod trackstate;
+
+    pub use carriage::Carriage;
+    pub use trainset::TrainSet;
 }
 
 mod util {

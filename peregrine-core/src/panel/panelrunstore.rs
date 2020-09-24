@@ -1,13 +1,13 @@
 use std::any::Any;
 use std::collections::HashMap;
 use crate::lock;
-use std::sync::{ Arc, Mutex };
+use std::sync::{ Arc };
 use crate::index::StickAuthorityStore;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::ProgramLoader;
 use crate::run::{ PgCommander, PgDauphin, PgCommanderTaskSpec, PgDauphinTaskSpec };
-use crate::shape::ShapeZoo;
+use crate::shape::ShapeOutput;
 use crate::util::memoized::Memoized;
 use crate::CountingPromise;
 use super::panel::Panel;
@@ -34,17 +34,17 @@ impl PanelRun {
 
 #[derive(Clone)]
 pub struct PanelRunOutput {
-    zoo: ShapeZoo
+    shapes: ShapeOutput
 }
 
 impl PanelRunOutput {
     fn new() -> PanelRunOutput {
         PanelRunOutput {
-            zoo: ShapeZoo::new()
+            shapes: ShapeOutput::new()
         }
     }
 
-    pub fn zoo(&self) -> &ShapeZoo { &self.zoo }
+    pub fn shapes(&self) -> &ShapeOutput { &self.shapes }
 }
 
 async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader, panel_run: &PanelRun) -> anyhow::Result<PanelRunOutput> {

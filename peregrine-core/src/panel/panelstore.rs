@@ -1,13 +1,13 @@
 use std::sync::{ Arc };
 use crate::run::{ PgCommander, PgCommanderTaskSpec };
-use crate::shape::ShapeZoo;
+use crate::shape::ShapeOutput;
 use crate::util::memoized::Memoized;
 use super::panel::Panel;
 use super::panelrunstore::PanelRunStore;
 
 #[derive(Clone)]
 pub struct PanelStore {
-    store: Memoized<Panel,ShapeZoo>
+    store: Memoized<Panel,ShapeOutput>
 }
 
 impl PanelStore {
@@ -26,8 +26,8 @@ impl PanelStore {
                     timeout: None,
                     task: Box::pin(async move {
                         let pro = panel_run_store.run(&panel).await?;
-                        let zoo = pro.zoo().filter(panel.min_value() as f64,panel.max_value() as f64);
-                        result.resolve(zoo);
+                        let shapes = pro.shapes().filter(panel.min_value() as f64,panel.max_value() as f64);
+                        result.resolve(shapes);
                         Ok(())
                     })
                 });
@@ -35,7 +35,7 @@ impl PanelStore {
         }
     }
 
-    pub async fn run(&self, panel: &Panel) -> anyhow::Result<Arc<ShapeZoo>> {
+    pub async fn run(&self, panel: &Panel) -> anyhow::Result<Arc<ShapeOutput>> {
         self.store.get(panel).await
     }
 }
