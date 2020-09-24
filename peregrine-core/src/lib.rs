@@ -1,15 +1,27 @@
+mod api {
+    mod api;
+    mod queue;
+
+    pub use api::{ PeregrineIntegration };
+    pub use queue::PeregrineApiQueue;
+}
+
 mod core {
-    pub mod api;
+    mod data;
     pub mod focus;
+    mod layout;
     mod scale;
     pub mod stick;
     pub mod track;
+    mod viewport;
 
-    pub use api::{ PeregrineData, PeregrineIntegration };
+    pub use data::PeregrineData;
     pub use self::focus::Focus;
+    pub use self::layout::Layout;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
     pub use track::Track;
+    pub use viewport::Viewport;
 }
 
 mod index {
@@ -91,7 +103,6 @@ mod train {
     mod carriageset;
     mod train;
     mod trainset;
-    mod trackstate;
 
     pub use carriage::Carriage;
     pub use trainset::TrainSet;

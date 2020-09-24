@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use crate::PgCommanderTaskSpec;
-use crate::core::{ PeregrineData, Scale };
-use super::train::{ Train, TrainId, RailwayId };
+use crate::core::{ Layout, PeregrineData, Scale, Viewport };
+use super::train::{ Train, TrainId, };
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -32,7 +32,7 @@ impl TrainSetData {
     fn quick(&self) -> bool {
         if let Some(current) = &self.current {
             if let Some(future) = &self.future {
-                if current.id().railway() != future.id().railway() {
+                if current.id().layout() != future.id().layout() {
                     return false;
                 }
             }
@@ -58,7 +58,7 @@ impl TrainSetData {
         self.wanted = Some(Train::new(data,train_id,position));
     }
 
-    fn set(&mut self, data: &mut PeregrineData, railway_id: &RailwayId, position: f64, scale: f64) -> Option<Train> {
+    fn set(&mut self, data: &mut PeregrineData, viewport: &Viewport) -> Option<Train> {
         let quiescent = if let Some(wanted) = &mut self.wanted {
             Some(wanted)
         } else if let Some(future) = &mut self.future {
@@ -68,19 +68,19 @@ impl TrainSetData {
         } else {
             None
         };
-        let train_id = TrainId::new(railway_id,&Scale::new_for_numeric(scale));
+        let train_id = TrainId::new(viewport.layout(),&Scale::new_for_numeric(viewport.scale()));
         let mut changed = None;
         if let Some(quiescent) = quiescent {
             if quiescent.id() == train_id {
-                if quiescent.set_position(data,position) {
+                if quiescent.set_position(data,viewport.position()) {
                     changed = Some(quiescent.clone());
                 }
             } else {
-                self.new_wanted(data,&train_id,position);
+                self.new_wanted(data,&train_id,viewport.position());
                 changed = Some(self.wanted.as_ref().unwrap().clone());
             }
         } else {
-            self.new_wanted(data,&train_id,position);
+            self.new_wanted(data,&train_id,viewport.position());
             changed = Some(self.wanted.as_ref().unwrap().clone());
         }
         self.promote(data);
@@ -119,8 +119,8 @@ impl TrainSet {
         });
     }
 
-    pub fn set(&self, data: &mut PeregrineData, railway_id: &RailwayId, position: f64, scale: f64) {
-        let changed = self.0.lock().unwrap().set(data,railway_id,position,scale);
+    pub fn set(&self, data: &mut PeregrineData, viewport: &Viewport) {
+        let changed = self.0.lock().unwrap().set(data,viewport);
         if let Some(train) = changed {
             self.run_loading(data,train);
         }

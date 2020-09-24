@@ -1,58 +1,30 @@
 use std::sync::{ Arc, Mutex };
-use super::trackstate::TrackStateSnapshot;
-use crate::core::{ Focus, Scale, StickId, PeregrineData };
+use crate::core::{ Focus, Layout, Scale, StickId, PeregrineData };
 use super::carriageset::CarriageSet;
 use super::carriage::{ Carriage };
 use std::fmt::{ self, Display, Formatter };
 
 #[derive(Clone,PartialEq)]
-pub struct RailwayId {
-    tracks: TrackStateSnapshot,
-    focus: Focus,
-    stick: StickId
-}
-
-impl RailwayId {
-    pub fn new(tracks: TrackStateSnapshot, stick_id: &StickId, scale: &Scale, focus: &Focus) -> RailwayId {
-        RailwayId {
-            tracks,
-            focus: focus.clone(),
-            stick: stick_id.clone()
-        }
-    }
-
-    pub fn tracks(&self) -> &TrackStateSnapshot { &self.tracks }
-    pub fn focus(&self) -> &Focus { &self.focus }
-    pub fn stick(&self) -> &StickId { &self.stick }
-}
-
-impl Display for RailwayId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,"RailwayId(tracks={} focus={} stick={})",self.tracks,self.focus,self.stick)
-    }
-}
-
-#[derive(Clone,PartialEq)]
 pub struct TrainId {
-    railway: RailwayId,
+    layout: Layout,
     scale: Scale
 }
 
 impl Display for TrainId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,"TrainId(railway={} scale={})",self.railway,self.scale)
+        write!(f,"TrainId(layout={} scale={})",self.layout,self.scale)
     }
 }
 
 impl TrainId {
-    pub fn new(railway: &RailwayId, scale: &Scale) -> TrainId {
+    pub fn new(layout: &Layout, scale: &Scale) -> TrainId {
         TrainId {
-            railway: railway.clone(),
+            layout: layout.clone(),
             scale: scale.clone()
         }
     }
 
-    pub fn railway(&self) -> &RailwayId { &self.railway }
+    pub fn layout(&self) -> &Layout { &self.layout }
     pub fn scale(&self) -> &Scale { &self.scale }
 }
 
@@ -122,7 +94,7 @@ impl Train {
 
     async fn find_max(&self, data: &mut PeregrineData) {
         let train_id = self.id();
-        if let Ok(stick) = data.stick_store.get(train_id.railway().stick()).await {
+        if let Ok(stick) = data.stick_store.get(train_id.layout().stick()).await {
             if let Some(stick) = &stick.as_ref() {
                 self.0.lock().unwrap().set_max(stick.size());
             }

@@ -34,14 +34,14 @@ impl Carriage {
     }
 
     fn make_panel(&self, track: &Track) -> Panel {
-        Panel::new(self.id.train.railway().stick().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.railway().focus().clone(),track.clone())
+        Panel::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
     async fn load_full(&self, data: &PeregrineData) -> anyhow::Result<()> {
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_some() { return Ok(()); }
         let mut panels = vec![];
-        for track in self.id.train.railway().tracks().iter() {
+        for track in self.id.train.layout().tracks().iter() {
             panels.push((track,self.make_panel(track)));
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
