@@ -35,7 +35,7 @@ impl InterpCommand for Rectangle2InterpCommand {
         let ship_y1 = geometry.shipend(ship_y1_id[0] as u32)?.as_ref().clone();
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
-        let zoo = out.zoo();
+        let zoo = out.shapes();
         zoo.add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
                                         patina,allotment,track);
@@ -64,7 +64,7 @@ impl InterpCommand for Rectangle1InterpCommand {
         let ship_y = geometry.shipend(ship_y_id[0] as u32)?.as_ref().clone();
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
-        let zoo = out.zoo();
+        let zoo = out.shapes();
         zoo.add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
                                                      SingleAnchorAxis(sea_y,ship_y)),
                                         size_x, size_y,
@@ -93,7 +93,7 @@ impl InterpCommand for TextInterpCommand {
         let ship_y = geometry.shipend(ship_y_id[0] as u32)?.as_ref().clone();
         let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
-        let zoo = out.zoo();
+        let zoo = out.shapes();
         zoo.add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotment,track);
         Ok(CommandResult::SyncResult())
     }
@@ -115,7 +115,7 @@ impl InterpCommand for WiggleInterpCommand {
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
         let out = get_instance::<PanelRunOutput>(context,"out")?;
-        let zoo = out.zoo();
+        let zoo = out.shapes();
         zoo.add_wiggle(x_min,x_max,plotter,values,allotment,track);
         Ok(CommandResult::SyncResult())
     }
