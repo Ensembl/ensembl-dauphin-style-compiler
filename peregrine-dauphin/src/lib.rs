@@ -2,7 +2,7 @@ use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_core::{ 
     PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
-    DataStore
+    DataStore, PeregrineObjects
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
@@ -77,30 +77,25 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, commander: PgCommander, pdq: PgDauphinQueue, 
-                manager: RequestManager, sas: StickAuthorityStore, ss: StickStore, booted: CountingPromise, 
-                panel_program_store: PanelProgramStore, data_store: DataStore) -> anyhow::Result<()> {
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, objects: PeregrineObjects, pdq: PgDauphinQueue) -> anyhow::Result<()> {
     let mut dauphin = Dauphin::new(command_suite()?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&manager,&ss,&sas,&booted,&panel_program_store,&data_store);
+    add_peregrine_payloads(&mut dauphin,&objects.manager,&objects.stick_store,&objects.stick_authority_store,&objects.booted,&objects.panel_program_store,&objects.data_store);
     loop {
         let e = pdq.get().await;
         match e.task {
             PgDauphinTaskSpec::Load(p) => load(&mut dauphin,p,e.channel),
-            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&commander,r,e.channel)
+            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&objects.commander,r,e.channel)
         }
     }
 }
 
-pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, commander: &PgCommander, pdq: &PgDauphinQueue, manager: &RequestManager,
-                            sas: &StickAuthorityStore, ss: &StickStore, booted: &CountingPromise, panel_program_store: &PanelProgramStore,
-                            data_store: &DataStore) {
-    commander.add_task(PgCommanderTaskSpec {
+pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, objects: &PeregrineObjects, pdq: &PgDauphinQueue) {
+    objects.commander.add_task(PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,commander.clone(),pdq.clone(),manager.clone(),sas.clone(),ss.clone(),booted.clone(),panel_program_store.clone(),data_store.clone()))
+        task: Box::pin(main_loop(integration,objects.clone(),pdq.clone()))
     });
-
 }

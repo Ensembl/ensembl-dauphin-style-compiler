@@ -1,7 +1,9 @@
 use crate::core::{ Viewport };
+use crate::request::bootstrap::bootstrap;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
+use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
 use crate::{ 
     PgCommander, PgDauphin, ProgramLoader, RequestManager, StickStore, StickAuthorityStore, Commander,
@@ -54,5 +56,10 @@ impl PeregrineObjects {
             program_loader,
             viewport: Viewport::empty()
         })
+    }
+
+    // XXX move to API
+    pub fn bootstrap(&self, dauphin: &PgDauphin, channel: Channel) -> anyhow::Result<()> {
+        bootstrap(&self.manager,&self.program_loader,&self.commander,dauphin,channel,&self.booted)
     }
 }

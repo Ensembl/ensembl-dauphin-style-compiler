@@ -30,7 +30,7 @@ use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblack
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
-    CountingPromise, PanelProgramStore, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore, PeregrineObjects
+    CountingPromise, PanelProgramStore, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore, PeregrineObjects, PgCommanderTaskSpec
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
@@ -48,8 +48,8 @@ fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
 //static PEREGRINEWEB: Lazy<Mutex<PeregrineWeb>> = Lazy::new(|| Mutex::new(js_throw(PeregrineWeb::new())));
 
 struct PeregrineWeb {
-    core: PgCore,
-    stick_store: StickStore
+    objects: PeregrineObjects,
+    dauphin: PgDauphin
 }
 
 impl PeregrineWeb {
@@ -57,15 +57,14 @@ impl PeregrineWeb {
         pgblackbox_setup();
         let pdq = PgDauphinQueue::new();
         let commander = setup_commander().context("setting up commander")?;
-        let console = PgConsoleWeb::new(30,30.);
-        let integration = PgIntegration::new(PgChannel::new(console.clone()));
+        let integration = PgIntegration::new(PgChannel::new( PgConsoleWeb::new(30,30.)));
         let mut objects = PeregrineObjects::new(Box::new(integration),commander,pdq.clone())?;
         let dauphin = PgDauphin::new(&pdq)?;
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects.commander,&pdq,&objects.manager,&objects.stick_authority_store,&objects.stick_store,&objects.booted,&objects.panel_program_store,&objects.data_store);
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects,&pdq);
         objects.manager.add_receiver(Box::new(dauphin.clone()));
         let mut out = PeregrineWeb {
-            core: PgCore::new(&objects.booted,&objects.commander,&dauphin,&objects.manager,&objects.stick_store,&objects.panel_store)?,
-            stick_store: objects.stick_store.clone()
+            objects,
+            dauphin
         };
         out.setup()?;
         Ok(out)
@@ -90,20 +89,26 @@ impl PeregrineWeb {
     }
 }
 
-async fn test(core: PgCore) -> anyhow::Result<()> {
+async fn test(objects: PeregrineObjects) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
     let panel = Panel::new(StickId::new("homo_sapiens_GCA_000001405_27:1"),64,Scale::new(20),Focus::new(None),Track::new("gene"));
-    let out = core.panel_store.run(&panel).await?;
+    let out = objects.panel_store.run(&panel).await?;
     el.set_inner_html(&format!("{:?}",out));
     Ok(())
 }
 
 fn test_fn() -> anyhow::Result<()> {
-    let mut pg_web = js_throw(PeregrineWeb::new());
-    pg_web.core.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
-    pg_web.core.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.core.clone())));
+    let pg_web = js_throw(PeregrineWeb::new());
+    pg_web.objects.bootstrap(&pg_web.dauphin,Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
+    pg_web.objects.commander.add_task(PgCommanderTaskSpec {
+        name: "test".to_string(),
+        prio: 100,
+        slot: None,
+        timeout: Some(10000.),
+        task: Box::pin(test(pg_web.objects.clone()))
+    });
     Ok(())
 }
 
