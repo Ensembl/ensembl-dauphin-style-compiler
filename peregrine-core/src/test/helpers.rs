@@ -10,7 +10,7 @@ use url::Url;
 #[derive(Clone)]
 pub struct TestHelpers {
     pub console: TestConsole,
-    pub channel: TestChannelIntegration,
+    pub channel: Box<TestChannelIntegration>,
     pub dauphin: PgDauphin,
     pub commander_inner: TestCommander,
     pub commander: PgCommander,
@@ -23,7 +23,7 @@ impl TestHelpers {
     pub(crate) fn new() -> TestHelpers {
         let booted = CountingPromise::new();
         let console = TestConsole::new();
-        let channel = TestChannelIntegration::new(&console);
+        let channel = Box::new(TestChannelIntegration::new(&console));
         let commander_inner = TestCommander::new(&console);
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
         let mut manager = RequestManager::new(channel.clone(),&commander);

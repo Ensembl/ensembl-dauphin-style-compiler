@@ -20,6 +20,14 @@ impl Layout {
         }
     }
 
+    pub fn empty() -> Layout {
+        Layout {
+            tracks: HashSet::new(),
+            focus: Focus::new(None),
+            stick: StickId::new("XXX")
+        }
+    }
+
     pub fn tracks(&self) -> &HashSet<Track> { &self.tracks }
     pub fn focus(&self) -> &Focus { &self.focus }
     pub fn stick(&self) -> &StickId { &self.stick }

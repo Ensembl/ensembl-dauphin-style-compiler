@@ -14,7 +14,6 @@ use crate::request::channel::{ Channel, ChannelIntegration };
 use crate::request::manager::{ PayloadReceiver, RequestManager };
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
-use crate::PgConsole;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
 
 pub struct PgDauphinTaskSpec {
@@ -111,7 +110,7 @@ impl PgDauphin {
 }
 
 impl PayloadReceiver for PgDauphin {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<dyn ChannelIntegration>) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
+    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<Box<dyn ChannelIntegration>>) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
         let pgd = self.clone();
         let channel = channel.clone();
         let channel_itn = channel_itn.clone();

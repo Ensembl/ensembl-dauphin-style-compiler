@@ -7,6 +7,7 @@ mod integration {
     pub(crate) mod pgblackbox;
     pub(crate) mod pgchannel;
     pub(crate) mod pgconsole;
+    pub(crate) mod pgintegration;
     mod stream;
 }
 
@@ -56,7 +57,7 @@ impl PeregrineWeb {
         let booted = CountingPromise::new();
         let console = PgConsoleWeb::new(30,30.);
         let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
-        let mut manager = RequestManager::new(PgChannel::new(Box::new(console.clone())),&commander);
+        let mut manager = RequestManager::new(Box::new(PgChannel::new(console.clone())),&commander);
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq)?;
         let loader = ProgramLoader::new(&commander,&manager,&dauphin);

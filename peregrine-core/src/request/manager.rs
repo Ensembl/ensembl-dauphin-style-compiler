@@ -14,14 +14,14 @@ use super::request::{ CommandRequest, RequestType, ResponseType };
 use crate::run::{ PgCommander, PgDauphin };
 
 pub trait PayloadReceiver {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<dyn ChannelIntegration>) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
+    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
 }
 
 #[derive(Clone)]
 pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Rc<Box<dyn PayloadReceiver>>>>>);
 
 impl PayloadReceiver for PayloadReceiverCollection {
-    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<dyn ChannelIntegration>) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
+    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
         let all = lock!(self.0).clone();
         let itn = itn.clone();
         let channel = channel.clone();
@@ -35,7 +35,7 @@ impl PayloadReceiver for PayloadReceiverCollection {
 }
 
 pub struct RequestManagerData {
-    integration: Rc<dyn ChannelIntegration>,
+    integration: Rc<Box<dyn ChannelIntegration>>,
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
     next_id: u64,
@@ -43,7 +43,7 @@ pub struct RequestManagerData {
 }
 
 impl RequestManagerData {
-    pub fn new<C>(integration: C, commander: &PgCommander) -> RequestManagerData where C: ChannelIntegration+'static {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander) -> RequestManagerData {
         RequestManagerData {
             integration: Rc::new(integration),
             receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
@@ -69,7 +69,7 @@ impl RequestManagerData {
         Ok(match self.queues.entry((channel.clone(),priority.clone())) {
             Entry::Vacant(e) => { 
                 let commander = self.commander.clone();
-                let integration = self.integration.clone();
+                let integration = self.integration.clone(); // Rc why? XXX
                 e.insert(RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority)?)
             },
             Entry::Occupied(e) => { e.into_mut() }
@@ -96,7 +96,7 @@ impl RequestManagerData {
 pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 
 impl RequestManager {
-    pub fn new<C>(integration: C, commander: &PgCommander) -> RequestManager where C: ChannelIntegration+'static {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander) -> RequestManager {
         RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander))))
     }
 

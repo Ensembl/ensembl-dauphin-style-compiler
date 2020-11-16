@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex };
-use crate::core::{ Focus, Layout, Scale, StickId, PeregrineData };
+use crate::api::PeregrineObjects;
+use crate::core::{ Layout, Scale };
 use super::carriageset::CarriageSet;
 use super::carriage::{ Carriage };
 use std::fmt::{ self, Display, Formatter };
@@ -36,7 +37,7 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(data: &mut PeregrineData, id: &TrainId, position: f64) -> TrainData {
+    fn new(data: &mut PeregrineObjects, id: &TrainId, position: f64) -> TrainData {
         let mut out = TrainData {
             ready: false,
             id: id.clone(),
@@ -57,7 +58,7 @@ impl TrainData {
         }
     }
 
-    fn set_position(&mut self, data: &mut PeregrineData, position: f64) -> bool {
+    fn set_position(&mut self, data: &mut PeregrineObjects, position: f64) -> bool {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
         let (carriages,changed) = CarriageSet::new_using(&self.id,carriage,self.carriages.take().unwrap());
@@ -79,7 +80,7 @@ impl TrainData {
 pub struct Train(Arc<Mutex<TrainData>>);
 
 impl Train {
-    pub fn new(data: &mut PeregrineData, id: &TrainId, position: f64) -> Train {
+    pub fn new(data: &mut PeregrineObjects, id: &TrainId, position: f64) -> Train {
         Train(Arc::new(Mutex::new(TrainData::new(data,id,position))))
     }
 
@@ -88,11 +89,11 @@ impl Train {
     pub fn ready(&self) -> bool { self.0.lock().unwrap().ready() }
     pub fn carriages(&self) -> Vec<Carriage> { self.0.lock().unwrap().carriages() }
 
-    pub fn set_position(&self, data: &mut PeregrineData, position: f64) -> bool {
+    pub fn set_position(&self, data: &mut PeregrineObjects, position: f64) -> bool {
         self.0.lock().unwrap().set_position(data,position)
     }
 
-    async fn find_max(&self, data: &mut PeregrineData) {
+    async fn find_max(&self, data: &mut PeregrineObjects) {
         let train_id = self.id();
         if let Ok(stick) = data.stick_store.get(train_id.layout().stick()).await {
             if let Some(stick) = &stick.as_ref() {
@@ -101,7 +102,7 @@ impl Train {
         }
     }
 
-    pub async fn load(&self, data: &mut PeregrineData) {
+    pub async fn load(&self, data: &mut PeregrineObjects) {
         self.find_max(data).await;
         let carriages = self.0.lock().unwrap().carriages();
         for carriage in carriages {

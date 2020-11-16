@@ -1,20 +1,21 @@
 use anyhow::{ anyhow as err, bail };
-use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, PgConsole, lock };
+use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, lock };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
-use super::pgconsole::{ PgConsoleLevel };
+use super::pgconsole::{ PgConsoleLevel, PgConsoleWeb };
 use url::Url;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::Mutex;
+use std::sync::{ Arc, Mutex };
 use web_sys::console;
 
-pub struct PgChannel(Box<dyn PgConsole>,Mutex<HashMap<Channel,Option<f64>>>);
+#[derive(Clone)]
+pub struct PgChannel(PgConsoleWeb,Arc<Mutex<HashMap<Channel,Option<f64>>>>);
 
 impl PgChannel {
-    pub fn new(console: Box<dyn PgConsole>) -> PgChannel {
-        PgChannel(console,Mutex::new(HashMap::new()))
+    pub fn new(console: PgConsoleWeb) -> PgChannel {
+        PgChannel(console,Arc::new(Mutex::new(HashMap::new())))
     }
 }
 

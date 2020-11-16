@@ -16,6 +16,14 @@ impl Viewport {
         }
     }
 
+    pub fn empty() -> Viewport {
+        Viewport {
+            layout: Layout::empty(),
+            position: 0.,
+            scale: 0.
+        }
+    }
+
     pub fn layout(&self) -> &Layout { &self.layout }
     pub fn position(&self) -> f64 { self.position }
     pub fn scale(&self) -> f64 { self.scale }

@@ -1,7 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use js_sys::Date;
 use web_sys::console;
-use peregrine_core::{ PgConsole };
 
 pub enum PgConsoleLevel {
     Notice,
@@ -65,14 +64,12 @@ impl PgConsoleWeb {
     pub fn new(max_per_interval: u32, interval: f64) -> PgConsoleWeb {
         PgConsoleWeb(Arc::new(Mutex::new(PgConsoleData::new(max_per_interval,interval))))
     }
-}
 
-impl PgConsole for PgConsoleWeb {
-    fn warn(&self, msg: &str) {
+    pub(crate) fn warn(&self, msg: &str) {
         self.0.lock().unwrap().message(PgConsoleLevel::Warn,msg);
     }
 
-    fn error(&self, msg: &str) {
+    pub(crate) fn error(&self, msg: &str) {
         self.0.lock().unwrap().message(PgConsoleLevel::Error,msg);
     }
 }

@@ -1,6 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use crate::PgCommanderTaskSpec;
-use crate::core::{ Layout, PeregrineData, Scale, Viewport };
+use crate::api::PeregrineObjects;
+use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId, };
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
@@ -40,7 +41,7 @@ impl TrainSetData {
         true
     }
 
-    fn promote_wanted(&mut self, data: &mut PeregrineData) {
+    fn promote_wanted(&mut self, data: &mut PeregrineObjects) {
         if self.future.is_none() && self.wanted.as_ref().map(|x| x.ready()).unwrap_or(false) {
             self.future = self.wanted.take();
             let carriages = self.future.as_ref().unwrap().carriages();
@@ -48,17 +49,17 @@ impl TrainSetData {
         }
     }
 
-    fn promote(&mut self, data: &mut PeregrineData) {
+    fn promote(&mut self, data: &mut PeregrineObjects) {
         self.promote_future();
         self.promote_wanted(data);
         self.promote_future();
     }
 
-    fn new_wanted(&mut self, data: &mut PeregrineData, train_id: &TrainId, position: f64) {
+    fn new_wanted(&mut self, data: &mut PeregrineObjects, train_id: &TrainId, position: f64) {
         self.wanted = Some(Train::new(data,train_id,position));
     }
 
-    fn set(&mut self, data: &mut PeregrineData, viewport: &Viewport) -> Option<Train> {
+    fn set(&mut self, data: &mut PeregrineObjects, viewport: &Viewport) -> Option<Train> {
         let quiescent = if let Some(wanted) = &mut self.wanted {
             Some(wanted)
         } else if let Some(future) = &mut self.future {
@@ -87,7 +88,7 @@ impl TrainSetData {
         changed
     }
 
-    pub fn transition_complete(&mut self, data: &mut PeregrineData) {
+    pub fn transition_complete(&mut self, data: &mut PeregrineObjects) {
         self.current = None;
         self.promote(data);
     }
@@ -101,7 +102,7 @@ impl TrainSet {
         TrainSet(Arc::new(Mutex::new(TrainSetData::new())))
     }
 
-    fn run_loading(&self, data: &mut PeregrineData, train: Train) {
+    fn run_loading(&self, data: &mut PeregrineObjects, train: Train) {
         let tdata = self.0.clone();
         let pdata = data.clone();
         let mut pdata2 = pdata.clone();
@@ -119,14 +120,14 @@ impl TrainSet {
         });
     }
 
-    pub fn set(&self, data: &mut PeregrineData, viewport: &Viewport) {
+    pub fn set(&self, data: &mut PeregrineObjects, viewport: &Viewport) {
         let changed = self.0.lock().unwrap().set(data,viewport);
         if let Some(train) = changed {
             self.run_loading(data,train);
         }
     }
 
-    pub fn transition_complete(&self, data: &mut PeregrineData) {
+    pub fn transition_complete(&self, data: &mut PeregrineObjects) {
         self.0.lock().unwrap().transition_complete(data);
     }
 }

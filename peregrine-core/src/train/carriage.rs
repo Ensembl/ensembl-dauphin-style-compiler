@@ -1,5 +1,7 @@
+use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
-use crate::core::{ Track, PeregrineData };
+use crate::api::PeregrineObjects;
+use crate::core::Track;
 use crate::panel::{ Panel };
 use crate::shape::ShapeList;
 use super::train::TrainId;
@@ -19,6 +21,12 @@ impl CarriageId {
     }
 }
 
+impl Display for CarriageId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f,"CarriageId(train={} index={})",self.train,self.index)
+    }
+}
+
 #[derive(Clone)]
 pub struct Carriage {
     id: CarriageId,
@@ -33,11 +41,13 @@ impl Carriage {
         }
     }
 
+    pub fn id(&self) -> &CarriageId { &self.id }
+
     fn make_panel(&self, track: &Track) -> Panel {
         Panel::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
-    async fn load_full(&self, data: &PeregrineData) -> anyhow::Result<()> {
+    async fn load_full(&self, data: &PeregrineObjects) -> anyhow::Result<()> {
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_some() { return Ok(()); }
         let mut panels = vec![];
@@ -55,7 +65,7 @@ impl Carriage {
         Ok(())
     }
 
-    pub async fn load(&self, data: &mut PeregrineData) {
+    pub async fn load(&self, data: &mut PeregrineObjects) {
         match self.load_full(data).await {
             Ok(()) => (),
             Err(e) => {

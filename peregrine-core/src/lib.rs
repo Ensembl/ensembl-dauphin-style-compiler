@@ -1,13 +1,14 @@
 mod api {
     mod api;
+    mod objects;
     mod queue;
 
-    pub use api::{ PeregrineIntegration };
+    pub use api::{ PeregrineApi, PeregrineIntegration };
+    pub use self::objects::PeregrineObjects;
     pub use queue::PeregrineApiQueue;
 }
 
 mod core {
-    mod data;
     pub mod focus;
     mod layout;
     mod scale;
@@ -15,7 +16,6 @@ mod core {
     pub mod track;
     mod viewport;
 
-    pub use data::PeregrineData;
     pub use self::focus::Focus;
     pub use self::layout::Layout;
     pub use self::scale::Scale;
@@ -69,13 +69,11 @@ mod request {
 }
 
 mod run {
-    pub mod console;
     mod core;
     pub mod instancepayload;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::core::PgCore;
-    pub use self::console::PgConsole;
     pub use self::pgcommander::Commander;
     pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec };
     pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
@@ -133,14 +131,16 @@ mod test {
     pub(crate) mod helpers;
 }
 
+pub use self::api::{ PeregrineObjects, PeregrineIntegration, PeregrineApi, PeregrineApiQueue };
 pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };
-pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgConsole, PgDauphin, Commander, InstancePayload };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::run::PgCore;
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
     ZMenu, Pen, Plotter
 };
+pub use self::train::Carriage;
 pub use self::util::CountingPromise;

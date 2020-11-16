@@ -36,7 +36,7 @@ struct RequestQueueData {
     receiver: PayloadReceiverCollection,
     builder: ResponsePacketBuilder,
     pending_send: CommanderStream<(CommandRequest,CommanderStream<Box<dyn ResponseType>>)>,
-    integration: Rc<dyn ChannelIntegration>,
+    integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
     timeout: Option<f64>
@@ -82,7 +82,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<dyn ChannelIntegration>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             builder: register_responses(),

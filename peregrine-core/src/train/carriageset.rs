@@ -1,5 +1,5 @@
 use std::cmp::max;
-use crate::core::{ PeregrineData };
+use crate::api::PeregrineObjects;
 use super::train::TrainId;
 use super::carriage::{ Carriage, CarriageId };
 
@@ -56,7 +56,7 @@ impl CarriageSet {
         CarriageSet::create(train_id,centre,old)
     }
 
-    pub async fn load(&self, data: &mut PeregrineData) {
+    pub async fn load(&self, data: &mut PeregrineObjects) {
         for carriage in &self.carriages {
             carriage.load(data).await;
         }

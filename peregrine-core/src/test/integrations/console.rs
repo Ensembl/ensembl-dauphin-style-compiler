@@ -1,4 +1,3 @@
-use crate::PgConsole;
 use std::sync::{ Arc, Mutex };
 
 #[derive(Clone)]
@@ -16,15 +15,5 @@ impl TestConsole {
 
     pub fn take_all(&self) -> Vec<String> {
         self.0.lock().unwrap().drain(..).collect()
-    }
-}
-
-impl PgConsole for TestConsole {
-    fn warn(&self, msg: &str) {
-        self.message(msg);
-    }
-
-    fn error(&self, msg: &str) {
-        self.message(msg);
     }
 }
