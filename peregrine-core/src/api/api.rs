@@ -3,10 +3,9 @@ use crate::api::queue::ApiMessage;
 use crate::core::{ Focus, StickId, Track };
 use crate::request::ChannelIntegration;
 use crate::train::{ Carriage };
-use crate::{ Commander };
 use crate::lock;
 use super::PeregrineObjects;
-use peregrine_dauphin_queue::{ PgDauphinQueue };
+use crate::request::channel::Channel;
 
 #[derive(Clone)]
 pub struct PeregrineApi {
@@ -14,14 +13,16 @@ pub struct PeregrineApi {
 }
 
 impl PeregrineApi {
-    pub fn new<C>(commander: C, integration: Box<dyn PeregrineIntegration>) -> anyhow::Result<PeregrineApi> where C: Commander + 'static {
+    pub fn new(mut objects: PeregrineObjects) -> anyhow::Result<PeregrineApi> {
         let queue = PeregrineApiQueue::new();
         let api = PeregrineApi { queue };
-        let dauphin_queue = PgDauphinQueue::new();
-        let mut core = PeregrineObjects::new(integration,commander,dauphin_queue)?;
-        api.queue.run(&mut core);
-        lock!(core.integration).set_api(api.clone());
+        api.queue.run(&mut objects);
+        lock!(objects.integration).set_api(api.clone());
         Ok(api)
+    }
+
+    pub fn bootstrap(&self, channel: Channel) {
+        self.queue.push(ApiMessage::Bootstrap(channel));
     }
 
     pub fn transition_complete(&self) {

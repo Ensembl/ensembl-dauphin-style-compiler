@@ -2,6 +2,8 @@ use crate::api::PeregrineObjects;
 use crate::core::{ Focus, StickId, Track, Viewport };
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
+use crate::request::channel::Channel;
+use crate::request::bootstrap::bootstrap;
 
 pub enum ApiMessage {
     TransitionComplete,
@@ -10,7 +12,8 @@ pub enum ApiMessage {
     SetPosition(f64),
     SetScale(f64),
     SetFocus(Focus),
-    SetStick(StickId)
+    SetStick(StickId),
+    Bootstrap(Channel)
 }
 
 #[derive(Clone)]
@@ -38,6 +41,19 @@ impl PeregrineApiQueue {
         }
     }
 
+    fn try_bootstrap(&mut self, data: &mut PeregrineObjects, channel: Channel) -> anyhow::Result<()> {
+        bootstrap(&data.manager,&data.program_loader,&data.commander,&data.dauphin,channel,&data.booted)
+    }
+
+    fn bootstrap(&mut self, data: &mut PeregrineObjects, channel: Channel) {
+        match self.try_bootstrap(data,channel) {
+            Ok(()) => {}
+            Err(e) => {
+                data.integration.lock().unwrap().report_error(&format!("Cannot bootstrap, nothing at far end"));
+            }
+        }
+    }
+
     fn run_message(&mut self, data: &mut PeregrineObjects, message: ApiMessage) {
         match message {
             ApiMessage::TransitionComplete => {
@@ -61,6 +77,9 @@ impl PeregrineApiQueue {
             },
             ApiMessage::SetStick(stick) => {
                 self.update_viewport(data,data.viewport.set_stick(&stick));
+            },
+            ApiMessage::Bootstrap(channel) => {
+                self.bootstrap(data,channel);
             }
         }
     }

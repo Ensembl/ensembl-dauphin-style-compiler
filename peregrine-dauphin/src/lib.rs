@@ -77,12 +77,12 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, objects: PeregrineObjects, pdq: PgDauphinQueue) -> anyhow::Result<()> {
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, objects: PeregrineObjects) -> anyhow::Result<()> {
     let mut dauphin = Dauphin::new(command_suite()?);
     integration.add_payloads(&mut dauphin);
     add_peregrine_payloads(&mut dauphin,&objects.manager,&objects.stick_store,&objects.stick_authority_store,&objects.booted,&objects.panel_program_store,&objects.data_store);
     loop {
-        let e = pdq.get().await;
+        let e = objects.dauphin_queue.get().await;
         match e.task {
             PgDauphinTaskSpec::Load(p) => load(&mut dauphin,p,e.channel),
             PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&objects.commander,r,e.channel)
@@ -90,12 +90,12 @@ async fn main_loop(integration: Box<dyn PgDauphinIntegration>, objects: Peregrin
     }
 }
 
-pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, objects: &PeregrineObjects, pdq: &PgDauphinQueue) {
+pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, objects: &PeregrineObjects) {
     objects.commander.add_task(PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,objects.clone(),pdq.clone()))
+        task: Box::pin(main_loop(integration,objects.clone()))
     });
 }

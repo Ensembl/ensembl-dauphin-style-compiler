@@ -12,6 +12,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct PeregrineObjects {
+    pub dauphin: PgDauphin,
+    pub dauphin_queue: PgDauphinQueue,
     pub booted: CountingPromise,
     pub commander: PgCommander,
     pub data_store: DataStore,
@@ -28,8 +30,9 @@ pub struct PeregrineObjects {
 }
 
 impl PeregrineObjects {
-    pub fn new<M>(integration: Box<dyn PeregrineIntegration>, commander: M, dauphin_queue: PgDauphinQueue) -> anyhow::Result<PeregrineObjects> 
+    pub fn new<M>(integration: Box<dyn PeregrineIntegration>, commander: M) -> anyhow::Result<PeregrineObjects> 
                 where M: Commander + 'static {
+        let dauphin_queue = PgDauphinQueue::new();
         let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander);
         let data_store = DataStore::new(32,&commander,&manager);
@@ -45,6 +48,8 @@ impl PeregrineObjects {
             booted,
             commander,
             data_store,
+            dauphin,
+            dauphin_queue,
             manager,
             panel_store,
             panel_program_store,
@@ -58,8 +63,12 @@ impl PeregrineObjects {
         })
     }
 
+    pub fn dauphin_ready(&self) {
+
+    }
+
     // XXX move to API
-    pub fn bootstrap(&self, dauphin: &PgDauphin, channel: Channel) -> anyhow::Result<()> {
-        bootstrap(&self.manager,&self.program_loader,&self.commander,dauphin,channel,&self.booted)
+    pub fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {
+        bootstrap(&self.manager,&self.program_loader,&self.commander,&self.dauphin,channel,&self.booted)
     }
 }
