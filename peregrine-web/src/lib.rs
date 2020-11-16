@@ -57,9 +57,10 @@ impl PeregrineWeb {
         pgblackbox_setup();
         let commander = setup_commander().context("setting up commander")?;
         let integration = PgIntegration::new(PgChannel::new(PgConsoleWeb::new(30,30.)));
-        let mut objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
+        let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
+        // XXX don't leak objects when no longer needed for testing
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
-        objects.manager.add_receiver(Box::new(objects.dauphin.clone()));
+        objects.dauphin_ready(); // XXX -> API
         let api = PeregrineApi::new(objects.clone())?;
         let mut out = PeregrineWeb {
             objects, api, commander

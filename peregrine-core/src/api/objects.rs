@@ -63,8 +63,8 @@ impl PeregrineObjects {
         })
     }
 
-    pub fn dauphin_ready(&self) {
-
+    pub fn dauphin_ready(&mut self) {
+        self.manager.add_receiver(Box::new(self.dauphin.clone()));
     }
 
     // XXX move to API
