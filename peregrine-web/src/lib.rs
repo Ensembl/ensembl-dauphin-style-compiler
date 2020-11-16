@@ -25,11 +25,12 @@ use crate::integration::pgchannel::PgChannel;
 use crate::integration::pgconsole::{ PgConsoleWeb, PgConsoleLevel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
+use crate::integration::pgintegration::PgIntegration;
 use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCore, PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
-    CountingPromise, PanelProgramStore, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore
+    CountingPromise, PanelProgramStore, Scale, PanelRunStore, Panel, Focus, Track, PanelStore, DataStore, PeregrineObjects
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
@@ -54,24 +55,17 @@ struct PeregrineWeb {
 impl PeregrineWeb {
     fn new() -> anyhow::Result<PeregrineWeb> {
         pgblackbox_setup();
-        let booted = CountingPromise::new();
-        let console = PgConsoleWeb::new(30,30.);
-        let commander = PgCommander::new(Box::new(setup_commander().context("setting up commander")?)); 
-        let mut manager = RequestManager::new(Box::new(PgChannel::new(console.clone())),&commander);
         let pdq = PgDauphinQueue::new();
+        let commander = setup_commander().context("setting up commander")?;
+        let console = PgConsoleWeb::new(30,30.);
+        let integration = PgIntegration::new(PgChannel::new(console.clone()));
+        let mut objects = PeregrineObjects::new(Box::new(integration),commander,pdq.clone())?;
         let dauphin = PgDauphin::new(&pdq)?;
-        let loader = ProgramLoader::new(&commander,&manager,&dauphin);
-        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin);
-        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted)?;
-        let panel_program_store = PanelProgramStore::new();
-        let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&loader,&stick_store,&panel_program_store,&booted);
-        let panel_store = PanelStore::new(128,&commander,&panel_run_store);
-        let data_store = DataStore::new(32,&commander,&manager);
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&commander,&pdq,&manager,&stick_authority_store,&stick_store,&booted,&panel_program_store,&data_store);
-        manager.add_receiver(Box::new(dauphin.clone()));
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects.commander,&pdq,&objects.manager,&objects.stick_authority_store,&objects.stick_store,&objects.booted,&objects.panel_program_store,&objects.data_store);
+        objects.manager.add_receiver(Box::new(dauphin.clone()));
         let mut out = PeregrineWeb {
-            core: PgCore::new(&booted,&commander,&dauphin,&manager,&stick_store,&panel_store)?,
-            stick_store: stick_store.clone()
+            core: PgCore::new(&objects.booted,&objects.commander,&dauphin,&objects.manager,&objects.stick_store,&objects.panel_store)?,
+            stick_store: objects.stick_store.clone()
         };
         out.setup()?;
         Ok(out)

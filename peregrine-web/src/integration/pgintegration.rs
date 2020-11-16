@@ -16,12 +16,12 @@ fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     Ok(commander)
 }
 
-pub struct PgIntergration {
+pub struct PgIntegration {
     api: Option<PeregrineApi>,
     channel: PgChannel
 }
 
-impl PeregrineIntegration for PgIntergration {
+impl PeregrineIntegration for PgIntegration {
     fn set_api(&mut self, api: PeregrineApi) {
         self.api = Some(api);
     }
@@ -40,11 +40,11 @@ impl PeregrineIntegration for PgIntergration {
     }
 }
 
-impl PgIntergration {
+impl PgIntegration {
     //        let console = PgConsoleWeb::new(30,30.);
     //let channel = PgChannel::new(Box::new(console.clone()));
-    fn new(channel: PgChannel) -> PgIntergration {
-        PgIntergration {
+    pub fn new(channel: PgChannel) -> PgIntegration {
+        PgIntegration {
             api: None,
             channel
         }
