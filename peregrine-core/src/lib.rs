@@ -3,7 +3,7 @@ mod api {
     mod objects;
     mod queue;
 
-    pub use api::{ PeregrineApi, PeregrineIntegration };
+    pub use api::{ PeregrineApi, PeregrineIntegration, CarriageSpeed };
     pub use self::objects::PeregrineObjects;
     pub use queue::PeregrineApiQueue;
 }
@@ -96,6 +96,7 @@ mod shape {
 
 mod train {
     mod carriage;
+    mod carriageevent;
     mod carriageset;
     mod train;
     mod trainset;

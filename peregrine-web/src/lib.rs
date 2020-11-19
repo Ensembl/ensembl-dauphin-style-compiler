@@ -60,8 +60,8 @@ impl PeregrineWeb {
         let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
         // XXX don't leak objects when no longer needed for testing
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
-        objects.dauphin_ready(); // XXX -> API
         let api = PeregrineApi::new(objects.clone())?;
+        api.ready();
         let mut out = PeregrineWeb {
             objects, api, commander
         };

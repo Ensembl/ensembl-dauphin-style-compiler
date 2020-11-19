@@ -43,6 +43,10 @@ impl Carriage {
 
     pub fn id(&self) -> &CarriageId { &self.id }
 
+    pub fn ready(&self) -> bool {
+        self.shapes.lock().unwrap().is_some()
+    }
+
     fn make_panel(&self, track: &Track) -> Panel {
         Panel::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
@@ -65,7 +69,7 @@ impl Carriage {
         Ok(())
     }
 
-    pub async fn load(&self, data: &mut PeregrineObjects) {
+    pub async fn load(&self, data: &PeregrineObjects) {
         match self.load_full(data).await {
             Ok(()) => (),
             Err(e) => {

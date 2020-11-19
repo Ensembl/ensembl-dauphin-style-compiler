@@ -1,6 +1,7 @@
 use std::cmp::max;
 use crate::api::PeregrineObjects;
 use super::train::TrainId;
+use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
 
 const CARRIAGE_FLANK : u64 = 2;
@@ -12,7 +13,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainId, centre: u64, mut old: CarriageSet) -> (CarriageSet,bool) {
+    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> (CarriageSet,bool) {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         if start == old_start {
@@ -41,30 +42,37 @@ impl CarriageSet {
             carriages.push(if steal {
                 old_carriages.next().unwrap().1
             } else {
-                Carriage::new(&CarriageId::new(train_id,index))
+                let out = Carriage::new(&CarriageId::new(train_id,index));
+                carriage_events.load(&out);
+                out
             });
         }
         (CarriageSet { carriages, start, max: old.max },true)
     }
 
-    pub fn new(train_id: &TrainId, centre: u64) -> CarriageSet {
+    pub fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
         let fake_old = CarriageSet { carriages: vec![], start: 0, max: None };
-        CarriageSet::create(train_id,centre,fake_old).0
+        CarriageSet::create(train_id,carriage_events,centre,fake_old).0
     }
 
-    pub fn new_using(train_id: &TrainId, centre: u64, old: CarriageSet) -> (CarriageSet,bool) {
-        CarriageSet::create(train_id,centre,old)
+    pub fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> (CarriageSet,bool) {
+        CarriageSet::create(train_id,carriage_events,centre,old)
     }
 
-    pub async fn load(&self, data: &mut PeregrineObjects) {
-        for carriage in &self.carriages {
-            carriage.load(data).await;
-        }
+    pub fn send_event(&self, carriage_event: &mut CarriageEvents, index: u32) {
+        carriage_event.set(&self.carriages(),index);
     }
 
-    pub fn carriages(&self) -> &Vec<Carriage> { &self.carriages() }
+    pub fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
 
     pub fn set_max(&mut self, max: u64) {
         self.max = Some(max);
+    }
+
+    pub fn ready(&self) -> bool {
+        for c in &self.carriages {
+            if !c.ready() { return false; }
+        }
+        true
     }
 }

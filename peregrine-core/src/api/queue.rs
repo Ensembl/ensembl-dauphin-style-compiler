@@ -6,6 +6,7 @@ use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 
 pub enum ApiMessage {
+    Ready,
     TransitionComplete,
     AddTrack(Track),
     RemoveTrack(Track),
@@ -28,10 +29,10 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn update_train_set(&mut self, data: &mut PeregrineObjects) {
-        let viewport = data.viewport.clone();
-        let train_set = data.train_set.clone();
-        train_set.set(data,&viewport);
+    fn update_train_set(&mut self, objects: &mut PeregrineObjects) {
+        let viewport = objects.viewport.clone();
+        let train_set = objects.train_set.clone();
+        train_set.set(objects,&viewport);
     }
 
     fn update_viewport(&mut self, data: &mut PeregrineObjects, new_viewport: Viewport) {
@@ -56,6 +57,9 @@ impl PeregrineApiQueue {
 
     fn run_message(&mut self, data: &mut PeregrineObjects, message: ApiMessage) {
         match message {
+            ApiMessage::Ready => {
+                data.dauphin_ready();
+            },
             ApiMessage::TransitionComplete => {
                 let train_set = data.train_set.clone();
                 train_set.transition_complete(data);

@@ -2,7 +2,9 @@ use std::sync::{ Arc, Mutex };
 use crate::PgCommanderTaskSpec;
 use crate::api::PeregrineObjects;
 use crate::core::{ Scale, Viewport };
-use super::train::{ Train, TrainId, };
+use super::train::{ Train, TrainId };
+use super::carriage::Carriage;
+use super::carriageevent::CarriageEvents;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -12,7 +14,8 @@ use super::train::{ Train, TrainId, };
 pub struct TrainSetData {
     current: Option<Train>,
     future: Option<Train>,
-    wanted: Option<Train>
+    wanted: Option<Train>,
+    next_activation: u32
 }
 
 impl TrainSetData {
@@ -20,7 +23,8 @@ impl TrainSetData {
         TrainSetData {
             current: None,
             future: None,
-            wanted: None
+            wanted: None,
+            next_activation: 0
         }
     }
 
@@ -30,67 +34,81 @@ impl TrainSetData {
         }
     }
 
-    fn quick(&self) -> bool {
-        if let Some(current) = &self.current {
-            if let Some(future) = &self.future {
-                if current.id().layout() != future.id().layout() {
-                    return false;
-                }
+    fn promote_wanted(&mut self, events: &mut CarriageEvents) {
+        if let Some(mut wanted) = self.wanted.take() {
+            if wanted.ready() && self.future.is_none() {
+                let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
+                wanted.set_active(events,self.next_activation,quick);
+                self.next_activation += 1;
+                self.future = Some(wanted);
             }
         }
-        true
     }
 
-    fn promote_wanted(&mut self, data: &mut PeregrineObjects) {
-        if self.future.is_none() && self.wanted.as_ref().map(|x| x.ready()).unwrap_or(false) {
-            self.future = self.wanted.take();
-            let carriages = self.future.as_ref().unwrap().carriages();
-            data.integration.lock().unwrap().set_carriages(&carriages,self.quick());
-        }
-    }
-
-    fn promote(&mut self, data: &mut PeregrineObjects) {
+    fn promote(&mut self, events: &mut CarriageEvents) {
         self.promote_future();
-        self.promote_wanted(data);
+        self.promote_wanted(events);
         self.promote_future();
     }
 
-    fn new_wanted(&mut self, data: &mut PeregrineObjects, train_id: &TrainId, position: f64) {
-        self.wanted = Some(Train::new(data,train_id,position));
+    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
+        self.wanted = Some(Train::new(train_id,events,position));
     }
 
-    fn set(&mut self, data: &mut PeregrineObjects, viewport: &Viewport) -> Option<Train> {
-        let quiescent = if let Some(wanted) = &mut self.wanted {
+    fn quiescent(&self) -> Option<&Train> {
+        /* The quiescent train is the train which, barring this and any future changes will ultimately be displayed. */
+        if let Some(wanted) = &self.wanted {
             Some(wanted)
-        } else if let Some(future) = &mut self.future {
+        } else if let Some(future) = &self.future {
             Some(future)
-        } else if let Some(current) = &mut self.current {
+        } else if let Some(current) = &self.current {
             Some(current)
         } else {
             None
-        };
-        let train_id = TrainId::new(viewport.layout(),&Scale::new_for_numeric(viewport.scale()));
-        let mut changed = None;
-        if let Some(quiescent) = quiescent {
-            if quiescent.id() == train_id {
-                if quiescent.set_position(data,viewport.position()) {
-                    changed = Some(quiescent.clone());
-                }
-            } else {
-                self.new_wanted(data,&train_id,viewport.position());
-                changed = Some(self.wanted.as_ref().unwrap().clone());
-            }
-        } else {
-            self.new_wanted(data,&train_id,viewport.position());
-            changed = Some(self.wanted.as_ref().unwrap().clone());
         }
-        self.promote(data);
-        changed
     }
 
-    pub fn transition_complete(&mut self, data: &mut PeregrineObjects) {
-        self.current = None;
-        self.promote(data);
+    fn maybe_update_target(&mut self, events: &mut CarriageEvents, viewport: &Viewport) {
+        let train_id = TrainId::new(viewport.layout(),&Scale::new_for_numeric(viewport.scale()));
+        let mut new_target_needed = true;
+        if let Some(quiescent) = self.quiescent() {
+            if quiescent.id() == train_id {
+                new_target_needed = false;
+            }
+        }
+        if new_target_needed {
+            self.new_wanted(events,&train_id,viewport.position());
+        }
+    }
+
+    fn update_train(&self, events: &mut CarriageEvents, train: &Option<Train>, viewport: &Viewport) {
+        if let Some(train) = train {
+            if viewport.layout().stick() == train.id().layout().stick() {
+                train.set_position(&mut events.clone(),viewport.position());
+            }
+        }
+    }
+
+    fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport) {
+        self.maybe_update_target(events,viewport);
+        self.update_train(events,&self.wanted,viewport);
+        self.update_train(events,&self.future,viewport);
+        self.update_train(events,&self.current,viewport);
+        self.promote(events);
+    }
+
+    pub fn transition_complete(&mut self, events: &mut CarriageEvents) {
+        if let Some(mut current) = self.current.take() {
+            current.set_inactive();
+        }
+        self.promote(events);
+    }
+
+    pub fn maybe_ready(&mut self, events: &mut CarriageEvents) {
+        if let Some(wanted) = &mut self.wanted {
+            wanted.maybe_ready();
+            self.promote(events);
+        }
     }
 }
 
@@ -102,32 +120,48 @@ impl TrainSet {
         TrainSet(Arc::new(Mutex::new(TrainSetData::new())))
     }
 
-    fn run_loading(&self, data: &mut PeregrineObjects, train: Train) {
-        let tdata = self.0.clone();
-        let pdata = data.clone();
-        let mut pdata2 = pdata.clone();
-        let train2 = train.clone();
-        data.commander.add_task(PgCommanderTaskSpec {
-            name: format!("train loader: {}",train.id()),
+    async fn load_carriages(&self, objects: &mut PeregrineObjects, carriages: &[Carriage]) {
+        let mut loads = vec![];
+        for carriage in carriages {
+            loads.push((carriage,carriage.load(&objects)));
+        }
+        for carriage in carriages {
+            carriage.load(objects).await;
+        }
+    }
+
+    fn maybe_ready(&mut self, objects: &mut PeregrineObjects) {
+        let mut events = CarriageEvents::new();
+        self.0.lock().unwrap().maybe_ready(&mut events);
+        events.run(objects);
+    }
+
+    pub(super) fn run_load_carriages(&self, objects: &mut PeregrineObjects, carriages: Vec<Carriage>) {
+        let mut self2 = self.clone();
+        let mut objects2 = objects.clone();
+        let carriages = carriages.clone();
+        objects.commander.add_task(PgCommanderTaskSpec {
+            name: format!("carriage loader"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                train2.load(&mut pdata2).await;
-                tdata.lock().unwrap().promote(&mut pdata2);
+                self2.load_carriages(&mut objects2,&carriages).await;
+                self2.maybe_ready(&mut objects2);
                 Ok(())
             })
         });
     }
 
-    pub fn set(&self, data: &mut PeregrineObjects, viewport: &Viewport) {
-        let changed = self.0.lock().unwrap().set(data,viewport);
-        if let Some(train) = changed {
-            self.run_loading(data,train);
-        }
+    pub fn set(&self, objects: &mut PeregrineObjects, viewport: &Viewport) {
+        let mut events = CarriageEvents::new();
+        self.0.lock().unwrap().set(&mut events,viewport);
+        events.run(objects);
     }
 
-    pub fn transition_complete(&self, data: &mut PeregrineObjects) {
-        self.0.lock().unwrap().transition_complete(data);
+    pub fn transition_complete(&self, objects: &mut PeregrineObjects) {
+        let mut events = CarriageEvents::new();
+        self.0.lock().unwrap().transition_complete(&mut events);
+        events.run(objects);
     }
 }

@@ -21,6 +21,10 @@ impl PeregrineApi {
         Ok(api)
     }
 
+    pub fn ready(&self) {
+        self.queue.push(ApiMessage::Ready);
+    }
+
     pub fn bootstrap(&self, channel: Channel) {
         self.queue.push(ApiMessage::Bootstrap(channel));
     }
@@ -54,9 +58,15 @@ impl PeregrineApi {
     }
 }
 
+pub enum CarriageSpeed {
+    Quick, /* same stick */
+    Slow /* different stick */
+}
+
 pub trait PeregrineIntegration {
     fn set_api(&mut self, api: PeregrineApi);
     fn report_error(&mut self, error: &str);
-    fn set_carriages(&mut self, carriages: &[Carriage], quick: bool);
+    fn set_carriages(&mut self, carriages: &[Carriage], index: u32);
+    fn start_transition(&mut self, index: u32, speed: CarriageSpeed);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }
