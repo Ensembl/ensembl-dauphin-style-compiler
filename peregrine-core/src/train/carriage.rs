@@ -48,7 +48,7 @@ impl Carriage {
     }
 
     fn make_panel(&self, track: &Track) -> Panel {
-        Panel::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
+        Panel::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
     async fn load_full(&self, data: &PeregrineObjects) -> anyhow::Result<()> {

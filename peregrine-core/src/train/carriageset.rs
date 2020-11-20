@@ -8,8 +8,7 @@ const CARRIAGE_FLANK : u64 = 2;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,
-    start: u64,
-    max: Option<u64>
+    start: u64
 }
 
 impl CarriageSet {
@@ -25,11 +24,6 @@ impl CarriageSet {
                .map(|(i,c)| (old_start + (i as u64) - CARRIAGE_FLANK as u64,c)).peekable();
         for delta in 0..(CARRIAGE_FLANK*2+1) {
             let index = start + delta;
-            if let Some(max) = old.max {
-                if index > max {
-                    break;
-                }
-            }
             let mut steal = false;
             while let Some((old_index,_)) = old_carriages.peek() {
                 if index == *old_index {
@@ -43,15 +37,15 @@ impl CarriageSet {
                 old_carriages.next().unwrap().1
             } else {
                 let out = Carriage::new(&CarriageId::new(train_id,index));
-                carriage_events.load(&out);
+                carriage_events.carriage(&out);
                 out
             });
         }
-        (CarriageSet { carriages, start, max: old.max },true)
+        (CarriageSet { carriages, start },true)
     }
 
     pub fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
-        let fake_old = CarriageSet { carriages: vec![], start: 0, max: None };
+        let fake_old = CarriageSet { carriages: vec![], start: 0 };
         CarriageSet::create(train_id,carriage_events,centre,fake_old).0
     }
 
@@ -64,10 +58,6 @@ impl CarriageSet {
     }
 
     pub fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
-
-    pub fn set_max(&mut self, max: u64) {
-        self.max = Some(max);
-    }
 
     pub fn ready(&self) -> bool {
         for c in &self.carriages {

@@ -8,7 +8,7 @@ use super::track::Track;
 pub struct Layout {
     tracks: HashSet<Track>,
     focus: Focus,
-    stick: StickId
+    stick: Option<StickId>
 }
 
 impl Layout {
@@ -16,7 +16,7 @@ impl Layout {
         Layout {
             tracks: HashSet::new(),
             focus: Focus::new(None),
-            stick: stick.clone()
+            stick: Some(stick.clone())
         }
     }
 
@@ -24,13 +24,13 @@ impl Layout {
         Layout {
             tracks: HashSet::new(),
             focus: Focus::new(None),
-            stick: StickId::new("XXX")
+            stick: None
         }
     }
 
     pub fn tracks(&self) -> &HashSet<Track> { &self.tracks }
     pub fn focus(&self) -> &Focus { &self.focus }
-    pub fn stick(&self) -> &StickId { &self.stick }
+    pub fn stick(&self) -> &Option<StickId> { &self.stick }
 
     pub fn track_on(&self, track: &Track, yn: bool) -> Layout {
         let mut out = self.clone();
@@ -44,7 +44,7 @@ impl Layout {
 
     pub fn set_stick(&self, stick: &StickId) -> Layout {
         let mut out = self.clone();
-        out.stick = stick.clone();
+        out.stick = Some(stick.clone());
         out
     }
 
@@ -59,6 +59,10 @@ impl Display for Layout {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let mut tracks : Vec<_> = self.tracks.iter().map(|x| x.to_string()).collect();
         tracks.sort();
-        write!(f,"Layout(tracks={} focus={} stick={})",tracks.join(", "),self.focus,self.stick)
+        if let Some(stick) = &self.stick {
+            write!(f,"Layout(tracks={} focus={} stick={})",tracks.join(", "),self.focus,stick)
+        } else {
+            write!(f,"Layout(tracks={} focus={}  *no stick*)",tracks.join(", "),self.focus)
+        }
     }
 }

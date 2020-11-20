@@ -5,6 +5,7 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage };
 use std::fmt::{ self, Display, Formatter };
+use crate::PgCommanderTaskSpec;
 
 #[derive(Clone,PartialEq)]
 pub struct TrainId {
@@ -31,21 +32,23 @@ impl TrainId {
 }
 
 struct TrainData {
-    ready: bool,
+    data_ready: bool,
     active: Option<u32>,
     id: TrainId,
     position: f64,
+    max: Option<u64>,
     carriages: Option<CarriageSet>
 }
 
 impl TrainData {
     fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> TrainData {
         let mut out = TrainData {
-            ready: false,
+            data_ready: false,
             active: None,
             id: id.clone(),
             position,
-            carriages: Some(CarriageSet::new(id,carriage_event,0))
+            carriages: Some(CarriageSet::new(id,carriage_event,0)),
+            max: None
         };
         out.set_position(carriage_event,position);
         out
@@ -54,7 +57,7 @@ impl TrainData {
     fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
         if self.active != Some(index) {
             let speed = if quick { CarriageSpeed::Quick } else { CarriageSpeed::Slow };
-            carriage_event.transition(index,speed);
+            carriage_event.transition(index,self.max.unwrap(),speed);
         }
         self.active = Some(index);
     }
@@ -64,13 +67,10 @@ impl TrainData {
     }
 
     fn id(&self) -> &TrainId { &self.id }
-    fn position(&self) -> f64 { self.position }
-    fn ready(&self) -> bool { self.ready }
+    fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
 
     fn set_max(&mut self, max: u64) {
-        if let Some(carriages) = &mut self.carriages {
-            carriages.set_max(self.id.scale.carriage(max as f64));
-        }
+        self.max = Some(max);
     }
 
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
@@ -89,14 +89,14 @@ impl TrainData {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
-    fn set_ready(&mut self) {
-        self.ready = true;
+    fn set_data_ready(&mut self) {
+        self.data_ready = true;
     }
 
     pub fn maybe_ready(&mut self) {
         if let Some(carriages) = &self.carriages {
-            if carriages.ready() {
-                self.ready = true;
+            if carriages.ready() && self.max.is_some() {
+                self.data_ready = true;
             }
         }
     }
@@ -108,13 +108,13 @@ pub struct Train(Arc<Mutex<TrainData>>);
 
 impl Train {
     pub fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> Train {
-        Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position))))
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position))));
+        carriage_event.train(&out);
+        out
     }
 
     pub fn id(&self) -> TrainId { self.0.lock().unwrap().id().clone() }
-//    pub fn position(&self) -> f64 { self.0.lock().unwrap().position() }
-    pub fn ready(&self) -> bool { self.0.lock().unwrap().ready() }
-//    pub fn carriages(&self) -> Vec<Carriage> { self.0.lock().unwrap().carriages() }
+    pub fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
 
     pub fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
         self.0.lock().unwrap().set_active(carriage_event,index,quick);
@@ -136,21 +136,38 @@ impl Train {
         self.0.lock().unwrap().maybe_ready();
     }
 
-    async fn find_max(&self, data: &mut PeregrineObjects) {
+    async fn find_max(&self, data: &mut PeregrineObjects) -> Option<u64> {
         let train_id = self.id();
-        if let Ok(stick) = data.stick_store.get(train_id.layout().stick()).await {
+        if let Ok(stick) = data.stick_store.get(train_id.layout().stick().as_ref().unwrap()).await {
             if let Some(stick) = &stick.as_ref() {
-                self.0.lock().unwrap().set_max(stick.size());
+                return Some(stick.size());
             }
         }
+        return None;
     }
 
-    pub async fn load(&self, data: &mut PeregrineObjects) {
-        self.find_max(data).await;
-        let carriages = self.0.lock().unwrap().carriages();
-        for carriage in carriages {
-            carriage.load(data).await;
-        }
-        self.0.lock().unwrap().set_ready();
+    fn set_max(&self, max: u64) {
+        self.0.lock().unwrap().set_max(max);
     }
+    
+    pub(super) fn run_find_max(&self, objects: &mut PeregrineObjects) {
+        let self2 = self.clone();
+        let mut objects2 = objects.clone();
+        objects.commander.add_task(PgCommanderTaskSpec {
+            name: format!("max finder"),
+            prio: 1,
+            slot: None,
+            timeout: None,
+            task: Box::pin(async move {
+                let max = self2.find_max(&mut objects2).await;
+                if let Some(max) = max{
+                    self2.set_max(max);
+                    objects2.train_set.clone().maybe_ready(&mut objects2);
+                } else {
+                    // XXX bad sticks
+                }
+                Ok(())
+            })
+        });
+    }   
 }

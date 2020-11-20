@@ -67,6 +67,6 @@ pub trait PeregrineIntegration {
     fn set_api(&mut self, api: PeregrineApi);
     fn report_error(&mut self, error: &str);
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32);
-    fn start_transition(&mut self, index: u32, speed: CarriageSpeed);
+    fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }

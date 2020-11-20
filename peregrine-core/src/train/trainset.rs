@@ -36,7 +36,7 @@ impl TrainSetData {
 
     fn promote_wanted(&mut self, events: &mut CarriageEvents) {
         if let Some(mut wanted) = self.wanted.take() {
-            if wanted.ready() && self.future.is_none() {
+            if wanted.train_ready() && self.future.is_none() {
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
                 wanted.set_active(events,self.next_activation,quick);
                 self.next_activation += 1;
@@ -130,7 +130,7 @@ impl TrainSet {
         }
     }
 
-    fn maybe_ready(&mut self, objects: &mut PeregrineObjects) {
+    pub fn maybe_ready(&mut self, objects: &mut PeregrineObjects) {
         let mut events = CarriageEvents::new();
         self.0.lock().unwrap().maybe_ready(&mut events);
         events.run(objects);
@@ -155,7 +155,9 @@ impl TrainSet {
 
     pub fn set(&self, objects: &mut PeregrineObjects, viewport: &Viewport) {
         let mut events = CarriageEvents::new();
-        self.0.lock().unwrap().set(&mut events,viewport);
+        if viewport.layout().stick().is_some() {
+            self.0.lock().unwrap().set(&mut events,viewport);
+        }
         events.run(objects);
     }
 
