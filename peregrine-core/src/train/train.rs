@@ -1,9 +1,9 @@
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineObjects, CarriageSpeed };
 use crate::core::{ Layout, Scale };
+use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
-use super::carriage::{ Carriage };
 use std::fmt::{ self, Display, Formatter };
 use crate::PgCommanderTaskSpec;
 
@@ -76,27 +76,28 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        let (carriages,changed) = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
-        if let Some(index) = self.active {
-            if changed {
-                carriages.send_event(carriage_event,index);
+        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
+        self.carriages = Some(carriages);
+    }
+
+    fn maybe_ready(&mut self) {
+        if let Some(carriages) = &self.carriages {
+            if carriages.ready() && self.max.is_some() {
+                self.data_ready = true;
             }
         }
-        self.carriages = Some(carriages);
     }
 
     fn carriages(&self) -> Vec<Carriage> {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
-    fn set_data_ready(&mut self) {
-        self.data_ready = true;
-    }
-
-    pub fn maybe_ready(&mut self) {
-        if let Some(carriages) = &self.carriages {
-            if carriages.ready() && self.max.is_some() {
-                self.data_ready = true;
+    fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
+        if let Some(carriages) = &mut self.carriages {
+            if carriages.depend() {
+                if let Some(index) = self.active {
+                    events.set_carriages(&self.carriages(),index);
+                }
             }
         }
     }
@@ -114,17 +115,17 @@ impl Train {
     }
 
     pub fn id(&self) -> TrainId { self.0.lock().unwrap().id().clone() }
-    pub fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
+    pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
 
-    pub fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
+    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
         self.0.lock().unwrap().set_active(carriage_event,index,quick);
     }
 
-    pub fn set_inactive(&mut self) {
+    pub(super) fn set_inactive(&mut self) {
         self.0.lock().unwrap().set_inactive();
     }
 
-    pub fn set_position(&self, carriage_event: &mut CarriageEvents, position: f64) {
+    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, position: f64) {
         self.0.lock().unwrap().set_position(carriage_event,position);
     }
 
@@ -162,12 +163,16 @@ impl Train {
                 let max = self2.find_max(&mut objects2).await;
                 if let Some(max) = max{
                     self2.set_max(max);
-                    objects2.train_set.clone().maybe_ready(&mut objects2);
+                    objects2.train_set.clone().poll(&mut objects2);
                 } else {
                     // XXX bad sticks
                 }
                 Ok(())
             })
         });
-    }   
+    }
+    
+    pub(super) fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
+        self.0.lock().unwrap().maybe_notify_ui(events);
+    }
 }

@@ -1,6 +1,5 @@
 use std::sync::{ Arc, Mutex };
 use crate::api::{ CarriageSpeed, PeregrineObjects };
-use crate::PgCommanderTaskSpec;
 use crate::train::Carriage;
 use crate::train::train::Train;
 
@@ -27,7 +26,7 @@ impl CarriageEvents {
         self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone()));
     }
 
-    pub fn set(&mut self, carriages: &[Carriage],index: u32) {
+    pub fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
         self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
     }
 
@@ -54,6 +53,8 @@ impl CarriageEvents {
                 }
             }
         }
-        objects.train_set.clone().run_load_carriages(objects,loads);
+        if loads.len() > 0 {
+            objects.train_set.clone().run_load_carriages(objects,loads);
+        }
     }
 }

@@ -104,10 +104,19 @@ impl TrainSetData {
         self.promote(events);
     }
 
-    pub fn maybe_ready(&mut self, events: &mut CarriageEvents) {
+    fn maybe_ready(&mut self, events: &mut CarriageEvents) {
         if let Some(wanted) = &mut self.wanted {
             wanted.maybe_ready();
             self.promote(events);
+        }
+    }
+
+    fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
+        if let Some(train) = &mut self.future {
+            train.maybe_notify_ui(events);
+        }
+        if let Some(train) = &mut self.current {
+            train.maybe_notify_ui(events);
         }
     }
 }
@@ -129,11 +138,22 @@ impl TrainSet {
             carriage.load(objects).await;
         }
     }
-
-    pub fn maybe_ready(&mut self, objects: &mut PeregrineObjects) {
+    
+    fn maybe_ready(&mut self, objects: &mut PeregrineObjects) {
         let mut events = CarriageEvents::new();
         self.0.lock().unwrap().maybe_ready(&mut events);
         events.run(objects);
+    }
+
+    fn maybe_notify_ui(&mut self, objects: &mut PeregrineObjects) {
+        let mut events = CarriageEvents::new();
+        self.0.lock().unwrap().maybe_notify_ui(&mut events);
+        events.run(objects);
+    }
+
+    pub(super) fn poll(&mut self, objects: &mut PeregrineObjects) {
+        self.maybe_ready(objects);
+        self.maybe_notify_ui(objects);
     }
 
     pub(super) fn run_load_carriages(&self, objects: &mut PeregrineObjects, carriages: Vec<Carriage>) {
@@ -147,7 +167,7 @@ impl TrainSet {
             timeout: None,
             task: Box::pin(async move {
                 self2.load_carriages(&mut objects2,&carriages).await;
-                self2.maybe_ready(&mut objects2);
+                self2.poll(&mut objects2);
                 Ok(())
             })
         });

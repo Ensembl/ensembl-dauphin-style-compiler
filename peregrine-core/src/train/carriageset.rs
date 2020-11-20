@@ -1,5 +1,4 @@
 use std::cmp::max;
-use crate::api::PeregrineObjects;
 use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
@@ -8,15 +7,16 @@ const CARRIAGE_FLANK : u64 = 2;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,
-    start: u64
+    start: u64,
+    pending: bool
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> (CarriageSet,bool) {
+    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         if start == old_start {
-            return (old,false);
+            return old;
         }
         let mut carriages = vec![];
         let mut old_carriages =
@@ -41,20 +41,22 @@ impl CarriageSet {
                 out
             });
         }
-        (CarriageSet { carriages, start },true)
+        CarriageSet { carriages, start, pending: true }
     }
 
     pub fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
-        let fake_old = CarriageSet { carriages: vec![], start: 0 };
-        CarriageSet::create(train_id,carriage_events,centre,fake_old).0
+        let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
+        CarriageSet::create(train_id,carriage_events,centre,fake_old)
     }
 
-    pub fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> (CarriageSet,bool) {
+    pub fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> CarriageSet {
         CarriageSet::create(train_id,carriage_events,centre,old)
     }
 
-    pub fn send_event(&self, carriage_event: &mut CarriageEvents, index: u32) {
-        carriage_event.set(&self.carriages(),index);
+    pub fn depend(&mut self) -> bool {
+        let out = self.pending;
+        self.pending = false;
+        out
     }
 
     pub fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
