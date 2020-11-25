@@ -29,7 +29,7 @@ impl PgConsoleData {
         match level {
             PgConsoleLevel::Notice => console::log_1(&msg.to_string().into()),
             PgConsoleLevel::Warn => console::warn_1(&msg.to_string().into()),
-            PgConsoleLevel::Error => console::error_1(&msg.to_string().into())
+            PgConsoleLevel::Error => console::log_1(&msg.to_string().into())
         }
     }
 

@@ -6,6 +6,8 @@ use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
 use web_sys::console;
+use js_sys::Date;
+use blackbox::blackbox_time;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -31,7 +33,7 @@ impl TrainSetData {
 
     fn promote_future(&mut self) {
         if self.current.is_none() && self.future.is_some() {
-            console::error_1(&format!("TrainSet.promote_future() future -> current").into());
+            //console::log_1(&format!("TrainSet.promote_future() future -> current").into());
             self.current = self.future.take();
         }
     }
@@ -39,7 +41,7 @@ impl TrainSetData {
     fn promote_wanted(&mut self, events: &mut CarriageEvents) {
         if self.wanted.as_ref().map(|x| x.train_ready()).unwrap_or(false) && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                console::error_1(&format!("TrainSet.promote_wanted() wanted -> future").into());
+                //console::log_1(&format!("TrainSet.promote_wanted() wanted -> future").into());
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
                 wanted.set_active(events,self.next_activation,quick);
                 self.next_activation += 1;
@@ -55,7 +57,7 @@ impl TrainSetData {
     }
 
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
-        console::error_1(&format!("TrainSet.new_wanted()").into());
+        //console::log_1(&format!("TrainSet.new_wanted()").into());
         self.wanted = Some(Train::new(train_id,events,position));
     }
 
@@ -81,7 +83,6 @@ impl TrainSetData {
             }
         }
         if new_target_needed {
-            console::error_1(&format!("TrainSet.new_wanted to be called any_quiescent={:?} id q={:?} vs train={:?}",self.quiescent().is_some(),self.quiescent().as_ref().map(|x| x.id()),train_id).into());
             self.new_wanted(events,&train_id,viewport.position());
         }
     }
@@ -137,13 +138,13 @@ impl TrainSet {
     async fn load_carriages(&self, objects: &mut PeregrineObjects, carriages: &[Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
-            console::error_1(&format!("TrainSet.load_carriage() carriage={:?}",carriage).into());
+            ////console::log_1(&format!("TrainSet.load_carriage() carriage={:?}",carriage).into());
             loads.push((carriage,carriage.load(&objects)));
         }
         for carriage in carriages {
             carriage.load(objects).await;
         }
-        console::error_1(&format!("TrainSet.load_carriage() loaded!").into());
+        //console::log_1(&format!("TrainSet.load_carriage() loaded!").into());
     }
     
     pub(super) fn poll(&mut self, objects: &mut PeregrineObjects) {
@@ -154,7 +155,7 @@ impl TrainSet {
     }
 
     pub(super) fn run_load_carriages(&self, objects: &mut PeregrineObjects, carriages: Vec<Carriage>) {
-        console::error_1(&format!("TrainSet.run_load_carriages").into());
+        ////console::log_1(&format!("TrainSet.run_load_carriages").into());
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let carriages = carriages.clone();
@@ -172,12 +173,13 @@ impl TrainSet {
     }
 
     pub fn set(&self, objects: &mut PeregrineObjects, viewport: &Viewport) {
-        console::error_1(&format!("TrainSet.set()").into());
-        let mut events = CarriageEvents::new();
-        if viewport.layout().stick().is_some() {            
-            self.0.lock().unwrap().set(&mut events,viewport);
-        }
-        events.run(objects);
+        blackbox_time!("train","trainset-set",{
+            let mut events = CarriageEvents::new();
+            if viewport.layout().stick().is_some() {
+                self.0.lock().unwrap().set(&mut events,viewport);
+            }
+            events.run(objects);
+        });
     }
 
     pub fn transition_complete(&self, objects: &mut PeregrineObjects) {

@@ -19,14 +19,14 @@ mod util {
 
 use std::collections::HashSet;
 use anyhow::{ self, Context };
-use blackbox::{ blackbox_enable };
 use commander::{ cdr_timer };
 use crate::integration::pgchannel::PgChannel;
 use crate::integration::pgconsole::{ PgConsoleWeb, PgConsoleLevel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
-use crate::integration::pgblackbox::{ pgblackbox_setup, pgblackbox_sync, pgblackbox_endpoint };
+#[cfg(blackbox)]
+use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
     PgCommander, PgDauphin, ProgramLoader, Commander, RequestManager, Channel, ChannelLocation, StickStore, StickId, StickAuthorityStore,
@@ -36,6 +36,10 @@ use peregrine_core::{
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_dauphin::peregrine_dauphin;
 pub use url::Url;
+use web_sys::console;
+
+#[cfg(blackbox)]
+use blackbox::{ blackbox_enable, blackbox_log };
 
 fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     let window = js_option(web_sys::window(),"cannot get window")?;
@@ -53,7 +57,6 @@ struct PeregrineWeb {
 
 impl PeregrineWeb {
     fn new() -> anyhow::Result<PeregrineWeb> {
-        pgblackbox_setup();
         let commander = setup_commander().context("setting up commander")?;
         let integration = PgIntegration::new(PgChannel::new(PgConsoleWeb::new(30,30.)));
         let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
@@ -69,11 +72,15 @@ impl PeregrineWeb {
 
     #[cfg(blackbox)]
     fn setup_blackbox(&self) {
-        pgblackbox_endpoint(Some(&Url::parse("http://localhost:4040/blackbox/data").expect("bad blackbox url")));
+        let mut ign = pgblackbox_setup();
+        ign.set_url(&Url::parse("http://localhost:4040/blackbox/data").expect("bad blackbox url"));
+        let ign2 = ign.clone();
         blackbox_enable("notice");
         blackbox_enable("warn");
         blackbox_enable("error");
-        self.core.add_task("blackbox-sender",5,None,None,Box::pin(pgblackbox_sync()));
+        self.commander.add_task("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await?; Ok(()) }));
+        blackbox_log("general","blackbox configured");
+        //console::log_1(&format!("blackbox configured").into());
     }
 
     #[cfg(not(blackbox))]
@@ -100,13 +107,15 @@ async fn test(api: PeregrineApi) -> anyhow::Result<()> {
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     api.set_position(1000000.);
     api.set_scale(20.);
+    cdr_timer(1000.).await;
+    api.set_position(10000000.);
     Ok(())
 }
 
 fn test_fn() -> anyhow::Result<()> {
     let pg_web = js_throw(PeregrineWeb::new());
     pg_web.api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
-    pg_web.commander.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.api.clone())));
+    pg_web.commander.add_task("test",100,None,None,Box::pin(test(pg_web.api.clone())));
     Ok(())
 }
 

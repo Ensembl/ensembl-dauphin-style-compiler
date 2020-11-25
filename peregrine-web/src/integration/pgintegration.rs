@@ -20,7 +20,7 @@ impl PeregrineIntegration for PgIntegration {
 
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
         let carriages : Vec<_> = carriages.iter().map(|x| x.id().to_string()).collect();
-        console::log_1(&format!("set_carriages(carriages={:?}({}) index={:?})",carriages.join(", "),carriages.len(),index).into());
+        //console::log_1(&format!("set_carriages(carriages={:?}({}) index={:?})",carriages.join(", "),carriages.len(),index).into());
     }
 
     fn channel(&self) -> Box<dyn ChannelIntegration> {
@@ -28,7 +28,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
-        console::log_1(&format!("start_transition(index={} max={} speed={:?})",index,max,speed).into());
+        //console::log_1(&format!("start_transition(index={} max={} speed={:?})",index,max,speed).into());
         if let Some(api) = &self.api {
             api.transition_complete();
         }

@@ -41,3 +41,6 @@ path="../dauphin-interp"
 [dependencies.web-sys]
 version="*"
 features=["console"]
+
+[dependencies.js-sys]
+version="*"

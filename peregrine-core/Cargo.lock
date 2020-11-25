@@ -319,6 +319,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "js-sys",
  "lazy_static",
  "owning_ref",
  "peregrine_dauphin_queue",

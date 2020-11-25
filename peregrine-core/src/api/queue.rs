@@ -101,7 +101,7 @@ impl PeregrineApiQueue {
             task: Box::pin(async move {
                 loop {
                     let message = self2.queue.get().await;
-                    console::error_1(&format!("Queue.run() step got {:?}",message).into());
+                    //console::log_1(&format!("Queue.run() step got {:?}",message).into());
                     self2.run_message(&mut data2,message);
                 }
             })

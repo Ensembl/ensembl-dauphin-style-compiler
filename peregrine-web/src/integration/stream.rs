@@ -31,7 +31,7 @@ impl WebStreamConnector {
 #[cfg(console)]
 impl StreamConnector for WebStreamConnector {
     fn notice(&self, msg: &str) -> anyhow::Result<()> {
-        console::log_1(&format!("{}\n",msg).into());
+        //console::log_1(&format!("{}\n",msg).into());
         blackbox_log!("notice","dauphin '{}': {}",cdr_get_name(),msg);
         Ok(())
     }
@@ -43,7 +43,7 @@ impl StreamConnector for WebStreamConnector {
     }
 
     fn error(&self, msg: &str) -> anyhow::Result<()> {
-        console::error_1(&format!("{}\n",msg).into());
+        //console::log_1(&format!("{}\n",msg).into());
         blackbox_log!("error","dauphin '{}': {}",cdr_get_name(),msg);
         Ok(())
     }

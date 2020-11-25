@@ -29,7 +29,7 @@ impl CarriageEvents {
     }
 
     pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
-        console::error_1(&format!("set_carriages num={}",carriages.len()).into());
+        //console::log_1(&format!("set_carriages num={}",carriages.len()).into());
         self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
     }
 
@@ -42,7 +42,7 @@ impl CarriageEvents {
         let mut loads = vec![];
         let mut transition = None; /* delay till after corresponding set also eat multiples */
         for e in events {
-            console::error_1(&format!("{:?}",e).into());
+            ////console::log_1(&format!("{:?}",e).into());
             match e {
                 CarriageEvent::Set(carriages,index) => {
                     objects.integration.lock().unwrap().set_carriages(&carriages,index);

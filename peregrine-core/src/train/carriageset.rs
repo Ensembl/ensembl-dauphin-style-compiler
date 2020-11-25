@@ -20,7 +20,7 @@ impl CarriageSet {
         let mut carriages = vec![];
         let mut old_carriages =
             old.carriages.drain(..).enumerate()
-               .map(|(i,c)| (old_start + (i as u64) - CARRIAGE_FLANK as u64,c)).peekable();
+               .map(|(i,c)| (old_start + (i as u64),c)).peekable();
         for delta in 0..(CARRIAGE_FLANK*2+1) {
             let index = start + delta;
             let mut steal = false;
@@ -40,18 +40,17 @@ impl CarriageSet {
                 out
             });
         }
-        console::error_1(&format!("CarriageSet.create num={}",carriages.len()).into());
         CarriageSet { carriages, start, pending: true }
     }
 
     pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
-        console::error_1(&format!("CarriageSet.new()").into());
+        //console::log_1(&format!("CarriageSet.new()").into());
         let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
         CarriageSet::create(train_id,carriage_events,centre,fake_old)
     }
 
     pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> CarriageSet {
-        console::error_1(&format!("CarriageSet.new_using()").into());
+        //console::log_1(&format!("CarriageSet.new_using()").into());
         CarriageSet::create(train_id,carriage_events,centre,old)
     }
 

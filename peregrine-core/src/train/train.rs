@@ -78,9 +78,8 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        console::error_1(&format!("Train.set_position num_carriages={} A",self.carriages.as_ref().unwrap().carriages().len()).into());
+        //console::log_1(&format!("Train.set_position num_carriages={}",self.carriages.as_ref().unwrap().carriages().len()).into());
         let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
-        console::error_1(&format!("Train.set_position num_carriages={} B",carriages.carriages().len()).into());
         self.carriages = Some(carriages);
     }
 
