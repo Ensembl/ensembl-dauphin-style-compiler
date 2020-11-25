@@ -130,7 +130,7 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::api::{ PeregrineObjects, PeregrineIntegration, PeregrineApi, PeregrineApiQueue };
+pub use self::api::{ PeregrineObjects, PeregrineIntegration, PeregrineApi, PeregrineApiQueue, CarriageSpeed };
 pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };

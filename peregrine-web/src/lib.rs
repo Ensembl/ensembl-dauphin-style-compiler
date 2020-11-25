@@ -47,7 +47,6 @@ fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
 }
 
 struct PeregrineWeb {
-    objects: PeregrineObjects,
     commander: PgCommanderWeb,
     api: PeregrineApi
 }
@@ -58,12 +57,11 @@ impl PeregrineWeb {
         let commander = setup_commander().context("setting up commander")?;
         let integration = PgIntegration::new(PgChannel::new(PgConsoleWeb::new(30,30.)));
         let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
-        // XXX don't leak objects when no longer needed for testing
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
         let api = PeregrineApi::new(objects.clone())?;
         api.ready();
         let mut out = PeregrineWeb {
-            objects, api, commander
+            api, commander
         };
         out.setup()?;
         Ok(out)
@@ -88,7 +86,7 @@ impl PeregrineWeb {
     }
 }
 
-async fn test(objects: PeregrineObjects) -> anyhow::Result<()> {
+async fn old_test(objects: PeregrineObjects) -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let el = document.get_element_by_id("loop").expect("missing element");
@@ -98,10 +96,17 @@ async fn test(objects: PeregrineObjects) -> anyhow::Result<()> {
     Ok(())
 }
 
+async fn test(api: PeregrineApi) -> anyhow::Result<()> {
+    api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
+    api.set_position(1000000.);
+    api.set_scale(20.);
+    Ok(())
+}
+
 fn test_fn() -> anyhow::Result<()> {
     let pg_web = js_throw(PeregrineWeb::new());
     pg_web.api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
-    pg_web.commander.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.objects.clone())));
+    pg_web.commander.add_task("test",100,None,Some(10000.),Box::pin(test(pg_web.api.clone())));
     Ok(())
 }
 

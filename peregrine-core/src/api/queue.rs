@@ -4,7 +4,9 @@ use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
+use web_sys::console;
 
+#[derive(Debug)]
 pub enum ApiMessage {
     Ready,
     TransitionComplete,
@@ -49,7 +51,7 @@ impl PeregrineApiQueue {
     fn bootstrap(&mut self, data: &mut PeregrineObjects, channel: Channel) {
         match self.try_bootstrap(data,channel) {
             Ok(()) => {}
-            Err(e) => {
+            Err(_e) => {
                 data.integration.lock().unwrap().report_error(&format!("Cannot bootstrap, nothing at far end"));
             }
         }
@@ -99,6 +101,7 @@ impl PeregrineApiQueue {
             task: Box::pin(async move {
                 loop {
                     let message = self2.queue.get().await;
+                    console::error_1(&format!("Queue.run() step got {:?}",message).into());
                     self2.run_message(&mut data2,message);
                 }
             })

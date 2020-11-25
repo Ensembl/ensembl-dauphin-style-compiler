@@ -1,14 +1,12 @@
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use anyhow::{ bail, anyhow as err };
-use blackbox::blackbox_log;
 use peregrine_core::{ Channel  };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_core::{ StickId, issue_stick_request, Stick, StickTopology };
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
-use web_sys::console;
 
 simple_interp_command!(AddStickAuthorityInterpCommand,AddStickAuthorityDeserializer,0,1,(0));
 simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
@@ -105,7 +103,6 @@ impl InterpCommand for AddStickInterpCommand {
         let pc = get_peregrine(context)?;
         let stick_store = pc.stick_store();
         for stick in sticks.drain(..) {
-            console::error_1(&format!("stick {:?}",stick).into());
             stick_store.add(stick.get_id().clone(),Some(stick));
         }
         Ok(CommandResult::SyncResult())

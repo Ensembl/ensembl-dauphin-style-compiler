@@ -33,6 +33,12 @@ pub struct Carriage {
     shapes: Arc<Mutex<Option<ShapeList>>>
 }
 
+impl fmt::Debug for Carriage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,"{:?}/{}",self.id.train,self.id.index)
+    }
+}
+
 impl Carriage {
     pub fn new(id: &CarriageId) -> Carriage {
         Carriage {
@@ -42,8 +48,11 @@ impl Carriage {
     }
 
     pub fn id(&self) -> &CarriageId { &self.id }
+    pub fn shapes(&self) -> &Arc<Mutex<Option<ShapeList>>> {
+        &self.shapes
+    }
 
-    pub fn ready(&self) -> bool {
+    pub(super) fn ready(&self) -> bool {
         self.shapes.lock().unwrap().is_some()
     }
 
@@ -69,7 +78,7 @@ impl Carriage {
         Ok(())
     }
 
-    pub async fn load(&self, data: &PeregrineObjects) {
+    pub(super) async fn load(&self, data: &PeregrineObjects) {
         match self.load_full(data).await {
             Ok(()) => (),
             Err(e) => {

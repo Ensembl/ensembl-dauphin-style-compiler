@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use std::fmt::*;
 use crate::api::{ PeregrineObjects, CarriageSpeed };
 use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
@@ -6,8 +7,9 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use std::fmt::{ self, Display, Formatter };
 use crate::PgCommanderTaskSpec;
+use web_sys::console;
 
-#[derive(Clone,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct TrainId {
     layout: Layout,
     scale: Scale
@@ -76,7 +78,9 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
+        console::error_1(&format!("Train.set_position num_carriages={} A",self.carriages.as_ref().unwrap().carriages().len()).into());
         let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
+        console::error_1(&format!("Train.set_position num_carriages={} B",carriages.carriages().len()).into());
         self.carriages = Some(carriages);
     }
 
@@ -107,8 +111,14 @@ impl TrainData {
 #[derive(Clone)]
 pub struct Train(Arc<Mutex<TrainData>>);
 
+impl fmt::Debug for Train {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,"{:?}",self.id())
+    }
+}
+
 impl Train {
-    pub fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> Train {
+    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> Train {
         let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position))));
         carriage_event.train(&out);
         out
@@ -129,11 +139,11 @@ impl Train {
         self.0.lock().unwrap().set_position(carriage_event,position);
     }
 
-    pub fn compatible_with(&self, other: &Train) -> bool {
+    pub(super) fn compatible_with(&self, other: &Train) -> bool {
         self.id().layout().stick() == other.id().layout().stick()
     }
 
-    pub fn maybe_ready(&mut self) {
+    pub(super) fn maybe_ready(&mut self) {
         self.0.lock().unwrap().maybe_ready();
     }
 

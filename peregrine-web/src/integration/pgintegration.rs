@@ -1,20 +1,8 @@
 use anyhow::Context;
-use peregrine_core::{ Commander, PeregrineApi, PeregrineObjects, PeregrineIntegration, Carriage, PeregrineApiQueue, ChannelIntegration };
+use peregrine_core::{ Commander, PeregrineApi, CarriageSpeed, PeregrineObjects, PeregrineIntegration, Carriage, PeregrineApiQueue, ChannelIntegration };
 use web_sys::console;
-use super::pgcommander::PgCommanderWeb;
-use super::pgconsole::PgConsoleWeb;
 use super::pgchannel::PgChannel;
 use crate::util::error::{ js_option };
-use peregrine_dauphin_queue::{ PgDauphinQueue };
-
-fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
-    let window = js_option(web_sys::window(),"cannot get window")?;
-    let document = js_option(window.document(),"cannot get document")?;
-    let html = js_option(document.body().clone(),"cannot get body")?;
-    let commander = PgCommanderWeb::new(&html)?;
-    commander.start();
-    Ok(commander)
-}
 
 pub struct PgIntegration {
     api: Option<PeregrineApi>,
@@ -30,13 +18,20 @@ impl PeregrineIntegration for PgIntegration {
         console::warn_1(&format!("{}\n",error).into());
     }
 
-    fn set_carriages(&mut self, carriages: &[Carriage], quick: bool) {
+    fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
         let carriages : Vec<_> = carriages.iter().map(|x| x.id().to_string()).collect();
-        console::log_1(&format!("carriages={:?} quick={:?}",carriages.join(", "),quick).into());
+        console::log_1(&format!("set_carriages(carriages={:?}({}) index={:?})",carriages.join(", "),carriages.len(),index).into());
     }
 
     fn channel(&self) -> Box<dyn ChannelIntegration> {
         Box::new(self.channel.clone())
+    }
+
+    fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
+        console::log_1(&format!("start_transition(index={} max={} speed={:?})",index,max,speed).into());
+        if let Some(api) = &self.api {
+            api.transition_complete();
+        }
     }
 }
 
@@ -50,5 +45,3 @@ impl PgIntegration {
         }
     }
 }
-
-// XXX empty initial layout. 

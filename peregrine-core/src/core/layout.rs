@@ -4,7 +4,7 @@ use super::focus::Focus;
 use super::stick::StickId;
 use super::track::Track;
 
-#[derive(Clone,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Layout {
     tracks: HashSet<Track>,
     focus: Focus,

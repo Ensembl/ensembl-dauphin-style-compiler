@@ -37,6 +37,7 @@ path="../peregrine-dauphin-queue"
 version="*"
 path="../dauphin-interp"
 
+# XXX
 [dependencies.web-sys]
 version="*"
 features=["console"]

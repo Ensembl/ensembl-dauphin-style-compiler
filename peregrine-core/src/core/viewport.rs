@@ -54,13 +54,13 @@ impl Viewport {
 
     pub fn set_stick(&self, stick: &StickId) -> Viewport {
         let mut out = self.clone();
-        out.layout.set_stick(stick);
+        out.layout = out.layout.set_stick(stick);
         out
     }
 
     pub fn set_focus(&self, focus: &Focus) -> Viewport {
         let mut out = self.clone();
-        out.layout.set_focus(focus);
+        out.layout = out.layout.set_focus(focus);
         out
     }
 }

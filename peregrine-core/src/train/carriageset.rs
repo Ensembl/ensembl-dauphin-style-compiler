@@ -2,6 +2,8 @@ use std::cmp::max;
 use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
+use web_sys::console;
+
 
 const CARRIAGE_FLANK : u64 = 2;
 
@@ -15,9 +17,6 @@ impl CarriageSet {
     fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
-        if start == old_start {
-            return old;
-        }
         let mut carriages = vec![];
         let mut old_carriages =
             old.carriages.drain(..).enumerate()
@@ -41,27 +40,30 @@ impl CarriageSet {
                 out
             });
         }
+        console::error_1(&format!("CarriageSet.create num={}",carriages.len()).into());
         CarriageSet { carriages, start, pending: true }
     }
 
-    pub fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
+    pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
+        console::error_1(&format!("CarriageSet.new()").into());
         let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
         CarriageSet::create(train_id,carriage_events,centre,fake_old)
     }
 
-    pub fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> CarriageSet {
+    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> CarriageSet {
+        console::error_1(&format!("CarriageSet.new_using()").into());
         CarriageSet::create(train_id,carriage_events,centre,old)
     }
 
-    pub fn depend(&mut self) -> bool {
+    pub(super) fn depend(&mut self) -> bool {
         let out = self.pending;
         self.pending = false;
         out
     }
 
-    pub fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
+    pub(super) fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
 
-    pub fn ready(&self) -> bool {
+    pub(super) fn ready(&self) -> bool {
         for c in &self.carriages {
             if !c.ready() { return false; }
         }

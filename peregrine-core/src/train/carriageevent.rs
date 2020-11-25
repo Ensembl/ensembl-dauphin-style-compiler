@@ -2,7 +2,9 @@ use std::sync::{ Arc, Mutex };
 use crate::api::{ CarriageSpeed, PeregrineObjects };
 use crate::train::Carriage;
 use crate::train::train::Train;
+use web_sys::console;
 
+#[derive(Debug)]
 enum CarriageEvent {
     Train(Train),
     Carriage(Carriage),
@@ -11,39 +13,42 @@ enum CarriageEvent {
 }
 
 #[derive(Clone)]
-pub struct CarriageEvents(Arc<Mutex<Vec<CarriageEvent>>>);
+pub(super) struct CarriageEvents(Arc<Mutex<Vec<CarriageEvent>>>);
 
 impl CarriageEvents {
-    pub fn new() -> CarriageEvents {
+    pub(super) fn new() -> CarriageEvents {
         CarriageEvents(Arc::new(Mutex::new(vec![])))
     }
 
-    pub fn train(&mut self, train: &Train) {
+    pub(super) fn train(&mut self, train: &Train) {
         self.0.lock().unwrap().push(CarriageEvent::Train(train.clone()));
     }
 
-    pub fn carriage(&mut self, carriage: &Carriage) {
+    pub(super) fn carriage(&mut self, carriage: &Carriage) {
         self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone()));
     }
 
-    pub fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
+    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
+        console::error_1(&format!("set_carriages num={}",carriages.len()).into());
         self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
     }
 
-    pub fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
+    pub(super) fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
         self.0.lock().unwrap().push(CarriageEvent::Transition(index,max,speed));
     }
 
-    pub fn run(&mut self, objects: &mut PeregrineObjects) {
+    pub(super) fn run(&mut self, objects: &mut PeregrineObjects) {
         let events : Vec<CarriageEvent> = self.0.lock().unwrap().drain(..).collect();
         let mut loads = vec![];
+        let mut transition = None; /* delay till after corresponding set also eat multiples */
         for e in events {
+            console::error_1(&format!("{:?}",e).into());
             match e {
                 CarriageEvent::Set(carriages,index) => {
                     objects.integration.lock().unwrap().set_carriages(&carriages,index);
                 },
                 CarriageEvent::Transition(index,max,speed) => {
-                    objects.integration.lock().unwrap().start_transition(index,max,speed);
+                    transition = Some((index,max,speed));
                 },
                 CarriageEvent::Carriage(carriage) => {
                     loads.push(carriage);
@@ -55,6 +60,9 @@ impl CarriageEvents {
         }
         if loads.len() > 0 {
             objects.train_set.clone().run_load_carriages(objects,loads);
+        }
+        if let Some((index,max,speed)) = transition {
+            objects.integration.lock().unwrap().start_transition(index,max,speed);
         }
     }
 }

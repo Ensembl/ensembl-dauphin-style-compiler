@@ -58,6 +58,7 @@ impl PeregrineApi {
     }
 }
 
+#[derive(Debug)]
 pub enum CarriageSpeed {
     Quick, /* same stick */
     Slow /* different stick */
