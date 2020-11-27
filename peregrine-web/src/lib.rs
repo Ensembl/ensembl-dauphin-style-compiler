@@ -80,7 +80,7 @@ impl PeregrineWeb {
         blackbox_enable("error");
         self.commander.add_task("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await?; Ok(()) }));
         blackbox_log("general","blackbox configured");
-        //console::log_1(&format!("blackbox configured").into());
+        console::log_1(&format!("blackbox configured").into());
     }
 
     #[cfg(not(blackbox))]
@@ -105,10 +105,15 @@ async fn old_test(objects: PeregrineObjects) -> anyhow::Result<()> {
 
 async fn test(api: PeregrineApi) -> anyhow::Result<()> {
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
-    api.set_position(1000000.);
-    api.set_scale(20.);
-    cdr_timer(1000.).await;
-    api.set_position(10000000.);
+    let mut pos = 2500000.;
+    let mut scale = 20.;
+    for _ in 0..20 {
+        pos += 500000.;
+        scale += 0.1;
+        api.set_position(pos);
+        api.set_scale(scale);
+        cdr_timer(1000.).await;
+    }
     Ok(())
 }
 

@@ -1,4 +1,3 @@
-use anyhow;
 use dauphin_interp::Dauphin;
 use crate::integration::stream::WebStreamFactory;
 use peregrine_dauphin::PgDauphinIntegration;

@@ -1,5 +1,4 @@
 use anyhow::{ self, Context, anyhow as err };
-use blackbox::blackbox_log;
 use std::sync::{ Arc, Mutex };
 use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
@@ -7,7 +6,6 @@ use web_sys::{ CustomEvent, CustomEventInit, HtmlElement };
 use crate::util::error::{ js_error, js_throw };
 use crate::util::safeelement::SafeElement;
 use wasm_bindgen::JsCast;
-use js_sys::Date;
 
 lazy_static! {
     static ref IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -71,7 +69,6 @@ impl BellReceiverState {
     fn call_dom(&mut self) -> anyhow::Result<()> {
         let callbacks = self.callbacks.clone();
         self.closure = Some(Closure::wrap(Box::new(move || {
-            let x = Date::now();
             let callbacks = callbacks.clone();
             let closure = Closure::once_into_js(move || {
                 run_callbacks(callbacks);

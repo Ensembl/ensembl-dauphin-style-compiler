@@ -2,8 +2,7 @@ use std::cmp::max;
 use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
-use web_sys::console;
-
+use blackbox::blackbox_log;
 
 const CARRIAGE_FLANK : u64 = 2;
 
@@ -17,6 +16,7 @@ impl CarriageSet {
     fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
+        let mut pending = old.pending;
         let mut carriages = vec![];
         let mut old_carriages =
             old.carriages.drain(..).enumerate()
@@ -37,10 +37,11 @@ impl CarriageSet {
             } else {
                 let out = Carriage::new(&CarriageId::new(train_id,index));
                 carriage_events.carriage(&out);
+                pending = true;
                 out
             });
         }
-        CarriageSet { carriages, start, pending: true }
+        CarriageSet { carriages, start, pending }
     }
 
     pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {

@@ -42,7 +42,6 @@ impl CarriageEvents {
         let mut loads = vec![];
         let mut transition = None; /* delay till after corresponding set also eat multiples */
         for e in events {
-            ////console::log_1(&format!("{:?}",e).into());
             match e {
                 CarriageEvent::Set(carriages,index) => {
                     objects.integration.lock().unwrap().set_carriages(&carriages,index);

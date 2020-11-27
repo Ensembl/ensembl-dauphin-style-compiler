@@ -7,7 +7,6 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use std::fmt::{ self, Display, Formatter };
 use crate::PgCommanderTaskSpec;
-use web_sys::console;
 
 #[derive(Clone,Debug,PartialEq)]
 pub struct TrainId {
@@ -78,7 +77,6 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        //console::log_1(&format!("Train.set_position num_carriages={}",self.carriages.as_ref().unwrap().carriages().len()).into());
         let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
         self.carriages = Some(carriages);
     }

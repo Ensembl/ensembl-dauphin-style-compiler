@@ -5,9 +5,7 @@ use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
-use web_sys::console;
-use js_sys::Date;
-use blackbox::blackbox_time;
+use blackbox::{ blackbox_time, blackbox_log };
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -31,17 +29,10 @@ impl TrainSetData {
         }
     }
 
-    fn promote_future(&mut self) {
-        if self.current.is_none() && self.future.is_some() {
-            //console::log_1(&format!("TrainSet.promote_future() future -> current").into());
-            self.current = self.future.take();
-        }
-    }
-
-    fn promote_wanted(&mut self, events: &mut CarriageEvents) {
+    fn promote(&mut self, events: &mut CarriageEvents) {
         if self.wanted.as_ref().map(|x| x.train_ready()).unwrap_or(false) && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                //console::log_1(&format!("TrainSet.promote_wanted() wanted -> future").into());
+                blackbox_log!("uiapi","TrainSet.promote_future() wanted -> future");
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
                 wanted.set_active(events,self.next_activation,quick);
                 self.next_activation += 1;
@@ -50,14 +41,9 @@ impl TrainSetData {
         }
     }
 
-    fn promote(&mut self, events: &mut CarriageEvents) {
-        self.promote_future();
-        self.promote_wanted(events);
-        self.promote_future();
-    }
-
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
         //console::log_1(&format!("TrainSet.new_wanted()").into());
+        blackbox_log!("uiapi","TrainSet.new_wanted()");
         self.wanted = Some(Train::new(train_id,events,position));
     }
 
@@ -104,9 +90,11 @@ impl TrainSetData {
     }
 
     fn transition_complete(&mut self, events: &mut CarriageEvents) {
+        blackbox_log!("uiapi","TrainSet.promote_future() future -> current");
         if let Some(mut current) = self.current.take() {
             current.set_inactive();
         }
+        self.current = self.future.take();
         self.promote(events);
     }
 

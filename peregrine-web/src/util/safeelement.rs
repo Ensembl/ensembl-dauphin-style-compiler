@@ -1,4 +1,4 @@
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self, anyhow as err };
 use web_sys::{ HtmlElement };
 use js_sys::Math::random;
 use crate::util::error::{ js_option };

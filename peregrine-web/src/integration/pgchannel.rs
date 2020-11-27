@@ -1,14 +1,13 @@
-use anyhow::{ anyhow as err, bail };
+use anyhow::{ anyhow as err };
 use peregrine_core::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, lock };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
-use super::pgconsole::{ PgConsoleLevel, PgConsoleWeb };
+use super::pgconsole::{ PgConsoleWeb };
 use url::Url;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
-use web_sys::console;
 
 #[derive(Clone)]
 pub struct PgChannel(PgConsoleWeb,Arc<Mutex<HashMap<Channel,Option<f64>>>>);

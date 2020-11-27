@@ -63,13 +63,17 @@ impl Model {
         self.streams.values_mut()
     }
 
-    pub fn get_stream(&mut self, name: &str) -> Option<&mut Stream> {
-        let enabled = self.is_enabled(name);
+    fn force_stream(&mut self, name: &str) -> &mut Stream {
         let units = self.integration.get_time_units();
-        let stream = self.streams.entry(name.to_string()).or_insert_with(||
+        self.streams.entry(name.to_string()).or_insert_with(||
             Stream::new(name,&units)
-        );
-        if !self.mute && enabled { Some(stream) } else { None }
+        )
+    }
+
+    pub fn get_stream(&mut self, name: &str) -> Option<&mut Stream> {
+        let enabled = !self.mute && self.is_enabled(name);
+        let stream = self.force_stream(name);
+        if enabled { Some(stream) } else { None }
     }
 
     pub fn enable(&mut self, stream: &str) {
@@ -85,8 +89,9 @@ impl Model {
         self.enabled.clear()
     }
 
-    pub fn is_enabled(&self, stream: &str) -> bool {
+    pub fn is_enabled(&mut self, stream: &str) -> bool {
         if !self.configured { return true; }
+        self.force_stream(stream);
         self.enabled.contains(stream)
     }
 
