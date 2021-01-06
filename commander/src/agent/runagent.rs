@@ -37,6 +37,8 @@ impl RunAgent {
 
     pub(super) fn get_tick_index(&self) -> u64 { self.tick_index }
 
+    pub(super) fn get_current_time(&self) -> f64 { self.integration.current_time() }
+
     pub(super) fn get_config(&self) -> &RunConfig { &self.config }
 
     pub(super) fn new_agent(&self, name: &str, rc: Option<RunConfig>) -> Agent {

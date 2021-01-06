@@ -1,7 +1,8 @@
 use serde_cbor::Value as CborValue;
+use std::cmp::Ord;
 use std::fmt::{ self, Display, Formatter };
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Track(String);
 
 impl Track {

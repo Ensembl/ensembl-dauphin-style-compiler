@@ -61,6 +61,10 @@ pub fn cdr_timer(timeout: f64) -> impl Future<Output=()> {
     AGENT.with(|a| { a.borrow().as_ref().unwrap().timer(timeout) })
 }
 
+pub fn cdr_current_time() -> f64 {
+    AGENT.with(|a| { a.borrow().as_ref().unwrap().get_current_time() })
+}
+
 pub fn cdr_turnstile<R,T>(inner: T) -> impl Future<Output=R> where T: Future<Output=R> + 'static {
     AGENT.with(|a| { a.borrow().as_ref().unwrap().turnstile(inner) })
 }

@@ -9,6 +9,7 @@ mod api {
 }
 
 mod core {
+    mod config;
     pub mod focus;
     mod layout;
     mod scale;
@@ -16,6 +17,7 @@ mod core {
     pub mod track;
     mod viewport;
 
+    pub use self::config::{ PeregrineConfig, ConfigValue };
     pub use self::focus::Focus;
     pub use self::layout::Layout;
     pub use self::scale::Scale;
@@ -89,6 +91,7 @@ mod shape {
     pub use self::core::{ 
         ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
     };
+    pub use self::shape::Shape;
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::ShapeList;
     pub use self::shapeoutput::ShapeOutput;
@@ -101,7 +104,7 @@ mod train {
     mod train;
     mod trainset;
 
-    pub use carriage::Carriage;
+    pub use carriage::{ CarriageId, Carriage };
     pub use trainset::TrainSet;
 }
 
@@ -131,14 +134,14 @@ mod test {
 }
 
 pub use self::api::{ PeregrineObjects, PeregrineIntegration, PeregrineApi, PeregrineApiQueue, CarriageSpeed };
-pub use self::core::{ Stick, StickId, StickTopology, Track, Scale, Focus };
+pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter
+    ZMenu, Pen, Plotter, Shape
 };
-pub use self::train::Carriage;
+pub use self::train::{ Carriage, CarriageId };
 pub use self::util::CountingPromise;

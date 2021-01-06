@@ -3,10 +3,10 @@ use std::sync::{ Arc, Mutex };
 use crate::api::PeregrineObjects;
 use crate::core::Track;
 use crate::panel::{ Panel };
-use crate::shape::ShapeList;
+use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 
-#[derive(Clone)]
+#[derive(Clone,Hash,PartialEq,Eq)]
 pub struct CarriageId {
     train: TrainId,
     index: u64
@@ -48,8 +48,12 @@ impl Carriage {
     }
 
     pub fn id(&self) -> &CarriageId { &self.id }
-    pub fn shapes(&self) -> &Arc<Mutex<Option<ShapeList>>> {
-        &self.shapes
+    pub fn shapes(&self) -> Vec<Shape> {
+        let mut out = vec![];
+        for shape in self.shapes.lock().unwrap().as_ref().map(|x| x.shapes()).unwrap_or(&vec![]) {
+            out.push(shape.clone());
+        }
+        out
     }
 
     pub(super) fn ready(&self) -> bool {

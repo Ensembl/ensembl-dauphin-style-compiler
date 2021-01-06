@@ -13,15 +13,15 @@ pub struct PeregrineApi {
 }
 
 impl PeregrineApi {
-    pub fn new(mut objects: PeregrineObjects) -> anyhow::Result<PeregrineApi> {
+    pub fn new() -> anyhow::Result<PeregrineApi> {
         let queue = PeregrineApiQueue::new();
         let api = PeregrineApi { queue };
-        api.queue.run(&mut objects);
-        lock!(objects.integration).set_api(api.clone());
         Ok(api)
     }
 
-    pub fn ready(&self) {
+    pub fn ready(&self, mut objects: PeregrineObjects) {
+        lock!(objects.integration).set_api(self.clone());
+        self.queue.run(&mut objects);
         self.queue.push(ApiMessage::Ready);
     }
 
@@ -58,7 +58,7 @@ impl PeregrineApi {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum CarriageSpeed {
     Quick, /* same stick */
     Slow /* different stick */

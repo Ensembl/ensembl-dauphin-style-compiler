@@ -8,7 +8,7 @@ use super::carriageevent::CarriageEvents;
 use std::fmt::{ self, Display, Formatter };
 use crate::PgCommanderTaskSpec;
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct TrainId {
     layout: Layout,
     scale: Scale

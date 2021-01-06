@@ -43,4 +43,6 @@ impl ShapeList {
     pub fn append(&mut self, more: &ShapeList) {
         self.shapes.extend(more.shapes.iter().cloned());
     }
+
+    pub fn shapes(&self) -> &Vec<Shape> { &self.shapes }
 }

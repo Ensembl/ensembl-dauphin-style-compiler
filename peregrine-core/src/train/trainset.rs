@@ -42,7 +42,6 @@ impl TrainSetData {
     }
 
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
-        //console::log_1(&format!("TrainSet.new_wanted()").into());
         blackbox_log!("uiapi","TrainSet.new_wanted()");
         self.wanted = Some(Train::new(train_id,events,position));
     }

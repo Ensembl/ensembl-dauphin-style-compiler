@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use crate::api::{ CarriageSpeed, PeregrineObjects };
 use crate::train::Carriage;
 use crate::train::train::Train;
-use web_sys::console;
 
 #[derive(Debug)]
 enum CarriageEvent {
@@ -29,7 +28,6 @@ impl CarriageEvents {
     }
 
     pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
-        //console::log_1(&format!("set_carriages num={}",carriages.len()).into());
         self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
     }
 

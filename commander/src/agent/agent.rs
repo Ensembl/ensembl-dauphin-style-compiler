@@ -94,9 +94,14 @@ impl Agent {
 
     /// Add a callback to be run by the executor in a tick after the given timeout.
     /// 
-    /// Lower-level than `timer()` and not generally as useful an interface to the same functionality.
+    /// Lower-level than `timer()` and generally less useful an interface to the same functionality.
     pub fn add_timer<T>(&self, timeout: f64, callback: T) where T: FnOnce() + 'static {
         self.run_agent().add_timer(timeout,callback);
+    }
+
+    /// Convenience method to get current time as supplied by integration.
+    pub(super) fn get_current_time(&self) -> f64 {
+        self.run_agent().get_current_time()
     }
 
     /// Add a callback to be run by the executor after the given number of ticks. zero implies a yield.

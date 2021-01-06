@@ -1,12 +1,12 @@
-use std::collections::HashSet;
+use std::collections::{ BTreeSet, HashSet };
 use std::fmt::{ self, Display, Formatter };
 use super::focus::Focus;
 use super::stick::StickId;
 use super::track::Track;
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct Layout {
-    tracks: HashSet<Track>,
+    tracks: BTreeSet<Track>,
     focus: Focus,
     stick: Option<StickId>
 }
@@ -14,7 +14,7 @@ pub struct Layout {
 impl Layout {
     pub fn new(stick: &StickId) -> Layout {
         Layout {
-            tracks: HashSet::new(),
+            tracks: BTreeSet::new(),
             focus: Focus::new(None),
             stick: Some(stick.clone())
         }
@@ -22,13 +22,13 @@ impl Layout {
 
     pub fn empty() -> Layout {
         Layout {
-            tracks: HashSet::new(),
+            tracks: BTreeSet::new(),
             focus: Focus::new(None),
             stick: None
         }
     }
 
-    pub fn tracks(&self) -> &HashSet<Track> { &self.tracks }
+    pub fn tracks(&self) -> &BTreeSet<Track> { &self.tracks }
     pub fn focus(&self) -> &Focus { &self.focus }
     pub fn stick(&self) -> &Option<StickId> { &self.stick }
 

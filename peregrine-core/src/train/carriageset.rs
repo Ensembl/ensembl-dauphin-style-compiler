@@ -2,7 +2,6 @@ use std::cmp::max;
 use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
-use blackbox::blackbox_log;
 
 const CARRIAGE_FLANK : u64 = 2;
 
