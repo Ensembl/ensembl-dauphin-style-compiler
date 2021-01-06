@@ -46,7 +46,7 @@ features = [
   'HtmlElement', 'Headers',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
-  'Window',
+  'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 

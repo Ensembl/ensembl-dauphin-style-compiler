@@ -34,6 +34,15 @@ mod util {
     pub(crate) mod safeelement;
 }
 
+mod webgl {
+    mod gpuspec {
+        mod glarity;
+        mod gpuspec;
+        mod precision;
+        mod glsize;
+    }
+}
+
 use anyhow::{ self };
 use commander::{ cdr_timer };
 use crate::run::web::PeregrineWeb;
