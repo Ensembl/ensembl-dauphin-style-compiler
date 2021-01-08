@@ -47,26 +47,28 @@ mod webgl {
         mod glsize;
     }
 
-    use gpuspec::gpuspec::{ GPUSpec, Phase };
+    pub(crate) use gpuspec::gpuspec::{ GPUSpec, Phase };
     pub(crate) use gpuspec::glarity::GLArity;
     pub(crate) use gpuspec::precision::Precision;
 
     mod program {
+        pub(crate) mod compiler;
+        pub(crate) mod compiled;
         pub(crate) mod header;
         pub(crate) mod source;
-        pub(crate) mod program;
         pub(crate) mod uniform;
         pub(crate) mod attribute;
         pub(crate) mod varying;
         pub(crate) mod statement;
     }
 
+    pub(crate) use program::compiled::Compiled;
+    pub(crate) use program::compiler::WebGlCompiler;
     pub(crate) use program::header::Header;
     pub(crate) use program::uniform::Uniform;
     pub(crate) use program::attribute::Attribute;
     pub(crate) use program::varying::Varying;
-    pub(crate) use program::source::Source;
-    pub(crate) use program::program::Program;
+    pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
 }
 

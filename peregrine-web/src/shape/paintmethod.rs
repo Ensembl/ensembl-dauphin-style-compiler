@@ -1,4 +1,4 @@
-use crate::webgl::{ Program, Header };
+use crate::webgl::{ SourceInstrs, Header };
 use web_sys::WebGlRenderingContext;
 
 pub(crate) enum PaintMethod {
@@ -7,8 +7,8 @@ pub(crate) enum PaintMethod {
 }
 
 impl PaintMethod {
-    pub fn to_source(&self) -> Program {
-        Program::new(vec![
+    pub fn to_source(&self) -> SourceInstrs {
+        SourceInstrs::new(vec![
             match self {
                 PaintMethod::Triangle => Header::new(WebGlRenderingContext::TRIANGLES),
                 PaintMethod::Strip => Header::new(WebGlRenderingContext::TRIANGLE_STRIP)

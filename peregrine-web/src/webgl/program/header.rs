@@ -1,4 +1,12 @@
-use super::source::Source;
+use super::source::{ Source, Runtime };
+
+pub(crate) struct RuntimeHeader {
+
+}
+
+impl Runtime for RuntimeHeader {
+    
+}
 
 pub(crate) struct Header {
     method: u32
@@ -13,5 +21,8 @@ impl Header {
 }
 
 impl Source for Header {
-
+    fn to_binary(&self) -> Box<dyn Runtime> {
+        Box::new(RuntimeHeader {})
+    }
 }
+

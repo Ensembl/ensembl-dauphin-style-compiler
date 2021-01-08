@@ -1,5 +1,5 @@
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::webgl::{ Program, Header, Uniform, Attribute, GLArity, Varying, Statement };
+use crate::webgl::{ SourceInstrs, Header, Uniform, Attribute, GLArity, Varying, Statement };
 
 pub(crate) enum PaintGeometry {
     Pin,
@@ -10,8 +10,8 @@ pub(crate) enum PaintGeometry {
 }
 
 impl PaintGeometry {
-    pub fn to_source(&self) -> Program {
-        Program::new(match self {
+    pub fn to_source(&self) -> SourceInstrs {
+        SourceInstrs::new(match self {
             PaintGeometry::Pin => vec![
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),

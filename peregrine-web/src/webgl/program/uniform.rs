@@ -1,5 +1,13 @@
-use super::source::Source;
+use super::source::{ Source, Runtime };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
+
+pub(crate) struct RuntimeUniform {
+
+}
+
+impl Runtime for RuntimeUniform {
+    
+}
 
 pub(crate) struct Uniform {
     precision: Precision,
@@ -30,5 +38,9 @@ impl Source for Uniform {
     fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
         if phase != self.phase { return String::new(); }
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
-    }  
+    }
+    
+    fn to_binary(&self) -> Box<dyn Runtime> {
+        Box::new(RuntimeUniform {})
+    }
 }

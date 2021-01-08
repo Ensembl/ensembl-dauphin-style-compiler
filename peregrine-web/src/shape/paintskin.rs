@@ -1,5 +1,5 @@
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::webgl::{ Program, Uniform, Attribute, GLArity, Varying, Statement };
+use crate::webgl::{ SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement };
 
 pub(crate) enum PaintSkin {
     Colour,
@@ -8,8 +8,8 @@ pub(crate) enum PaintSkin {
 }
 
 impl PaintSkin {
-    pub fn to_source(&self) -> Program {
-        Program::new(
+    pub fn to_source(&self) -> SourceInstrs {
+        SourceInstrs::new(
             match self {
                 PaintSkin::Colour => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
