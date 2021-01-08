@@ -17,7 +17,12 @@ mod run {
 }
 
 mod shape {
+    mod consts;
     pub(crate) mod glshape;
+    mod layer;
+    mod paintgeometry;
+    mod paintskin;
+    mod paintmethod;
 }
 
 mod train {
@@ -35,12 +40,34 @@ mod util {
 }
 
 mod webgl {
-    mod gpuspec {
-        mod glarity;
-        mod gpuspec;
-        mod precision;
+    pub(super) mod gpuspec {
+        pub(crate) mod glarity;
+        pub(crate) mod gpuspec;
+        pub(crate) mod precision;
         mod glsize;
     }
+
+    use gpuspec::gpuspec::{ GPUSpec, Phase };
+    pub(crate) use gpuspec::glarity::GLArity;
+    pub(crate) use gpuspec::precision::Precision;
+
+    mod program {
+        pub(crate) mod header;
+        pub(crate) mod source;
+        pub(crate) mod program;
+        pub(crate) mod uniform;
+        pub(crate) mod attribute;
+        pub(crate) mod varying;
+        pub(crate) mod statement;
+    }
+
+    pub(crate) use program::header::Header;
+    pub(crate) use program::uniform::Uniform;
+    pub(crate) use program::attribute::Attribute;
+    pub(crate) use program::varying::Varying;
+    pub(crate) use program::source::Source;
+    pub(crate) use program::program::Program;
+    pub(crate) use program::statement::Statement;
 }
 
 use anyhow::{ self };

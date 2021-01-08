@@ -1,3 +1,4 @@
+#[derive(Clone,Copy,PartialEq,Eq)]
 pub enum GLArity {
     Scalar,
     Vec2,

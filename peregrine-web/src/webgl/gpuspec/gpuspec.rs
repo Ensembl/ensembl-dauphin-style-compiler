@@ -3,6 +3,12 @@ use super::precision::Precision;
 use super::glsize::GLSize;
 use web_sys::{ WebGlRenderingContext, WebGlShaderPrecisionFormat };
 
+#[derive(Clone,Copy,PartialEq,Eq)]
+pub(crate) enum Phase {
+    Vertex,
+    Fragment
+}
+
 fn match_precision(precision: WebGlShaderPrecisionFormat, is_int: bool) -> Precision {
     let range = min(precision.range_min(),precision.range_max());
     if is_int {
@@ -40,7 +46,7 @@ fn best_size(want: &Precision, sizes: &Vec<(GLSize,Precision)>) -> GLSize {
     return sizes[sizes.len()-1].0
 }
 
-struct GPUSpec {
+pub(crate) struct GPUSpec {
     vert_precs: Vec<(GLSize,Precision)>,
     frag_precs: Vec<(GLSize,Precision)>
 }
@@ -58,11 +64,11 @@ impl GPUSpec {
         get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::FRAGMENT_SHADER);
     }
 
-    pub fn best_vertex_size(&self, want: &Precision) -> GLSize {
-        best_size(want,&self.vert_precs)
-    }
-
-    pub fn best_fragment_size(&self, want: &Precision) -> GLSize {
-        best_size(want,&self.frag_precs)
+    pub fn best_size(&self, want: &Precision, phase: &Phase) -> GLSize {
+        let var = match phase {
+            Phase::Vertex => &self.vert_precs,
+            Phase::Fragment => &self.frag_precs
+        };
+        best_size(want,var)
     }
 }
