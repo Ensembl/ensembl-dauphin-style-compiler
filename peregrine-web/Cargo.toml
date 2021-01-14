@@ -43,11 +43,11 @@ features = [
   'console', 'CustomEvent', 'CustomEventInit',
   'Document',
   'Element',
-  'HtmlElement', 'Headers',
+  'HtmlElement', 'Headers', 'HtmlCanvasElement',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
-  'WebGlUniformLocation', 'WebGlBuffer',
+  'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 

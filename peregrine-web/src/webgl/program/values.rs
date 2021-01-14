@@ -16,6 +16,25 @@ pub(crate) trait ProcessValueType {
     fn delete(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()>;
 }
 
+pub trait ProcessValueHandle {
+    fn new(value: usize) -> Self;
+    fn get(&self) -> usize;
+    fn cloned(&self) -> Self;
+}
+
+#[macro_export]
+macro_rules! process_value_handle {
+    ($name:ident) => {
+        pub struct $name(usize);
+
+        impl $crate::webgl::program::values::ProcessValueHandle for $name {
+            fn new(value: usize) -> Self { $name(value) }
+            fn get(&self) -> usize { self.0 }
+            fn cloned(&self) -> Self { $name(self.0) }
+        }
+    };
+}
+
 struct ProcessValueEntry<GLKey,GLValue,OurValue> {
     gl_key: GLKey,
     gl_value: Option<GLValue>,
@@ -35,13 +54,14 @@ impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLV
         }
     }
 
-    pub(super) fn add_entry(&mut self, name: &str, gl_key: GLKey, object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>) {
+    pub(super) fn add_entry(&mut self, name: &str, gl_key: GLKey, object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>) -> OurKey {
         let idx = self.entries.len();
         self.our_keys.insert(name.to_string(),OurKey::new(idx));
         self.entries.push(ProcessValueEntry {
             gl_key, object,
             gl_value: None
         });
+        OurKey::new(idx)
     }
 
     pub(super) fn activate_all(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
@@ -73,21 +93,27 @@ impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLV
     }
 }
 
-pub trait ProcessValueHandle {
-    fn new(value: usize) -> Self;
-    fn get(&self) -> usize;
-    fn cloned(&self) -> Self;
+process_value_handle!(AnonHandle);
+
+pub(super) struct AnonProcessValues<GLKey,GLValue,OurValue>(ProcessValues<GLKey,GLValue,AnonHandle,OurValue>);
+
+impl<GLKey,GLValue,OurValue> AnonProcessValues<GLKey,GLValue,OurValue> {
+    pub(super) fn new() -> AnonProcessValues<GLKey,GLValue,OurValue> {
+        AnonProcessValues(ProcessValues::new())
+    }
+
+    pub fn add_anon(&mut self, context: &WebGlRenderingContext, object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>,
+                    gl_key: GLKey, our_value: OurValue) -> anyhow::Result<()> {
+        let handle = self.0.add_entry("",gl_key,object);
+        self.0.set_value(context,&handle,our_value)
+    }
+
+    pub(super) fn activate_all(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        self.0.activate_all(context)
+    }
+
+    pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        self.0.delete(context)
+    }
 }
 
-#[macro_export]
-macro_rules! process_value_handle {
-    ($name:ident) => {
-        pub struct $name(usize);
-
-        impl $crate::webgl::program::values::ProcessValueHandle for $name {
-            fn new(value: usize) -> Self { $name(value) }
-            fn get(&self) -> usize { self.0 }
-            fn cloned(&self) -> Self { $name(self.0) }
-        }
-    };
-}

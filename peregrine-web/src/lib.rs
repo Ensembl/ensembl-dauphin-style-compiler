@@ -40,6 +40,10 @@ mod util {
 }
 
 mod webgl {
+    pub(super) mod canvas {
+        pub(crate) mod canvas;
+    }
+
     pub(super) mod gpuspec {
         pub(crate) mod glarity;
         pub(crate) mod gpuspec;
@@ -53,7 +57,7 @@ mod webgl {
 
     mod program {
         pub(crate) mod compiler;
-        pub(crate) mod canvas;
+        pub(crate) mod texture;
         pub(crate) mod glstate;
         pub(crate) mod header;
         pub(crate) mod process;

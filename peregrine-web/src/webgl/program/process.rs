@@ -1,15 +1,17 @@
 use anyhow::{ anyhow as err, bail };
 use std::collections::HashMap;
+use crate::webgl::canvas::canvas::Canvas;
 use super::program::Program;
 use super::attribute::{ Attribute, AttribHandle };
 use super::uniform::{ Uniform, UniformHandle };
-use super::values::{ ProcessValues,  ProcessValueType };
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer };
+use super::texture::{ Texture, TextureHandle };
+use super::values::{ ProcessValues,  ProcessValueType, AnonProcessValues };
+use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer, WebGlTexture, HtmlCanvasElement };
 
 /* TODO
 
-textures
 batches
+glerrors
 
 */
 
@@ -33,6 +35,7 @@ pub struct Process<'c> {
     context: &'c WebGlRenderingContext,
     attribs: ProcessValues<u32,WebGlBuffer,AttribHandle,Vec<f32>>,
     uniforms: ProcessValues<WebGlUniformLocation,Vec<f32>,UniformHandle,Vec<f32>>,
+    textures: AnonProcessValues<u32,WebGlTexture,Canvas>,
     index: Option<WebGlBuffer>
 }
 
@@ -51,6 +54,7 @@ impl<'c> Process<'c> {
             context: program.context(),
             attribs,
             uniforms,
+            textures: AnonProcessValues::new(),
             index: None
         }
     }
@@ -71,6 +75,7 @@ impl<'c> Process<'c> {
     pub fn select_process(&self) -> anyhow::Result<()> {
         self.uniforms.activate_all(&self.context)?;
         self.attribs.activate_all(&self.context)?;
+        self.textures.activate_all(&self.context)?;
         self.activate_index()?;
         self.program.select_program();
         Ok(())
@@ -101,12 +106,17 @@ impl<'c> Process<'c> {
         self.index = Some(create_index_buffer(&self.context,index)?);
         Ok(())
     }
+
+    pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
+        self.textures.add_anon(&self.context,Box::new(Texture::new()),index,element.clone())
+    }
 }
 
 impl<'c> Drop for Process<'c> {
     fn drop(&mut self) {
         self.uniforms.delete(&self.context);
         self.attribs.delete(&self.context);
+        self.textures.delete(&self.context);
         self.drop_index();
     }
 }
