@@ -1,4 +1,4 @@
-use crate::webgl::{ SourceInstrs, WebGlCompiler, Compiled };
+use crate::webgl::{ SourceInstrs, WebGlCompiler, Program };
 use super::paintgeometry::PaintGeometry;
 use super::paintskin::PaintSkin;
 use super::paintmethod::PaintMethod;
@@ -12,12 +12,12 @@ fn make_source(method: PaintMethod, geometry: PaintGeometry, skin: PaintSkin) ->
     program
 }
 
-pub struct Layer {
-    program: Compiled
+pub struct Layer<'c> {
+    program: Program<'c>
 }
 
-impl Layer {
-    pub(crate) fn new<'c>(compiler: &WebGlCompiler<'c>, method: PaintMethod, geometry: PaintGeometry, skin: PaintSkin) -> anyhow::Result<Layer> {
+impl<'c> Layer<'c> {
+    pub(crate) fn new(compiler: &WebGlCompiler<'c>, method: PaintMethod, geometry: PaintGeometry, skin: PaintSkin) -> anyhow::Result<Layer<'c>> {
         let source = make_source(method,geometry,skin);
         Ok(Layer {
             program: compiler.make_program(source)?

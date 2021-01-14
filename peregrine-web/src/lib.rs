@@ -53,16 +53,20 @@ mod webgl {
 
     mod program {
         pub(crate) mod compiler;
-        pub(crate) mod compiled;
+        pub(crate) mod canvas;
+        pub(crate) mod glstate;
         pub(crate) mod header;
+        pub(crate) mod process;
+        pub(crate) mod program;
         pub(crate) mod source;
         pub(crate) mod uniform;
         pub(crate) mod attribute;
         pub(crate) mod varying;
         pub(crate) mod statement;
+        pub(crate) mod values;
     }
 
-    pub(crate) use program::compiled::Compiled;
+    pub(crate) use program::program::Program;
     pub(crate) use program::compiler::WebGlCompiler;
     pub(crate) use program::header::Header;
     pub(crate) use program::uniform::Uniform;

@@ -47,6 +47,7 @@ features = [
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
+  'WebGlUniformLocation', 'WebGlBuffer',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 

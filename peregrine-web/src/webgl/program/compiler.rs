@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err };
 use crate::webgl::{ SourceInstrs, Phase, GPUSpec };
-use super::compiled::Compiled;
+use super::program::Program;
 use web_sys::{ WebGlRenderingContext, WebGlShader };
 
 pub(crate) struct WebGlCompiler<'c> {
@@ -9,7 +9,7 @@ pub(crate) struct WebGlCompiler<'c> {
 }
 
 impl<'c> WebGlCompiler<'c> {
-    fn new(context: &'c WebGlRenderingContext, gpuspec: GPUSpec) -> WebGlCompiler<'c> {
+    pub(super) fn new(context: &'c WebGlRenderingContext, gpuspec: GPUSpec) -> WebGlCompiler<'c> {
         WebGlCompiler {
             context, gpuspec
         }
@@ -37,13 +37,13 @@ impl<'c> WebGlCompiler<'c> {
         self.compile_shader(WebGlRenderingContext::FRAGMENT_SHADER,&source_text)
     }
     
-    pub(crate) fn make_program(&self, source: SourceInstrs) -> anyhow::Result<Compiled> {
+    pub(crate) fn make_program(&self, source: SourceInstrs) -> anyhow::Result<Program<'c>> {
         let program = self.context.create_program().ok_or_else(|| err!("could not create program"))?;
         self.context.attach_shader(&program,&self.make_vertex_shader(&source)?);
         self.context.attach_shader(&program,&self.make_fragment_shader(&source)?);
         self.context.link_program(&program);
         if self.context.get_program_parameter(&program, WebGlRenderingContext::LINK_STATUS).as_bool().unwrap_or(false) {
-            Ok(Compiled::new(program))
+            Ok(Program::new(self.context,program))
         } else {
             Err(err!(self.context.get_program_info_log(&program).unwrap_or_else(|| String::from("Unknown error creating program object"))))
         }

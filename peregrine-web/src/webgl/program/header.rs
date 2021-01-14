@@ -1,12 +1,5 @@
-use super::source::{ Source, Runtime };
-
-pub(crate) struct RuntimeHeader {
-
-}
-
-impl Runtime for RuntimeHeader {
-    
-}
+use super::source::Source;
+use super::program::Program;
 
 pub(crate) struct Header {
     method: u32
@@ -21,8 +14,8 @@ impl Header {
 }
 
 impl Source for Header {
-    fn to_binary(&self) -> Box<dyn Runtime> {
-        Box::new(RuntimeHeader {})
+    fn build(&self, program: &mut Program) -> anyhow::Result<()> {
+        program.set_method(self.method);
+        Ok(())
     }
 }
-

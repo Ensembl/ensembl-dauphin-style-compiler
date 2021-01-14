@@ -1,13 +1,10 @@
 use super::super::{ GPUSpec, Phase };
-
-pub(crate) trait Runtime {
-
-}
+use super::program::Program;
 
 pub(crate) trait Source {
     fn declare(&self, _spec: &GPUSpec, _phase: Phase) -> String { String::new() }
     fn statement(&self, _phase: Phase) -> String { String::new() }
-    fn to_binary(&self) -> Box<dyn Runtime>;
+    fn build(&self, program: &mut Program) -> anyhow::Result<()> { Ok(()) }
 }
 
 pub(crate) struct SourceInstrs {
@@ -45,5 +42,5 @@ impl SourceInstrs {
         format!("{}\n\nvoid main() {{\n{}\n}}",
             self.declare(gpuspec,phase),
             self.statements(phase))
-    }    
+    }
 }

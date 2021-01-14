@@ -1,13 +1,5 @@
-use super::source::{ Runtime, Source };
+use super::source::Source;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-
-pub(crate) struct RuntimeStatement {
-
-}
-
-impl Runtime for RuntimeStatement {
-    
-}
 
 pub(crate) struct Statement {
     statement: String,
@@ -35,8 +27,4 @@ impl Source for Statement {
         if phase != self.phase { return String::new(); }
         format!("{};\n",self.statement)
     }  
-
-    fn to_binary(&self) -> Box<dyn Runtime> {
-        Box::new(RuntimeStatement {})
-    }
 }
