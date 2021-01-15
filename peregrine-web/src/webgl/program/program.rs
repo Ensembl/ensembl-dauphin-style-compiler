@@ -5,6 +5,7 @@ use super::attribute::Attribute;
 use super::uniform::Uniform;
 use super::process::Process;
 use super::values::ProcessValueType;
+use crate::webgl::util::handle_context_errors;
 
 struct ProgramData<'c> {
     context: &'c WebGlRenderingContext,
@@ -30,6 +31,7 @@ impl<'c> ProgramData<'c> {
 
     fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
         let location = self.context.get_uniform_location(&self.program,uniform.name());
+        handle_context_errors(self.context)?;
         let location = location.ok_or_else(|| err!("cannot get uniform '{}'",uniform.name()))?;
         self.uniforms.push((uniform.clone(),location));
         Ok(())
@@ -37,6 +39,7 @@ impl<'c> ProgramData<'c> {
 
     fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
         let location = self.context.get_attrib_location(&self.program,attrib.name());
+        handle_context_errors(self.context)?;
         if location == -1 {
             bail!("cannot get attrib '{}'",attrib.name());
         }
@@ -52,8 +55,10 @@ impl<'c> ProgramData<'c> {
         self.attribs.iter().map(|x| (x.0.clone(),x.1.clone())).collect()
     }
 
-    fn select_program(&self) {
+    fn select_program(&self) -> anyhow::Result<()> {
         self.context.use_program(Some(&self.program));
+        handle_context_errors(self.context)?;
+        Ok(())
     }
 
     fn context(&self) -> &'c WebGlRenderingContext {
@@ -91,7 +96,7 @@ impl<'c> Program<'c> {
         self.0.lock().unwrap().get_method()
     }
 
-    pub fn select_program(&self) {
+    pub fn select_program(&self) -> anyhow::Result<()> {
         self.0.lock().unwrap().select_program()
     }
 

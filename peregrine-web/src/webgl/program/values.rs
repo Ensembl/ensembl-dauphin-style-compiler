@@ -79,6 +79,9 @@ impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLV
 
     pub fn set_value(&mut self, context: &WebGlRenderingContext, our_key: &OurKey, our_value: OurValue) -> anyhow::Result<()> {
         let entry = &mut self.entries[our_key.get()];
+        if let Some(old_value) = entry.gl_value.take() {
+            entry.object.delete(context,&old_value)?;
+        }
         entry.gl_value = Some(entry.object.value_to_gl(context,our_value)?);
         Ok(())
     }
@@ -116,4 +119,3 @@ impl<GLKey,GLValue,OurValue> AnonProcessValues<GLKey,GLValue,OurValue> {
         self.0.delete(context)
     }
 }
-

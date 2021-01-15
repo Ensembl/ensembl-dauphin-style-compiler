@@ -2,20 +2,18 @@ use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext, WebGlTexture, HtmlCanvasElement };
 use super::values::ProcessValueType;
 use crate::webgl::canvas::canvas::{ Canvas, CanvasWeave };
-use crate::process_value_handle;
+use crate::webgl::util::handle_context_errors;
 
-// Unused, but necessary for ProcessValues
-process_value_handle!(TextureHandle);
-
-
-fn create_texture(context: &WebGlRenderingContext, element: &HtmlCanvasElement) {
+fn create_texture(context: &WebGlRenderingContext, element: &HtmlCanvasElement) -> anyhow::Result<()> {
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
         WebGlRenderingContext::UNSIGNED_BYTE,element
     );
+    handle_context_errors(context)?;
+    Ok(())
 }
 
-fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) {
+fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> anyhow::Result<()> {
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Pixelate =>
             (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
@@ -36,6 +34,8 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) {
     context.tex_parameteri(WebGlRenderingContext::TEXTURE_2D,
                         WebGlRenderingContext::TEXTURE_WRAP_T,
                         wrapt as i32);
+    handle_context_errors(context)?;
+    Ok(())
 }
 
 pub struct Texture {
@@ -56,20 +56,25 @@ impl ProcessValueType for Texture {
 
     fn activate(&self, context: &WebGlRenderingContext, gl_key: &u32, gl_value: &WebGlTexture) -> anyhow::Result<()> {
         context.active_texture(WebGlRenderingContext::TEXTURE0+*gl_key);
+        handle_context_errors(context)?;
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(gl_value));
+        handle_context_errors(context)?;
         Ok(())
     }
 
     fn value_to_gl(&self, context: &WebGlRenderingContext, our_data: Canvas) -> anyhow::Result<WebGlTexture> {
         let texture = context.create_texture().ok_or_else(|| err!("cannot create texture"))?;
+        handle_context_errors(context)?;
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
-        create_texture(context,our_data.element());
-        apply_weave(context,our_data.weave());
+        handle_context_errors(context)?;
+        create_texture(context,our_data.element())?;
+        apply_weave(context,our_data.weave())?;
         Ok(texture)
     }
 
     fn delete(&self, context: &WebGlRenderingContext, gl_value: &WebGlTexture) -> anyhow::Result<()> {
         context.delete_texture(Some(gl_value));
+        handle_context_errors(context)?;
         Ok(())
     }
 }

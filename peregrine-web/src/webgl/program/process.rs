@@ -4,16 +4,10 @@ use crate::webgl::canvas::canvas::Canvas;
 use super::program::Program;
 use super::attribute::{ Attribute, AttribHandle };
 use super::uniform::{ Uniform, UniformHandle };
-use super::texture::{ Texture, TextureHandle };
+use super::texture::Texture;
 use super::values::{ ProcessValues,  ProcessValueType, AnonProcessValues };
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer, WebGlTexture, HtmlCanvasElement };
-
-/* TODO
-
-batches
-glerrors
-
-*/
+use crate::webgl::util::handle_context_errors;
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyhow::Result<WebGlBuffer> {
     let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
@@ -27,6 +21,7 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyho
         );
         drop(value_array);
     }
+    handle_context_errors(context)?;
     Ok(buffer)
 }
 
@@ -62,14 +57,17 @@ impl<'c> Process<'c> {
     fn activate_index(&self) -> anyhow::Result<()> {
         if let Some(index) = &self.index {
             self.context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(index));
+            handle_context_errors(self.context)?;
         }
         Ok(())
     }
 
-    fn drop_index(&self) {
+    fn drop_index(&self) -> anyhow::Result<()> {
         if let Some(index) = &self.index {
             self.context.delete_buffer(Some(index));
+            handle_context_errors(self.context)?;
         }
+        Ok(())
     }
 
     pub fn select_process(&self) -> anyhow::Result<()> {
@@ -77,7 +75,7 @@ impl<'c> Process<'c> {
         self.attribs.activate_all(&self.context)?;
         self.textures.activate_all(&self.context)?;
         self.activate_index()?;
-        self.program.select_program();
+        self.program.select_program()?;
         Ok(())
     }
 

@@ -5,6 +5,7 @@ use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlRenderingContext, WebGlBuffer };
 use super::values::ProcessValueType;
 use crate::process_value_handle;
+use crate::webgl::util::handle_context_errors;
 
 process_value_handle!(AttribHandle);
 
@@ -23,10 +24,11 @@ fn create_buffer(context: &WebGlRenderingContext, values: &[f32]) -> anyhow::Res
         context.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &value_array,
-            WebGlRenderingContext::STATIC_DRAW,
+            WebGlRenderingContext::STATIC_DRAW
         );
         drop(value_array);
     }
+    handle_context_errors(context)?;
     Ok(buffer)
 }
 
@@ -59,8 +61,11 @@ impl ProcessValueType for Attribute {
 
     fn activate(&self, context: &WebGlRenderingContext, gl_key: &u32, gl_value: &WebGlBuffer) -> anyhow::Result<()> {
         context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(gl_value));
+        handle_context_errors(context)?;
         context.enable_vertex_attrib_array(*gl_key);
+        handle_context_errors(context)?;
         context.vertex_attrib_pointer_with_i32(*gl_key,self.arity.to_num() as i32,WebGlRenderingContext::FLOAT,false,0,0);
+        handle_context_errors(context)?;
         Ok(())
     }
 
@@ -70,6 +75,7 @@ impl ProcessValueType for Attribute {
 
     fn delete(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()> {
         context.delete_buffer(Some(gl_value));
+        handle_context_errors(context)?;
         Ok(())
     }
 }

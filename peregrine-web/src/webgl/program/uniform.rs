@@ -5,6 +5,7 @@ use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use super::values::ProcessValueType;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer };
 use crate::process_value_handle;
+use crate::webgl::util::handle_context_errors;
 
 process_value_handle!(UniformHandle);
 
@@ -60,6 +61,7 @@ impl ProcessValueType for Uniform {
             4 => context.uniform4f(Some(gl_key),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
             x => bail!("bad uniform size {}",x)
         }
+        handle_context_errors(context)?;
         Ok(())
     }
 

@@ -78,6 +78,8 @@ mod webgl {
     pub(crate) use program::varying::Varying;
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
+
+    mod util;
 }
 
 use anyhow::{ self };
