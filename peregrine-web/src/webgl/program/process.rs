@@ -31,7 +31,8 @@ pub struct Process<'c> {
     attribs: ProcessValues<u32,WebGlBuffer,AttribHandle,Vec<f32>>,
     uniforms: ProcessValues<WebGlUniformLocation,Vec<f32>,UniformHandle,Vec<f32>>,
     textures: AnonProcessValues<u32,WebGlTexture,Canvas>,
-    index: Option<WebGlBuffer>
+    index: Option<WebGlBuffer>,
+    len: usize
 }
 
 impl<'c> Process<'c> {
@@ -50,7 +51,8 @@ impl<'c> Process<'c> {
             attribs,
             uniforms,
             textures: AnonProcessValues::new(),
-            index: None
+            index: None,
+            len: 0
         }
     }
 
@@ -80,7 +82,8 @@ impl<'c> Process<'c> {
     }
 
     pub fn draw(&self) -> anyhow::Result<()> {
-
+        self.context.draw_elements_with_i32(self.program.get_method(),self.len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
+        handle_context_errors(self.context)?;
         Ok(())
     }
 
@@ -102,6 +105,7 @@ impl<'c> Process<'c> {
 
     pub fn set_index(&mut self, index: &[u16]) -> anyhow::Result<()> {
         self.index = Some(create_index_buffer(&self.context,index)?);
+        self.len = index.len();
         Ok(())
     }
 
