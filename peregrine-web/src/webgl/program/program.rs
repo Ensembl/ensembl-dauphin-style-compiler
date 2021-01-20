@@ -7,7 +7,7 @@ use super::process::Process;
 use super::values::ProcessValueType;
 use crate::webgl::util::handle_context_errors;
 
-struct ProgramData<'c> {
+pub struct Program<'c> {
     context: &'c WebGlRenderingContext,
     program: WebGlProgram,
     uniforms: Vec<(Uniform,WebGlUniformLocation)>,
@@ -15,9 +15,9 @@ struct ProgramData<'c> {
     method: u32
 }
 
-impl<'c> ProgramData<'c> {
-    fn new(context: &'c WebGlRenderingContext, program: WebGlProgram) -> ProgramData<'c> {
-        ProgramData {
+impl<'c> Program<'c> {
+    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram) -> Program<'c> {
+        Program {
             program,
             context,
             uniforms: vec![],
@@ -26,10 +26,10 @@ impl<'c> ProgramData<'c> {
         }
     }
 
-    fn set_method(&mut self, method: u32) { self.method = method; }
-    fn get_method(&self) -> u32 { self.method }
+    pub(crate) fn set_method(&mut self, method: u32) { self.method = method; }
+    pub(crate) fn get_method(&self) -> u32 { self.method }
 
-    fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
+    pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
         let location = self.context.get_uniform_location(&self.program,uniform.name());
         handle_context_errors(self.context)?;
         let location = location.ok_or_else(|| err!("cannot get uniform '{}'",uniform.name()))?;
@@ -37,7 +37,7 @@ impl<'c> ProgramData<'c> {
         Ok(())
     }
 
-    fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
+    pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
         let location = self.context.get_attrib_location(&self.program,attrib.name());
         handle_context_errors(self.context)?;
         if location == -1 {
@@ -47,72 +47,27 @@ impl<'c> ProgramData<'c> {
         Ok(())
     }
 
-    fn get_uniforms(&self) -> Vec<(Uniform,WebGlUniformLocation)> {
+    pub(crate) fn get_uniforms(&self) -> Vec<(Uniform,WebGlUniformLocation)> {
         self.uniforms.iter().map(|x| (x.0.clone(),x.1.clone())).collect()
     }
 
-    fn get_attribs(&self) -> Vec<(Attribute,u32)> {
+    pub(crate) fn get_attribs(&self) -> Vec<(Attribute,u32)> {
         self.attribs.iter().map(|x| (x.0.clone(),x.1.clone())).collect()
     }
 
-    fn select_program(&self) -> anyhow::Result<()> {
+    pub(crate) fn select_program(&self) -> anyhow::Result<()> {
         self.context.use_program(Some(&self.program));
         handle_context_errors(self.context)?;
         Ok(())
     }
 
-    fn context(&self) -> &'c WebGlRenderingContext {
+    pub(crate) fn context(&self) -> &'c WebGlRenderingContext {
         self.context
     }
 }
 
-impl<'c> Drop for ProgramData<'c> {
+impl<'c> Drop for Program<'c> {
     fn drop(&mut self) {
         self.context.delete_program(Some(&self.program));
-    }
-}
-
-#[derive(Clone)]
-pub struct Program<'c>(Arc<Mutex<ProgramData<'c>>>);
-
-impl<'c> Program<'c> {
-    pub fn new(context: &'c WebGlRenderingContext, program: WebGlProgram) -> Program<'c> {
-        Program(Arc::new(Mutex::new(ProgramData::new(context,program))))
-    }
-
-    pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
-        self.0.lock().unwrap().add_uniform(uniform)
-    }
-
-    pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
-        self.0.lock().unwrap().add_attrib(attrib)
-    }
-
-    pub(crate) fn set_method(&mut self, method: u32) {
-        self.0.lock().unwrap().set_method(method);
-    }
-
-    pub(crate) fn get_method(&self) -> u32 {
-        self.0.lock().unwrap().get_method()
-    }
-
-    pub fn select_program(&self) -> anyhow::Result<()> {
-        self.0.lock().unwrap().select_program()
-    }
-
-    fn make_process(&self) -> anyhow::Result<Process<'c>> {
-        Ok(Process::new(self))
-    }
-
-    pub(super) fn get_uniforms(&self) -> Vec<(Uniform,WebGlUniformLocation)> {
-        self.0.lock().unwrap().get_uniforms()
-    }
-
-    pub(super) fn get_attribs(&self) -> Vec<(Attribute,u32)> {
-        self.0.lock().unwrap().get_attribs()
-    }
-
-    pub(super) fn context(&self) -> &'c WebGlRenderingContext {
-        self.0.lock().unwrap().context()
     }
 }

@@ -1,5 +1,6 @@
 use anyhow::{ anyhow as err, bail };
 use std::collections::HashMap;
+use std::rc::Rc;
 use crate::webgl::canvas::canvas::Canvas;
 use super::program::Program;
 use super::attribute::{ Attribute, AttribHandle };
@@ -26,7 +27,7 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyho
 }
 
 pub struct Process<'c> {
-    program: Program<'c>,
+    program: Rc<Program<'c>>,
     context: &'c WebGlRenderingContext,
     attribs: ProcessValues<u32,WebGlBuffer,AttribHandle,Vec<f32>>,
     uniforms: ProcessValues<WebGlUniformLocation,Vec<f32>,UniformHandle,Vec<f32>>,
@@ -36,7 +37,7 @@ pub struct Process<'c> {
 }
 
 impl<'c> Process<'c> {
-    pub fn new(program: &Program<'c>) -> Process<'c> {
+    pub fn new(program: &Rc<Program<'c>>) -> Process<'c> {
         let mut uniforms = ProcessValues::new();
         let mut attribs = ProcessValues::new();
         for (uniform,location) in program.get_uniforms().iter() {
