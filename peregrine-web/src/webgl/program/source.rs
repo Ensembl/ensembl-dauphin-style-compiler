@@ -52,4 +52,11 @@ impl SourceInstrs {
             self.declare(gpuspec,phase),
             self.statements(phase))
     }
+
+    pub fn build(&mut self, program: &mut Program) -> anyhow::Result<()> {
+        for v in self.source.iter_mut() {
+            v.build(program)?;
+        }
+        Ok(())
+    }
 }

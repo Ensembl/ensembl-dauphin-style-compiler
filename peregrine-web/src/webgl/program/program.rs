@@ -4,7 +4,6 @@ use web_sys::{ WebGlProgram, WebGlUniformLocation, WebGlRenderingContext };
 use super::attribute::Attribute;
 use super::uniform::Uniform;
 use super::process::Process;
-use super::values::ProcessValueType;
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 
@@ -17,19 +16,20 @@ pub struct Program<'c> {
 }
 
 impl<'c> Program<'c> {
-    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram, source: SourceInstrs) -> Program<'c> {
-        Program {
+    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> anyhow::Result<Program<'c>> {
+        let mut out = Program {
             program,
             context,
             uniforms: vec![],
             attribs: vec![],
             method: WebGlRenderingContext::TRIANGLES
-        }
+        };
+        source.build(&mut out)?;
+        Ok(out)
     }
 
     pub(crate) fn set_method(&mut self, method: u32) { self.method = method; }
     pub(crate) fn get_method(&self) -> u32 { self.method }
-
 
     pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
         let location = self.context.get_uniform_location(&self.program,uniform.name());
@@ -49,12 +49,12 @@ impl<'c> Program<'c> {
         Ok(())
     }
 
-    pub(crate) fn get_uniforms(&self) -> Vec<(Uniform,WebGlUniformLocation)> {
-        self.uniforms.iter().map(|x| (x.0.clone(),x.1.clone())).collect()
+    pub(crate) fn get_uniforms(&self) -> Vec<Uniform> {
+        self.uniforms.iter().map(|x| x.0.clone()).collect()
     }
 
-    pub(crate) fn get_attribs(&self) -> Vec<(Attribute,u32)> {
-        self.attribs.iter().map(|x| (x.0.clone(),x.1.clone())).collect()
+    pub(crate) fn get_attribs(&self) -> Vec<Attribute> {
+        self.attribs.iter().map(|x| x.0.clone()).collect()
     }
 
     pub(crate) fn select_program(&self) -> anyhow::Result<()> {

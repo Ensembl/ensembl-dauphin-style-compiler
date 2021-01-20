@@ -67,7 +67,7 @@ mod webgl {
         pub(crate) mod attribute;
         pub(crate) mod varying;
         pub(crate) mod statement;
-        pub(crate) mod values;
+        pub(crate) mod keyed;
     }
 
     pub(crate) use program::program::Program;

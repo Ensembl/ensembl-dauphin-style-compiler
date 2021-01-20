@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::webgl::canvas::canvas::Canvas;
 use super::program::Program;
-use super::attribute::{ Attribute, AttribHandle };
-use super::uniform::{ Uniform, UniformHandle };
-use super::texture::Texture;
-use super::values::{ ProcessValues,  ProcessValueType, AnonProcessValues };
+use super::attribute::{ Attribute, AttribHandle, AttributeValues };
+use super::uniform::{ Uniform, UniformHandle, UniformValues };
+use super::texture::{ Texture, TextureValues };
+use super::keyed::{ KeyedValues };
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer, WebGlTexture, HtmlCanvasElement };
 use crate::webgl::util::handle_context_errors;
 
@@ -29,20 +29,28 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyho
 pub struct Process<'c> {
     program: Rc<Program<'c>>,
     context: &'c WebGlRenderingContext,
-    attribs: ProcessValues<WebGlBuffer,AttribHandle,Vec<f32>>,
-    uniforms: ProcessValues<Vec<f32>,UniformHandle,Vec<f32>>,
-    textures: AnonProcessValues<(u32,WebGlTexture),(u32,Canvas)>,
+    attribs: KeyedValues<AttribHandle,AttributeValues>,
+    uniforms: KeyedValues<UniformHandle,UniformValues>,
+    textures: Vec<TextureValues>,
     index: Option<WebGlBuffer>,
     len: usize
 }
 
 impl<'c> Process<'c> {
     pub(super) fn new(program: Rc<Program<'c>>, context: &'c WebGlRenderingContext) -> Process<'c> {
+        let mut uniforms = KeyedValues::new();
+        let mut attribs = KeyedValues::new();
+        for uniform in program.get_uniforms().iter() {
+            uniforms.add(uniform.name(),UniformValues::new(uniform.clone()));
+        }
+        for attrib in program.get_attribs().iter() {
+            attribs.add(attrib.name(),AttributeValues::new(attrib.clone()));
+        }        
         Process {
             program, context,
-            attribs: ProcessValues::new(),
-            uniforms: ProcessValues::new(),
-            textures: AnonProcessValues::new(),
+            attribs,
+            uniforms,
+            textures: vec![],
             index: None,
             len: 0
         }
@@ -64,16 +72,18 @@ impl<'c> Process<'c> {
         Ok(())
     }
 
-    pub fn select_process(&self) -> anyhow::Result<()> {
-        self.uniforms.activate_all(&self.context)?;
-        self.attribs.activate_all(&self.context)?;
-        self.textures.activate_all(&self.context)?;
+    pub fn draw(&self) -> anyhow::Result<()> {
+        for entry in self.uniforms.iter() {
+            entry.activate(&self.context)?;
+        }
+        for entry in self.attribs.iter() {
+            entry.activate(&self.context)?;
+        }
+        for entry in self.textures.iter() {
+            entry.activate(&self.context)?;
+        }
         self.activate_index()?;
         self.program.select_program()?;
-        Ok(())
-    }
-
-    pub fn draw(&self) -> anyhow::Result<()> {
         self.context.draw_elements_with_i32(self.program.get_method(),self.len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
         handle_context_errors(self.context)?;
         Ok(())
@@ -84,7 +94,7 @@ impl<'c> Process<'c> {
     }
 
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> anyhow::Result<()> {
-        self.uniforms.set_value(&self.context,handle,values)
+        self.uniforms.get_mut(handle).set_value(&self.context,values)
     }
 
     pub fn get_attrib_handle(&mut self, name: &str) -> anyhow::Result<AttribHandle> {
@@ -92,7 +102,7 @@ impl<'c> Process<'c> {
     }
 
     pub fn set_attrib(&mut self, handle: &AttribHandle, values: Vec<f32>) -> anyhow::Result<()> {
-        self.attribs.set_value(&self.context,handle,values)
+        self.attribs.get_mut(handle).set_value(&self.context,values)
     }
 
     pub fn set_index(&mut self, index: &[u16]) -> anyhow::Result<()> {
@@ -102,15 +112,20 @@ impl<'c> Process<'c> {
     }
 
     pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
-        self.textures.add_anon(&self.context,Box::new(Texture::new()),(index,element.clone()))
+        let mut entry = TextureValues::new(&self.context,index,element.clone())?;
+        self.textures.push(entry);
+        Ok(())
     }
 }
 
 impl<'c> Drop for Process<'c> {
     fn drop(&mut self) {
-        self.uniforms.delete(&self.context);
-        self.attribs.delete(&self.context);
-        self.textures.delete(&self.context);
+        for entry in self.attribs.iter_mut() {
+            entry.delete(&self.context);
+        }
+        for entry in self.textures.iter_mut() {
+            entry.delete(&self.context);
+        }
         self.drop_index();
     }
 }

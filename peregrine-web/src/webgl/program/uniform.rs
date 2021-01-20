@@ -2,12 +2,11 @@ use anyhow::{ bail, anyhow as err };
 use super::source::{ Source };
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use super::values::ProcessValueType;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer };
-use crate::process_value_handle;
+use crate::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 
-process_value_handle!(UniformHandle);
+keyed_handle!(UniformHandle);
 
 #[derive(Clone)]
 pub(crate) struct Uniform {
@@ -36,6 +35,8 @@ impl Uniform {
             location: None
         })
     }
+
+    pub fn name(&self) -> &str { &self.name }
 }
 
 impl Source for Uniform {
@@ -55,30 +56,36 @@ impl Source for Uniform {
     }
 }
 
-impl ProcessValueType for Uniform {
-    type GLValue = Vec<f32>;
-    type OurValue = Vec<f32>;
+pub(crate) struct UniformValues {
+    gl_value: Option<Vec<f32>>,
+    object: Uniform
+}
 
-    fn name(&self) -> &str { &self.name }
-
-    fn activate(&self, context: &WebGlRenderingContext, gl_value: &Vec<f32>) -> anyhow::Result<()> {
-        let location = self.location.as_ref().unwrap();
-        match gl_value.len() {
-            1 => context.uniform1f(Some(location),gl_value[0]),
-            2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
-            3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
-            4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-            x => bail!("bad uniform size {}",x)
+impl UniformValues {
+    pub(super) fn new(object: Uniform) -> UniformValues {
+        UniformValues {
+            gl_value: None,
+            object
         }
-        handle_context_errors(context)?;
+    }
+
+    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        if let Some(gl_value) = &self.gl_value {
+            let location = self.object.location.as_ref().unwrap();
+            match gl_value.len() {
+                1 => context.uniform1f(Some(location),gl_value[0]),
+                2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
+                3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
+                4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
+                x => bail!("bad uniform size {}",x)
+            }
+            handle_context_errors(context)?;
+        }
         Ok(())
     }
 
-    fn value_to_gl(&self, _context: &WebGlRenderingContext, our_data: Self::OurValue) -> anyhow::Result<Self::GLValue> {
-        Ok(our_data)
-    }
-
-    fn delete(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()> {
+    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f32>) -> anyhow::Result<()> {
+        self.gl_value = Some(our_value);
         Ok(())
     }
 }

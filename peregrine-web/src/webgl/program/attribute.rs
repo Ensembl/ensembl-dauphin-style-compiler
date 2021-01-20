@@ -3,11 +3,10 @@ use super::source::Source;
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlRenderingContext, WebGlBuffer };
-use super::values::ProcessValueType;
-use crate::process_value_handle;
+use crate::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 
-process_value_handle!(AttribHandle);
+keyed_handle!(AttribHandle);
 
 #[derive(Clone)]
 pub(crate) struct Attribute {
@@ -41,6 +40,8 @@ impl Attribute {
             location: None
         })
     }
+
+    pub fn name(&self) -> &str { &self.name }
 }
 
 impl Source for Attribute {
@@ -53,7 +54,7 @@ impl Source for Attribute {
 
     fn build(&mut self, program: &mut Program) -> anyhow::Result<()> { 
         let context = program.context();
-        let location = context.get_attrib_location(program.program(),self.name());
+        let location = context.get_attrib_location(program.program(),&self.name);
         handle_context_errors(context)?;
         if location == -1 {
             bail!("cannot get attrib '{}'",self.name);
@@ -63,29 +64,43 @@ impl Source for Attribute {
     }
 }
 
-impl ProcessValueType for Attribute {
-    type OurValue = Vec<f32>;
-    type GLValue = WebGlBuffer;
+pub(crate) struct AttributeValues {
+    gl_value: Option<WebGlBuffer>,
+    object: Attribute
+}
 
-    fn name(&self) -> &str { &self.name }
+impl AttributeValues {
+    pub(super) fn new(object: Attribute) -> AttributeValues {
+        AttributeValues {
+            gl_value: None,
+            object
+        }
+    }
 
-    fn activate(&self, context: &WebGlRenderingContext, gl_value: &WebGlBuffer) -> anyhow::Result<()> {
-        context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(gl_value));
-        handle_context_errors(context)?;
-        context.enable_vertex_attrib_array(self.location.unwrap());
-        handle_context_errors(context)?;
-        context.vertex_attrib_pointer_with_i32(self.location.unwrap(),self.arity.to_num() as i32,WebGlRenderingContext::FLOAT,false,0,0);
-        handle_context_errors(context)?;
+    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        let location = self.object.location;
+        if let Some(buffer) = &self.gl_value {
+            context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(buffer));
+            handle_context_errors(context)?;
+            context.enable_vertex_attrib_array(location.unwrap());
+            handle_context_errors(context)?;
+            context.vertex_attrib_pointer_with_i32(location.unwrap(),self.object.arity.to_num() as i32,WebGlRenderingContext::FLOAT,false,0,0);
+            handle_context_errors(context)?;    
+        }
         Ok(())
     }
 
-    fn value_to_gl(&self, context: &WebGlRenderingContext, our_data: Self::OurValue)  -> anyhow::Result<Self::GLValue> {
-        create_buffer(context,&our_data)
+    pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        if let Some(gl_value) = &self.gl_value {
+            context.delete_buffer(Some(gl_value));
+            handle_context_errors(context)?;
+        }
+        Ok(())
     }
 
-    fn delete(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()> {
-        context.delete_buffer(Some(gl_value));
-        handle_context_errors(context)?;
+    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f32>) -> anyhow::Result<()> {
+        self.delete(context)?;
+        self.gl_value = Some(create_buffer(context,&our_value)?);
         Ok(())
     }
 }
