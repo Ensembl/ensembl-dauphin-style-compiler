@@ -6,6 +6,7 @@ use super::uniform::Uniform;
 use super::process::Process;
 use super::values::ProcessValueType;
 use crate::webgl::util::handle_context_errors;
+use super::source::SourceInstrs;
 
 pub struct Program<'c> {
     context: &'c WebGlRenderingContext,
@@ -16,7 +17,7 @@ pub struct Program<'c> {
 }
 
 impl<'c> Program<'c> {
-    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram) -> Program<'c> {
+    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram, source: SourceInstrs) -> Program<'c> {
         Program {
             program,
             context,
@@ -28,6 +29,7 @@ impl<'c> Program<'c> {
 
     pub(crate) fn set_method(&mut self, method: u32) { self.method = method; }
     pub(crate) fn get_method(&self) -> u32 { self.method }
+
 
     pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
         let location = self.context.get_uniform_location(&self.program,uniform.name());
@@ -64,6 +66,8 @@ impl<'c> Program<'c> {
     pub(crate) fn context(&self) -> &'c WebGlRenderingContext {
         self.context
     }
+
+    pub(crate) fn program(&self) -> &WebGlProgram { &self.program }
 }
 
 impl<'c> Drop for Program<'c> {

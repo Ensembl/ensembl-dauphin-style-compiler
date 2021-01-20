@@ -29,28 +29,19 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyho
 pub struct Process<'c> {
     program: Rc<Program<'c>>,
     context: &'c WebGlRenderingContext,
-    attribs: ProcessValues<u32,WebGlBuffer,AttribHandle,Vec<f32>>,
-    uniforms: ProcessValues<WebGlUniformLocation,Vec<f32>,UniformHandle,Vec<f32>>,
-    textures: AnonProcessValues<u32,WebGlTexture,Canvas>,
+    attribs: ProcessValues<WebGlBuffer,AttribHandle,Vec<f32>>,
+    uniforms: ProcessValues<Vec<f32>,UniformHandle,Vec<f32>>,
+    textures: AnonProcessValues<(u32,WebGlTexture),(u32,Canvas)>,
     index: Option<WebGlBuffer>,
     len: usize
 }
 
 impl<'c> Process<'c> {
-    pub fn new(program: &Rc<Program<'c>>) -> Process<'c> {
-        let mut uniforms = ProcessValues::new();
-        let mut attribs = ProcessValues::new();
-        for (uniform,location) in program.get_uniforms().iter() {
-            uniforms.add_entry(uniform.name(),location.clone(),Box::new(uniform.clone()));
-        }
-        for (attrib,location) in program.get_attribs().iter() {
-            attribs.add_entry(attrib.name(),*location,Box::new(attrib.clone()));
-        }
+    pub(super) fn new(program: Rc<Program<'c>>, context: &'c WebGlRenderingContext) -> Process<'c> {
         Process {
-            program: program.clone(),
-            context: program.context(),
-            attribs,
-            uniforms,
+            program, context,
+            attribs: ProcessValues::new(),
+            uniforms: ProcessValues::new(),
             textures: AnonProcessValues::new(),
             index: None,
             len: 0
@@ -111,7 +102,7 @@ impl<'c> Process<'c> {
     }
 
     pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
-        self.textures.add_anon(&self.context,Box::new(Texture::new()),index,element.clone())
+        self.textures.add_anon(&self.context,Box::new(Texture::new()),(index,element.clone()))
     }
 }
 

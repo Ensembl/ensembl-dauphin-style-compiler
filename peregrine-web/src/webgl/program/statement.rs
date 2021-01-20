@@ -1,6 +1,7 @@
 use super::source::Source;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
 
+#[derive(Clone)]
 pub(crate) struct Statement {
     statement: String,
     phase: Phase
@@ -23,6 +24,8 @@ impl Statement {
 }
 
 impl Source for Statement {
+    fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
+
     fn statement(&self,  phase: Phase) -> String {
         if phase != self.phase { return String::new(); }
         format!("{};\n",self.statement)

@@ -39,41 +39,43 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> anyhow::R
 }
 
 pub struct Texture {
+    texture_num: Option<u32>
 }
 
 impl Texture {
     pub(super) fn new() -> Texture {
-        Texture {}
+        Texture {
+            texture_num: None
+        }
     }
 }
 
 impl ProcessValueType for Texture {
-    type OurValue = Canvas;
-    type GLKey = u32;
-    type GLValue = WebGlTexture;
+    type OurValue = (u32,Canvas);
+    type GLValue = (u32,WebGlTexture);
 
     fn name(&self) -> &str { "" }
 
-    fn activate(&self, context: &WebGlRenderingContext, gl_key: &u32, gl_value: &WebGlTexture) -> anyhow::Result<()> {
-        context.active_texture(WebGlRenderingContext::TEXTURE0+*gl_key);
+    fn activate(&self, context: &WebGlRenderingContext, gl_value: &(u32,WebGlTexture)) -> anyhow::Result<()> {
+        context.active_texture(WebGlRenderingContext::TEXTURE0+gl_value.0);
         handle_context_errors(context)?;
-        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(gl_value));
+        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&gl_value.1));
         handle_context_errors(context)?;
         Ok(())
     }
 
-    fn value_to_gl(&self, context: &WebGlRenderingContext, our_data: Canvas) -> anyhow::Result<WebGlTexture> {
+    fn value_to_gl(&self, context: &WebGlRenderingContext, our_data: (u32,Canvas)) -> anyhow::Result<(u32,WebGlTexture)> {
         let texture = context.create_texture().ok_or_else(|| err!("cannot create texture"))?;
         handle_context_errors(context)?;
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
         handle_context_errors(context)?;
-        create_texture(context,our_data.element())?;
-        apply_weave(context,our_data.weave())?;
-        Ok(texture)
+        create_texture(context,our_data.1.element())?;
+        apply_weave(context,our_data.1.weave())?;
+        Ok((our_data.0,texture))
     }
 
-    fn delete(&self, context: &WebGlRenderingContext, gl_value: &WebGlTexture) -> anyhow::Result<()> {
-        context.delete_texture(Some(gl_value));
+    fn delete(&self, context: &WebGlRenderingContext, gl_value: &(u32,WebGlTexture)) -> anyhow::Result<()> {
+        context.delete_texture(Some(&gl_value.1));
         handle_context_errors(context)?;
         Ok(())
     }

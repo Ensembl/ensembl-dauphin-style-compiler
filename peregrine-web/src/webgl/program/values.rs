@@ -6,12 +6,11 @@ use std::marker::PhantomData;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer };
 
 pub(crate) trait ProcessValueType {
-    type GLKey;
     type GLValue;
     type OurValue;
 
     fn name(&self) -> &str;
-    fn activate(&self, context: &WebGlRenderingContext, gl_key: &Self::GLKey, gl_value: &Self::GLValue) -> anyhow::Result<()>;
+    fn activate(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()>;
     fn value_to_gl(&self, context: &WebGlRenderingContext, our_data: Self::OurValue) -> anyhow::Result<Self::GLValue>;
     fn delete(&self, context: &WebGlRenderingContext, gl_value: &Self::GLValue) -> anyhow::Result<()>;
 }
@@ -35,50 +34,67 @@ macro_rules! process_value_handle {
     };
 }
 
-struct ProcessValueEntry<GLKey,GLValue,OurValue> {
-    gl_key: GLKey,
+struct ProcessValueEntry<GLValue,OurValue> {
     gl_value: Option<GLValue>,
-    object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>
+    object: Box<dyn ProcessValueType<GLValue=GLValue,OurValue=OurValue>>
 }
 
-pub(super) struct ProcessValues<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> {
-    our_keys: HashMap<String,OurKey>,
-    entries: Vec<ProcessValueEntry<GLKey,GLValue,OurValue>>
+pub(super) struct KeyedValues<K: ProcessValueHandle,T> {
+    our_keys: HashMap<String,K>,
+    entries: Vec<T>
 }
 
-impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLValue,OurKey,OurValue> {
-    pub(super) fn new() -> ProcessValues<GLKey,GLValue,OurKey,OurValue> {
-        ProcessValues {
+impl<K: ProcessValueHandle,T> KeyedValues<K,T> {
+    pub fn new() -> KeyedValues<K,T> {
+        KeyedValues {
             our_keys: HashMap::new(),
             entries: vec![]
         }
     }
 
-    pub(super) fn add_entry(&mut self, name: &str, gl_key: GLKey, object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>) -> OurKey {
+    pub fn add(&mut self, key: &str, value: T) -> K {
         let idx = self.entries.len();
-        self.our_keys.insert(name.to_string(),OurKey::new(idx));
-        self.entries.push(ProcessValueEntry {
-            gl_key, object,
-            gl_value: None
-        });
-        OurKey::new(idx)
+        self.our_keys.insert(key.to_string(),K::new(idx));
+        self.entries.push(value);
+        K::new(idx)
+    }
+
+    pub fn get_handle(&mut self, name: &str) -> anyhow::Result<K> {
+        Ok(self.our_keys.get(name).ok_or_else(|| err!("no such item '{}",name))?.cloned())
+    }
+
+    pub fn get(&self, key: &K) -> &T { &self.entries[key.get()] }
+    pub fn get_mut(&mut self, key: &K) -> &mut T { &mut self.entries[key.get()] }
+    pub fn iter(&self) -> impl Iterator<Item=&T> { self.entries.iter() }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=&mut T> { self.entries.iter_mut() }
+}
+
+pub(super) struct ProcessValues<GLValue,OurKey : ProcessValueHandle,OurValue>(KeyedValues<OurKey,ProcessValueEntry<GLValue,OurValue>>);
+
+impl<GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLValue,OurKey,OurValue> {
+    pub(super) fn new() -> ProcessValues<GLValue,OurKey,OurValue> {
+        ProcessValues(KeyedValues::new())
+    }
+
+    pub(super) fn add_entry(&mut self, name: &str, object: Box<dyn ProcessValueType<GLValue=GLValue,OurValue=OurValue>>) -> OurKey {
+        self.0.add(name,ProcessValueEntry { object, gl_value: None })
     }
 
     pub(super) fn activate_all(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
-        for (i,entry) in self.entries.iter().enumerate() {
+        for (i,entry) in self.0.iter().enumerate() {
             if let Some(buffer) = &entry.gl_value {
-                entry.object.activate(context,&entry.gl_key,buffer)?;
+                entry.object.activate(context,buffer)?;
             }
         }
         Ok(())
     }
 
     pub fn get_handle(&mut self, name: &str) -> anyhow::Result<OurKey> {
-        Ok(self.our_keys.get(name).ok_or_else(|| err!("no such item '{}",name))?.cloned())
+        self.0.get_handle(name)
     }
 
     pub fn set_value(&mut self, context: &WebGlRenderingContext, our_key: &OurKey, our_value: OurValue) -> anyhow::Result<()> {
-        let entry = &mut self.entries[our_key.get()];
+        let entry = self.0.get_mut(our_key);
         if let Some(old_value) = entry.gl_value.take() {
             entry.object.delete(context,&old_value)?;
         }
@@ -87,7 +103,7 @@ impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLV
     }
 
     pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
-        for entry in self.entries.iter() {
+        for entry in self.0.iter() {
             if let Some(gl_value) = &entry.gl_value {
                 entry.object.delete(context,gl_value)?;
             }
@@ -98,16 +114,16 @@ impl<GLKey,GLValue,OurKey : ProcessValueHandle,OurValue> ProcessValues<GLKey,GLV
 
 process_value_handle!(AnonHandle);
 
-pub(super) struct AnonProcessValues<GLKey,GLValue,OurValue>(ProcessValues<GLKey,GLValue,AnonHandle,OurValue>);
+pub(super) struct AnonProcessValues<GLValue,OurValue>(ProcessValues<GLValue,AnonHandle,OurValue>);
 
-impl<GLKey,GLValue,OurValue> AnonProcessValues<GLKey,GLValue,OurValue> {
-    pub(super) fn new() -> AnonProcessValues<GLKey,GLValue,OurValue> {
+impl<GLValue,OurValue> AnonProcessValues<GLValue,OurValue> {
+    pub(super) fn new() -> AnonProcessValues<GLValue,OurValue> {
         AnonProcessValues(ProcessValues::new())
     }
 
-    pub fn add_anon(&mut self, context: &WebGlRenderingContext, object: Box<dyn ProcessValueType<GLKey=GLKey,GLValue=GLValue,OurValue=OurValue>>,
-                    gl_key: GLKey, our_value: OurValue) -> anyhow::Result<()> {
-        let handle = self.0.add_entry("",gl_key,object);
+    pub fn add_anon(&mut self, context: &WebGlRenderingContext, object: Box<dyn ProcessValueType<GLValue=GLValue,OurValue=OurValue>>,
+                    our_value: OurValue) -> anyhow::Result<()> {
+        let handle = self.0.add_entry("",object);
         self.0.set_value(context,&handle,our_value)
     }
 
