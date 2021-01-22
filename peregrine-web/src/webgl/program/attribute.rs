@@ -77,6 +77,12 @@ impl AttributeValues {
         }
     }
 
+    pub(super) fn new2(object: Attribute, our_value: Vec<f32>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
+        let mut out = AttributeValues::new(object);
+        out.set_value(context,our_value)?;
+        Ok(out)
+    }
+
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         let location = self.object.location;
         if let Some(buffer) = &self.gl_value {

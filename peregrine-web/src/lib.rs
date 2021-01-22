@@ -56,6 +56,7 @@ mod webgl {
     pub(crate) use gpuspec::precision::Precision;
 
     mod program {
+        pub(crate) mod accumulator;
         pub(crate) mod compiler;
         pub(crate) mod texture;
         pub(crate) mod glstate;
