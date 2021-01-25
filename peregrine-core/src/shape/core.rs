@@ -165,7 +165,7 @@ impl ScreenEdge {
         }
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             ScreenEdge::Min(x) => x.len(),
             ScreenEdge::Max(x) => x.len()
@@ -224,7 +224,7 @@ impl SeaEnd {
         }
     }
 
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             SeaEnd::Paper(x) => x.len(),
             SeaEnd::Screen(x) => x.len()

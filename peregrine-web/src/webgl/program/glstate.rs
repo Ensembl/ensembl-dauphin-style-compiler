@@ -1,6 +1,5 @@
 use anyhow::Context;
-use std::collections::HashMap;
-use web_sys::{ WebGlProgram, WebGlUniformLocation, WebGlRenderingContext };
+use web_sys::{ WebGlRenderingContext };
 use super::compiler::WebGlCompiler;
 use super::super::gpuspec::gpuspec::GPUSpec;
 use super::program::Program;
@@ -33,10 +32,5 @@ impl<'c> GLState<'c> {
         let handle = ProgramHandle(self.programs.len());
         self.programs.push(program);
         Ok(handle)
-    }
-
-    pub(crate) fn use_program(&mut self, handle: ProgramHandle) -> anyhow::Result<()> {
-        self.current_program = Some(handle.0);
-        Ok(())
     }
 }

@@ -1,9 +1,7 @@
-use std::sync::{ Arc, Mutex };
 use anyhow::{ anyhow as err, bail };
 use web_sys::{ WebGlProgram, WebGlUniformLocation, WebGlRenderingContext };
 use super::attribute::Attribute;
 use super::uniform::Uniform;
-use super::process::ProcessBuilder;
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 

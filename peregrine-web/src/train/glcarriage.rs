@@ -1,5 +1,5 @@
 use peregrine_core::{ Carriage, CarriageId };
-use crate::shape::glshape::GLShape;
+use crate::shape::core::glshape::GLShape;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 

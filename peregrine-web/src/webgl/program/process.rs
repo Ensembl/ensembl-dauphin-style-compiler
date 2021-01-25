@@ -1,14 +1,12 @@
-use anyhow::{ anyhow as err, bail };
-use std::collections::HashMap;
 use std::rc::Rc;
 use crate::webgl::canvas::canvas::Canvas;
 use super::accumulator::{ Accumulator, AccumulatedRun };
 use super::program::Program;
-use super::attribute::{ Attribute, AttribHandle, AttributeValues };
-use super::uniform::{ Uniform, UniformHandle, UniformValues };
-use super::texture::{ Texture, TextureValues };
-use super::keyed::{ KeyedValues, KeyedKeys };
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer, WebGlTexture, HtmlCanvasElement };
+use super::attribute::{ AttribHandle };
+use super::uniform::{ UniformHandle, UniformValues };
+use super::texture::{ TextureValues };
+use super::keyed::{ KeyedValues };
+use web_sys::{ WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 
 pub struct ProcessBuilder<'c> {
@@ -20,7 +18,7 @@ pub struct ProcessBuilder<'c> {
 }
 
 impl<'c> ProcessBuilder<'c> {
-    pub(super) fn new(program: Rc<Program<'c>>, context: &'c WebGlRenderingContext) -> ProcessBuilder<'c> {
+    pub(crate) fn new(program: Rc<Program<'c>>) -> ProcessBuilder<'c> {
         let mut uniforms = KeyedValues::new();
         let mut attribs = KeyedValues::new();
         for uniform in program.get_uniforms().iter() {
@@ -29,8 +27,10 @@ impl<'c> ProcessBuilder<'c> {
         for attrib in program.get_attribs().iter() {
             attribs.add(attrib.name(),attrib.clone());
         }
+        let context = program.context();
         ProcessBuilder {
-            program, context,
+            program,
+            context,
             accumulator: Accumulator::new(attribs),
             uniforms,
             textures: vec![]
@@ -45,7 +45,7 @@ impl<'c> ProcessBuilder<'c> {
         self.uniforms.data_mut().get_mut(handle).set_value(&self.context,values)
     }
 
-    pub fn get_attrib_handle(&mut self, name: &str) -> anyhow::Result<AttribHandle> {
+    pub fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
         self.accumulator.get_attrib_handle(name)
     }
 

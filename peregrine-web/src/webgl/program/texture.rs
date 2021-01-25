@@ -1,5 +1,5 @@
 use anyhow::{ anyhow as err };
-use web_sys::{ WebGlRenderingContext, WebGlTexture, HtmlCanvasElement };
+use web_sys::{ WebGlRenderingContext, WebGlTexture };
 use crate::webgl::canvas::canvas::{ Canvas, CanvasWeave };
 use crate::webgl::util::handle_context_errors;
 

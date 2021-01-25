@@ -16,11 +16,11 @@ pub(crate) struct Attribute {
     location: Option<u32>
 }
 
-fn create_buffer(context: &WebGlRenderingContext, values: &[f32]) -> anyhow::Result<WebGlBuffer> {
+fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> anyhow::Result<WebGlBuffer> {
     let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
     // After `Float32Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
-        let value_array = js_sys::Float32Array::view(values);
+        let value_array = js_sys::Float64Array::view(values);
         context.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &value_array,
@@ -70,15 +70,11 @@ pub(crate) struct AttributeValues {
 }
 
 impl AttributeValues {
-    pub(super) fn new(object: Attribute) -> AttributeValues {
-        AttributeValues {
+    pub(super) fn new(object: Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
+        let mut out = AttributeValues {
             gl_value: None,
             object
-        }
-    }
-
-    pub(super) fn new2(object: Attribute, our_value: Vec<f32>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
-        let mut out = AttributeValues::new(object);
+        };
         out.set_value(context,our_value)?;
         Ok(out)
     }
@@ -104,7 +100,7 @@ impl AttributeValues {
         Ok(())
     }
 
-    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f32>) -> anyhow::Result<()> {
+    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
         self.delete(context)?;
         self.gl_value = Some(create_buffer(context,&our_value)?);
         Ok(())

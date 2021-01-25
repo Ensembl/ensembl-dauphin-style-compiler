@@ -8,6 +8,16 @@ pub(crate) enum PaintSkin {
 }
 
 impl PaintSkin {
+    pub fn to_index(&self) -> usize {
+        match self {
+            PaintSkin::Colour => 0,
+            PaintSkin::Spot => 1,
+            PaintSkin::Texture => 2
+        }
+    }
+
+    pub fn num_values(&self) -> usize { 3 }
+
     pub fn to_source(&self) -> SourceInstrs {
         SourceInstrs::new(
             match self {
@@ -33,7 +43,7 @@ impl PaintSkin {
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
                     Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2d(uSampler,vTextureCoord)"),
-                    Statement::new_fragment("gl_FragColor.a = gl_FragCOlor.a * uOpacity"),
+                    Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                     Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
                 ]
             }

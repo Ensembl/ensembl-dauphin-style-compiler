@@ -17,12 +17,23 @@ mod run {
 }
 
 mod shape {
-    mod consts;
-    pub(crate) mod glshape;
-    mod layer;
-    mod paintgeometry;
-    mod paintskin;
-    mod paintmethod;
+    pub(crate) mod core {
+        mod consts;
+        pub(crate) mod glshape;
+        pub(crate) mod paintgeometry;
+        pub(crate) mod paintskin;
+        pub(crate) mod paintmethod;
+    }
+
+    mod layers {
+        mod arrayutil;
+        mod directcolourdraw;
+        mod fixgeometry;
+        pub(crate) mod layer;
+        mod pagegeometry;
+        mod pingeometry;
+        mod tapegeometry;
+    }
 }
 
 mod train {
@@ -71,11 +82,13 @@ mod webgl {
         pub(crate) mod keyed;
     }
 
+    pub(crate) use program::accumulator::{ Accumulator, AccumulatorCampaign };
     pub(crate) use program::program::Program;
+    pub(crate) use program::process::ProcessBuilder;
     pub(crate) use program::compiler::WebGlCompiler;
     pub(crate) use program::header::Header;
     pub(crate) use program::uniform::Uniform;
-    pub(crate) use program::attribute::Attribute;
+    pub(crate) use program::attribute::{ Attribute, AttribHandle };
     pub(crate) use program::varying::Varying;
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;

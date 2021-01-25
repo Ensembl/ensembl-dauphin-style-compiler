@@ -1,5 +1,5 @@
 use super::source::Source;
-use super::super::{ GLArity, GPUSpec, Precision, Phase };
+use super::super::{ Phase };
 
 #[derive(Clone)]
 pub(crate) struct Statement {

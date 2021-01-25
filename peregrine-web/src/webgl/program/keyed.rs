@@ -1,36 +1,38 @@
 use anyhow::{ anyhow as err, bail };
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use super::attribute::Attribute;
-use super::texture::Texture;
-use super::uniform::Uniform;
-use crate::webgl::canvas::canvas::Canvas;
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer, WebGlTexture };
 
 pub trait KeyedHandle {
     fn new(value: usize) -> Self;
     fn get(&self) -> usize;
-    fn cloned(&self) -> Self;
+    fn clone_handle(&self) -> Self;
 }
 
 #[macro_export]
 macro_rules! keyed_handle {
     ($name:ident) => {
+        use $crate::webgl::program::keyed::KeyedHandle;
+
         pub struct $name(usize);
 
         impl $crate::webgl::program::keyed::KeyedHandle for $name {
             fn new(value: usize) -> Self { $name(value) }
             fn get(&self) -> usize { self.0 }
-            fn cloned(&self) -> Self { $name(self.0) }
+            fn clone_handle(&self) -> Self { $name(self.0) }
         }
+
+        impl Clone for $name {
+            fn clone(&self) -> Self { self.clone_handle() }
+        }        
     };
 }
+
 
 pub(crate) struct KeyedKeys<K: KeyedHandle,T>(HashMap<String,K>,PhantomData<T>);
 
 impl<K: KeyedHandle, T> Clone for KeyedKeys<K,T> {
     fn clone(&self) -> Self {
-        KeyedKeys(self.0.iter().map(|x| (x.0.to_string(),x.1.cloned())).collect(),PhantomData)
+        KeyedKeys(self.0.iter().map(|x| (x.0.to_string(),x.1.clone_handle())).collect(),PhantomData)
     }
 }
 
@@ -43,8 +45,8 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
         self.0.insert(name.to_string(),key);
     }
 
-    pub fn get_handle(&mut self, name: &str) -> anyhow::Result<K> {
-        Ok(self.0.get(name).ok_or_else(|| err!("no such item '{}",name))?.cloned())
+    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
+        Ok(self.0.get(name).ok_or_else(|| err!("no such item '{}",name))?.clone_handle())
     }
 
     pub fn make_maker<'f,F,U>(&self, template: F) -> KeyedDataMaker<'f,K,U> where F: Fn() -> U + 'f {
@@ -106,7 +108,7 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
         handle
     }
 
-    pub fn get_handle(&mut self, name: &str) -> anyhow::Result<K> {
+    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
         self.our_keys.get_handle(name)
     }
 

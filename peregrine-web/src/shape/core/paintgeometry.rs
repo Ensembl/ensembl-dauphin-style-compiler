@@ -1,15 +1,27 @@
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::webgl::{ SourceInstrs, Header, Uniform, Attribute, GLArity, Varying, Statement };
+use crate::webgl::{ SourceInstrs, Uniform, Attribute, GLArity, Statement };
 
 pub(crate) enum PaintGeometry {
-    Pin,
-    Stretch,
-    Fix,
-    Tape,
-    Page
+    Pin,     /* tied to document (x and y) at a single position */
+    Stretch, /* tied to x document at two positions (so that it stretches) and y document at one */
+    Fix,     /* tied to window in both axes */
+    Tape,    /* tied to document in x axis but to screen in y (eg rulers) */
+    Page     /* tied to windox in x axis but to document in y (eg track markers, etc) */
 }
 
 impl PaintGeometry {
+    pub fn to_index(&self) -> usize {
+        match self {
+            PaintGeometry::Pin => 0,
+            PaintGeometry::Stretch => 1,
+            PaintGeometry::Fix => 2,
+            PaintGeometry::Tape => 3,
+            PaintGeometry::Page => 4
+        }
+    }
+
+    pub fn num_values(&self) -> usize { 5 }
+
     pub fn to_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
             PaintGeometry::Pin => vec![
@@ -52,13 +64,13 @@ impl PaintGeometry {
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aOrigin"),
+                Attribute::new(PR_LOW,GLArity::Scalar,"aVertexSign"),
+                Attribute::new(PR_LOW,GLArity::Scalar,"aOrigin"),
                 Statement::new_vertex("
                     gl_Position = vec4(
-                        (aOrigin.x -uStageHpos) * uStageZoom + 
+                        (aOrigin - uStageHpos) * uStageZoom + 
                                     aVertexPosition.x / uSize.x,
-                        (1.0 - ((aOrigin.y + aVertexPosition.y) / uSize.y)) * aVertexSign.y,
+                        (1.0 - aVertexPosition.y / uSize.y) * aVertexSign,
                         0.0, 1.0)")
             ],
             PaintGeometry::Page => vec![

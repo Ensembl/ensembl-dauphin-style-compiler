@@ -1,10 +1,12 @@
-use anyhow::{ anyhow as err };
+use anyhow::{ anyhow as err, bail };
 use super::attribute::{ Attribute, AttribHandle, AttributeValues };
-use super::keyed::{ KeyedValues, KeyedData, KeyedKeys, KeyedDataMaker };
+use super::keyed::{ KeyedValues, KeyedData, KeyedDataMaker };
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-const LIMIT : u16 = 16384;
+const LIMIT : usize = 16384;
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyhow::Result<WebGlBuffer> {
     let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
@@ -49,96 +51,179 @@ impl AccumulatedRun {
 }
 
 struct AccumulatorEntry {
-    attribs: KeyedData<AttribHandle,Vec<f32>>,
-    index: Vec<u16>,
-    values_count: u16
+    attribs: KeyedData<AttribHandle,Vec<f64>>,
+    index: Vec<u16>
 }
 
 impl AccumulatorEntry {
-    fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f32>>) -> AccumulatorEntry {
+    fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f64>>) -> AccumulatorEntry {
         AccumulatorEntry {
             attribs: maker.make(),
-            index: vec![],
-            values_count: 0
+            index: vec![]
         }
-    } 
-
-    fn add_values(&mut self, handle: &AttribHandle, mut values: Vec<f32>) {
-        self.attribs.get_mut(handle).append(&mut values);
     }
 
-    fn space(&self, size: u16) -> bool {
-        self.values_count + size < LIMIT
+    fn base(&self) -> usize {
+        self.index.len()
     }
 
-    fn add_indexes(&mut self, indexes: &[u16], values_count: u16) -> u16 {
-        let values_count = self.values_count;
-        let offset = self.index.len() as u16;
-        self.index.extend(indexes.iter().map(|x| x+values_count));
-        self.values_count += values_count;
-        offset
+    fn space(&self, size: usize) -> usize {
+        (LIMIT - self.index.len()) / size
+    }
+
+    fn add_indexes(&mut self, indexes: &[u16], count: usize) {
+        for _ in 0..count {
+            self.index.extend_from_slice(indexes);
+        }
+    }
+
+    fn add(&mut self, handle: &AttribHandle, values: &[f64]) {
+        self.attribs.get_mut(handle).extend_from_slice(values);
+    }
+
+    fn add_n(&mut self, handle: &AttribHandle, values: &[f64], count: usize) {
+        let a = self.attribs.get_mut(handle);
+        for _ in 0..count {
+            a.extend_from_slice(values);
+        }
     }
 
     fn make(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> anyhow::Result<AccumulatedRun> {
         Ok(AccumulatedRun {
             index: create_index_buffer(context,&self.index)?,
             len: self.index.len(),
-            attribs: self.attribs.into(|k,v| AttributeValues::new2(values.get(&k).clone(),v,context))?
+            attribs: self.attribs.into(|k,v| AttributeValues::new(values.get(&k).clone(),v,context))?
         })
     }
 }
 
-pub(crate) struct AccumulatorValues<'a>(&'a mut Accumulator);
+pub struct AccumulatorCampaign {
+    entries: Vec<(Rc<RefCell<AccumulatorEntry>>,usize)>,
+    tuple_size: usize,
+    count: usize,
+    active: Rc<RefCell<bool>>
+}
 
-impl<'a> AccumulatorValues<'a> {
-    fn new(accumulator: &'a mut Accumulator, indexes: &[u16]) -> AccumulatorValues<'a> {
-        let values_count = *indexes.iter().max().unwrap_or(&0)+1;
-        accumulator.ensure_space(values_count);
-        accumulator.entry().add_indexes(indexes,values_count);
-        AccumulatorValues(accumulator)
+impl AccumulatorCampaign {
+    fn new(accumulator: &mut Accumulator, count: usize, indexes: &[u16]) -> AccumulatorCampaign {
+        let mut out = AccumulatorCampaign {
+            tuple_size: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
+            entries: vec![],
+            count,
+            active: accumulator.active().clone()
+        };
+        let bases = out.allocate_entries(accumulator);
+        out.add_indexes(indexes,&bases);
+        out
     }
 
-    pub(crate) fn add(&mut self, handle: &AttribHandle, values: Vec<f32>) {
-        self.0.entry().add_values(handle,values);
+    fn allocate_entries(&mut self, accumulator: &mut Accumulator) -> Vec<usize> {
+        let mut bases = vec![];
+        let mut remaining = self.count;
+        while remaining > 0 {
+            let entry = accumulator.entry().clone();
+            let mut space = entry.borrow().space(self.tuple_size);
+            if space > remaining { space = remaining; }
+            if space > 0 {
+                bases.push(entry.borrow().base());
+                self.entries.push((entry,space));
+            }
+            remaining -= space;
+            if remaining > 0 {
+                accumulator.make_entry();
+            }
+        }
+        bases
+    }
+
+    fn add_indexes(&mut self, indexes: &[u16], bases: &[usize]) {
+        for (i,(entry,count)) in self.entries.iter().enumerate() {
+            let these_indexes : Vec<u16> = indexes.iter().map(|x| *x+(bases[i] as u16)).collect();
+            entry.borrow_mut().add_indexes(&these_indexes,*count);
+        }
+    }
+
+    pub(crate) fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+        let array_size = self.tuple_size * self.count;
+        if values.len() != array_size {
+            bail!("incorrect array length: expected {} got {}",array_size,values.len());
+        }
+        let mut offset = 0;
+        for (entry,count) in &mut self.entries {
+            let slice_size = *count*self.tuple_size;
+            entry.borrow_mut().add(handle,&values[offset..(offset+slice_size)]);
+            offset += slice_size;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+        let values_size = values.len();
+        let mut offset = 0;
+        for (entry,count) in &mut self.entries {
+            let mut remaining = *count*self.tuple_size;
+            while remaining > 0 {
+                let mut real_count = remaining;
+                if offset+real_count > values_size { real_count = values_size-offset; }
+                entry.borrow_mut().add(handle,&values[offset..(offset+real_count)]);
+                remaining -= real_count;
+                offset += real_count;
+                if offset == values_size { offset = 0; }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn close(&mut self) {
+        *self.active.borrow_mut() = false;
     }
 }
 
-pub(crate) struct Accumulator {
-    entries: Vec<AccumulatorEntry>,
+pub struct Accumulator {
+    entries: Vec<Rc<RefCell<AccumulatorEntry>>>,
     attribs: KeyedValues<AttribHandle,Attribute>,
-    maker: KeyedDataMaker<'static,AttribHandle,Vec<f32>>
+    maker: KeyedDataMaker<'static,AttribHandle,Vec<f64>>,
+    active: Rc<RefCell<bool>>
+
 }
 
 impl Accumulator {
     pub(crate) fn new(attribs: KeyedValues<AttribHandle,Attribute>) -> Accumulator {
         let maker = attribs.keys().make_maker(|| vec![]);
         Accumulator {
+            attribs, maker,
             entries: vec![],
-            attribs: attribs,
-            maker
+            active: Rc::new(RefCell::new(false))
         }
     }
 
-    fn ensure_space(&mut self, size: u16) {
-        if !self.entries.last().map(|x| x.space(size)).unwrap_or(false) {
-            self.entries.push(AccumulatorEntry::new(&self.maker));
-        }
+    fn active(&self) -> &Rc<RefCell<bool>> { &self.active }
+
+    fn make_entry(&mut self) {
+        self.entries.push(Rc::new(RefCell::new(AccumulatorEntry::new(&self.maker))));
     }
 
-    fn entry(&mut self) -> &mut AccumulatorEntry {
+    fn entry<'a>(&'a mut self) -> &Rc<RefCell<AccumulatorEntry>> {
         self.entries.last_mut().unwrap()
     }
 
-    pub(super) fn get_attrib_handle(&mut self, name: &str) -> anyhow::Result<AttribHandle> {
+    pub(super) fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
         self.attribs.get_handle(name)
     }
 
-    pub(crate) fn add_values<'a>(&'a mut self,indexes: &[u16]) -> AccumulatorValues<'a> {
-        AccumulatorValues::new(self,indexes)
+    pub(crate) fn make_campaign(&mut self, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
+        if *self.active.borrow() {
+            bail!("can only have one active campaign at once");
+        }        
+        if self.entries.len() == 0 {
+            self.make_entry();
+        }
+        *self.active.borrow_mut() = true;
+        Ok(AccumulatorCampaign::new(self,count,indexes))
     }
 
     pub(super) fn make(mut self, context: &WebGlRenderingContext) -> anyhow::Result<Vec<AccumulatedRun>> {
         let data = self.attribs.data();
-        Ok(self.entries.drain(..).map(|x| x.make(&data,context)).collect::<Result<_,_>>()?)
+        Ok(self.entries.iter().map(|x| x.replace(AccumulatorEntry::new(&self.maker)).make(&data,context)).collect::<Result<_,_>>()?)
     }
 }

@@ -2,7 +2,7 @@ use anyhow::{ bail, anyhow as err };
 use super::source::{ Source };
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlBuffer };
+use web_sys::{ WebGlUniformLocation, WebGlRenderingContext };
 use crate::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 
