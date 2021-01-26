@@ -1,7 +1,7 @@
-use super::layer::{ Layer };
-use super::geometry::GeometryAccessorName;
-use super::patina::PatinaAccessorName;
-use super::arrayutil::{ add_fixed_sea_box, ship_box };
+use super::super::layers::layer::{ Layer };
+use super::super::layers::geometry::GeometryAccessorName;
+use super::super::layers::patina::PatinaAccessorName;
+use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box };
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 

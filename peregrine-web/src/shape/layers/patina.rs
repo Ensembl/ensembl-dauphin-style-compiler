@@ -1,5 +1,5 @@
-use super::directcolourdraw::DirectColourDraw;
-use super::spotcolourdraw::SpotColourDraw;
+use super::super::core::directcolourdraw::DirectColourDraw;
+use super::super::core::spotcolourdraw::SpotColourDraw;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement };
 use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
@@ -7,6 +7,15 @@ use super::consts::{ PR_LOW, PR_DEF };
 pub(super) enum PatinaAccessorVariety { Direct, Spot }
 
 impl PatinaAccessorVariety {
+    pub const COUNT : usize = 2;
+
+    pub fn get_index(&self) -> usize {
+        match self {
+            PatinaAccessorVariety::Direct => 0,
+            PatinaAccessorVariety::Spot => 1
+        }
+    }
+
     pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(
             match self {

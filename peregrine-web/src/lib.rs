@@ -19,20 +19,21 @@ mod run {
 mod shape {
     pub(crate) mod core {
         pub(crate) mod glshape;
+        pub(super) mod directcolourdraw;
+        pub(super) mod fixgeometry;
+        pub(super) mod pagegeometry;
+        pub(super) mod pingeometry;
+        pub(super) mod spotcolourdraw;
+        pub(super) mod tapegeometry;
     }
 
     mod layers {
-        mod arrayutil;
+        pub(crate) mod arrayutil;
         pub(super) mod consts;
-        mod directcolourdraw;
-        mod fixgeometry;
         pub(crate) mod geometry;
+        pub(crate) mod programstore;
         pub(crate) mod layer;
-        mod pagegeometry;
         pub(super) mod patina;
-        mod pingeometry;
-        mod spotcolourdraw;
-        mod tapegeometry;
     }
 }
 

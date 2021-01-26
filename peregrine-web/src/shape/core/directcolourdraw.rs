@@ -1,6 +1,6 @@
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::DirectColour;
-use super::arrayutil::scale_colour;
+use super::super::layers::arrayutil::scale_colour;
 
 #[derive(Clone)]
 pub struct DirectColourDraw {

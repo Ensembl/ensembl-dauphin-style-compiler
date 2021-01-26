@@ -1,21 +1,21 @@
 use anyhow::bail;
 use std::collections::HashMap;
 use std::rc::Rc;
-use super::pingeometry::PinGeometry;
-use super::fixgeometry::FixGeometry;
-use super::tapegeometry::TapeGeometry;
-use super::pagegeometry::PageGeometry;
-use super::directcolourdraw::DirectColourDraw;
-use super::spotcolourdraw::SpotColourDraw;
+use super::super::core::pingeometry::PinGeometry;
+use super::super::core::fixgeometry::FixGeometry;
+use super::super::core::tapegeometry::TapeGeometry;
+use super::super::core::pagegeometry::PageGeometry;
+use super::super::core::directcolourdraw::DirectColourDraw;
+use super::super::core::spotcolourdraw::SpotColourDraw;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
 use super::geometry::{ GeometryAccessor, GeometryAccessorName };
+use super::programstore::ProgramStore;
 use super::patina::{ PatinaAccessor, PatinaAccessorName };
 use peregrine_core::DirectColour;
 
 /* TODO 
 
 Wiggles
-Pullout programs (don't recompile for each spot)
 macroise
 split accumulator
 ensure + index
@@ -24,7 +24,6 @@ y split bug
 y from bottom
 layers from core
 ordered layers
-move enum progs into layers or vice-versa
 does everything need context ref?
 push up handle resolution via attrib factory (eg spot)
 split layer
@@ -44,31 +43,27 @@ struct SubLayerHolder<'c>(Option<SubLayer<'c>>);
 impl<'c> SubLayerHolder<'c> {
     fn new() -> SubLayerHolder<'c> { SubLayerHolder(None) }
 
-    fn make(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<()> {
-        // XXX demerge compiling from sublayer (eg don't recompile for spot)
-        let mut source = SourceInstrs::new(vec![]);
-        source.merge(geometry.get_variety().get_source());
-        source.merge(patina.get_variety().get_source());
-        let program = compiler.make_program(source)?; // XXX pull out
-        let process = ProcessBuilder::new(Rc::new(program));
+    fn make(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<()> {
+        let program = programs.get_program(geometry.get_variety(),patina.get_variety())?;
+        let process = ProcessBuilder::new(program);
         let geometry = geometry.make_accessor(&process,patina)?;
         let patina = patina.make_accessor(&process)?;
         self.0 = Some(SubLayer { process, geometry, patina });
         Ok(())
     }
 
-    fn get_process_mut(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
-        self.make(compiler,geometry,patina)?;
+    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+        self.make(programs,geometry,patina)?;
         Ok(&mut self.0.as_mut().unwrap().process)
     }
 
-    fn get_geometry(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
-        self.make(compiler,geometry,patina)?;
+    fn get_geometry(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
+        self.make(programs,geometry,patina)?;
         Ok(&self.0.as_mut().unwrap().geometry)
     }
 
-    fn get_patina(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
-        self.make(compiler,geometry,patina)?;
+    fn get_patina(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
+        self.make(programs,geometry,patina)?;
         Ok(&self.0.as_mut().unwrap().patina)
     }
 }
@@ -93,21 +88,21 @@ impl<'c> GeometrySubLayer<'c> {
         })
     }
 
-    fn get_process_mut(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
-        self.holder(patina)?.get_process_mut(compiler,geometry,patina)
+    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+        self.holder(patina)?.get_process_mut(programs,geometry,patina)
     }
 
-    fn get_geometry(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
-        self.holder(patina)?.get_geometry(compiler,geometry,patina)
+    fn get_geometry(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
+        self.holder(patina)?.get_geometry(programs,geometry,patina)
     }
 
-    fn get_patina(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
-        self.holder(patina)?.get_patina(compiler,geometry,patina)
+    fn get_patina(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
+        self.holder(patina)?.get_patina(programs,geometry,patina)
     }
 }
 
 pub(crate) struct Layer<'c> {
-    compiler: &'c WebGlCompiler<'c>,
+    programs: &'c ProgramStore<'c>,
     pin: GeometrySubLayer<'c>,
     fix: GeometrySubLayer<'c>,
     tape: GeometrySubLayer<'c>,
@@ -115,9 +110,9 @@ pub(crate) struct Layer<'c> {
 }
 
 impl<'c> Layer<'c> {
-    pub fn new(compiler: &'c WebGlCompiler<'c>) -> Layer<'c> {
+    pub fn new(programs: &'c ProgramStore<'c>) -> Layer<'c> {
         Layer {
-            compiler,
+            programs,
             pin: GeometrySubLayer::new(),
             fix: GeometrySubLayer::new(),
             tape: GeometrySubLayer::new(),
@@ -125,12 +120,12 @@ impl<'c> Layer<'c> {
         }
     }
 
-    fn holder(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<(&mut GeometrySubLayer<'c>,&'c WebGlCompiler<'c>)> {
+    fn holder(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<(&mut GeometrySubLayer<'c>,&'c ProgramStore<'c>)> {
         Ok(match geometry {
-            GeometryAccessorName::Pin => (&mut self.pin,&mut self.compiler),
-            GeometryAccessorName::Fix => (&mut self.fix,&mut self.compiler),
-            GeometryAccessorName::Tape => (&mut self.tape,&mut self.compiler),
-            GeometryAccessorName::Page => (&mut self.page,&mut self.compiler),
+            GeometryAccessorName::Pin => (&mut self.pin,&mut self.programs),
+            GeometryAccessorName::Fix => (&mut self.fix,&mut self.programs),
+            GeometryAccessorName::Tape => (&mut self.tape,&mut self.programs),
+            GeometryAccessorName::Page => (&mut self.page,&mut self.programs),
         })
     }
 

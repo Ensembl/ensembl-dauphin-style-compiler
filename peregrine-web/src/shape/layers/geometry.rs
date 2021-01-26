@@ -1,7 +1,7 @@
-use super::pingeometry::PinGeometry;
-use super::fixgeometry::FixGeometry;
-use super::tapegeometry::TapeGeometry;
-use super::pagegeometry::PageGeometry;
+use super::super::core::pingeometry::PinGeometry;
+use super::super::core::fixgeometry::FixGeometry;
+use super::super::core::tapegeometry::TapeGeometry;
+use super::super::core::pagegeometry::PageGeometry;
 use super::patina::PatinaAccessorName;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement };
 use super::consts::{ PR_LOW, PR_DEF };
@@ -10,6 +10,17 @@ use web_sys::{ WebGlRenderingContext };
 pub(super) enum GeometryAccessorVariety { Pin, Fix, Tape, Page }
 
 impl GeometryAccessorVariety {
+    pub const COUNT : usize = 3;
+
+    pub fn get_index(&self) -> usize {
+        match self {
+            GeometryAccessorVariety::Pin => 0,
+            GeometryAccessorVariety::Fix => 1,
+            GeometryAccessorVariety::Tape => 2,
+            GeometryAccessorVariety::Page => 3
+        }
+    }
+
     pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
             GeometryAccessorVariety::Pin => vec![

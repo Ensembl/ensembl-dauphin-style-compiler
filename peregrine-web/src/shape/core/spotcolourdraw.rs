@@ -1,7 +1,7 @@
 use anyhow::bail;
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign, UniformHandle };
 use peregrine_core::DirectColour;
-use super::arrayutil::{ scale_colour };
+use super::super::layers::arrayutil::{ scale_colour };
 
 #[derive(Clone)]
 pub struct SpotColourDraw {

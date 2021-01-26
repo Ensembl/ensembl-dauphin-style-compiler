@@ -1,11 +1,11 @@
 use peregrine_core::{ ShipEnd, ScreenEdge };
 use anyhow::{ bail };
 
-pub(super) fn scale_colour(value: u8) -> f64 {
+pub(crate) fn scale_colour(value: u8) -> f64 {
     (value as f64)/255.
 }
 
-pub(super) fn interleave<X>(mut main: Vec<X>, sub: &[X]) -> anyhow::Result<Vec<X>> where X: Clone {
+pub(crate) fn interleave<X>(mut main: Vec<X>, sub: &[X]) -> anyhow::Result<Vec<X>> where X: Clone {
     let sub_len = sub.len();
     if sub_len == 0 { bail!("Cannot interleave zero-length array"); }
     let mut out = vec![];
@@ -16,7 +16,7 @@ pub(super) fn interleave<X>(mut main: Vec<X>, sub: &[X]) -> anyhow::Result<Vec<X
     Ok(out)
 }
 
-pub(super) fn interleave_one<X>(a: X, b: X, count: usize) -> anyhow::Result<Vec<X>> where X: Clone {
+pub(crate) fn interleave_one<X>(a: X, b: X, count: usize) -> anyhow::Result<Vec<X>> where X: Clone {
     let mut out = vec![];
     for _ in 0..count {
         out.push(a.clone());
@@ -25,7 +25,7 @@ pub(super) fn interleave_one<X>(a: X, b: X, count: usize) -> anyhow::Result<Vec<
     Ok(out)
 }
 
-pub(super) fn ship_box(ship_x: ShipEnd, size_x: Vec<f64>, ship_y: ShipEnd, size_y: Vec<f64>, count: usize) -> Vec<f64> {
+pub(crate) fn ship_box(ship_x: ShipEnd, size_x: Vec<f64>, ship_y: ShipEnd, size_y: Vec<f64>, count: usize) -> Vec<f64> {
     let mut out = vec![];
 
     /* the weird procedures in this method are to keep branch-free inner loops and to avoid copying */
@@ -75,7 +75,7 @@ pub(super) fn ship_box(ship_x: ShipEnd, size_x: Vec<f64>, ship_y: ShipEnd, size_
     out
 }
 
-pub(super) fn add_fixed_sea_box(values: &mut [f64], y: bool, screen: ScreenEdge) {
+pub(crate) fn add_fixed_sea_box(values: &mut [f64], y: bool, screen: ScreenEdge) {
     let nudge = if y { 1 } else { 0 };
     match &screen {
         ScreenEdge::Min(z) => {
