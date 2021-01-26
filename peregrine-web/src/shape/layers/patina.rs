@@ -1,38 +1,28 @@
+use super::directcolourdraw::DirectColourDraw;
+use super::spotcolourdraw::SpotColourDraw;
+use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement };
+use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::webgl::{ SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement };
 
-pub(crate) enum PaintSkin {
-    Colour,
-    Spot,
-    Texture
-}
+pub(super) enum PatinaAccessorVariety { Direct, Spot }
 
-impl PaintSkin {
-    pub fn to_index(&self) -> usize {
-        match self {
-            PaintSkin::Colour => 0,
-            PaintSkin::Spot => 1,
-            PaintSkin::Texture => 2
-        }
-    }
-
-    pub fn num_values(&self) -> usize { 3 }
-
-    pub fn to_source(&self) -> SourceInstrs {
+impl PatinaAccessorVariety {
+    pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(
             match self {
-                PaintSkin::Colour => vec![
+                PatinaAccessorVariety::Direct => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Attribute::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec3,"vColour"),
                     Statement::new_vertex("vColour = vec3(aVertexColour)"),
                     Statement::new_fragment("gl_FragColor = vec4(vColour,uOpacity)")
                 ],
-                PaintSkin::Spot => vec![
+                PatinaAccessorVariety::Spot => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Uniform::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],
+                /*
                 PaintSkin::Texture => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Uniform::new_fragment(PR_DEF,GLArity::Sampler2D,"uSampler"),
@@ -46,7 +36,32 @@ impl PaintSkin {
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                     Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
                 ]
+                */
             }
         )
+    }
+}
+
+pub(super) enum PatinaAccessor {
+    Direct(DirectColourDraw),
+    Spot(SpotColourDraw)
+}
+
+#[derive(Clone)]
+pub enum PatinaAccessorName { Direct, Spot(DirectColour) }
+
+impl PatinaAccessorName {
+    pub(super) fn make_accessor(&self, process: &ProcessBuilder) -> anyhow::Result<PatinaAccessor> {
+        Ok(match self {
+            PatinaAccessorName::Direct => PatinaAccessor::Direct(DirectColourDraw::new(process)?),
+            PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour)?)
+        })
+    }
+
+    pub(super) fn get_variety(&self) -> PatinaAccessorVariety {
+        match self {
+            PatinaAccessorName::Direct => PatinaAccessorVariety::Direct,
+            PatinaAccessorName::Spot(_) => PatinaAccessorVariety::Spot
+        }
     }
 }

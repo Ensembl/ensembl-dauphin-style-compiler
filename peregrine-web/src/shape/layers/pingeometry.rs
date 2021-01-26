@@ -1,6 +1,6 @@
-use super::super::core::paintgeometry::PaintGeometry;
-use super::super::core::paintskin::PaintSkin;
-use super::layer::{ Layer, GeometryAccessorName, PatinaAccessorName };
+use super::layer::{ Layer };
+use super::geometry::GeometryAccessorName;
+use super::patina::PatinaAccessorName;
 use super::arrayutil::{ interleave, ship_box };
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::ShipEnd;

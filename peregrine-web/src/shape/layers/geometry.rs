@@ -1,30 +1,19 @@
+use super::pingeometry::PinGeometry;
+use super::fixgeometry::FixGeometry;
+use super::tapegeometry::TapeGeometry;
+use super::pagegeometry::PageGeometry;
+use super::patina::PatinaAccessorName;
+use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement };
 use super::consts::{ PR_LOW, PR_DEF };
-use crate::webgl::{ SourceInstrs, Uniform, Attribute, GLArity, Statement };
+use web_sys::{ WebGlRenderingContext };
 
-pub(crate) enum PaintGeometry {
-    Pin,     /* tied to document (x and y) at a single position */
-    Stretch, /* tied to x document at two positions (so that it stretches) and y document at one */
-    Fix,     /* tied to window in both axes */
-    Tape,    /* tied to document in x axis but to screen in y (eg rulers) */
-    Page     /* tied to windox in x axis but to document in y (eg track markers, etc) */
-}
+pub(super) enum GeometryAccessorVariety { Pin, Fix, Tape, Page }
 
-impl PaintGeometry {
-    pub fn to_index(&self) -> usize {
-        match self {
-            PaintGeometry::Pin => 0,
-            PaintGeometry::Stretch => 1,
-            PaintGeometry::Fix => 2,
-            PaintGeometry::Tape => 3,
-            PaintGeometry::Page => 4
-        }
-    }
-
-    pub fn num_values(&self) -> usize { 5 }
-
-    pub fn to_source(&self) -> SourceInstrs {
+impl GeometryAccessorVariety {
+    pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
-            PaintGeometry::Pin => vec![
+            GeometryAccessorVariety::Pin => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
@@ -38,7 +27,9 @@ impl PaintGeometry {
                         - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
                         0.0, 1.0)")
             ],
+            /*
             PaintGeometry::Stretch => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
@@ -50,7 +41,9 @@ impl PaintGeometry {
                         - (aVertexPosition.y - uStageVpos) / uSize.y,
                         0.0, 1.0)")
             ],
-            PaintGeometry::Fix => vec![
+            */
+            GeometryAccessorVariety::Fix => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
@@ -59,7 +52,8 @@ impl PaintGeometry {
                                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign.y,
                                         0.0, 1.0)")
             ],
-            PaintGeometry::Tape => vec![
+            GeometryAccessorVariety::Tape => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
@@ -73,7 +67,8 @@ impl PaintGeometry {
                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign,
                         0.0, 1.0)")
             ],
-            PaintGeometry::Page => vec![
+            GeometryAccessorVariety::Page => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
@@ -83,6 +78,36 @@ impl PaintGeometry {
                                        (- (aVertexPosition.y - uStageVpos) / uSize.y) * aVertexSign.y, 
                                        0.0, 1.0)")
             ]
+            // wiggles are Header::new(WebGlRenderingContext::TRIANGLES_STRIP),
         })
+    }
+}
+
+pub(super) enum GeometryAccessor {
+    Pin(PinGeometry),
+    Fix(FixGeometry),
+    Tape(TapeGeometry),
+    Page(PageGeometry)
+}
+
+pub enum GeometryAccessorName { Pin, Fix, Tape, Page }
+
+impl GeometryAccessorName {
+    pub(super) fn make_accessor(&self, process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
+        Ok(match self {
+            GeometryAccessorName::Pin => GeometryAccessor::Pin(PinGeometry::new(process,skin)?),
+            GeometryAccessorName::Fix => GeometryAccessor::Fix(FixGeometry::new(process,skin)?),
+            GeometryAccessorName::Tape => GeometryAccessor::Tape(TapeGeometry::new(process,skin)?),
+            GeometryAccessorName::Page => GeometryAccessor::Page(PageGeometry::new(process,skin)?),
+        })
+    }
+
+    pub(super) fn get_variety(&self) -> GeometryAccessorVariety {
+        match self {
+            GeometryAccessorName::Pin => GeometryAccessorVariety::Pin,
+            GeometryAccessorName::Fix => GeometryAccessorVariety::Fix,
+            GeometryAccessorName::Tape => GeometryAccessorVariety::Tape,
+            GeometryAccessorName::Page => GeometryAccessorVariety::Page,
+        }
     }
 }

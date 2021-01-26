@@ -1,6 +1,6 @@
-use super::super::core::paintgeometry::PaintGeometry;
-use super::super::core::paintskin::PaintSkin;
-use super::layer::{ Layer, GeometryAccessorName, PatinaAccessorName };
+use super::layer::{ Layer };
+use super::geometry::GeometryAccessorName;
+use super::patina::PatinaAccessorName;
 use super::arrayutil::{ add_fixed_sea_box, ship_box, interleave_one };
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::{ ShipEnd, ScreenEdge };

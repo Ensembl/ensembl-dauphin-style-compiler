@@ -18,19 +18,18 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        mod consts;
         pub(crate) mod glshape;
-        pub(crate) mod paintgeometry;
-        pub(crate) mod paintskin;
-        pub(crate) mod paintmethod;
     }
 
     mod layers {
         mod arrayutil;
+        pub(super) mod consts;
         mod directcolourdraw;
         mod fixgeometry;
+        pub(crate) mod geometry;
         pub(crate) mod layer;
         mod pagegeometry;
+        pub(super) mod patina;
         mod pingeometry;
         mod spotcolourdraw;
         mod tapegeometry;

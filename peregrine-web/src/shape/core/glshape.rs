@@ -1,7 +1,7 @@
 use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour };
-use super::super::layers::layer::{ Layer, GeometryAccessorName, PatinaAccessorName };
-use super::paintskin::PaintSkin;
-use super::paintgeometry::PaintGeometry;
+use super::super::layers::layer::{ Layer };
+use super::super::layers::patina::PatinaAccessorName;
+use super::super::layers::geometry::GeometryAccessorName;
 use crate::webgl::AccumulatorCampaign;
 
 pub(crate) struct GLShape(Shape);

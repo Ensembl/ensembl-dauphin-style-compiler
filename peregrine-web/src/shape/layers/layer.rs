@@ -1,9 +1,6 @@
 use anyhow::bail;
 use std::collections::HashMap;
 use std::rc::Rc;
-use super::super::core::paintgeometry::PaintGeometry;
-use super::super::core::paintskin::PaintSkin;
-use super::super::core::paintmethod::PaintMethod;
 use super::pingeometry::PinGeometry;
 use super::fixgeometry::FixGeometry;
 use super::tapegeometry::TapeGeometry;
@@ -11,13 +8,14 @@ use super::pagegeometry::PageGeometry;
 use super::directcolourdraw::DirectColourDraw;
 use super::spotcolourdraw::SpotColourDraw;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
+use super::geometry::{ GeometryAccessor, GeometryAccessorName };
+use super::patina::{ PatinaAccessor, PatinaAccessorName };
 use peregrine_core::DirectColour;
 
 /* TODO 
 
 Wiggles
 Pullout programs (don't recompile for each spot)
-on create pass other part of accessor
 macroise
 split accumulator
 ensure + index
@@ -35,63 +33,6 @@ rename accessors
 
 */
 
-enum GeometryAccessor {
-    Pin(PinGeometry),
-    Fix(FixGeometry),
-    Tape(TapeGeometry),
-    Page(PageGeometry)
-}
-
-pub enum GeometryAccessorName { Pin, Fix, Tape, Page }
-
-impl GeometryAccessorName {
-    fn make_accessor(&self, process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
-        Ok(match self {
-            GeometryAccessorName::Pin => GeometryAccessor::Pin(PinGeometry::new(process,skin)?),
-            GeometryAccessorName::Fix => GeometryAccessor::Fix(FixGeometry::new(process,skin)?),
-            GeometryAccessorName::Tape => GeometryAccessor::Tape(TapeGeometry::new(process,skin)?),
-            GeometryAccessorName::Page => GeometryAccessor::Page(PageGeometry::new(process,skin)?),
-        })
-    }
-
-    // needs to be merged with paint enum XXX
-    fn get_source(&self) -> SourceInstrs {
-        let paint = match self {
-            GeometryAccessorName::Pin => PaintGeometry::Pin,
-            GeometryAccessorName::Fix => PaintGeometry::Fix,
-            GeometryAccessorName::Page => PaintGeometry::Page,
-            GeometryAccessorName::Tape => PaintGeometry::Tape
-        };
-        paint.to_source()
-    }
-}
-
-enum PatinaAccessor {
-    Direct(DirectColourDraw),
-    Spot(SpotColourDraw)
-}
-
-#[derive(Clone)]
-pub enum PatinaAccessorName { Direct, Spot(DirectColour) }
-
-impl PatinaAccessorName {
-    fn make_accessor(&self, process: &ProcessBuilder) -> anyhow::Result<PatinaAccessor> {
-        Ok(match self {
-            PatinaAccessorName::Direct => PatinaAccessor::Direct(DirectColourDraw::new(process)?),
-            PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour)?)
-        })
-    }
-
-    // needs to be merged with paint enum XXX
-    fn get_source(&self) -> SourceInstrs {
-        let paint = match self {
-            PatinaAccessorName::Direct => PaintSkin::Colour,
-            PatinaAccessorName::Spot(_) => PaintSkin::Spot
-        };
-        paint.to_source()
-    }
-}
-
 struct SubLayer<'c> {
     process: ProcessBuilder<'c>,
     geometry: GeometryAccessor,
@@ -106,9 +47,8 @@ impl<'c> SubLayerHolder<'c> {
     fn make(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<()> {
         // XXX demerge compiling from sublayer (eg don't recompile for spot)
         let mut source = SourceInstrs::new(vec![]);
-        source.merge(geometry.get_source());
-        source.merge(PaintMethod::Triangle.to_source());
-        source.merge(patina.get_source());
+        source.merge(geometry.get_variety().get_source());
+        source.merge(patina.get_variety().get_source());
         let program = compiler.make_program(source)?; // XXX pull out
         let process = ProcessBuilder::new(Rc::new(program));
         let geometry = geometry.make_accessor(&process,patina)?;
