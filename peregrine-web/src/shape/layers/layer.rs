@@ -1,13 +1,12 @@
 use anyhow::bail;
 use std::collections::HashMap;
-use std::rc::Rc;
 use super::super::core::pingeometry::PinGeometry;
 use super::super::core::fixgeometry::FixGeometry;
 use super::super::core::tapegeometry::TapeGeometry;
 use super::super::core::pagegeometry::PageGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProtoProcess, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
+use crate::webgl::{ ProtoProcess, AccumulatorCampaign };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
@@ -17,14 +16,11 @@ use peregrine_core::DirectColour;
 
 Wiggles
 macroise
-split accumulator
 ensure + index
 y split bug
 y from bottom
 layers from core
 ordered layers
-does everything need context ref?
-split layer
 
 */
 
@@ -105,6 +101,24 @@ pub(crate) struct Layer<'c> {
     page: GeometrySubLayer<'c>
 }
 
+macro_rules! layer_geometry_accessor {
+    ($func:ident,$geom_type:ty,$geom_name:ident) => {
+        pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> anyhow::Result<$geom_type> {
+            let geom = self.get_geometry(&GeometryProcessName::$geom_name,patina)?;
+            match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+        }
+    };
+}
+
+macro_rules! layer_patina_accessor {
+    ($func:ident,$patina_type:ty,$patina_name:ident) => {
+        pub(crate) fn $func(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<$patina_type> {
+            let patina = self.get_patina(geometry,&PatinaProcessName::$patina_name)?;
+            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+        }                
+    };
+}
+
 impl<'c> Layer<'c> {
     pub fn new(programs: &'c ProgramStore<'c>) -> Layer<'c> {
         Layer {
@@ -116,7 +130,7 @@ impl<'c> Layer<'c> {
         }
     }
 
-    fn holder(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<(&mut GeometrySubLayer<'c>,&'c ProgramStore<'c>)> {
+    fn holder(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<(&mut GeometrySubLayer<'c>,&'c ProgramStore<'c>)> {
         Ok(match geometry {
             GeometryProcessName::Pin => (&mut self.pin,&mut self.programs),
             GeometryProcessName::Fix => (&mut self.fix,&mut self.programs),
@@ -126,52 +140,34 @@ impl<'c> Layer<'c> {
     }
 
     pub(crate) fn get_process_mut(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&mut ProtoProcess<'c>> {
-        let (sub,compiler) = self.holder(geometry,patina)?;
+        let (sub,compiler) = self.holder(geometry)?;
         sub.get_process_mut(compiler,geometry,patina)
     }
 
     fn get_geometry(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&GeometryProcess> {
-        let (sub,compiler) = self.holder(geometry,patina)?;
+        let (sub,compiler) = self.holder(geometry)?;
        sub.get_geometry(compiler,geometry,patina)
     }
 
     fn get_patina(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&PatinaProcess> {
-        let (sub,compiler) = self.holder(geometry,patina)?;
+        let (sub,compiler) = self.holder(geometry)?;
         sub.get_patina(compiler,geometry,patina)
-    }
-
-    pub(crate) fn get_pin(&mut self, patina: &PatinaProcessName) -> anyhow::Result<PinGeometry> {
-        let geom = self.get_geometry(&GeometryProcessName::Pin,patina)?;
-        match geom { GeometryProcess::Pin(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
-    }
-
-    pub(crate) fn get_fix(&mut self, patina: &PatinaProcessName) -> anyhow::Result<FixGeometry> {
-        let geom = self.get_geometry(&GeometryProcessName::Fix,patina)?;
-        match geom { GeometryProcess::Fix(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
-    }
-
-    pub(crate) fn get_page(&mut self, patina: &PatinaProcessName) -> anyhow::Result<PageGeometry> {
-        let geom = self.get_geometry(&GeometryProcessName::Page,patina)?;
-        match geom { GeometryProcess::Page(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
-    }
-
-    pub(crate) fn get_tape(&mut self, patina: &PatinaProcessName) -> anyhow::Result<TapeGeometry> {
-        let geom = self.get_geometry(&GeometryProcessName::Tape,patina)?;
-        match geom { GeometryProcess::Tape(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
-    }
-
-    pub(crate) fn get_direct(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<DirectColourDraw> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Direct)?;
-        match patina { PatinaProcess::Direct(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
-    }
-
-    pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> anyhow::Result<SpotColourDraw> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
-        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
     pub(crate) fn make_campaign(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
         let process = self.get_process_mut(geometry,patina)?;
         Ok(process.get_accumulator().make_campaign(count,indexes)?)
+    }
+
+    layer_geometry_accessor!(get_pin,PinGeometry,Pin);
+    layer_geometry_accessor!(get_fix,FixGeometry,Fix);
+    layer_geometry_accessor!(get_page,PageGeometry,Page);
+    layer_geometry_accessor!(get_tape,TapeGeometry,Tape);
+
+    layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
+
+    pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> anyhow::Result<SpotColourDraw> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
+        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 }

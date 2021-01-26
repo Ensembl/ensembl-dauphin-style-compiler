@@ -27,7 +27,6 @@ macro_rules! keyed_handle {
     };
 }
 
-
 pub(crate) struct KeyedKeys<K: KeyedHandle,T>(HashMap<String,K>,PhantomData<T>);
 
 impl<K: KeyedHandle, T> Clone for KeyedKeys<K,T> {

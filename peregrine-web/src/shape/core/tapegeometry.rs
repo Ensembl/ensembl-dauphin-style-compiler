@@ -29,7 +29,7 @@ pub struct TapeGeometry {
 }
 
 impl TapeGeometry {
-    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> anyhow::Result<TapeGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> anyhow::Result<TapeGeometry> {
         Ok(TapeGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 

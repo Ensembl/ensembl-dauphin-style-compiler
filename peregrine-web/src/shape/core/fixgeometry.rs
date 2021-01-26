@@ -27,7 +27,7 @@ pub struct FixGeometry {
 }
 
 impl FixGeometry {
-    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaProcessName, variety: &FixProgram) -> anyhow::Result<FixGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &FixProgram) -> anyhow::Result<FixGeometry> {
         Ok(FixGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 

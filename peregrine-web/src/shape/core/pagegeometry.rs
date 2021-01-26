@@ -27,7 +27,7 @@ pub struct PageGeometry {
 }
 
 impl PageGeometry {
-    pub(crate) fn new(process: &ProtoProcess, skin: &PatinaProcessName, variety: &PageProgram) -> anyhow::Result<PageGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, skin: &PatinaProcessName, variety: &PageProgram) -> anyhow::Result<PageGeometry> {
         Ok(PageGeometry { variety: variety.clone(), skin: skin.clone() })
     }
 

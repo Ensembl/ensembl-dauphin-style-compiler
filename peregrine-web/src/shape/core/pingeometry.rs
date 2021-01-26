@@ -27,7 +27,7 @@ pub struct PinGeometry {
 }
 
 impl PinGeometry {
-    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaProcessName, variety: &PinProgram) -> anyhow::Result<PinGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &PinProgram) -> anyhow::Result<PinGeometry> {
         Ok(PinGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
