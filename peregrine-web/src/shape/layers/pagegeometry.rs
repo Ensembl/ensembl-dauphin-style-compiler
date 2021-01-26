@@ -1,6 +1,6 @@
 use super::super::core::paintgeometry::PaintGeometry;
 use super::super::core::paintskin::PaintSkin;
-use super::layer::Layer;
+use super::layer::{ Layer, GeometryAccessorName, PatinaAccessorName };
 use super::arrayutil::{ add_fixed_sea_box, ship_box, interleave_one };
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::{ ShipEnd, ScreenEdge };
@@ -8,21 +8,22 @@ use peregrine_core::{ ShipEnd, ScreenEdge };
 #[derive(Clone)]
 pub struct PageGeometry {
     vertexes: AttribHandle,
-    signs: AttribHandle
+    signs: AttribHandle,
+    skin: PatinaAccessorName
 }
 
 impl PageGeometry {
-    pub(crate) fn new(process: &ProcessBuilder) -> anyhow::Result<PageGeometry> {
+    pub(crate) fn new(process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<PageGeometry> {
         let vertexes = process.get_attrib_handle("aVertexPosition")?;
         let signs = process.get_attrib_handle("aSign")?;
-        Ok(PageGeometry { vertexes, signs })
+        Ok(PageGeometry { vertexes, signs, skin: skin.clone() })
     }
 
-    pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer, skin: &PaintSkin,
+    pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
                                         sea_x: ScreenEdge, yy: Vec<f64>,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
                                         size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
-        let mut campaign = layer.make_campaign(&PaintGeometry::Page,skin,yy.len(),&[0,3,1,2,1,3])?;
+        let mut campaign = layer.make_campaign(&GeometryAccessorName::Page,&self.skin,yy.len(),&[0,3,1,2,1,3])?;
         let len = yy.len();
         let sign_x = match sea_x { ScreenEdge::Max(_) => -1., _ => 1. };
         let signs = interleave_one(sign_x,1.,len)?;

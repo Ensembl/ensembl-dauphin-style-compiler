@@ -1,6 +1,10 @@
 use peregrine_core::{ ShipEnd, ScreenEdge };
 use anyhow::{ bail };
 
+pub(super) fn scale_colour(value: u8) -> f64 {
+    (value as f64)/255.
+}
+
 pub(super) fn interleave<X>(mut main: Vec<X>, sub: &[X]) -> anyhow::Result<Vec<X>> where X: Clone {
     let sub_len = sub.len();
     if sub_len == 0 { bail!("Cannot interleave zero-length array"); }

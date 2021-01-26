@@ -32,6 +32,7 @@ mod shape {
         pub(crate) mod layer;
         mod pagegeometry;
         mod pingeometry;
+        mod spotcolourdraw;
         mod tapegeometry;
     }
 }
@@ -87,7 +88,7 @@ mod webgl {
     pub(crate) use program::process::ProcessBuilder;
     pub(crate) use program::compiler::WebGlCompiler;
     pub(crate) use program::header::Header;
-    pub(crate) use program::uniform::Uniform;
+    pub(crate) use program::uniform::{ Uniform, UniformHandle };
     pub(crate) use program::attribute::{ Attribute, AttribHandle };
     pub(crate) use program::varying::Varying;
     pub(crate) use program::source::{ SourceInstrs };

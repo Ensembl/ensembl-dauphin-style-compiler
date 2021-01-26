@@ -57,7 +57,7 @@ impl Source for Uniform {
 }
 
 pub(crate) struct UniformValues {
-    gl_value: Option<Vec<f32>>,
+    gl_value: Option<Vec<f64>>,
     object: Uniform
 }
 
@@ -71,6 +71,7 @@ impl UniformValues {
 
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         if let Some(gl_value) = &self.gl_value {
+            let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
             let location = self.object.location.as_ref().unwrap();
             match gl_value.len() {
                 1 => context.uniform1f(Some(location),gl_value[0]),
@@ -84,7 +85,7 @@ impl UniformValues {
         Ok(())
     }
 
-    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f32>) -> anyhow::Result<()> {
+    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
         self.gl_value = Some(our_value);
         Ok(())
     }

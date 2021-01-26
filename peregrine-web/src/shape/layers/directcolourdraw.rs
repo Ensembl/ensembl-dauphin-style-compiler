@@ -1,13 +1,10 @@
 use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
 use peregrine_core::DirectColour;
+use super::arrayutil::scale_colour;
 
 #[derive(Clone)]
 pub struct DirectColourDraw {
     colour: AttribHandle
-}
-
-fn scale_colour(value: u8) -> f64 {
-    (value as f64)/255.
 }
 
 impl DirectColourDraw {

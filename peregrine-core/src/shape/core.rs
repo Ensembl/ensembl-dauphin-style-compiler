@@ -48,7 +48,7 @@ pub trait Texture : std::fmt::Debug {
 
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct DirectColour(pub u8,pub u8,pub u8);
 
 #[derive(Clone,Debug)]

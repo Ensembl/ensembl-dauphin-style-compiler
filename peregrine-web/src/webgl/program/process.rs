@@ -37,11 +37,11 @@ impl<'c> ProcessBuilder<'c> {
         }
     }
 
-    pub fn get_uniform_handle(&mut self, name: &str) -> anyhow::Result<UniformHandle> {
+    pub fn get_uniform_handle(&self, name: &str) -> anyhow::Result<UniformHandle> {
         self.uniforms.get_handle(name)
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> anyhow::Result<()> {
+    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
         self.uniforms.data_mut().get_mut(handle).set_value(&self.context,values)
     }
 

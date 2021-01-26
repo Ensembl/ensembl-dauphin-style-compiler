@@ -1,3 +1,5 @@
+use anyhow::bail;
+use std::collections::HashMap;
 use std::rc::Rc;
 use super::super::core::paintgeometry::PaintGeometry;
 use super::super::core::paintskin::PaintSkin;
@@ -7,12 +9,15 @@ use super::fixgeometry::FixGeometry;
 use super::tapegeometry::TapeGeometry;
 use super::pagegeometry::PageGeometry;
 use super::directcolourdraw::DirectColourDraw;
+use super::spotcolourdraw::SpotColourDraw;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
+use peregrine_core::DirectColour;
 
 /* TODO 
 
 Wiggles
-Pullout programs
+Pullout programs (don't recompile for each spot)
+on create pass other part of accessor
 macroise
 split accumulator
 ensure + index
@@ -21,92 +26,221 @@ y split bug
 y from bottom
 layers from core
 ordered layers
+move enum progs into layers or vice-versa
+does everything need context ref?
+push up handle resolution via attrib factory (eg spot)
+split layer
+rearrange accessors
+rename accessors
 
 */
 
-pub struct Layer<'c> {
-    compiler: WebGlCompiler<'c>,
-    sublayers: Vec<Option<ProcessBuilder<'c>>>,
-    pins: Vec<Option<PinGeometry>>,
-    fixes: Vec<Option<FixGeometry>>,
-    tapes: Vec<Option<TapeGeometry>>,
-    pages: Vec<Option<PageGeometry>>,
-    directs: Vec<Option<DirectColourDraw>>
+enum GeometryAccessor {
+    Pin(PinGeometry),
+    Fix(FixGeometry),
+    Tape(TapeGeometry),
+    Page(PageGeometry)
 }
 
-fn index(geometry: &PaintGeometry, skin: &PaintSkin) -> usize {
-    (geometry.to_index()*skin.num_values()+skin.to_index()) as usize
+pub enum GeometryAccessorName { Pin, Fix, Tape, Page }
+
+impl GeometryAccessorName {
+    fn make_accessor(&self, process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
+        Ok(match self {
+            GeometryAccessorName::Pin => GeometryAccessor::Pin(PinGeometry::new(process,skin)?),
+            GeometryAccessorName::Fix => GeometryAccessor::Fix(FixGeometry::new(process,skin)?),
+            GeometryAccessorName::Tape => GeometryAccessor::Tape(TapeGeometry::new(process,skin)?),
+            GeometryAccessorName::Page => GeometryAccessor::Page(PageGeometry::new(process,skin)?),
+        })
+    }
+
+    // needs to be merged with paint enum XXX
+    fn get_source(&self) -> SourceInstrs {
+        let paint = match self {
+            GeometryAccessorName::Pin => PaintGeometry::Pin,
+            GeometryAccessorName::Fix => PaintGeometry::Fix,
+            GeometryAccessorName::Page => PaintGeometry::Page,
+            GeometryAccessorName::Tape => PaintGeometry::Tape
+        };
+        paint.to_source()
+    }
 }
 
-impl<'c> Layer<'c> {
-    fn ensure_sublayer(&mut self, geometry: &PaintGeometry, skin: &PaintSkin) -> anyhow::Result<()> {
-        let idx = index(geometry,skin);
-        if self.sublayers[idx].is_none() {
-            let mut source = SourceInstrs::new(vec![]);
-            source.merge(geometry.to_source());
-            source.merge(PaintMethod::Triangle.to_source());
-            source.merge(skin.to_source());
-            let program = self.compiler.make_program(source)?; // XXX pull out
-            self.sublayers[idx] = Some(ProcessBuilder::new(Rc::new(program)));
-        }
+enum PatinaAccessor {
+    Direct(DirectColourDraw),
+    Spot(SpotColourDraw)
+}
+
+#[derive(Clone)]
+pub enum PatinaAccessorName { Direct, Spot(DirectColour) }
+
+impl PatinaAccessorName {
+    fn make_accessor(&self, process: &ProcessBuilder) -> anyhow::Result<PatinaAccessor> {
+        Ok(match self {
+            PatinaAccessorName::Direct => PatinaAccessor::Direct(DirectColourDraw::new(process)?),
+            PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour)?)
+        })
+    }
+
+    // needs to be merged with paint enum XXX
+    fn get_source(&self) -> SourceInstrs {
+        let paint = match self {
+            PatinaAccessorName::Direct => PaintSkin::Colour,
+            PatinaAccessorName::Spot(_) => PaintSkin::Spot
+        };
+        paint.to_source()
+    }
+}
+
+struct SubLayer<'c> {
+    process: ProcessBuilder<'c>,
+    geometry: GeometryAccessor,
+    patina: PatinaAccessor
+}
+
+struct SubLayerHolder<'c>(Option<SubLayer<'c>>);
+
+impl<'c> SubLayerHolder<'c> {
+    fn new() -> SubLayerHolder<'c> { SubLayerHolder(None) }
+
+    fn make(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<()> {
+        // XXX demerge compiling from sublayer (eg don't recompile for spot)
+        let mut source = SourceInstrs::new(vec![]);
+        source.merge(geometry.get_source());
+        source.merge(PaintMethod::Triangle.to_source());
+        source.merge(patina.get_source());
+        let program = compiler.make_program(source)?; // XXX pull out
+        let process = ProcessBuilder::new(Rc::new(program));
+        let geometry = geometry.make_accessor(&process,patina)?;
+        let patina = patina.make_accessor(&process)?;
+        self.0 = Some(SubLayer { process, geometry, patina });
         Ok(())
     }
 
-    pub(crate) fn make_campaign<'a>(&mut self, geometry: &PaintGeometry, skin: &PaintSkin, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
-        let full_idx = index(geometry,skin);
-        self.ensure_sublayer(geometry,skin)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        let campaign = process.get_accumulator().make_campaign(count,indexes)?;
-        Ok(campaign)
-    }
-    
-    pub(crate) fn get_pin(&mut self, skin: &PaintSkin) -> anyhow::Result<PinGeometry> {
-        let full_idx = index(&PaintGeometry::Pin,skin);
-        self.ensure_sublayer(&PaintGeometry::Pin,skin)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        if self.pins[skin.to_index()].is_none() {
-            self.pins[skin.to_index()] = Some(PinGeometry::new(process)?);
-        }
-        Ok(self.pins[skin.to_index()].as_ref().unwrap().clone())
+    fn get_process_mut(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+        self.make(compiler,geometry,patina)?;
+        Ok(&mut self.0.as_mut().unwrap().process)
     }
 
-    pub(crate) fn get_fix(&mut self, skin: &PaintSkin) -> anyhow::Result<FixGeometry> {
-        let full_idx = index(&PaintGeometry::Fix,skin);
-        self.ensure_sublayer(&PaintGeometry::Fix,skin)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        if self.fixes[skin.to_index()].is_none() {
-            self.fixes[skin.to_index()] = Some(FixGeometry::new(process)?);
-        }
-        Ok(self.fixes[skin.to_index()].as_ref().unwrap().clone())
+    fn get_geometry(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
+        self.make(compiler,geometry,patina)?;
+        Ok(&self.0.as_mut().unwrap().geometry)
     }
 
-    pub(crate) fn get_tape(&mut self, skin: &PaintSkin) -> anyhow::Result<TapeGeometry> {
-        let full_idx = index(&PaintGeometry::Tape,skin);
-        self.ensure_sublayer(&PaintGeometry::Tape,skin)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        if self.tapes[skin.to_index()].is_none() {
-            self.tapes[skin.to_index()] = Some(TapeGeometry::new(process)?);
+    fn get_patina(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
+        self.make(compiler,geometry,patina)?;
+        Ok(&self.0.as_mut().unwrap().patina)
+    }
+}
+
+struct GeometrySubLayer<'c> {
+    direct: SubLayerHolder<'c>,
+    spot: HashMap<DirectColour,SubLayerHolder<'c>>
+}
+
+impl<'c> GeometrySubLayer<'c> {
+    fn new() -> GeometrySubLayer<'c> {
+        GeometrySubLayer {
+            direct: SubLayerHolder::new(),
+            spot: HashMap::new()
         }
-        Ok(self.tapes[skin.to_index()].as_ref().unwrap().clone())
     }
 
-    pub(crate) fn get_page(&mut self, skin: &PaintSkin) -> anyhow::Result<PageGeometry> {
-        let full_idx = index(&PaintGeometry::Page,skin);
-        self.ensure_sublayer(&PaintGeometry::Page,skin)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        if self.pages[skin.to_index()].is_none() {
-            self.pages[skin.to_index()] = Some(PageGeometry::new(process)?);
-        }
-        Ok(self.pages[skin.to_index()].as_ref().unwrap().clone())
+    fn holder(&mut self, patina: &PatinaAccessorName) -> anyhow::Result<&mut SubLayerHolder<'c>> {
+        Ok(match &patina{
+            PatinaAccessorName::Direct => &mut self.direct,
+            PatinaAccessorName::Spot(c) => self.spot.entry(c.clone()).or_insert_with(|| SubLayerHolder::new())
+        })
     }
 
-    pub(crate) fn get_direct(&mut self, geometry: &PaintGeometry) -> anyhow::Result<DirectColourDraw> {
-        let full_idx = index(geometry,&PaintSkin::Colour);
-        self.ensure_sublayer(geometry,&PaintSkin::Colour)?;
-        let process = self.sublayers[full_idx].as_mut().unwrap();
-        if self.directs[geometry.to_index()].is_none() {
-            self.directs[geometry.to_index()] = Some(DirectColourDraw::new(process)?);
+    fn get_process_mut(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+        self.holder(patina)?.get_process_mut(compiler,geometry,patina)
+    }
+
+    fn get_geometry(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
+        self.holder(patina)?.get_geometry(compiler,geometry,patina)
+    }
+
+    fn get_patina(&mut self, compiler: &'c WebGlCompiler<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
+        self.holder(patina)?.get_patina(compiler,geometry,patina)
+    }
+}
+
+pub(crate) struct Layer<'c> {
+    compiler: &'c WebGlCompiler<'c>,
+    pin: GeometrySubLayer<'c>,
+    fix: GeometrySubLayer<'c>,
+    tape: GeometrySubLayer<'c>,
+    page: GeometrySubLayer<'c>
+}
+
+impl<'c> Layer<'c> {
+    pub fn new(compiler: &'c WebGlCompiler<'c>) -> Layer<'c> {
+        Layer {
+            compiler,
+            pin: GeometrySubLayer::new(),
+            fix: GeometrySubLayer::new(),
+            tape: GeometrySubLayer::new(),
+            page: GeometrySubLayer::new()
         }
-        Ok(self.directs[geometry.to_index()].as_ref().unwrap().clone())
+    }
+
+    fn holder(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<(&mut GeometrySubLayer<'c>,&'c WebGlCompiler<'c>)> {
+        Ok(match geometry {
+            GeometryAccessorName::Pin => (&mut self.pin,&mut self.compiler),
+            GeometryAccessorName::Fix => (&mut self.fix,&mut self.compiler),
+            GeometryAccessorName::Tape => (&mut self.tape,&mut self.compiler),
+            GeometryAccessorName::Page => (&mut self.page,&mut self.compiler),
+        })
+    }
+
+    pub(crate) fn get_process_mut(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+        let (sub,compiler) = self.holder(geometry,patina)?;
+        sub.get_process_mut(compiler,geometry,patina)
+    }
+
+    fn get_geometry(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&GeometryAccessor> {
+        let (sub,compiler) = self.holder(geometry,patina)?;
+       sub.get_geometry(compiler,geometry,patina)
+    }
+
+    fn get_patina(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&PatinaAccessor> {
+        let (sub,compiler) = self.holder(geometry,patina)?;
+        sub.get_patina(compiler,geometry,patina)
+    }
+
+    pub(crate) fn get_pin(&mut self, patina: &PatinaAccessorName) -> anyhow::Result<PinGeometry> {
+        let geom = self.get_geometry(&GeometryAccessorName::Pin,patina)?;
+        match geom { GeometryAccessor::Pin(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn get_fix(&mut self, patina: &PatinaAccessorName) -> anyhow::Result<FixGeometry> {
+        let geom = self.get_geometry(&GeometryAccessorName::Fix,patina)?;
+        match geom { GeometryAccessor::Fix(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn get_page(&mut self, patina: &PatinaAccessorName) -> anyhow::Result<PageGeometry> {
+        let geom = self.get_geometry(&GeometryAccessorName::Page,patina)?;
+        match geom { GeometryAccessor::Page(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn get_tape(&mut self, patina: &PatinaAccessorName) -> anyhow::Result<TapeGeometry> {
+        let geom = self.get_geometry(&GeometryAccessorName::Tape,patina)?;
+        match geom { GeometryAccessor::Tape(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn get_direct(&mut self, geometry: &GeometryAccessorName) -> anyhow::Result<DirectColourDraw> {
+        let patina = self.get_patina(geometry,&PatinaAccessorName::Direct)?;
+        match patina { PatinaAccessor::Direct(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn get_spot(&mut self, geometry: &GeometryAccessorName, colour: &DirectColour) -> anyhow::Result<SpotColourDraw> {
+        let patina = self.get_patina(geometry,&PatinaAccessorName::Spot(colour.clone()))?;
+        match patina { PatinaAccessor::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(crate) fn make_campaign(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
+        let process = self.get_process_mut(geometry,patina)?;
+        Ok(process.get_accumulator().make_campaign(count,indexes)?)
     }
 }
