@@ -1,22 +1,22 @@
 use anyhow::bail;
-use super::super::core::directcolourdraw::{ DirectColourDraw, DirectColourDrawVariety };
-use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotColourDrawVariety };
+use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
+use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
 
-pub(crate) enum PatinaVarietyAccessor {
-    Direct(DirectColourDrawVariety),
-    Spot(SpotColourDrawVariety)
+pub(crate) enum PatinaProgram {
+    Direct(DirectProgram),
+    Spot(SpotProgram)
 }
 
-impl PatinaVarietyAccessor {
-    pub(super) fn make_accessor(&self, process: &ProtoProcess, skin: &PatinaAccessorName) -> anyhow::Result<PatinaAccessor> {
+impl PatinaProgram {
+    pub(super) fn make_patina_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> anyhow::Result<PatinaProcess> {
         Ok(match self {
-            PatinaVarietyAccessor::Direct(v) => PatinaAccessor::Direct(DirectColourDraw::new(process,v)?),
-            PatinaVarietyAccessor::Spot(v) => {
+            PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(process,v)?),
+            PatinaProgram::Spot(v) => {
                 match skin {
-                    PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour,v)?),
+                    PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(process,colour,v)?),
                     _ => bail!("unexpected type mismatch")
                 }
             }
@@ -24,36 +24,36 @@ impl PatinaVarietyAccessor {
     }
 }
 
-pub(crate) enum PatinaAccessorVariety { Direct, Spot }
+pub(crate) enum PatinaProgramName { Direct, Spot }
 
-impl PatinaAccessorVariety {
+impl PatinaProgramName {
     pub const COUNT : usize = 2;
 
     pub fn get_index(&self) -> usize {
         match self {
-            PatinaAccessorVariety::Direct => 0,
-            PatinaAccessorVariety::Spot => 1
+            PatinaProgramName::Direct => 0,
+            PatinaProgramName::Spot => 1
         }
     }
 
-    pub(super) fn make_variety_accessor(&self, program: &Program) -> anyhow::Result<PatinaVarietyAccessor> {
+    pub(super) fn make_patina_program(&self, program: &Program) -> anyhow::Result<PatinaProgram> {
         Ok(match self {
-            PatinaAccessorVariety::Direct => PatinaVarietyAccessor::Direct(DirectColourDrawVariety::new(program)?),
-            PatinaAccessorVariety::Spot => PatinaVarietyAccessor::Spot(SpotColourDrawVariety::new(program)?),
+            PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(program)?),
+            PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(program)?),
         })
     }
 
     pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(
             match self {
-                PatinaAccessorVariety::Direct => vec![
+                PatinaProgramName::Direct => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Attribute::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec3,"vColour"),
                     Statement::new_vertex("vColour = vec3(aVertexColour)"),
                     Statement::new_fragment("gl_FragColor = vec4(vColour,uOpacity)")
                 ],
-                PatinaAccessorVariety::Spot => vec![
+                PatinaProgramName::Spot => vec![
                     Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Uniform::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
@@ -78,28 +78,19 @@ impl PatinaAccessorVariety {
     }
 }
 
-pub(super) enum PatinaAccessor {
+pub(super) enum PatinaProcess {
     Direct(DirectColourDraw),
     Spot(SpotColourDraw)
 }
 
 #[derive(Clone)]
-pub enum PatinaAccessorName { Direct, Spot(DirectColour) }
+pub enum PatinaProcessName { Direct, Spot(DirectColour) }
 
-impl PatinaAccessorName {
-    /*
-    pub(super) fn make_accessor(&self, process: &ProtoProcess) -> anyhow::Result<PatinaAccessor> {
-        Ok(match self {
-            PatinaAccessorName::Direct => PatinaAccessor::Direct(DirectColourDraw::new(process)?),
-            PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour)?)
-        })
-    }
-    */
-
-    pub(super) fn get_variety(&self) -> PatinaAccessorVariety {
+impl PatinaProcessName {
+    pub(super) fn get_program_name(&self) -> PatinaProgramName {
         match self {
-            PatinaAccessorName::Direct => PatinaAccessorVariety::Direct,
-            PatinaAccessorName::Spot(_) => PatinaAccessorVariety::Spot
+            PatinaProcessName::Direct => PatinaProgramName::Direct,
+            PatinaProcessName::Spot(_) => PatinaProgramName::Spot
         }
     }
 }

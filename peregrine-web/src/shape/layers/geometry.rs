@@ -1,56 +1,56 @@
-use super::super::core::pingeometry::{ PinGeometry, PinGeometryVariety };
-use super::super::core::fixgeometry::{ FixGeometry, FixGeometryVariety };
-use super::super::core::tapegeometry::{ TapeGeometry, TapeGeometryVariety };
-use super::super::core::pagegeometry::{ PageGeometry, PageGeometryVariety };
-use super::patina::PatinaAccessorName;
+use super::super::core::pingeometry::{ PinGeometry, PinProgram };
+use super::super::core::fixgeometry::{ FixGeometry, FixProgram };
+use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
+use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
+use super::patina::PatinaProcessName;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement,Program };
 use super::consts::{ PR_LOW, PR_DEF };
 use web_sys::{ WebGlRenderingContext };
 
-pub(crate) enum GeometryVarietyAccessor {
-    Pin(PinGeometryVariety),
-    Fix(FixGeometryVariety),
-    Tape(TapeGeometryVariety),
-    Page(PageGeometryVariety)
+pub(crate) enum GeometryProgram {
+    Pin(PinProgram),
+    Fix(FixProgram),
+    Tape(TapeProgram),
+    Page(PageProgram)
 }
 
-impl GeometryVarietyAccessor {
-    pub(super) fn make_accessor(&self, process: &ProtoProcess, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
+impl GeometryProgram {
+    pub(super) fn make_geometry_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> anyhow::Result<GeometryProcess> {
         Ok(match self {
-            GeometryVarietyAccessor::Pin(v) => GeometryAccessor::Pin(PinGeometry::new(process,skin,v)?),
-            GeometryVarietyAccessor::Fix(v)=> GeometryAccessor::Fix(FixGeometry::new(process,skin,v)?),
-            GeometryVarietyAccessor::Tape(v) => GeometryAccessor::Tape(TapeGeometry::new(process,skin,v)?),
-            GeometryVarietyAccessor::Page(v) => GeometryAccessor::Page(PageGeometry::new(process,skin,v)?),
+            GeometryProgram::Pin(v) => GeometryProcess::Pin(PinGeometry::new(process,skin,v)?),
+            GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(process,skin,v)?),
+            GeometryProgram::Tape(v) => GeometryProcess::Tape(TapeGeometry::new(process,skin,v)?),
+            GeometryProgram::Page(v) => GeometryProcess::Page(PageGeometry::new(process,skin,v)?),
         })
     }
 }
 
-pub(crate) enum GeometryAccessorVariety { Pin, Fix, Tape, Page }
+pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page }
 
-impl GeometryAccessorVariety {
+impl GeometryProgramName {
     pub const COUNT : usize = 3;
 
     pub fn get_index(&self) -> usize {
         match self {
-            GeometryAccessorVariety::Pin => 0,
-            GeometryAccessorVariety::Fix => 1,
-            GeometryAccessorVariety::Tape => 2,
-            GeometryAccessorVariety::Page => 3
+            GeometryProgramName::Pin => 0,
+            GeometryProgramName::Fix => 1,
+            GeometryProgramName::Tape => 2,
+            GeometryProgramName::Page => 3
         }
     }
 
-    pub(super) fn make_variety_accessor(&self, program: &Program) -> anyhow::Result<GeometryVarietyAccessor> {
+    pub(super) fn make_geometry_program(&self, program: &Program) -> anyhow::Result<GeometryProgram> {
         Ok(match self {
-            GeometryAccessorVariety::Page => GeometryVarietyAccessor::Page(PageGeometryVariety::new(program)?),
-            GeometryAccessorVariety::Pin => GeometryVarietyAccessor::Pin(PinGeometryVariety::new(program)?),
-            GeometryAccessorVariety::Tape => GeometryVarietyAccessor::Tape(TapeGeometryVariety::new(program)?),
-            GeometryAccessorVariety::Fix => GeometryVarietyAccessor::Fix(FixGeometryVariety::new(program)?)
+            GeometryProgramName::Page => GeometryProgram::Page(PageProgram::new(program)?),
+            GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(program)?),
+            GeometryProgramName::Tape => GeometryProgram::Tape(TapeProgram::new(program)?),
+            GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(program)?)
         })
     }
 
     pub fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
-            GeometryAccessorVariety::Pin => vec![
+            GeometryProgramName::Pin => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
@@ -80,7 +80,7 @@ impl GeometryAccessorVariety {
                         0.0, 1.0)")
             ],
             */
-            GeometryAccessorVariety::Fix => vec![
+            GeometryProgramName::Fix => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
@@ -90,7 +90,7 @@ impl GeometryAccessorVariety {
                                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign.y,
                                         0.0, 1.0)")
             ],
-            GeometryAccessorVariety::Tape => vec![
+            GeometryProgramName::Tape => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
@@ -105,7 +105,7 @@ impl GeometryAccessorVariety {
                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign,
                         0.0, 1.0)")
             ],
-            GeometryAccessorVariety::Page => vec![
+            GeometryProgramName::Page => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
@@ -121,22 +121,22 @@ impl GeometryAccessorVariety {
     }
 }
 
-pub(super) enum GeometryAccessor {
+pub(super) enum GeometryProcess {
     Pin(PinGeometry),
     Fix(FixGeometry),
     Tape(TapeGeometry),
     Page(PageGeometry)
 }
 
-pub enum GeometryAccessorName { Pin, Fix, Tape, Page }
+pub enum GeometryProcessName { Pin, Fix, Tape, Page }
 
-impl GeometryAccessorName {
-    pub(super) fn get_variety(&self) -> GeometryAccessorVariety {
+impl GeometryProcessName {
+    pub(super) fn get_program_name(&self) -> GeometryProgramName {
         match self {
-            GeometryAccessorName::Pin => GeometryAccessorVariety::Pin,
-            GeometryAccessorName::Fix => GeometryAccessorVariety::Fix,
-            GeometryAccessorName::Tape => GeometryAccessorVariety::Tape,
-            GeometryAccessorName::Page => GeometryAccessorVariety::Page,
+            GeometryProcessName::Pin => GeometryProgramName::Pin,
+            GeometryProcessName::Fix => GeometryProgramName::Fix,
+            GeometryProcessName::Tape => GeometryProgramName::Tape,
+            GeometryProcessName::Page => GeometryProgramName::Page,
         }
     }
 }

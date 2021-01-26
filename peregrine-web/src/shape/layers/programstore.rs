@@ -1,29 +1,29 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::webgl::{ WebGlCompiler, Program, SourceInstrs };
-use super::geometry::{ GeometryAccessorVariety, GeometryVarietyAccessor };
-use super::patina::{ PatinaAccessorVariety, PatinaVarietyAccessor };
+use super::geometry::{ GeometryProgramName, GeometryProgram };
+use super::patina::{ PatinaProgramName, PatinaProgram };
 
-struct ProgramIndex(GeometryAccessorVariety,PatinaAccessorVariety);
+struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
 impl ProgramIndex {
-    const COUNT : usize = GeometryAccessorVariety::COUNT * PatinaAccessorVariety::COUNT;
+    const COUNT : usize = GeometryProgramName::COUNT * PatinaProgramName::COUNT;
 
     pub fn get_index(&self) -> usize {
-        self.0.get_index() * PatinaAccessorVariety::COUNT + self.1.get_index()
+        self.0.get_index() * PatinaProgramName::COUNT + self.1.get_index()
     }
 }
 
 pub(crate) struct ProgramStoreEntry<'c> {
     program: Rc<Program<'c>>,
-    geometry: GeometryVarietyAccessor,
-    patina: PatinaVarietyAccessor
+    geometry: GeometryProgram,
+    patina: PatinaProgram
 }
 
 impl<'c> ProgramStoreEntry<'c> {
     fn new(program: Program<'c>, index: &ProgramIndex) -> anyhow::Result<ProgramStoreEntry<'c>> {
-        let geometry = index.0.make_variety_accessor(&program)?;
-        let patina = index.1.make_variety_accessor(&program)?;
+        let geometry = index.0.make_geometry_program(&program)?;
+        let patina = index.1.make_patina_program(&program)?;
         Ok(ProgramStoreEntry {
             program: Rc::new(program),
             geometry,
@@ -32,8 +32,8 @@ impl<'c> ProgramStoreEntry<'c> {
     }
 
     pub(crate) fn program(&self) -> &Rc<Program<'c>> { &self.program }
-    pub(crate) fn get_geometry(&self) -> &GeometryVarietyAccessor { &self.geometry }
-    pub(crate) fn get_patina(&self) -> &PatinaVarietyAccessor { &self.patina }
+    pub(crate) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
+    pub(crate) fn get_patina(&self) -> &PatinaProgram { &self.patina }
 }
 
 pub struct ProgramStore<'c> {
@@ -50,7 +50,7 @@ impl<'c> ProgramStore<'c> {
         Ok(())
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryAccessorVariety, patina: PatinaAccessorVariety) -> anyhow::Result<Rc<ProgramStoreEntry<'c>>> {
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry<'c>>> {
         let index = ProgramIndex(geometry,patina);
         if self.programs.borrow()[index.get_index()].is_none() {
             self.make_program(&index)?;

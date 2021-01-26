@@ -1,20 +1,20 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryAccessorName;
-use super::super::layers::patina::PatinaAccessorName;
+use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box };
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 
 #[derive(Clone)]
-pub struct TapeGeometryVariety {
+pub struct TapeProgram {
     origin: AttribHandle,
     vertexes: AttribHandle,
     signs: AttribHandle,
 }
 
-impl TapeGeometryVariety {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<TapeGeometryVariety> {
-        Ok(TapeGeometryVariety {
+impl TapeProgram {
+    pub(crate) fn new(program: &Program) -> anyhow::Result<TapeProgram> {
+        Ok(TapeProgram {
             origin: program.get_attrib_handle("aOrigin")?,
             vertexes: program.get_attrib_handle("aVertexPosition")?,
             signs: program.get_attrib_handle("aSign")?
@@ -24,12 +24,12 @@ impl TapeGeometryVariety {
 
 #[derive(Clone)]
 pub struct TapeGeometry {
-    variety: TapeGeometryVariety,
-    patina: PatinaAccessorName
+    variety: TapeProgram,
+    patina: PatinaProcessName
 }
 
 impl TapeGeometry {
-    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaAccessorName, variety: &TapeGeometryVariety) -> anyhow::Result<TapeGeometry> {
+    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> anyhow::Result<TapeGeometry> {
         Ok(TapeGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
@@ -37,7 +37,7 @@ impl TapeGeometry {
                                         base_x: Vec<f64>, sea_y: ScreenEdge,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
                                         size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
-        let mut campaign = layer.make_campaign(&GeometryAccessorName::Tape,&self.patina,base_x.len(),&[0,3,1,2,1,3])?;
+        let mut campaign = layer.make_campaign(&GeometryProcessName::Tape,&self.patina,base_x.len(),&[0,3,1,2,1,3])?;
         let len = base_x.len();
         let mut vertexes = ship_box(ship_x,size_x,ship_y,size_y,len);
         let sign_y = match sea_y { ScreenEdge::Max(_) => -1., _ => 1. };

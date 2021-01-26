@@ -3,27 +3,27 @@ use peregrine_core::DirectColour;
 use super::super::layers::arrayutil::scale_colour;
 
 #[derive(Clone)]
-pub struct DirectColourDrawVariety {
+pub struct DirectProgram {
     colour: AttribHandle
 }
 
-impl DirectColourDrawVariety {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<DirectColourDrawVariety> {
-        Ok(DirectColourDrawVariety {
+impl DirectProgram {
+    pub(crate) fn new(program: &Program) -> anyhow::Result<DirectProgram> {
+        Ok(DirectProgram {
             colour: program.get_attrib_handle("aVertexColour")?
         })
     }
 }
 
 #[derive(Clone)]
-pub struct DirectColourDraw(DirectColourDrawVariety);
+pub struct DirectColourDraw(DirectProgram);
 
 impl DirectColourDraw {
-    pub(crate) fn new(process: &ProtoProcess, variety: &DirectColourDrawVariety) -> anyhow::Result<DirectColourDraw> {
+    pub(crate) fn new(process: &ProtoProcess, variety: &DirectProgram) -> anyhow::Result<DirectColourDraw> {
         Ok(DirectColourDraw(variety.clone()))
     }
 
-    pub(crate) fn block_colour(&self, campaign: &mut AccumulatorCampaign, colours: &[DirectColour], vertexes: usize) -> anyhow::Result<()> {
+    pub(crate) fn direct(&self, campaign: &mut AccumulatorCampaign, colours: &[DirectColour], vertexes: usize) -> anyhow::Result<()> {
         let mut codes = vec![];
         for c in colours {
             for _ in 0..vertexes {
