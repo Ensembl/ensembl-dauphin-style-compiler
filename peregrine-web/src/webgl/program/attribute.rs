@@ -16,22 +16,6 @@ pub(crate) struct Attribute {
     location: Option<u32>
 }
 
-fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> anyhow::Result<WebGlBuffer> {
-    let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
-    // After `Float32Array::view` be very careful not to do any memory allocations before it's dropped.
-    unsafe {
-        let value_array = js_sys::Float64Array::view(values);
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ARRAY_BUFFER,
-            &value_array,
-            WebGlRenderingContext::STATIC_DRAW
-        );
-        drop(value_array);
-    }
-    handle_context_errors(context)?;
-    Ok(buffer)
-}
-
 impl Attribute {
     pub fn new(precision: Precision, arity: GLArity, name: &str) -> Box<Attribute> {
         Box::new(Attribute {
@@ -64,45 +48,51 @@ impl Source for Attribute {
     }
 }
 
+fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> anyhow::Result<WebGlBuffer> {
+    let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
+    // After `Float64Array::view` be very careful not to do any memory allocations before it's dropped.
+    unsafe {
+        let value_array = js_sys::Float64Array::view(values);
+        context.buffer_data_with_array_buffer_view(
+            WebGlRenderingContext::ARRAY_BUFFER,
+            &value_array,
+            WebGlRenderingContext::STATIC_DRAW
+        );
+        drop(value_array);
+    }
+    handle_context_errors(context)?;
+    Ok(buffer)
+}
+
 pub(crate) struct AttributeValues {
-    gl_value: Option<WebGlBuffer>,
-    object: Attribute
+    gl_value: WebGlBuffer,
+    arity: i32,
+    location: u32
 }
 
 impl AttributeValues {
-    pub(super) fn new(object: Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
-        let mut out = AttributeValues {
-            gl_value: None,
-            object
-        };
-        out.set_value(context,our_value)?;
-        Ok(out)
+    pub(super) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
+        Ok(AttributeValues {
+            gl_value: create_buffer(context,&our_value)?,
+            arity: object.arity.to_num() as i32,
+            location: object.location.unwrap()
+        })
     }
 
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
-        let location = self.object.location;
-        if let Some(buffer) = &self.gl_value {
-            context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(buffer));
-            handle_context_errors(context)?;
-            context.enable_vertex_attrib_array(location.unwrap());
-            handle_context_errors(context)?;
-            context.vertex_attrib_pointer_with_i32(location.unwrap(),self.object.arity.to_num() as i32,WebGlRenderingContext::FLOAT,false,0,0);
-            handle_context_errors(context)?;    
-        }
+        let location = self.location;
+        context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&self.gl_value));
+        handle_context_errors(context)?;
+        context.enable_vertex_attrib_array(location);
+        handle_context_errors(context)?;
+        context.vertex_attrib_pointer_with_i32(location,self.arity,WebGlRenderingContext::FLOAT,false,0,0);
+        handle_context_errors(context)?;    
         Ok(())
     }
 
     pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
-        if let Some(gl_value) = &self.gl_value {
-            context.delete_buffer(Some(gl_value));
-            handle_context_errors(context)?;
-        }
-        Ok(())
-    }
-
-    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
-        self.delete(context)?;
-        self.gl_value = Some(create_buffer(context,&our_value)?);
+        context.delete_buffer(Some(&self.gl_value));
+        handle_context_errors(context)?;
         Ok(())
     }
 }

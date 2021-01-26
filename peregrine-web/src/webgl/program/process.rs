@@ -5,48 +5,44 @@ use super::program::Program;
 use super::attribute::{ AttribHandle };
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
-use super::keyed::{ KeyedValues };
+use super::keyed::{ KeyedValues, KeyedData };
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 
-pub struct ProcessBuilder<'c> {
+pub struct ProtoProcess<'c> {
     program: Rc<Program<'c>>,
     context: &'c WebGlRenderingContext,
     accumulator: Accumulator,
-    uniforms: KeyedValues<UniformHandle,UniformValues>,
+    uniforms: KeyedData<UniformHandle,UniformValues>,
     textures: Vec<TextureValues>
 }
 
-impl<'c> ProcessBuilder<'c> {
-    pub(crate) fn new(program: Rc<Program<'c>>) -> ProcessBuilder<'c> {
-        let mut uniforms = KeyedValues::new();
-        let mut attribs = KeyedValues::new();
-        for uniform in program.get_uniforms().iter() {
-            uniforms.add(uniform.name(),UniformValues::new(uniform.clone()));
-        }
-        for attrib in program.get_attribs().iter() {
-            attribs.add(attrib.name(),attrib.clone());
-        }
+impl<'c> ProtoProcess<'c> {
+    pub(crate) fn new(program: Rc<Program<'c>>) -> ProtoProcess<'c> {
+        let uniforms = program.make_uniforms();
         let context = program.context();
-        ProcessBuilder {
+        let accumulator = program.make_accumulator();
+        ProtoProcess {
             program,
             context,
-            accumulator: Accumulator::new(attribs),
+            accumulator,
             uniforms,
             textures: vec![]
         }
     }
 
+    pub fn program(&self) -> &Rc<Program<'c>> { &self.program }
+
     pub fn get_uniform_handle(&self, name: &str) -> anyhow::Result<UniformHandle> {
-        self.uniforms.get_handle(name)
+        self.program.get_uniform_handle(name)
     }
 
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
-        self.uniforms.data_mut().get_mut(handle).set_value(&self.context,values)
+        self.uniforms.get_mut(handle).set_value(&self.context,values)
     }
 
     pub fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
-        self.accumulator.get_attrib_handle(name)
+        self.program.get_attrib_handle(name)
     }
 
     pub(crate) fn get_accumulator(&mut self) -> &mut Accumulator {
@@ -68,16 +64,17 @@ pub struct Process<'c> {
     program: Rc<Program<'c>>,
     context: &'c WebGlRenderingContext,
     runs: Vec<AccumulatedRun>,
-    uniforms: KeyedValues<UniformHandle,UniformValues>,
+    uniforms: KeyedData<UniformHandle,UniformValues>,
     textures: Vec<TextureValues>
 }
 
 impl<'c> Process<'c> {
-    fn new(builder: ProcessBuilder<'c>) -> anyhow::Result<Process<'c>> {
-       Ok(Process {
+    fn new(builder: ProtoProcess<'c>) -> anyhow::Result<Process<'c>> {
+        let runs = builder.program.make_runs(&builder.accumulator)?;
+        Ok(Process {
             context: builder.context,
             program: builder.program,
-            runs: builder.accumulator.make(builder.context)?,
+            runs,
             uniforms: builder.uniforms,
             textures: builder.textures
         })
@@ -85,7 +82,7 @@ impl<'c> Process<'c> {
 
     pub fn draw(&self) -> anyhow::Result<()> {
         for run in self.runs.iter() {
-            for entry in self.uniforms.data().values() {
+            for entry in self.uniforms.values() {
                 entry.activate(&self.context)?;
             }
             for entry in self.textures.iter() {

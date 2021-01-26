@@ -1,13 +1,31 @@
-use super::super::core::pingeometry::PinGeometry;
-use super::super::core::fixgeometry::FixGeometry;
-use super::super::core::tapegeometry::TapeGeometry;
-use super::super::core::pagegeometry::PageGeometry;
+use super::super::core::pingeometry::{ PinGeometry, PinGeometryVariety };
+use super::super::core::fixgeometry::{ FixGeometry, FixGeometryVariety };
+use super::super::core::tapegeometry::{ TapeGeometry, TapeGeometryVariety };
+use super::super::core::pagegeometry::{ PageGeometry, PageGeometryVariety };
 use super::patina::PatinaAccessorName;
-use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement,Program };
 use super::consts::{ PR_LOW, PR_DEF };
 use web_sys::{ WebGlRenderingContext };
 
-pub(super) enum GeometryAccessorVariety { Pin, Fix, Tape, Page }
+pub(crate) enum GeometryVarietyAccessor {
+    Pin(PinGeometryVariety),
+    Fix(FixGeometryVariety),
+    Tape(TapeGeometryVariety),
+    Page(PageGeometryVariety)
+}
+
+impl GeometryVarietyAccessor {
+    pub(super) fn make_accessor(&self, process: &ProtoProcess, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
+        Ok(match self {
+            GeometryVarietyAccessor::Pin(v) => GeometryAccessor::Pin(PinGeometry::new(process,skin,v)?),
+            GeometryVarietyAccessor::Fix(v)=> GeometryAccessor::Fix(FixGeometry::new(process,skin,v)?),
+            GeometryVarietyAccessor::Tape(v) => GeometryAccessor::Tape(TapeGeometry::new(process,skin,v)?),
+            GeometryVarietyAccessor::Page(v) => GeometryAccessor::Page(PageGeometry::new(process,skin,v)?),
+        })
+    }
+}
+
+pub(crate) enum GeometryAccessorVariety { Pin, Fix, Tape, Page }
 
 impl GeometryAccessorVariety {
     pub const COUNT : usize = 3;
@@ -19,6 +37,15 @@ impl GeometryAccessorVariety {
             GeometryAccessorVariety::Tape => 2,
             GeometryAccessorVariety::Page => 3
         }
+    }
+
+    pub(super) fn make_variety_accessor(&self, program: &Program) -> anyhow::Result<GeometryVarietyAccessor> {
+        Ok(match self {
+            GeometryAccessorVariety::Page => GeometryVarietyAccessor::Page(PageGeometryVariety::new(program)?),
+            GeometryAccessorVariety::Pin => GeometryVarietyAccessor::Pin(PinGeometryVariety::new(program)?),
+            GeometryAccessorVariety::Tape => GeometryVarietyAccessor::Tape(TapeGeometryVariety::new(program)?),
+            GeometryAccessorVariety::Fix => GeometryVarietyAccessor::Fix(FixGeometryVariety::new(program)?)
+        })
     }
 
     pub fn get_source(&self) -> SourceInstrs {
@@ -104,15 +131,6 @@ pub(super) enum GeometryAccessor {
 pub enum GeometryAccessorName { Pin, Fix, Tape, Page }
 
 impl GeometryAccessorName {
-    pub(super) fn make_accessor(&self, process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<GeometryAccessor> {
-        Ok(match self {
-            GeometryAccessorName::Pin => GeometryAccessor::Pin(PinGeometry::new(process,skin)?),
-            GeometryAccessorName::Fix => GeometryAccessor::Fix(FixGeometry::new(process,skin)?),
-            GeometryAccessorName::Tape => GeometryAccessor::Tape(TapeGeometry::new(process,skin)?),
-            GeometryAccessorName::Page => GeometryAccessor::Page(PageGeometry::new(process,skin)?),
-        })
-    }
-
     pub(super) fn get_variety(&self) -> GeometryAccessorVariety {
         match self {
             GeometryAccessorName::Pin => GeometryAccessorVariety::Pin,

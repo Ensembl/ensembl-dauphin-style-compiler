@@ -1,15 +1,17 @@
 use anyhow::{ anyhow as err, bail };
 use web_sys::{ WebGlProgram, WebGlUniformLocation, WebGlRenderingContext };
-use super::attribute::Attribute;
-use super::uniform::Uniform;
+use super::accumulator::{ Accumulator, AccumulatedRun };
+use super::attribute::{ Attribute, AttribHandle };
+use super::keyed::{ KeyedValues, KeyedData };
+use super::uniform::{ Uniform, UniformHandle, UniformValues };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 
 pub struct Program<'c> {
     context: &'c WebGlRenderingContext,
     program: WebGlProgram,
-    uniforms: Vec<(Uniform,WebGlUniformLocation)>,
-    attribs: Vec<(Attribute,u32)>,
+    uniforms: KeyedValues<UniformHandle,Uniform>,
+    attribs: KeyedValues<AttribHandle,Attribute>,
     method: u32
 }
 
@@ -18,8 +20,8 @@ impl<'c> Program<'c> {
         let mut out = Program {
             program,
             context,
-            uniforms: vec![],
-            attribs: vec![],
+            attribs: KeyedValues::new(),
+            uniforms: KeyedValues::new(),
             method: WebGlRenderingContext::TRIANGLES
         };
         source.build(&mut out)?;
@@ -30,29 +32,33 @@ impl<'c> Program<'c> {
     pub(crate) fn get_method(&self) -> u32 { self.method }
 
     pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
-        let location = self.context.get_uniform_location(&self.program,uniform.name());
-        handle_context_errors(self.context)?;
-        let location = location.ok_or_else(|| err!("cannot get uniform '{}'",uniform.name()))?;
-        self.uniforms.push((uniform.clone(),location));
+        self.uniforms.add(uniform.name(),uniform.clone());
         Ok(())
+    }
+
+    pub fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
+        self.attribs.get_handle(name)
+    }
+
+    pub fn get_uniform_handle(&self, name: &str) -> anyhow::Result<UniformHandle> {
+        self.uniforms.get_handle(name)
     }
 
     pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
-        let location = self.context.get_attrib_location(&self.program,attrib.name());
-        handle_context_errors(self.context)?;
-        if location == -1 {
-            bail!("cannot get attrib '{}'",attrib.name());
-        }
-        self.attribs.push((attrib.clone(),location as u32));
+        self.attribs.add(attrib.name(),attrib.clone());
         Ok(())
     }
 
-    pub(crate) fn get_uniforms(&self) -> Vec<Uniform> {
-        self.uniforms.iter().map(|x| x.0.clone()).collect()
+    pub(crate) fn make_uniforms(&self) -> KeyedData<UniformHandle,UniformValues> {
+        self.uniforms.data().map::<_,_,()>(|_,u| Ok(UniformValues::new(u.clone()))).unwrap()
     }
 
-    pub(crate) fn get_attribs(&self) -> Vec<Attribute> {
-        self.attribs.iter().map(|x| x.0.clone()).collect()
+    pub(crate) fn make_accumulator(&self) -> Accumulator {
+        Accumulator::new(&self.attribs)
+    }
+
+    pub(crate) fn make_runs(&self, accumulator: &Accumulator) -> anyhow::Result<Vec<AccumulatedRun>> {
+        accumulator.make(&self.context,&self.attribs)
     }
 
     pub(crate) fn select_program(&self) -> anyhow::Result<()> {

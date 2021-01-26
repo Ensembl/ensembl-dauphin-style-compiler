@@ -2,21 +2,33 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryAccessorName;
 use super::super::layers::patina::PatinaAccessorName;
 use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box, interleave_one };
-use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
+use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 
 #[derive(Clone)]
-pub struct FixGeometry {
+pub struct FixGeometryVariety {
     vertexes: AttribHandle,
     signs: AttribHandle,
+}
+
+impl FixGeometryVariety {
+    pub(crate) fn new(program: &Program) -> anyhow::Result<FixGeometryVariety> {
+        Ok(FixGeometryVariety {
+            vertexes: program.get_attrib_handle("aVertexPosition")?,
+            signs: program.get_attrib_handle("aSign")?
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct FixGeometry {
+    variety: FixGeometryVariety,
     patina: PatinaAccessorName
 }
 
 impl FixGeometry {
-    pub(crate) fn new(process: &ProcessBuilder, patina: &PatinaAccessorName) -> anyhow::Result<FixGeometry> {
-        let vertexes = process.get_attrib_handle("aVertexPosition")?;
-        let signs = process.get_attrib_handle("aSign")?;
-        Ok(FixGeometry { vertexes, signs, patina: patina.clone() })
+    pub(crate) fn new(process: &ProtoProcess, patina: &PatinaAccessorName, variety: &FixGeometryVariety) -> anyhow::Result<FixGeometry> {
+        Ok(FixGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
     pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
@@ -30,8 +42,8 @@ impl FixGeometry {
         let mut vertexes = ship_box(ship_x,size_x,ship_y,size_y,len);
         add_fixed_sea_box(&mut vertexes,false,sea_x);
         add_fixed_sea_box(&mut vertexes,true,sea_y);
-        campaign.add(&self.vertexes,vertexes)?;
-        campaign.add(&self.signs,interleave_one(sign_x,sign_y,len)?)?;
+        campaign.add(&self.variety.vertexes,vertexes)?;
+        campaign.add(&self.variety.signs,interleave_one(sign_x,sign_y,len)?)?;
         Ok(campaign)
     }
 }

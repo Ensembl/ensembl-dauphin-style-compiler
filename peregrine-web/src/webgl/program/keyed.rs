@@ -80,8 +80,12 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
     pub fn values(&self) -> impl Iterator<Item=&T> { self.0.iter() }
     pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> { self.0.iter_mut() }
 
-    pub fn into<F,U,E>(mut self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,T) -> Result<U,E> {
+    pub fn map_into<F,U,E>(mut self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,T) -> Result<U,E> {
         Ok(KeyedData(self.0.drain(..).enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
+    }
+
+    pub fn map<F,U,E>(&self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
+        Ok(KeyedData(self.0.iter().enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
     }
 }
 

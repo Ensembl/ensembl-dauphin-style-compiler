@@ -1,10 +1,30 @@
-use super::super::core::directcolourdraw::DirectColourDraw;
-use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProcessBuilder, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement };
+use anyhow::bail;
+use super::super::core::directcolourdraw::{ DirectColourDraw, DirectColourDrawVariety };
+use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotColourDrawVariety };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
 
-pub(super) enum PatinaAccessorVariety { Direct, Spot }
+pub(crate) enum PatinaVarietyAccessor {
+    Direct(DirectColourDrawVariety),
+    Spot(SpotColourDrawVariety)
+}
+
+impl PatinaVarietyAccessor {
+    pub(super) fn make_accessor(&self, process: &ProtoProcess, skin: &PatinaAccessorName) -> anyhow::Result<PatinaAccessor> {
+        Ok(match self {
+            PatinaVarietyAccessor::Direct(v) => PatinaAccessor::Direct(DirectColourDraw::new(process,v)?),
+            PatinaVarietyAccessor::Spot(v) => {
+                match skin {
+                    PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour,v)?),
+                    _ => bail!("unexpected type mismatch")
+                }
+            }
+        })
+    }
+}
+
+pub(crate) enum PatinaAccessorVariety { Direct, Spot }
 
 impl PatinaAccessorVariety {
     pub const COUNT : usize = 2;
@@ -14,6 +34,13 @@ impl PatinaAccessorVariety {
             PatinaAccessorVariety::Direct => 0,
             PatinaAccessorVariety::Spot => 1
         }
+    }
+
+    pub(super) fn make_variety_accessor(&self, program: &Program) -> anyhow::Result<PatinaVarietyAccessor> {
+        Ok(match self {
+            PatinaAccessorVariety::Direct => PatinaVarietyAccessor::Direct(DirectColourDrawVariety::new(program)?),
+            PatinaAccessorVariety::Spot => PatinaVarietyAccessor::Spot(SpotColourDrawVariety::new(program)?),
+        })
     }
 
     pub fn get_source(&self) -> SourceInstrs {
@@ -60,12 +87,14 @@ pub(super) enum PatinaAccessor {
 pub enum PatinaAccessorName { Direct, Spot(DirectColour) }
 
 impl PatinaAccessorName {
-    pub(super) fn make_accessor(&self, process: &ProcessBuilder) -> anyhow::Result<PatinaAccessor> {
+    /*
+    pub(super) fn make_accessor(&self, process: &ProtoProcess) -> anyhow::Result<PatinaAccessor> {
         Ok(match self {
             PatinaAccessorName::Direct => PatinaAccessor::Direct(DirectColourDraw::new(process)?),
             PatinaAccessorName::Spot(colour) => PatinaAccessor::Spot(SpotColourDraw::new(process,colour)?)
         })
     }
+    */
 
     pub(super) fn get_variety(&self) -> PatinaAccessorVariety {
         match self {

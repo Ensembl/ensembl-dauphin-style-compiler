@@ -7,7 +7,7 @@ use super::super::core::tapegeometry::TapeGeometry;
 use super::super::core::pagegeometry::PageGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProcessBuilder, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
+use crate::webgl::{ ProtoProcess, SourceInstrs, WebGlCompiler, AccumulatorCampaign };
 use super::geometry::{ GeometryAccessor, GeometryAccessorName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaAccessor, PatinaAccessorName };
@@ -19,13 +19,11 @@ Wiggles
 macroise
 split accumulator
 ensure + index
-attribute "set" removal
 y split bug
 y from bottom
 layers from core
 ordered layers
 does everything need context ref?
-push up handle resolution via attrib factory (eg spot)
 split layer
 rearrange accessors
 rename accessors
@@ -33,7 +31,7 @@ rename accessors
 */
 
 struct SubLayer<'c> {
-    process: ProcessBuilder<'c>,
+    process: ProtoProcess<'c>,
     geometry: GeometryAccessor,
     patina: PatinaAccessor
 }
@@ -44,15 +42,15 @@ impl<'c> SubLayerHolder<'c> {
     fn new() -> SubLayerHolder<'c> { SubLayerHolder(None) }
 
     fn make(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<()> {
-        let program = programs.get_program(geometry.get_variety(),patina.get_variety())?;
-        let process = ProcessBuilder::new(program);
-        let geometry = geometry.make_accessor(&process,patina)?;
-        let patina = patina.make_accessor(&process)?;
+        let program_store_entry = programs.get_program(geometry.get_variety(),patina.get_variety())?;
+        let process = ProtoProcess::new(program_store_entry.program().clone());
+        let geometry = program_store_entry.get_geometry().make_accessor(&process,patina)?;
+        let patina = program_store_entry.get_patina().make_accessor(&process,patina)?;
         self.0 = Some(SubLayer { process, geometry, patina });
         Ok(())
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProtoProcess<'c>> {
         self.make(programs,geometry,patina)?;
         Ok(&mut self.0.as_mut().unwrap().process)
     }
@@ -88,7 +86,7 @@ impl<'c> GeometrySubLayer<'c> {
         })
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+    fn get_process_mut(&mut self, programs: &ProgramStore<'c>, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProtoProcess<'c>> {
         self.holder(patina)?.get_process_mut(programs,geometry,patina)
     }
 
@@ -129,7 +127,7 @@ impl<'c> Layer<'c> {
         })
     }
 
-    pub(crate) fn get_process_mut(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProcessBuilder<'c>> {
+    pub(crate) fn get_process_mut(&mut self, geometry: &GeometryAccessorName, patina: &PatinaAccessorName) -> anyhow::Result<&mut ProtoProcess<'c>> {
         let (sub,compiler) = self.holder(geometry,patina)?;
         sub.get_process_mut(compiler,geometry,patina)
     }

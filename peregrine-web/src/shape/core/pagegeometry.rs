@@ -2,21 +2,33 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryAccessorName;
 use super::super::layers::patina::PatinaAccessorName;
 use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box, interleave_one };
-use crate::webgl::{ AttribHandle, ProcessBuilder, AccumulatorCampaign };
+use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 
 #[derive(Clone)]
-pub struct PageGeometry {
+pub struct PageGeometryVariety {
     vertexes: AttribHandle,
     signs: AttribHandle,
+}
+
+impl PageGeometryVariety {
+    pub(crate) fn new(program: &Program) -> anyhow::Result<PageGeometryVariety> {
+        Ok(PageGeometryVariety {
+            vertexes: program.get_attrib_handle("aVertexPosition")?,
+            signs: program.get_attrib_handle("aSign")?
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct PageGeometry {
+    variety: PageGeometryVariety,
     skin: PatinaAccessorName
 }
 
 impl PageGeometry {
-    pub(crate) fn new(process: &ProcessBuilder, skin: &PatinaAccessorName) -> anyhow::Result<PageGeometry> {
-        let vertexes = process.get_attrib_handle("aVertexPosition")?;
-        let signs = process.get_attrib_handle("aSign")?;
-        Ok(PageGeometry { vertexes, signs, skin: skin.clone() })
+    pub(crate) fn new(process: &ProtoProcess, skin: &PatinaAccessorName, variety: &PageGeometryVariety) -> anyhow::Result<PageGeometry> {
+        Ok(PageGeometry { variety: variety.clone(), skin: skin.clone() })
     }
 
     pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
@@ -30,7 +42,8 @@ impl PageGeometry {
         let mut vertexes = ship_box(ship_x,size_x,ship_y,size_y,len);
         add_fixed_sea_box(&mut vertexes,false,sea_x);
         add_fixed_sea_box(&mut vertexes,true,ScreenEdge::Min(yy));
-        campaign.add(&self.signs,signs)?;
+        campaign.add(&self.variety.signs,signs)?;
+        campaign.add(&self.variety.vertexes,vertexes)?;
         Ok(campaign)
     }
 }

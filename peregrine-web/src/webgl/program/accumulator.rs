@@ -92,7 +92,7 @@ impl AccumulatorEntry {
         Ok(AccumulatedRun {
             index: create_index_buffer(context,&self.index)?,
             len: self.index.len(),
-            attribs: self.attribs.into(|k,v| AttributeValues::new(values.get(&k).clone(),v,context))?
+            attribs: self.attribs.map_into(|k,v| AttributeValues::new(values.get(&k),v,context))?
         })
     }
 }
@@ -181,17 +181,16 @@ impl AccumulatorCampaign {
 
 pub struct Accumulator {
     entries: Vec<Rc<RefCell<AccumulatorEntry>>>,
-    attribs: KeyedValues<AttribHandle,Attribute>,
     maker: KeyedDataMaker<'static,AttribHandle,Vec<f64>>,
     active: Rc<RefCell<bool>>
 
 }
 
 impl Accumulator {
-    pub(crate) fn new(attribs: KeyedValues<AttribHandle,Attribute>) -> Accumulator {
+    pub(crate) fn new(attribs: &KeyedValues<AttribHandle,Attribute>) -> Accumulator {
         let maker = attribs.keys().make_maker(|| vec![]);
         Accumulator {
-            attribs, maker,
+            maker,
             entries: vec![],
             active: Rc::new(RefCell::new(false))
         }
@@ -207,10 +206,6 @@ impl Accumulator {
         self.entries.last_mut().unwrap()
     }
 
-    pub(super) fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
-        self.attribs.get_handle(name)
-    }
-
     pub(crate) fn make_campaign(&mut self, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
         if *self.active.borrow() {
             bail!("can only have one active campaign at once");
@@ -222,8 +217,7 @@ impl Accumulator {
         Ok(AccumulatorCampaign::new(self,count,indexes))
     }
 
-    pub(super) fn make(mut self, context: &WebGlRenderingContext) -> anyhow::Result<Vec<AccumulatedRun>> {
-        let data = self.attribs.data();
-        Ok(self.entries.iter().map(|x| x.replace(AccumulatorEntry::new(&self.maker)).make(&data,context)).collect::<Result<_,_>>()?)
+    pub(super) fn make(&self, context: &WebGlRenderingContext, attribs: &KeyedValues<AttribHandle,Attribute>) -> anyhow::Result<Vec<AccumulatedRun>> {
+        Ok(self.entries.iter().map(|x| x.replace(AccumulatorEntry::new(&self.maker)).make(attribs.data(),context)).collect::<Result<_,_>>()?)
     }
 }
