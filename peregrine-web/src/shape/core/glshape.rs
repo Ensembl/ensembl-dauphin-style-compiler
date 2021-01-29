@@ -1,4 +1,5 @@
-use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour };
+use anyhow::bail;
+use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair };
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
@@ -36,6 +37,33 @@ fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaPr
     }
 }
 
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, allotment: Vec<String>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
+    let anchors_x = anchors.0;
+    let anchors_y = anchors.1;
+    let anchor_sea_x = anchors_x.0;
+    let pxx1 = anchors_x.1;
+    let pxx2 = anchors_x.2;
+    let anchor_sea_y = anchors_y.0;
+    let pyy1 = anchors_y.1;
+    let pyy2 = anchors_y.2;
+    match (anchor_sea_x,anchor_sea_y) {
+        (SeaEndPair::Paper(xx1,xx2),SeaEndPair::Paper(yy1,yy2)) => {
+            // stretch pin
+            bail!("unimplemented")
+        },
+        (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+            Ok((layer.get_fix(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Fix))
+        },
+        (SeaEndPair::Paper(xx1,xx2),SeaEndPair::Screen(yy1,yy2)) => {
+            // stretch tape
+            bail!("unimplemented")
+        },
+        (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+            Ok((layer.get_page(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Page))
+        }
+    }
+}
+
 fn add_colour(campaign: &mut AccumulatorCampaign, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
     match colour {
         Colour::Direct(d) => {
@@ -59,6 +87,16 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                 Patina::Filled(colour) => {
                     let patina = colour_to_patina(colour.clone());
                     let (mut campaign,geometry) = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size)?;
+                    add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                },
+                _ => {}
+            }
+        },
+        Shape::DoubleAnchorRect(anchors,patina,allotment) => {
+            match patina {
+                Patina::Filled(colour) => {
+                    let patina = colour_to_patina(colour.clone());
+                    let (mut campaign,geometry) = add_stretchtangle(layer,anchors,&patina,allotment)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                 },
                 _ => {}

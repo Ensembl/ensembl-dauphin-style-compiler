@@ -178,7 +178,6 @@ impl ScreenEdge {
             ScreenEdge::Max(x) => track_split(x,&mapping,primary).drain(..).map(|x| ScreenEdge::Max(x)).collect()
         }
     }
-
 }
 
 #[derive(Clone,Debug)]

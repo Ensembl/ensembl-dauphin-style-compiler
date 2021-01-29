@@ -1,0 +1,67 @@
+Anchors
+=======
+
+An anchor has a sea (A) end and a ship (P) end. The sea end represents either the screen or the paper and the ship end a datum on the object.
+
+THe type of the sea end (in each axis) determines the applicable geometry, so by the time it reaches the point of implementing geometry, this will be known and invariant. Even when there are two anchors, both can only beof a single type so there are only four options. Axes operate independently and can be considered separetely.
+
+An object can have one or two anchor points.
+
+Two anchor points
+-----------------
+
+An object may be defined to have two anchor points. In this case, the size of the object is defined by the relative co-ordinates of those anchors. The two anchors are known as systems one and two, respectively.
+
+system 1      system 2
++--------------------+
+|                    |
+|    [P]   [P]       |
+|     |     |        |
++-----+-----+--------+
+      |     |
+     [A]   [A]
+
+A ship end is itself referenced with some displacement from one edge of an object or another or its centre (known as the datum). For a two-anchored object this is always the start and end for systems one and two respectively.
+
+system 1      system 2
+[D]----------------[D]
+|......     .........|
+|    [P]   [P]       |
+|     |     |        |
++-----+-----+--------+
+      |     |
+     [A]   [A]
+
+If we are screen-based, ultimately we need to use this data to learn the distance from the sea anchors to the start and end of the object. These measurements are denoter with =.
+
+            system 1      system 2
+            [D]----------------[D]
+            |......     .........|
+            |    [P]   [P]       |
+(s1)=======>|     |     |        |
+(s2)========+=====+=====+=======>|
+            +-----+-----+--------+
+                  |     |
+                 [A]   [A]
+
+We see, therefore, that for the two-anchor object this degenerates into two independent problems.
+
+  (s1) = [A1] - [walk1]
+  (s2) = [A2] + [walk2]
+
+Note, however, that in the case of "max" sea anchors, we measure from the right.
+
+     system 1      system 2
+     [D]----------------[D]
+     |......     .........|
+     |    [P]   [P]       |
+     |<====+=====+========+=============(s1)
+     |     |     |        +<============(s2)
+     +-----+-----+--------+
+           |     |
+          [A]   [A]
+
+  (s1) = [A1] + [walk1]
+  (s2) = [A2] - [walk2]
+
+In general, then, using the right introcues a sign flip which is equivalent to mapping the walks to the right-based coordinate systems of the anchors.

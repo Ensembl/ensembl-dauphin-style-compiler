@@ -21,6 +21,7 @@ y split bug
 y from bottom
 layers from core
 ordered layers
+remove datum option from stretchtangles
 
 */
 
