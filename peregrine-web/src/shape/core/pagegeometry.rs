@@ -55,7 +55,7 @@ impl PageGeometry {
         pxx2: ShipEnd, pyy2: ShipEnd,      /* ship-end anchor2 */
                 ) -> anyhow::Result<AccumulatorCampaign> {
         let len = ayy1.len();
-        let mut campaign = layer.make_campaign(&GeometryProcessName::Fix,&self.patina,len,&[0,3,1,2,1,3])?;
+        let mut campaign = layer.make_campaign(&GeometryProcessName::Page,&self.patina,len,&[0,3,1,2,1,3])?;
         let (axx1,sxx1) = stretchtangle(axx1,pxx1,false)?;
         let (ayy1,syy1) = stretchtangle(ScreenEdge::Min(ayy1),pyy1,false)?;
         let (axx2,sxx2) = stretchtangle(axx2,pxx2,true)?;

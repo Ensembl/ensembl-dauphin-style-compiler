@@ -47,16 +47,14 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     let pyy1 = anchors_y.1;
     let pyy2 = anchors_y.2;
     match (anchor_sea_x,anchor_sea_y) {
-        (SeaEndPair::Paper(xx1,xx2),SeaEndPair::Paper(yy1,yy2)) => {
-            // stretch pin
-            bail!("unimplemented")
+        (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+            Ok((layer.get_pin(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Pin))
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
             Ok((layer.get_fix(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Fix))
         },
-        (SeaEndPair::Paper(xx1,xx2),SeaEndPair::Screen(yy1,yy2)) => {
-            // stretch tape
-            bail!("unimplemented")
+        (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+            Ok((layer.get_tape(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Tape))
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
             Ok((layer.get_page(skin)?.add_solid_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2)?,GeometryProcessName::Page))

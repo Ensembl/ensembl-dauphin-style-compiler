@@ -47,6 +47,19 @@ pub(crate) fn interleave_rect_y(xx1: &[f64], yy1: &[f64], xx2: &[f64], yy2: &[f6
     return out;
 }
 
+pub(crate) fn interleave_line_x(xx1: &[f64], xx2: &[f64]) -> Vec<f64> {
+    let mut out = vec![];
+    let mut xx2_iter = if xx2.len()!=0 { xx2.iter() } else { [0.].iter() }.cycle();
+    for x1 in xx1 {
+        let x2 = xx2_iter.next().unwrap();
+        out.push(*x1);
+        out.push(*x1);
+        out.push(*x2);
+        out.push(*x2);
+    }
+    return out;
+}
+
 fn flip_sense(values: &mut [f64], edge: &ScreenEdge, max: bool) {
     if match edge {
         ScreenEdge::Max(_) => { max },
