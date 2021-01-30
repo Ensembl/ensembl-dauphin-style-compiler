@@ -1,10 +1,12 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box };
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::super::layers::arrayutil::{ stretchtangle, interleave_rect_x, interleave_line_x };
+use super::super::layers::arrayutil::{ 
+    interleave_rect_x, interleave_line_x, calculate_vertex, calculate_vertex_delta, sea_sign, quads,
+    calculate_stretch_vertex_delta, calculate_stretch_vertex
+};
 
 #[derive(Clone)]
 pub struct TapeProgram {
@@ -38,15 +40,18 @@ impl TapeGeometry {
                                         base_x: Vec<f64>, sea_y: ScreenEdge,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
                                         size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
-        let mut campaign = layer.make_campaign(&GeometryProcessName::Tape,&self.patina,base_x.len(),&[0,3,1,2,1,3])?;
         let len = base_x.len();
-        let mut vertexes = ship_box(ship_x,size_x,ship_y,size_y,len);
-        let sign_y = match sea_y { ScreenEdge::Max(_) => -1., _ => 1. };
-        let y = match &sea_y { ScreenEdge::Min(z) => z, ScreenEdge::Max(z) => z };
-        add_fixed_sea_box(&mut vertexes,true,sea_y);
-        campaign.add(&self.variety.origins,base_x)?;
-        campaign.add(&self.variety.vertexes,vertexes)?;
-        campaign.add(&self.variety.signs,vec![sign_y;len])?;        
+        let mut campaign = layer.make_campaign(&GeometryProcessName::Tape,&self.patina,len,&[0,3,1,2,1,3])?;
+        let x1 = calculate_vertex_delta(len,&ship_x,&size_x,false);
+        let x2 = calculate_vertex_delta(len,&ship_x,&size_x,true);
+        let y1 = calculate_vertex(&sea_y,&ship_y,&size_y,false);
+        let y2 = calculate_vertex(&sea_y,&ship_y,&size_y,true);
+        let signs = vec![sea_sign(&sea_y);len*4];
+        let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        let origins = quads(&base_x);
+        campaign.add(&self.variety.origins,origins)?; /* 4n */
+        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
+        campaign.add(&self.variety.signs,signs)?; /* 4n */
         Ok(campaign)
     }
 
@@ -58,16 +63,16 @@ impl TapeGeometry {
                     ) -> anyhow::Result<AccumulatorCampaign> {
         let len = axx1.len();
         let mut campaign = layer.make_campaign(&GeometryProcessName::Tape,&self.patina,len,&[0,3,1,2,1,3])?;
-        let (ayy1,_syy1) = stretchtangle(ayy1,pyy1,false)?;
-        let (ayy2,_syy2) = stretchtangle(ayy2,pyy2,true)?;
-        let pxx1 = match pxx1 { ShipEnd::Min(x) => x, ShipEnd::Centre(x) => x, ShipEnd::Max(x) => x };
-        let pxx2 = match pxx2 { ShipEnd::Min(x) => x, ShipEnd::Centre(x) => x, ShipEnd::Max(x) => x };
-        let vertexes = interleave_rect_x(&pxx1,&ayy1,&pxx2,&ayy2);
-        let signs = vec![1.;len];
-        let origins = interleave_line_x(&axx2,&axx2);
-        campaign.add(&self.variety.signs,signs)?;
-        campaign.add(&self.variety.vertexes,vertexes)?;
-        campaign.add(&self.variety.origins,origins)?;
+        let x1 = calculate_stretch_vertex_delta(len,&pxx1);
+        let x2 = calculate_stretch_vertex_delta(len,&pxx2);
+        let y1 = calculate_stretch_vertex(&ayy1,&pyy1);
+        let y2 = calculate_stretch_vertex(&ayy2,&pyy2);
+        let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        let origins = interleave_line_x(&axx1,&axx2);
+        let signs = vec![1.;len*4];
+        campaign.add(&self.variety.signs,signs)?; /* 4n */
+        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
+        campaign.add(&self.variety.origins,origins)?; /* 4n */
         Ok(campaign)
     }
 }

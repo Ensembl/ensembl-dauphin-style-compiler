@@ -1,10 +1,10 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use super::super::layers::arrayutil::{ add_fixed_sea_box, ship_box, interleave_one };
+use super::super::layers::arrayutil::{ interleave_pair_count };
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::super::layers::arrayutil::{ stretchtangle, repeat, interleave_rect_x };
+use super::super::layers::arrayutil::{ repeat, interleave_rect_x, calculate_vertex, sea_sign, calculate_stretch_vertex };
 
 #[derive(Clone)]
 pub struct FixProgram {
@@ -35,16 +35,17 @@ impl FixGeometry {
     pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
                                         sea_x: ScreenEdge, sea_y: ScreenEdge,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
-                                        size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
+                                        mut size_x: Vec<f64>, mut size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
         let len = sea_x.len();
         let mut campaign = layer.make_campaign(&GeometryProcessName::Fix,&self.patina,len,&[0,3,1,2,1,3])?;
-        let sign_x = match sea_x { ScreenEdge::Max(_) => -1., _ => 1. };
-        let sign_y = match sea_y { ScreenEdge::Max(_) => -1., _ => 1. };
-        let mut vertexes = ship_box(ship_x,size_x,ship_y,size_y,len);
-        add_fixed_sea_box(&mut vertexes,false,sea_x);
-        add_fixed_sea_box(&mut vertexes,true,sea_y);
-        campaign.add(&self.variety.vertexes,vertexes)?;
-        campaign.add(&self.variety.signs,interleave_one(sign_x,sign_y,len)?)?;
+        let x1 = calculate_vertex(&sea_x,&ship_x,&size_x,false);
+        let x2 = calculate_vertex(&sea_x,&ship_x,&size_x,true);
+        let y1 = calculate_vertex(&sea_y,&ship_y,&size_y,false);
+        let y2 = calculate_vertex(&sea_y,&ship_y,&size_y,true);
+        let signs = interleave_pair_count(sea_sign(&sea_x),sea_sign(&sea_y),len*4)?;
+        let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
+        campaign.add(&self.variety.signs,signs)?; /* 8n */
         Ok(campaign)
     }
 
@@ -56,14 +57,18 @@ impl FixGeometry {
                                         ) -> anyhow::Result<AccumulatorCampaign> {
         let len = axx1.len();
         let mut campaign = layer.make_campaign(&GeometryProcessName::Fix,&self.patina,len,&[0,3,1,2,1,3])?;
-        let (axx1,sxx1) = stretchtangle(axx1,pxx1,false)?;
-        let (ayy1,syy1) = stretchtangle(ayy1,pyy1,false)?;
-        let (axx2,sxx2) = stretchtangle(axx2,pxx2,true)?;
-        let (ayy2,syy2) = stretchtangle(ayy2,pyy2,true)?;
-        let vertexes = interleave_rect_x(&axx1,&ayy1,&axx2,&ayy2);
-        let signs = repeat(&[sxx1,syy1,  sxx1,syy2,   sxx2,syy1,   sxx2,syy2],len);
-        campaign.add(&self.variety.vertexes,vertexes)?;
-        campaign.add(&self.variety.signs,signs)?;
+        let x1 = calculate_stretch_vertex(&axx1,&pxx1);
+        let x2 = calculate_stretch_vertex(&axx2,&pxx2);
+        let y1 = calculate_stretch_vertex(&ayy1,&pyy1);
+        let y2 = calculate_stretch_vertex(&ayy2,&pyy2);
+        let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        let sx1 = sea_sign(&axx1);
+        let sx2 = sea_sign(&axx2);
+        let sy1 = sea_sign(&ayy1);
+        let sy2 = sea_sign(&ayy2);
+        let signs = repeat(&[sx1,sy1,  sx1,sy2,   sx2,sy1,   sx2,sy2],len);
+        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
+        campaign.add(&self.variety.signs,signs)?; /* 8n */
         Ok(campaign)
     }
 }
