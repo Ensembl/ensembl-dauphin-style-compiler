@@ -1,13 +1,10 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use super::super::layers::arrayutil::{ interleave_pair_count };
+use super::arrayutil::{ interleave_pair_count };
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::super::layers::arrayutil::{
-    repeat, interleave_rect_y, calculate_vertex, sea_sign, calculate_vertex_min, calculate_stretch_vertex,
-    calculate_stretch_vertex_delta
-};
+use super::arrayutil::{ repeat, interleave_rect_y, calculate_vertex, sea_sign, calculate_vertex_min, calculate_stretch_vertex };
 
 #[derive(Clone)]
 pub struct PageProgram {
@@ -62,8 +59,8 @@ impl PageGeometry {
         let mut campaign = layer.make_campaign(&GeometryProcessName::Page,&self.patina,len,&[0,3,1,2,1,3])?;
         let x1 = calculate_stretch_vertex(&axx1,&pxx1);
         let x2 = calculate_stretch_vertex(&axx2,&pxx2);
-        let y1 = calculate_stretch_vertex_delta(len,&pyy1);
-        let y2 = calculate_stretch_vertex_delta(len,&pyy2);
+        let y1 = calculate_stretch_vertex(&ScreenEdge::Min(ayy1),&pyy1);
+        let y2 = calculate_stretch_vertex(&ScreenEdge::Min(ayy2),&pyy2);
         let vertexes = interleave_rect_y(&x1,&y1,&x2,&y2);
         let sx1 = sea_sign(&axx1);
         let sx2 = sea_sign(&axx2);

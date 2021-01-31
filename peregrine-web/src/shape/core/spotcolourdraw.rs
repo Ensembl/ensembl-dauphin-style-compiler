@@ -1,7 +1,6 @@
-use anyhow::bail;
-use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, UniformHandle, Program };
+use crate::webgl::{ ProtoProcess, UniformHandle, Program };
 use peregrine_core::DirectColour;
-use super::super::layers::arrayutil::{ scale_colour };
+use super::arrayutil::{ scale_colour };
 
 #[derive(Clone)]
 pub struct SpotProgram {

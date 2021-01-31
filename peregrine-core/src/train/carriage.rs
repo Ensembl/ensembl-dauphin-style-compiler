@@ -48,6 +48,8 @@ impl Carriage {
     }
 
     pub fn id(&self) -> &CarriageId { &self.id }
+
+    // XXX should be able to return without cloning
     pub fn shapes(&self) -> Vec<Shape> {
         let mut out = vec![];
         for shape in self.shapes.lock().unwrap().as_ref().map(|x| x.shapes()).unwrap_or(&vec![]) {

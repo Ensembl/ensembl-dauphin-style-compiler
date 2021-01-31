@@ -52,14 +52,16 @@ pub(crate) struct GPUSpec {
 }
 
 impl GPUSpec {
-    pub fn new() -> GPUSpec { 
-        GPUSpec {
+    pub fn new(context: &WebGlRenderingContext) -> GPUSpec { 
+        let mut out = GPUSpec {
             vert_precs: Vec::new(),
             frag_precs: Vec::new()
-        }
+        };
+        out.populate(context);
+        out
     }
 
-    pub fn populate(&mut self, context: &WebGlRenderingContext) {
+    fn populate(&mut self, context: &WebGlRenderingContext) {
         get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::VERTEX_SHADER);
         get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::FRAGMENT_SHADER);
     }

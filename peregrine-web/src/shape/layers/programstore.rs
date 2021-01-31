@@ -1,8 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::webgl::{ WebGlCompiler, Program, SourceInstrs };
+use crate::webgl::{ WebGlCompiler, Program, SourceInstrs, GPUSpec };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
+use web_sys::WebGlRenderingContext;
 
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
@@ -14,14 +15,14 @@ impl ProgramIndex {
     }
 }
 
-pub(crate) struct ProgramStoreEntry<'c> {
-    program: Rc<Program<'c>>,
+pub(crate) struct ProgramStoreEntry {
+    program: Rc<Program>,
     geometry: GeometryProgram,
     patina: PatinaProgram
 }
 
-impl<'c> ProgramStoreEntry<'c> {
-    fn new(program: Program<'c>, index: &ProgramIndex) -> anyhow::Result<ProgramStoreEntry<'c>> {
+impl ProgramStoreEntry {
+    fn new(program: Program, index: &ProgramIndex) -> anyhow::Result<ProgramStoreEntry> {
         let geometry = index.0.make_geometry_program(&program)?;
         let patina = index.1.make_patina_program(&program)?;
         Ok(ProgramStoreEntry {
@@ -31,17 +32,26 @@ impl<'c> ProgramStoreEntry<'c> {
         })
     }
 
-    pub(crate) fn program(&self) -> &Rc<Program<'c>> { &self.program }
+    pub(crate) fn program(&self) -> &Rc<Program> { &self.program }
     pub(crate) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
     pub(crate) fn get_patina(&self) -> &PatinaProgram { &self.patina }
 }
 
-pub struct ProgramStore<'c> {
-    compiler: WebGlCompiler<'c>,
-    programs: RefCell<[Option<Rc<ProgramStoreEntry<'c>>>;ProgramIndex::COUNT]>
+pub struct ProgramStoreData {
+    compiler: WebGlCompiler,
+    programs: RefCell<Vec<Option<Rc<ProgramStoreEntry>>>>
 }
 
-impl<'c> ProgramStore<'c> {
+impl ProgramStoreData {
+    fn new(context: &WebGlRenderingContext) -> ProgramStoreData {
+        let gpuspec = GPUSpec::new(context);
+        let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
+        ProgramStoreData {
+            compiler: WebGlCompiler::new(context,gpuspec),
+            programs
+        }
+    }
+
     fn make_program(&self, index: &ProgramIndex) -> anyhow::Result<()> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(index.0.get_source());
@@ -50,11 +60,24 @@ impl<'c> ProgramStore<'c> {
         Ok(())
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry<'c>>> {
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
         let index = ProgramIndex(geometry,patina);
         if self.programs.borrow()[index.get_index()].is_none() {
             self.make_program(&index)?;
         }
         Ok(self.programs.borrow()[index.get_index()].as_ref().unwrap().clone())
+    }
+}
+
+#[derive(Clone)]
+pub struct ProgramStore(Rc<ProgramStoreData>);
+
+impl ProgramStore {
+    pub(crate) fn new(context: &WebGlRenderingContext) -> ProgramStore {
+        ProgramStore(Rc::new(ProgramStoreData::new(context)))
+    }
+
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
+        self.0.get_program(geometry,patina)
     }
 }

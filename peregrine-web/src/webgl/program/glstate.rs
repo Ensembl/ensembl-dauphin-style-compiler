@@ -5,12 +5,13 @@ use super::super::gpuspec::gpuspec::GPUSpec;
 use super::program::Program;
 use super::source::SourceInstrs;
 
+/*
 pub(crate) struct ProgramHandle(usize);
 
 pub struct GLState<'c> {
     context: &'c WebGlRenderingContext,
     compiler: WebGlCompiler<'c>,
-    programs: Vec<Program<'c>>,
+    programs: Vec<Program>,
     current_program: Option<usize>
 }
 
@@ -34,3 +35,4 @@ impl<'c> GLState<'c> {
         Ok(handle)
     }
 }
+*/

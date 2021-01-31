@@ -1,5 +1,4 @@
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use anyhow::{ bail };
 
 /* convert 0-255 colour indices to 0.0-1.0 */
 pub(crate) fn scale_colour(value: u8) -> f64 {
@@ -86,21 +85,6 @@ pub(crate) fn interleave_line_x(xx1: &[f64], xx2: &[f64]) -> Vec<f64> {
     return out;
 }
 
-/* Interleaves a pair of co-ordinates, extending to the longest by truncation or cycling.
- */
-pub(crate) fn interleave_pair(mut main: Vec<f64>, sub: &[f64]) -> anyhow::Result<Vec<f64>> {
-    let mut sub_iter = if sub.len()!=0 { sub.iter() } else { [0.].iter() }.cycle();
-
-    let sub_len = sub.len();
-    if sub_len == 0 { bail!("Cannot interleave zero-length array"); }
-    let mut out = vec![];
-    for (i,a) in main.drain(..).enumerate() {
-        out.push(a);
-        out.push(sub[i%sub_len].clone());
-    }
-    Ok(out)
-}
-
 /* Interleaves count copies of a then b */
 pub(crate) fn interleave_pair_count<X>(a: X, b: X, count: usize) -> anyhow::Result<Vec<X>> where X: Clone {
     let mut out = vec![];
@@ -163,8 +147,8 @@ pub(crate) fn calculate_vertex_delta(count: usize, ship: &ShipEnd, size: &Vec<f6
 
 pub(crate) fn sea_sign(sea: &ScreenEdge) -> f64 {
     match sea {
-        ScreenEdge::Min(x) => 1.,
-        ScreenEdge::Max(x) => -1.
+        ScreenEdge::Min(_) => 1.,
+        ScreenEdge::Max(_) => -1.
     }
 }
 
@@ -193,7 +177,7 @@ pub(crate) fn calculate_stretch_vertex_delta(count: usize, ship: &ShipEnd) -> Ve
         ShipEnd::Max(x) => x
     };
     let mut ship_iter = (if ship.len() > 0 { ship.iter() } else { [0.].iter() }).cycle();
-    (0..count).map(|x|
+    (0..count).map(|_|
         - ship_iter.next().unwrap()
     ).collect()
 }

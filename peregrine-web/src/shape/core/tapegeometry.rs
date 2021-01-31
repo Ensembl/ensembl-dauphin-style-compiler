@@ -3,7 +3,7 @@ use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::super::layers::arrayutil::{ 
+use super::arrayutil::{ 
     interleave_rect_x, interleave_line_x, calculate_vertex, calculate_vertex_delta, sea_sign, quads,
     calculate_stretch_vertex_delta, calculate_stretch_vertex
 };

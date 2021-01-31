@@ -18,6 +18,7 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
+        pub(crate) mod arrayutil;
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
         pub(super) mod fixgeometry;
@@ -27,8 +28,8 @@ mod shape {
         pub(super) mod tapegeometry;
     }
 
-    mod layers {
-        pub(crate) mod arrayutil;
+    pub(crate) mod layers {
+        pub(crate) mod drawing;
         pub(super) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;

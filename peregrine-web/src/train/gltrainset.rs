@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineApi };
 use super::gltrain::GLTrain;
+use crate::shape::layers::programstore::ProgramStore;
+use web_sys::{ HtmlCanvasElement, WebGlRenderingContext };
 
 #[derive(Clone)]
 enum FadeState {
@@ -12,6 +14,7 @@ enum FadeState {
 }
 
 struct GlTrainSetData {
+    programs: ProgramStore,
     slow_fade_time: f64,
     fast_fade_time: f64,
     trains: HashMap<u32,GLTrain>,
@@ -19,8 +22,10 @@ struct GlTrainSetData {
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig) -> GlTrainSetData {
+    fn new(config: &PeregrineConfig, context: &WebGlRenderingContext) -> GlTrainSetData {
+        let programs = ProgramStore::new(context);
         GlTrainSetData {
+            programs,
             slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
             trains: HashMap::new(),
@@ -29,13 +34,14 @@ impl GlTrainSetData {
     }
 
     fn get_train(&mut self, index: u32) -> &mut GLTrain {
-        self.trains.entry(index).or_insert_with(|| {
-            GLTrain::new(index)
-        })
+        if !self.trains.contains_key(&index) {
+            self.trains.insert(index,GLTrain::new(index,&self.programs));
+        }
+        self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) {
-        self.get_train(index).set_carriages(new_carriages);
+    fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
+        self.get_train(index).set_carriages(new_carriages)
     }
 
     fn set_max(&mut self, index: u32, len: u64) {
@@ -111,10 +117,10 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, api: PeregrineApi) -> GlTrainSet {
+    pub fn new(config: &PeregrineConfig, api: PeregrineApi, context: &WebGlRenderingContext) -> GlTrainSet {
         GlTrainSet {
             api,
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config)))
+            data: Arc::new(Mutex::new(GlTrainSetData::new(config,context)))
         }
     }
 

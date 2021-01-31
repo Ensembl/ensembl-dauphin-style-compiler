@@ -3,7 +3,7 @@ use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
-use super::consts::{ PR_LOW, PR_DEF };
+use super::consts::{ PR_LOW };
 
 pub(crate) enum PatinaProgram {
     Direct(DirectProgram),

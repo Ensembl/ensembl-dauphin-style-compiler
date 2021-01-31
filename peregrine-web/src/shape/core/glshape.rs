@@ -1,17 +1,8 @@
-use anyhow::bail;
 use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair };
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::AccumulatorCampaign;
-
-pub(crate) struct GLShape(Shape);
-
-impl GLShape {
-    pub fn new(shape: Shape) -> GLShape {
-        GLShape(shape)
-    }
-}
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     match colour {
@@ -20,7 +11,7 @@ fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
     match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
             Ok((layer.get_pin(skin)?.add_solid_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size)?,GeometryProcessName::Pin))
@@ -37,7 +28,7 @@ fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaPr
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, allotment: Vec<String>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -72,8 +63,7 @@ fn add_colour(campaign: &mut AccumulatorCampaign, layer: &mut Layer, geometry: &
             let spot = layer.get_spot(geometry,colour)?;
             let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(colour.clone()))?;
             spot.spot(&mut process)?;
-        },
-        _ => {}
+        }
     }
     Ok(())
 }
@@ -86,6 +76,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                     let patina = colour_to_patina(colour.clone());
                     let (mut campaign,geometry) = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    campaign.close();
                 },
                 _ => {}
             }
@@ -96,6 +87,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                     let patina = colour_to_patina(colour.clone());
                     let (mut campaign,geometry) = add_stretchtangle(layer,anchors,&patina,allotment)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    campaign.close();
                 },
                 _ => {}
             }

@@ -1,10 +1,9 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use super::super::layers::arrayutil::{ interleave_pair_count };
 use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::super::layers::arrayutil::{ repeat, interleave_rect_x, calculate_vertex, sea_sign, calculate_stretch_vertex };
+use super::arrayutil::{ repeat, interleave_rect_x, calculate_vertex, sea_sign, calculate_stretch_vertex, interleave_pair_count };
 
 #[derive(Clone)]
 pub struct FixProgram {
@@ -35,7 +34,7 @@ impl FixGeometry {
     pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
                                         sea_x: ScreenEdge, sea_y: ScreenEdge,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
-                                        mut size_x: Vec<f64>, mut size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
+                                        size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
         let len = sea_x.len();
         let mut campaign = layer.make_campaign(&GeometryProcessName::Fix,&self.patina,len,&[0,3,1,2,1,3])?;
         let x1 = calculate_vertex(&sea_x,&ship_x,&size_x,false);

@@ -1,4 +1,4 @@
-use anyhow::{ self, Context };
+use anyhow::{ self, Context, anyhow as err };
 use crate::integration::pgchannel::PgChannel;
 use crate::integration::pgconsole::{ PgConsoleWeb };
 use crate::integration::pgcommander::PgCommanderWeb;
@@ -16,8 +16,9 @@ use peregrine_core::{
 use peregrine_dauphin::peregrine_dauphin;
 use super::frame::run_animations;
 pub use url::Url;
-pub use web_sys::console;
+pub use web_sys::{ console, WebGlRenderingContext };
 use crate::train::GlTrainSet;
+use wasm_bindgen::JsCast;
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -46,7 +47,18 @@ impl PeregrineWeb {
         config.set_f64("animate.fade.slow",500.);
         config.set_f64("animate.fade.fast",100.);
         let api = PeregrineApi::new()?;
-        let trainset = GlTrainSet::new(&config,api.clone());
+        /* XXX separate out per canvase stuff */
+        let window = js_option(web_sys::window(),"cannot get window")?;
+        let document = js_option(window.document(),"cannot get document")?;
+        // Nonsense
+        let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|x| err!("cannot cast to canvas"))?;
+        let context = canvas
+            .get_context("webgl").map_err(|x| err!("cannot get webgl context"))?
+            .unwrap()
+            .dyn_into::<WebGlRenderingContext>().map_err(|x| err!("cannot get webgl context"))?;
+        // end of nonsense
+        let trainset = GlTrainSet::new(&config,api.clone(),&context);
         let integration = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone());
         let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);

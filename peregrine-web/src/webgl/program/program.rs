@@ -7,19 +7,19 @@ use super::uniform::{ Uniform, UniformHandle, UniformValues };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 
-pub struct Program<'c> {
-    context: &'c WebGlRenderingContext,
+pub struct Program {
+    context: WebGlRenderingContext,
     program: WebGlProgram,
     uniforms: KeyedValues<UniformHandle,Uniform>,
     attribs: KeyedValues<AttribHandle,Attribute>,
     method: u32
 }
 
-impl<'c> Program<'c> {
-    pub(crate) fn new(context: &'c WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> anyhow::Result<Program<'c>> {
+impl Program {
+    pub(crate) fn new(context: &WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> anyhow::Result<Program> {
         let mut out = Program {
             program,
-            context,
+            context: context.clone(),
             attribs: KeyedValues::new(),
             uniforms: KeyedValues::new(),
             method: WebGlRenderingContext::TRIANGLES
@@ -63,18 +63,18 @@ impl<'c> Program<'c> {
 
     pub(crate) fn select_program(&self) -> anyhow::Result<()> {
         self.context.use_program(Some(&self.program));
-        handle_context_errors(self.context)?;
+        handle_context_errors(&self.context)?;
         Ok(())
     }
 
-    pub(crate) fn context(&self) -> &'c WebGlRenderingContext {
-        self.context
+    pub(crate) fn context(&self) -> &WebGlRenderingContext {
+        &self.context
     }
 
     pub(crate) fn program(&self) -> &WebGlProgram { &self.program }
 }
 
-impl<'c> Drop for Program<'c> {
+impl Drop for Program {
     fn drop(&mut self) {
         self.context.delete_program(Some(&self.program));
     }

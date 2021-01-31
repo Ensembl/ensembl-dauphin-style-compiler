@@ -1,9 +1,11 @@
 use peregrine_core::Carriage;
 use std::collections::HashSet;
+use crate::shape::layers::programstore::ProgramStore;
 use super::glcarriage::GLCarriage;
 use blackbox::blackbox_log;
 
 pub struct GLTrain {
+    programs: ProgramStore,
     carriages: HashSet<GLCarriage>,
     index: u32,
     opacity: f64,
@@ -11,8 +13,9 @@ pub struct GLTrain {
 }
 
 impl GLTrain {
-    pub fn new(index: u32) -> GLTrain {
+    pub fn new(index: u32, programs: &ProgramStore) -> GLTrain {
         GLTrain {
+            programs: programs.clone(),
             carriages: HashSet::new(),
             index,
             opacity: 0.,
@@ -37,7 +40,7 @@ impl GLTrain {
         blackbox_log!("gltrain","done(index={})",self.index);
     }
 
-    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage]) {
+    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage]) -> anyhow::Result<()> {
         let carriages : Vec<_> = new_carriages.iter().map(|x| x.id().to_string()).collect();
         blackbox_log!("gltrain","set_carriges(carriages={:?} index={})",carriages,self.index);
         let mut keeps : HashSet<_> = self.carriages.iter().map(|x| x.id()).cloned().collect();
@@ -58,9 +61,10 @@ impl GLTrain {
         }
         for carriage in new_carriages {
             if novels.contains(carriage.id()) {
-                target.push(GLCarriage::new(carriage,self.opacity));
+                target.push(GLCarriage::new(carriage,self.opacity,&self.programs)?);
             }
         }
         self.carriages = target.drain(..).collect();
+        Ok(())
     }
 }
