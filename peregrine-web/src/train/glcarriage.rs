@@ -1,13 +1,13 @@
 use peregrine_core::{ Carriage, CarriageId };
 use crate::shape::layers::programstore::ProgramStore;
-use crate::shape::layers::drawing::DrawingBuilder;
+use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 
 pub(crate) struct GLCarriage {
     id: CarriageId,
     opacity: Mutex<f64>,
-    drawing: DrawingBuilder
+    drawing: Drawing
 }
 
 impl PartialEq for GLCarriage {
@@ -30,6 +30,7 @@ impl GLCarriage {
         for shape in carriage.shapes().drain(..) {
             drawing.add_shape(shape)?;
         }
+        let drawing = drawing.build()?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),

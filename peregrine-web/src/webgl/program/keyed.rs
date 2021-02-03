@@ -116,6 +116,4 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
     }
 
     pub fn data(&self) -> &KeyedData<K,T> { &self.entries }
-    pub fn data_mut(&mut self) -> &mut KeyedData<K,T> { &mut self.entries }
-    pub fn into_data(self) -> KeyedData<K,T> { self.entries }
 }

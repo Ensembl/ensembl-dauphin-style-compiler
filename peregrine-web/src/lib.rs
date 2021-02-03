@@ -72,7 +72,6 @@ mod webgl {
         pub(crate) mod accumulator;
         pub(crate) mod compiler;
         pub(crate) mod texture;
-        pub(crate) mod glstate;
         pub(crate) mod header;
         pub(crate) mod process;
         pub(crate) mod program;
@@ -86,7 +85,7 @@ mod webgl {
 
     pub(crate) use program::accumulator::{ Accumulator, AccumulatorCampaign };
     pub(crate) use program::program::Program;
-    pub(crate) use program::process::ProtoProcess;
+    pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::WebGlCompiler;
     pub(crate) use program::header::Header;
     pub(crate) use program::uniform::{ Uniform, UniformHandle };

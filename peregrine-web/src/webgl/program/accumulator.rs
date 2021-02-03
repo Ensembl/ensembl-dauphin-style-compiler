@@ -81,13 +81,6 @@ impl AccumulatorEntry {
         self.attribs.get_mut(handle).extend_from_slice(values);
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: &[f64], count: usize) {
-        let a = self.attribs.get_mut(handle);
-        for _ in 0..count {
-            a.extend_from_slice(values);
-        }
-    }
-
     fn make(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> anyhow::Result<AccumulatedRun> {
         Ok(AccumulatedRun {
             index: create_index_buffer(context,&self.index)?,

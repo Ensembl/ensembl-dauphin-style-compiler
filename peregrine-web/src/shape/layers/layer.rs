@@ -6,7 +6,7 @@ use super::super::core::tapegeometry::TapeGeometry;
 use super::super::core::pagegeometry::PageGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProtoProcess, AccumulatorCampaign };
+use crate::webgl::{ ProtoProcess, Process, AccumulatorCampaign };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
@@ -59,6 +59,14 @@ impl SubLayerHolder {
         self.make(programs,geometry,patina)?;
         Ok(&self.0.as_mut().unwrap().patina)
     }
+
+    fn build(self) -> anyhow::Result<Option<Process>> {
+        if let Some(sub) = self.0 {
+            Ok(Some(sub.process.build()?))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 struct GeometrySubLayer {
@@ -91,6 +99,18 @@ impl GeometrySubLayer {
 
     fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&PatinaProcess> {
         self.holder(patina)?.get_patina(programs,geometry,patina)
+    }
+
+    fn build(mut self, processes: &mut Vec<Process>) -> anyhow::Result<()> {
+        if let Some(process) = self.direct.build()? {
+            processes.push(process);
+        }
+        for (_,sub) in self.spot.drain() {
+            if let Some(process) = sub.build()? {
+                processes.push(process);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -170,5 +190,13 @@ impl Layer {
     pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> anyhow::Result<SpotColourDraw> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
         match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+    }
+
+    pub(super) fn build(self, process: &mut Vec<Process>) -> anyhow::Result<()> {
+        self.pin.build(process)?;
+        self.tape.build(process)?;
+        self.page.build(process)?;
+        self.fix.build(process)?;
+        Ok(())
     }
 }
