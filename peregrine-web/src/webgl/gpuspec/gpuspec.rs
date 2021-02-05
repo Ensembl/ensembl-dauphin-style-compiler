@@ -1,3 +1,4 @@
+use anyhow::bail;
 use std::cmp::min;
 use super::precision::Precision;
 use super::glsize::GLSize;
@@ -52,18 +53,22 @@ pub(crate) struct GPUSpec {
 }
 
 impl GPUSpec {
-    pub fn new(context: &WebGlRenderingContext) -> GPUSpec { 
+    pub fn new(context: &WebGlRenderingContext) -> anyhow::Result<GPUSpec> { 
         let mut out = GPUSpec {
             vert_precs: Vec::new(),
             frag_precs: Vec::new()
         };
-        out.populate(context);
-        out
+        out.populate(context)?;
+        Ok(out)
     }
 
-    fn populate(&mut self, context: &WebGlRenderingContext) {
+    fn populate(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::VERTEX_SHADER);
-        get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::FRAGMENT_SHADER);
+        get_precisions(&mut self.frag_precs,context,WebGlRenderingContext::FRAGMENT_SHADER);
+        if self.vert_precs.len() == 0 || self.frag_precs.len() == 0 {
+            bail!("retrieving GPU spec failed")
+        }
+        Ok(())
     }
 
     pub fn best_size(&self, want: &Precision, phase: &Phase) -> GLSize {

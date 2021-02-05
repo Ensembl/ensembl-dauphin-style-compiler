@@ -3,6 +3,7 @@ use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
+use web_sys::console;
 
 pub(crate) struct GLCarriage {
     id: CarriageId,
@@ -27,9 +28,12 @@ impl Hash for GLCarriage {
 impl GLCarriage {
     pub fn new(carriage: &Carriage, opacity: f64, programs: &ProgramStore) -> anyhow::Result<GLCarriage> {
         let mut drawing = DrawingBuilder::new(programs);
+        let mut count = 0;
         for shape in carriage.shapes().drain(..) {
             drawing.add_shape(shape)?;
+            count += 1;
         }
+        console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
         let drawing = drawing.build()?;
         Ok(GLCarriage {
             id: carriage.id().clone(),

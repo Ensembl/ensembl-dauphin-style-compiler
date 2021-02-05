@@ -56,9 +56,9 @@ impl PeregrineWeb {
         let context = canvas
             .get_context("webgl").map_err(|x| err!("cannot get webgl context"))?
             .unwrap()
-            .dyn_into::<WebGlRenderingContext>().map_err(|x| err!("cannot get webgl context"))?;
+            .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
         // end of nonsense
-        let trainset = GlTrainSet::new(&config,api.clone(),&context);
+        let trainset = GlTrainSet::new(&config,api.clone(),&context)?;
         let integration = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone());
         let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);

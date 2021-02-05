@@ -22,7 +22,7 @@ pub(crate) fn js_option<T>(e: Option<T>, msg: &'static str) -> anyhow::Result<T>
 }
 
 pub(crate) fn console_error(s: &str) {
-    //console::log_1(&s.into());
+    console::log_1(&s.into());
 }
 
 pub(crate) fn js_warn(e: anyhow::Result<()>) {

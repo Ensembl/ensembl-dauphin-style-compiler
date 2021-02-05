@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::webgl::{ WebGlCompiler, Program, SourceInstrs, GPUSpec };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
+use super::stage::get_stage_source;
 use web_sys::WebGlRenderingContext;
 
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
@@ -43,17 +44,18 @@ pub struct ProgramStoreData {
 }
 
 impl ProgramStoreData {
-    fn new(context: &WebGlRenderingContext) -> ProgramStoreData {
-        let gpuspec = GPUSpec::new(context);
+    fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStoreData> {
+        let gpuspec = GPUSpec::new(context)?;
         let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
-        ProgramStoreData {
+        Ok(ProgramStoreData {
             compiler: WebGlCompiler::new(context,gpuspec),
             programs
-        }
+        })
     }
 
     fn make_program(&self, index: &ProgramIndex) -> anyhow::Result<()> {
         let mut source = SourceInstrs::new(vec![]);
+        source.merge(get_stage_source());
         source.merge(index.0.get_source());
         source.merge(index.1.get_source());
         self.programs.borrow_mut()[index.get_index()] = Some(Rc::new(ProgramStoreEntry::new(self.compiler.make_program(source)?,&index)?));
@@ -73,8 +75,8 @@ impl ProgramStoreData {
 pub struct ProgramStore(Rc<ProgramStoreData>);
 
 impl ProgramStore {
-    pub(crate) fn new(context: &WebGlRenderingContext) -> ProgramStore {
-        ProgramStore(Rc::new(ProgramStoreData::new(context)))
+    pub(crate) fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStore> {
+        Ok(ProgramStore(Rc::new(ProgramStoreData::new(context)?)))
     }
 
     pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {

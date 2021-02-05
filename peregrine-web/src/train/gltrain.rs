@@ -41,22 +41,20 @@ impl GLTrain {
     }
 
     pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage]) -> anyhow::Result<()> {
-        let carriages : Vec<_> = new_carriages.iter().map(|x| x.id().to_string()).collect();
-        blackbox_log!("gltrain","set_carriges(carriages={:?} index={})",carriages,self.index);
-        let mut keeps : HashSet<_> = self.carriages.iter().map(|x| x.id()).cloned().collect();
+        let mut dont_keeps : HashSet<_> = self.carriages.iter().map(|x| x.id()).cloned().collect();
         let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.id()).cloned().collect();
         for new in new_carriages {
-            keeps.remove(new.id());
+            dont_keeps.remove(new.id());
         }
         for old in &self.carriages {
             novels.remove(old.id());
         }
         let mut target = vec![];
         for carriage in self.carriages.drain() {
-            if keeps.contains(&carriage.id()) {
-                target.push(carriage);
-            } else {
+            if dont_keeps.contains(&carriage.id()) {
                 carriage.destroy();
+            } else {
+                target.push(carriage);
             }
         }
         for carriage in new_carriages {

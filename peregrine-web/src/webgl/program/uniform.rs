@@ -49,9 +49,8 @@ impl Source for Uniform {
 
     fn build(&mut self, program: &mut Program) -> anyhow::Result<()> {
         let context = program.context();
-        let location = context.get_uniform_location(program.program(),self.name());
+        self.location = context.get_uniform_location(program.program(),self.name());
         handle_context_errors(context)?;
-        self.location = Some(location.ok_or_else(|| err!("cannot get uniform '{}'",self.name))?);
         program.add_uniform(&self)
     }
 }
@@ -72,15 +71,16 @@ impl UniformValues {
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         if let Some(gl_value) = &self.gl_value {
             let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
-            let location = self.object.location.as_ref().unwrap();
-            match gl_value.len() {
-                1 => context.uniform1f(Some(location),gl_value[0]),
-                2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
-                3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
-                4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-                x => bail!("bad uniform size {}",x)
+            if let Some(location) = &self.object.location {
+                match gl_value.len() {
+                    1 => context.uniform1f(Some(location),gl_value[0]),
+                    2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
+                    3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
+                    4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
+                    x => bail!("bad uniform size {}",x)
+                }
+                handle_context_errors(context)?;
             }
-            handle_context_errors(context)?;
         }
         Ok(())
     }

@@ -3,7 +3,7 @@ use super::super::core::fixgeometry::{ FixGeometry, FixProgram };
 use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
 use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
 use super::patina::PatinaProcessName;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement,Program };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement, Program };
 use super::consts::{ PR_LOW, PR_DEF };
 use web_sys::{ WebGlRenderingContext };
 
@@ -28,7 +28,7 @@ impl GeometryProgram {
 pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page }
 
 impl GeometryProgramName {
-    pub const COUNT : usize = 3;
+    pub const COUNT : usize = 4;
 
     pub fn get_index(&self) -> usize {
         match self {
@@ -52,10 +52,6 @@ impl GeometryProgramName {
         SourceInstrs::new(match self {
             GeometryProgramName::Pin => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
-                Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aOrigin"),
                 Statement::new_vertex("
@@ -65,24 +61,8 @@ impl GeometryProgramName {
                         - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
                         0.0, 1.0)")
             ],
-            /*
-            PaintGeometry::Stretch => vec![
-                Header::new(WebGlRenderingContext::TRIANGLES),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
-                Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Statement::new_vertex("
-                    gl_Position = vec4(
-                        (aVertexPosition.x - uStageHpos) * uStageZoom,
-                        - (aVertexPosition.y - uStageVpos) / uSize.y,
-                        0.0, 1.0)")
-            ],
-            */
             GeometryProgramName::Fix => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("
@@ -92,9 +72,6 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Tape => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
-                Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Scalar,"aVertexSign"),
                 Attribute::new(PR_LOW,GLArity::Scalar,"aOrigin"),
@@ -107,8 +84,6 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Page => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
-                Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("

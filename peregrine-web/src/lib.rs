@@ -35,6 +35,7 @@ mod shape {
         pub(crate) mod programstore;
         pub(crate) mod layer;
         pub(super) mod patina;
+        pub(super) mod stage;
     }
 }
 
@@ -104,7 +105,7 @@ use crate::run::web::PeregrineWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_throw, js_option };
 use peregrine_core::{ 
-    StickId, PeregrineApi, Channel, ChannelLocation, Commander
+    StickId, PeregrineApi, Channel, ChannelLocation, Commander, Track
 };
 pub use url::Url;
 
@@ -112,6 +113,7 @@ pub use url::Url;
 use blackbox::{ blackbox_enable, blackbox_log };
 
 async fn test(api: PeregrineApi) -> anyhow::Result<()> {
+    api.add_track(Track::new("gene-pc-fwd"));
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut scale = 20.;

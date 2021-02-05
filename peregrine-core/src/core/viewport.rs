@@ -29,8 +29,8 @@ impl Viewport {
     pub fn scale(&self) -> f64 { self.scale }
 
     pub fn track_on(&self, track: &Track, yn: bool) -> Viewport {
-        let out = self.clone();
-        out.layout.track_on(track,yn);
+        let mut out = self.clone();
+        out.layout = out.layout.track_on(track,yn);
         out
     }
 

@@ -22,15 +22,15 @@ struct GlTrainSetData {
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, context: &WebGlRenderingContext) -> GlTrainSetData {
-        let programs = ProgramStore::new(context);
-        GlTrainSetData {
+    fn new(config: &PeregrineConfig, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSetData> {
+        let programs = ProgramStore::new(context)?;
+        Ok(GlTrainSetData {
             programs,
             slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None)
-        }
+        })
     }
 
     fn get_train(&mut self, index: u32) -> &mut GLTrain {
@@ -117,11 +117,11 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, api: PeregrineApi, context: &WebGlRenderingContext) -> GlTrainSet {
-        GlTrainSet {
+    pub fn new(config: &PeregrineConfig, api: PeregrineApi, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSet> {
+        Ok(GlTrainSet {
             api,
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config,context)))
-        }
+            data: Arc::new(Mutex::new(GlTrainSetData::new(config,context)?))
+        })
     }
 
     pub fn animate_tick(&mut self, newly_elapsed: f64) {
