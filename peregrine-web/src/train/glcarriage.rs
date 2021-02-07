@@ -54,7 +54,7 @@ impl GLCarriage {
         self.drawing.draw(stage,opacity)
     }
 
-    pub fn destroy(&self) {
-
+    pub fn discard(&mut self) -> anyhow::Result<()> {
+        self.drawing.discard()
     }
 }

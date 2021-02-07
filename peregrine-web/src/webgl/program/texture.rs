@@ -78,7 +78,7 @@ impl TextureValues {
         Ok(())
     }
 
-    pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         if let Some(gl_value) = &self.gl_value {
             context.delete_texture(Some(&gl_value.1));
             handle_context_errors(context)?;

@@ -89,4 +89,8 @@ impl UniformValues {
         self.gl_value = Some(our_value);
         Ok(())
     }
+
+    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> anyhow::Result<()> {
+        Ok(())
+    }
 }

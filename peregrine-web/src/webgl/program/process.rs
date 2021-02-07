@@ -94,16 +94,24 @@ impl Process {
         }
         Ok(())
     }
+
+    pub(crate) fn discard(&mut self) -> anyhow::Result<()> {
+        let context = self.program.context();
+        for entry in self.uniforms.values_mut() {
+            entry.discard(context)?;
+        }
+        for entry in self.textures.iter_mut() {
+            entry.discard(context)?;
+        }
+        for run in self.runs.iter_mut() {
+            run.discard(context)?;
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Process {
     fn drop(&mut self) {
-        let context = self.program.context();
-        for run in self.runs.iter_mut() {
-            run.delete(context);
-        }
-        for entry in self.textures.iter_mut() {
-            entry.delete(context);
-        }
+        self.discard();
     }
 }

@@ -70,10 +70,6 @@ impl GlTrainSetData {
         (elapsed/fade_time).min(1.).max(0.)
     }
 
-    fn notify_faded_out(&mut self, index: u32) {
-        self.get_train(index).discard();
-    }
-
     fn notify_fade_state(&mut self) {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
@@ -90,7 +86,7 @@ impl GlTrainSetData {
         }
     }
 
-    fn transition_animate_tick(&mut self, newly_elapsed: f64) -> bool {
+    fn transition_animate_tick(&mut self, newly_elapsed: f64) -> anyhow::Result<bool> {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
@@ -99,7 +95,8 @@ impl GlTrainSetData {
                 let prop = self.fade_time(&speed,elapsed);
                 if prop >= 1. {
                     if let Some(from) = from {
-                        self.notify_faded_out(from);
+                        self.get_train(from).discard()?;
+                        self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
@@ -110,7 +107,7 @@ impl GlTrainSetData {
                 self.notify_fade_state();
             }
         }
-        complete
+        Ok(complete)
     }
 
     fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
@@ -125,6 +122,13 @@ impl GlTrainSetData {
                 }
                 self.get_train(to).draw(stage)?;
             },
+        }
+        Ok(())
+    }
+
+    fn discard(&mut self) -> anyhow::Result<()> {
+        for(_,mut train) in self.trains.drain() {
+            train.discard()?;
         }
         Ok(())
     }
@@ -144,11 +148,12 @@ impl GlTrainSet {
         })
     }
 
-    pub fn transition_animate_tick(&mut self, newly_elapsed: f64) {
-        if self.data.lock().unwrap().transition_animate_tick(newly_elapsed) {
+    pub fn transition_animate_tick(&mut self, newly_elapsed: f64) -> anyhow::Result<()> {
+        if self.data.lock().unwrap().transition_animate_tick(newly_elapsed)? {
             blackbox_log!("gltrain","transition_complete()");
             self.api.transition_complete();
         }
+        Ok(())
     }
 
     pub fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
@@ -163,5 +168,9 @@ impl GlTrainSet {
         self.data.lock().unwrap().start_fade(index,speed)?;
         self.data.lock().unwrap().set_max(index,max);
         Ok(())
+    }
+
+    pub fn discard(&mut self) -> anyhow::Result<()> {
+        self.data.lock().unwrap().discard()
     }
 }

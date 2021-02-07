@@ -40,11 +40,11 @@ impl AccumulatedRun {
         Ok(self.len)
     }
 
-    pub(crate) fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         context.delete_buffer(Some(&self.index));
         handle_context_errors(context)?;
         for attrib in self.attribs.values_mut() {
-            attrib.delete(context)?;
+            attrib.discard(context)?;
         }
         Ok(())
     }

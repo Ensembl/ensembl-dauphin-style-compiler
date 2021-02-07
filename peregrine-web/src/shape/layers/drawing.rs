@@ -40,4 +40,11 @@ impl Drawing {
         }
         Ok(())
     }
+
+    pub(crate) fn discard(&mut self) -> anyhow::Result<()> {
+        for process in &mut self.processes {
+            process.discard()?;
+        }
+        Ok(())
+    }
 }

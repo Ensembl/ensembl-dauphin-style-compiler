@@ -90,7 +90,7 @@ impl AttributeValues {
         Ok(())
     }
 
-    pub fn delete(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         context.delete_buffer(Some(&self.gl_value));
         handle_context_errors(context)?;
         Ok(())

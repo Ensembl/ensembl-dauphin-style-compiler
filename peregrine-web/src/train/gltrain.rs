@@ -36,8 +36,12 @@ impl GLTrain {
         }
     }
 
-    pub(super) fn discard(&self) {
+    pub(super) fn discard(&mut self) -> anyhow::Result<()> {
         blackbox_log!("gltrain","done(index={})",self.index);
+        for (_,mut carriage) in self.carriages.drain() {
+            carriage.discard()?;
+        }
+        Ok(())
     }
 
     pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage]) -> anyhow::Result<()> {
@@ -50,9 +54,9 @@ impl GLTrain {
             novels.remove(old);
         }
         let mut target = HashMap::new();
-        for (id,carriage) in self.carriages.drain() {
+        for (id,mut carriage) in self.carriages.drain() {
             if dont_keeps.contains(&carriage.id()) {
-                carriage.destroy();
+                carriage.discard()?;
             } else {
                 target.insert(id,carriage);
             }

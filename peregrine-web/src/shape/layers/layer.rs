@@ -21,12 +21,8 @@ TODO layers from core
 TODO ordered layers
 TODO remove datum option from stretchtangles
 TODO return shapes from core without cloning (drain)
-
 TODO uniforms set only on change
-TODO draw only on change
-TODO trainset->train destroy
-TODO stage from layer dir to dore
-TODO api communicate stage change
+TODO global destroy
 */
 
 struct SubLayer {
