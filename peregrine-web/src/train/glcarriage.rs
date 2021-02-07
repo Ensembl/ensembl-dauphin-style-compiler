@@ -1,6 +1,7 @@
 use peregrine_core::{ Carriage, CarriageId };
 use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
+use crate::shape::core::stage::Stage;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 use web_sys::console;
@@ -27,7 +28,7 @@ impl Hash for GLCarriage {
 
 impl GLCarriage {
     pub fn new(carriage: &Carriage, opacity: f64, programs: &ProgramStore) -> anyhow::Result<GLCarriage> {
-        let mut drawing = DrawingBuilder::new(programs);
+        let mut drawing = DrawingBuilder::new(programs,carriage.id().left());
         let mut count = 0;
         for shape in carriage.shapes().drain(..) {
             drawing.add_shape(shape)?;
@@ -46,6 +47,11 @@ impl GLCarriage {
 
     pub(super) fn set_opacity(&self, amount: f64) {
         *self.opacity.lock().unwrap() = amount;
+    }
+
+    pub fn draw(&mut self, stage: &Stage) -> anyhow::Result<()> {
+        let opacity = self.opacity.lock().unwrap().clone();
+        self.drawing.draw(stage,opacity)
     }
 
     pub fn destroy(&self) {

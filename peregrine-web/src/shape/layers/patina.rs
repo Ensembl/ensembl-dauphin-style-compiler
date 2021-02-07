@@ -47,14 +47,12 @@ impl PatinaProgramName {
         SourceInstrs::new(
             match self {
                 PatinaProgramName::Direct => vec![
-                    Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Attribute::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec3,"vColour"),
                     Statement::new_vertex("vColour = vec3(aVertexColour)"),
                     Statement::new_fragment("gl_FragColor = vec4(vColour,uOpacity)")
                 ],
                 PatinaProgramName::Spot => vec![
-                    Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
                     Uniform::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],

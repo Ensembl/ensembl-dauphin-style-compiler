@@ -26,6 +26,7 @@ mod shape {
         pub(super) mod pingeometry;
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
+        pub(crate) mod stage;
     }
 
     pub(crate) mod layers {
@@ -35,7 +36,6 @@ mod shape {
         pub(crate) mod programstore;
         pub(crate) mod layer;
         pub(super) mod patina;
-        pub(super) mod stage;
     }
 }
 
@@ -84,7 +84,7 @@ mod webgl {
         pub(crate) mod keyed;
     }
 
-    pub(crate) use program::accumulator::{ Accumulator, AccumulatorCampaign };
+    pub(crate) use program::accumulator::{ AccumulatorCampaign };
     pub(crate) use program::program::Program;
     pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::WebGlCompiler;
@@ -103,7 +103,7 @@ use commander::{ cdr_timer };
 use crate::run::web::PeregrineWeb;
 #[cfg(blackbox)]
 use crate::integration::pgblackbox::{ pgblackbox_setup };
-use crate::util::error::{ js_throw, js_option };
+use crate::util::error::{ js_throw };
 use peregrine_core::{ 
     StickId, PeregrineApi, Channel, ChannelLocation, Commander, Track
 };

@@ -1,4 +1,4 @@
-use anyhow::{ bail, anyhow as err };
+use anyhow::{ bail };
 use super::source::{ Source };
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
@@ -85,7 +85,7 @@ impl UniformValues {
         Ok(())
     }
 
-    pub fn set_value(&mut self, context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
+    pub fn set_value(&mut self, _context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
         self.gl_value = Some(our_value);
         Ok(())
     }

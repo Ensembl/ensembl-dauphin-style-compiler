@@ -1,4 +1,5 @@
 use peregrine_core::{ ShipEnd, ScreenEdge };
+use super::super::layers::layer::Layer;
 
 /* convert 0-255 colour indices to 0.0-1.0 */
 pub(crate) fn scale_colour(value: u8) -> f64 {
@@ -180,4 +181,11 @@ pub(crate) fn calculate_stretch_vertex_delta(count: usize, ship: &ShipEnd) -> Ve
     (0..count).map(|_|
         - ship_iter.next().unwrap()
     ).collect()
+}
+
+pub(crate) fn apply_left(coord: &mut [f64], layer: &Layer) {
+    let left = layer.left();
+    for x in coord.iter_mut() {
+        *x -= left;
+    }
 }

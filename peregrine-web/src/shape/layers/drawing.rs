@@ -3,6 +3,7 @@ use super::layer::Layer;
 use peregrine_core::Shape;
 use super::super::core::glshape::add_shape_to_layer;
 use crate::webgl::Process;
+use crate::shape::core::stage::Stage;
 
 pub(crate) struct Drawing {
     processes: Vec<Process>
@@ -13,9 +14,9 @@ pub(crate) struct DrawingBuilder {
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(programs: &ProgramStore) -> DrawingBuilder {
+    pub(crate) fn new(programs: &ProgramStore, left: f64) -> DrawingBuilder {
         DrawingBuilder {
-            main_layer: Layer::new(programs)
+            main_layer: Layer::new(programs,left)
         }
     }
 
@@ -33,9 +34,9 @@ impl DrawingBuilder {
 }
 
 impl Drawing {
-    pub(crate) fn draw(&self) -> anyhow::Result<()> {
-        for process in &self.processes {
-            process.draw()?;
+    pub(crate) fn draw(&mut self, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+        for process in &mut self.processes {
+            process.draw(stage,opacity)?;
         }
         Ok(())
     }

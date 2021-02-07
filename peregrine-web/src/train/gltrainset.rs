@@ -5,7 +5,8 @@ use std::sync::{ Arc, Mutex };
 use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineApi };
 use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
-use web_sys::{ HtmlCanvasElement, WebGlRenderingContext };
+use crate::shape::core::stage::{ Stage, RedrawNeeded };
+use web_sys::{ WebGlRenderingContext };
 
 #[derive(Clone)]
 enum FadeState {
@@ -18,24 +19,26 @@ struct GlTrainSetData {
     slow_fade_time: f64,
     fast_fade_time: f64,
     trains: HashMap<u32,GLTrain>,
-    fade_state: FadeState
+    fade_state: FadeState,
+    redraw_needed: RedrawNeeded
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSetData> {
+    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSetData> {
         let programs = ProgramStore::new(context)?;
         Ok(GlTrainSetData {
             programs,
             slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
             trains: HashMap::new(),
-            fade_state: FadeState::Constant(None)
+            fade_state: FadeState::Constant(None),
+            redraw_needed: redraw_needed.clone()
         })
     }
 
     fn get_train(&mut self, index: u32) -> &mut GLTrain {
         if !self.trains.contains_key(&index) {
-            self.trains.insert(index,GLTrain::new(index,&self.programs));
+            self.trains.insert(index,GLTrain::new(&self.programs,&self.redraw_needed));
         }
         self.trains.get_mut(&index).unwrap()
     }
@@ -87,7 +90,7 @@ impl GlTrainSetData {
         }
     }
 
-    fn animate_tick(&mut self, newly_elapsed: f64) -> bool {
+    fn transition_animate_tick(&mut self, newly_elapsed: f64) -> bool {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
@@ -99,6 +102,7 @@ impl GlTrainSetData {
                         self.notify_faded_out(from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
+                    self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
                 } else {
                     self.fade_state = FadeState::Fading(from,to,speed.clone(),elapsed);
@@ -107,6 +111,22 @@ impl GlTrainSetData {
             }
         }
         complete
+    }
+
+    fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
+        match self.fade_state.clone() {
+            FadeState::Constant(None) => {},
+            FadeState::Constant(Some(train)) => {
+                self.get_train(train).draw(stage)?;
+            },
+            FadeState::Fading(from,to,_,_) => {
+                if let Some(from) = from {
+                    self.get_train(from).draw(stage)?;
+                }
+                self.get_train(to).draw(stage)?;
+            },
+        }
+        Ok(())
     }
 }
 
@@ -117,22 +137,26 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, api: PeregrineApi, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSet> {
+    pub fn new(config: &PeregrineConfig, api: PeregrineApi, stage: &Stage, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSet> {
         Ok(GlTrainSet {
             api,
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config,context)?))
+            data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed(),context)?))
         })
     }
 
-    pub fn animate_tick(&mut self, newly_elapsed: f64) {
-        if self.data.lock().unwrap().animate_tick(newly_elapsed) {
+    pub fn transition_animate_tick(&mut self, newly_elapsed: f64) {
+        if self.data.lock().unwrap().transition_animate_tick(newly_elapsed) {
             blackbox_log!("gltrain","transition_complete()");
             self.api.transition_complete();
         }
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) {
-        self.data.lock().unwrap().set_carriages(new_carriages,index);
+    pub fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
+        self.data.lock().unwrap().draw_animate_tick(stage)
+    }
+
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
+        self.data.lock().unwrap().set_carriages(new_carriages,index)
     }
 
     pub fn start_fade(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> anyhow::Result<()> {

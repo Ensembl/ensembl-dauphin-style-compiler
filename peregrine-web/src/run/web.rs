@@ -19,6 +19,7 @@ pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 use crate::train::GlTrainSet;
 use wasm_bindgen::JsCast;
+use crate::shape::core::stage::Stage;
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -32,11 +33,13 @@ fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
     Ok(commander)
 }
 
+// XXX not pub
 #[derive(Clone)]
 pub struct PeregrineWeb {
     pub commander: PgCommanderWeb,
     pub api: PeregrineApi,
-    pub trainset: GlTrainSet
+    pub trainset: GlTrainSet,
+    stage: Stage
 }
 
 impl PeregrineWeb {
@@ -52,19 +55,20 @@ impl PeregrineWeb {
         let document = js_option(window.document(),"cannot get document")?;
         // Nonsense
         let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|x| err!("cannot cast to canvas"))?;
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| err!("cannot cast to canvas"))?;
         let context = canvas
-            .get_context("webgl").map_err(|x| err!("cannot get webgl context"))?
+            .get_context("webgl").map_err(|_| err!("cannot get webgl context"))?
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
         // end of nonsense
-        let trainset = GlTrainSet::new(&config,api.clone(),&context)?;
-        let integration = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone());
-        let objects = PeregrineObjects::new(Box::new(integration),commander.clone())?;
+        let stage = Stage::new();
+        let trainset = GlTrainSet::new(&config,api.clone(),&stage,&context)?;
+        let web_data = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone());
+        let objects = PeregrineObjects::new(Box::new(web_data),commander.clone())?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
         api.ready(objects.clone());
         let mut out = PeregrineWeb {
-            api, commander, trainset
+            api, commander, trainset, stage
         };
         out.setup()?;
         Ok(out)
@@ -92,4 +96,25 @@ impl PeregrineWeb {
         run_animations(self);
         Ok(())
     }
+
+    pub(crate) fn stage(&self) -> &Stage { &self.stage }
+
+    // TODO redraw on change
+    pub fn set_x_position(&mut self, x: f64) {
+        self.api.set_position(x);
+        self.stage.set_x_position(x);
+    }
+
+    pub fn set_y_position(&mut self, x: f64) {
+        self.stage.set_y_position(x);
+    }
+
+    pub fn set_size(&mut self, x: f64, y: f64) {
+        self.stage.set_size(x,y);
+    }
+
+    pub fn set_zoom(&mut self, z: f64) {
+        self.api.set_scale(z);
+        self.stage.set_zoom(z);
+    }    
 }

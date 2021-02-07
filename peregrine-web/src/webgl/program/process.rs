@@ -2,45 +2,36 @@ use std::rc::Rc;
 use crate::webgl::canvas::canvas::Canvas;
 use super::accumulator::{ Accumulator, AccumulatedRun };
 use super::program::Program;
-use super::attribute::{ AttribHandle };
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
-use super::keyed::{ KeyedValues, KeyedData };
+use super::keyed::{ KeyedData };
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
+use crate::shape::core::stage::{ Stage, ProgramStage };
 
 pub struct ProtoProcess {
     program: Rc<Program>,
     accumulator: Accumulator,
     uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>
+    textures: Vec<TextureValues>,
+    left: f64
 }
 
 impl ProtoProcess {
-    pub(crate) fn new(program: Rc<Program>) -> ProtoProcess {
+    pub(crate) fn new(program: Rc<Program>, left: f64) -> ProtoProcess {
         let uniforms = program.make_uniforms();
-        let context = program.context();
         let accumulator = program.make_accumulator();
         ProtoProcess {
             program,
             accumulator,
             uniforms,
-            textures: vec![]
+            textures: vec![],
+            left
         }
-    }
-
-    pub fn program(&self) -> &Rc<Program> { &self.program }
-
-    pub fn get_uniform_handle(&self, name: &str) -> anyhow::Result<UniformHandle> {
-        self.program.get_uniform_handle(name)
     }
 
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
-    }
-
-    pub fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
-        self.program.get_attrib_handle(name)
     }
 
     pub(crate) fn get_accumulator(&mut self) -> &mut Accumulator {
@@ -48,7 +39,7 @@ impl ProtoProcess {
     }
 
     pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
-        let mut entry = TextureValues::new(&self.program.context(),index,element.clone())?;
+        let entry = TextureValues::new(&self.program.context(),index,element.clone())?;
         self.textures.push(entry);
         Ok(())
     }
@@ -61,22 +52,33 @@ impl ProtoProcess {
 pub struct Process {
     program: Rc<Program>,
     runs: Vec<AccumulatedRun>,
+    program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>
+    textures: Vec<TextureValues>,
+    left: f64
 }
 
 impl Process {
     fn new(builder: ProtoProcess) -> anyhow::Result<Process> {
         let runs = builder.program.make_runs(&builder.accumulator)?;
+        let program_stage = ProgramStage::new(&builder.program)?;
         Ok(Process {
             program: builder.program,
             runs,
+            program_stage,
             uniforms: builder.uniforms,
-            textures: builder.textures
+            textures: builder.textures,
+            left: builder.left
         })
     }
 
-    pub fn draw(&self) -> anyhow::Result<()> {
+    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
+        self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
+    }
+
+    pub fn draw(&mut self, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+        let program_stage = self.program_stage.clone();
+        program_stage.apply(stage,self.left,opacity,self)?;
         let context = self.program.context();
         for run in self.runs.iter() {
             for entry in self.uniforms.values() {

@@ -21,6 +21,10 @@ impl CarriageId {
             index
         }
     }
+
+    pub fn left(&self) -> f64 {
+        (self.train.scale().bp_in_carriage() * self.index) as f64
+    }
 }
 
 impl Display for CarriageId {

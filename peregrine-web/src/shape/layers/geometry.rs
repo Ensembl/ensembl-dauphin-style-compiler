@@ -3,8 +3,8 @@ use super::super::core::fixgeometry::{ FixGeometry, FixProgram };
 use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
 use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
 use super::patina::PatinaProcessName;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Header, Statement, Program };
-use super::consts::{ PR_LOW, PR_DEF };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program };
+use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 
 pub(crate) enum GeometryProgram {

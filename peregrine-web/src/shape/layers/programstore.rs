@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::webgl::{ WebGlCompiler, Program, SourceInstrs, GPUSpec };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
-use super::stage::get_stage_source;
+use super::super::core::stage::get_stage_source;
 use web_sys::WebGlRenderingContext;
 
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);

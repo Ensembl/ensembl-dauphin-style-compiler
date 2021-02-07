@@ -1,5 +1,4 @@
-use anyhow::{ anyhow as err, bail };
-use web_sys::{ WebGlProgram, WebGlUniformLocation, WebGlRenderingContext };
+use web_sys::{ WebGlProgram, WebGlRenderingContext };
 use super::accumulator::{ Accumulator, AccumulatedRun };
 use super::attribute::{ Attribute, AttribHandle };
 use super::keyed::{ KeyedValues, KeyedData };

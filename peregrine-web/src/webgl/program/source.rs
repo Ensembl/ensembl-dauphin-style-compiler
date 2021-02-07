@@ -5,7 +5,7 @@ pub(crate) trait Source {
     fn cloned(&self) -> Box<dyn Source>;
     fn declare(&self, _spec: &GPUSpec, _phase: Phase) -> String { String::new() }
     fn statement(&self, _phase: Phase) -> String { String::new() }
-    fn build(&mut self, program: &mut Program) -> anyhow::Result<()> { Ok(()) }
+    fn build(&mut self, _program: &mut Program) -> anyhow::Result<()> { Ok(()) }
 }
 
 pub(crate) struct SourceInstrs {

@@ -12,17 +12,21 @@ use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
 use peregrine_core::DirectColour;
 
-/* TODO 
+/* 
+TODO Wiggles
+TODO ensure + index
+TODO y split bug
+TODO y from bottom
+TODO layers from core
+TODO ordered layers
+TODO remove datum option from stretchtangles
+TODO return shapes from core without cloning (drain)
 
-Wiggles
-ensure + index
-y split bug
-y from bottom
-layers from core
-ordered layers
-remove datum option from stretchtangles
-return shapes from core without cloning (drain)
-
+TODO uniforms set only on change
+TODO draw only on change
+TODO trainset->train destroy
+TODO stage from layer dir to dore
+TODO api communicate stage change
 */
 
 struct SubLayer {
@@ -31,14 +35,14 @@ struct SubLayer {
     patina: PatinaProcess
 }
 
-struct SubLayerHolder(Option<SubLayer>);
+struct SubLayerHolder(Option<SubLayer>,f64);
 
 impl SubLayerHolder {
-    fn new() -> SubLayerHolder { SubLayerHolder(None) }
+    fn new(left: f64) -> SubLayerHolder { SubLayerHolder(None,left) }
 
     fn make(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<()> {
         let program_store_entry = programs.get_program(geometry.get_program_name(),patina.get_program_name())?;
-        let process = ProtoProcess::new(program_store_entry.program().clone());
+        let process = ProtoProcess::new(program_store_entry.program().clone(),self.1);
         let geometry = program_store_entry.get_geometry().make_geometry_process(&process,patina)?;
         let patina = program_store_entry.get_patina().make_patina_process(&process,patina)?;
         self.0 = Some(SubLayer { process, geometry, patina });
@@ -71,21 +75,24 @@ impl SubLayerHolder {
 
 struct GeometrySubLayer {
     direct: SubLayerHolder,
-    spot: HashMap<DirectColour,SubLayerHolder>
+    spot: HashMap<DirectColour,SubLayerHolder>,
+    left: f64
 }
 
 impl GeometrySubLayer {
-    fn new() -> GeometrySubLayer {
+    fn new(left: f64) -> GeometrySubLayer {
         GeometrySubLayer {
-            direct: SubLayerHolder::new(),
-            spot: HashMap::new()
+            direct: SubLayerHolder::new(left),
+            spot: HashMap::new(),
+            left
         }
     }
 
     fn holder(&mut self, patina: &PatinaProcessName) -> anyhow::Result<&mut SubLayerHolder> {
+        let left = self.left;
         Ok(match &patina{
             PatinaProcessName::Direct => &mut self.direct,
-            PatinaProcessName::Spot(c) => self.spot.entry(c.clone()).or_insert_with(|| SubLayerHolder::new())
+            PatinaProcessName::Spot(c) => self.spot.entry(c.clone()).or_insert_with(|| SubLayerHolder::new(left))
         })
     }
 
@@ -119,7 +126,8 @@ pub(crate) struct Layer {
     pin: GeometrySubLayer,
     fix: GeometrySubLayer,
     tape: GeometrySubLayer,
-    page: GeometrySubLayer
+    page: GeometrySubLayer,
+    left: f64
 }
 
 macro_rules! layer_geometry_accessor {
@@ -141,15 +149,18 @@ macro_rules! layer_patina_accessor {
 }
 
 impl Layer {
-    pub fn new(programs: &ProgramStore) -> Layer {
+    pub fn new(programs: &ProgramStore, left: f64) -> Layer {
         Layer {
             programs: programs.clone(),
-            pin: GeometrySubLayer::new(),
-            fix: GeometrySubLayer::new(),
-            tape: GeometrySubLayer::new(),
-            page: GeometrySubLayer::new()
+            pin: GeometrySubLayer::new(left),
+            fix: GeometrySubLayer::new(left),
+            tape: GeometrySubLayer::new(left),
+            page: GeometrySubLayer::new(left),
+            left
         }
     }
+
+    pub(crate) fn left(&self) -> f64 { self.left }
 
     fn holder(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<(&mut GeometrySubLayer,&ProgramStore)> {
         Ok(match geometry {

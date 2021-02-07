@@ -5,7 +5,7 @@ use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 use super::arrayutil::{ 
     interleave_rect_x, interleave_line_x, calculate_vertex, calculate_vertex_delta, sea_sign, quads,
-    calculate_stretch_vertex_delta, calculate_stretch_vertex
+    calculate_stretch_vertex_delta, calculate_stretch_vertex, apply_left
 };
 
 #[derive(Clone)]
@@ -37,7 +37,7 @@ impl TapeGeometry {
     }
 
     pub(crate) fn add_solid_rectangles(&self, layer: &mut Layer,
-                                        base_x: Vec<f64>, sea_y: ScreenEdge,
+                                        mut base_x: Vec<f64>, sea_y: ScreenEdge,
                                         ship_x: ShipEnd, ship_y: ShipEnd,
                                         size_x: Vec<f64>, size_y: Vec<f64>) -> anyhow::Result<AccumulatorCampaign> {
         let len = base_x.len();
@@ -48,6 +48,7 @@ impl TapeGeometry {
         let y2 = calculate_vertex(&sea_y,&ship_y,&size_y,true);
         let signs = vec![sea_sign(&sea_y);len*4];
         let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        apply_left(&mut base_x,layer);
         let origins = quads(&base_x);
         campaign.add(&self.variety.origins,origins)?; /* 4n */
         campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
@@ -56,8 +57,8 @@ impl TapeGeometry {
     }
 
     pub(crate) fn add_solid_stretchtangle(&self, layer: &mut Layer, 
-            axx1: Vec<f64>, ayy1: ScreenEdge, /* sea-end anchor1 (mins) */
-            axx2: Vec<f64>, ayy2: ScreenEdge, /* sea-end anchor2 (maxes) */
+            mut axx1: Vec<f64>, ayy1: ScreenEdge, /* sea-end anchor1 (mins) */
+            mut axx2: Vec<f64>, ayy2: ScreenEdge, /* sea-end anchor2 (maxes) */
             pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
             pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                     ) -> anyhow::Result<AccumulatorCampaign> {
@@ -68,11 +69,13 @@ impl TapeGeometry {
         let y1 = calculate_stretch_vertex(&ayy1,&pyy1);
         let y2 = calculate_stretch_vertex(&ayy2,&pyy2);
         let vertexes = interleave_rect_x(&x1,&y1,&x2,&y2);
+        apply_left(&mut axx1,layer);
+        apply_left(&mut axx2,layer);
         let origins = interleave_line_x(&axx1,&axx2);
         let signs = vec![1.;len*4];
-        campaign.add(&self.variety.signs,signs)?; /* 4n */
-        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
         campaign.add(&self.variety.origins,origins)?; /* 4n */
+        campaign.add(&self.variety.vertexes,vertexes)?; /* 8n */
+        campaign.add(&self.variety.signs,signs)?; /* 4n */
         Ok(campaign)
     }
 }

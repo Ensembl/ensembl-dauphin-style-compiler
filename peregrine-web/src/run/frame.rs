@@ -3,7 +3,10 @@ use commander::{ cdr_tick, cdr_current_time };
 use peregrine_core::Commander;
 
 fn animation_tick(web: &mut PeregrineWeb, elapsed: f64) {
-    web.trainset.animate_tick(elapsed);
+    web.trainset.transition_animate_tick(elapsed);
+    if web.stage().redraw_needed().test_and_reset() {
+        web.trainset.draw_animate_tick(&web.stage().clone());
+    }
 }
 
 async fn animation_tick_loop(mut web: PeregrineWeb) {
