@@ -2,7 +2,7 @@ use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, S
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
-use crate::webgl::{ AccumulatorCampaign, AccumulatorArray, AccumulatorAddable };
+use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     match colour {
@@ -11,7 +11,7 @@ fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) -> anyhow::Result<(ProcessStanzaElements,GeometryProcessName)> {
     match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
             Ok((layer.get_pin(skin)?.add_solid_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size)?,GeometryProcessName::Pin))
@@ -28,7 +28,7 @@ fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaPr
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>) -> anyhow::Result<(AccumulatorCampaign,GeometryProcessName)> {
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>) -> anyhow::Result<(ProcessStanzaElements,GeometryProcessName)> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -53,16 +53,16 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     }
 }
 
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> anyhow::Result<(AccumulatorArray,GeometryProcessName)> {    
-    let accumulator = layer.get_wiggle(patina)?.add_wiggle(layer,start,end,y,height)?;
-    Ok((accumulator,GeometryProcessName::Pin))
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> anyhow::Result<(ProcessStanzaArray,GeometryProcessName)> {    
+    let stanza_builder = layer.get_wiggle(patina)?.add_wiggle(layer,start,end,y,height)?;
+    Ok((stanza_builder,GeometryProcessName::Pin))
 }
 
-fn add_colour(campaign: &mut dyn AccumulatorAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
     match colour {
         Colour::Direct(d) => {
             let direct = layer.get_direct(geometry)?;
-            direct.direct(campaign,d,vertexes)?;
+            direct.direct(addable,d,vertexes)?;
         },
         Colour::Spot(colour) => {
             let spot = layer.get_spot(geometry,colour)?;

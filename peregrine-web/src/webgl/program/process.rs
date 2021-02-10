@@ -1,17 +1,16 @@
 use std::rc::Rc;
 use crate::webgl::canvas::canvas::Canvas;
-use super::accumulator::{ Accumulator, AccumulatedRun };
+use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::Program;
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use super::keyed::{ KeyedData };
-use web_sys::{ WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
 
 pub struct ProtoProcess {
     program: Rc<Program>,
-    accumulator: Accumulator,
+    stanza_builder: ProcessStanzaBuilder,
     uniforms: KeyedData<UniformHandle,UniformValues>,
     textures: Vec<TextureValues>,
     left: f64
@@ -20,10 +19,10 @@ pub struct ProtoProcess {
 impl ProtoProcess {
     pub(crate) fn new(program: Rc<Program>, left: f64) -> ProtoProcess {
         let uniforms = program.make_uniforms();
-        let accumulator = program.make_accumulator();
+        let stanza_builder = program.make_stanza_builder();
         ProtoProcess {
             program,
-            accumulator,
+            stanza_builder,
             uniforms,
             textures: vec![],
             left
@@ -34,8 +33,8 @@ impl ProtoProcess {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub(crate) fn get_accumulator(&mut self) -> &mut Accumulator {
-        &mut self.accumulator
+    pub(crate) fn get_stanza_builder(&mut self) -> &mut ProcessStanzaBuilder {
+        &mut self.stanza_builder
     }
 
     pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
@@ -51,7 +50,7 @@ impl ProtoProcess {
 
 pub struct Process {
     program: Rc<Program>,
-    runs: Vec<AccumulatedRun>,
+    stanzas: Vec<ProcessStanza>,
     program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
     textures: Vec<TextureValues>,
@@ -60,11 +59,11 @@ pub struct Process {
 
 impl Process {
     fn new(builder: ProtoProcess) -> anyhow::Result<Process> {
-        let runs = builder.program.make_runs(&builder.accumulator)?;
+        let stanzas = builder.program.make_stanzas(&builder.stanza_builder)?;
         let program_stage = ProgramStage::new(&builder.program)?;
         Ok(Process {
             program: builder.program,
-            runs,
+            stanzas,
             program_stage,
             uniforms: builder.uniforms,
             textures: builder.textures,
@@ -81,16 +80,16 @@ impl Process {
         program_stage.apply(stage,self.left,opacity,self)?;
         let context = self.program.context();
         self.program.select_program()?;
-        for run in self.runs.iter() {
+        for stanza in self.stanzas.iter() {
             for entry in self.uniforms.values() {
                 entry.activate(context)?;
             }
             for entry in self.textures.iter() {
                 entry.activate(context)?;
             }
-            run.activate(context)?;
-            run.draw(context,self.program.get_method())?;
-            run.deactivate(context)?;
+            stanza.activate(context)?;
+            stanza.draw(context,self.program.get_method())?;
+            stanza.deactivate(context)?;
             handle_context_errors(context)?;
         }
         Ok(())
@@ -104,8 +103,8 @@ impl Process {
         for entry in self.textures.iter_mut() {
             entry.discard(context)?;
         }
-        for run in self.runs.iter_mut() {
-            run.discard(context)?;
+        for stanza in self.stanzas.iter_mut() {
+            stanza.discard(context)?;
         }
         Ok(())
     }

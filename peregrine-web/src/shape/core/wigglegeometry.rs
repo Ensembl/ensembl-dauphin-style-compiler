@@ -1,7 +1,7 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorAddable, Program, AccumulatorArray };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray };
 use super::arrayutil::{ interleave_pair };
 
 const THICKNESS: f64 = 1.; // XXX
@@ -66,7 +66,7 @@ impl WiggleGeometry {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> anyhow::Result<AccumulatorArray> {
+    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> anyhow::Result<ProcessStanzaArray> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,

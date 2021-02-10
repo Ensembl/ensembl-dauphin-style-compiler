@@ -1,5 +1,5 @@
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
-use super::accumulator::{ Accumulator, AccumulatedRun };
+use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::attribute::{ Attribute, AttribHandle };
 use super::keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues };
@@ -52,12 +52,12 @@ impl Program {
         self.uniforms.data().map::<_,_,()>(|_,u| Ok(UniformValues::new(u.clone()))).unwrap()
     }
 
-    pub(crate) fn make_accumulator(&self) -> Accumulator {
-        Accumulator::new(&self.attribs)
+    pub(crate) fn make_stanza_builder(&self) -> ProcessStanzaBuilder {
+        ProcessStanzaBuilder::new(&self.attribs)
     }
 
-    pub(crate) fn make_runs(&self, accumulator: &Accumulator) -> anyhow::Result<Vec<AccumulatedRun>> {
-        accumulator.make(&self.context,&self.attribs)
+    pub(crate) fn make_stanzas(&self, stanza_builder: &ProcessStanzaBuilder) -> anyhow::Result<Vec<ProcessStanza>> {
+        stanza_builder.make_stanzas(&self.context,&self.attribs)
     }
 
     pub(crate) fn select_program(&self) -> anyhow::Result<()> {

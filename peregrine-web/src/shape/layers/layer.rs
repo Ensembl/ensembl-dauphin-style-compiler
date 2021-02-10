@@ -7,14 +7,13 @@ use super::super::core::pagegeometry::PageGeometry;
 use super::super::core::wigglegeometry::WiggleGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProtoProcess, Process, AccumulatorCampaign, AccumulatorArray };
+use crate::webgl::{ ProtoProcess, Process, ProcessStanzaElements, ProcessStanzaArray };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
 use peregrine_core::DirectColour;
 
 /* 
-TODO Wiggles
 TODO ensure + index
 TODO y split bug
 TODO y from bottom
@@ -26,7 +25,6 @@ TODO uniforms set only on change
 TODO global destroy
 TODO keep program when same program
 TODO initial clear
-TODO split accumulator
 TODO wiggle width
 */
 
@@ -190,14 +188,14 @@ impl Layer {
         sub.get_patina(compiler,geometry,patina)
     }
 
-    pub(crate) fn make_campaign(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> anyhow::Result<AccumulatorCampaign> {
+    pub(crate) fn make_elements(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> anyhow::Result<ProcessStanzaElements> {
         let process = self.get_process_mut(geometry,patina)?;
-        Ok(process.get_accumulator().make_campaign(count,indexes)?)
+        Ok(process.get_stanza_builder().make_elements(count,indexes)?)
     }
 
-    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) -> anyhow::Result<AccumulatorArray> {
+    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) -> anyhow::Result<ProcessStanzaArray> {
         let process = self.get_process_mut(geometry,patina)?;
-        Ok(process.get_accumulator().make_array(count)?)
+        Ok(process.get_stanza_builder().make_array(count)?)
     }
 
     layer_geometry_accessor!(get_pin,PinGeometry,Pin);

@@ -71,7 +71,7 @@ pub(crate) struct AttributeValues {
 }
 
 impl AttributeValues {
-    pub(super) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
+    pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
         Ok(AttributeValues {
             gl_value: create_buffer(context,&our_value)?,
             arity: object.arity.to_num() as i32,
@@ -79,7 +79,7 @@ impl AttributeValues {
         })
     }
 
-    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
         let location = self.location;
         context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&self.gl_value));
         handle_context_errors(context)?;

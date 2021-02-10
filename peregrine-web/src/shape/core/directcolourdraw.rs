@@ -1,4 +1,4 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorAddable, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use peregrine_core::DirectColour;
 use super::arrayutil::scale_colour;
 
@@ -23,7 +23,7 @@ impl DirectColourDraw {
         Ok(DirectColourDraw(variety.clone()))
     }
 
-    pub(crate) fn direct(&self, campaign: &mut dyn AccumulatorAddable, colours: &[DirectColour], vertexes: usize) -> anyhow::Result<()> {
+    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &[DirectColour], vertexes: usize) -> anyhow::Result<()> {
         let mut codes = vec![];
         for c in colours {
             for _ in 0..vertexes {
@@ -32,7 +32,7 @@ impl DirectColourDraw {
                 codes.push(scale_colour(c.2));
             }
         }
-        campaign.add_n(&self.0.colour,codes)?;
+        addable.add_n(&self.0.colour,codes)?;
         Ok(())
     }
 }

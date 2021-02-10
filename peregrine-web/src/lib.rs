@@ -71,7 +71,6 @@ mod webgl {
     pub(crate) use gpuspec::precision::Precision;
 
     mod program {
-        pub(crate) mod accumulator;
         pub(crate) mod compiler;
         pub(crate) mod texture;
         pub(crate) mod header;
@@ -85,7 +84,17 @@ mod webgl {
         pub(crate) mod keyed;
     }
 
-    pub(crate) use program::accumulator::{ AccumulatorCampaign, AccumulatorArray, AccumulatorAddable};
+    mod stanza {
+        pub(crate) mod array;
+        pub(crate) mod builder;
+        pub(crate) mod elements;
+        pub(crate) mod stanza;
+    }
+
+    pub(crate) use stanza::elements::ProcessStanzaElements;
+    pub(crate) use stanza::array::ProcessStanzaArray;
+    pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
+    pub(crate) use stanza::stanza::ProcessStanza;
     pub(crate) use program::program::Program;
     pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::WebGlCompiler;
