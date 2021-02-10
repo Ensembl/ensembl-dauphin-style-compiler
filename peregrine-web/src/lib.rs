@@ -27,6 +27,7 @@ mod shape {
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
         pub(crate) mod stage;
+        pub(crate) mod wigglegeometry;
     }
 
     pub(crate) mod layers {
@@ -84,7 +85,7 @@ mod webgl {
         pub(crate) mod keyed;
     }
 
-    pub(crate) use program::accumulator::{ AccumulatorCampaign };
+    pub(crate) use program::accumulator::{ AccumulatorCampaign, AccumulatorArray, AccumulatorAddable};
     pub(crate) use program::program::Program;
     pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::WebGlCompiler;

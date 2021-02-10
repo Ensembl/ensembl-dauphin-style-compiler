@@ -2,6 +2,7 @@ use super::super::core::pingeometry::{ PinGeometry, PinProgram };
 use super::super::core::fixgeometry::{ FixGeometry, FixProgram };
 use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
 use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
+use super::super::core::wigglegeometry::{ WiggleGeometry, WiggleProgram };
 use super::patina::PatinaProcessName;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program };
 use super::consts::{ PR_LOW };
@@ -11,7 +12,8 @@ pub(crate) enum GeometryProgram {
     Pin(PinProgram),
     Fix(FixProgram),
     Tape(TapeProgram),
-    Page(PageProgram)
+    Page(PageProgram),
+    Wiggle(WiggleProgram)
 }
 
 impl GeometryProgram {
@@ -21,21 +23,23 @@ impl GeometryProgram {
             GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(process,skin,v)?),
             GeometryProgram::Tape(v) => GeometryProcess::Tape(TapeGeometry::new(process,skin,v)?),
             GeometryProgram::Page(v) => GeometryProcess::Page(PageGeometry::new(process,skin,v)?),
+            GeometryProgram::Wiggle(v) => GeometryProcess::Wiggle(WiggleGeometry::new(process,skin,v)?),            
         })
     }
 }
 
-pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page }
+pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page, Wiggle }
 
 impl GeometryProgramName {
-    pub const COUNT : usize = 4;
+    pub const COUNT : usize = 5;
 
     pub fn get_index(&self) -> usize {
         match self {
             GeometryProgramName::Pin => 0,
             GeometryProgramName::Fix => 1,
             GeometryProgramName::Tape => 2,
-            GeometryProgramName::Page => 3
+            GeometryProgramName::Page => 3,
+            GeometryProgramName::Wiggle => 4,
         }
     }
 
@@ -44,7 +48,8 @@ impl GeometryProgramName {
             GeometryProgramName::Page => GeometryProgram::Page(PageProgram::new(program)?),
             GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(program)?),
             GeometryProgramName::Tape => GeometryProgram::Tape(TapeProgram::new(program)?),
-            GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(program)?)
+            GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(program)?),
+            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(program)?)
         })
     }
 
@@ -90,8 +95,16 @@ impl GeometryProgramName {
                     gl_Position = vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
                                        (- (aVertexPosition.y - uStageVpos) / uSize.y) * aVertexSign.y, 
                                        0.0, 1.0)")
+            ],
+            GeometryProgramName::Wiggle => vec![
+                Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
+                Attribute::new(PR_LOW,GLArity::Vec2,"aData"),
+                Statement::new_vertex("
+                    gl_Position = vec4(
+                        (aData.x -uStageHpos) * uStageZoom,
+                        - (aData.y - uStageVpos) / uSize.y, 
+                        0.0, 1.0)")
             ]
-            // wiggles are Header::new(WebGlRenderingContext::TRIANGLES_STRIP),
         })
     }
 }
@@ -100,10 +113,11 @@ pub(super) enum GeometryProcess {
     Pin(PinGeometry),
     Fix(FixGeometry),
     Tape(TapeGeometry),
-    Page(PageGeometry)
+    Page(PageGeometry),
+    Wiggle(WiggleGeometry)
 }
 
-pub enum GeometryProcessName { Pin, Fix, Tape, Page }
+pub enum GeometryProcessName { Pin, Fix, Tape, Page, Wiggle }
 
 impl GeometryProcessName {
     pub(super) fn get_program_name(&self) -> GeometryProgramName {
@@ -112,6 +126,7 @@ impl GeometryProcessName {
             GeometryProcessName::Fix => GeometryProgramName::Fix,
             GeometryProcessName::Tape => GeometryProgramName::Tape,
             GeometryProcessName::Page => GeometryProgramName::Page,
+            GeometryProcessName::Wiggle => GeometryProgramName::Wiggle
         }
     }
 }

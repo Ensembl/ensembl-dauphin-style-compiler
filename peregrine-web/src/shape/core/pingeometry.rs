@@ -2,7 +2,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use super::arrayutil::{ interleave_rect_x, calculate_vertex_delta, calculate_stretch_vertex_delta, apply_left };
-use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program, AccumulatorAddable };
 use peregrine_core::{ ShipEnd };
 
 #[derive(Clone)]

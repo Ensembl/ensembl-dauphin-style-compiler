@@ -1,8 +1,8 @@
-use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair };
+use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter };
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
-use crate::webgl::AccumulatorCampaign;
+use crate::webgl::{ AccumulatorCampaign, AccumulatorArray, AccumulatorAddable };
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     match colour {
@@ -53,7 +53,12 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     }
 }
 
-fn add_colour(campaign: &mut AccumulatorCampaign, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> anyhow::Result<(AccumulatorArray,GeometryProcessName)> {    
+    let accumulator = layer.get_wiggle(patina)?.add_wiggle(layer,start,end,y,height)?;
+    Ok((accumulator,GeometryProcessName::Pin))
+}
+
+fn add_colour(campaign: &mut dyn AccumulatorAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
     match colour {
         Colour::Direct(d) => {
             let direct = layer.get_direct(geometry)?;
@@ -91,6 +96,14 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                 },
                 _ => {}
             }
+        },
+        Shape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
+            let patina = colour_to_patina(Colour::Spot(colour.clone()));
+            let (mut array,geometry) = add_wiggle(layer,start,end,y,height,&patina,allotment)?;
+            let spot = layer.get_spot(&geometry,&colour)?;
+            let mut process = layer.get_process_mut(&geometry,&patina)?;
+            spot.spot(&mut process)?;
+            array.close();
         },
         _ => {}
     }

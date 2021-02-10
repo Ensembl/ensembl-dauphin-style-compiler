@@ -86,6 +86,17 @@ pub(crate) fn interleave_line_x(xx1: &[f64], xx2: &[f64]) -> Vec<f64> {
     return out;
 }
 
+/* interleaves pairs (eg interleaving x and y when drawing wiggles) */
+pub(crate) fn interleave_pair(xx: &[f64], yy: &[f64]) -> Vec<f64> {
+    let mut out = vec![];
+    let mut yy_iter = if yy.len()!=0 { yy.iter() } else { [0.].iter() }.cycle();
+    for x in xx {
+        out.push(*x);
+        out.push(*yy_iter.next().unwrap());
+    }
+    return out;
+}
+
 /* Interleaves count copies of a then b */
 pub(crate) fn interleave_pair_count<X>(a: X, b: X, count: usize) -> anyhow::Result<Vec<X>> where X: Clone {
     let mut out = vec![];

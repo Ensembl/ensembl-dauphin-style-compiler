@@ -2,7 +2,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use super::arrayutil::{ interleave_pair_count };
-use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, AccumulatorCampaign, Program, AccumulatorAddable };
 use peregrine_core::{ ShipEnd, ScreenEdge };
 use super::arrayutil::{ repeat, interleave_rect_y, calculate_vertex, sea_sign, calculate_vertex_min, calculate_stretch_vertex };
 

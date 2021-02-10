@@ -4,9 +4,10 @@ use super::super::core::pingeometry::PinGeometry;
 use super::super::core::fixgeometry::FixGeometry;
 use super::super::core::tapegeometry::TapeGeometry;
 use super::super::core::pagegeometry::PageGeometry;
+use super::super::core::wigglegeometry::WiggleGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
-use crate::webgl::{ ProtoProcess, Process, AccumulatorCampaign };
+use crate::webgl::{ ProtoProcess, Process, AccumulatorCampaign, AccumulatorArray };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
@@ -23,6 +24,10 @@ TODO remove datum option from stretchtangles
 TODO return shapes from core without cloning (drain)
 TODO uniforms set only on change
 TODO global destroy
+TODO keep program when same program
+TODO initial clear
+TODO split accumulator
+TODO wiggle width
 */
 
 struct SubLayer {
@@ -123,6 +128,7 @@ pub(crate) struct Layer {
     fix: GeometrySubLayer,
     tape: GeometrySubLayer,
     page: GeometrySubLayer,
+    wiggle: GeometrySubLayer,
     left: f64
 }
 
@@ -152,6 +158,7 @@ impl Layer {
             fix: GeometrySubLayer::new(left),
             tape: GeometrySubLayer::new(left),
             page: GeometrySubLayer::new(left),
+            wiggle: GeometrySubLayer::new(left),
             left
         }
     }
@@ -164,6 +171,7 @@ impl Layer {
             GeometryProcessName::Fix => (&mut self.fix,&self.programs),
             GeometryProcessName::Tape => (&mut self.tape,&self.programs),
             GeometryProcessName::Page => (&mut self.page,&self.programs),
+            GeometryProcessName::Wiggle => (&mut self.wiggle,&self.programs)
         })
     }
 
@@ -187,10 +195,16 @@ impl Layer {
         Ok(process.get_accumulator().make_campaign(count,indexes)?)
     }
 
+    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) -> anyhow::Result<AccumulatorArray> {
+        let process = self.get_process_mut(geometry,patina)?;
+        Ok(process.get_accumulator().make_array(count)?)
+    }
+
     layer_geometry_accessor!(get_pin,PinGeometry,Pin);
     layer_geometry_accessor!(get_fix,FixGeometry,Fix);
     layer_geometry_accessor!(get_page,PageGeometry,Page);
     layer_geometry_accessor!(get_tape,TapeGeometry,Tape);
+    layer_geometry_accessor!(get_wiggle,WiggleGeometry,Wiggle);
 
     layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
 

@@ -80,6 +80,7 @@ impl Process {
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
         let context = self.program.context();
+        self.program.select_program()?;
         for run in self.runs.iter() {
             for entry in self.uniforms.values() {
                 entry.activate(context)?;
@@ -87,9 +88,9 @@ impl Process {
             for entry in self.textures.iter() {
                 entry.activate(context)?;
             }
-            let len = run.activate(context)?;
-            self.program.select_program()?;
-            context.draw_elements_with_i32(self.program.get_method(),len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
+            run.activate(context)?;
+            run.draw(context,self.program.get_method())?;
+            run.deactivate(context)?;
             handle_context_errors(context)?;
         }
         Ok(())
