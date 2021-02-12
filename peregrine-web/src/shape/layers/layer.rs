@@ -26,6 +26,7 @@ TODO global destroy
 TODO keep program when same program
 TODO initial clear
 TODO wiggle width
+TODO hollowwidth
 */
 
 struct SubLayer {
