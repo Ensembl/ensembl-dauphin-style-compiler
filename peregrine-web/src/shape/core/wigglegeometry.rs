@@ -2,7 +2,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray };
-use super::arrayutil::{ interleave_pair };
+use super::arrayutil::{ interleave_pair, apply_left };
 
 const THICKNESS: f64 = 1.; // XXX
 
@@ -84,6 +84,7 @@ impl WiggleGeometry {
                 }
             }
             let mut array = layer.make_array(&GeometryProcessName::Wiggle,&self.patina,pusher.x.len())?;
+            apply_left(&mut pusher.x,layer);
             array.add(&self.variety.data,interleave_pair(&pusher.x,&pusher.y))?;
             Ok(array)
         } else {

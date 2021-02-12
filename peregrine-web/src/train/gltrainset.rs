@@ -6,6 +6,7 @@ use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineApi };
 use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::core::stage::{ Stage, RedrawNeeded };
+use crate::webgl::DrawingSession;
 use web_sys::{ WebGlRenderingContext };
 
 #[derive(Clone)]
@@ -20,7 +21,8 @@ struct GlTrainSetData {
     fast_fade_time: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
-    redraw_needed: RedrawNeeded
+    redraw_needed: RedrawNeeded,
+    context: WebGlRenderingContext
 }
 
 impl GlTrainSetData {
@@ -32,7 +34,8 @@ impl GlTrainSetData {
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
-            redraw_needed: redraw_needed.clone()
+            redraw_needed: redraw_needed.clone(),
+            context: context.clone()
         })
     }
 
@@ -111,18 +114,21 @@ impl GlTrainSetData {
     }
 
     fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
+        let mut session = DrawingSession::new(&self.context,stage);
+        session.begin()?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(train).draw(stage)?;
+                self.get_train(train).draw(&session)?;
             },
             FadeState::Fading(from,to,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(from).draw(stage)?;
+                    self.get_train(from).draw(&session)?;
                 }
-                self.get_train(to).draw(stage)?;
+                self.get_train(to).draw(&session)?;
             },
         }
+        session.finish()?;
         Ok(())
     }
 

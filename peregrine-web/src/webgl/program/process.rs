@@ -75,7 +75,7 @@ impl Process {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub fn draw(&mut self, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+    pub(super) fn draw(&mut self, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
         let context = self.program.context();

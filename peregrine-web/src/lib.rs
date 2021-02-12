@@ -82,6 +82,7 @@ mod webgl {
         pub(crate) mod varying;
         pub(crate) mod statement;
         pub(crate) mod keyed;
+        pub(crate) mod session;
     }
 
     mod stanza {
@@ -102,6 +103,7 @@ mod webgl {
     pub(crate) use program::uniform::{ Uniform, UniformHandle };
     pub(crate) use program::attribute::{ Attribute, AttribHandle };
     pub(crate) use program::varying::Varying;
+    pub(crate) use program::session::DrawingSession;
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
 

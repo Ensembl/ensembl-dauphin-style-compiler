@@ -3,6 +3,7 @@ use std::collections::{ HashMap, HashSet };
 use crate::shape::layers::programstore::ProgramStore;
 use super::glcarriage::GLCarriage;
 use crate::shape::core::stage::{ Stage, RedrawNeeded };
+use crate::webgl::DrawingSession;
 use blackbox::blackbox_log;
 
 pub struct GLTrain {
@@ -75,9 +76,9 @@ impl GLTrain {
         Ok(())
     }
 
-    pub fn draw(&mut self, stage: &Stage) -> anyhow::Result<()> {
+    pub fn draw(&mut self, session: &DrawingSession) -> anyhow::Result<()> {
         for carriage in self.carriages.values_mut() {
-            carriage.draw(stage)?;
+            carriage.draw(session)?;
         }
         Ok(())
     }

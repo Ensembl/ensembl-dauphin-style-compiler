@@ -82,9 +82,12 @@ impl StageData {
         }
     }
 
+    fn ready(&self) -> bool {
+        self.x_position.is_some() && self.y_position.is_some() && self.zoom.is_some() && self.size.is_some()
+    }
+
     fn changed(&mut self) {
-        let ready = self.x_position.is_some() && self.y_position.is_some() && self.zoom.is_some() && self.size.is_some();
-        if ready {
+        if self.ready() {
             self.redraw_needed.set();
         }
     }
@@ -103,6 +106,7 @@ impl StageData {
 
 impl Stage {
     pub fn new() -> Stage { Stage(Rc::new(Mutex::new(StageData::new()))) }
+    pub fn ready(&self) -> bool { self.0.lock().unwrap().ready() }
     pub fn redraw_needed(&self) -> RedrawNeeded { self.0.lock().unwrap().redraw_needed() }
     pub fn x_position(&self) -> anyhow::Result<f64> {  self.0.lock().unwrap().x_position() }
     pub fn y_position(&self) -> anyhow::Result<f64> { self.0.lock().unwrap().y_position() }

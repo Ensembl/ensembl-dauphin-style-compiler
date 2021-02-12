@@ -1,7 +1,7 @@
 use peregrine_core::{ Carriage, CarriageId };
 use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
-use crate::shape::core::stage::Stage;
+use crate::webgl::DrawingSession;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 use web_sys::console;
@@ -49,9 +49,9 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn draw(&mut self, stage: &Stage) -> anyhow::Result<()> {
+    pub fn draw(&mut self, session: &DrawingSession) -> anyhow::Result<()> {
         let opacity = self.opacity.lock().unwrap().clone();
-        self.drawing.draw(stage,opacity)
+        self.drawing.draw(session,opacity)
     }
 
     pub fn discard(&mut self) -> anyhow::Result<()> {
