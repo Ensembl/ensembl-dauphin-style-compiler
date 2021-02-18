@@ -4,7 +4,7 @@ use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::Program;
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
-use super::keyed::{ KeyedData };
+use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
 

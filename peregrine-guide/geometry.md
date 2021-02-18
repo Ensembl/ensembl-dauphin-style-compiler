@@ -1,7 +1,6 @@
-Anchors
-=======
+# Anchors
 
-Co-ordinates in peregrine are complex as relative sizes and positions can vary depending on scale and these routine transformations are delegated to the GPU. We're therefor always dealing with all kinds of deltas, scales, and axis directions which can get incredibly confusing.
+Co-ordinates in peregrine are complex, as relative sizes and positions can vary depending on scale, and these routine transformations are delegated to the GPU. We're therefore always dealing with all kinds of deltas, scales, and axis directions rather than simple co-ordinates. This can get incredibly confusing.
 
 The metaphor we use to simplify modelling is ships on an ocean. Each object is a "ship". There are two, somehow ovelrying but independent, seas to which a ship can attach, the "paper" sea being the "document" and the "screen" sea, being the viewport. Ships use an anchor to attach themselves to one of these seas. As the seas move these locations stay constant but the ship is seen to move.
 
@@ -15,11 +14,11 @@ The type of the sea end (in each axis) determines the applicable geometry, so by
 
 An object can have one or two anchor points.
 
-One Anchor point
-----------------
+## One Anchor point
 
 Shapes with a size can have a single anchor point.
 
+```
 <--------size-------->
 +--------------------+
 |                    |
@@ -28,9 +27,11 @@ Shapes with a size can have a single anchor point.
 +-----+--------------+
       |
      [A]
+```
 
 The ship anchor can be with reference to one of three datums (min,centre, max), being of the users choosing. A delta known as a "walk" ("..." in the diagrams) is applied from this datum to the ship anchor point. This walk is always positive to the right/down from the datum to the ship end of the anchor.
 
+```
 L:                        C:                        R:
 <--------size-------->    <--------size-------->    <--------size-------->
 [D]-------[D]------[D]    [D]-------[D]------[D]    [D]-------[D]------[D]
@@ -40,11 +41,13 @@ L:                        C:                        R:
 +-----+--------------+    +-----+--------------+    +-----+--------------+
       |                         |                         |
      [A]                       [A]                       [A]
+```
 
 The first example above has a positive walk, last two examples have a negative walk.
 
 The goal is to calculate start and end distances (s1) and (s2) being the left and right walls of the object, either from the left/top or right/bottom, depending on how the sea end anchors are arranged.
 
+```
 - (left/top):
                     <--------size--------> 
                     [D]-------[D]------[D]
@@ -68,27 +71,35 @@ The goal is to calculate start and end distances (s1) and (s2) being the left an
                     +-----+--------------+
                           |               
                          [A]              
+```
 
 Initially considering the left/top (-) forms, in the case of min (L), s1 is the left wall and the anchor and walk are subtracted, and s2, the right wall, lies at [size] distance away.
 
+```
 -L:
   (s1) = [A] - [walk]
   (s2) = [A] - [walk] + [size]
+```
 
 In the case of max (R) the right wall is the simple subtraction, and the left wall is size away.
 
+```
 -R:
   (s1) = [A] - [walk] - [size]
   (s2) = [A] - [walk]
+```
 
 In the case of centre (C), the result is symmetrical. The centre is at [A] - [walk] so the edges are at
 
+```
 -C:
   (s1) = [A] - [walk] - [size]/2
   (s2) = [A] - [walk] + [size]/2
+```
 
 When we have anchors from the end rather than the start, the sign of the walk is flipped (as walks are always left-to-right). It is simplest to think of the size transformation as similar, that shapes have a "negative size", which naturally flips the roles of s1 and s2, as required.
 
+```
 +L:
   (s1) = [A] + [walk]
   (s2) = [A] + [walk] - [size]
@@ -112,18 +123,18 @@ where:
 +L  +1   0    -1
 +C  +1   +1/2 -1/2
 +R  +1   +1   0
-
+```
 By inspection, fs2 = fs1-fp.
 
 This is provided by the function calculate_vertex.
 
 In some cases geometries supply anchor locations via a different data array to allow efficient scaling. In this case calculate_vertex_delta is used, which sets [A] to 0, a count is taken instead of anchor data.
 
-Two anchor points
------------------
+## Two anchor points
 
 An object may instead be defined to have two anchor points. In this case, the size of the object is defined by the relative co-ordinates of those anchors. The two anchors are known as systems one and two, respectively.
 
+```
 system 1      system 2
 [D]----------------[D]
 |......     .........| walk1 = 6; walk2 = -8
@@ -132,9 +143,11 @@ system 1      system 2
 +-----+-----+--------+
       |     |
      [A]   [A]
+```
 
 Again, we ultimately need wall position co-ordinates.
 
+```
             system 1      system 2            system 1      system 2
             [D]----------------[D]            [D]----------------[D]
             |......     .........|            |......     .........|
@@ -144,9 +157,11 @@ Again, we ultimately need wall position co-ordinates.
             +-----+-----+--------+            +-----+-----+--------+
                   |     |                           |     |
                  [A]   [A]                         [A]   [A]
+```
 
 We see, therefore, that for the two-anchor object this degenerates into two independent problems.
 
+```
 -:
   (s1) = [A1] - [walk1]
   (s2) = [A2] - [walk2]
@@ -154,5 +169,6 @@ We see, therefore, that for the two-anchor object this degenerates into two inde
 +:
   (s1) = [A1] + [walk1]
   (s2) = [A2] + [walk2]
+```
 
 So our two anchor problem becomes a degenerate case of the one-anchor problem for the case when size is zero. In the case of independent sea-end anchors, we also have the degeneracy that [A] is zero, so the calculcation degenerates into an optional negation of the walk coordinates, depending on sea axis direction.

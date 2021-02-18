@@ -117,7 +117,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
             spot.spot(&mut process)?;
             array.close();
         },
-        _ => {}
+        Shape::Text(anchor,pen,text,allotment) => {
+
+        }
     }
     Ok(())
 }

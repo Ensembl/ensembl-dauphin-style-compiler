@@ -1,4 +1,4 @@
-use anyhow::bail;
+use anyhow::{ anyhow as err, bail };
 use std::cmp::min;
 use super::precision::Precision;
 use super::glsize::GLSize;
@@ -38,6 +38,12 @@ fn get_precisions(out: &mut Vec<(GLSize,Precision)>, context: &WebGlRenderingCon
     add_precision(out,context,shader,GLSize::FloatHigh);
 }
 
+fn get_parameter_u32(context: &WebGlRenderingContext, name: u32) -> anyhow::Result<u32> {
+    let value : Option<f64> = context.get_parameter(name).map_err(|e| err!("could not get {}: {:?}",name,e.as_string()))?.as_f64();
+    let value = value.ok_or_else(|| err!("could not get {}: null value",name))?;
+    Ok(value as u32)
+}
+
 fn best_size(want: &Precision, sizes: &Vec<(GLSize,Precision)>) -> GLSize {
     for (size,precision) in sizes {
         if precision >= want {
@@ -49,14 +55,16 @@ fn best_size(want: &Precision, sizes: &Vec<(GLSize,Precision)>) -> GLSize {
 
 pub(crate) struct GPUSpec {
     vert_precs: Vec<(GLSize,Precision)>,
-    frag_precs: Vec<(GLSize,Precision)>
+    frag_precs: Vec<(GLSize,Precision)>,
+    max_texture_size: u32
 }
 
 impl GPUSpec {
     pub fn new(context: &WebGlRenderingContext) -> anyhow::Result<GPUSpec> { 
         let mut out = GPUSpec {
             vert_precs: Vec::new(),
-            frag_precs: Vec::new()
+            frag_precs: Vec::new(),
+            max_texture_size: get_parameter_u32(context,WebGlRenderingContext::MAX_TEXTURE_SIZE)?
         };
         out.populate(context)?;
         Ok(out)
@@ -77,5 +85,9 @@ impl GPUSpec {
             Phase::Fragment => &self.frag_precs
         };
         best_size(want,var)
+    }
+
+    pub fn max_texture_size(&self) -> u32 {
+        self.max_texture_size
     }
 }

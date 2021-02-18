@@ -1,7 +1,7 @@
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::attribute::{ Attribute, AttribHandle };
-use super::keyed::{ KeyedValues, KeyedData };
+use crate::util::keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;

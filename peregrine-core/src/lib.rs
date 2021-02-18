@@ -84,7 +84,6 @@ mod shape {
     mod core;
     mod shape;
     mod shapelist;
-    mod text;
     mod zmenu;
     mod shapeoutput;
 

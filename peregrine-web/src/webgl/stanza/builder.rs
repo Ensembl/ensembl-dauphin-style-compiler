@@ -1,6 +1,6 @@
 use anyhow::{ bail };
 use super::super::program::attribute::{ Attribute, AttribHandle };
-use super::super::program::keyed::{ KeyedValues, KeyedDataMaker };
+use crate::util::keyed::{ KeyedValues, KeyedDataMaker };
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
 use super::stanza::ProcessStanza;

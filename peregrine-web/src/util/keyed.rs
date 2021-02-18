@@ -11,19 +11,22 @@ pub trait KeyedHandle {
 #[macro_export]
 macro_rules! keyed_handle {
     ($name:ident) => {
-        use $crate::webgl::program::keyed::KeyedHandle;
 
+        #[derive(PartialEq,Eq,Hash)]
         pub struct $name(usize);
 
-        impl $crate::webgl::program::keyed::KeyedHandle for $name {
+        impl $crate::util::keyed::KeyedHandle for $name {
             fn new(value: usize) -> Self { $name(value) }
             fn get(&self) -> usize { self.0 }
             fn clone_handle(&self) -> Self { $name(self.0) }
         }
 
-        impl Clone for $name {
-            fn clone(&self) -> Self { self.clone_handle() }
-        }        
+        impl Clone for $name where $name: $crate::util::keyed::KeyedHandle {
+            fn clone(&self) -> Self {
+                use $crate::util::keyed::KeyedHandle;
+                self.clone_handle()
+            }
+        }
     };
 }
 
@@ -79,12 +82,25 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
     pub fn values(&self) -> impl Iterator<Item=&T> { self.0.iter() }
     pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> { self.0.iter_mut() }
 
+    pub fn items(&self) -> impl Iterator<Item=(K,&T)> { self.values().enumerate().map(|(i,v)| (K::new(i),v)) }
+
+    pub fn take(mut self) -> Vec<(K,T)> { self.0.drain(..).enumerate().map(|(i,v)| (K::new(i),v)).collect() }
+
     pub fn map_into<F,U,E>(mut self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,T) -> Result<U,E> {
         Ok(KeyedData(self.0.drain(..).enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
     }
 
     pub fn map<F,U,E>(&self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
         Ok(KeyedData(self.0.iter().enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
+    }
+}
+
+impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
+    pub fn insert(&mut self, index: &K, value: T) {
+        while index.get() >= self.0.len() {
+            self.0.push(None);
+        }
+        self.0[index.get()] = Some(value);
     }
 }
 

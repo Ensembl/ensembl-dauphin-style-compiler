@@ -17,6 +17,12 @@ mod run {
 }
 
 mod shape {
+    pub(crate) mod canvas {
+        pub(crate) mod allocator;
+        pub(crate) mod packer;
+        pub(crate) mod weave;
+    }
+
     pub(crate) mod core {
         pub(crate) mod arrayutil;
         pub(crate) mod glshape;
@@ -27,6 +33,7 @@ mod shape {
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
         pub(crate) mod stage;
+        pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
     }
 
@@ -51,6 +58,7 @@ mod train {
 mod util {
     pub(crate) mod ajax;
     pub(crate) mod error;
+    pub(crate) mod keyed;
     pub(crate) mod safeelement;
 }
 
@@ -81,7 +89,6 @@ mod webgl {
         pub(crate) mod attribute;
         pub(crate) mod varying;
         pub(crate) mod statement;
-        pub(crate) mod keyed;
         pub(crate) mod session;
     }
 

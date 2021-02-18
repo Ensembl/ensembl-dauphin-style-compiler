@@ -1,6 +1,6 @@
 use anyhow::{ bail };
 use super::super::program::attribute::{ Attribute, AttribHandle };
-use super::super::program::keyed::{ KeyedData, KeyedDataMaker };
+use crate::util::keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::ProcessStanza;
 use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
 use web_sys::{ WebGlRenderingContext };

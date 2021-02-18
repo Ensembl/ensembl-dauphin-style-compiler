@@ -2,7 +2,7 @@ use anyhow::{ anyhow as err };
 use std::rc::Rc;
 use std::cell::RefCell;
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
-use super::super::program::keyed::{ KeyedData };
+use crate::util::keyed::{ KeyedData };
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 use crate::webgl::Attribute;

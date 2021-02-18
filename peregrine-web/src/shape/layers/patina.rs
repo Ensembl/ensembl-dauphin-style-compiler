@@ -1,19 +1,23 @@
 use anyhow::bail;
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
+use super::super::core::texture::{ TextureDraw, TextureProgram };
+use super::super::canvas::weave::CanvasInstanceId;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
-use super::consts::{ PR_LOW };
+use super::consts::{ PR_LOW, PR_DEF };
 
 pub(crate) enum PatinaProgram {
     Direct(DirectProgram),
-    Spot(SpotProgram)
+    Spot(SpotProgram),
+    Texture(TextureProgram)
 }
 
 impl PatinaProgram {
     pub(super) fn make_patina_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> anyhow::Result<PatinaProcess> {
         Ok(match self {
             PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(process,v)?),
+            PatinaProgram::Texture(v) => PatinaProcess::Texture(TextureDraw::new(process,v)?),
             PatinaProgram::Spot(v) => {
                 match skin {
                     PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(process,colour,v)?),
@@ -24,15 +28,16 @@ impl PatinaProgram {
     }
 }
 
-pub(crate) enum PatinaProgramName { Direct, Spot }
+pub(crate) enum PatinaProgramName { Direct, Spot, Texture }
 
 impl PatinaProgramName {
-    pub const COUNT : usize = 2;
+    pub const COUNT : usize = 3;
 
     pub fn get_index(&self) -> usize {
         match self {
             PatinaProgramName::Direct => 0,
-            PatinaProgramName::Spot => 1
+            PatinaProgramName::Spot => 1,
+            PatinaProgramName::Texture => 2
         }
     }
 
@@ -40,6 +45,7 @@ impl PatinaProgramName {
         Ok(match self {
             PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(program)?),
             PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(program)?),
+            PatinaProgramName::Texture => PatinaProgram::Texture(TextureProgram::new(program)?),
         })
     }
 
@@ -56,9 +62,7 @@ impl PatinaProgramName {
                     Uniform::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],
-                /*
-                PaintSkin::Texture => vec![
-                    Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity"),
+                PatinaProgramName::Texture => vec![
                     Uniform::new_fragment(PR_DEF,GLArity::Sampler2D,"uSampler"),
                     Attribute::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
                     Attribute::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
@@ -70,7 +74,6 @@ impl PatinaProgramName {
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                     Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
                 ]
-                */
             }
         )
     }
@@ -78,17 +81,21 @@ impl PatinaProgramName {
 
 pub(super) enum PatinaProcess {
     Direct(DirectColourDraw),
-    Spot(SpotColourDraw)
+    Spot(SpotColourDraw),
+    Texture(TextureDraw)
 }
 
+// TODO texture types
+
 #[derive(Clone)]
-pub enum PatinaProcessName { Direct, Spot(DirectColour) }
+pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasInstanceId) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {
         match self {
             PatinaProcessName::Direct => PatinaProgramName::Direct,
-            PatinaProcessName::Spot(_) => PatinaProgramName::Spot
+            PatinaProcessName::Spot(_) => PatinaProgramName::Spot,
+            PatinaProcessName::Texture(_) => PatinaProgramName::Texture
         }
     }
 }

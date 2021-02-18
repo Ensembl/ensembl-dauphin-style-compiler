@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 use super::zmenu::ZMenu;
 
 pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
@@ -42,10 +41,6 @@ pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T:
     } else {
         b
     }
-}
-
-pub trait Texture : std::fmt::Debug {
-
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -106,7 +101,6 @@ impl Colour {
 pub enum Patina {
     Filled(Colour),
     Hollow(Colour),
-    Texture(Arc<dyn Texture>),
     ZMenu(ZMenu,HashMap<String,Vec<String>>)
 }
 
@@ -115,7 +109,6 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.bulk(len,primary)),
             Patina::Hollow(c) => Patina::Hollow(c.bulk(len,primary)),
-            Patina::Texture(t) => Patina::Texture(t),
             Patina::ZMenu(z,mut h) => {
                 let mut new_h  : HashMap<String,Vec<String>> = h.clone();
                 for (k,v) in h.drain() {
@@ -130,7 +123,6 @@ impl Patina {
         match self {
             Patina::Filled(c) => c.split(mapping,primary).drain(..).map(|x| Patina::Filled(x)).collect(),
             Patina::Hollow(c) => c.split(mapping,primary).drain(..).map(|x| Patina::Hollow(x)).collect(),
-            Patina::Texture(t) => track_all(t,mapping).drain(..).map(|x| Patina::Texture(x)).collect(),
             Patina::ZMenu(z,mut h) => {
                 let mut vmap2  : Vec<HashMap<String,Vec<String>>> = track_all(HashMap::new(),&mapping);
                 for (k,v) in h.drain() {
@@ -147,7 +139,6 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.filter(which,primary)),
             Patina::Hollow(c) => Patina::Hollow(c.filter(which,primary)),
-            Patina::Texture(t) => Patina::Texture(t.clone()),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter(&v,which,primary))).collect())
         }
     }
