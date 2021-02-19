@@ -1,5 +1,4 @@
 use crate::simple_interp_command;
-use anyhow::{ bail, anyhow as err };
 use peregrine_core::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
@@ -8,7 +7,6 @@ use std::cmp::max;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use crate::util::{ get_peregrine };
-use owning_ref::ArcRef;
 
 simple_interp_command!(IntervalInterpCommand,IntervalDeserializer,9,3,(0,1,2));
 simple_interp_command!(ScreenStartPairInterpCommand,ScreenStartPairDeserializer,10,3,(0,1,2));
@@ -278,7 +276,7 @@ impl InterpCommand for PenInterpCommand {
         let geometry_builder = peregrine.geometry_builder();
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let pen = Pen(font,size,colours);
+        let pen = Pen(font,size as u32,colours);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
         let registers = context.registers_mut();

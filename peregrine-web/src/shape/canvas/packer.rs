@@ -2,13 +2,7 @@ use anyhow::bail;
 use std::collections::BTreeMap;
 use crate::webgl::GPUSpec;
 
-/* We use a shelf-based algorith (rather than, say, guillotine or skyline)
-*/
-
-/* SHELF-FF because we are extremely short of time! Yes there are cleverer algorithms, but survey papers show them to be O(n^2) or worse
- * which isn't fast enough for us. This is O(n log n)
- */
-/* Remember, we run in derceasing size, so Bins an shelves which exist will always be high enough */
+/* see alloc.md in guide for details */
 
 const SPLIT_FACTOR_NUM : u32 = 1;
 const SPLIT_FACTOR_DENOM : u32 = 4;

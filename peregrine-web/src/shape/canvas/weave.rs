@@ -59,4 +59,8 @@ impl DrawingCanvasesBuilder {
             origin, size
         });
     }
+
+    pub(super) fn origin(&self, id: &CanvasRequestId) -> Option<(u32,u32)> {
+        self.areas.get(id).as_ref().map(|a| a.origin)
+    }
 }

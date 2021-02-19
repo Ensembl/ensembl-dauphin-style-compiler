@@ -1,5 +1,5 @@
 use anyhow::{ anyhow as err };
-use std::collections::HashMap;
+use std::collections::{ BTreeSet, HashMap };
 use std::marker::PhantomData;
 
 pub trait KeyedHandle {
@@ -79,6 +79,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
     pub fn get(&self, key: &K) -> &T { &self.0[key.get()] }
     pub fn get_mut(&mut self, key: &K) -> &mut T { &mut self.0[key.get()] }
+    pub fn keys(&mut self) -> impl Iterator<Item=K> { (0..self.0.len()).map(|id| K::new(id))  }
     pub fn values(&self) -> impl Iterator<Item=&T> { self.0.iter() }
     pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> { self.0.iter_mut() }
 
@@ -101,6 +102,59 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
             self.0.push(None);
         }
         self.0[index.get()] = Some(value);
+    }
+
+    pub fn remove(&mut self, index: &K) {
+        self.0[index.get()] = None;
+    }
+}
+
+pub(crate) struct KeyedOptionalValues<K: KeyedHandle,T> {
+    available: BTreeSet<usize>,
+    entries: KeyedData<K,Option<T>>
+}
+
+impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
+    pub fn new() -> KeyedOptionalValues<K,T> {
+        KeyedOptionalValues {
+            available: BTreeSet::new(),
+            entries: KeyedData::new()
+        }
+
+    }
+
+    pub(crate) fn add(&mut self, value: T) -> K {
+        if let Some(id) = self.available.range(..).next().cloned() {
+            self.available.remove(&id);
+            let id = K::new(id);
+            self.entries.insert(&id,value);
+            id
+        } else {
+            self.entries.add(Some(value))
+        }
+    }
+
+    pub(crate) fn get(&self, key: &K) -> anyhow::Result<&T> {
+        let out : Option<&T> = self.entries.get(key).into();
+        out.ok_or_else(|| err!("invalid id"))
+    }
+
+    pub(crate) fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
+        let out : Option<&mut T> = self.entries.get_mut(key).into();
+        out.ok_or_else(|| err!("invalid id"))
+    }
+
+    pub fn values(&self) -> impl Iterator<Item=&T> {
+        self.entries.values().filter(|x| x.is_some()).map(|x| x.as_ref().unwrap())
+    }
+
+    pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> {
+        self.entries.values_mut().filter(|x| x.is_some()).map(|x| x.as_mut().unwrap())
+    }
+
+    pub(crate) fn remove(&mut self, key: &K) {
+        self.entries.remove(key);
+        self.available.insert(key.get());
     }
 }
 

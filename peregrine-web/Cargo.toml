@@ -40,12 +40,13 @@ path="../commander"
 version = "*"
 features = [
   'AbortController', 'AbortSignal',
-  'console', 'CustomEvent', 'CustomEventInit',
+  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d',
   'Document',
   'Element',
   'HtmlElement', 'Headers', 'HtmlCanvasElement',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
+  'TextMetrics',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
   'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'

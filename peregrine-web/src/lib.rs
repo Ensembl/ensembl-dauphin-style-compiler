@@ -19,7 +19,10 @@ mod run {
 mod shape {
     pub(crate) mod canvas {
         pub(crate) mod allocator;
+        pub(crate) mod flat;
+        pub(crate) mod text;
         pub(crate) mod packer;
+        pub(crate) mod store;
         pub(crate) mod weave;
     }
 
