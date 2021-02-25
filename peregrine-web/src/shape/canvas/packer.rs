@@ -141,7 +141,7 @@ fn filter_areas(sizes: &[(u32,u32)], max_area: u64) -> Vec<(u32,u32)> {
     out
 }
 
-fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>) -> Option<Vec<(u32,u32)>> {
+fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>) -> Option<(Vec<(u32,u32)>,u32,u32)> {
     let mut sorted = if let Some(max_area) = max_area {
         filter_areas(sizes,max_area)
     } else {
@@ -164,16 +164,16 @@ fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>)
             }
             let texture_height = bin.height().next_power_of_two() as u64;
             if texture_height <= max_size {
-                return Some(out);
+                return Some((out,texture_width as u32,texture_height as u32));
             }
             texture_width *= 2;
         }
     } else {
-        Some(vec![])
+        Some((vec![],1,1))
     }
 }
 
-pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow::Result<Vec<(u32,u32)>> {
+pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow::Result<(Vec<(u32,u32)>,u32,u32)> {
     let max_size = gpu_spec.max_texture_size() as u64;
     if let Some(result) = try_allocate_areas(sizes,max_size,None) {
         return Ok(result);

@@ -53,6 +53,7 @@ fn best_size(want: &Precision, sizes: &Vec<(GLSize,Precision)>) -> GLSize {
     return sizes[sizes.len()-1].0
 }
 
+#[derive(Clone)]
 pub(crate) struct GPUSpec {
     vert_precs: Vec<(GLSize,Precision)>,
     frag_precs: Vec<(GLSize,Precision)>,

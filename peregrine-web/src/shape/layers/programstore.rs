@@ -40,6 +40,7 @@ impl ProgramStoreEntry {
 
 pub struct ProgramStoreData {
     compiler: WebGlCompiler,
+    gpu_spec: GPUSpec,
     programs: RefCell<Vec<Option<Rc<ProgramStoreEntry>>>>
 }
 
@@ -48,7 +49,8 @@ impl ProgramStoreData {
         let gpuspec = GPUSpec::new(context)?;
         let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
         Ok(ProgramStoreData {
-            compiler: WebGlCompiler::new(context,gpuspec),
+            compiler: WebGlCompiler::new(context,&gpuspec),
+            gpu_spec: gpuspec,
             programs
         })
     }
@@ -69,6 +71,8 @@ impl ProgramStoreData {
         }
         Ok(self.programs.borrow()[index.get_index()].as_ref().unwrap().clone())
     }
+
+    pub(super) fn gpu_spec(&self) -> &GPUSpec { &self.gpu_spec }
 }
 
 #[derive(Clone)]
@@ -82,4 +86,6 @@ impl ProgramStore {
     pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
         self.0.get_program(geometry,patina)
     }
+
+    pub(crate) fn gpu_spec(&self) -> &GPUSpec { self.0.gpu_spec() }
 }

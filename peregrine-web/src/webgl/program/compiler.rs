@@ -10,10 +10,10 @@ pub(crate) struct WebGlCompiler {
 }
 
 impl WebGlCompiler {
-    pub(crate) fn new(context: &WebGlRenderingContext, gpuspec: GPUSpec) -> WebGlCompiler {
+    pub(crate) fn new(context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> WebGlCompiler {
         WebGlCompiler {
             context:context.clone(),
-            gpuspec
+            gpuspec: gpuspec.clone()
         }
     }
 

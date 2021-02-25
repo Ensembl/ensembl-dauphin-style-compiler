@@ -9,12 +9,20 @@ use crate::keyed_handle;
 // TODO document etc to common data structure
 
 pub struct CanvasStore {
-    document: Document,
+    document: Document, // XXX elevate
     scratch: HashMap<CanvasWeave,CanvasElement>,
     main_canvases: KeyedOptionalValues<CanvasElementId,CanvasElement>
 }
 
 impl CanvasStore {
+    pub(crate) fn new(document: &Document) -> CanvasStore {
+        CanvasStore {
+            document: document.clone(),
+            scratch: HashMap::new(),
+            main_canvases: KeyedOptionalValues::new()
+        }
+    }
+
     pub(crate) fn get_scratch_context(&mut self, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut CanvasElement> {
         let mut use_cached = false;
         if let Some(existing) = self.scratch.get(weave) {
@@ -34,8 +42,8 @@ impl CanvasStore {
         Ok(self.main_canvases.add(CanvasElement::new(&self.document,size)?))
     }
 
-    fn get_main_canvas(&mut self, id: &CanvasElementId) -> anyhow::Result<&mut CanvasElement> {
-        self.main_canvases.get_mut(id)
+    pub(super) fn get_main_canvas(&self, id: &CanvasElementId) -> anyhow::Result<&CanvasElement> {
+        self.main_canvases.get(id)
     }
 
     fn discard(&mut self, id: &CanvasElementId) -> anyhow::Result<()> {
@@ -64,37 +72,27 @@ impl Drop for CanvasStore {
 
 keyed_handle!(CanvasElementId);
 
-pub struct DrawingCanvasStore<'s> {
-    store: &'s mut CanvasStore,
+pub struct DrawingCanvases {
     main_canvases: Vec<CanvasElementId>
 }
 
-impl<'s> DrawingCanvasStore<'s> {
-    pub(crate) fn new(store: &'s mut CanvasStore) -> DrawingCanvasStore<'s> {
-        DrawingCanvasStore {
-            store,
+impl DrawingCanvases {
+    pub(crate) fn new() -> DrawingCanvases {
+        DrawingCanvases {
             main_canvases: vec![]
         }
     }
 
-    pub(crate) fn store(&mut self) -> &mut CanvasStore { &mut self.store }
-
-    pub(crate) fn allocate_main(&mut self, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<CanvasElementId> {
-        let id = self.store.allocate_main(weave,size)?;
+    pub(crate) fn allocate_main(&mut self, store: &mut CanvasStore, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<CanvasElementId> {
+        let id = store.allocate_main(weave,size)?;
         self.main_canvases.push(id.clone());
         Ok(id)
     }
 
-    pub(crate) fn discard(&mut self) -> anyhow::Result<()> {
+    pub(crate) fn discard(&mut self, store: &mut CanvasStore) -> anyhow::Result<()> {
         for id in self.main_canvases.drain(..) {
-            self.store.discard(&id)?;
+            store.discard(&id)?;
         }
         Ok(())
-    }
-}
-
-impl<'s> Drop for DrawingCanvasStore<'s> {
-    fn drop(&mut self) {
-        self.discard();
     }
 }

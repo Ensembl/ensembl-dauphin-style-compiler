@@ -1,7 +1,9 @@
 use peregrine_core::{ Carriage, CarriageId };
-use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
+use crate::shape::core::glshape::PreparedShape;
+use crate::shape::canvas::allocator::DrawingCanvasesAllocator;
 use crate::webgl::DrawingSession;
+use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 use web_sys::console;
@@ -27,15 +29,20 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(carriage: &Carriage, opacity: f64, programs: &ProgramStore) -> anyhow::Result<GLCarriage> {
-        let mut drawing = DrawingBuilder::new(programs,carriage.id().left());
+    pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> anyhow::Result<GLCarriage> {
+        let mut drawing = DrawingBuilder::new(gl.program_store(),carriage.id().left());
         let mut count = 0;
-        for shape in carriage.shapes().drain(..) {
+        let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().drain(..).map(|s| drawing.prepare_shape(s)).collect();
+        let mut canvas_allocator = DrawingCanvasesAllocator::new();
+        drawing.finish_preparation(&mut canvas_allocator)?;
+        let gpu_spec = gl.program_store().gpu_spec().clone();
+        let builder = canvas_allocator.make_builder(gl.canvas_store_mut(),&gpu_spec)?;
+        for shape in preparations?.drain(..) {
             drawing.add_shape(shape)?;
             count += 1;
         }
         console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
-        let drawing = drawing.build()?;
+        let drawing = drawing.build(&gl.canvas_store(),builder)?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
@@ -54,7 +61,8 @@ impl GLCarriage {
         self.drawing.draw(session,opacity)
     }
 
-    pub fn discard(&mut self) -> anyhow::Result<()> {
-        self.drawing.discard()
+    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        self.drawing.discard(gl.canvas_store_mut())?;
+        Ok(())
     }
 }

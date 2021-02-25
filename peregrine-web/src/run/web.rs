@@ -4,6 +4,9 @@ use crate::integration::pgconsole::{ PgConsoleWeb };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
+use crate::shape::layers::programstore::ProgramStore;
+use std::sync::{ Mutex, Arc };
+
 #[cfg(blackbox)]
 use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_option };
@@ -20,6 +23,7 @@ pub use web_sys::{ console, WebGlRenderingContext };
 use crate::train::GlTrainSet;
 use wasm_bindgen::JsCast;
 use crate::shape::core::stage::Stage;
+use crate::webgl::global::WebGlGlobal;
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -39,6 +43,7 @@ pub struct PeregrineWeb {
     pub commander: PgCommanderWeb,
     pub api: PeregrineApi,
     pub trainset: GlTrainSet,
+    pub webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Stage
 }
 
@@ -61,14 +66,15 @@ impl PeregrineWeb {
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
         // end of nonsense
+        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Stage::new();
-        let trainset = GlTrainSet::new(&config,api.clone(),&stage,&context)?;
-        let web_data = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone());
+        let trainset = GlTrainSet::new(&config,api.clone(),&stage)?;
+        let web_data = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone(),webgl.clone());
         let objects = PeregrineObjects::new(Box::new(web_data),commander.clone())?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
         api.ready(objects.clone());
         let mut out = PeregrineWeb {
-            api, commander, trainset, stage
+            api, commander, trainset, stage,  webgl
         };
         out.setup()?;
         Ok(out)

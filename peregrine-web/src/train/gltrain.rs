@@ -5,9 +5,10 @@ use super::glcarriage::GLCarriage;
 use crate::shape::core::stage::{ Stage, RedrawNeeded };
 use crate::webgl::DrawingSession;
 use blackbox::blackbox_log;
+use crate::webgl::global::WebGlGlobal;
 
 pub struct GLTrain {
-    programs: ProgramStore,
+//    programs: ProgramStore,
     carriages: HashMap<CarriageId,GLCarriage>,
     opacity: f64,
     max: Option<u64>,
@@ -17,7 +18,7 @@ pub struct GLTrain {
 impl GLTrain {
     pub fn new(programs: &ProgramStore, redraw_needed: &RedrawNeeded) -> GLTrain {
         GLTrain {
-            programs: programs.clone(),
+//            programs: programs.clone(),
             carriages: HashMap::new(),
             opacity: 0.,
             max: None,
@@ -37,15 +38,15 @@ impl GLTrain {
         }
     }
 
-    pub(super) fn discard(&mut self) -> anyhow::Result<()> {
+    pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         blackbox_log!("gltrain","done(index={})",self.index);
         for (_,mut carriage) in self.carriages.drain() {
-            carriage.discard()?;
+            carriage.discard(gl)?;
         }
         Ok(())
     }
 
-    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage]) -> anyhow::Result<()> {
+    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         let mut dont_keeps : HashSet<_> = self.carriages.keys().cloned().collect();
         let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.id()).cloned().collect();
         for new in new_carriages {
@@ -57,7 +58,7 @@ impl GLTrain {
         let mut target = HashMap::new();
         for (id,mut carriage) in self.carriages.drain() {
             if dont_keeps.contains(&carriage.id()) {
-                carriage.discard()?;
+                carriage.discard(gl)?;
             } else {
                 target.insert(id,carriage);
             }
@@ -65,7 +66,7 @@ impl GLTrain {
         let mut redraw = false;
         for carriage in new_carriages {
             if novels.contains(carriage.id()) {
-                target.insert(carriage.id().clone(),GLCarriage::new(carriage,self.opacity,&self.programs)?);
+                target.insert(carriage.id().clone(),GLCarriage::new(carriage,self.opacity,gl)?);
                 redraw = true;
             }
         }

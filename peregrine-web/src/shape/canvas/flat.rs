@@ -56,6 +56,12 @@ impl CanvasElement {
         Ok((width as u32,height as u32))
     }
 
+    pub(crate) fn text(&self, text: &str, origin: (u32,u32)) -> anyhow::Result<()> {
+        if self.discarded { bail!("discarded flat canvas") }
+        js_error(self.context()?.fill_text(text,origin.0 as f64,origin.1 as f64)).context("drawing text")?;
+        Ok(())
+    }
+
     pub(super) fn size(&self) -> &(u32,u32) { &self.size }
     pub(super) fn element(&self) -> anyhow::Result<&HtmlCanvasElement> {
         if self.discarded { bail!("discarded flat canvas") }

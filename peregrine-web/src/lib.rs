@@ -117,6 +117,7 @@ mod webgl {
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
 
+    pub(crate) mod global;
     mod util;
 }
 

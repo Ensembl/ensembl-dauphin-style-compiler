@@ -1,8 +1,17 @@
-use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter };
+use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, Pen };
+use super::super::canvas::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
+use super::super::layers::drawing::DrawingTools;
+
+pub enum PreparedShape {
+    SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
+    DoubleAnchorRect(AnchorPair,Patina,Vec<String>),
+    Text(SingleAnchor,Vec<TextHandle>,Vec<String>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,String)
+}
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     match colour {
@@ -73,9 +82,28 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
     Ok(())
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Result<()> {
-    match shape {
+pub(crate) fn prepare_shape_in_layer(layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> anyhow::Result<PreparedShape> {
+    Ok(match shape {
         Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
+            PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)
+        },
+        Shape::DoubleAnchorRect(anchors,patina,allotment) => {
+            PreparedShape::DoubleAnchorRect(anchors,patina,allotment)
+        },
+        Shape::Wiggle(range,y,plotter,allotment) => {
+            PreparedShape::Wiggle(range,y,plotter,allotment)
+        },
+        Shape::Text(anchor,pen,texts,allotment) => {
+            let drawing_text = tools.text();
+            let handles : Vec<_> = texts.iter().map(|text| drawing_text.add_text(&pen,text)).collect();
+            PreparedShape::Text(anchor,handles,allotment)
+        }
+    })
+}
+
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, shape: PreparedShape) -> anyhow::Result<()> {
+    match shape {
+        PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
                 Patina::Filled(colour) => {
                     let patina = colour_to_patina(colour.clone());
@@ -92,7 +120,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                 _ => {}
             }
         },
-        Shape::DoubleAnchorRect(anchors,patina,allotment) => {
+        PreparedShape::DoubleAnchorRect(anchors,patina,allotment) => {
             match patina {
                 Patina::Filled(colour) => {
                     let patina = colour_to_patina(colour.clone());
@@ -109,7 +137,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
                 _ => {}
             }
         },
-        Shape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
+        PreparedShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             let patina = colour_to_patina(Colour::Spot(colour.clone()));
             let (mut array,geometry) = add_wiggle(layer,start,end,y,height,&patina,allotment)?;
             let spot = layer.get_spot(&geometry,&colour)?;
@@ -117,8 +145,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, shape: Shape) -> anyhow::Res
             spot.spot(&mut process)?;
             array.close();
         },
-        Shape::Text(anchor,pen,text,allotment) => {
-
+        PreparedShape::Text(anchor,handle,allotments) => {
         }
     }
     Ok(())

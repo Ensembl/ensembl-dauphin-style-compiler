@@ -7,7 +7,7 @@ use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::core::stage::{ Stage, RedrawNeeded };
 use crate::webgl::DrawingSession;
-use web_sys::{ WebGlRenderingContext };
+use crate::webgl::global::WebGlGlobal;
 
 #[derive(Clone)]
 enum FadeState {
@@ -16,42 +16,37 @@ enum FadeState {
 }
 
 struct GlTrainSetData {
-    programs: ProgramStore,
     slow_fade_time: f64,
     fast_fade_time: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
     redraw_needed: RedrawNeeded,
-    context: WebGlRenderingContext
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSetData> {
-        let programs = ProgramStore::new(context)?;
+    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded) -> anyhow::Result<GlTrainSetData> {
         Ok(GlTrainSetData {
-            programs,
             slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
-            context: context.clone()
         })
     }
 
-    fn get_train(&mut self, index: u32) -> &mut GLTrain {
+    fn get_train(&mut self,gl: &WebGlGlobal, index: u32) -> &mut GLTrain {
         if !self.trains.contains_key(&index) {
-            self.trains.insert(index,GLTrain::new(&self.programs,&self.redraw_needed));
+            self.trains.insert(index,GLTrain::new(&gl.program_store(),&self.redraw_needed));
         }
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
-        self.get_train(index).set_carriages(new_carriages)
+    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
+        self.get_train(gl,index).set_carriages(new_carriages,gl)
     }
 
-    fn set_max(&mut self, index: u32, len: u64) {
-        self.get_train(index).set_max(len);
+    fn set_max(&mut self, gl: &WebGlGlobal, index: u32, len: u64) {
+        self.get_train(gl,index).set_max(len);
     }
 
     fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> anyhow::Result<()> {
@@ -73,23 +68,23 @@ impl GlTrainSetData {
         (elapsed/fade_time).min(1.).max(0.)
     }
 
-    fn notify_fade_state(&mut self) {
+    fn notify_fade_state(&mut self,gl: &WebGlGlobal) {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(index)) => {
-                self.get_train(index).set_opacity(1.);
+                self.get_train(gl,index).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,elapsed) => {
                 let prop = self.fade_time(&speed,elapsed);
-                self.get_train(to).set_opacity(prop);
+                self.get_train(gl,to).set_opacity(prop);
                 if let Some(from) = from {
-                    self.get_train(from).set_opacity(1.-prop);
+                    self.get_train(gl,from).set_opacity(1.-prop);
                 }
             }
         }
     }
 
-    fn transition_animate_tick(&mut self, newly_elapsed: f64) -> anyhow::Result<bool> {
+    fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<bool> {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
@@ -98,7 +93,7 @@ impl GlTrainSetData {
                 let prop = self.fade_time(&speed,elapsed);
                 if prop >= 1. {
                     if let Some(from) = from {
-                        self.get_train(from).discard()?;
+                        self.get_train(gl,from).discard(gl)?;
                         self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
@@ -107,34 +102,34 @@ impl GlTrainSetData {
                 } else {
                     self.fade_state = FadeState::Fading(from,to,speed.clone(),elapsed);
                 }
-                self.notify_fade_state();
+                self.notify_fade_state(gl);
             }
         }
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
-        let mut session = DrawingSession::new(&self.context,stage);
+    fn draw_animate_tick(&mut self, stage: &Stage, gl: &WebGlGlobal) -> anyhow::Result<()> {
+        let mut session = DrawingSession::new(&gl.context(),stage);
         session.begin()?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(train).draw(&session)?;
+                self.get_train(gl,train).draw(&session)?;
             },
             FadeState::Fading(from,to,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(from).draw(&session)?;
+                    self.get_train(gl,from).draw(&session)?;
                 }
-                self.get_train(to).draw(&session)?;
+                self.get_train(gl,to).draw(&session)?;
             },
         }
         session.finish()?;
         Ok(())
     }
 
-    fn discard(&mut self) -> anyhow::Result<()> {
+    fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         for(_,mut train) in self.trains.drain() {
-            train.discard()?;
+            train.discard(gl)?;
         }
         Ok(())
     }
@@ -147,36 +142,36 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, api: PeregrineApi, stage: &Stage, context: &WebGlRenderingContext) -> anyhow::Result<GlTrainSet> {
+    pub fn new(config: &PeregrineConfig, api: PeregrineApi, stage: &Stage) -> anyhow::Result<GlTrainSet> {
         Ok(GlTrainSet {
             api,
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed(),context)?))
+            data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
         })
     }
 
-    pub fn transition_animate_tick(&mut self, newly_elapsed: f64) -> anyhow::Result<()> {
-        if self.data.lock().unwrap().transition_animate_tick(newly_elapsed)? {
+    pub fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<()> {
+        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
             blackbox_log!("gltrain","transition_complete()");
             self.api.transition_complete();
         }
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &Stage) -> anyhow::Result<()> {
-        self.data.lock().unwrap().draw_animate_tick(stage)
+    pub fn draw_animate_tick(&mut self, stage: &Stage, gl: &WebGlGlobal) -> anyhow::Result<()> {
+        self.data.lock().unwrap().draw_animate_tick(stage,gl)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
-        self.data.lock().unwrap().set_carriages(new_carriages,index)
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> anyhow::Result<()> {
+        self.data.lock().unwrap().set_carriages(gl,new_carriages,index)
     }
 
-    pub fn start_fade(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> anyhow::Result<()> {
+    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> anyhow::Result<()> {
         self.data.lock().unwrap().start_fade(index,speed)?;
-        self.data.lock().unwrap().set_max(index,max);
+        self.data.lock().unwrap().set_max(gl,index,max);
         Ok(())
     }
 
-    pub fn discard(&mut self) -> anyhow::Result<()> {
-        self.data.lock().unwrap().discard()
+    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        self.data.lock().unwrap().discard(gl)
     }
 }

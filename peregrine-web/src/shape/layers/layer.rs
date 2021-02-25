@@ -8,7 +8,7 @@ use super::super::core::wigglegeometry::WiggleGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
 use super::super::core::texture::TextureDraw;
-use super::super::canvas::weave::CanvasInstanceId;
+use super::super::canvas::weave::CanvasWeave;
 use crate::webgl::{ ProtoProcess, Process, ProcessStanzaElements, ProcessStanzaArray };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
@@ -78,7 +78,7 @@ impl SubLayerHolder {
 struct GeometrySubLayer {
     direct: SubLayerHolder,
     spot: HashMap<DirectColour,SubLayerHolder>,
-    texture: HashMap<CanvasInstanceId,SubLayerHolder>,
+    texture: HashMap<CanvasWeave,SubLayerHolder>,
     left: f64
 }
 
@@ -222,8 +222,8 @@ impl Layer {
         match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
-    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, canvas: &CanvasInstanceId) -> anyhow::Result<TextureDraw> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(canvas.clone()))?;
+    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, weave: &CanvasWeave) -> anyhow::Result<TextureDraw> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(weave.clone()))?;
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
