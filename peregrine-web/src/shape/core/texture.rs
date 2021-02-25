@@ -1,16 +1,17 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
+use crate::webgl::{ UniformHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use peregrine_core::DirectColour;
 use super::arrayutil::scale_colour;
+use super::super::canvas::weave::CanvasRequestId;
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    //colour: AttribHandle
+    sampler: UniformHandle
 }
 
 impl TextureProgram {
     pub(crate) fn new(program: &Program) -> anyhow::Result<TextureProgram> {
         Ok(TextureProgram {
-            //colour: program.get_attrib_handle("aVertexColour")?
+            sampler: program.get_uniform_handle("uSampler")?
         })
     }
 }
@@ -19,7 +20,8 @@ impl TextureProgram {
 pub struct TextureDraw(TextureProgram);
 
 impl TextureDraw {
-    pub(crate) fn new(_process: &ProtoProcess, variety: &TextureProgram) -> anyhow::Result<TextureDraw> {
+    pub(crate) fn new(_process: &ProtoProcess, variety: &TextureProgram, canvas_id: &CanvasRequestId) -> anyhow::Result<TextureDraw> {
+        
         Ok(TextureDraw(variety.clone()))
     }
 

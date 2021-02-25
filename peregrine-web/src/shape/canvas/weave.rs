@@ -1,5 +1,6 @@
 use super::store::{ CanvasStore, DrawingCanvases, CanvasElementId };
 use crate::util::keyed::KeyedData;
+use crate::webgl::GPUSpec;
 use crate::keyed_handle;
 
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -22,10 +23,10 @@ pub struct DrawingCanvasesBuilder {
 }
 
 impl DrawingCanvasesBuilder {
-    pub(super) fn new() -> DrawingCanvasesBuilder {
+    pub(super) fn new(gpuspec: &GPUSpec) -> DrawingCanvasesBuilder {
         DrawingCanvasesBuilder {
             areas: KeyedData::new(),
-            canvases: DrawingCanvases::new()
+            canvases: DrawingCanvases::new(gpuspec)
         }
     }
 
@@ -45,14 +46,13 @@ impl DrawingCanvasesBuilder {
         self.areas.get(id).as_ref().map(|a| a.origin).unwrap()
     }
 
+    pub(super) fn size(&self, id: &CanvasRequestId) -> (u32,u32) {
+        self.areas.get(id).as_ref().map(|a| a.size).unwrap()
+    }
+
     pub(super) fn canvas(&self, id: &CanvasRequestId) -> CanvasElementId {
         self.areas.get(id).as_ref().map(|a| a.canvas.clone()).unwrap()
     }
 
-    // XXX not needed ultimately because passed on to DrawingCanvases obj
-    pub(crate) fn discard(&mut self, canvas_store: &mut CanvasStore) -> anyhow::Result<()> {
-        self.canvases.discard(canvas_store)
-    }
-
-    pub(crate) fn built(mut self) -> DrawingCanvases { self.canvases }
+    pub(crate) fn built(self) -> DrawingCanvases { self.canvases }
 }

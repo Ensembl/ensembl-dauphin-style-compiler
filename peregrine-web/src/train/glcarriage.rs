@@ -34,15 +34,15 @@ impl GLCarriage {
         let mut count = 0;
         let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().drain(..).map(|s| drawing.prepare_shape(s)).collect();
         let mut canvas_allocator = DrawingCanvasesAllocator::new();
-        drawing.finish_preparation(&mut canvas_allocator)?;
+        drawing.finish_preparation(gl.canvas_store_mut(), &mut canvas_allocator)?;
         let gpu_spec = gl.program_store().gpu_spec().clone();
-        let builder = canvas_allocator.make_builder(gl.canvas_store_mut(),&gpu_spec)?;
+        let canvas_builder = canvas_allocator.make_builder(gl.canvas_store_mut(),&gpu_spec)?;
         for shape in preparations?.drain(..) {
             drawing.add_shape(shape)?;
             count += 1;
         }
         console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
-        let drawing = drawing.build(&gl.canvas_store(),builder)?;
+        let drawing = drawing.build(gl.canvas_store_mut(),canvas_builder)?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),

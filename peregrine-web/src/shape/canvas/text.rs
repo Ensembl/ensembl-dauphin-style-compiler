@@ -1,11 +1,22 @@
 use crate::util::keyed::KeyedData;
-use peregrine_core::Pen;
+use peregrine_core::{ Pen, DirectColour };
 use crate::keyed_handle;
-use super::store::{ CanvasStore, DrawingCanvases };
+use super::store::{ CanvasStore };
 use super::weave::{ CanvasWeave, CanvasRequestId };
 use std::collections::HashMap;
 use super::allocator::DrawingCanvasesAllocator;
 use super::weave::DrawingCanvasesBuilder;
+
+// TODO padding measurements!
+
+fn draw_one(store: &CanvasStore, builder: &DrawingCanvasesBuilder, text: &str, request_id: &CanvasRequestId, colour: &DirectColour) -> anyhow::Result<()> {
+    let origin = builder.origin(request_id);
+    let size = builder.size(request_id);
+    let canvas_id = builder.canvas(request_id);
+    let canvas = store.get_main_canvas(&canvas_id)?;
+    canvas.text(text,origin,size,colour)?;
+    Ok(())
+}
 
 keyed_handle!(TextHandle);
 
@@ -13,12 +24,14 @@ struct Text {
     pen: Pen,
     text: String,
     size: Option<(u32,u32)>,
-    request: Option<CanvasRequestId>
+    colour: DirectColour,
+    text_request: Option<CanvasRequestId>,
+    mask_request: Option<CanvasRequestId>
 }
 
 impl Text {
-    fn new(pen: &Pen, text: &str) -> Text {
-        Text { pen: pen.clone(), text: text.to_string(), size: None, request: None }
+    fn new(pen: &Pen, text: &str, colour: &DirectColour) -> Text {
+        Text { pen: pen.clone(), text: text.to_string(), size: None, text_request: None, mask_request: None, colour: colour.clone() }
     }
 
     fn calc_size(&mut self, canvas_store: &mut CanvasStore) -> anyhow::Result<()> {
@@ -29,16 +42,14 @@ impl Text {
     }
 
     fn populate_allocator(&mut self, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
-        self.request = Some(allocator.allocate_area(&CanvasWeave::Crisp,self.size.unwrap())?);
+        self.text_request = Some(allocator.allocate_area(&CanvasWeave::Crisp,self.size.unwrap())?);
+        self.mask_request = Some(allocator.allocate_area(&CanvasWeave::Crisp,self.size.unwrap())?);
         Ok(())
     }
 
     fn build(&mut self, store: &CanvasStore, builder: &DrawingCanvasesBuilder) -> anyhow::Result<()> {
-        let request_id = self.request.as_ref().unwrap();
-        let origin = builder.origin(request_id);
-        let canvas_id = builder.canvas(request_id);
-        let canvas = store.get_main_canvas(&canvas_id)?;
-        canvas.text(&self.text,origin)?;
+        draw_one(store,builder,&self.text,&self.text_request.clone().unwrap(),&self.colour.clone())?;
+        draw_one(store,builder,&self.text,self.mask_request.as_ref().unwrap(),&self.colour)?;
         Ok(())
     }
 }
@@ -54,8 +65,8 @@ impl DrawingText {
         }
     }
 
-    pub fn add_text(&mut self, pen: &Pen, text: &str) -> TextHandle {
-        self.texts.add(Text::new(pen,text))
+    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour) -> TextHandle {
+        self.texts.add(Text::new(pen,text,colour))
     }
 
     fn calc_sizes(&mut self, canvas_store: &mut CanvasStore) -> anyhow::Result<()> {
@@ -72,7 +83,8 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn populate_allocator(&mut self, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
+    pub(crate) fn populate_allocator(&mut self, canvas_store: &mut CanvasStore, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
+        self.calc_sizes(canvas_store)?;
         for text in self.texts.values_mut() {
             text.populate_allocator(allocator)?;
         }

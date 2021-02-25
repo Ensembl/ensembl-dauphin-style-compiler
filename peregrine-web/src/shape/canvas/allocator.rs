@@ -77,7 +77,7 @@ impl DrawingCanvasesAllocator {
     pub(crate) fn make_builder(self, canvas_store: &mut CanvasStore, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingCanvasesBuilder> {
         let mut weave_builders = HashMap::new();
         let all_weaves = self.all_weaves();
-        let mut builder = DrawingCanvasesBuilder::new();
+        let mut builder = DrawingCanvasesBuilder::new(gpu_spec);
         for (i,weave) in all_weaves.iter().enumerate() {
             weave_builders.insert(weave,(i,DrawingCanvasesWeaveBuilder::new(weave)));
         } 

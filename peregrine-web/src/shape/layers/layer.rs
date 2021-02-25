@@ -8,7 +8,8 @@ use super::super::core::wigglegeometry::WiggleGeometry;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
 use super::super::core::texture::TextureDraw;
-use super::super::canvas::weave::CanvasWeave;
+use super::super::canvas::store::{ DrawingCanvases, CanvasStore };
+use super::super::canvas::weave::{ CanvasWeave, CanvasRequestId };
 use crate::webgl::{ ProtoProcess, Process, ProcessStanzaElements, ProcessStanzaArray };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
@@ -66,6 +67,10 @@ impl SubLayerHolder {
         Ok(&self.0.as_mut().unwrap().patina)
     }
 
+    fn set_canvases(&mut self, canvas_store: &mut CanvasStore, canvases: &DrawingCanvases) {
+        canvases.add_process(canvas_store,&mut self.0.as_mut().unwrap().process);
+    }
+
     fn build(self) -> anyhow::Result<Option<Process>> {
         if let Some(sub) = self.0 {
             Ok(Some(sub.process.build()?))
@@ -78,7 +83,7 @@ impl SubLayerHolder {
 struct GeometrySubLayer {
     direct: SubLayerHolder,
     spot: HashMap<DirectColour,SubLayerHolder>,
-    texture: HashMap<CanvasWeave,SubLayerHolder>,
+    texture: HashMap<CanvasRequestId,SubLayerHolder>,
     left: f64
 }
 
@@ -113,7 +118,7 @@ impl GeometrySubLayer {
         self.holder(patina)?.get_patina(programs,geometry,patina)
     }
 
-    fn build(mut self, processes: &mut Vec<Process>) -> anyhow::Result<()> {
+    fn build(mut self, canvas_store: &mut CanvasStore, processes: &mut Vec<Process>, canvases: &DrawingCanvases) -> anyhow::Result<()> {
         if let Some(process) = self.direct.build()? {
             processes.push(process);
         }
@@ -122,7 +127,8 @@ impl GeometrySubLayer {
                 processes.push(process);
             }
         }
-        for (_,sub) in self.texture.drain() {
+        for (_,mut sub) in self.texture.drain() {
+            sub.set_canvases(canvas_store,canvases);
             if let Some(process) = sub.build()? {
                 processes.push(process);
             }
@@ -222,16 +228,16 @@ impl Layer {
         match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
-    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, weave: &CanvasWeave) -> anyhow::Result<TextureDraw> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(weave.clone()))?;
+    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, request_id: &CanvasRequestId) -> anyhow::Result<TextureDraw> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(request_id.clone()))?;
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
-    pub(super) fn build(self, process: &mut Vec<Process>) -> anyhow::Result<()> {
-        self.pin.build(process)?;
-        self.tape.build(process)?;
-        self.page.build(process)?;
-        self.fix.build(process)?;
+    pub(super) fn build(self, canvas_store: &mut CanvasStore, process: &mut Vec<Process>, canvases: &DrawingCanvases) -> anyhow::Result<()> {
+        self.pin.build(canvas_store,process,canvases)?;
+        self.tape.build(canvas_store,process,canvases)?;
+        self.page.build(canvas_store,process,canvases)?;
+        self.fix.build(canvas_store,process,canvases)?;
         Ok(())
     }
 }

@@ -1,30 +1,32 @@
 use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext, WebGlTexture };
-use crate::webgl::canvas::canvas::{ Canvas, CanvasWeave };
+use crate::shape::canvas::weave::{ CanvasWeave, CanvasRequestId };
+use crate::shape::canvas::store::{ CanvasStore, CanvasElementId };
 use crate::webgl::util::handle_context_errors;
 
 
-fn create_texture(context: &WebGlRenderingContext, our_data: (u32,Canvas)) -> anyhow::Result<(u32,WebGlTexture)> {
+fn create_texture(context: &WebGlRenderingContext,canvas_store: &CanvasStore, our_data: (u32,&CanvasElementId)) -> anyhow::Result<(u32,WebGlTexture)> {
+    let canvas = canvas_store.get_main_canvas(our_data.1)?;
     let texture = context.create_texture().ok_or_else(|| err!("cannot create texture"))?;
     handle_context_errors(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
     handle_context_errors(context)?;
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
-        WebGlRenderingContext::UNSIGNED_BYTE,our_data.1.element()
+        WebGlRenderingContext::UNSIGNED_BYTE,canvas.element()?
     );
     handle_context_errors(context)?;
-    apply_weave(context,our_data.1.weave())?;
+    apply_weave(context,canvas.weave())?;
     Ok((our_data.0,texture))
 }
 
 
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> anyhow::Result<()> {
     let (minf,magf,wraps,wrapt) = match weave {
-        CanvasWeave::Pixelate =>
+        CanvasWeave::Crisp =>
             (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
                 WebGlRenderingContext::CLAMP_TO_EDGE,WebGlRenderingContext::CLAMP_TO_EDGE),
-        CanvasWeave::Blur =>
+        CanvasWeave::Fuzzy =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
                 WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT)
     };
@@ -62,9 +64,9 @@ pub(crate) struct TextureValues {
 }
 
 impl TextureValues {
-    pub(super) fn new(context: &WebGlRenderingContext, index: u32, canvas: Canvas) -> anyhow::Result<TextureValues> {
+    pub(super) fn new(context: &WebGlRenderingContext, store: &CanvasStore, index: u32, canvas: &CanvasElementId) -> anyhow::Result<TextureValues> {
         let object = Texture::new();
-        let gl_value = Some(create_texture(context,(index,canvas))?);
+        let gl_value = Some(create_texture(context,store,(index,canvas))?);
         Ok(TextureValues { gl_value, object })
     }
 

@@ -57,7 +57,8 @@ fn best_size(want: &Precision, sizes: &Vec<(GLSize,Precision)>) -> GLSize {
 pub(crate) struct GPUSpec {
     vert_precs: Vec<(GLSize,Precision)>,
     frag_precs: Vec<(GLSize,Precision)>,
-    max_texture_size: u32
+    max_texture_size: u32,
+    max_textures: u32
 }
 
 impl GPUSpec {
@@ -65,7 +66,8 @@ impl GPUSpec {
         let mut out = GPUSpec {
             vert_precs: Vec::new(),
             frag_precs: Vec::new(),
-            max_texture_size: get_parameter_u32(context,WebGlRenderingContext::MAX_TEXTURE_SIZE)?
+            max_texture_size: get_parameter_u32(context,WebGlRenderingContext::MAX_TEXTURE_SIZE)?,
+            max_textures: get_parameter_u32(context,WebGlRenderingContext::MAX_TEXTURE_IMAGE_UNITS)?
         };
         out.populate(context)?;
         Ok(out)
@@ -88,7 +90,6 @@ impl GPUSpec {
         best_size(want,var)
     }
 
-    pub fn max_texture_size(&self) -> u32 {
-        self.max_texture_size
-    }
+    pub fn max_texture_size(&self) -> u32 { self.max_texture_size }
+    pub fn max_textures(&self) -> u32 { self.max_textures }
 }

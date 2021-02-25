@@ -66,10 +66,6 @@ mod util {
 }
 
 mod webgl {
-    pub(super) mod canvas {
-        pub(crate) mod canvas;
-    }
-
     pub(super) mod gpuspec {
         pub(crate) mod glarity;
         pub(crate) mod gpuspec;

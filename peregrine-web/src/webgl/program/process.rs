@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use crate::webgl::canvas::canvas::Canvas;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::Program;
 use super::uniform::{ UniformHandle, UniformValues };
@@ -7,6 +6,8 @@ use super::texture::{ TextureValues };
 use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
+use crate::shape::canvas::store::{ CanvasStore, CanvasElementId };
+use crate::shape::canvas::weave::CanvasRequestId;
 
 pub struct ProtoProcess {
     program: Rc<Program>,
@@ -33,14 +34,14 @@ impl ProtoProcess {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub(crate) fn get_stanza_builder(&mut self) -> &mut ProcessStanzaBuilder {
-        &mut self.stanza_builder
-    }
-
-    pub fn add_texture(&mut self, index: u32, element: &Canvas) -> anyhow::Result<()> {
-        let entry = TextureValues::new(&self.program.context(),index,element.clone())?;
+    pub fn add_texture(&mut self, store: &CanvasStore, index: u32, canvas_id: &CanvasElementId) -> anyhow::Result<()> {
+        let entry = TextureValues::new(&self.program.context(),store,index,canvas_id)?;
         self.textures.push(entry);
         Ok(())
+    }
+
+    pub(crate) fn get_stanza_builder(&mut self) -> &mut ProcessStanzaBuilder {
+        &mut self.stanza_builder
     }
 
     pub fn build(self) -> anyhow::Result<Process> {

@@ -9,11 +9,6 @@ use super::super::canvas::weave::DrawingCanvasesBuilder;
 use super::super::canvas::store::{ CanvasStore, DrawingCanvases };
 use crate::webgl::global::WebGlGlobal;
 
-pub(crate) struct Drawing {
-    processes: Vec<Process>,
-    canvases: DrawingCanvases
-}
-
 pub(crate) struct DrawingTools {
     text: DrawingText
 }
@@ -27,8 +22,8 @@ impl DrawingTools {
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
 
-    pub(crate) fn finish_preparation(&mut self, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
-        self.text.populate_allocator(allocator)?;
+    pub(crate) fn finish_preparation(&mut self,  canvas_store: &mut CanvasStore, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
+        self.text.populate_allocator(canvas_store,allocator)?;
         Ok(())
     }
 
@@ -61,23 +56,34 @@ impl DrawingBuilder {
         add_shape_to_layer(layer,tools,shape)
     }
 
-    pub(crate) fn finish_preparation(&mut self, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
-        self.tools.finish_preparation(allocator)?;
+    pub(crate) fn finish_preparation(&mut self,  canvas_store: &mut CanvasStore, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
+        self.tools.finish_preparation(canvas_store,allocator)?;
         Ok(())
     }
 
-    pub fn build(mut self, canvas_store: &CanvasStore, mut builder: DrawingCanvasesBuilder) -> anyhow::Result<Drawing> {
-        let mut processes = vec![];
-        self.main_layer.build(&mut processes)?;
+    pub fn build(mut self, canvas_store: &mut CanvasStore, mut builder: DrawingCanvasesBuilder) -> anyhow::Result<Drawing> {
         self.tools.build(canvas_store,&mut builder)?;
-        Ok(Drawing {
-            processes,
-            canvases: builder.built()
-        })
+        let canvases = builder.built();
+        let mut processes = vec![];
+        self.main_layer.build(canvas_store,&mut processes,&canvases)?;
+        Ok(Drawing::new(processes,canvases,canvas_store)?)
     }
 }
 
+pub(crate) struct Drawing {
+    processes: Vec<Process>,
+    canvases: DrawingCanvases
+}
+
 impl Drawing {
+    fn new(processes: Vec<Process>, canvases: DrawingCanvases, canvas_store: &mut CanvasStore) -> anyhow::Result<Drawing> {        
+        let mut out = Drawing {
+            processes,
+            canvases
+        };
+        Ok(out)
+    }
+
     pub(crate) fn draw(&mut self, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
         for process in &mut self.processes {
             session.run_process(process,opacity)?;
@@ -89,7 +95,7 @@ impl Drawing {
         for process in &mut self.processes {
             process.discard()?;
         }
-        self.canvases.discard(canvas_store);
+        self.canvases.discard(canvas_store)?;
         Ok(())
     }
 }

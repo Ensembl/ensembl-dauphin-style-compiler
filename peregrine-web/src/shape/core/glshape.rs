@@ -1,4 +1,4 @@
-use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, Pen };
+use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, DirectColour };
 use super::super::canvas::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
@@ -93,9 +93,11 @@ pub(crate) fn prepare_shape_in_layer(layer: &mut Layer, tools: &mut DrawingTools
         Shape::Wiggle(range,y,plotter,allotment) => {
             PreparedShape::Wiggle(range,y,plotter,allotment)
         },
-        Shape::Text(anchor,pen,texts,allotment) => {
+        Shape::Text(anchor,mut pen,texts,allotment) => {
             let drawing_text = tools.text();
-            let handles : Vec<_> = texts.iter().map(|text| drawing_text.add_text(&pen,text)).collect();
+            if pen.2.len() == 0 { pen.2.push(DirectColour(0,0,0)); }
+            let colours_iter = pen.2.iter().cycle();
+            let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
             PreparedShape::Text(anchor,handles,allotment)
         }
     })
@@ -146,6 +148,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, sh
             array.close();
         },
         PreparedShape::Text(anchor,handle,allotments) => {
+           // let (mut campaign,geometry) = add_rectangle(layer,anchor,&PatinaProcessName::Texture,allotments,x_size,y_size,false)?;
+           // campaign.close();
         }
     }
     Ok(())
