@@ -11,21 +11,19 @@ use crate::keyed_handle;
 keyed_handle!(FlatId);
 
 pub struct FlatStore {
-    document: Document, // XXX elevate
     scratch: HashMap<CanvasWeave,Flat>,
     main_canvases: KeyedOptionalValues<FlatId,Flat>
 }
 
 impl FlatStore {
-    pub(crate) fn new(document: &Document) -> FlatStore {
+    pub(crate) fn new() -> FlatStore {
         FlatStore {
-            document: document.clone(),
             scratch: HashMap::new(),
             main_canvases: KeyedOptionalValues::new()
         }
     }
 
-    pub(crate) fn get_scratch_context(&mut self, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut Flat> {
+    pub(crate) fn get_scratch_context(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut Flat> {
         let mut use_cached = false;
         if let Some(existing) = self.scratch.get(weave) {
             let ex_size = existing.size();
@@ -34,14 +32,14 @@ impl FlatStore {
             }
         }
         if !use_cached {
-            let canvas = Flat::new(&self.document,&CanvasWeave::Crisp,size)?;
+            let canvas = Flat::new(document,&CanvasWeave::Crisp,size)?;
             self.scratch.insert(weave.clone(),canvas);
         }
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
-    pub(super) fn allocate_main(&mut self, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
-        Ok(self.main_canvases.add(Flat::new(&self.document,weave,size)?))
+    pub(super) fn allocate_main(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+        Ok(self.main_canvases.add(Flat::new(document,weave,size)?))
     }
 
     pub(crate) fn get_main_canvas(&self, id: &FlatId) -> anyhow::Result<&Flat> {

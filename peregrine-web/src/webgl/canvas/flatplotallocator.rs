@@ -1,11 +1,13 @@
 use crate::util::keyed::KeyedData;
 use std::collections::{ HashMap, HashSet };
 use super::packer::allocate_areas;
-use super::flatstore::{ FlatStore, FlatId };
+use super::flatstore::FlatId;
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::GPUSpec;
+use crate::webgl::global::WebGlGlobal;
 use crate::keyed_handle;
+use web_sys::Document;
 
 keyed_handle!(FlatPlotRequestHandle);
 
@@ -35,7 +37,7 @@ impl PerWeaveFlatPlotAllocator {
         });
     }
 
-    fn allocate(&mut self, store: &mut FlatStore, builder: &mut DrawingFlatsDrawable, gpuspec: &GPUSpec) -> anyhow::Result<()> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable, gpuspec: &GPUSpec) -> anyhow::Result<()> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().cloned().collect();
         for req_id in &ids {
@@ -50,7 +52,7 @@ impl PerWeaveFlatPlotAllocator {
                 req.origin.push(origins_iter.next().unwrap());
             }
         }
-        self.canvas = Some(builder.make_canvas(store,&self.weave,(width,height))?);
+        self.canvas = Some(builder.make_canvas(gl,&self.weave,(width,height))?);
         Ok(())
     }
 
@@ -90,7 +92,7 @@ impl FlatPlotAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make_builder(self, canvas_store: &mut FlatStore, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
+    pub(crate) fn make_builder(self, gl: &mut WebGlGlobal, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
         let mut weave_builders = HashMap::new();
         let all_weaves = self.all_weaves();
         let mut builder = DrawingFlatsDrawable::new(gpu_spec);
@@ -101,7 +103,7 @@ impl FlatPlotAllocator {
             weave_builders.get_mut(&request.weave).unwrap().1.add(id,&request.sizes);
         }
         for weave_builder in weave_builders.values_mut() {
-            weave_builder.1.allocate(canvas_store,&mut builder,gpu_spec)?;
+            weave_builder.1.allocate(gl,&mut builder,gpu_spec)?;
         }
         for (id,request) in self.requests.items() {
             let (_,weave_builder) = weave_builders.get(&request.weave).unwrap();

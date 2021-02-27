@@ -7,6 +7,8 @@ use super::super::core::text::DrawingText;
 use crate::webgl::canvas::flatplotallocator::FlatPlotAllocator;
 use crate::webgl::canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
 use crate::webgl::canvas::flatstore::FlatStore;
+use crate::webgl::global::WebGlGlobal;
+use web_sys::Document;
 
 pub(crate) struct DrawingTools {
     text: DrawingText
@@ -21,8 +23,8 @@ impl DrawingTools {
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
 
-    pub(crate) fn finish_preparation(&mut self,  canvas_store: &mut FlatStore, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
-        self.text.populate_allocator(canvas_store,allocator)?;
+    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
+        self.text.populate_allocator(gl,allocator)?;
         Ok(())
     }
 
@@ -56,8 +58,8 @@ impl DrawingBuilder {
         add_shape_to_layer(layer,tools,canvas_builder,shape)
     }
 
-    pub(crate) fn finish_preparation(&mut self,  canvas_store: &mut FlatStore, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
-        self.tools.finish_preparation(canvas_store,allocator)?;
+    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
+        self.tools.finish_preparation(gl,allocator)?;
         Ok(())
     }
 

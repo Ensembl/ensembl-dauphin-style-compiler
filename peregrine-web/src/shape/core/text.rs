@@ -6,6 +6,7 @@ use crate::webgl::canvas::flat::Flat;
 use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
 use crate::webgl::canvas::weave::CanvasWeave ;
 use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
+use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
 use crate::webgl::canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
@@ -28,8 +29,9 @@ impl Text {
         Text { pen: pen.clone(), text: text.to_string(), size: None, colour: colour.clone(), text_origin: None, mask_origin: None }
     }
 
-    fn calc_size(&mut self, canvas_store: &mut FlatStore) -> anyhow::Result<()> {
-        let canvas = canvas_store.get_scratch_context(&CanvasWeave::Crisp,(16,16))?;
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        let document = gl.document().clone();
+        let canvas = gl.canvas_store_mut().get_scratch_context(&document,&CanvasWeave::Crisp,(16,16))?;
         canvas.set_font(&self.pen)?;
         self.size = Some(canvas.measure(&self.text)?);
         Ok(())
@@ -70,7 +72,7 @@ impl DrawingText {
         self.texts.add(Text::new(pen,text,colour))
     }
 
-    fn calc_sizes(&mut self, canvas_store: &mut FlatStore) -> anyhow::Result<()> {
+    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         /* All this to minimise font changes (which are slow) */
         let mut texts_by_pen = HashMap::new();
         for text in self.texts.values_mut() {
@@ -78,14 +80,14 @@ impl DrawingText {
         }
         for (_,texts) in &mut texts_by_pen {
             for text in texts.iter_mut() {
-                text.calc_size(canvas_store)?;
+                text.calc_size(gl)?;
             }
         }
         Ok(())
     }
 
-    pub(crate) fn populate_allocator(&mut self, canvas_store: &mut FlatStore, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
-        self.calc_sizes(canvas_store)?;
+    pub(crate) fn populate_allocator(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
+        self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
             let size = text.size.as_mut().unwrap().clone();

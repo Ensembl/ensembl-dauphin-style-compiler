@@ -4,6 +4,7 @@ use crate::webgl::{ GPUSpec, ProtoProcess };
 use anyhow::bail;
 use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPlotRequestHandle;
+use crate::webgl::global::WebGlGlobal;
 
 struct DrawingFlat {
     id: FlatId,
@@ -36,8 +37,9 @@ impl DrawingFlats {
         }
     }
 
-    pub(crate) fn allocate_main(&mut self, store: &mut FlatStore, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
-        let id = store.allocate_main(weave,size)?;
+    pub(crate) fn allocate_main(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+        let document = gl.document().clone();
+        let id = gl.canvas_store_mut().allocate_main(&document,weave,size)?;
         let gl_index = self.main_canvases.len();
         if gl_index as u32 > self.max_textures {
             bail!("too many textures!");
@@ -91,8 +93,8 @@ impl DrawingFlatsDrawable {
         });
     }
 
-    pub(super) fn make_canvas(&mut self, store: &mut FlatStore, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
-        self.canvases.allocate_main(store,weave,size)
+    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+        self.canvases.allocate_main(gl,weave,size)
     }
 
     pub(crate) fn gl_index(&self, id: &FlatId) -> anyhow::Result<usize> {
