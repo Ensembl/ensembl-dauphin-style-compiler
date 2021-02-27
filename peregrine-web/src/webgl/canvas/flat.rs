@@ -26,7 +26,7 @@ pub(crate) struct CanvasElement {
 impl CanvasElement {
     pub(super) fn new(document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<CanvasElement> {
         let el = js_error(document.create_element("canvas")).context("creating canvas")?;
-        let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|e| err!("could not cast canvas to HtmlCanvasElement"))?;
+        let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|_| err!("could not cast canvas to HtmlCanvasElement"))?;
         canvas_el.set_width(size.0);
         canvas_el.set_height(size.1);
         let context = canvas_el

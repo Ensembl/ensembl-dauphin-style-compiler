@@ -1,10 +1,11 @@
 use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, DirectColour };
-use super::super::canvas::text::TextHandle;
+use crate::webgl::canvas::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
 use super::super::layers::drawing::DrawingTools;
+use crate::webgl::canvas::weave::DrawingCanvasesBuilder;
 
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
@@ -82,7 +83,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
     Ok(())
 }
 
-pub(crate) fn prepare_shape_in_layer(layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> anyhow::Result<PreparedShape> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> anyhow::Result<PreparedShape> {
     Ok(match shape {
         Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)
@@ -103,7 +104,7 @@ pub(crate) fn prepare_shape_in_layer(layer: &mut Layer, tools: &mut DrawingTools
     })
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, shape: PreparedShape) -> anyhow::Result<()> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingCanvasesBuilder, shape: PreparedShape) -> anyhow::Result<()> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
@@ -147,9 +148,25 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, sh
             spot.spot(&mut process)?;
             array.close();
         },
-        PreparedShape::Text(anchor,handle,allotments) => {
-           // let (mut campaign,geometry) = add_rectangle(layer,anchor,&PatinaProcessName::Texture,allotments,x_size,y_size,false)?;
-           // campaign.close();
+        // TODO bindery
+        PreparedShape::Text(anchor,handles,allotments) => {
+            let text = tools.text();
+            let mut dims = vec![];
+            let mut x_sizes = vec![];
+            let mut y_sizes = vec![];
+            let canvas = text.canvas_id(canvas_builder)?;
+            for handle in &handles {
+                let texture_areas = text.get_texture_areas(handle)?;
+                let size = texture_areas.size;
+                x_sizes.push(size.0 as f64);
+                y_sizes.push(size.1 as f64);
+                dims.push(texture_areas);
+            }
+            let (mut campaign,geometry) = add_rectangle(layer,anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
+            let patina = layer.get_texture(&geometry,&canvas)?;
+            let mut process = layer.get_process_mut(&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
+            patina.add_rectangle(&mut process,&mut campaign,canvas_builder,&canvas,&dims)?;
+            campaign.close();
         }
     }
     Ok(())

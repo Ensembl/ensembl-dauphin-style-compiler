@@ -13,8 +13,14 @@ keyed_handle!(CanvasRequestId);
 
 pub struct CanvasArea {
     canvas: CanvasElementId,
-    origin: (u32,u32),
-    size: (u32,u32)
+    origin: Vec<(u32,u32)>
+}
+
+// TODO not pub
+pub struct CanvasTextureAreas {
+    pub texture_origin: (u32,u32),
+    pub mask_origin: (u32,u32),
+    pub size: (u32,u32)
 }
 
 pub struct DrawingCanvasesBuilder {
@@ -30,10 +36,10 @@ impl DrawingCanvasesBuilder {
         }
     }
 
-    pub(super) fn add(&mut self, id: CanvasRequestId, canvas: &CanvasElementId, origin: (u32,u32), size: (u32,u32)) {
+    pub(super) fn add(&mut self, id: CanvasRequestId, canvas: &CanvasElementId, origin: Vec<(u32,u32)>) {
         self.areas.insert(&id,CanvasArea {
             canvas: canvas.clone(),
-            origin, size
+            origin
         });
     }
 
@@ -41,16 +47,16 @@ impl DrawingCanvasesBuilder {
         self.canvases.allocate_main(store,weave,size)
     }
 
+    pub(crate) fn gl_index(&self, id: &CanvasElementId) -> anyhow::Result<usize> {
+        self.canvases.gl_index(id)
+    }
+
     // TODO merge
-    pub(super) fn origin(&self, id: &CanvasRequestId) -> (u32,u32) {
-        self.areas.get(id).as_ref().map(|a| a.origin).unwrap()
+    pub(crate) fn origins(&self, id: &CanvasRequestId) -> Vec<(u32,u32)> {
+        self.areas.get(id).as_ref().map(|a| &a.origin).unwrap().to_vec()
     }
 
-    pub(super) fn size(&self, id: &CanvasRequestId) -> (u32,u32) {
-        self.areas.get(id).as_ref().map(|a| a.size).unwrap()
-    }
-
-    pub(super) fn canvas(&self, id: &CanvasRequestId) -> CanvasElementId {
+    pub(crate) fn canvas(&self, id: &CanvasRequestId) -> CanvasElementId {
         self.areas.get(id).as_ref().map(|a| a.canvas.clone()).unwrap()
     }
 

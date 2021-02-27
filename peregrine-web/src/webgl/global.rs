@@ -1,6 +1,6 @@
 use anyhow::{ self, Context, anyhow as err };
 use crate::shape::layers::programstore::ProgramStore;
-use crate::shape::canvas::store::CanvasStore;
+use crate::webgl::canvas::store::CanvasStore;
 use web_sys::Document;
 
 #[cfg(blackbox)]

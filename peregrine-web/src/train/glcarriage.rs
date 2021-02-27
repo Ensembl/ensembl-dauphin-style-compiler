@@ -1,7 +1,7 @@
 use peregrine_core::{ Carriage, CarriageId };
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
 use crate::shape::core::glshape::PreparedShape;
-use crate::shape::canvas::allocator::DrawingCanvasesAllocator;
+use crate::webgl::canvas::allocator::DrawingCanvasesAllocator;
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
@@ -38,7 +38,7 @@ impl GLCarriage {
         let gpu_spec = gl.program_store().gpu_spec().clone();
         let canvas_builder = canvas_allocator.make_builder(gl.canvas_store_mut(),&gpu_spec)?;
         for shape in preparations?.drain(..) {
-            drawing.add_shape(shape)?;
+            drawing.add_shape(&canvas_builder,shape)?;
             count += 1;
         }
         console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());

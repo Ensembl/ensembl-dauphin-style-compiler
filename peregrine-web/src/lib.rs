@@ -17,15 +17,6 @@ mod run {
 }
 
 mod shape {
-    pub(crate) mod canvas {
-        pub(crate) mod allocator;
-        pub(crate) mod flat;
-        pub(crate) mod text;
-        pub(crate) mod packer;
-        pub(crate) mod store;
-        pub(crate) mod weave;
-    }
-
     pub(crate) mod core {
         pub(crate) mod arrayutil;
         pub(crate) mod glshape;
@@ -66,6 +57,15 @@ mod util {
 }
 
 mod webgl {
+    pub(crate) mod canvas {
+        pub(crate) mod allocator;
+        pub(crate) mod flat;
+        pub(crate) mod text;
+        pub(crate) mod packer;
+        pub(crate) mod store;
+        pub(crate) mod weave;
+    }
+
     pub(super) mod gpuspec {
         pub(crate) mod glarity;
         pub(crate) mod gpuspec;

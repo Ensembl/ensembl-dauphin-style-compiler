@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext, WebGlTexture };
-use crate::shape::canvas::weave::{ CanvasWeave, CanvasRequestId };
-use crate::shape::canvas::store::{ CanvasStore, CanvasElementId };
+use crate::webgl::canvas::weave::{ CanvasWeave, CanvasRequestId };
+use crate::webgl::canvas::store::{ CanvasStore, CanvasElementId };
 use crate::webgl::util::handle_context_errors;
 
 

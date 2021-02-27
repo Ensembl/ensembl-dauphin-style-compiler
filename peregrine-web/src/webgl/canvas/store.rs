@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use crate::shape::canvas::weave::CanvasWeave;
-use crate::util::keyed::{ KeyedOptionalValues };
+use crate::webgl::canvas::weave::CanvasWeave;
+use crate::util::keyed::{ KeyedOptionalValues, KeyedData };
 use web_sys::{ Document };
 use super::flat::CanvasElement;
 use crate::keyed_handle;
-use crate::webgl::{ GPUSpec, Process, ProtoProcess };
+use crate::webgl::{ GPUSpec, ProtoProcess };
 use anyhow::bail;
 
 // TODO discard webgl buffers etc
@@ -92,6 +92,7 @@ keyed_handle!(CanvasElementId);
 
 pub struct DrawingCanvases {
     main_canvases: Vec<DrawingCanvas>,
+    id_map: KeyedData<CanvasElementId,Option<usize>>,
     max_textures: u32
 }
 
@@ -99,18 +100,24 @@ impl DrawingCanvases {
     pub(crate) fn new(gpu_spec: &GPUSpec) -> DrawingCanvases {
         DrawingCanvases {
             main_canvases: vec![],
+            id_map: KeyedData::new(),
             max_textures: gpu_spec.max_textures()
         }
     }
 
     pub(crate) fn allocate_main(&mut self, store: &mut CanvasStore, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<CanvasElementId> {
         let id = store.allocate_main(weave,size)?;
-        let gl_index = self.main_canvases.len() as u32;
-        if gl_index > self.max_textures {
+        let gl_index = self.main_canvases.len();
+        if gl_index as u32 > self.max_textures {
             bail!("too many textures!");
         }
-        self.main_canvases.push(DrawingCanvas::new(id.clone(),gl_index));
+        self.main_canvases.push(DrawingCanvas::new(id.clone(),gl_index as u32));
+        self.id_map.insert(&id,gl_index);
         Ok(id)
+    }
+
+    pub(crate) fn gl_index(&self, id: &CanvasElementId) -> anyhow::Result<usize> {
+        Ok(self.id_map.get(id).clone().unwrap())
     }
 
     pub(crate) fn add_process(&self, canvas_store: &mut CanvasStore, process: &mut ProtoProcess) -> anyhow::Result<()> {

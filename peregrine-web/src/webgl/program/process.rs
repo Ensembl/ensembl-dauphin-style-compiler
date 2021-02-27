@@ -6,8 +6,8 @@ use super::texture::{ TextureValues };
 use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
-use crate::shape::canvas::store::{ CanvasStore, CanvasElementId };
-use crate::shape::canvas::weave::CanvasRequestId;
+use crate::webgl::canvas::store::{ CanvasStore, CanvasElementId };
+use crate::webgl::canvas::weave::CanvasRequestId;
 
 pub struct ProtoProcess {
     program: Rc<Program>,

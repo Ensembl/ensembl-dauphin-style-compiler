@@ -2,7 +2,7 @@ use anyhow::bail;
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use super::super::canvas::weave::{ CanvasWeave, CanvasRequestId };
+use crate::webgl::canvas::store::CanvasElementId;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
@@ -19,7 +19,7 @@ impl PatinaProgram {
             PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(process,v)?),
             PatinaProgram::Texture(v) => {
                 match skin {
-                    PatinaProcessName::Texture(canvas_id) => PatinaProcess::Texture(TextureDraw::new(process,v,canvas_id)?),
+                    PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(process,v)?),
                     _ => bail!("unexpected type mismatch")
                 }
             },
@@ -93,7 +93,7 @@ pub(super) enum PatinaProcess {
 // TODO texture types
 
 #[derive(Clone)]
-pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasRequestId) }
+pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasElementId) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {

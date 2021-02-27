@@ -3,11 +3,10 @@ use super::layer::Layer;
 use peregrine_core::Shape;
 use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
 use crate::webgl::{ Process, DrawingSession };
-use super::super::canvas::text::DrawingText;
-use super::super::canvas::allocator::DrawingCanvasesAllocator;
-use super::super::canvas::weave::DrawingCanvasesBuilder;
-use super::super::canvas::store::{ CanvasStore, DrawingCanvases };
-use crate::webgl::global::WebGlGlobal;
+use crate::webgl::canvas::text::DrawingText;
+use crate::webgl::canvas::allocator::DrawingCanvasesAllocator;
+use crate::webgl::canvas::weave::DrawingCanvasesBuilder;
+use crate::webgl::canvas::store::{ CanvasStore, DrawingCanvases };
 
 pub(crate) struct DrawingTools {
     text: DrawingText
@@ -33,6 +32,7 @@ impl DrawingTools {
     }
 }
 
+// TODO canvas builder to tools?
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingTools
@@ -51,9 +51,9 @@ impl DrawingBuilder {
         prepare_shape_in_layer(layer,tools,shape)
     }
 
-    pub(crate) fn add_shape(&mut self, shape: PreparedShape) -> anyhow::Result<()> {
+    pub(crate) fn add_shape(&mut self, canvas_builder: &DrawingCanvasesBuilder, shape: PreparedShape) -> anyhow::Result<()> {
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        add_shape_to_layer(layer,tools,shape)
+        add_shape_to_layer(layer,tools,canvas_builder,shape)
     }
 
     pub(crate) fn finish_preparation(&mut self,  canvas_store: &mut CanvasStore, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
@@ -66,7 +66,7 @@ impl DrawingBuilder {
         let canvases = builder.built();
         let mut processes = vec![];
         self.main_layer.build(canvas_store,&mut processes,&canvases)?;
-        Ok(Drawing::new(processes,canvases,canvas_store)?)
+        Ok(Drawing::new(processes,canvases)?)
     }
 }
 
@@ -76,12 +76,11 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
-    fn new(processes: Vec<Process>, canvases: DrawingCanvases, canvas_store: &mut CanvasStore) -> anyhow::Result<Drawing> {        
-        let mut out = Drawing {
+    fn new(processes: Vec<Process>, canvases: DrawingCanvases) -> anyhow::Result<Drawing> {        
+        Ok(Drawing {
             processes,
             canvases
-        };
-        Ok(out)
+        })
     }
 
     pub(crate) fn draw(&mut self, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
