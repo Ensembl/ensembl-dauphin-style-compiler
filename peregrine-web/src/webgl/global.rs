@@ -1,6 +1,6 @@
 use anyhow::{ self, Context, anyhow as err };
 use crate::shape::layers::programstore::ProgramStore;
-use crate::webgl::canvas::store::CanvasStore;
+use crate::webgl::canvas::flatstore::FlatStore;
 use web_sys::Document;
 
 #[cfg(blackbox)]
@@ -12,18 +12,18 @@ pub use web_sys::{ console, WebGlRenderingContext };
 pub struct WebGlGlobal {
     program_store: ProgramStore,
     context: WebGlRenderingContext,
-    canvas_store: CanvasStore
+    canvas_store: FlatStore
 }
 
 impl WebGlGlobal {
     pub(crate) fn new(document: &Document, context: &WebGlRenderingContext) -> anyhow::Result<WebGlGlobal> {
         let program_store = ProgramStore::new(&context)?;
-        let canvas_store = CanvasStore::new(document);
+        let canvas_store = FlatStore::new(document);
         Ok(WebGlGlobal { program_store, canvas_store, context: context.clone() })
     }
 
     pub(crate) fn program_store(&self) -> &ProgramStore { &self.program_store }
     pub(crate) fn context(&self) -> &WebGlRenderingContext { &self.context }
-    pub(crate) fn canvas_store(&self) -> &CanvasStore { &self.canvas_store }
-    pub(crate) fn canvas_store_mut(&mut self) -> &mut CanvasStore { &mut self.canvas_store }
+    pub(crate) fn canvas_store(&self) -> &FlatStore { &self.canvas_store }
+    pub(crate) fn canvas_store_mut(&mut self) -> &mut FlatStore { &mut self.canvas_store }
 }

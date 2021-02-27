@@ -1,11 +1,11 @@
 use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext, WebGlTexture };
-use crate::webgl::canvas::weave::{ CanvasWeave, CanvasRequestId };
-use crate::webgl::canvas::store::{ CanvasStore, CanvasElementId };
+use crate::webgl::canvas::weave::CanvasWeave;
+use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
 use crate::webgl::util::handle_context_errors;
 
 
-fn create_texture(context: &WebGlRenderingContext,canvas_store: &CanvasStore, our_data: (u32,&CanvasElementId)) -> anyhow::Result<(u32,WebGlTexture)> {
+fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: (u32,&FlatId)) -> anyhow::Result<(u32,WebGlTexture)> {
     let canvas = canvas_store.get_main_canvas(our_data.1)?;
     let texture = context.create_texture().ok_or_else(|| err!("cannot create texture"))?;
     handle_context_errors(context)?;
@@ -14,7 +14,7 @@ fn create_texture(context: &WebGlRenderingContext,canvas_store: &CanvasStore, ou
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
         WebGlRenderingContext::UNSIGNED_BYTE,canvas.element()?
-    );
+    ).map_err(|e| err!("cannot bind texture: {:?}",&e.as_string()))?;
     handle_context_errors(context)?;
     apply_weave(context,canvas.weave())?;
     Ok((our_data.0,texture))
@@ -64,7 +64,7 @@ pub(crate) struct TextureValues {
 }
 
 impl TextureValues {
-    pub(super) fn new(context: &WebGlRenderingContext, store: &CanvasStore, index: u32, canvas: &CanvasElementId) -> anyhow::Result<TextureValues> {
+    pub(super) fn new(context: &WebGlRenderingContext, store: &FlatStore, index: u32, canvas: &FlatId) -> anyhow::Result<TextureValues> {
         let object = Texture::new();
         let gl_value = Some(create_texture(context,store,(index,canvas))?);
         Ok(TextureValues { gl_value, object })

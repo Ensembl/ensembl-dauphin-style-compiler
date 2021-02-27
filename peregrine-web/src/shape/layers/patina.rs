@@ -2,7 +2,7 @@ use anyhow::bail;
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use crate::webgl::canvas::store::CanvasElementId;
+use crate::webgl::canvas::flatstore::FlatId;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_core::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
@@ -93,7 +93,7 @@ pub(super) enum PatinaProcess {
 // TODO texture types
 
 #[derive(Clone)]
-pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(CanvasElementId) }
+pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(FlatId) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {

@@ -13,7 +13,7 @@ fn colour_to_css(c: &DirectColour) -> String {
     format!("rgb({},{},{})",c.0,c.1,c.2)
 }
 
-pub(crate) struct CanvasElement {
+pub(crate) struct Flat {
     element: Option<HtmlCanvasElement>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
@@ -23,8 +23,8 @@ pub(crate) struct CanvasElement {
     discarded: bool
 }
 
-impl CanvasElement {
-    pub(super) fn new(document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<CanvasElement> {
+impl Flat {
+    pub(super) fn new(document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<Flat> {
         let el = js_error(document.create_element("canvas")).context("creating canvas")?;
         let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|_| err!("could not cast canvas to HtmlCanvasElement"))?;
         canvas_el.set_width(size.0);
@@ -33,7 +33,7 @@ impl CanvasElement {
             .get_context("2d").map_err(|_| err!("cannot get 2d context"))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| err!("cannot get 2d context"))?;
-        Ok(CanvasElement {
+        Ok(Flat {
             element: Some(canvas_el),
             context: Some(context),
             weave: weave.clone(),
@@ -96,7 +96,7 @@ impl CanvasElement {
     }
 }
 
-impl Drop for CanvasElement {
+impl Drop for Flat {
     fn drop(&mut self) {
         self.discard();
     }

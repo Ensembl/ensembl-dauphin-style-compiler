@@ -1,11 +1,11 @@
 use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, DirectColour };
-use crate::webgl::canvas::text::TextHandle;
+use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
 use super::super::layers::drawing::DrawingTools;
-use crate::webgl::canvas::weave::DrawingCanvasesBuilder;
+use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
 
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
@@ -104,7 +104,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     })
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingCanvasesBuilder, shape: PreparedShape) -> anyhow::Result<()> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, shape: PreparedShape) -> anyhow::Result<()> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
@@ -157,7 +157,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
             let canvas = text.canvas_id(canvas_builder)?;
             for handle in &handles {
                 let texture_areas = text.get_texture_areas(handle)?;
-                let size = texture_areas.size;
+                let size = texture_areas.size();
                 x_sizes.push(size.0 as f64);
                 y_sizes.push(size.1 as f64);
                 dims.push(texture_areas);

@@ -27,6 +27,7 @@ mod shape {
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
         pub(crate) mod stage;
+        pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
     }
@@ -58,11 +59,11 @@ mod util {
 
 mod webgl {
     pub(crate) mod canvas {
-        pub(crate) mod allocator;
+        pub(crate) mod drawingflats;
+        pub(crate) mod flatplotallocator;
         pub(crate) mod flat;
-        pub(crate) mod text;
         pub(crate) mod packer;
-        pub(crate) mod store;
+        pub(crate) mod flatstore;
         pub(crate) mod weave;
     }
 

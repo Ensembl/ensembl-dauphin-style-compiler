@@ -6,8 +6,7 @@ use super::texture::{ TextureValues };
 use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
-use crate::webgl::canvas::store::{ CanvasStore, CanvasElementId };
-use crate::webgl::canvas::weave::CanvasRequestId;
+use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
 
 pub struct ProtoProcess {
     program: Rc<Program>,
@@ -34,7 +33,7 @@ impl ProtoProcess {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub fn add_texture(&mut self, store: &CanvasStore, index: u32, canvas_id: &CanvasElementId) -> anyhow::Result<()> {
+    pub fn add_texture(&mut self, store: &FlatStore, index: u32, canvas_id: &FlatId) -> anyhow::Result<()> {
         let entry = TextureValues::new(&self.program.context(),store,index,canvas_id)?;
         self.textures.push(entry);
         Ok(())

@@ -1,42 +1,41 @@
 use crate::util::keyed::KeyedData;
 use std::collections::{ HashMap, HashSet };
 use super::packer::allocate_areas;
-use super::store::{ CanvasStore, CanvasElementId };
-use super::weave::{ CanvasWeave, DrawingCanvasesBuilder, CanvasRequestId };
+use super::flatstore::{ FlatStore, FlatId };
+use super::weave::{ CanvasWeave };
+use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::GPUSpec;
+use crate::keyed_handle;
 
-struct CanvasRequest {
-    weave: CanvasWeave,
-    sizes: Vec<(u32,u32)>
-}
+keyed_handle!(FlatPlotRequestHandle);
 
-struct DrawingCanvasesWeaveBuilderRequest {
+struct PerWeaveFlatPlotAllocatorData {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-struct DrawingCanvasesWeaveBuilder {
-    requests: HashMap<CanvasRequestId,DrawingCanvasesWeaveBuilderRequest>,
+struct PerWeaveFlatPlotAllocator {
+    requests: HashMap<FlatPlotRequestHandle,PerWeaveFlatPlotAllocatorData>,
     weave: CanvasWeave,
-    canvas: Option<CanvasElementId>
+    canvas: Option<FlatId>
 }
 
-impl DrawingCanvasesWeaveBuilder {
-    fn new(weave: &CanvasWeave) -> DrawingCanvasesWeaveBuilder {
-        DrawingCanvasesWeaveBuilder {
+impl PerWeaveFlatPlotAllocator {
+    fn new(weave: &CanvasWeave) -> PerWeaveFlatPlotAllocator {
+        PerWeaveFlatPlotAllocator {
             weave: weave.clone(),
             requests: HashMap::new(),
             canvas: None
         }
     }
 
-    fn add(&mut self, id: CanvasRequestId, sizes: &[(u32,u32)]) {
-        self.requests.insert(id.clone(),DrawingCanvasesWeaveBuilderRequest {
+    fn add(&mut self, id: FlatPlotRequestHandle, sizes: &[(u32,u32)]) {
+        self.requests.insert(id.clone(),PerWeaveFlatPlotAllocatorData {
             sizes: sizes.to_vec(), origin: vec![]
         });
     }
 
-    fn allocate(&mut self, store: &mut CanvasStore, builder: &mut DrawingCanvasesBuilder, gpuspec: &GPUSpec) -> anyhow::Result<()> {
+    fn allocate(&mut self, store: &mut FlatStore, builder: &mut DrawingFlatsDrawable, gpuspec: &GPUSpec) -> anyhow::Result<()> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().cloned().collect();
         for req_id in &ids {
@@ -55,24 +54,29 @@ impl DrawingCanvasesWeaveBuilder {
         Ok(())
     }
 
-    fn origins(&self, id: &CanvasRequestId) -> Vec<(u32,u32)> {
+    fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).unwrap().origin.clone()
     }
 }
 
-pub struct DrawingCanvasesAllocator {
-    requests: KeyedData<CanvasRequestId,CanvasRequest>
+struct FlatPlotRequest {
+    weave: CanvasWeave,
+    sizes: Vec<(u32,u32)>
 }
 
-impl DrawingCanvasesAllocator {
-    pub(crate) fn new() -> DrawingCanvasesAllocator {
-        DrawingCanvasesAllocator {
+pub struct FlatPlotAllocator {
+    requests: KeyedData<FlatPlotRequestHandle,FlatPlotRequest>
+}
+
+impl FlatPlotAllocator {
+    pub(crate) fn new() -> FlatPlotAllocator {
+        FlatPlotAllocator {
             requests: KeyedData::new()
         }
     }
 
-    pub(crate) fn allocate_areas(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)]) -> CanvasRequestId {
-        self.requests.add(CanvasRequest {
+    pub(crate) fn allocate_areas(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
+        self.requests.add(FlatPlotRequest {
             weave: weave.clone(),
             sizes: sizes.to_vec()
         })
@@ -86,12 +90,12 @@ impl DrawingCanvasesAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make_builder(self, canvas_store: &mut CanvasStore, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingCanvasesBuilder> {
+    pub(crate) fn make_builder(self, canvas_store: &mut FlatStore, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
         let mut weave_builders = HashMap::new();
         let all_weaves = self.all_weaves();
-        let mut builder = DrawingCanvasesBuilder::new(gpu_spec);
+        let mut builder = DrawingFlatsDrawable::new(gpu_spec);
         for (i,weave) in all_weaves.iter().enumerate() {
-            weave_builders.insert(weave,(i,DrawingCanvasesWeaveBuilder::new(weave)));
+            weave_builders.insert(weave,(i,PerWeaveFlatPlotAllocator::new(weave)));
         } 
         for (id,request) in self.requests.items() {
             weave_builders.get_mut(&request.weave).unwrap().1.add(id,&request.sizes);

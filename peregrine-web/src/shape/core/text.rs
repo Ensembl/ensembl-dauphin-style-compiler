@@ -2,12 +2,13 @@ use anyhow::{ anyhow as err };
 use crate::util::keyed::KeyedData;
 use peregrine_core::{ Pen, DirectColour };
 use crate::keyed_handle;
-use super::flat::CanvasElement;
-use super::store::{ CanvasStore, CanvasElementId };
-use super::weave::{ CanvasWeave, CanvasRequestId, CanvasTextureAreas };
+use crate::webgl::canvas::flat::Flat;
+use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
+use crate::webgl::canvas::weave::CanvasWeave ;
+use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
+use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
-use super::allocator::DrawingCanvasesAllocator;
-use super::weave::DrawingCanvasesBuilder;
+use crate::webgl::canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
 
 // TODO padding measurements!
 
@@ -27,14 +28,14 @@ impl Text {
         Text { pen: pen.clone(), text: text.to_string(), size: None, colour: colour.clone(), text_origin: None, mask_origin: None }
     }
 
-    fn calc_size(&mut self, canvas_store: &mut CanvasStore) -> anyhow::Result<()> {
+    fn calc_size(&mut self, canvas_store: &mut FlatStore) -> anyhow::Result<()> {
         let canvas = canvas_store.get_scratch_context(&CanvasWeave::Crisp,(16,16))?;
         canvas.set_font(&self.pen)?;
         self.size = Some(canvas.measure(&self.text)?);
         Ok(())
     }
 
-    fn build(&mut self, canvas: &CanvasElement, text_origin: (u32,u32), mask_origin: (u32,u32)) -> anyhow::Result<()> {
+    fn build(&mut self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> anyhow::Result<()> {
         let size = self.size.unwrap();
         self.text_origin = Some(text_origin);
         self.mask_origin = Some(mask_origin);
@@ -44,17 +45,17 @@ impl Text {
     }
 
     pub fn get_texture_areas(&self) -> anyhow::Result<CanvasTextureAreas> {
-        Ok(CanvasTextureAreas {
-            texture_origin: self.text_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            mask_origin: self.mask_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            size: self.size.as_ref().cloned().ok_or_else(|| err!("no size"))?
-        })
+        Ok(CanvasTextureAreas::new(
+            self.text_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
+            self.mask_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
+            self.size.as_ref().cloned().ok_or_else(|| err!("no size"))?
+        ))
     }
 }
 
 pub struct DrawingText {
     texts: KeyedData<TextHandle,Text>,
-    request: Option<CanvasRequestId>
+    request: Option<FlatPlotRequestHandle>
 }
 
 impl DrawingText {
@@ -69,7 +70,7 @@ impl DrawingText {
         self.texts.add(Text::new(pen,text,colour))
     }
 
-    fn calc_sizes(&mut self, canvas_store: &mut CanvasStore) -> anyhow::Result<()> {
+    fn calc_sizes(&mut self, canvas_store: &mut FlatStore) -> anyhow::Result<()> {
         /* All this to minimise font changes (which are slow) */
         let mut texts_by_pen = HashMap::new();
         for text in self.texts.values_mut() {
@@ -83,7 +84,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn populate_allocator(&mut self, canvas_store: &mut CanvasStore, allocator: &mut DrawingCanvasesAllocator) -> anyhow::Result<()> {
+    pub(crate) fn populate_allocator(&mut self, canvas_store: &mut FlatStore, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
         self.calc_sizes(canvas_store)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
@@ -96,7 +97,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn build(&mut self, store: &CanvasStore, builder: &DrawingCanvasesBuilder) -> anyhow::Result<()> {
+    pub fn build(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> anyhow::Result<()> {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());
@@ -109,7 +110,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn canvas_id(&self, builder: &DrawingCanvasesBuilder) -> anyhow::Result<CanvasElementId> {
+    pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> anyhow::Result<FlatId> {
         let request = self.request.as_ref().cloned().ok_or_else(|| err!("no such id"))?;
         Ok(builder.canvas(&request))
     }
