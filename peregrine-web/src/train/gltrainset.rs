@@ -108,19 +108,19 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &Stage, gl: &WebGlGlobal) -> anyhow::Result<()> {
-        let mut session = DrawingSession::new(&gl.context(),stage);
-        session.begin()?;
+    fn draw_animate_tick(&mut self, stage: &Stage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        let mut session = DrawingSession::new(stage);
+        session.begin(gl)?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(&session)?;
+                self.get_train(gl,train).draw(gl,&session)?;
             },
             FadeState::Fading(from,to,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(&session)?;
+                    self.get_train(gl,from).draw(gl,&session)?;
                 }
-                self.get_train(gl,to).draw(&session)?;
+                self.get_train(gl,to).draw(gl,&session)?;
             },
         }
         session.finish()?;
@@ -157,7 +157,7 @@ impl GlTrainSet {
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &Stage, gl: &WebGlGlobal) -> anyhow::Result<()> {
+    pub fn draw_animate_tick(&mut self, stage: &Stage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         self.data.lock().unwrap().draw_animate_tick(stage,gl)
     }
 

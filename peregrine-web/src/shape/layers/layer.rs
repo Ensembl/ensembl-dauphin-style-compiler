@@ -9,7 +9,7 @@ use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
 use super::super::core::texture::TextureDraw;
 use crate::webgl::canvas::drawingflats::DrawingFlats;
-use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
+use crate::webgl::canvas::flatstore::FlatId;
 use crate::webgl::{ ProtoProcess, Process, ProcessStanzaElements, ProcessStanzaArray };
 use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
@@ -67,8 +67,8 @@ impl SubLayerHolder {
         Ok(&self.0.as_mut().unwrap().patina)
     }
 
-    fn set_canvases(&mut self, canvas_store: &mut FlatStore, canvases: &DrawingFlats) {
-        canvases.add_process(canvas_store,&mut self.0.as_mut().unwrap().process);
+    fn set_canvases(&mut self, canvases: &DrawingFlats) -> anyhow::Result<()> {
+        canvases.add_process(&mut self.0.as_mut().unwrap().process)
     }
 
     fn build(self) -> anyhow::Result<Option<Process>> {
@@ -118,7 +118,7 @@ impl GeometrySubLayer {
         self.holder(patina)?.get_patina(programs,geometry,patina)
     }
 
-    fn build(mut self, canvas_store: &mut FlatStore, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
+    fn build(mut self, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
         if let Some(process) = self.direct.build()? {
             processes.push(process);
         }
@@ -128,7 +128,7 @@ impl GeometrySubLayer {
             }
         }
         for (_,mut sub) in self.texture.drain() {
-            sub.set_canvases(canvas_store,canvases);
+            sub.set_canvases(canvases)?;
             if let Some(process) = sub.build()? {
                 processes.push(process);
             }
@@ -233,11 +233,11 @@ impl Layer {
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
     }
 
-    pub(super) fn build(self, canvas_store: &mut FlatStore, process: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
-        self.pin.build(canvas_store,process,canvases)?;
-        self.tape.build(canvas_store,process,canvases)?;
-        self.page.build(canvas_store,process,canvases)?;
-        self.fix.build(canvas_store,process,canvases)?;
+    pub(super) fn build(self, process: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
+        self.pin.build(process,canvases)?;
+        self.tape.build(process,canvases)?;
+        self.page.build(process,canvases)?;
+        self.fix.build(process,canvases)?;
         Ok(())
     }
 }

@@ -6,24 +6,8 @@ use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPlotRequestHandle;
 use crate::webgl::global::WebGlGlobal;
 
-struct DrawingFlat {
-    id: FlatId,
-    gl_index: u32
-}
-
-impl DrawingFlat {
-    fn new(id: FlatId, gl_index: u32) -> DrawingFlat {
-        DrawingFlat { id, gl_index }
-    }
-
-    fn add_process(&self, canvas_store: &mut FlatStore, process: &mut ProtoProcess) -> anyhow::Result<()> {
-        process.add_texture(canvas_store,self.gl_index,&self.id)?;
-        Ok(())
-    }
-}
-
 pub struct DrawingFlats {
-    main_canvases: Vec<DrawingFlat>,
+    main_canvases: Vec<FlatId>,
     id_map: KeyedData<FlatId,Option<usize>>,
     max_textures: u32
 }
@@ -44,25 +28,21 @@ impl DrawingFlats {
         if gl_index as u32 > self.max_textures {
             bail!("too many textures!");
         }
-        self.main_canvases.push(DrawingFlat::new(id.clone(),gl_index as u32));
+        self.main_canvases.push(id.clone());
         self.id_map.insert(&id,gl_index);
         Ok(id)
     }
 
-    fn gl_index(&self, id: &FlatId) -> anyhow::Result<usize> {
-        Ok(self.id_map.get(id).clone().unwrap())
-    }
-
-    pub(crate) fn add_process(&self, canvas_store: &mut FlatStore, process: &mut ProtoProcess) -> anyhow::Result<()> {
-        for texture in &self.main_canvases {
-            texture.add_process(canvas_store,process)?;
+    pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> anyhow::Result<()> {
+        for id in &self.main_canvases {
+            process.add_texture(id)?;
         }
         Ok(())
     }
 
     pub(crate) fn discard(&mut self, store: &mut FlatStore) -> anyhow::Result<()> {
-        for canvas in self.main_canvases.drain(..) {
-            store.discard(&canvas.id)?;
+        for id in self.main_canvases.drain(..) {
+            store.discard(&id)?;
         }
         Ok(())
     }
@@ -97,9 +77,11 @@ impl DrawingFlatsDrawable {
         self.drawing_flats.allocate(gl,weave,size)
     }
 
+    /*
     pub(crate) fn gl_index(&self, id: &FlatId) -> anyhow::Result<usize> {
         self.drawing_flats.gl_index(id)
     }
+    */
 
     pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
         self.responses.get(id).as_ref().map(|a| &a.origin).unwrap().to_vec()

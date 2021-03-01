@@ -8,7 +8,7 @@ use crate::webgl::canvas::flatplotallocator::FlatPlotAllocator;
 use crate::webgl::canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
 use crate::webgl::canvas::flatstore::FlatStore;
 use crate::webgl::global::WebGlGlobal;
-use web_sys::Document;
+use crate::webgl::canvas::bindery::TextureBindery;
 
 pub(crate) struct DrawingTools {
     text: DrawingText
@@ -53,9 +53,9 @@ impl DrawingBuilder {
         prepare_shape_in_layer(layer,tools,shape)
     }
 
-    pub(crate) fn add_shape(&mut self, canvas_builder: &DrawingFlatsDrawable, shape: PreparedShape) -> anyhow::Result<()> {
+    pub(crate) fn add_shape(&mut self, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> anyhow::Result<()> {
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        add_shape_to_layer(layer,tools,canvas_builder,shape)
+        add_shape_to_layer(layer,tools,canvas_builder, bindery,shape)
     }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
@@ -67,7 +67,7 @@ impl DrawingBuilder {
         self.tools.build(canvas_store,&mut builder)?;
         let canvases = builder.built();
         let mut processes = vec![];
-        self.main_layer.build(canvas_store,&mut processes,&canvases)?;
+        self.main_layer.build(&mut processes,&canvases)?;
         Ok(Drawing::new(processes,canvases)?)
     }
 }
@@ -85,18 +85,18 @@ impl Drawing {
         })
     }
 
-    pub(crate) fn draw(&mut self, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
         for process in &mut self.processes {
-            session.run_process(process,opacity)?;
+            session.run_process(gl,process,opacity)?;
         }
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, canvas_store: &mut FlatStore) -> anyhow::Result<()> {
+    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         for process in &mut self.processes {
-            process.discard()?;
+            process.discard(gl)?;
         }
-        self.canvases.discard(canvas_store)?;
+        self.canvases.discard(gl.canvas_store_mut())?;
         Ok(())
     }
 }

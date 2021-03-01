@@ -1,26 +1,24 @@
 use super::process::Process;
 use crate::shape::core::stage::Stage;
 use web_sys::{ WebGlRenderingContext };
-use crate::webgl::util::handle_context_errors;
+use crate::webgl::global::WebGlGlobal;
 
 // TODO clever viewport on resize
 
 pub struct DrawingSession {
     stage: Stage,
-    context: WebGlRenderingContext,
     size: Option<(f64,f64)>
 }
 
 impl DrawingSession {
-    pub fn new(context: &WebGlRenderingContext, stage: &Stage) -> DrawingSession {
+    pub fn new(stage: &Stage) -> DrawingSession {
         DrawingSession {
            stage: stage.clone(),
-           context: context.clone(),
            size: None
         }
     }
 
-    fn update_viewport(&mut self) -> anyhow::Result<()> {
+    fn update_viewport(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         let size = self.stage.size()?;
         if let Some((old_x,old_y)) = self.size {
             if old_x == size.0 && old_y == size.1 {
@@ -28,21 +26,21 @@ impl DrawingSession {
             }
         }
         self.size = Some(size);
-        self.context.viewport(0,0,size.0 as i32,size.1 as i32);
-        handle_context_errors(&self.context)?;
+        gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
+        gl.handle_context_errors()?;
         Ok(())
     }
 
-    pub(crate) fn run_process(&self, process: &mut Process, opacity: f64) -> anyhow::Result<()> {
-        process.draw(&self.stage,opacity)
+    pub(crate) fn run_process(&self, gl: &mut WebGlGlobal, process: &mut Process, opacity: f64) -> anyhow::Result<()> {
+        process.draw(gl,&self.stage,opacity)
     }
 
-    pub(crate) fn begin(&mut self) -> anyhow::Result<()> {
-        self.update_viewport()?;
-        self.context.clear_color(1., 1., 1., 1.);
-        handle_context_errors(&self.context)?;
-        self.context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
-        handle_context_errors(&self.context)?;
+    pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        self.update_viewport(gl)?;
+        gl.context().clear_color(1., 1., 1., 1.);
+        gl.handle_context_errors()?;
+        gl.context().clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
+        gl.handle_context_errors()?;
         Ok(())
     }
 

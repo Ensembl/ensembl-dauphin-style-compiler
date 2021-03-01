@@ -59,6 +59,7 @@ mod util {
 
 mod webgl {
     pub(crate) mod canvas {
+        pub(crate) mod bindery;
         pub(crate) mod drawingflats;
         pub(crate) mod flatplotallocator;
         pub(crate) mod flat;

@@ -38,7 +38,7 @@ impl GLCarriage {
         let gpu_spec = gl.program_store().gpu_spec().clone();
         let canvas_builder = canvas_allocator.make(gl,&gpu_spec)?;
         for shape in preparations?.drain(..) {
-            drawing.add_shape(&canvas_builder,shape)?;
+            drawing.add_shape(&canvas_builder,gl.bindery(),shape)?;
             count += 1;
         }
         console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
@@ -56,13 +56,13 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn draw(&mut self, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession) -> anyhow::Result<()> {
         let opacity = self.opacity.lock().unwrap().clone();
-        self.drawing.draw(session,opacity)
+        self.drawing.draw(gl,session,opacity)
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        self.drawing.discard(gl.canvas_store_mut())?;
+        self.drawing.discard(gl)?;
         Ok(())
     }
 }

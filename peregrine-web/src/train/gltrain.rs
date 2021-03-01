@@ -77,9 +77,9 @@ impl GLTrain {
         Ok(())
     }
 
-    pub fn draw(&mut self, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession) -> anyhow::Result<()> {
         for carriage in self.carriages.values_mut() {
-            carriage.draw(session)?;
+            carriage.draw(gl,session)?;
         }
         Ok(())
     }

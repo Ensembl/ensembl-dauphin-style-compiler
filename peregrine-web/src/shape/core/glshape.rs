@@ -6,6 +6,7 @@ use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
 use super::super::layers::drawing::DrawingTools;
 use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
+use crate::webgl::canvas::bindery::TextureBindery;
 
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
@@ -104,7 +105,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     })
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, shape: PreparedShape) -> anyhow::Result<()> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> anyhow::Result<()> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
@@ -165,7 +166,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
             let (mut campaign,geometry) = add_rectangle(layer,anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
             let patina = layer.get_texture(&geometry,&canvas)?;
             let mut process = layer.get_process_mut(&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
-            patina.add_rectangle(&mut process,&mut campaign,canvas_builder,&canvas,&dims)?;
+            patina.add_rectangle(&mut process,&mut campaign,bindery,&canvas,&dims)?;
             campaign.close();
         }
     }

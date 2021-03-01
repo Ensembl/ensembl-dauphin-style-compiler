@@ -6,7 +6,8 @@ use super::texture::{ TextureValues };
 use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
-use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
+use crate::webgl::canvas::flatstore::{ FlatId };
+use crate::webgl::global::WebGlGlobal;
 
 pub struct ProtoProcess {
     program: Rc<Program>,
@@ -33,8 +34,8 @@ impl ProtoProcess {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub fn add_texture(&mut self, store: &FlatStore, index: u32, canvas_id: &FlatId) -> anyhow::Result<()> {
-        let entry = TextureValues::new(&self.program.context(),store,index,canvas_id)?;
+    pub fn add_texture(&mut self, canvas_id: &FlatId) -> anyhow::Result<()> {
+        let entry = TextureValues::new(canvas_id)?;
         self.textures.push(entry);
         Ok(())
     }
@@ -75,7 +76,8 @@ impl Process {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub(super) fn draw(&mut self, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+        gl.bindery().clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
         let context = self.program.context();
@@ -85,7 +87,7 @@ impl Process {
                 entry.activate(context)?;
             }
             for entry in self.textures.iter() {
-                entry.activate(context)?;
+                entry.activate(gl)?;
             }
             stanza.activate(context)?;
             stanza.draw(context,self.program.get_method())?;
@@ -95,23 +97,17 @@ impl Process {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self) -> anyhow::Result<()> {
+    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         let context = self.program.context();
         for entry in self.uniforms.values_mut() {
             entry.discard(context)?;
         }
         for entry in self.textures.iter_mut() {
-            entry.discard(context)?;
+            entry.discard(gl)?;
         }
         for stanza in self.stanzas.iter_mut() {
             stanza.discard(context)?;
         }
         Ok(())
-    }
-}
-
-impl Drop for Process {
-    fn drop(&mut self) {
-        self.discard();
     }
 }
