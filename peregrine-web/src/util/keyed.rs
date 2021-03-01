@@ -79,7 +79,6 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
     pub fn get(&self, key: &K) -> &T { &self.0[key.get()] }
     pub fn get_mut(&mut self, key: &K) -> &mut T { &mut self.0[key.get()] }
-    pub fn keys(&mut self) -> impl Iterator<Item=K> { (0..self.0.len()).map(|id| K::new(id))  }
     pub fn values(&self) -> impl Iterator<Item=&T> { self.0.iter() }
     pub fn values_mut(&mut self) -> impl Iterator<Item=&mut T> { self.0.iter_mut() }
 
@@ -96,6 +95,27 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
     }
 }
 
+pub struct OptionalKeys<'k,K: KeyedHandle,T> {
+    keyed_data: &'k KeyedData<K,Option<T>>,
+    index: usize
+}
+
+impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
+    type Item = K;
+
+    fn next(&mut self) -> Option<K> {
+        loop {
+            if self.index >= self.keyed_data.0.len() {
+                return None;
+            }
+            if self.keyed_data.0[self.index].is_some() {
+                return Some(K::new(self.index));
+            }
+            self.index += 1;
+        }
+    }
+}
+
 impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
     pub fn insert(&mut self, index: &K, value: T) {
         while index.get() >= self.0.len() {
@@ -104,8 +124,15 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
         self.0[index.get()] = Some(value);
     }
 
-    pub fn remove(&mut self, index: &K) {
-        self.0[index.get()] = None;
+    pub fn remove(&mut self, index: &K) -> Option<T> {
+        self.0[index.get()].take()
+    }
+
+    pub fn keys<'k>(&'k self) -> OptionalKeys<'k,K,T> {
+        OptionalKeys {
+            keyed_data: self,
+            index: 0
+        }
     }
 }
 

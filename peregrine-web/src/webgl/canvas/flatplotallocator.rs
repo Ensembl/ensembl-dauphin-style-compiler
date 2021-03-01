@@ -7,47 +7,46 @@ use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::GPUSpec;
 use crate::webgl::global::WebGlGlobal;
 use crate::keyed_handle;
-use web_sys::Document;
 
 keyed_handle!(FlatPlotRequestHandle);
 
-struct PerWeaveFlatPlotAllocatorData {
+struct WeaveAllocatorData {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-struct PerWeaveFlatPlotAllocator {
-    requests: HashMap<FlatPlotRequestHandle,PerWeaveFlatPlotAllocatorData>,
+struct WeaveAllocator {
+    requests: KeyedData<FlatPlotRequestHandle,Option<WeaveAllocatorData>>,
     weave: CanvasWeave,
     canvas: Option<FlatId>
 }
 
-impl PerWeaveFlatPlotAllocator {
-    fn new(weave: &CanvasWeave) -> PerWeaveFlatPlotAllocator {
-        PerWeaveFlatPlotAllocator {
+impl WeaveAllocator {
+    fn new(weave: &CanvasWeave) -> WeaveAllocator {
+        WeaveAllocator {
             weave: weave.clone(),
-            requests: HashMap::new(),
+            requests: KeyedData::new(),
             canvas: None
         }
     }
 
     fn add(&mut self, id: FlatPlotRequestHandle, sizes: &[(u32,u32)]) {
-        self.requests.insert(id.clone(),PerWeaveFlatPlotAllocatorData {
+        self.requests.insert(&id,WeaveAllocatorData {
             sizes: sizes.to_vec(), origin: vec![]
         });
     }
 
     fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable, gpuspec: &GPUSpec) -> anyhow::Result<()> {
         let mut sizes = vec![];
-        let ids : Vec<_> = self.requests.keys().cloned().collect();
+        let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
-            let req = self.requests.get(req_id).unwrap();
+            let req = self.requests.get(req_id).as_ref().unwrap();
             sizes.extend(req.sizes.iter());
         }
         let (mut origins,width,height) = allocate_areas(&sizes,gpuspec)?;
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
-            let req = self.requests.get_mut(req_id).unwrap();
+            let req = self.requests.get_mut(req_id).as_mut().unwrap();
             for _ in 0..req.sizes.len() {
                 req.origin.push(origins_iter.next().unwrap());
             }
@@ -57,7 +56,7 @@ impl PerWeaveFlatPlotAllocator {
     }
 
     fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
-        self.requests.get(id).unwrap().origin.clone()
+        self.requests.get(id).as_ref().unwrap().origin.clone()
     }
 }
 
@@ -77,7 +76,7 @@ impl FlatPlotAllocator {
         }
     }
 
-    pub(crate) fn allocate_areas(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
+    pub(crate) fn allocate(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
         self.requests.add(FlatPlotRequest {
             weave: weave.clone(),
             sizes: sizes.to_vec()
@@ -92,24 +91,24 @@ impl FlatPlotAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make_builder(self, gl: &mut WebGlGlobal, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
-        let mut weave_builders = HashMap::new();
+    pub(crate) fn make(self, gl: &mut WebGlGlobal, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
+        let mut weave_allocators = HashMap::new();
         let all_weaves = self.all_weaves();
-        let mut builder = DrawingFlatsDrawable::new(gpu_spec);
-        for (i,weave) in all_weaves.iter().enumerate() {
-            weave_builders.insert(weave,(i,PerWeaveFlatPlotAllocator::new(weave)));
+        for weave in all_weaves.iter() {
+            weave_allocators.insert(weave,WeaveAllocator::new(weave));
         } 
         for (id,request) in self.requests.items() {
-            weave_builders.get_mut(&request.weave).unwrap().1.add(id,&request.sizes);
+            weave_allocators.get_mut(&request.weave).unwrap().add(id,&request.sizes);
         }
-        for weave_builder in weave_builders.values_mut() {
-            weave_builder.1.allocate(gl,&mut builder,gpu_spec)?;
+        let mut drawable = DrawingFlatsDrawable::new(gpu_spec);
+        for weave_allocator in weave_allocators.values_mut() {
+            weave_allocator.allocate(gl,&mut drawable,gpu_spec)?;
         }
         for (id,request) in self.requests.items() {
-            let (_,weave_builder) = weave_builders.get(&request.weave).unwrap();
-            let origins = weave_builder.origins(&id);
-            builder.add(id,weave_builder.canvas.as_ref().unwrap(),origins);
+            let weave_allocator = weave_allocators.get(&request.weave).unwrap();
+            let origins = weave_allocator.origins(&id);
+            drawable.add(id,weave_allocator.canvas.as_ref().unwrap(),origins);
         }
-        Ok(builder)
+        Ok(drawable)
     }
 }

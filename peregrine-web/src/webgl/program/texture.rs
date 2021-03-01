@@ -6,7 +6,7 @@ use crate::webgl::util::handle_context_errors;
 
 
 fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: (u32,&FlatId)) -> anyhow::Result<(u32,WebGlTexture)> {
-    let canvas = canvas_store.get_main_canvas(our_data.1)?;
+    let canvas = canvas_store.get(our_data.1)?;
     let texture = context.create_texture().ok_or_else(|| err!("cannot create texture"))?;
     handle_context_errors(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
@@ -19,7 +19,6 @@ fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_
     apply_weave(context,canvas.weave())?;
     Ok((our_data.0,texture))
 }
-
 
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> anyhow::Result<()> {
     let (minf,magf,wraps,wrapt) = match weave {

@@ -173,7 +173,7 @@ fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>)
     }
 }
 
-pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow::Result<(Vec<(u32,u32)>,u32,u32)> {
+pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow::Result<(Vec<(u32,u32)>,u32,u32)> {
     let max_size = gpu_spec.max_texture_size() as u64;
     if let Some(result) = try_allocate_areas(sizes,max_size,None) {
         return Ok(result);

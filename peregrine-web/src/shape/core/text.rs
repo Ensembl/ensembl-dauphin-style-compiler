@@ -31,7 +31,7 @@ impl Text {
 
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         let document = gl.document().clone();
-        let canvas = gl.canvas_store_mut().get_scratch_context(&document,&CanvasWeave::Crisp,(16,16))?;
+        let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(16,16))?;
         canvas.set_font(&self.pen)?;
         self.size = Some(canvas.measure(&self.text)?);
         Ok(())
@@ -95,7 +95,7 @@ impl DrawingText {
             sizes.push(size);
             sizes.push(size);
         }
-        self.request = Some(allocator.allocate_areas(&CanvasWeave::Crisp,&sizes));
+        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes));
         Ok(())
     }
 
@@ -103,7 +103,7 @@ impl DrawingText {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());
-        let canvas = store.get_main_canvas(&canvas_id)?;
+        let canvas = store.get(&canvas_id)?;
         for text in self.texts.values_mut() {
             let mask_origin = origins_iter.next().unwrap();
             let text_origin = origins_iter.next().unwrap();

@@ -4,8 +4,9 @@ use crate::util::keyed::{ KeyedOptionalValues };
 use web_sys::{ Document };
 use super::flat::Flat;
 use crate::keyed_handle;
+use crate::util::error::js_warn;
 
-// TODO discard webgl buffers etc
+// TODO test discard webgl buffers etc
 // TODO document etc to common data structure
 
 keyed_handle!(FlatId);
@@ -23,7 +24,7 @@ impl FlatStore {
         }
     }
 
-    pub(crate) fn get_scratch_context(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut Flat> {
+    pub(crate) fn scratch(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut Flat> {
         let mut use_cached = false;
         if let Some(existing) = self.scratch.get(weave) {
             let ex_size = existing.size();
@@ -38,11 +39,11 @@ impl FlatStore {
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
-    pub(super) fn allocate_main(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+    pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
         Ok(self.main_canvases.add(Flat::new(document,weave,size)?))
     }
 
-    pub(crate) fn get_main_canvas(&self, id: &FlatId) -> anyhow::Result<&Flat> {
+    pub(crate) fn get(&self, id: &FlatId) -> anyhow::Result<&Flat> {
         self.main_canvases.get(id)
     }
 
@@ -66,6 +67,6 @@ impl FlatStore {
 
 impl Drop for FlatStore {
     fn drop(&mut self) {
-        self.discard_all();
+        js_warn(self.discard_all());
     }
 }

@@ -4,6 +4,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{ Document, HtmlCanvasElement, CanvasRenderingContext2d };
 use peregrine_core::{ Pen, DirectColour };
 use super::weave::CanvasWeave;
+use crate::util::error::js_warn;
 
 fn pen_to_font(pen: &Pen) -> String {
     format!("{} {}px",pen.0,pen.1)
@@ -98,6 +99,6 @@ impl Flat {
 
 impl Drop for Flat {
     fn drop(&mut self) {
-        self.discard();
+        js_warn(self.discard());
     }
 }
