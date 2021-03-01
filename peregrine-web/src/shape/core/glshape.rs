@@ -149,7 +149,6 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
             spot.spot(&mut process)?;
             array.close();
         },
-        // TODO bindery
         PreparedShape::Text(anchor,handles,allotments) => {
             let text = tools.text();
             let mut dims = vec![];

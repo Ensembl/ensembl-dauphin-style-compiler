@@ -1,4 +1,3 @@
-use super::programstore::ProgramStore;
 use super::layer::Layer;
 use peregrine_core::Shape;
 use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
@@ -8,7 +7,6 @@ use crate::webgl::canvas::flatplotallocator::FlatPlotAllocator;
 use crate::webgl::canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
 use crate::webgl::canvas::flatstore::FlatStore;
 use crate::webgl::global::WebGlGlobal;
-use crate::webgl::canvas::bindery::TextureBindery;
 
 pub(crate) struct DrawingTools {
     text: DrawingText
@@ -34,17 +32,18 @@ impl DrawingTools {
     }
 }
 
-// TODO canvas builder to tools?
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
-    tools: DrawingTools
+    tools: DrawingTools,
+    flats: Option<DrawingFlatsDrawable>
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(programs: &ProgramStore, left: f64) -> DrawingBuilder {
+    pub(crate) fn new(gl: &WebGlGlobal, left: f64) -> DrawingBuilder {
         DrawingBuilder {
-            main_layer: Layer::new(programs,left),
-            tools: DrawingTools::new()
+            main_layer: Layer::new(gl.program_store(),left),
+            tools: DrawingTools::new(),
+            flats: None
         }
     }
 
@@ -53,18 +52,21 @@ impl DrawingBuilder {
         prepare_shape_in_layer(layer,tools,shape)
     }
 
-    pub(crate) fn add_shape(&mut self, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> anyhow::Result<()> {
-        let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        add_shape_to_layer(layer,tools,canvas_builder, bindery,shape)
-    }
-
-    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
-        self.tools.finish_preparation(gl,allocator)?;
+    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        let mut canvas_allocator = FlatPlotAllocator::new();
+        self.tools.finish_preparation(gl,&mut canvas_allocator)?;
+        self.flats = Some(canvas_allocator.make(gl)?);
         Ok(())
     }
 
-    pub fn build(mut self, canvas_store: &mut FlatStore, mut builder: DrawingFlatsDrawable) -> anyhow::Result<Drawing> {
-        self.tools.build(canvas_store,&mut builder)?;
+    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> anyhow::Result<()> {
+        let (layer, tools, canvas_builder) = (&mut self.main_layer,&mut self.tools,&self.flats.as_ref().unwrap());
+        add_shape_to_layer(layer,tools,canvas_builder,gl.bindery(),shape)
+    }
+
+    pub fn build(mut self, gl: &mut WebGlGlobal) -> anyhow::Result<Drawing> {
+        let (tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
+        tools.build(gl.canvas_store_mut(),&mut builder)?;
         let canvases = builder.built();
         let mut processes = vec![];
         self.main_layer.build(&mut processes,&canvases)?;

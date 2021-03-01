@@ -4,7 +4,6 @@ use super::packer::allocate_areas;
 use super::flatstore::FlatId;
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingFlatsDrawable };
-use crate::webgl::GPUSpec;
 use crate::webgl::global::WebGlGlobal;
 use crate::keyed_handle;
 
@@ -36,14 +35,14 @@ impl WeaveAllocator {
         });
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable, gpuspec: &GPUSpec) -> anyhow::Result<()> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> anyhow::Result<()> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
             let req = self.requests.get(req_id).as_ref().unwrap();
             sizes.extend(req.sizes.iter());
         }
-        let (mut origins,width,height) = allocate_areas(&sizes,gpuspec)?;
+        let (mut origins,width,height) = allocate_areas(&sizes,gl.program_store().gpu_spec())?;
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
             let req = self.requests.get_mut(req_id).as_mut().unwrap();
@@ -91,7 +90,7 @@ impl FlatPlotAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make(self, gl: &mut WebGlGlobal, gpu_spec: &GPUSpec) -> anyhow::Result<DrawingFlatsDrawable> {
+    pub(crate) fn make(self, gl: &mut WebGlGlobal,) -> anyhow::Result<DrawingFlatsDrawable> {
         let mut weave_allocators = HashMap::new();
         let all_weaves = self.all_weaves();
         for weave in all_weaves.iter() {
@@ -100,9 +99,9 @@ impl FlatPlotAllocator {
         for (id,request) in self.requests.items() {
             weave_allocators.get_mut(&request.weave).unwrap().add(id,&request.sizes);
         }
-        let mut drawable = DrawingFlatsDrawable::new(gpu_spec);
+        let mut drawable = DrawingFlatsDrawable::new(gl.program_store().gpu_spec());
         for weave_allocator in weave_allocators.values_mut() {
-            weave_allocator.allocate(gl,&mut drawable,gpu_spec)?;
+            weave_allocator.allocate(gl,&mut drawable)?;
         }
         for (id,request) in self.requests.items() {
             let weave_allocator = weave_allocators.get(&request.weave).unwrap();

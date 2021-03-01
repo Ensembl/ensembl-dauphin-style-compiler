@@ -1,7 +1,6 @@
 use peregrine_core::{ Carriage, CarriageId };
 use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
 use crate::shape::core::glshape::PreparedShape;
-use crate::webgl::canvas::flatplotallocator::FlatPlotAllocator;
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
@@ -30,19 +29,16 @@ impl Hash for GLCarriage {
 
 impl GLCarriage {
     pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> anyhow::Result<GLCarriage> {
-        let mut drawing = DrawingBuilder::new(gl.program_store(),carriage.id().left());
+        let mut drawing = DrawingBuilder::new(gl,carriage.id().left());
         let mut count = 0;
         let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().drain(..).map(|s| drawing.prepare_shape(s)).collect();
-        let mut canvas_allocator = FlatPlotAllocator::new();
-        drawing.finish_preparation(gl,&mut canvas_allocator)?;
-        let gpu_spec = gl.program_store().gpu_spec().clone();
-        let canvas_builder = canvas_allocator.make(gl,&gpu_spec)?;
+        drawing.finish_preparation(gl)?;
         for shape in preparations?.drain(..) {
-            drawing.add_shape(&canvas_builder,gl.bindery(),shape)?;
+            drawing.add_shape(gl,shape)?;
             count += 1;
         }
         console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
-        let drawing = drawing.build(gl.canvas_store_mut(),canvas_builder)?;
+        let drawing = drawing.build(gl)?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),

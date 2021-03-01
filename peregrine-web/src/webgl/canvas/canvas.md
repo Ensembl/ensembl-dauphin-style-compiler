@@ -2,19 +2,19 @@
 
 ## Introduction
 
-Flat canvases are 2d pixel-based canvases. They can be used as textures for webgl objects. Flat canvases are used to render text. The reason for this decision is a bit complex. In the long run flat canvases will be required for things like heatmaps. Text can be rendered on flat canvases relatively easily so this was chosen as the initial use-case. It wouldn't surprise me if ultimately text moved off flat canvases to other technique, but flat canavses themselves will likely always be needed.
+Flat canvases are 2d, pixel-based canvases. These can be used as textures for webgl objects. Flat canvases are used to render text. The reason for this decision is a bit complex. In the long run, flat canvases will be required for things like heat-maps. Text can be rendered on flat canvases relatively easily, so this was chosen as the initial use-case. It wouldn't surprise me if ultimately text moved off flat canvases to some other technique, but flat canavses themselves will likely always be needed.
 
-The `Flat` type in flat.rs implements flat canvases themselves. This is relatively simple. The problems comewhen binding these to WebGL. It's necessary to create composite canvases as textures as WebGL only supports a few in any one case. This greatly complicates the rendering process.
+The `Flat` type in flat.rs implements flat canvases themselves. This is relatively simple. The problems comewhen binding these to WebGL. It's necessary to create composite canvases as textures, as WebGL only supports a few textures in any run. This greatly complicates the rendering process.
 
 ## Packing
 
-The flat canvases contain rectangular elements. These are arranged to minimise space lost.Rectangle-packing is an NP-hard problem, but there are many ways of approximating it. Sadly many of these approximations are too slow to run in realtime. From among the broad classes of algorithms (shelf, guillotine, skyline, etc) only shelf algorithms have sub O(n^2) statistics. These are rather poorly performing in terms of packing efficiency, but typically run in O(n log n) or O(n log^2 n). Most of these algorithms are greatly assisted by pre-sorting of the rectangles. The impact of this on the broader architecture is that our drawing needs to be in two phases: one to collect all the space needs and the second, after packing, to drawon those allocations.
+The flat canvases contain rectangular elements. These are arranged to minimise space lost. Rectangle-packing is an NP-hard problem, but there are many ways of approximating it. Sadly, many of these approximations are too slow to run in real-time. From among the broad classes of algorithms (shelf, guillotine, skyline, etc), only shelf algorithms have sub-O(n^2) statistics. These are rather poorly performing in terms of packing efficiency, but typically run in O(n log n) or O(n log^2 n). Most of these shelf algorithms are greatly assisted by pre-sorting of the rectangles before adding them. The impact of this on the broader architecture is that our drawing needs to be in two phases: one to collect all the space needs and the second, after sorting and then packing, to draw on those allocations.
 
-Shelf-based algorithms reserve horizontal stripes of an image (shelves) for its allocations. Rectangles are then placed left-to-right in these shelves, typically top-aligned. The next shelf opens entirely beneath the previous one. We sort into decreasing height order to simplify allocation within shelves: once a rectangle has been placed, no further rectangles will make the shelf larger. In theory area-based sorting has a slight advantage over height-based in survey papers, but the difference is marginal.
+Shelf-based algorithms reserve horizontal stripes of an image (shelves) for its allocations. Rectangles are then placed left-to-right in these shelves, typically top-aligned. The next shelf opens entirely beneath the previous one. We sort the entire stream into decreasing-height order to simplify allocation within shelves: once some rectangle has been placed, no further rectangles will need to make the shelf larger as all are less high. In theory area-based sorting has a slight advantage over height-based according to survey papers, but the difference tends to be marginal.
 
-The result of shelf-based algorithms is an approximately triangular shape on each shelf. To reclaim some of this space (and to makeup for our inability to rotate images), we make an optimisation. If More than a fixed fraction of a shelf is "wasted" at any point, a "sub-shelf" is opened beneath the first, of the available height. As we rely on any rectangle being placable in any shelf (due to decreasing height), some of these new subshelves need holding in a "waiting queue" until the objects are small enough that they can be actively chosen from.
+The result of shelf-based algorithms is an approximately triangular shape on each shelf. To reclaim some of this space (and to make up for our inability to rotate images), we make an optimisation. If more than a fixed fraction of a shelf is "wasted" at any point, a "sub-shelf" is opened beneath the first, of the available unused height. As we rely on any rectangle being placable in any shelf (due to the decreasing height ordering), some of these new sub-shelves need holding in a "waiting queue" until the objects being allocated are small enough that these shelves are candidates for use at which point they are removed from the holding queue and placed alongside the other shelves.
 
-This algorithm is implemened in packer.rs with the method `allocate_areas`. This takes an array of sizes and returns a canvas size and an array of origins. As such, it is isolated from the rest of the packer code.
+This algorithm is implemened in packer.rs with the method `allocate_areas`. This takes an array of sizes and returns a canvas size, and an array of origins 1-to-1 with the array of sizes. As such, it is isolated from the rest of the packer code.
 
 See [alloc.md](alloc.md) for details of this algorithm.
 
@@ -60,6 +60,8 @@ No other objects directly contain flats, only `FlatId`s. These `FlatIds`can then
 | DrawingFlats         | ----> Can be added to processes for binding
 +----------------------+
 ```
+
+This pipeline is run from the methods of the `DrawingBuilder` class which are called in turn from `GLCarriage`'s constructor.
 
 ## FlatStore
 

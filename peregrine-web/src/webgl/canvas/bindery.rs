@@ -70,11 +70,6 @@ impl TextureStore {
     }
 }
 
-struct Binding {
-    position: usize,
-    gl_index: u32
-}
-
 pub struct Rebind {
     old_texture: Option<FlatId>,
     new_texture: Option<FlatId>,
@@ -115,6 +110,11 @@ impl Rebind {
         }
         Ok(())
     }
+}
+
+struct Binding {
+    position: usize,
+    gl_index: u32
 }
 
 pub struct TextureBindery {
