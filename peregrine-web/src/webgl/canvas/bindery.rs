@@ -57,11 +57,15 @@ impl TextureStore {
         TextureStore(KeyedData::new())
     }
 
-    pub fn add(&mut self, id: &FlatId, texture: WebGlTexture) {
+    fn add(&mut self, id: &FlatId, texture: WebGlTexture) {
         self.0.insert(id,texture);
     }
+    
+    fn get(&mut self, id: &FlatId) -> anyhow::Result<Option<&WebGlTexture>> {
+        Ok(self.0.get(id).as_ref())
+    }
 
-    pub fn remove(&mut self, id: &FlatId) -> anyhow::Result<WebGlTexture> {
+    fn remove(&mut self, id: &FlatId) -> anyhow::Result<WebGlTexture> {
         self.0.remove(id).ok_or_else(|| err!("no such texture"))
     }
 }
@@ -78,8 +82,12 @@ pub struct Rebind {
 }
 
 impl Rebind {
-    fn cached(index: u32) -> Rebind {
-        Rebind { old_texture: None, new_texture: None, new_index: index }
+    fn new(old_texture: Option<FlatId>, new_texture: FlatId, new_index: u32) -> Rebind {
+        Rebind { old_texture, new_texture: Some(new_texture), new_index }
+    }
+
+    fn cached(flat_id: &FlatId, index: u32) -> Rebind {
+        Rebind { old_texture: None, new_texture: Some(flat_id.clone()), new_index: index }
     }
 
     fn remove(flat_id: FlatId) -> Rebind {
@@ -93,12 +101,17 @@ impl Rebind {
             gl.handle_context_errors()?;
         }
         if let Some(new_id) = &self.new_texture {
-            let texture = create_texture(gl.context(),gl.flat_store(),new_id)?;
+            let texture = gl.texture_store().get(new_id)?;
+            if texture.is_none() {
+                let texture = create_texture(gl.context(),gl.flat_store(),new_id)?;
+                gl.texture_store().add(new_id,texture);
+            }
             gl.context().active_texture(WebGlRenderingContext::TEXTURE0 + self.new_index);
             gl.handle_context_errors()?;
-            gl.context().bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
+            let context = gl.context().clone();
+            let texture = gl.texture_store().get(new_id)?.unwrap();
+            context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
             gl.handle_context_errors()?;
-            gl.texture_store().add(new_id,texture);
         }
         Ok(())
     }
@@ -153,11 +166,7 @@ impl TextureBindery {
                 self.in_use.push(index);
             }
             let new_index = self.bind(flat,index)?;
-            Ok(Rebind {
-                old_texture,
-                new_texture: Some(flat.clone()),
-                new_index
-            })
+            Ok(Rebind::new(old_texture,flat.clone(),new_index))
         } else {
             bail!("too many textures bound");
         }
@@ -165,7 +174,7 @@ impl TextureBindery {
 
     pub(crate) fn allocate(&mut self, flat: &FlatId) -> anyhow::Result<Rebind> {
         if let Some(b) = self.get(flat)? {
-            return Ok(Rebind::cached(b.gl_index));
+            return Ok(Rebind::cached(flat,b.gl_index));
         }
         self.set(flat)
     }

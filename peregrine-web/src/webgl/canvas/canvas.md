@@ -16,6 +16,20 @@ The result of shelf-based algorithms is an approximately triangular shape on eac
 
 This algorithm is implemened in packer.rs with the method `allocate_areas`. This takes an array of sizes and returns a canvas size and an array of origins. As such, it is isolated from the rest of the packer code.
 
+See [alloc.md](alloc.md) for details of this algorithm.
+
+## Binding
+
+A second complication is that binding textures in WebGL is very slow. While we may only want one or two per drawing and only perhaps three drawings per screen, and a graphics card support at least 8 textures (and typically 32) this can vary greatly depending on what's to be drawn so managing the bindings effectively is both necessary and annoying. Added to this, the mess of there only being eight slots available per-drawing doesn't make matters any simpler.
+
+These tasks are handled by the bindery. The role of the bindary is to create and delete textures and cycle through them according to graphics card capacity to minimise the number of times this has to be done, even across drawings. The main class of thebindery is `TextureBindery`. This is a globally-scoped object. A particular process passes a `FlatId` to the `allocate()` method and gets a series of operations to perform in a `Rebind` object. Once executed, the `gl_index()` method will point to the index of the flat. `clear()` is run for each process and is a bit of a misnomer. It only _allows_ the bindery to reallocate any objects up to this point, should it be pressing to do so. `free()` creates a rebind object which when run will delete texture (during discarding).
+
+`Rebind` is a separate method so that an entire `WebGlGlobal` object may be passed to it. `TextureBindery` is itself in `WebGlGlobal`, so to do the operations internally would create a borrowing nightmare.
+
+The `WebGLTexture`s generated are stored in the `TextureStore` object, also part of the global state. No operations on this store are visible outside the `Rebind` object.
+
+No attempt is made to preserve binding index between each run as this can be changed efficiently. Each `clear()` resets the index, so textures which stay in the cache may well change their index for different drawings.
+
 ## Pipeline
 
 The core pipeline for canvases is in three stages
@@ -94,7 +108,6 @@ Unlike the "record and later do" architecture of `FlatPlotAllocator`, `DrawingFl
 
 The public API is:
 
-* `gl_index`: the gl_index in the drawing for the given flat.
 * `origins`: the origins associated with the given `FlatPlotRequestHandle`.
 * `canvas`: the canvas associated with the given `FlatPlotRequestHandle`.
 * `built`: when all is done, this method returns the (previously embedded `DrawingFlats` object).
@@ -109,4 +122,3 @@ The public API is
 
 * `add_process` is called at rendering time to add all the canvases for a drwaing to be drawn.
 * `discard` is called when a drawing is deleted.
-
