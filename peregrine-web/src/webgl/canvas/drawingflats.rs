@@ -1,41 +1,33 @@
 use crate::webgl::canvas::weave::CanvasWeave;
 use crate::util::keyed::KeyedData;
-use crate::webgl::{ GPUSpec, ProtoProcess };
-use anyhow::bail;
+use crate::webgl::ProtoProcess;
 use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPlotRequestHandle;
 use crate::webgl::global::WebGlGlobal;
 
 pub struct DrawingFlats {
+    uniform_name: String,
     main_canvases: Vec<FlatId>,
-    id_map: KeyedData<FlatId,Option<usize>>,
-    max_textures: u32
 }
 
 impl DrawingFlats {
-     fn new(gpu_spec: &GPUSpec) -> DrawingFlats {
+     fn new(uniform_name: &str) -> DrawingFlats {
         DrawingFlats {
+            uniform_name: uniform_name.to_string(),
             main_canvases: vec![],
-            id_map: KeyedData::new(),
-            max_textures: gpu_spec.max_textures()
         }
     }
 
     fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
         let document = gl.document().clone();
         let id = gl.canvas_store_mut().allocate(&document,weave,size)?;
-        let gl_index = self.main_canvases.len();
-        if gl_index as u32 > self.max_textures {
-            bail!("too many textures!");
-        }
         self.main_canvases.push(id.clone());
-        self.id_map.insert(&id,gl_index);
         Ok(id)
     }
 
     pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> anyhow::Result<()> {
         for id in &self.main_canvases {
-            process.add_texture(id)?;
+            process.add_texture(&self.uniform_name,id)?;
         }
         Ok(())
     }
@@ -59,10 +51,10 @@ pub struct DrawingFlatsDrawable {
 }
 
 impl DrawingFlatsDrawable {
-    pub(super) fn new(gpuspec: &GPUSpec) -> DrawingFlatsDrawable {
+    pub(super) fn new(uniform_name: &str) -> DrawingFlatsDrawable {
         DrawingFlatsDrawable {
             responses: KeyedData::new(),
-            drawing_flats: DrawingFlats::new(gpuspec)
+            drawing_flats: DrawingFlats::new(uniform_name)
         }
     }
 
@@ -76,12 +68,6 @@ impl DrawingFlatsDrawable {
     pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
         self.drawing_flats.allocate(gl,weave,size)
     }
-
-    /*
-    pub(crate) fn gl_index(&self, id: &FlatId) -> anyhow::Result<usize> {
-        self.drawing_flats.gl_index(id)
-    }
-    */
 
     pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
         self.responses.get(id).as_ref().map(|a| &a.origin).unwrap().to_vec()

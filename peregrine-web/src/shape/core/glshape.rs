@@ -150,6 +150,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
             array.close();
         },
         PreparedShape::Text(anchor,handles,allotments) => {
+            // TODO factor
             let text = tools.text();
             let mut dims = vec![];
             let mut x_sizes = vec![];

@@ -124,3 +124,45 @@ The public API is
 
 * `add_process` is called at rendering time to add all the canvases for a drwaing to be drawn.
 * `discard` is called when a drawing is deleted.
+
+## Walk-throughs
+
+The whole drawing system is managed through `GLCarriage`.
+
+* The constructor, `new()`, creates the canvas and attribs.
+* The `draw()` method draws the given drawing, probably very many times.
+* The `discard()` method tidies up.
+
+The prinipal objects which outlive these methods are `WebGlGlobal` which contains global state, and `DrawingSession` whose existence is scoped for all the drawings within a particular frame.
+
+### Drawing
+
+Initial drawing is performed by the `new()` method. Most code is executed only in this phase. The outcome is a `Drawing` object which can then be rendered or discarded. This is created from a `DrawingBuilder` created at the start of the constructor and converted into the `Drawing` at the end. The steps are:
+
+* `prepare_shape()` is called on each shape. This allows shapes to register with helper objects their intent to use resources, usually receiving handles.
+* `finish_preparation()` is called to allow global preparation to take place (for example, allocation of canvas areas).
+* `add_shape()` is called, allowing shapes to be drawn, including drawing on canvases and preparation of WebGL array objects, using handles assigned earlier (if needed) to retrieve details.
+* `build()` is called to convert the `DrawingBUilder` into a `Drawing`.
+
+In terms of the canvas pipeline, the `FlatPlotAllocator` is created in `finish_preparation()` and each of the tools individual `finish_preparation()` methods can use it. Typically they do this by recording origins and `FlatId`s and link them to their internal handles. The allocator is then cnnverted to the `DrawingFlatsDrawable` at the end of this method.
+
+`add_shape()` assigns to the WebGL arrays. It can use the co-ordinates assgined in the pervious step (even though the canvas has not yet been drawn on). A new SUbLayer is created for each `FlatId`. No attempt to create or bind the texture (from the point-of-view of WebGL) is made at that time.
+
+Toolss actually draw to canvases at the final, `build()` stage. The `DrawingFlatsDrawable` created in `finish_preparation()` is used to retrieve the approrpiate locations and canvases for drawing. 
+
+### Rendering
+
+Rendering is carried out by the `draw()` method of `Drawing`. Each process is considered in turn, but the initial control flos is back "up" to the `DrawingSession` object with each process though, once a stage has been attached, this is re-delegated to the `draw()` method in the relevant `Process`.
+
+`draw()` iterates through stanzas (sets of attributes) and for each activates the uniforms, attributes, and textures of the process.  Activating a texture comprises calling the bindery to create the texture (if needed) and to bind it to one of the eight slots. First draw assigns values to those uniforms which might change each run: the texture bindings and the stage uniforms. These methods update the `UniformValues` data-structures within `Process` itself: they do not directly interact with the WebGl.
+
+Next draw considers each stanza in turn, activating the program and applying the uniforms and attributes. Finally the draw method of the stanza is called for the webgl drawing.
+
+Currently each flat is considered a different patina and so every draw command has exactly one texture associated with it, as this is all that's required by existing programs. THis simplifies the data model a little at the cost of flexibility. The relevant uniform to identify the texture is specified in `FlatPlotAllocator` and then passed to `DrawingFlats` and from there to each requested flat.
+
+### Discarding
+
+When a carriage is discarded, this is passed to the drawing. The discard then occurs in two branches.
+
+* First, the process is discarded by a call to `Process`'s `discard()` method. This iteratively calls discard on all uniforms, textures, and stanzas. `TextureValues` discard unbinds the texture from the bindery which, when immediately applied, also removes it from the `TextureStore` so deallocating the corrseponding `WebGlTexture`.
+* Second, the canvases are discarded via a call to `DrawingFlats`'s `discard()` method. This recursively removes the canvases from `FlatStore` using its `discard()` method, which removes the reference to the canvas object, freeing it.

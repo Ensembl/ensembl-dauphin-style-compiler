@@ -65,12 +65,14 @@ struct FlatPlotRequest {
 }
 
 pub struct FlatPlotAllocator {
+    uniform_name: String,
     requests: KeyedData<FlatPlotRequestHandle,FlatPlotRequest>
 }
 
 impl FlatPlotAllocator {
-    pub(crate) fn new() -> FlatPlotAllocator {
+    pub(crate) fn new(uniform_name: &str) -> FlatPlotAllocator {
         FlatPlotAllocator {
+            uniform_name: uniform_name.to_string(),
             requests: KeyedData::new()
         }
     }
@@ -90,7 +92,7 @@ impl FlatPlotAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make(self, gl: &mut WebGlGlobal,) -> anyhow::Result<DrawingFlatsDrawable> {
+    pub(crate) fn make(self, gl: &mut WebGlGlobal) -> anyhow::Result<DrawingFlatsDrawable> {
         let mut weave_allocators = HashMap::new();
         let all_weaves = self.all_weaves();
         for weave in all_weaves.iter() {
@@ -99,7 +101,7 @@ impl FlatPlotAllocator {
         for (id,request) in self.requests.items() {
             weave_allocators.get_mut(&request.weave).unwrap().add(id,&request.sizes);
         }
-        let mut drawable = DrawingFlatsDrawable::new(gl.program_store().gpu_spec());
+        let mut drawable = DrawingFlatsDrawable::new(&self.uniform_name);
         for weave_allocator in weave_allocators.values_mut() {
             weave_allocator.allocate(gl,&mut drawable)?;
         }

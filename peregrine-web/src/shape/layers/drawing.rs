@@ -53,7 +53,7 @@ impl DrawingBuilder {
     }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        let mut canvas_allocator = FlatPlotAllocator::new();
+        let mut canvas_allocator = FlatPlotAllocator::new("uSampler");
         self.tools.finish_preparation(gl,&mut canvas_allocator)?;
         self.flats = Some(canvas_allocator.make(gl)?);
         Ok(())

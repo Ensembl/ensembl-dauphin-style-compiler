@@ -89,7 +89,7 @@ impl Rebind {
         Rebind { old_texture: Some(flat_id), new_texture: None, new_index: 0}
     }
 
-    pub(crate) fn apply(&self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub(crate) fn apply(&self, gl: &mut WebGlGlobal) -> anyhow::Result<u32> {
         if let Some(old_id) = &self.old_texture {
             let old_flat = gl.texture_store().remove(old_id)?;
             gl.context().delete_texture(Some(&old_flat));
@@ -108,7 +108,7 @@ impl Rebind {
             context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
             gl.handle_context_errors()?;
         }
-        Ok(())
+        Ok(self.new_index)
     }
 }
 

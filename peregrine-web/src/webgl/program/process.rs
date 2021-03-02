@@ -34,8 +34,9 @@ impl ProtoProcess {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub fn add_texture(&mut self, canvas_id: &FlatId) -> anyhow::Result<()> {
-        let entry = TextureValues::new(canvas_id)?;
+    pub fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> anyhow::Result<()> {
+        let handle = self.program.get_uniform_handle(uniform_name)?;
+        let entry = TextureValues::new(&handle,canvas_id)?;
         self.textures.push(entry);
         Ok(())
     }
@@ -72,6 +73,15 @@ impl Process {
         })
     }
 
+    fn apply_textures(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        let (textures, uniforms, context) = (&self.textures,&mut self.uniforms,&self.program.context());
+        for entry in textures.iter() {
+            let (uniform_handle,value) = entry.apply(gl)?;
+            uniforms.get_mut(uniform_handle).set_value(context,vec![value as f64])?;
+        }
+        Ok(())
+    }
+
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
@@ -80,14 +90,12 @@ impl Process {
         gl.bindery().clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
+        self.apply_textures(gl)?;
         let context = self.program.context();
         self.program.select_program()?;
         for stanza in self.stanzas.iter() {
             for entry in self.uniforms.values() {
                 entry.activate(context)?;
-            }
-            for entry in self.textures.iter() {
-                entry.activate(gl)?;
             }
             stanza.activate(context)?;
             stanza.draw(context,self.program.get_method())?;
