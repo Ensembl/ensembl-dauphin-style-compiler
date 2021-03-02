@@ -2,14 +2,10 @@ use anyhow::{ anyhow as err };
 use crate::util::keyed::KeyedData;
 use peregrine_core::{ Pen, DirectColour };
 use crate::keyed_handle;
-use crate::webgl::canvas::flat::Flat;
-use crate::webgl::canvas::flatstore::{ FlatStore, FlatId };
-use crate::webgl::canvas::weave::CanvasWeave ;
-use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
+use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotAllocator, FlatPlotRequestHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
-use crate::webgl::canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
 
 // TODO padding measurements!
 

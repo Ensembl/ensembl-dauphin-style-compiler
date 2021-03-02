@@ -1,7 +1,7 @@
 use crate::util::keyed::KeyedData;
 use std::collections::{ HashMap, HashSet };
 use super::packer::allocate_areas;
-use super::flatstore::FlatId;
+use crate::webgl::FlatId;
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::global::WebGlGlobal;

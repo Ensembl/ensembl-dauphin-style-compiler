@@ -1,11 +1,8 @@
 use super::layer::Layer;
 use peregrine_core::Shape;
 use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
-use crate::webgl::{ Process, DrawingSession };
+use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
-use crate::webgl::canvas::flatplotallocator::FlatPlotAllocator;
-use crate::webgl::canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
-use crate::webgl::canvas::flatstore::FlatStore;
 use crate::webgl::global::WebGlGlobal;
 
 pub(crate) struct DrawingTools {

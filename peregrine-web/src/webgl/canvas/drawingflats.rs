@@ -1,4 +1,4 @@
-use crate::webgl::canvas::weave::CanvasWeave;
+use crate::webgl::CanvasWeave;
 use crate::util::keyed::KeyedData;
 use crate::webgl::ProtoProcess;
 use super::flatstore::{ FlatId, FlatStore };

@@ -3,10 +3,8 @@ use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
-use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable };
+use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable, TextureBindery, DrawingFlatsDrawable };
 use super::super::layers::drawing::DrawingTools;
-use crate::webgl::canvas::drawingflats::DrawingFlatsDrawable;
-use crate::webgl::canvas::bindery::TextureBindery;
 
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),

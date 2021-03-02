@@ -1,4 +1,4 @@
-use crate::webgl::canvas::flatstore::FlatId;
+use crate::webgl::FlatId;
 use crate::webgl::global::WebGlGlobal;
 use super::uniform::UniformHandle;
 

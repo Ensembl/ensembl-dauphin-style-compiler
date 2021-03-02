@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::webgl::canvas::weave::CanvasWeave;
+use super::weave::CanvasWeave;
 use crate::util::keyed::{ KeyedOptionalValues };
 use web_sys::{ Document };
 use super::flat::Flat;

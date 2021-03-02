@@ -6,7 +6,7 @@ use super::texture::{ TextureValues };
 use crate::util::keyed::{ KeyedData };
 use crate::webgl::util::handle_context_errors;
 use crate::shape::core::stage::{ Stage, ProgramStage };
-use crate::webgl::canvas::flatstore::{ FlatId };
+use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
 
 pub struct ProtoProcess {

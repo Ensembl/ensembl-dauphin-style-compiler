@@ -1,10 +1,9 @@
 use anyhow::{ bail, anyhow as err };
 use std::collections::VecDeque;
-use super::flatstore::FlatId;
+use crate::webgl::{ FlatId, FlatStore };
 use crate::util::keyed::KeyedData;
 use crate::webgl::GPUSpec;
-use crate::webgl::canvas::weave::CanvasWeave;
-use crate::webgl::canvas::flatstore::FlatStore;
+use super::weave::CanvasWeave;
 use web_sys::WebGlRenderingContext;
 use web_sys::WebGlTexture;
 use crate::webgl::util::handle_context_errors;

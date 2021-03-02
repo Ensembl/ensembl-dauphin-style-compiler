@@ -1,6 +1,5 @@
 use crate::shape::layers::programstore::ProgramStore;
-use crate::webgl::canvas::flatstore::FlatStore;
-use crate::webgl::canvas::bindery::{ TextureBindery, TextureStore };
+use crate::webgl::{ FlatStore, TextureBindery,TextureStore };
 use web_sys::Document;
 use crate::webgl::util::handle_context_errors;
 

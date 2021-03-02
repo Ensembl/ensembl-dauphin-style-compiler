@@ -1,6 +1,6 @@
 use crate::webgl::{ UniformHandle, AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
-use crate::webgl::canvas::flatstore::{ FlatId };
-use crate::webgl::canvas::bindery::TextureBindery;
+use crate::webgl::{ FlatId };
+use crate::webgl::TextureBindery;
 
 pub struct CanvasTextureAreas {
     texture_origin: (u32,u32),

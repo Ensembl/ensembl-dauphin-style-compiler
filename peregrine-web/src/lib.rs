@@ -68,6 +68,14 @@ mod webgl {
         pub(crate) mod weave;
     }
 
+    pub(crate) use canvas::weave::CanvasWeave;
+    pub(crate) use canvas::flat::Flat;
+    pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
+    pub(crate) use canvas::bindery::{ TextureBindery, TextureStore };
+    pub(crate) use canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
+    pub(crate) use canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
+
+
     pub(super) mod gpuspec {
         pub(crate) mod glarity;
         pub(crate) mod gpuspec;
