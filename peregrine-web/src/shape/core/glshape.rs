@@ -119,7 +119,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
-                _ => {}
+                Patina::ZMenu(zmenu,values) =>{
+                    tools.zmenus().add_rectangle(zmenu,values,anchor,allotment,x_size,y_size);
+                }
             }
         },
         PreparedShape::DoubleAnchorRect(anchors,patina,allotment) => {
@@ -136,8 +138,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, ca
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
-                _ => {}
-            }
+                Patina::ZMenu(zmenu,values) =>{
+                    tools.zmenus().add_stretchtangle(zmenu,values,anchors,allotment);
+                }            }
         },
         PreparedShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             let patina = colour_to_patina(Colour::Spot(colour.clone()));

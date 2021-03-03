@@ -1,7 +1,7 @@
 use anyhow::{ bail, anyhow as err };
 use std::collections::VecDeque;
 use crate::webgl::{ FlatId, FlatStore };
-use crate::util::keyed::KeyedData;
+use keyed::KeyedData;
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
 use web_sys::WebGlRenderingContext;

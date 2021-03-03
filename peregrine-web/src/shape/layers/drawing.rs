@@ -4,19 +4,23 @@ use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, P
 use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
+use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus };
 
 pub(crate) struct DrawingTools {
-    text: DrawingText
+    text: DrawingText,
+    zmenus: DrawingZMenusBuilder
 }
 
 impl DrawingTools {
     fn new() -> DrawingTools {
         DrawingTools {
-            text: DrawingText::new()
+            text: DrawingText::new(),
+            zmenus: DrawingZMenusBuilder::new()
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
+    pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
         self.text.populate_allocator(gl,allocator)?;
@@ -67,20 +71,22 @@ impl DrawingBuilder {
         let canvases = builder.built();
         let mut processes = vec![];
         self.main_layer.build(&mut processes,&canvases)?;
-        Ok(Drawing::new(processes,canvases)?)
+        Ok(Drawing::new(processes,canvases,tools.zmenus.build())?)
     }
 }
 
 pub(crate) struct Drawing {
     processes: Vec<Process>,
-    canvases: DrawingFlats
+    canvases: DrawingFlats,
+    zmenus: DrawingZMenus
 }
 
 impl Drawing {
-    fn new(processes: Vec<Process>, canvases: DrawingFlats) -> anyhow::Result<Drawing> {        
+    fn new(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> anyhow::Result<Drawing> {
         Ok(Drawing {
             processes,
-            canvases
+            canvases,
+            zmenus
         })
     }
 

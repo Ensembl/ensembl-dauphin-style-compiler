@@ -15,22 +15,22 @@ macro_rules! keyed_handle {
         #[derive(PartialEq,Eq,Hash)]
         pub struct $name(usize);
 
-        impl $crate::util::keyed::KeyedHandle for $name {
+        impl $crate::KeyedHandle for $name {
             fn new(value: usize) -> Self { $name(value) }
             fn get(&self) -> usize { self.0 }
             fn clone_handle(&self) -> Self { $name(self.0) }
         }
 
-        impl Clone for $name where $name: $crate::util::keyed::KeyedHandle {
+        impl Clone for $name where $name: $crate::KeyedHandle {
             fn clone(&self) -> Self {
-                use $crate::util::keyed::KeyedHandle;
+                use $crate::KeyedHandle;
                 self.clone_handle()
             }
         }
     };
 }
 
-pub(crate) struct KeyedKeys<K: KeyedHandle,T>(HashMap<String,K>,PhantomData<T>);
+pub struct KeyedKeys<K: KeyedHandle,T>(HashMap<String,K>,PhantomData<T>);
 
 impl<K: KeyedHandle, T> Clone for KeyedKeys<K,T> {
     fn clone(&self) -> Self {
@@ -56,22 +56,22 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
     }
 }
 
-pub(crate) struct KeyedDataMaker<'f,K: KeyedHandle,T>(usize,Box<dyn Fn() -> T + 'f>,PhantomData<K>);
+pub struct KeyedDataMaker<'f,K: KeyedHandle,T>(usize,Box<dyn Fn() -> T + 'f>,PhantomData<K>);
 
 impl<'f,K: KeyedHandle,T> KeyedDataMaker<'f,K,T> {
-    pub(crate) fn make(&self) -> KeyedData<K,T> {
+    pub fn make(&self) -> KeyedData<K,T> {
         KeyedData((0..self.0).map(|_| self.1()).collect(),PhantomData)
     }
 }
 
-pub(crate) struct KeyedData<K: KeyedHandle, T>(Vec<T>,PhantomData<K>);
+pub struct KeyedData<K: KeyedHandle, T>(Vec<T>,PhantomData<K>);
 
 impl<K: KeyedHandle,T> KeyedData<K,T> {
     pub fn new() -> KeyedData<K,T> {
         KeyedData(vec![],PhantomData)
     }
 
-    pub(crate) fn add(&mut self, value: T) -> K {
+    pub fn add(&mut self, value: T) -> K {
         let idx = self.0.len();
         self.0.push(value);
         K::new(idx)
@@ -136,7 +136,7 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
     }
 }
 
-pub(crate) struct KeyedOptionalValues<K: KeyedHandle,T> {
+pub struct KeyedOptionalValues<K: KeyedHandle,T> {
     available: BTreeSet<usize>,
     entries: KeyedData<K,Option<T>>
 }
@@ -150,7 +150,7 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
 
     }
 
-    pub(crate) fn add(&mut self, value: T) -> K {
+    pub fn add(&mut self, value: T) -> K {
         if let Some(id) = self.available.range(..).next().cloned() {
             self.available.remove(&id);
             let id = K::new(id);
@@ -161,12 +161,12 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
         }
     }
 
-    pub(crate) fn get(&self, key: &K) -> anyhow::Result<&T> {
+    pub fn get(&self, key: &K) -> anyhow::Result<&T> {
         let out : Option<&T> = self.entries.get(key).into();
         out.ok_or_else(|| err!("invalid id"))
     }
 
-    pub(crate) fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
+    pub fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
         let out : Option<&mut T> = self.entries.get_mut(key).into();
         out.ok_or_else(|| err!("invalid id"))
     }
@@ -179,13 +179,13 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
         self.entries.values_mut().filter(|x| x.is_some()).map(|x| x.as_mut().unwrap())
     }
 
-    pub(crate) fn remove(&mut self, key: &K) {
+    pub fn remove(&mut self, key: &K) {
         self.entries.remove(key);
         self.available.insert(key.get());
     }
 }
 
-pub(crate) struct KeyedValues<K: KeyedHandle,T> {
+pub struct KeyedValues<K: KeyedHandle,T> {
     our_keys: KeyedKeys<K,T>,
     entries: KeyedData<K,T>
 }
@@ -198,7 +198,7 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
         }
     }
 
-    pub(crate) fn keys(&self) -> KeyedKeys<K,T> {
+    pub fn keys(&self) -> KeyedKeys<K,T> {
         self.our_keys.clone()
     }
 
@@ -214,3 +214,6 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
 
     pub fn data(&self) -> &KeyedData<K,T> { &self.entries }
 }
+
+// TODO ducument
+// TODO test

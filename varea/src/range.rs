@@ -95,6 +95,8 @@ impl RTreeLevel {
     }
 }
 
+// TODO no prior-construction on lookup()
+
 pub struct RTree {
     merge: u32,
     levels: Vec<RTreeLevel>
@@ -103,16 +105,16 @@ pub struct RTree {
 impl RTree {
     pub fn new(merge: u32) -> RTree {
         RTree {
-            merge: merge,
+            merge,
             levels: vec![]
         }
     }
 
-    fn slot(&self, a: u64, b: u64) -> u32 {
+    fn correct_level(&self, a: u64, b: u64) -> u32 {
         let mut scale = (b-a).next_power_of_two().trailing_zeros();
         scale = scale / self.merge;
-        let pow = 1 << (scale * self.merge);
-        if a % pow != 0 {
+        let chosen_size = 1 << (scale * self.merge);
+        if a / chosen_size != (b-1) / chosen_size {
             scale += 1;
         }
         scale
@@ -126,7 +128,7 @@ impl RTree {
 impl VareaIndex for RTree {
     fn add(&mut self, id: &VareaId, item: Box<dyn VareaIndexItem>) -> Box<dyn VareaIndexRemover> {
         if let Ok(r) = item.into_any().downcast::<RTreeRange>() {
-            let slot = self.slot(r.0,r.1);
+            let slot = self.correct_level(r.0,r.1);
             while slot >= self.levels.len() as u32 {
                 self.levels.push(RTreeLevel::new(self.levels.len() as u32 + self.merge));
             }
@@ -138,7 +140,11 @@ impl VareaIndex for RTree {
 
     fn lookup(&self, area: &Box<dyn VareaIndexItem>) -> VareaSearch {
         if let Some(r) = area.as_any().downcast_ref::<RTreeRange>() {
-            self.overlap(r)
+            if r.0 == r.1 {
+                Box::new(NeverVareaWalker())
+            } else {
+                self.overlap(r)
+            }
         } else {
             Box::new(NeverVareaWalker())   
         }
@@ -160,15 +166,15 @@ mod tests {
     }
 
     #[test]
-    fn slot_test() {
+    fn correct_level_test() {
         let rtree = RTree::new(1);
-        assert_eq!(4,rtree.slot(1,9));
-        assert_eq!(2,rtree.slot(8,11));
-        assert_eq!(0,rtree.slot(0,1));
+        assert_eq!(4,rtree.correct_level(1,9));
+        assert_eq!(2,rtree.correct_level(8,11));
+        assert_eq!(0,rtree.correct_level(0,1));
         let rtree2 = RTree::new(2);
-        assert_eq!(2,rtree2.slot(1,9));
-        assert_eq!(1,rtree2.slot(8,11));
-        assert_eq!(0,rtree2.slot(0,1));
+        assert_eq!(2,rtree2.correct_level(1,9));
+        assert_eq!(1,rtree2.correct_level(8,11));
+        assert_eq!(0,rtree2.correct_level(0,1));
     }
 
     #[test]
@@ -247,7 +253,7 @@ mod tests {
             for end in start..10 {
                 let mut out = vec![];
                 for (i,(a,b)) in ranges.iter().enumerate() {
-                    if !(*b <= start || *a >= end ) {
+                    if !(*b <= start || *a >= end  || start==end) {
                         out.push(i);
                     }
                 }
@@ -256,5 +262,23 @@ mod tests {
         
             }
         }
+    }
+
+    #[test]
+    fn semi_open() {
+        let mut tree = RTree::new(1);
+        tree.add(&0,Box::new(RTreeRange::new(2,6)));
+        assert_eq!(0,all(&tree.lookup(&search(0,2))).len());
+        assert_eq!(0,all(&tree.lookup(&search(1,2))).len());
+        assert_eq!(0,all(&tree.lookup(&search(2,2))).len());
+        assert_eq!(1,all(&tree.lookup(&search(0,3))).len());
+        assert_eq!(1,all(&tree.lookup(&search(1,3))).len());
+        assert_eq!(1,all(&tree.lookup(&search(2,3))).len());
+        assert_eq!(0,all(&tree.lookup(&search(6,7))).len());
+        assert_eq!(0,all(&tree.lookup(&search(6,8))).len());
+        assert_eq!(0,all(&tree.lookup(&search(6,9))).len());
+        assert_eq!(1,all(&tree.lookup(&search(5,7))).len());
+        assert_eq!(1,all(&tree.lookup(&search(5,8))).len());
+        assert_eq!(1,all(&tree.lookup(&search(5,9))).len());
     }
 }

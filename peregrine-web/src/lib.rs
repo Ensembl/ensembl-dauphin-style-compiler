@@ -34,6 +34,7 @@ mod shape {
 
     pub(crate) mod layers {
         pub(crate) mod drawing;
+        pub(crate) mod drawingzmenus;
         pub(super) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;
@@ -53,7 +54,6 @@ mod train {
 mod util {
     pub(crate) mod ajax;
     pub(crate) mod error;
-    pub(crate) mod keyed;
     pub(crate) mod safeelement;
 }
 

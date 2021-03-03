@@ -39,21 +39,23 @@
  * ZMenuToken is a lex token used temporarily internally during parsing and can be ignored.
  */
 
+// TODO hashmap to docs
+
 use anyhow::{ bail };
-use std::collections::{ HashMap, HashSet };
+use std::collections::{ HashSet };
 use std::iter::Peekable;
 use std::str::Chars;
 
 #[derive(Clone,Debug)]
-enum ZMenuText {
+pub enum ZMenuText {
     Fixed(String),
     Template(String)
 }
 
 #[derive(Clone,Debug)]
-struct ZMenuItem {
-    text: ZMenuText,
-    markup: Vec<String>
+pub struct ZMenuItem {
+    pub text: ZMenuText,
+    pub markup: Vec<String>
 }
 
 impl ZMenuItem {
@@ -63,7 +65,7 @@ impl ZMenuItem {
 }
 
 #[derive(Debug,Clone)]
-struct ZMenuBlock(Vec<ZMenuItem>);
+pub struct ZMenuBlock(pub Vec<ZMenuItem>);
 
 #[derive(Clone)]
 enum ZMenuToken {
@@ -168,7 +170,7 @@ impl ZMenuBlock {
 }
 
 #[derive(Debug,Clone)]
-enum ZMenuSequence {
+pub enum ZMenuSequence {
     Item(ZMenuBlock),
     LineBreak
 }
@@ -196,7 +198,7 @@ fn fmt_zmenu_sequences(spec: &str) -> anyhow::Result<Vec<ZMenuSequence>> {
 }
 
 #[derive(Clone,Debug)]
-pub struct ZMenu(Vec<ZMenuSequence>);
+pub struct ZMenu(pub Vec<ZMenuSequence>);
 
 impl ZMenu {
     pub fn new(spec: &str) -> anyhow::Result<ZMenu> {

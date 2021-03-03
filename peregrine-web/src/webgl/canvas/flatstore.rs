@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use super::weave::CanvasWeave;
-use crate::util::keyed::{ KeyedOptionalValues };
+use keyed::KeyedOptionalValues;
 use web_sys::{ Document };
 use super::flat::Flat;
-use crate::keyed_handle;
+use keyed::keyed_handle;
 use crate::util::error::js_warn;
 
 // TODO test discard webgl buffers etc

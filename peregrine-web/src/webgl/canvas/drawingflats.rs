@@ -1,5 +1,5 @@
 use crate::webgl::CanvasWeave;
-use crate::util::keyed::KeyedData;
+use keyed::KeyedData;
 use crate::webgl::ProtoProcess;
 use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPlotRequestHandle;

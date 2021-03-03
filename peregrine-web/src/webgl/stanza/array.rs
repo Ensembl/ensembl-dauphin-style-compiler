@@ -1,5 +1,5 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
-use crate::util::keyed::{ KeyedData, KeyedDataMaker };
+use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::ProcessStanza;
 use super::builder::ProcessStanzaAddable;
 use web_sys::WebGlRenderingContext;

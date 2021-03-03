@@ -59,6 +59,10 @@ version = "*"
 version="*"
 path="../dauphin-interp"
 
+[dependencies.keyed]
+version="*"
+path="../keyed"
+
 [dependencies.peregrine_core]
 version="*"
 path="../peregrine-core"

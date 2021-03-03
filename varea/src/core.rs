@@ -43,7 +43,6 @@ pub trait VareaWalker {
     fn next_from(&self, start: VareaId) -> Option<VareaId>;
 }
 
-
 pub type VareaSearch = Box<dyn VareaWalker>;
 
 pub struct VareaStore<T> {
@@ -135,4 +134,4 @@ impl<'a,T> Iterator for VareaStoreMatches<'a,T> {
     }
 }
 
-// This file is effectively unit-tested by the tests in walker.VareaId
+// This file is effectively unit-tested by the tests in walker.

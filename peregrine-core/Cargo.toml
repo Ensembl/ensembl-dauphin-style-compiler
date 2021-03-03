@@ -25,6 +25,10 @@ path="../blackbox"
 version="*"
 path="../varea"
 
+[dependencies.keyed]
+version="*"
+path="../keyed"
+
 [dependencies.commander]
 version="*"
 path="../commander"

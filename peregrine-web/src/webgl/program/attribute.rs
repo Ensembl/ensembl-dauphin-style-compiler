@@ -3,7 +3,7 @@ use super::source::Source;
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlRenderingContext, WebGlBuffer };
-use crate::keyed_handle;
+use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 
 keyed_handle!(AttribHandle);

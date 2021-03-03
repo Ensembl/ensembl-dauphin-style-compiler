@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err };
-use crate::util::keyed::KeyedData;
+use keyed::KeyedData;
 use peregrine_core::{ Pen, DirectColour };
-use crate::keyed_handle;
+use keyed::keyed_handle;
 use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotAllocator, FlatPlotRequestHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;

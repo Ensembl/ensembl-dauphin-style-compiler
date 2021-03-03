@@ -85,6 +85,7 @@ mod shape {
     mod shape;
     mod shapelist;
     mod zmenu;
+    mod zmenufixed;
     mod shapeoutput;
 
     pub use self::core::{ 

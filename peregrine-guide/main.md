@@ -20,3 +20,6 @@ A number of decisions have been made in the design of peregrine which are at odd
 
 * [Geometry in WebGL](geometry.md)
 * [Texture packing](alloc.md)
+* [2D-Canvas Handling](canvas.md)
+* [ZMenus](zmenu.md)
+* [Varea](varea.md)

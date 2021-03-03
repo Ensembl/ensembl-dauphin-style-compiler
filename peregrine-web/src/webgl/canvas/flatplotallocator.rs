@@ -1,11 +1,11 @@
-use crate::util::keyed::KeyedData;
+use keyed::KeyedData;
 use std::collections::{ HashMap, HashSet };
 use super::packer::allocate_areas;
 use crate::webgl::FlatId;
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::global::WebGlGlobal;
-use crate::keyed_handle;
+use keyed::keyed_handle;
 
 keyed_handle!(FlatPlotRequestHandle);
 
