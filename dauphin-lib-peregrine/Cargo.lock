@@ -387,6 +387,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "keyed"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -479,6 +486,7 @@ dependencies = [
  "dauphin_interp",
  "futures",
  "js-sys",
+ "keyed",
  "lazy_static",
  "owning_ref",
  "peregrine_dauphin_queue",

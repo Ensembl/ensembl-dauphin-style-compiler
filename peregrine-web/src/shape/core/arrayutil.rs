@@ -291,3 +291,7 @@ pub(crate) fn apply_left(coord: &mut [f64], layer: &Layer) {
         *x -= left;
     }
 }
+
+pub(crate) fn empty_is<T>(value: Vec<T>, default: T) -> Vec<T> {
+    if value.len() == 0 { vec![default] } else { value }
+}

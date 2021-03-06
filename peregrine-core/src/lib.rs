@@ -95,6 +95,7 @@ mod shape {
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::ShapeList;
     pub use self::shapeoutput::ShapeOutput;
+    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
 }
 
 mod train {
@@ -141,7 +142,7 @@ pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, Ins
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter, Shape
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator
 };
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::CountingPromise;

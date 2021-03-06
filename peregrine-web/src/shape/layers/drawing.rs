@@ -71,7 +71,7 @@ impl DrawingBuilder {
         let canvases = builder.built();
         let mut processes = vec![];
         self.main_layer.build(&mut processes,&canvases)?;
-        Ok(Drawing::new(processes,canvases,tools.zmenus.build())?)
+        Ok(Drawing::new(processes,canvases,self.tools.zmenus.build())?)
     }
 }
 

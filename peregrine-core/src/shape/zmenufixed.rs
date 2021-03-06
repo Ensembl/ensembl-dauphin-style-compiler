@@ -43,7 +43,7 @@ impl ZMenuBuildText {
     }
 }
 
-struct ZMenuFixedItem {
+pub struct ZMenuFixedItem {
     text: String,
     markup: Vec<String>
 }
@@ -69,7 +69,7 @@ impl ZMenuBuildItem {
     }
 }
 
-struct ZMenuFixedBlock(Vec<ZMenuFixedItem>);
+pub struct ZMenuFixedBlock(Vec<ZMenuFixedItem>);
 
 struct ZMenuBuildBlock(Vec<ZMenuBuildItem>);
 
@@ -83,7 +83,7 @@ impl ZMenuBuildBlock {
     }
 }
 
-enum ZMenuFixedSequence {
+pub enum ZMenuFixedSequence {
     Item(ZMenuFixedBlock),
     LineBreak
 }
@@ -109,8 +109,8 @@ impl ZMenuBuildSequence {
     }
 }
 
-struct ZMenuFixed(Vec<ZMenuFixedSequence>);
-struct ZMenuBuild(Vec<ZMenuBuildSequence>);
+pub struct ZMenuFixed(Vec<ZMenuFixedSequence>);
+struct ZMenuBuild(pub Vec<ZMenuBuildSequence>);
 
 impl ZMenuBuild {
     fn build(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
@@ -133,7 +133,7 @@ pub struct ZMenuGenerator {
 pub struct ZMenuProxy(ZMenuGenerator,usize);
 
 impl ZMenuProxy {
-    fn value(&self) -> ZMenuFixed {
+    pub fn value(&self) -> ZMenuFixed {
         self.0.build.value(&self.0.values,self.1)
     }
 }
@@ -151,13 +151,13 @@ impl Iterator for ZMenuProxyIter {
 }
 
 impl ZMenuGenerator {
-    pub(crate) fn new(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> ZMenuGenerator {
+    pub fn new(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> ZMenuGenerator {
         let (build,values) = ZMenuBuild::build(zmenu,data);
         ZMenuGenerator {
             build: Rc::new(build), values: Rc::new(values)
         }
     }
 
-    pub(crate) fn make_proxy(&self, index: usize) -> ZMenuProxy { ZMenuProxy(self.clone(),index) }
+    pub fn make_proxy(&self, index: usize) -> ZMenuProxy { ZMenuProxy(self.clone(),index) }
     pub(crate) fn iter(&self) -> ZMenuProxyIter { ZMenuProxyIter(self.clone(),0) }
 }

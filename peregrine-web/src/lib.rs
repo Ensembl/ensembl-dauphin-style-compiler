@@ -19,6 +19,7 @@ mod run {
 mod shape {
     pub(crate) mod core {
         pub(crate) mod arrayutil;
+        pub(super) mod looper;
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
         pub(super) mod fixgeometry;
