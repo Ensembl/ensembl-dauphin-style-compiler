@@ -153,7 +153,7 @@ fn line_number_smoke() {
     let is = make_interpret_suite().expect("m");
     let message = comp_interpret(&is,&mut context,&mut linker,&config,"main").map(|_| ()).expect_err("x").to_string();
     print!("{}\n",message);
-    assert!(message.contains("line-number.dp:10"));
+    assert!(message.contains("line-number.egs:10"));
 }
 
 #[test]

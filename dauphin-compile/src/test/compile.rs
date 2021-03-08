@@ -45,9 +45,9 @@ pub fn xxx_test_config() -> Config {
     cfg.set_opt_level(2);
     cfg.set_debug_run(true);
     cfg.add_lib("buildtime");
-    cfg.add_file_search_path("*.dp");
-    cfg.add_file_search_path("parser/*.dp");
-    cfg.add_file_search_path("parser/import-subdir/*.dp");
+    cfg.add_file_search_path("*.egs");
+    cfg.add_file_search_path("parser/*.egs");
+    cfg.add_file_search_path("parser/import-subdir/*.egs");
     cfg
 }
 

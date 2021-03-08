@@ -23,7 +23,7 @@ use crate::util::filename_to_name;
 use regex::Regex;
 use dauphin_interp::util::DauphinError;
 
-static EXTENSIONS : [&str;1] = [".dp"];
+static EXTENSIONS : [&str;1] = [".egs"];
 
 pub struct FileResolver {
     path: PathBuf

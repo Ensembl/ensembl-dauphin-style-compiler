@@ -1,16 +1,16 @@
-Identifier("hello") smoke.dp:1:1
-Operator(":=") smoke.dp:1:7
-Other('[') smoke.dp:1:10
-Number("1") smoke.dp:1:11
-Other(',') smoke.dp:1:12
-Number("2") smoke.dp:1:13
-Other(',') smoke.dp:1:14
-Number("31.5") smoke.dp:1:15
-Other(']') smoke.dp:1:19
-Other(';') smoke.dp:1:20
-Other('\\') smoke.dp:1:21
-Identifier("n") smoke.dp:1:22
-Identifier("z") smoke.dp:1:24
-Operator(":=") smoke.dp:1:26
-Other('\\') smoke.dp:1:29
-Error("Unterminated string literal") smoke.dp:1:30
+Identifier("hello") smoke.egs:1:1
+Operator(":=") smoke.egs:1:7
+Other('[') smoke.egs:1:10
+Number("1") smoke.egs:1:11
+Other(',') smoke.egs:1:12
+Number("2") smoke.egs:1:13
+Other(',') smoke.egs:1:14
+Number("31.5") smoke.egs:1:15
+Other(']') smoke.egs:1:19
+Other(';') smoke.egs:1:20
+Other('\\') smoke.egs:1:21
+Identifier("n") smoke.egs:1:22
+Identifier("z") smoke.egs:1:24
+Operator(":=") smoke.egs:1:26
+Other('\\') smoke.egs:1:29
+Error("Unterminated string literal") smoke.egs:1:30

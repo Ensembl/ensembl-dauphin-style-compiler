@@ -34,6 +34,6 @@ pub fn make_buildtime() -> CompLibRegister {
     set.push("get_define",None,DefineCommandType(true));
     set.push("get_version",None,VersionCommandType());
     set.push("print_compile",None,PrintCompileCommandType());
-    set.add_header("buildtime",include_str!("header.dp"));
+    set.add_header("buildtime",include_str!("header.egs"));
     set
 }

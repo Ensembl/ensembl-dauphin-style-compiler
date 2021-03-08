@@ -186,7 +186,7 @@ mod test {
         let mut lexer = Lexer::new(&resolver,"");
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:import-search").expect("cannot load file");
-        let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
+        let txt = "import-smoke4.egs:1 Reserved keyword \'reserved\' found";
         assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
@@ -199,7 +199,7 @@ mod test {
         let mut state = GenerateState::new("test");
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/import-smoke").expect("cannot load file");
-        let txt = "import-smoke4.dp:1 Reserved keyword \'reserved\' found";
+        let txt = "import-smoke4.egs:1 Reserved keyword \'reserved\' found";
         assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
@@ -229,7 +229,7 @@ mod test {
         let mut state = GenerateState::new("test");
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/parser-nonest").expect("cannot load file");
-        let txt = "parser-nonest.dp:5 $ encountered outside filter";
+        let txt = "parser-nonest.egs:5 $ encountered outside filter";
         assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
@@ -242,7 +242,7 @@ mod test {
         let mut state = GenerateState::new("test");
         let mut p = Parser::new(&mut state,&mut lexer).expect("k");
         lexer.import("search:parser/id-clash").expect("cannot load file");
-        let txt = "id-clash.dp:2 duplicate identifier: id_clash::assign";
+        let txt = "id-clash.egs:2 duplicate identifier: id_clash::assign";
         assert_eq!(txt,p.parse(&mut state,&mut lexer).ok().unwrap().expect_err("x")[0]);
     }
 
