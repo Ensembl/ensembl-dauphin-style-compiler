@@ -6,11 +6,11 @@ A number of decisions have been made in the design of peregrine which are at odd
 
 For any questions, see #new-website-genome-browser on slack.
 
-## Principle Information
+## Principal Information
 
 1. [Motivation of Approach and Data Architecture](motivation.md)
 2. [Style Language Architecture](style-arch.md)
-2. Technology Architecture
+2. [Technology Architecture](arch-tech.md)
 3. Style Language and Style Compiler
 4. Async and Bootstrapping
 5. Core Visual Data Model
@@ -25,3 +25,7 @@ For any questions, see #new-website-genome-browser on slack.
 * [2D-Canvas Handling](canvas.md)
 * [ZMenus](zmenu.md)
 * [Varea](varea.md)
+
+## Presentations
+
+* [Overview](overview-pres.md)
