@@ -30,3 +30,30 @@
 * Separate constant "style" from variable "data"
 * Compression and styling are equivalent
 
+---
+
+## WHat is the Style Language for?
+
+* Implements the "syle" part
+* Consumes data, emits "shapes"
+* Decompresses data
+* Adds colours, heights, labels, etc
+
+---
+
+### What is the Style Language?
+
+* Not a proper programming language
+* Based around 1D arrays of simple values
+* No branches, no loops
+* "Pretend" structures and multi-dimensional arrays
+
+---
+
+### Use of style-language
+
+* As black boc
+* As black box with custom parameters
+* Custom style language
+* New primitives
+
