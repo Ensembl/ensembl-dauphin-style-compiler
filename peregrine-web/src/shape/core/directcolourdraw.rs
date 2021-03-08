@@ -1,6 +1,6 @@
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use peregrine_core::DirectColour;
-use super::arrayutil::scale_colour;
+use super::super::util::arrayutil::scale_colour;
 
 #[derive(Clone)]
 pub struct DirectProgram {

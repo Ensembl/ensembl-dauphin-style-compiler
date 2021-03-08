@@ -3,7 +3,7 @@ use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
-use crate::webgl::{ ProcessStanzaElements, ProcessStanzaArray, ProcessStanzaAddable, TextureBindery, DrawingFlatsDrawable };
+use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, TextureBindery};
 use super::super::layers::drawing::DrawingTools;
 
 pub enum PreparedShape {

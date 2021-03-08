@@ -18,7 +18,6 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        pub(crate) mod arrayutil;
         pub(super) mod looper;
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
@@ -41,6 +40,13 @@ mod shape {
         pub(crate) mod programstore;
         pub(crate) mod layer;
         pub(super) mod patina;
+    }
+
+    pub(crate) mod util {
+        pub(super) mod iterators;
+        pub(crate) mod glaxis;
+        pub(super) mod quickvec;
+        pub(crate) mod arrayutil;
     }
 }
 

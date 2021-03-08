@@ -1,18 +1,18 @@
 #[macro_export]
-macro_rules! looper {
+macro_rules! looper_lifetime {
     ($looper:ident, $base:ident, {$root:ident, $root_type: ty}, [$({$var:ident,$typ:ty}),*] ) => {
         use std::slice::Iter;
         use std::iter::Cycle;
-        
+
         struct $looper<'t> {
             $root: Iter<'t,$root_type>,
             $(
                 $var: Cycle<Iter<'t,$typ>>
             ),*
         }
-        
+
         impl<'t> $looper<'t> {
-            fn new(object: &$base) -> $looper {
+            fn new<'q: 't>(object: &'t $base<'q>) -> $looper<'t> {
                 $looper {
                     $root: object.$root.iter(),
                     $(
@@ -21,7 +21,7 @@ macro_rules! looper {
                 }
             }
         }
-        
+
         impl<'t> Iterator for $looper<'t> {
             type Item = (&'t $root_type,$(&'t $typ),*);
         
@@ -38,5 +38,5 @@ macro_rules! looper {
                 }
             }
         }        
-    };
+   };
 }

@@ -1,3 +1,7 @@
+# Note
+
+The functions described in this document are defined inside arrayutils but are generally accessed through the corresponding GLAxis call.
+
 # Anchors
 
 Co-ordinates in peregrine are complex, as relative sizes and positions can vary depending on scale, and these routine transformations are delegated to the GPU. We're therefore always dealing with all kinds of deltas, scales, and axis directions rather than simple co-ordinates. This can get incredibly confusing.
