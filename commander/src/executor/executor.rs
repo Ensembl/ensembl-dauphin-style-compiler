@@ -308,11 +308,11 @@ mod test {
         let tc = x.add(step,ctxa);
         x.add(step2,ctxb);
         x.tick(2.);
-        assert!(tc.task_state() == TaskResult::Ongoing);
-        assert!(SleepQuantity::None == integration.get_sleeps().remove(0));
+        assert_eq!(tc.task_state(),TaskResult::Ongoing);
+        assert_eq!(SleepQuantity::Yesterday,integration.get_sleeps().remove(0));
         x.tick(2.);
-        assert!(tc.task_state() == TaskResult::Ongoing);
-        assert!(SleepQuantity::Forever == integration.get_sleeps().remove(0));
+        assert_eq!(tc.task_state(),TaskResult::Ongoing);
+        assert_eq!(SleepQuantity::Forever,integration.get_sleeps().remove(0));
     }
 
     async fn sleep_hepler(ctx: Agent, timeout: f64) {
@@ -332,7 +332,8 @@ mod test {
         x.add(z,ctx);
         x.tick(10.);
         assert_eq!(vec![
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
+            SleepQuantity::None
         ],*integration.get_sleeps());
     }
 
@@ -350,7 +351,7 @@ mod test {
         x.add(z,ctx);
         assert_eq!(vec![
             SleepQuantity::Forever,
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
         ],*integration.get_sleeps());
 
     }
@@ -379,13 +380,13 @@ mod test {
         x.tick(10.);
         x.tick(10.);
         assert_eq!(vec![
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(5.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(7.),
             SleepQuantity::Time(2.),
             SleepQuantity::Time(2.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Forever,
         ],*integration.get_sleeps());
     }
@@ -406,15 +407,15 @@ mod test {
         integration.set_time(11.);
         x.tick(10.);
         assert_eq!(vec![
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(10.),
-            SleepQuantity::None
+            SleepQuantity::Yesterday
         ],*integration.get_sleeps());
         x.tick(10.); /* (Done) => Expiry => Forever */
         assert_eq!(vec![
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(10.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Forever
         ],*integration.get_sleeps());
 
@@ -436,7 +437,7 @@ mod test {
         /* none runnable, none next-tick, no timers => Forever */
         x.tick(1.);
         fos.satisfy(());
-        assert_eq!(vec![SleepQuantity::None,SleepQuantity::Forever,SleepQuantity::None],*integration.get_sleeps());
+        assert_eq!(vec![SleepQuantity::Yesterday,SleepQuantity::Forever,SleepQuantity::Yesterday],*integration.get_sleeps());
     }
 
     #[allow(unused_must_use)]
@@ -501,9 +502,9 @@ mod test {
         assert_eq!(1.,integration.get_time());
         /* verify */
         assert_eq!(vec![
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(4.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(2.)],
             *integration.get_sleeps());
     }

@@ -78,7 +78,7 @@ mod test {
         integration.sleep(SleepQuantity::Time(3.));
         assert_eq!(vec![
             SleepQuantity::Time(1.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(3.)
         ],*ti.get_sleeps());
     }
@@ -102,9 +102,10 @@ mod test {
         assert_eq!(*integration.get_sleeps(),vec![
             SleepQuantity::None,
             SleepQuantity::Time(1.),
-            SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Time(3.),
             SleepQuantity::None,
+            SleepQuantity::Yesterday,
             SleepQuantity::Forever
         ]);
     }

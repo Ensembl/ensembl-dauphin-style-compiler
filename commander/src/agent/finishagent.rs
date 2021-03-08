@@ -143,6 +143,6 @@ mod test {
         let tc = Agent::new(&cfg,&eah,&cq,&integration.clone(),"name");
         tc.run_agent().register(&h);
         tc.finish(KillReason::NotNeeded);
-        assert_eq!(vec![SleepQuantity::None],*ti.get_sleeps());
+        assert_eq!(vec![SleepQuantity::Yesterday],*ti.get_sleeps());
     }
 }
