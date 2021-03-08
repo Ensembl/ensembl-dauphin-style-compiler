@@ -70,15 +70,30 @@ pub struct FixZMenuRectangle {
 }
 
 impl FixZMenuRectangle {
-    pub fn new(zmenu: ZMenuGenerator, sea_x: ScreenEdge, sea_y: ScreenEdge,
-                      ship_x: ShipEnd, ship_y: ShipEnd,
-                      size_x: Vec<f64>, size_y: Vec<f64>, allotment: Vec<String>) -> FixZMenuRectangle {
-        let x = GLAxis::new_from_single(&sea_x, &ship_x, &size_x, true,false);
-        let y = GLAxis::new_from_single(&sea_y, &ship_y, &size_y, false,false);
+    fn new(zmenu: ZMenuGenerator, x: GLAxis, y: GLAxis, allotment: Vec<String>) -> FixZMenuRectangle {
         FixZMenuRectangle {
             zmenu, x, y, 
             allotment: empty_is(allotment,"".to_string())
         }
+    }
+
+    pub fn new_rectangle(zmenu: ZMenuGenerator, sea_x: ScreenEdge, sea_y: ScreenEdge,
+                      ship_x: ShipEnd, ship_y: ShipEnd,
+                      size_x: Vec<f64>, size_y: Vec<f64>, allotment: Vec<String>) -> FixZMenuRectangle {
+        let x = GLAxis::new_from_single(&sea_x, &ship_x, &size_x, true,false);
+        let y = GLAxis::new_from_single(&sea_y, &ship_y, &size_y, false,false);
+        FixZMenuRectangle::new(zmenu,x,y,allotment)
+    }
+
+    pub fn new_stretchtangle(zmenu: ZMenuGenerator,
+                                    axx1: ScreenEdge, ayy1: ScreenEdge, /* sea-end anchor1 (mins) */
+                                    axx2: ScreenEdge, ayy2: ScreenEdge, /* sea-end anchor2 (maxes) */
+                                    pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
+                                    pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
+                                    allotment: Vec<String>) -> FixZMenuRectangle {
+        let x = GLAxis::new_from_double(&axx1,&pxx1, &axx2, &pxx2, true,false);
+        let y = GLAxis::new_from_double(&ayy1,&pyy1, &ayy2, &pyy2, false,false);                                                                                
+        FixZMenuRectangle::new(zmenu,x,y,allotment)
     }
 }
 

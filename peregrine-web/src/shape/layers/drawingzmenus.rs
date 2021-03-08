@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use peregrine_core::{AnchorPair, SeaEnd, SingleAnchor, ZMenu, ZMenuGenerator};
+use peregrine_core::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
 use crate::shape::core::stage::Stage;
 use crate::shape::core::fixgeometry::FixZMenuRectangle;
 use peregrine_core::ZMenuFixed;
@@ -55,7 +55,7 @@ impl DrawingZMenusBuilder {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                self.add_region(Box::new(FixZMenuRectangle::new(generator,sea_x,sea_y,ship_x,ship_y,x_size,y_size,allotment)));
+                self.add_region(Box::new(FixZMenuRectangle::new_rectangle(generator,sea_x,sea_y,ship_x,ship_y,x_size,y_size,allotment)));
             },
             _ => {}
             /*
@@ -73,7 +73,33 @@ impl DrawingZMenusBuilder {
     }
 
     pub(crate) fn add_stretchtangle(&mut self, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<String>) {
-
+        let generator = ZMenuGenerator::new(&zmenu,&values);
+        let anchors_x = anchors.0;
+        let anchors_y = anchors.1;
+        let anchor_sea_x = anchors_x.0;
+        let pxx1 = anchors_x.1;
+        let pxx2 = anchors_x.2;
+        let anchor_sea_y = anchors_y.0;
+        let pyy1 = anchors_y.1;
+        let pyy2 = anchors_y.2;
+        match (anchor_sea_x,anchor_sea_y) {
+            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+                self.add_region(Box::new(FixZMenuRectangle::new_stretchtangle(generator,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,allotment)))
+            },
+            _ => {}
+            /* 
+            (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+                Ok((layer.get_pin(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Pin))
+            },
+            (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+                Ok((layer.get_tape(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Tape))
+            },
+            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+                Ok((layer.get_page(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Page))
+            }
+            */
+        }
+    
     }
 
     pub(crate) fn build(self) -> DrawingZMenus {
