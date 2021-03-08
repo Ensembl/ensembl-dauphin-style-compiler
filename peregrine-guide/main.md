@@ -10,7 +10,8 @@ For any questions, see #new-website-genome-browser on slack.
 
 1. [Motivation of Approach and Data Architecture](motivation.md)
 2. [Style Language Architecture](style-arch.md)
-2. [Technology Architecture](arch-tech.md)
+2. [Technical Architecture](tech-arch.md)
+2. [Code Layout](code-layout.md)
 3. Style Language and Style Compiler
 4. Async and Bootstrapping
 5. Core Visual Data Model
