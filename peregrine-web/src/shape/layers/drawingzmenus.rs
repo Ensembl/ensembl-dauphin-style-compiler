@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use peregrine_core::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
 use crate::shape::core::stage::Stage;
-use crate::shape::core::fixgeometry::FixZMenuRectangle;
-use super::super::core::fixgeometry::FixData;
+use crate::shape::core::fixgeometry::{ FixZMenuRectangle, FixData };
+use crate::shape::core::pagegeometry::{ PageZMenuRectangle, PageData };
 use peregrine_core::ZMenuFixed;
 
 pub struct ZMenuResult {
@@ -59,6 +59,10 @@ impl DrawingZMenusBuilder {
                 let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,false);
                 self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)));
             },
+            (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
+                let page_data = PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,false);
+                self.add_region(Box::new(PageZMenuRectangle::new(generator,page_data,allotment)));
+            }
             _ => {}
             /*
             (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
@@ -67,9 +71,6 @@ impl DrawingZMenusBuilder {
             (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
                 Ok((layer.get_tape(skin)?.add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Tape))         
             },
-            (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
-                Ok((layer.get_page(skin)?.add_rectangles(layer,sea_x,yy,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Page))
-            }
             */
         }
     }
@@ -89,6 +90,10 @@ impl DrawingZMenusBuilder {
                 let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false);
                 self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)))
             },
+            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+                let page_data = PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false);
+                self.add_region(Box::new(PageZMenuRectangle::new(generator,page_data,allotment)));
+            }
             _ => {}
             /* 
             (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
@@ -97,9 +102,6 @@ impl DrawingZMenusBuilder {
             (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
                 Ok((layer.get_tape(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Tape))
             },
-            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
-                Ok((layer.get_page(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Page))
-            }
             */
         }
     

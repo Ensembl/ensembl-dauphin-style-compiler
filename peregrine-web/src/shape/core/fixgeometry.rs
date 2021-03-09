@@ -42,7 +42,7 @@ impl FixData {
                                     axx2: ScreenEdge, ayy2: ScreenEdge, /* sea-end anchor2 (maxes) */
                                     pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                     pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
-                                    hollow: bool) ->FixData {
+                                    hollow: bool) -> FixData {
         FixData {
             x: GLAxis::new_from_double(&axx1,&pxx1, &axx2, &pxx2, true,hollow),
             y: GLAxis::new_from_double(&ayy1,&pyy1, &ayy2, &pyy2, false,hollow)
