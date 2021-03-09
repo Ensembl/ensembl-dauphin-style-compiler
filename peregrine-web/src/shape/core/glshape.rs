@@ -1,5 +1,6 @@
 use peregrine_core::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, DirectColour };
 use super::text::TextHandle;
+use super::fixgeometry::FixData;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
@@ -26,7 +27,8 @@ fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaPr
             Ok((layer.get_pin(skin)?.add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Pin))
         },
         (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-            Ok((layer.get_fix(skin)?.add_rectangles(layer,sea_x,sea_y,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Fix))
+            let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,hollow);
+            Ok((layer.get_fix(skin)?.add(layer,fix_data)?,GeometryProcessName::Fix))
         },
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
             Ok((layer.get_tape(skin)?.add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Tape))         
@@ -51,7 +53,8 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
             Ok((layer.get_pin(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Pin))
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-            Ok((layer.get_fix(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Fix))
+            let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
+            Ok((layer.get_fix(skin)?.add(layer,fix_data)?,GeometryProcessName::Fix))
         },
         (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
             Ok((layer.get_tape(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Tape))

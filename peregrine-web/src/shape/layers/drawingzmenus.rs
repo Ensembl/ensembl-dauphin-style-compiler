@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use peregrine_core::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
 use crate::shape::core::stage::Stage;
 use crate::shape::core::fixgeometry::FixZMenuRectangle;
+use super::super::core::fixgeometry::FixData;
 use peregrine_core::ZMenuFixed;
 
 pub struct ZMenuResult {
@@ -55,7 +56,8 @@ impl DrawingZMenusBuilder {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                self.add_region(Box::new(FixZMenuRectangle::new_rectangle(generator,sea_x,sea_y,ship_x,ship_y,x_size,y_size,allotment)));
+                let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,false);
+                self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)));
             },
             _ => {}
             /*
@@ -84,7 +86,8 @@ impl DrawingZMenusBuilder {
         let pyy2 = anchors_y.2;
         match (anchor_sea_x,anchor_sea_y) {
             (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-                self.add_region(Box::new(FixZMenuRectangle::new_stretchtangle(generator,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,allotment)))
+                let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false);
+                self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)))
             },
             _ => {}
             /* 
