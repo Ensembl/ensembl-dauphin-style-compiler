@@ -52,8 +52,24 @@
 
 ### Use of style-language
 
-* As black boc
+* As black box
 * As black box with custom parameters
 * Custom style language
 * New primitives
 
+---
+
+### Technology Architecture
+
+* Source file is called `egs`
+* command-line *compiler* converts `egs` to `begs`
+* `begs` delivered along with data to web browser by backend
+* `begs` interpreted by *interpreter*
+
+---
+
+### Code layout
+
+* simple python backend
+* confusing pile of rust dependencies
+* can probably be cut down but dependency must remain acyclic

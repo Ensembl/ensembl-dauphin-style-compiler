@@ -30,3 +30,4 @@ For any questions, see #new-website-genome-browser on slack.
 ## Presentations
 
 * [Overview](overview-pres.md)
+* [EGS Examples](egs-examples.md)
