@@ -1,10 +1,8 @@
 use peregrine_core::{ ShipEnd, ScreenEdge };
-use super::quickvec::{ vec2d, vec1d_x, vec1d_y };
 use super::super::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaProcessName;
 use crate::shape::layers::geometry::GeometryProcessName;
 use crate::webgl::ProcessStanzaElements;
-use std::cell::RefCell;
 
 /* convert 0-255 colour indices to 0.0-1.0 */
 pub(crate) fn scale_colour(value: u8) -> f64 {

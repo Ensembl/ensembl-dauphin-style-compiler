@@ -156,22 +156,22 @@ impl GLAxis {
      * hollow single X     a          8         4        aaaaaaaa
      * hollow single Y     a          8         2        aaaaaaaa
      */
-    fn one_shape<'t>(&self, data: &'t [f64], slow: bool) -> impl Iterator<Item=&'t f64> {
+    fn sign_one_shape<'t>(&'t self, slow: bool) -> impl Iterator<Item=&'t f64> {
         let copies = if self.hollow {8} else {4};
         let mut repeats = 1;
         if slow { repeats *= 2; }
         if self.hollow { repeats *=2; }
-        let signs = IterRepeat::new(data.iter(),repeats).cycle();
+        let signs = IterRepeat::new(self.signs.iter(),repeats).cycle();
         IterFixed::new(signs,copies)
     }
 
-    fn one_shape_2d<'t>(&'t self, data: &'t [f64], y: &'t GLAxis) -> impl Iterator<Item=&'t f64> {
-        IterInterleave::new(vec![self.one_shape(data,true),y.one_shape(data,false)])
+    fn sign_one_shape_2d<'t>(&'t self, y: &'t GLAxis) -> impl Iterator<Item=&'t f64> {
+        IterInterleave::new(vec![self.sign_one_shape(true),y.sign_one_shape(false)])
     }
 
     fn signs(&self, slow: bool) -> Vec<f64> {
         let len = self.min.len();
-        let items : Vec<_> = self.one_shape(&self.signs,slow).cloned().collect();
+        let items : Vec<_> = self.sign_one_shape(slow).cloned().collect();
         IterFixed::new(items.iter().cycle(),len).cloned().collect()
     }
 
@@ -180,7 +180,7 @@ impl GLAxis {
 
     pub(crate) fn signs_2d<'t>(&'t self, other: &'t GLAxis) -> Vec<f64> {
         let len = if other.primary { other.min.len() } else { self.min.len() };
-        let items : Vec<_> = self.one_shape_2d(&self.signs,other).cloned().collect();
+        let items : Vec<_> = self.sign_one_shape_2d(other).cloned().collect();
         IterFixed::new(items.iter().cycle(),len).cloned().collect()
     }
 
