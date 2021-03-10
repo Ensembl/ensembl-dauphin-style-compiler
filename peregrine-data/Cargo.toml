@@ -1,5 +1,5 @@
 [package]
-name = "peregrine_dauphin"
+name = "peregrine_data"
 version = "0.1.0"
 authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
 edition = "2018"
@@ -8,7 +8,26 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
+async-trait="*"
+owning_ref="*"
 serde_cbor="*"
+serde_json="*"
+url="*"
+futures="*"
+regex="*"
+lazy_static="*"
+
+[dependencies.blackbox]
+version="*"
+path="../blackbox"
+
+[dependencies.varea]
+version="*"
+path="../varea"
+
+[dependencies.keyed]
+version="*"
+path="../keyed"
 
 [dependencies.commander]
 version="*"
@@ -18,22 +37,14 @@ path="../commander"
 version="*"
 path="../peregrine-dauphin-queue"
 
-[dependencies.peregrine_data]
-version="*"
-path="../peregrine-data"
-
 [dependencies.dauphin_interp]
 version="*"
 path="../dauphin-interp"
 
-[dependencies.dauphin_lib_std]
+# XXX
+[dependencies.web-sys]
 version="*"
-path="../dauphin-lib-std"
+features=["console"]
 
-[dependencies.dauphin_lib_peregrine]
+[dependencies.js-sys]
 version="*"
-path="../dauphin-lib-peregrine"
-
-[dependencies.blackbox]
-version="*"
-path="../blackbox"

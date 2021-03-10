@@ -1,4 +1,4 @@
-use peregrine_core::{ lock, ProgramRegion };
+use peregrine_data::{ lock, ProgramRegion };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };

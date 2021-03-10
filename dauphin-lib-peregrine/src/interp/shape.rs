@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_core::{
+use peregrine_data::{
     PanelRunOutput, AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor
 };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };

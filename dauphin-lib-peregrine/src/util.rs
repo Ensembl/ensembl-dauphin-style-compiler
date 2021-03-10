@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err };
 use dauphin_interp::runtime::{ InterpContext };
-use peregrine_core::InstancePayload;
+use peregrine_data::InstancePayload;
 use crate::payloads::PeregrinePayload;
 
 #[macro_export]

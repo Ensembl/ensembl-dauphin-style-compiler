@@ -38,7 +38,7 @@ Most of the browser crates are about data retrieval and processing, running the 
 
 `peregrine-dauphin-queue` is an even smaller crate which only exists for circular-dependency avoidance reasons. It contains the queues in and out of `peregrine-dauphin` for submission requests, data, and results.
 
-`peregrine-core` contains all of the browser-side code concerned with retrieving data and `begs` programs, running them, building data structures, and so on. It's also responsible for requesting the right thing at the right time (given position and zoom level). The only things it doesn't really do relate to the browser itself (DOM, WebGL, etc).
+`peregrine-data` contains all of the browser-side code concerned with retrieving data and `begs` programs, running them, building data structures, and so on. It's also responsible for requesting the right thing at the right time (given position and zoom level). The only things it doesn't really do relate to the browser itself (DOM, WebGL, etc).
 
 `commander` is an async executor. Unlike javascript, where asyncs are built into the browser, in rust you get the language support but you have to poll the created asyncs to push them to success. While this normally would be irritating (though there are standard ways of doing this) this is actually lucky for us because we need an unusual async executor:
 
@@ -49,15 +49,15 @@ Most of the browser crates are about data retrieval and processing, running the 
 Commander implements an executor meeting these specs. It's hairy but independent of any browser code.
 
 * `commander`
-* `peregrine-core`
+* `peregrine-data`
 * `peregrine-dauphin`
 * `peregrine-dauhpin-queue`
 
 ## Browser specific (visual and web)
 
-All drawing and browser interaction takes place in peregrine-web.
+All drawing takes place in peregrine-dr\w.
 
-* `peregrine-web`
+* `peregrine-draw`
 
 ## Some data-structures
 
@@ -102,42 +102,42 @@ Arrows point towards thing depended upon. Dependencies are also arranged "upward
   |  |         |        \.: \     |              | |      |||
   |  |         |       : |  |     |              | |      |||
   |dauphin-lib-buildtime |  |     |              | |      |||
-  |   ^          ^       |  |     |              | |      |||
-  \   |   /------+-------+-/      |              | |      |||
-   dauphin-------+-------+-------/               | |      |||
-    ^    \-------+-------+-----------------------/ |      |||
-BINARY           |       |                         |      |||
-                 |       |                         |      |||
-      /----------/       |                         |      |||
-     //------------------/                         |      |||
-    ///--------------------------------------------/      |||
-   ///                                                    |||
-  ///           identitynumber       blackbox             |||
- ///               ^                 ^   ^ ^              |||
-///                |                 |   | |              |||
-||| /-------->commander--------------/   | |              |||
-||| |         ^    ^   ^                 | |              |||
-||| |      .-'    /    |                 | |              |||
-||| |     /      /     |                 | |              |||
-||| |    /   ,--+-.    |                 | |              |||
-||| |   |   /  /   v   |                 | |              |||
-||| |   |  /   | peregrine-dauphin-queue-/ |              |||
-||| |   | |    |  ^   ^                    |              |||
-||| |   | |    \ /    |                    |              |||
-||| |   | |     X     |        /-----------/              |||
-||| |   | |    / \    |       /                           |||
-||| |   | |    |  \peregrine-core------------> varea      |||
-||| |   | |    |     ^  ^   \ \--------------> keyed      |||
-||| |   | |    |     |  |    \                  ^         |||
-||| |   | |    |     |  \     \-----------------+---------/||
-||| |   | |    |     |   \----.                 |          ||
-||| |   | |    |     |         \                |          ||
-||| \---+-+-peregrine-dauphin---+---------------+----------/|
-\\\-----+-+---/  / / ^          |               |           |
- \\-----+-+-----/ /  |          /               |           |
-  \-----+-+------/   |         /                |           |
+  |   ^                  |  |     |              | |      |||
+  \   |   /--------------+-/      |              | |      |||
+   dauphin---------------+-------/               | |      |||
+    ^    \---------------+-----------------------/ |      |||
+BINARY                   |                         |      |||
+                         |                         |      |||
+                         |                         |      |||
+      /------------------/                         |      |||
+     //--------------------------------------------/      |||
+    //                                                    |||
+   //           identitynumber       blackbox             |||
+  //               ^                 ^   ^ ^              |||
+ //                |                 |   | |              |||
+ || /-------->commander--------------/   | |              |||
+ || |         ^    ^   ^                 | |              |||
+ || |      .-'    /    |                 | |              |||
+ || |     /      /     |                 | |              |||
+ || |    /   ,--+-.    |                 | |              |||
+ || |   |   /  /   v   |                 | |              |||
+ || |   |  /   | peregrine-dauphin-queue-/ |              |||
+ || |   | |    |  ^   ^                    |              |||
+ || |   | |    \ /    |                    |              |||
+ || |   | |     X     |        /-----------/              |||
+ || |   | |    / \    |       /                           |||
+ || |   | |    |  \peregrine-data------------> varea      |||
+ || |   | |    |     ^  ^   \ \--------------> keyed      |||
+ || |   | |    |     |  |    \                  ^         |||
+ || |   | |    |     |  \     \-----------------+---------/||
+ || |   | |    |     |   \----.                 |          ||
+ || |   | |    |     |         \                |          ||
+ || \---+-+-peregrine-dauphin---+---------------+----------/|
+ \\-----+-+---/  /   ^          |               |           |
+  \-----+-+-----/    |          /               |           |
+        | |          |         /                |           |
         \ \          | /------/                 |           |
-         \peregrine-web-------------------------/           |
+         \peregrine-draw------------------------/           |
             ^          \------------------------------------/
           BINARY
 ```

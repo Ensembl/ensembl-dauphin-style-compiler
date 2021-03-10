@@ -27,9 +27,9 @@ dauphin_test_harness = { path = "../dauphin-test-harness" }
 version="*"
 path="../blackbox"
 
-[dependencies.peregrine_core]
+[dependencies.peregrine_data]
 version="*"
-path="../peregrine-core"
+path="../peregrine-data"
 
 [dependencies.web-sys]
 version="*"

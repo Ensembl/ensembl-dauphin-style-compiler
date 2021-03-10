@@ -17,7 +17,7 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_core::{ StickAuthorityStore, StickStore, RequestManager, CountingPromise, PanelProgramStore, DataStore };
+use peregrine_data::{ StickAuthorityStore, StickStore, RequestManager, CountingPromise, PanelProgramStore, DataStore };
 use super::panelbuilder::PanelBuilder;
 use super::geometrybuilder::GeometryBuilder;
 

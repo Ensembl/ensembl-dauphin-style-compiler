@@ -1,6 +1,6 @@
 use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
-use peregrine_core::{ 
+use peregrine_data::{ 
     PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
     DataStore, PeregrineCore
 };

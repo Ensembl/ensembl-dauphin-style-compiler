@@ -2,7 +2,7 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_core::{ StickId, Panel, Channel, Scale, Focus, Track, ProgramData };
+use peregrine_data::{ StickId, Panel, Channel, Scale, Focus, Track, ProgramData };
 use serde_cbor::Value as CborValue;
 use web_sys::console;
 

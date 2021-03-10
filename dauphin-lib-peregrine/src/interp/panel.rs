@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_core::{ Track, Scale, Channel };
+use peregrine_data::{ Track, Scale, Channel };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
