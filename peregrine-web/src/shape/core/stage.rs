@@ -98,7 +98,9 @@ pub trait ReadStageAxis {
     fn position(&self) -> anyhow::Result<f64>;
     fn bp_per_screen(&self) -> anyhow::Result<f64>;
     fn size(&self) -> anyhow::Result<f64>;   
-    fn copy(&self) -> StageAxis;}
+    fn copy(&self) -> StageAxis;
+    fn version(&self) -> u64;
+}
 
 pub struct StageAxis {
     position: Option<f64>,
@@ -106,7 +108,8 @@ pub struct StageAxis {
     size: Option<f64>,
     redraw_needed: RedrawNeeded,
     boot: Boot,
-    boot_lock: BootLock
+    boot_lock: BootLock,
+    version: u64
 }
 
 impl StageAxis {
@@ -118,7 +121,8 @@ impl StageAxis {
             size: None,
             redraw_needed: redraw_needed.clone(),
             boot: boot.clone(),
-            boot_lock
+            boot_lock,
+            version: 0
         }
     }
 
@@ -135,6 +139,7 @@ impl StageAxis {
         if self.boot.booted() {
             self.redraw_needed.set();
         }
+        self.version += 1;
     }
 
     pub fn set_position(&mut self, x: f64) { self.position = Some(x); self.changed(); }
@@ -145,7 +150,7 @@ impl StageAxis {
 impl ReadStageAxis for StageAxis {
     fn position(&self) -> anyhow::Result<f64> { stage_ok(&self.position) }
     fn bp_per_screen(&self) -> anyhow::Result<f64> { stage_ok(&self.bp_per_screen) }
-    fn size(&self) -> anyhow::Result<f64> { stage_ok(&self.size) }    
+    fn size(&self) -> anyhow::Result<f64> { stage_ok(&self.size) }
 
     // secret clone only accessible via read-only subsets
     fn copy(&self) -> StageAxis {
@@ -154,10 +159,13 @@ impl ReadStageAxis for StageAxis {
             bp_per_screen: self.bp_per_screen.clone(),
             size: self.size.clone(),
             redraw_needed: self.redraw_needed.clone(),
+            version: self.version,
             boot: self.boot.clone(),
             boot_lock: self.boot_lock.clone()
         }
     }    
+
+    fn version(&self) -> u64 { self.version }
 }
 
 // TODO greedy canvas size changes
