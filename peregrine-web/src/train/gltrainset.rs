@@ -8,6 +8,7 @@ use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::core::stage::{ Stage, ReadStage, RedrawNeeded };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
+use crate::shape::layers::drawingzmenus::ZMenuEvent;
 
 #[derive(Clone)]
 enum FadeState {
@@ -127,6 +128,24 @@ impl GlTrainSetData {
         Ok(())
     }
 
+    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+        Ok(match self.fade_state {
+            FadeState::Constant(x) => x,
+            FadeState::Fading(_,x,_,_) => Some(x)
+        }.map(|id| {
+            self.get_train(gl,id).intersects(stage,mouse)
+        }).transpose()?.flatten())
+    }
+
+    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        Ok(match self.fade_state {
+            FadeState::Constant(x) => x,
+            FadeState::Fading(_,x,_,_) => Some(x)
+        }.map(|id| {
+            self.get_train(gl,id).intersects_fast(stage,mouse)
+        }).transpose()?.unwrap_or(false))
+    }
+
     fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         for(_,mut train) in self.trains.drain() {
             train.discard(gl)?;
@@ -169,6 +188,14 @@ impl GlTrainSet {
         self.data.lock().unwrap().start_fade(index,speed)?;
         self.data.lock().unwrap().set_max(gl,index,max);
         Ok(())
+    }
+
+    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+        self.data.lock().unwrap().intersects(stage,gl,mouse)
+    }
+
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        self.data.lock().unwrap().intersects_fast(stage,gl,mouse)
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {

@@ -6,6 +6,7 @@ use crate::shape::core::stage::{ ReadStage, RedrawNeeded };
 use crate::webgl::DrawingSession;
 use blackbox::blackbox_log;
 use crate::webgl::global::WebGlGlobal;
+use crate::shape::layers::drawingzmenus::ZMenuEvent;
 
 pub struct GLTrain {
 //    programs: ProgramStore,
@@ -75,6 +76,24 @@ impl GLTrain {
             self.redraw_needed.set();
         }
         Ok(())
+    }
+
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+        for carriage in self.carriages.values() {
+            if let Some(zmenu) = carriage.intersects(stage,mouse)? {
+                return Ok(Some(zmenu));
+            }
+        }
+        Ok(None)
+    }
+
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        for carriage in self.carriages.values() {
+            if carriage.intersects_fast(stage,mouse)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> anyhow::Result<()> {

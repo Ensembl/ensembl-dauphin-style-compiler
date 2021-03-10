@@ -91,7 +91,8 @@ impl DrawingZMenusBuilder {
         self.add_region(generator,region,allotment);
     }
 
-    pub(crate) fn build(self) -> DrawingZMenus {
+    pub(crate) fn build(mut self) -> DrawingZMenus {
+        self.entries.reverse(); // we match top-down!
         DrawingZMenus::new(self.entries)
     }
 }
@@ -107,7 +108,7 @@ impl DrawingZMenus {
         }
     }
 
-    fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
         for entry in &self.entries {
             if let Some(result) = entry.intersects(stage,mouse)? {
                 return Ok(Some(ZMenuEvent {
@@ -119,5 +120,14 @@ impl DrawingZMenus {
             }
         }
         Ok(None)
+    }
+
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        for entry in &self.entries {
+            if entry.intersects_fast(stage,mouse)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 }

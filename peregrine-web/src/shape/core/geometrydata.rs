@@ -27,7 +27,7 @@ impl ZMenuRectangle {
         }
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuResult>> {
+    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<(usize,&'t str)>> {
         if !self.data.in_bounds(stage,mouse)? {
             return Ok(None);
         }
@@ -35,8 +35,18 @@ impl ZMenuRectangle {
         let looper = self.data.iter_screen(stage)?.zip(self.allotment.iter().cycle());
         for (index,((x,y),allotment)) in looper.enumerate() {
             if mouse.0 < x.0 || mouse.0 > x.1 || mouse.1 < y.0 || mouse.1 > y.1 { continue; }
-            return Ok(Some(ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment)))
+            return Ok(Some((index,allotment)))
         }
         Ok(None)
+    }
+
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        Ok(self.intersects_test(stage,mouse)?.is_some())
+    }
+
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuResult>> {
+        Ok(self.intersects_test(stage,mouse)?.map(|(index,allotment)| {
+            ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment)
+        }))
     }
 }

@@ -4,7 +4,7 @@ use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, P
 use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
-use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus };
+use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
 use crate::shape::core::stage::ReadStage;
 
 pub(crate) struct DrawingTools {
@@ -89,6 +89,14 @@ impl Drawing {
             canvases,
             zmenus
         })
+    }
+
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+        self.zmenus.intersects(stage,mouse)
+    }
+
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        self.zmenus.intersects_fast(stage,mouse)
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
