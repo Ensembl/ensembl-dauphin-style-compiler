@@ -22,7 +22,7 @@ pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 use crate::train::GlTrainSet;
 use wasm_bindgen::JsCast;
-use crate::shape::core::stage::Stage;
+use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::webgl::global::WebGlGlobal;
 
 #[cfg(blackbox)]
@@ -44,7 +44,7 @@ pub struct PeregrineWeb {
     pub api: PeregrineApi,
     pub trainset: GlTrainSet,
     pub webgl: Arc<Mutex<WebGlGlobal>>,
-    stage: Stage
+    stage: Arc<Mutex<Stage>>
 }
 
 impl PeregrineWeb {
@@ -67,8 +67,8 @@ impl PeregrineWeb {
             .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
         // end of nonsense
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
-        let stage = Stage::new();
-        let trainset = GlTrainSet::new(&config,api.clone(),&stage)?;
+        let stage = Arc::new(Mutex::new(Stage::new()));
+        let trainset = GlTrainSet::new(&config,api.clone(),&stage.lock().unwrap())?;
         let web_data = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone(),webgl.clone());
         let objects = PeregrineObjects::new(Box::new(web_data),commander.clone())?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
@@ -103,24 +103,29 @@ impl PeregrineWeb {
         Ok(())
     }
 
-    pub(crate) fn stage(&self) -> &Stage { &self.stage }
+    pub(crate) fn read_stage(&self) -> ReadStage { self.stage.lock().unwrap().read_stage() }
 
     // TODO redraw on change
     pub fn set_x_position(&mut self, x: f64) {
         self.api.set_position(x);
-        self.stage.set_x_position(x);
+        self.stage.lock().unwrap().x_mut().set_position(x);
     }
 
     pub fn set_y_position(&mut self, x: f64) {
-        self.stage.set_y_position(x);
+        self.stage.lock().unwrap().y_mut().set_position(x);
     }
 
     pub fn set_size(&mut self, x: f64, y: f64) {
-        self.stage.set_size(x,y);
+        self.stage.lock().unwrap().x_mut().set_size(x);
+        self.stage.lock().unwrap().y_mut().set_size(y);
     }
 
-    pub fn set_zoom(&mut self, z: f64) {
+    pub fn set_bp_per_screen(&mut self, z: f64) {
         self.api.set_scale(z);
-        self.stage.set_zoom(z);
-    }    
+        self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
+    }
+
+    pub fn test_and_reset_redraw(&self) -> bool {
+        self.stage.lock().unwrap().redraw_needed().test_and_reset()
+    }
 }

@@ -5,7 +5,7 @@ use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
-use web_sys::console;
+use crate::shape::core::stage::ReadStage;
 
 pub(crate) struct GLCarriage {
     id: CarriageId,
@@ -37,7 +37,6 @@ impl GLCarriage {
             drawing.add_shape(gl,shape)?;
             count += 1;
         }
-        console::log_1(&format!("carriage={} shape={:?}",carriage.id(),count).into());
         let drawing = drawing.build(gl)?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
@@ -52,9 +51,9 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> anyhow::Result<()> {
         let opacity = self.opacity.lock().unwrap().clone();
-        self.drawing.draw(gl,session,opacity)
+        self.drawing.draw(gl,stage,session,opacity)
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {

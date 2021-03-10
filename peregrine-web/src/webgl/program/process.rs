@@ -5,7 +5,7 @@ use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use keyed::KeyedData;
 use crate::webgl::util::handle_context_errors;
-use crate::shape::core::stage::{ Stage, ProgramStage };
+use crate::shape::core::stage::{ ReadStage, ProgramStage };
 use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
 
@@ -86,7 +86,7 @@ impl Process {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &Stage, opacity: f64) -> anyhow::Result<()> {
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> anyhow::Result<()> {
         gl.bindery().clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;

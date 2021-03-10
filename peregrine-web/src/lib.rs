@@ -21,6 +21,7 @@ mod shape {
         pub(super) mod looper;
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
+        pub(super) mod geometrydata;
         pub(super) mod fixgeometry;
         pub(super) mod pagegeometry;
         pub(super) mod pingeometry;

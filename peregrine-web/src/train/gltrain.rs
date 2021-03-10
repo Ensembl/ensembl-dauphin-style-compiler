@@ -2,7 +2,7 @@ use peregrine_core::{ Carriage, CarriageId };
 use std::collections::{ HashMap, HashSet };
 use crate::shape::layers::programstore::ProgramStore;
 use super::glcarriage::GLCarriage;
-use crate::shape::core::stage::{ Stage, RedrawNeeded };
+use crate::shape::core::stage::{ ReadStage, RedrawNeeded };
 use crate::webgl::DrawingSession;
 use blackbox::blackbox_log;
 use crate::webgl::global::WebGlGlobal;
@@ -77,9 +77,9 @@ impl GLTrain {
         Ok(())
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> anyhow::Result<()> {
         for carriage in self.carriages.values_mut() {
-            carriage.draw(gl,session)?;
+            carriage.draw(gl,stage,session)?;
         }
         Ok(())
     }

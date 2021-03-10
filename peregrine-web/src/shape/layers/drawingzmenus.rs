@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 use peregrine_core::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
-use crate::shape::core::stage::Stage;
-use crate::shape::core::fixgeometry::{ FixZMenuRectangle, FixData };
-use crate::shape::core::pagegeometry::{ PageZMenuRectangle, PageData };
+use crate::shape::core::stage::{ ReadStage };
+use crate::shape::core::fixgeometry::{ FixData };
+use crate::shape::core::pagegeometry::{ PageData };
+use crate::shape::core::pingeometry::{ PinData };
+use crate::shape::core::tapegeometry::{ TapeData };
 use peregrine_core::ZMenuFixed;
+use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
+use super::super::layers::layer::{ Layer };
 
 pub struct ZMenuResult {
     menu: ZMenuFixed,
@@ -26,16 +30,8 @@ pub struct ZMenuEvent {
     allotment: String // TODO allotments
 }
 
-pub trait ZMenuRegion {
-    fn intersects(&self, stage: &Stage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuResult>>;
-}
-
-struct ZMenuEntry {
-    region: Box<dyn ZMenuRegion>
-}
-
 pub struct DrawingZMenusBuilder {
-    entries: Vec<ZMenuEntry>
+    entries: Vec<ZMenuRectangle>
 }
 
 impl DrawingZMenusBuilder {
@@ -45,37 +41,30 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    fn add_region(&mut self, region: Box<dyn ZMenuRegion>) {
-        let entry = ZMenuEntry {
-            region
-        };
-        self.entries.push(entry);
+    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<String>) {
+        self.entries.push(ZMenuRectangle::new(generator,region,allotment));
     }
 
-    pub(crate) fn add_rectangle(&mut self, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
+    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
-        match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
+        let region : Box<dyn GeometryData> = match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,false);
-                self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)));
+                Box::new(FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,false))
             },
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
-                let page_data = PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,false);
-                self.add_region(Box::new(PageZMenuRectangle::new(generator,page_data,allotment)));
-            }
-            _ => {}
-            /*
+                Box::new(PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,false))
+            },
             (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
-                Ok((layer.get_pin(skin)?.add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Pin))
+                Box::new(PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,false))
             },
             (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                Ok((layer.get_tape(skin)?.add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow)?,GeometryProcessName::Tape))         
+                Box::new(TapeData::add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,false))
             },
-            */
-        }
+        };
+        self.add_region(generator,region,allotment);
     }
 
-    pub(crate) fn add_stretchtangle(&mut self, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<String>) {
+    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<String>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let anchors_x = anchors.0;
         let anchors_y = anchors.1;
@@ -85,26 +74,21 @@ impl DrawingZMenusBuilder {
         let anchor_sea_y = anchors_y.0;
         let pyy1 = anchors_y.1;
         let pyy2 = anchors_y.2;
-        match (anchor_sea_x,anchor_sea_y) {
+        let region : Box<dyn GeometryData> = match (anchor_sea_x,anchor_sea_y) {
             (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-                let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false);
-                self.add_region(Box::new(FixZMenuRectangle::new(generator,fix_data,allotment)))
+                Box::new(FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
             },
             (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
-                let page_data = PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false);
-                self.add_region(Box::new(PageZMenuRectangle::new(generator,page_data,allotment)));
-            }
-            _ => {}
-            /* 
+                Box::new(PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
+            },
             (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
-                Ok((layer.get_pin(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Pin))
+                Box::new(PinData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
             },
             (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-                Ok((layer.get_tape(skin)?.add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow)?,GeometryProcessName::Tape))
-            },
-            */
-        }
-    
+                Box::new(TapeData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
+            }
+        };
+        self.add_region(generator,region,allotment);
     }
 
     pub(crate) fn build(self) -> DrawingZMenus {
@@ -112,26 +96,24 @@ impl DrawingZMenusBuilder {
     }
 }
 
-// TODO pointer (y efficiency, bounding box)
-
 pub struct DrawingZMenus {
-    entries: Vec<ZMenuEntry>
+    entries: Vec<ZMenuRectangle>
 }
 
 impl DrawingZMenus {
-    fn new(entries: Vec<ZMenuEntry>) -> DrawingZMenus {
+    fn new(entries: Vec<ZMenuRectangle>) -> DrawingZMenus {
         DrawingZMenus {
             entries
         }
     }
 
-    fn intersects(&self, stage: &Stage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
         for entry in &self.entries {
-            if let Some(result) = entry.region.intersects(stage,mouse)? {
+            if let Some(result) = entry.intersects(stage,mouse)? {
                 return Ok(Some(ZMenuEvent {
                     menu: result.menu,
                     pixel: mouse,
-                    bp: (stage.x_position()?,0), // TODO allotment y
+                    bp: (stage.x().position()?,0), // TODO allotment y
                     allotment: result.allotment
                 }));
             }

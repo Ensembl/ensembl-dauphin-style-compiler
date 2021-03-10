@@ -5,8 +5,8 @@ use peregrine_core::Commander;
 fn animation_tick(web: &mut PeregrineWeb, elapsed: f64) {
     let mut webgl = web.webgl.lock().unwrap();
     web.trainset.transition_animate_tick(&mut webgl,elapsed);
-    if web.stage().redraw_needed().test_and_reset() {
-        web.trainset.draw_animate_tick(&web.stage().clone(),&mut webgl);
+    if web.test_and_reset_redraw() {
+        web.trainset.draw_animate_tick(&web.read_stage(),&mut webgl);
     }
 }
 

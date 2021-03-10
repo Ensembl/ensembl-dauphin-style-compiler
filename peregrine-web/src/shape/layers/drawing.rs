@@ -5,6 +5,7 @@ use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, Fl
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus };
+use crate::shape::core::stage::ReadStage;
 
 pub(crate) struct DrawingTools {
     text: DrawingText,
@@ -90,9 +91,9 @@ impl Drawing {
         })
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
         for process in &mut self.processes {
-            session.run_process(gl,process,opacity)?;
+            session.run_process(gl,stage,process,opacity)?;
         }
         Ok(())
     }

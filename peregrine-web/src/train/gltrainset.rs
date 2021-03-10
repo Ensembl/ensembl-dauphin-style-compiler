@@ -5,7 +5,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineApi };
 use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
-use crate::shape::core::stage::{ Stage, RedrawNeeded };
+use crate::shape::core::stage::{ Stage, ReadStage, RedrawNeeded };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 
@@ -108,19 +108,19 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &Stage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        let mut session = DrawingSession::new(stage);
-        session.begin(gl)?;
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+        let mut session = DrawingSession::new();
+        session.begin(gl,stage)?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(gl,&session)?;
+                self.get_train(gl,train).draw(gl,stage,&session)?;
             },
             FadeState::Fading(from,to,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(gl,&session)?;
+                    self.get_train(gl,from).draw(gl,stage,&session)?;
                 }
-                self.get_train(gl,to).draw(gl,&session)?;
+                self.get_train(gl,to).draw(gl,stage,&session)?;
             },
         }
         session.finish()?;
@@ -157,7 +157,7 @@ impl GlTrainSet {
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &Stage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
         self.data.lock().unwrap().draw_animate_tick(stage,gl)
     }
 

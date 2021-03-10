@@ -2,11 +2,10 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable };
-use peregrine_core::{ ShipEnd, ScreenEdge, ZMenuGenerator };
+use peregrine_core::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
-use super::super::layers::drawingzmenus::{ ZMenuRegion, ZMenuResult };
-use super::super::util::arrayutil::{ empty_is };
-use crate::shape::core::stage::Stage;
+use crate::shape::core::stage::{ ReadStage };
+use super::geometrydata::GeometryData;
 
 #[derive(Clone)]
 pub struct PageProgram {
@@ -50,6 +49,18 @@ impl PageData {
     }
 }
 
+impl GeometryData for PageData {
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> anyhow::Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>> {
+        Ok(Box::new(self.x.iter_screen(stage.x())?.zip(self.y.iter_screen(stage.y())?)))
+    }
+
+    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+        let mouse = (mouse.0 as f64, mouse.1 as f64);
+        Ok(!(mouse.0 < self.x.min_screen(stage.x())? || mouse.0 > self.x.max_screen(stage.x())? || 
+           mouse.1 < self.y.min_screen(stage.y())? || mouse.1 > self.y.max_screen(stage.y())?))
+    }
+}
+
 #[derive(Clone)]
 pub struct PageGeometry {
     variety: PageProgram,
@@ -66,37 +77,5 @@ impl PageGeometry {
         elements.add(&self.variety.vertexes,data.x.vec2d(&data.y))?;
         elements.add(&self.variety.signs,data.x.signs_2d(&data.y))?;
         Ok(elements)
-    }
-}
-
-pub struct PageZMenuRectangle {
-    zmenu: ZMenuGenerator,
-    data: PageData,
-    allotment: Vec<String>
-}
-
-impl PageZMenuRectangle {
-    pub fn new(zmenu: ZMenuGenerator, data: PageData, allotment: Vec<String>) -> PageZMenuRectangle {
-        PageZMenuRectangle {
-            zmenu, data,
-            allotment: empty_is(allotment,"".to_string())
-        }
-    }
-}
-
-impl ZMenuRegion for PageZMenuRectangle {
-    fn intersects(&self, stage: &Stage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuResult>> {
-        let mouse = (mouse.0 as f64, mouse.1 as f64);
-        let size = stage.size()?;
-        if mouse.0 < self.data.x.min_screen(size.0) || mouse.0 > self.data.x.max_screen(size.0) || 
-            mouse.1 < self.data.y.min_screen(size.1) || mouse.1 > self.data.y.max_screen(size.1) {
-                return Ok(None);
-        }
-        let looper = self.data.x.iter_screen(size.0).zip(self.data.y.iter_screen(size.1)).zip(self.allotment.iter().cycle());
-        for (index,((x,y),allotment)) in looper.enumerate() {
-            if mouse.0 < x.0 || mouse.0 > x.1 || mouse.1 < y.0 || mouse.1 > y.1 { continue; }
-            return Ok(Some(ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment)))
-        }
-        Ok(None)
     }
 }
