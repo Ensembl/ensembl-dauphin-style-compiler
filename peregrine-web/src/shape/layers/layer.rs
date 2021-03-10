@@ -29,6 +29,7 @@ TODO keep program when same program
 TODO initial clear
 TODO wiggle width
 TODO hollowwidth
+TODO intersection cache
 */
 
 struct SubLayer {

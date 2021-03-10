@@ -12,8 +12,7 @@ use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_option };
 use peregrine_core::{ 
     Commander,
-    PeregrineObjects,
-    PeregrineApi,
+    PeregrineCore,
     PeregrineConfig
 };
 use peregrine_dauphin::peregrine_dauphin;
@@ -41,7 +40,7 @@ fn setup_commander() -> anyhow::Result<PgCommanderWeb> {
 #[derive(Clone)]
 pub struct PeregrineWeb {
     pub commander: PgCommanderWeb,
-    pub api: PeregrineApi,
+    pub data_api: PeregrineCore,
     pub trainset: GlTrainSet,
     pub webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>
@@ -54,7 +53,6 @@ impl PeregrineWeb {
         let mut config = PeregrineConfig::new();
         config.set_f64("animate.fade.slow",500.);
         config.set_f64("animate.fade.fast",100.);
-        let api = PeregrineApi::new()?;
         /* XXX separate out per canvase stuff */
         let window = js_option(web_sys::window(),"cannot get window")?;
         let document = js_option(window.document(),"cannot get document")?;
@@ -68,13 +66,13 @@ impl PeregrineWeb {
         // end of nonsense
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
-        let trainset = GlTrainSet::new(&config,api.clone(),&stage.lock().unwrap())?;
-        let web_data = PgIntegration::new(PgChannel::new(console.clone()),trainset.clone(),webgl.clone());
-        let objects = PeregrineObjects::new(Box::new(web_data),commander.clone())?;
-        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&objects);
-        api.ready(objects.clone());
+        let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
+        let integration = Box::new(PgIntegration::new(PgChannel::new(console.clone()),trainset.clone(),webgl.clone()));
+        let mut core = PeregrineCore::new(integration,commander.clone())?;
+        peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        core.application_ready();
         let mut out = PeregrineWeb {
-            api, commander, trainset, stage,  webgl
+            data_api: core.clone(), commander, trainset, stage,  webgl
         };
         out.setup()?;
         Ok(out)
@@ -107,7 +105,7 @@ impl PeregrineWeb {
 
     // TODO redraw on change
     pub fn set_x_position(&mut self, x: f64) {
-        self.api.set_position(x);
+        self.data_api.set_position(x);
         self.stage.lock().unwrap().x_mut().set_position(x);
     }
 
@@ -121,7 +119,7 @@ impl PeregrineWeb {
     }
 
     pub fn set_bp_per_screen(&mut self, z: f64) {
-        self.api.set_scale(z);
+        self.data_api.set_scale(z);
         self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
     }
 

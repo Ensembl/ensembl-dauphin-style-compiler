@@ -1,4 +1,4 @@
-use crate::api::PeregrineObjects;
+use crate::api::PeregrineCore;
 use crate::core::{ Focus, StickId, Track, Viewport };
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
@@ -31,24 +31,24 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn update_train_set(&mut self, objects: &mut PeregrineObjects) {
+    fn update_train_set(&mut self, objects: &mut PeregrineCore) {
         let viewport = objects.viewport.clone();
         let train_set = objects.train_set.clone();
         train_set.set(objects,&viewport);
     }
 
-    fn update_viewport(&mut self, data: &mut PeregrineObjects, new_viewport: Viewport) {
+    fn update_viewport(&mut self, data: &mut PeregrineCore, new_viewport: Viewport) {
         if new_viewport != data.viewport {
             data.viewport = new_viewport;
             self.update_train_set(data);
         }
     }
 
-    fn try_bootstrap(&mut self, data: &mut PeregrineObjects, channel: Channel) -> anyhow::Result<()> {
+    fn try_bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) -> anyhow::Result<()> {
         bootstrap(&data.manager,&data.program_loader,&data.commander,&data.dauphin,channel,&data.booted)
     }
 
-    fn bootstrap(&mut self, data: &mut PeregrineObjects, channel: Channel) {
+    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) {
         match self.try_bootstrap(data,channel) {
             Ok(()) => {}
             Err(_e) => {
@@ -57,7 +57,7 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn run_message(&mut self, data: &mut PeregrineObjects, message: ApiMessage) {
+    fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
             ApiMessage::Ready => {
                 data.dauphin_ready();
@@ -90,7 +90,7 @@ impl PeregrineApiQueue {
         }
     }
 
-    pub fn run(&self, data: &mut PeregrineObjects) {
+    pub fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
         data.commander.add_task(PgCommanderTaskSpec {

@@ -2,7 +2,7 @@ use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_core::{ 
     PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
-    DataStore, PeregrineObjects
+    DataStore, PeregrineCore
 };
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
@@ -77,25 +77,25 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, objects: PeregrineObjects) -> anyhow::Result<()> {
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> anyhow::Result<()> {
     let mut dauphin = Dauphin::new(command_suite()?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&objects.manager,&objects.stick_store,&objects.stick_authority_store,&objects.booted,&objects.panel_program_store,&objects.data_store);
+    add_peregrine_payloads(&mut dauphin,&core.manager,&core.stick_store,&core.stick_authority_store,&core.booted,&core.panel_program_store,&core.data_store);
     loop {
-        let e = objects.dauphin_queue.get().await;
+        let e = core.dauphin_queue.get().await;
         match e.task {
             PgDauphinTaskSpec::Load(p) => load(&mut dauphin,p,e.channel),
-            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&objects.commander,r,e.channel)
+            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&core.commander,r,e.channel)
         }
     }
 }
 
-pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, objects: &PeregrineObjects) {
-    objects.commander.add_task(PgCommanderTaskSpec {
+pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &PeregrineCore) {
+    core.commander.add_task(PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,objects.clone()))
+        task: Box::pin(main_loop(integration,core.clone()))
     });
 }

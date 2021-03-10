@@ -2,7 +2,7 @@ use anyhow::{ bail };
 use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineApi };
+use peregrine_core::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
 use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::core::stage::{ Stage, ReadStage, RedrawNeeded };
@@ -156,22 +156,20 @@ impl GlTrainSetData {
 
 #[derive(Clone)]
 pub struct GlTrainSet {
-    data: Arc<Mutex<GlTrainSetData>>,
-    api: PeregrineApi
+    data: Arc<Mutex<GlTrainSetData>>
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, api: PeregrineApi, stage: &Stage) -> anyhow::Result<GlTrainSet> {
+    pub fn new(config: &PeregrineConfig, stage: &Stage) -> anyhow::Result<GlTrainSet> {
         Ok(GlTrainSet {
-            api,
             data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
         })
     }
 
-    pub fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<()> {
+    pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<()> {
         if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
             blackbox_log!("gltrain","transition_complete()");
-            self.api.transition_complete();
+            api.transition_complete();
         }
         Ok(())
     }

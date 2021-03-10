@@ -142,14 +142,14 @@ use crate::run::web::PeregrineWeb;
 use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_throw };
 use peregrine_core::{ 
-    StickId, PeregrineApi, Channel, ChannelLocation, Commander, Track
+    StickId, PeregrineCore, Channel, ChannelLocation, Commander, Track
 };
 pub use url::Url;
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
 
-async fn test(api: PeregrineApi) -> anyhow::Result<()> {
+async fn test(api: PeregrineCore) -> anyhow::Result<()> {
     api.add_track(Track::new("gene-pc-fwd"));
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
@@ -166,8 +166,8 @@ async fn test(api: PeregrineApi) -> anyhow::Result<()> {
 
 fn test_fn() -> anyhow::Result<()> {
     let pg_web = js_throw(PeregrineWeb::new());
-    pg_web.api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
-    pg_web.commander.add_task("test",100,None,None,Box::pin(test(pg_web.api.clone())));
+    pg_web.data_api.backend_bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
+    pg_web.commander.add_task("test",100,None,None,Box::pin(test(pg_web.data_api.clone())));
     Ok(())
 }
 

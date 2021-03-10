@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use std::fmt::*;
-use crate::api::{ PeregrineObjects, CarriageSpeed };
+use crate::api::{ PeregrineCore, CarriageSpeed };
 use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
@@ -144,7 +144,7 @@ impl Train {
         self.0.lock().unwrap().maybe_ready();
     }
 
-    async fn find_max(&self, data: &mut PeregrineObjects) -> Option<u64> {
+    async fn find_max(&self, data: &mut PeregrineCore) -> Option<u64> {
         let train_id = self.id();
         if let Ok(stick) = data.stick_store.get(train_id.layout().stick().as_ref().unwrap()).await {
             if let Some(stick) = &stick.as_ref() {
@@ -158,7 +158,7 @@ impl Train {
         self.0.lock().unwrap().set_max(max);
     }
     
-    pub(super) fn run_find_max(&self, objects: &mut PeregrineObjects) {
+    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
         objects.commander.add_task(PgCommanderTaskSpec {

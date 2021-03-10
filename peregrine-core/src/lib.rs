@@ -1,10 +1,10 @@
 mod api {
     mod api;
-    mod objects;
+    mod pgcore;
     mod queue;
 
-    pub use api::{ PeregrineApi, PeregrineIntegration, CarriageSpeed };
-    pub use self::objects::PeregrineObjects;
+    pub use api::{ PeregrineIntegration, CarriageSpeed };
+    pub use self::pgcore::PeregrineCore;
     pub use queue::PeregrineApiQueue;
 }
 
@@ -134,7 +134,7 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::api::{ PeregrineObjects, PeregrineIntegration, PeregrineApi, PeregrineApiQueue, CarriageSpeed };
+pub use self::api::{ PeregrineCore, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed };
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };

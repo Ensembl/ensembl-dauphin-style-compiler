@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use crate::PgCommanderTaskSpec;
-use crate::api::PeregrineObjects;
+use crate::api::PeregrineCore;
 use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
@@ -122,7 +122,7 @@ impl TrainSet {
         TrainSet(Arc::new(Mutex::new(TrainSetData::new())))
     }
 
-    async fn load_carriages(&self, objects: &mut PeregrineObjects, carriages: &[Carriage]) {
+    async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
             ////console::log_1(&format!("TrainSet.load_carriage() carriage={:?}",carriage).into());
@@ -134,14 +134,14 @@ impl TrainSet {
         //console::log_1(&format!("TrainSet.load_carriage() loaded!").into());
     }
     
-    pub(super) fn poll(&mut self, objects: &mut PeregrineObjects) {
+    pub(super) fn poll(&mut self, objects: &mut PeregrineCore) {
         let mut events = CarriageEvents::new();
         self.0.lock().unwrap().maybe_ready(&mut events);
         self.0.lock().unwrap().maybe_notify_ui(&mut events);
         events.run(objects);
     }
 
-    pub(super) fn run_load_carriages(&self, objects: &mut PeregrineObjects, carriages: Vec<Carriage>) {
+    pub(super) fn run_load_carriages(&self, objects: &mut PeregrineCore, carriages: Vec<Carriage>) {
         ////console::log_1(&format!("TrainSet.run_load_carriages").into());
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
@@ -159,7 +159,7 @@ impl TrainSet {
         });
     }
 
-    pub fn set(&self, objects: &mut PeregrineObjects, viewport: &Viewport) {
+    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) {
         blackbox_time!("train","trainset-set",{
             let mut events = CarriageEvents::new();
             if viewport.layout().stick().is_some() {
@@ -169,7 +169,7 @@ impl TrainSet {
         });
     }
 
-    pub fn transition_complete(&self, objects: &mut PeregrineObjects) {
+    pub fn transition_complete(&self, objects: &mut PeregrineCore) {
         let mut events = CarriageEvents::new();
         self.0.lock().unwrap().transition_complete(&mut events);
         events.run(objects);

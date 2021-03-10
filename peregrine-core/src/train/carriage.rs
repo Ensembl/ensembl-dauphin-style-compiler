@@ -1,7 +1,7 @@
 use blackbox::blackbox_log;
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
-use crate::api::PeregrineObjects;
+use crate::api::PeregrineCore;
 use crate::core::Track;
 use crate::panel::{ Panel };
 use crate::shape::{ Shape, ShapeList };
@@ -72,7 +72,7 @@ impl Carriage {
         Panel::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
-    async fn load_full(&self, data: &PeregrineObjects) -> anyhow::Result<()> {
+    async fn load_full(&self, data: &PeregrineCore) -> anyhow::Result<()> {
         if self.ready() { return Ok(()); }
         let mut panels = vec![];
         for track in self.id.train.layout().tracks().iter() {
@@ -85,7 +85,6 @@ impl Carriage {
             let zoo = future.await?;
             new_shapes.append(&zoo.track_shapes(track.name()));
         }
-        console::log_1(&format!("shapes={:?}",new_shapes.shapes().len()).into());
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {
             *shapes = Some(new_shapes);
@@ -93,7 +92,7 @@ impl Carriage {
         Ok(())
     }
 
-    pub(super) async fn load(&self, data: &PeregrineObjects) {
+    pub(super) async fn load(&self, data: &PeregrineCore) {
         match self.load_full(data).await {
             Ok(()) => (),
             Err(e) => {

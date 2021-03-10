@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use anyhow::Context;
-use peregrine_core::{ Commander, PeregrineApi, CarriageSpeed, PeregrineObjects, PeregrineIntegration, Carriage, PeregrineApiQueue, ChannelIntegration };
+use peregrine_core::{ Commander, CarriageSpeed, PeregrineCore, PeregrineIntegration, Carriage, PeregrineApiQueue, ChannelIntegration };
 use web_sys::console;
 use super::pgchannel::PgChannel;
 use crate::util::error::{ js_option, js_throw };
@@ -16,11 +16,9 @@ pub struct PgIntegration {
 }
 
 impl PeregrineIntegration for PgIntegration {
-    fn set_api(&mut self, api: PeregrineApi) {
-    }
-
     fn report_error(&mut self, error: &str) {
-        console::warn_1(&format!("{}\n",error).into());
+        let data = format!("{}\n",error).into();
+        unsafe { console::warn_1(&data); }
     }
 
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
