@@ -10,7 +10,6 @@ use super::timings::ExecutorTimings;
 pub(crate) struct ExecutorTasks {
     tasks: TaskContainer,
     runnable: Runnable,
-    blocked_by: HashSet<TaskContainerHandle>,
     slot_queue: HashMap<RunSlot,Vec<TaskContainerHandle>>,
     handle_slot: HashMap<TaskContainerHandle,RunSlot>
 }
@@ -20,7 +19,6 @@ impl ExecutorTasks {
         ExecutorTasks {
             tasks: TaskContainer::new(),
             runnable: Runnable::new(),
-            blocked_by: HashSet::new(),
             slot_queue: HashMap::new(),
             handle_slot: HashMap::new()
         }
@@ -51,7 +49,6 @@ impl ExecutorTasks {
 
     pub(crate) fn block_task(&mut self, handle: &TaskContainerHandle) {
         self.runnable.remove(&self.tasks,handle);
-        self.blocked_by.insert(handle.clone());
     }
 
     fn other_using_slot(&self, slot: &RunSlot, handle: &TaskContainerHandle) -> bool {
@@ -76,7 +73,6 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn unblock_task(&mut self, handle: &TaskContainerHandle) {
-        self.blocked_by.remove(&handle);
         self.runnable.add(&self.tasks,&handle);
     }
 
@@ -97,7 +93,6 @@ impl ExecutorTasks {
         self.runnable.remove(&self.tasks,handle);
         self.remove_from_slot_queue(handle);
         self.handle_slot.remove(&handle);
-        self.blocked_by.remove(&handle);
         self.tasks.remove(&handle);
     }
 
