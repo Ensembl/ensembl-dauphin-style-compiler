@@ -79,6 +79,7 @@ impl Executor {
         let tasks = self.get_tasks_mut(); // shared to avoid race to slot
         if tasks.check_slot(&agent) {
             let container_handle = tasks.create_handle(&agent,task);
+            agent.name_agent().set_identity(container_handle.identity());
             tasks.use_slot(&agent,&container_handle);
             if !agent.finish_agent().finished() {
                 tasks.start_task(&container_handle);
@@ -589,6 +590,34 @@ mod test {
         x.main_step();
         x.main_step();
         assert_eq!("second-name",handle.get_name());
+    }
+
+    #[test]
+    pub fn test_identity() {
+        let integration = TestIntegration::new();
+        let mut x = Executor::new(integration.clone());
+        let cfg = RunConfig::new(None,3,None);
+        let agent = x.new_agent(&cfg,"name");
+        assert!(agent.identity().is_none());
+        let agent2 = agent.clone();
+        let agent3 = agent.clone();
+        let agent6 = agent.clone();
+        let step = async move {
+            agent2.tick(10).await;
+        };
+        let handle = x.add(step,agent);
+        assert!(agent6.identity().is_some());
+        assert_eq!(agent6.identity(),agent3.identity());
+        let agent4 = x.new_agent(&cfg,"name2");
+        assert!(agent4.identity().is_none());
+        let agent5 = agent4.clone();
+        let agent7 = agent4.clone();
+        let step2 = async move {
+            agent5.tick(10).await;
+        };
+        let handle2 = x.add(step2,agent4);
+        assert!(agent7.identity().is_some());
+        assert_ne!(agent6.identity(),agent7.identity());        
     }
 
     #[test]

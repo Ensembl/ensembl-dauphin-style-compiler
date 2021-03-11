@@ -92,6 +92,11 @@ impl Agent {
         self.name_agent().set_name(name);
     }
 
+    /// Get unique numeric identity for running task.
+    pub fn identity(&self) -> Option<u64> {
+        self.name_agent().identity()
+    }
+
     /// Add a callback to be run by the executor in a tick after the given timeout.
     /// 
     /// Lower-level than `timer()` and generally less useful an interface to the same functionality.

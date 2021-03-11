@@ -30,4 +30,5 @@ impl ExecutorTaskHandle for FakeTask {
     fn evict(&self) {}
     fn kill(&self, _reason: KillReason) {}
     fn set_identity(&self, _identity: u64) {}
+    fn identity(&self) -> u64 { 0 }
 }

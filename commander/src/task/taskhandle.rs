@@ -29,6 +29,7 @@ pub(crate) trait ExecutorTaskHandle {
     fn summarize(&self) -> Option<TaskSummary>;
     fn kill(&self, reason: KillReason);
     fn set_identity(&self, identity: u64);
+    fn identity(&self) -> u64;
 }
 
 pub(crate) struct TaskHandleState<R: 'static> {
@@ -179,6 +180,10 @@ impl<R> ExecutorTaskHandle for TaskHandle<R> where R: 'static {
 
     fn set_identity(&self, identity: u64) {
         self.0.lock().unwrap().identity = Some(identity);
+    }
+
+    fn identity(&self) -> u64 {
+        self.0.lock().unwrap().identity.unwrap()
     }
 }
 

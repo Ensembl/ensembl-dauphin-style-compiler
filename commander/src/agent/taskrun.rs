@@ -21,6 +21,10 @@ pub fn cdr_get_name() -> String {
     AGENT.with(|a| { a.borrow().as_ref().unwrap().get_name() })
 }
 
+pub fn cdr_identity() -> Option<u64> {
+    AGENT.with(|a| { a.borrow().as_ref().unwrap().identity() })
+}
+
 pub fn cdr_set_name(name: &str) {
     AGENT.with(|a| { a.borrow_mut().as_mut().unwrap().set_name(name) });
 }
