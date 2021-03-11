@@ -1,5 +1,6 @@
 use std::future::Future;
-
+use crate::corefutures::promisefuture::PromiseFuture;
+use crate::executor::lock::{ Lock, LockGuard };
 use crate::executor::action::Action;
 use crate::executor::link::TaskLink;
 use crate::executor::request::Request;
@@ -63,6 +64,25 @@ impl RunAgent {
     pub(crate) fn register(&self, task_handle: &TaskContainerHandle) {
         self.task_action_link.register(task_handle);
         self.task_request_link.register(task_handle);
+    }
+
+    pub(crate) fn lock(&self, lock: &Lock) -> impl Future<Output=LockGuard<'static>> {
+        let promise = PromiseFuture::new();
+        let promise2 = promise.clone();
+        let lock2 = lock.clone();
+        let task_request_link = self.task_request_link.clone();
+        /* we ask the executor to lock this lock and call Callback A when that's done */
+        self.task_request_link.add(Request::Lock(lock.clone(),Box::new(move || {
+            /* Callback A: called when LOCKED ... */
+            /* ... crate a guard to return so that we can unlock when we drop, which is when Callback B is called */
+            let guard = lock2.make_guard(move |lock| {
+                /* Callback B: the guard has been dropped, so tell the executor */
+                task_request_link.add(Request::Unlock(lock.clone()));
+            });
+            /* ... and let the new locker continue */
+            promise2.satisfy(guard);
+        })));
+        promise
     }
 }
 

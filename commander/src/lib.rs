@@ -229,6 +229,7 @@ mod executor {
   pub(crate) mod link;
   pub(crate) mod taskcontainer;
   pub(crate) mod request;
+  pub(crate) mod lock;
   mod exetasks;
   mod runnable;
   mod runqueue;
@@ -288,7 +289,7 @@ pub use crate::agent::agent::Agent;
 pub use crate::agent::taskrun::{
   cdr_set_agent, cdr_get_name, cdr_set_name, cdr_add_timer, cdr_add_ticks_timer, cdr_new_agent, cdr_add,
   cdr_finish, cdr_get_config, cdr_get_tick_index, cdr_tick, cdr_timer, cdr_turnstile, cdr_named_wait, cdr_tidy,
-  cdr_in_agent, cdr_current_time, cdr_identity
+  cdr_in_agent, cdr_current_time, cdr_identity, cdr_lock
 };
 pub use crate::executor::executor::Executor;
 pub use crate::corefutures::promisefuture::PromiseFuture;

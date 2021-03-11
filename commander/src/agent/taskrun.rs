@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::future::Future;
+use crate::executor::lock::{ Lock, LockGuard };
 use crate::task::runconfig::RunConfig;
 use crate::task::task::KillReason;
 use crate::task::taskhandle::TaskHandle;
@@ -79,4 +80,8 @@ pub fn cdr_named_wait<R,T>(inner: T, name: &str) -> impl Future<Output=R> where 
 
 pub fn cdr_tidy<T>(inner: T) -> impl Future<Output=()> where T: Future<Output=()> + 'static  {
     AGENT.with(|a| { a.borrow().as_ref().unwrap().tidy(inner) })
+}
+
+pub fn cdr_lock(lock: &Lock) -> impl Future<Output=LockGuard<'static>> {
+    AGENT.with(|a| { a.borrow().as_ref().unwrap().lock(lock) })
 }

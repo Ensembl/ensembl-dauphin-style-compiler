@@ -6,6 +6,7 @@ use std::sync::{ Arc, Mutex };
 use std::task::Poll;
 use crate::executor::action::Action;
 use crate::executor::link::Link;
+use crate::executor::lock::{ Lock, LockGuard };
 use crate::executor::request::Request;
 use crate::corefutures::promisefuture::PromiseFuture;
 use crate::corefutures::namedfuture::NamedFuture;
@@ -191,6 +192,10 @@ impl Agent {
     /// with a signal.
     pub fn tidy<T>(&self, inner: T) -> impl Future<Output=()> where T: Future<Output=()> + 'static  {
         self.finish_agent().make_tidier(inner)
+    }
+
+    pub(crate) fn lock(&self, lock: &Lock) -> impl Future<Output=LockGuard<'static>> {
+        self.run_agent().lock(lock)
     }
 
     /* overall run task */
