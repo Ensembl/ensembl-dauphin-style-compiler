@@ -9,6 +9,7 @@ use crate::task::task::{ KillReason, TaskSummary };
 use crate::task::taskhandle::{ ExecutorTaskHandle, TaskHandle };
 use super::action::Action;
 use super::link::Link;
+use super::lock::{ Lock, LockManager };
 use super::request::Request;
 use super::exetasks::ExecutorTasks;
 use super::taskcontainer::TaskContainerHandle;
@@ -16,6 +17,7 @@ use super::timings::ExecutorTimings;
 
 /// The main top-level object for commander, responsible for running tasks to completion.
 pub struct Executor {
+    locks: LockManager,
     timings: ExecutorTimings,
     tasks: ExecutorTasks,
     integration: ReenteringIntegration,
@@ -31,6 +33,7 @@ impl Executor {
         blackbox_log!("commander","Commander Executor starting");
         let integration = ReenteringIntegration::new(integration);
         Executor {
+            locks: LockManager::new(),
             timings: ExecutorTimings::new(&integration),
             requests: Link::new(),
             tasks: ExecutorTasks::new(),
@@ -105,6 +108,8 @@ impl Executor {
         format!("commander-elapsed-{}",self.get_tasks().summarize(handle).map(|x| x.get_name().to_string()).unwrap_or("".to_string()))
     }
 
+    pub fn make_lock(&mut self) -> Lock { self.locks.make_lock() }
+
     pub(crate) fn service(&mut self) {
         loop {
             let actions = self.actions.drain();
@@ -138,7 +143,13 @@ impl Executor {
                     },
                     (handle,Request::Tick(tick,callback)) => {
                         self.get_timings_mut().add_tick(&handle,tick,callback);
-                    }
+                    },
+                    (handle,Request::Lock(lock,callback)) => {
+                        self.locks.lock(&handle,lock,callback);
+                    },
+                    (_handle,Request::Unlock(lock)) => {
+                        self.locks.unlock(lock)
+                    },
                 }
             }
         }
