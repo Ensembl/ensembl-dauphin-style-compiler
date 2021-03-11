@@ -144,7 +144,10 @@ use crate::util::error::{ js_throw };
 use peregrine_data::{ 
     StickId, PeregrineCore, Channel, ChannelLocation, Commander, Track
 };
+use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
+use crate::integration::pgconsole::{ PgConsoleWeb };
+use crate::util::error::{ js_option };
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -165,7 +168,14 @@ async fn test(api: PeregrineCore) -> anyhow::Result<()> {
 }
 
 fn test_fn() -> anyhow::Result<()> {
-    let pg_web = js_throw(PeregrineWeb::new());
+    let console = PgConsoleWeb::new(30,30.);
+    let mut config = PeregrineConfig::new();
+    config.set_f64("animate.fade.slow",500.);
+    config.set_f64("animate.fade.fast",100.);
+    let window = js_option(web_sys::window(),"cannot get window")?;
+    let document = js_option(window.document(),"cannot get document")?;
+    let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
+    let pg_web = js_throw(PeregrineWeb::new(config,console,canvas));
     pg_web.data_api.backend_bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
     pg_web.commander.add_task("test",100,None,None,Box::pin(test(pg_web.data_api.clone())));
     Ok(())

@@ -17,7 +17,7 @@ use peregrine_data::{
 use peregrine_dauphin::peregrine_dauphin;
 use super::frame::run_animations;
 pub use url::Url;
-pub use web_sys::{ console, WebGlRenderingContext };
+pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
 use wasm_bindgen::JsCast;
 use crate::shape::core::stage::{ Stage, ReadStage };
@@ -46,23 +46,17 @@ pub struct PeregrineWeb {
 }
 
 impl PeregrineWeb {
-    pub fn new() -> anyhow::Result<PeregrineWeb> {
-        let commander = setup_commander().context("setting up commander")?;
-        let console = PgConsoleWeb::new(30,30.);
-        let mut config = PeregrineConfig::new();
-        config.set_f64("animate.fade.slow",500.);
-        config.set_f64("animate.fade.fast",100.);
-        /* XXX separate out per canvase stuff */
+    pub fn new(config: PeregrineConfig, console: PgConsoleWeb, canvas: Element) -> anyhow::Result<PeregrineWeb> {
         let window = js_option(web_sys::window(),"cannot get window")?;
         let document = js_option(window.document(),"cannot get document")?;
         // Nonsense
-        let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
+        // end of nonsense
+        let commander = setup_commander().context("setting up commander")?;
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| err!("cannot cast to canvas"))?;
         let context = canvas
             .get_context("webgl").map_err(|_| err!("cannot get webgl context"))?
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
-        // end of nonsense
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;

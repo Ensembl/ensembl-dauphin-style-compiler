@@ -1,7 +1,6 @@
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
-use anyhow::{ bail, anyhow as err };
-use peregrine_data::{ Channel  };
+use peregrine_data::{ Channel };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, issue_stick_request, Stick, StickTopology };
