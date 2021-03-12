@@ -2,7 +2,7 @@ use anyhow::Context;
 use std::pin::Pin;
 use std::future::Future;
 use std::sync::{ Arc, Mutex };
-use commander::{ Integration, SleepQuantity, Executor, RunSlot, RunConfig, cdr_get_name, TaskHandle, TaskResult, cdr_in_agent, cdr_new_agent, cdr_add };
+use commander::{ Integration, Lock, SleepQuantity, Executor, RunSlot, RunConfig, cdr_get_name, TaskHandle, TaskResult, cdr_in_agent, cdr_new_agent, cdr_add };
 use crate::Commander;
 use super::console::TestConsole;
 
@@ -102,5 +102,9 @@ impl Commander for TestCommander {
             let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
             exe.add(finish(console2,res,name.to_string()),agent);
         }        
+    }
+
+    fn make_lock(&self) -> Lock {
+        self.executor.lock().unwrap().make_lock()
     }
 }

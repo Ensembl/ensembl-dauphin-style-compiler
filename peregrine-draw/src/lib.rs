@@ -12,7 +12,7 @@ mod integration {
 }
 
 mod run {
-    pub(crate) mod web;
+    pub(crate) mod draw;
     mod frame;
 }
 
@@ -137,12 +137,12 @@ mod webgl {
 
 use anyhow::{ self };
 use commander::{ cdr_timer };
-use crate::run::web::PeregrineWeb;
+use crate::run::draw::{ PeregrineDraw, PeregrineDrawApi };
 #[cfg(blackbox)]
 use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_throw };
 use peregrine_data::{ 
-    StickId, PeregrineCore, Channel, ChannelLocation, Commander, Track
+    StickId, Channel, ChannelLocation, Commander, Track
 };
 use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
@@ -152,16 +152,18 @@ use crate::util::error::{ js_option };
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
 
-async fn test(api: PeregrineCore) -> anyhow::Result<()> {
-    api.add_track(Track::new("gene-pc-fwd"));
-    api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
+async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
+    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
+    draw_api.add_track(Track::new("gene-pc-fwd"));
+    //
+    draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut scale = 20.;
     for _ in 0..20 {
         pos += 500000.;
-        scale += 0.1;
-        api.set_position(pos);
-        api.set_scale(scale);
+        scale *= 0.1;
+        draw_api.set_x(pos);
+        draw_api.set_bp_per_screen(scale);
         cdr_timer(1000.).await;
     }
     Ok(())
@@ -175,9 +177,9 @@ fn test_fn() -> anyhow::Result<()> {
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
-    let pg_web = js_throw(PeregrineWeb::new(config,console,canvas));
-    pg_web.data_api.backend_bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
-    pg_web.commander.add_task("test",100,None,None,Box::pin(test(pg_web.data_api.clone())));
+    let pg_web = js_throw(PeregrineDraw::new(config,console,canvas));
+    let commander = pg_web.commander();
+    commander.add_task("test",100,None,None,Box::pin(test(pg_web)));
     Ok(())
 }
 

@@ -292,6 +292,7 @@ pub use crate::agent::taskrun::{
   cdr_in_agent, cdr_current_time, cdr_identity, cdr_lock
 };
 pub use crate::executor::executor::Executor;
+pub use crate::executor::lock::{ Lock, LockGuard };
 pub use crate::corefutures::promisefuture::PromiseFuture;
 pub use crate::derivedfutures::commanderstream::CommanderStream;
 pub use crate::integration::integration::{ Integration, SleepQuantity };

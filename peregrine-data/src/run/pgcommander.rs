@@ -2,11 +2,12 @@ use crate::lock;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
-use commander::{ RunSlot };
+use commander::{ RunSlot, Lock };
 
 pub trait Commander {
     fn start(&self);
     fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>);
+    fn make_lock(&self) -> Lock;
 }
 
 pub struct PgCommanderTaskSpec<T> {

@@ -1,4 +1,4 @@
-use hashbrown::{ HashMap, HashSet };
+use hashbrown::HashMap;
 use crate::agent::agent::Agent;
 use crate::task::slot::RunSlot;
 use crate::task::task::TaskSummary;

@@ -3,7 +3,7 @@ use blackbox::blackbox_log;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use std::future::Future;
-use commander::{ cdr_get_name, Executor, Integration, RunConfig, RunSlot, SleepQuantity, TaskHandle, TaskResult, cdr_new_agent, cdr_add, cdr_in_agent };
+use commander::{ cdr_get_name, Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, TaskResult, cdr_new_agent, cdr_add, cdr_in_agent };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
@@ -66,6 +66,10 @@ impl CommanderState {
         self.sleep_state.lock().unwrap().timeout.take();
         self.tick();
         js_throw(self.schedule());
+    }
+
+    fn make_lock(&self) -> Lock {
+        self.executor.lock().unwrap().make_lock()
     }
 
     fn schedule(&self) -> anyhow::Result<()> {
@@ -176,6 +180,10 @@ impl Commander for PgCommanderWeb {
             let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
             exe.add(finish(res,name.to_string()),agent);
         }        
+    }
+
+    fn make_lock(&self) -> Lock {
+        self.state.make_lock()
     }
 }
 
