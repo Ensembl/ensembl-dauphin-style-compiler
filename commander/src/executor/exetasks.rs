@@ -108,9 +108,9 @@ impl ExecutorTasks {
         self.tasks.get(handle).and_then(|x| x.summarize())
     }
 
-    pub(crate) fn create_handle(&mut self, agent: &Agent, handle: Box<dyn ExecutorTaskHandle>) -> TaskContainerHandle {
+    pub(crate) fn create_handle(&mut self, agent: &Agent, handle: Box<dyn ExecutorTaskHandle>, id: (u64,u64)) -> TaskContainerHandle {
         let container_handle = self.tasks.allocate();
-        agent.run_agent().register(&container_handle);
+        agent.run_agent().register(&container_handle,id);
         handle.set_identity(container_handle.identity());
         self.tasks.set(&container_handle,handle);
         container_handle

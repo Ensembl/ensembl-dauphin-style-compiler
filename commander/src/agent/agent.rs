@@ -94,8 +94,8 @@ impl Agent {
     }
 
     /// Get unique numeric identity for running task.
-    pub fn identity(&self) -> Option<u64> {
-        self.name_agent().identity()
+    pub fn identity(&self) -> Option<(u64,u64)> {
+        self.run_agent().get_id()
     }
 
     /// Add a callback to be run by the executor in a tick after the given timeout.

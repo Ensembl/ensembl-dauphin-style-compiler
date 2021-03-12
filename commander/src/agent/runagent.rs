@@ -17,7 +17,8 @@ pub(crate) struct RunAgent {
     config: RunConfig,
     integration: ReenteringIntegration,
     task_action_link: TaskLink<Action>,
-    task_request_link: TaskLink<Request>
+    task_request_link: TaskLink<Request>,
+    id: Option<(u64,u64)>
 }
 
 impl RunAgent {
@@ -28,13 +29,16 @@ impl RunAgent {
             config: config.clone(),
             integration: integration.clone(),
             task_action_link: task_action_link.clone(),
-            task_request_link: task_request_link.clone()
+            task_request_link: task_request_link.clone(),
+            id: None
         }
     }
 
     pub(super) fn set_tick_index(&mut self, tick: u64) {
         self.tick_index = tick;
     }
+
+    pub(super) fn get_id(&self) -> Option<(u64,u64)> { self.id }
 
     pub(super) fn get_tick_index(&self) -> u64 { self.tick_index }
 
@@ -61,9 +65,10 @@ impl RunAgent {
         self.task_request_link.add(Request::Tick(self.tick_index+ticks,Box::new(callback)));
     }
 
-    pub(crate) fn register(&self, task_handle: &TaskContainerHandle) {
+    pub(crate) fn register(&mut self, task_handle: &TaskContainerHandle, id: (u64,u64)) {
         self.task_action_link.register(task_handle);
         self.task_request_link.register(task_handle);
+        self.id = Some(id);
     }
 
     pub(crate) fn lock(&self, lock: &Lock) -> impl Future<Output=LockGuard<'static>> {

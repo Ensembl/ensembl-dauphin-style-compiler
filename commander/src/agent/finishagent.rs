@@ -106,7 +106,7 @@ mod test {
         let cq = Link::new();
         let integration = ReenteringIntegration::new(TestIntegration::new());
         let tc = Agent::new(&cfg,&eah,&cq,&integration,"test");
-        tc.run_agent().register(&h);
+        tc.run_agent().register(&h,(0,0));
         /* test */
         assert!(!tc.finish_agent().finishing());
         tc.finish(KillReason::Cancelled);
@@ -135,13 +135,13 @@ mod test {
         /* kills are known to be from inside a task should not force reentry */
         let cq = Link::new();
         let tc = Agent::new(&cfg,&eah,&cq,&integration.clone(),"name");
-        tc.run_agent().register(&h);
+        tc.run_agent().register(&h,(0,0));
         tc.finish_agent().finish(None,false);
         assert_eq!(ti.get_sleeps().len(),0);
         /* but kills which maybe from outside must */
         let cq = Link::new();
         let tc = Agent::new(&cfg,&eah,&cq,&integration.clone(),"name");
-        tc.run_agent().register(&h);
+        tc.run_agent().register(&h,(0,0));
         tc.finish(KillReason::NotNeeded);
         assert_eq!(vec![SleepQuantity::Yesterday],*ti.get_sleeps());
     }

@@ -1,5 +1,6 @@
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::{ Arc, Mutex };
 use crate::agent::agent::Agent;
 use crate::integration::integration::{ Integration, SleepQuantity };
 use crate::integration::reentering::ReenteringIntegration;
@@ -15,8 +16,14 @@ use super::exetasks::ExecutorTasks;
 use super::taskcontainer::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
+lazy_static! {
+    static ref next_identity : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
+}    
+
 /// The main top-level object for commander, responsible for running tasks to completion.
 pub struct Executor {
+    identity: u64,
+    next_task_id: u64,
     locks: LockManager,
     timings: ExecutorTimings,
     tasks: ExecutorTasks,
@@ -32,7 +39,14 @@ impl Executor {
     pub fn new<T>(integration: T) -> Executor where T: Integration + 'static {
         blackbox_log!("commander","Commander Executor starting");
         let integration = ReenteringIntegration::new(integration);
+        let identity = {
+            let mut id = next_identity.lock().unwrap();
+            *id += 1;
+            *id
+        };
         Executor {
+            identity,
+            next_task_id: 0,
             locks: LockManager::new(),
             timings: ExecutorTimings::new(&integration),
             requests: Link::new(),
@@ -79,9 +93,11 @@ impl Executor {
 
     fn try_add_task(&mut self, task: Box<dyn ExecutorTaskHandle>, agent: Agent) {
         blackbox_log!("commander","Adding task '{}' to executor",agent.get_name());
+        self.next_task_id += 1;
+        let id = (self.identity,self.next_task_id);
         let tasks = self.get_tasks_mut(); // shared to avoid race to slot
         if tasks.check_slot(&agent) {
-            let container_handle = tasks.create_handle(&agent,task);
+            let container_handle = tasks.create_handle(&agent,task,id);
             agent.name_agent().set_identity(container_handle.identity());
             tasks.use_slot(&agent,&container_handle);
             if !agent.finish_agent().finished() {

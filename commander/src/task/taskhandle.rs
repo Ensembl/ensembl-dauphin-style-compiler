@@ -235,7 +235,7 @@ mod test {
         let integration = TestIntegration::new();
         let mut cq = Link::new();
         let tc = Agent::new(&cfg,&eah,&cq,&ReenteringIntegration::new(integration.clone()),"test");
-        tc.run_agent().register(&h);
+        tc.run_agent().register(&h,(0,0));
         let ctx = tc.clone();
         let s1 = Box::pin(async move {
             ctx.timer(1.).await;

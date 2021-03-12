@@ -69,7 +69,7 @@ mod test {
         let mut integration = ReenteringIntegration::new(ti.clone());
         let cq = Link::new();
         let tc = Agent::new(&cfg,&eah,&cq,&integration.clone(),"name");
-        tc.run_agent().register(&h);
+        tc.run_agent().register(&h,(0,0));
         /* simulate */
         integration.sleep(SleepQuantity::Time(1.));
         integration.cause_reentry(); /* sets one-shot, sends SleepQuantity::None */
