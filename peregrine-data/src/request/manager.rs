@@ -12,6 +12,7 @@ use super::packet::ResponsePacket;
 use super::request::{ CommandRequest, RequestType, ResponseType };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
+use crate::util::message::DataMessage;
 
 pub trait PayloadReceiver {
     fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
@@ -56,7 +57,7 @@ impl RequestManagerData {
         }
     }
 
-    pub fn message(&self, message: &str) {
+    pub fn message(&self, message: DataMessage) {
         self.messages.send(message);
     }
 
@@ -117,7 +118,7 @@ impl RequestManager {
         lock!(self.0).add_receiver(receiver);
     }
 
-    pub fn message(&self, message: &str) {
+    pub fn message(&self, message: DataMessage) {
         lock!(self.0).message(message);
     }
 }

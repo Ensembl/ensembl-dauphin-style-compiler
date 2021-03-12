@@ -21,6 +21,7 @@ use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
 use super::stickauthority::StickAuthorityResponseBuilderType;
 use serde_cbor::Value as CborValue;
+use crate::util::message::DataMessage;
 
 fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
@@ -54,7 +55,7 @@ impl RequestQueueData {
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Some(ref e) = msg.as_ref().err() {
-            self.messages.send(&format!("error: {:?}",e));
+            self.messages.send(DataMessage::PacketSendingError(self.channel.clone(),e.to_string()));
         }
         msg
     }
@@ -73,7 +74,7 @@ impl RequestQueueData {
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
                         blackbox_log!(&format!("channel-{}",channel.to_string()),"timeout on channel '{}'",channel.to_string());
-                        messages.send(&format!("timeout on channel '{}'",channel.to_string()));
+                        messages.send(DataMessage::BackendTimeout(channel.clone()));
                     }
                 });
             }

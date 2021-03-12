@@ -12,16 +12,17 @@ use crate::{
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::core::{ Track, Focus, StickId };
+use crate::util::message::DataMessage;
 
 #[derive(Clone)]
-pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(&str) + 'static + Send>>>);
+pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
 
 impl MessageSender {
-    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(&str) + 'static + Send {
+    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(DataMessage) + 'static + Send {
         MessageSender(Arc::new(Mutex::new(Box::new(cb))))
     }
 
-    pub(crate) fn send(&self,message: &str) {
+    pub(crate) fn send(&self,message: DataMessage) {
         (self.0.lock().unwrap())(message);
     }
 }
@@ -48,7 +49,7 @@ pub struct PeregrineCore {
 
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> anyhow::Result<PeregrineCore> 
-                where M: Commander + 'static, F: FnMut(&str) + 'static + Send {
+                where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
         let messages = MessageSender(Arc::new(Mutex::new(Box::new(messages))));
         let dauphin_queue = PgDauphinQueue::new();
         let commander = PgCommander::new(Box::new(commander));

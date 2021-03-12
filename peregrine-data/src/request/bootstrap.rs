@@ -12,6 +12,7 @@ use super::program::ProgramLoader;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::backoff::Backoff;
 use crate::util::miscpromises::CountingPromise;
+use crate::util::message::DataMessage;
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
@@ -44,7 +45,7 @@ impl BootstrapCommandRequest {
             }
             Err(_) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1.);
-                manager.message(&format!("PERMANENT ERROR channel {} failed to bootstrap. genome browser cannot start",self.channel.to_string()));
+                manager.message(DataMessage::BadBootstrapCannotStart(self.channel.clone()));
                 bail!("failed to bootstrap to '{}'. backend error",self.channel);
             }
         }

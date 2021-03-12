@@ -113,6 +113,7 @@ mod util {
     pub mod cbor;
     pub mod fuse;
     pub mod memoized;
+    pub mod message;
     pub mod miscpromises;
     pub mod unlock;
 

@@ -24,7 +24,7 @@ impl TestHelpers {
         let console = TestConsole::new();
         let console2 = console.clone();
         let messages = MessageSender::new(move |msg| {
-            console2.message(msg);
+            console2.message(&msg.to_string());
         });
         let booted = CountingPromise::new();
         let channel = Box::new(TestChannelIntegration::new());

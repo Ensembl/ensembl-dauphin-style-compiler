@@ -6,6 +6,7 @@ use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
 use super::request::{ RequestType };
+use crate::util::message::DataMessage;
 
 const BACKOFF: &'static [u32] = &[ 0, 1, 1, 1, 100, 100, 100, 500, 500, 500, 5000, 5000, 5000 ];
 
@@ -44,7 +45,7 @@ impl Backoff {
                     blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1.);
                     match resp.downcast::<GeneralFailure>() {
                         Ok(e) => { 
-                            manager.message(e.message());
+                            manager.message(DataMessage::GeneralFailure(channel.clone(),e.message().to_string()));
                             last_error = Some(e);
                         },
                         Err(_) => {
@@ -53,7 +54,7 @@ impl Backoff {
                     }
                 }
             }
-            manager.message(&format!("temporary(?) failure of {}",channel.to_string()));
+            manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
 
         }
         match last_error.unwrap().downcast_ref::<GeneralFailure>() {

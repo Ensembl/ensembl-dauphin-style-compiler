@@ -14,6 +14,7 @@ use crate::request::channel::{ Channel, ChannelIntegration };
 use crate::request::manager::{ PayloadReceiver };
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
+use crate::util::message::DataMessage;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
 
 pub struct PgDauphinTaskSpec {
@@ -124,7 +125,7 @@ impl PayloadReceiver for PgDauphin {
                         }
                     },
                     Err(e) => {
-                        messages.send(&format!("error: {:?}",e));
+                        messages.send(DataMessage::BadDauphinProgram(e.to_string()));
                         for (in_channel_name,_) in bundle.name_map() {
                             pgd.mark_missing(&channel,in_channel_name);
                         }
