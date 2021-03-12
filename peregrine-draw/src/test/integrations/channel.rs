@@ -124,14 +124,6 @@ impl ChannelIntegration for TestChannelIntegration {
         })
     }
 
-    fn error(&self, _channel: &Channel, msg: &str) {
-        self.console.message(msg);
-    }
-
-    fn warn(&self, _channel: &Channel, msg: &str) {
-        self.console.message(msg);
-    }
-
     fn set_timeout(&self, channel: &Channel, timeout: f64) {
         self.timeouts.lock().unwrap().push((channel.clone(),timeout));
     }

@@ -4,7 +4,6 @@ use std::future::Future;
 use std::pin::Pin;
 use crate::{ Channel, ChannelIntegration, PacketPriority };
 use commander::cdr_timer;
-use super::console::TestConsole;
 use serde_cbor::Value as CborValue;
 #[cfg(test)]
 use serde_json::Value as JsonValue;
@@ -75,7 +74,6 @@ pub fn cbor_matches_print(json: &JsonValue, cbor: &CborValue) -> bool {
 
 #[derive(Clone)]
 pub struct TestChannelIntegration {
-    console: TestConsole,
     timeouts: Arc<Mutex<Vec<(Channel,f64)>>>,
     requests: Arc<Mutex<Vec<CborValue>>>,
     responses: Arc<Mutex<Vec<CborValue>>>,
@@ -83,9 +81,8 @@ pub struct TestChannelIntegration {
 }
 
 impl TestChannelIntegration {
-    pub fn new(console: &TestConsole) -> TestChannelIntegration {
+    pub fn new() -> TestChannelIntegration {
         TestChannelIntegration {
-            console: console.clone(),
             timeouts: Arc::new(Mutex::new(vec![])),
             requests: Arc::new(Mutex::new(vec![])),
             responses: Arc::new(Mutex::new(vec![])),
@@ -122,14 +119,6 @@ impl ChannelIntegration for TestChannelIntegration {
             }
             Ok(resp.lock().unwrap().remove(0))
         })
-    }
-
-    fn error(&self, _channel: &Channel, msg: &str) {
-        self.console.message(msg);
-    }
-
-    fn warn(&self, _channel: &Channel, msg: &str) {
-        self.console.message(msg);
     }
 
     fn set_timeout(&self, channel: &Channel, timeout: f64) {

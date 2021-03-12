@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::rc::Rc;
 use anyhow::{ self, bail };
 use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
@@ -45,7 +44,7 @@ impl BootstrapCommandRequest {
             }
             Err(_) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1.);
-                manager.error(&self.channel,&format!("PERMANENT ERROR channel {} failed to bootstrap. genome browser cannot start",self.channel.to_string()));
+                manager.message(&format!("PERMANENT ERROR channel {} failed to bootstrap. genome browser cannot start",self.channel.to_string()));
                 bail!("failed to bootstrap to '{}'. backend error",self.channel);
             }
         }
@@ -94,7 +93,7 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) -> anyhow::Result<()> {
+pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) -> anyhow::Result<()> {
     let booted_promise = booted_promise.clone();
     let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
     let boot_proc = req.execute(requests.clone());

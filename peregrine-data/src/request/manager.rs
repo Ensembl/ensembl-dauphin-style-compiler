@@ -1,5 +1,4 @@
 use crate::lock;
-use anyhow::bail;
 use commander::{ CommanderStream };
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -11,23 +10,25 @@ use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::queue::RequestQueue;
 use super::packet::ResponsePacket;
 use super::request::{ CommandRequest, RequestType, ResponseType };
-use crate::run::{ PgCommander, PgDauphin };
+use crate::api::MessageSender;
+use crate::run::{ PgCommander };
 
 pub trait PayloadReceiver {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
+    fn receive(&self, channel: &Channel, response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>>;
 }
 
 #[derive(Clone)]
 pub struct PayloadReceiverCollection(Arc<Mutex<Vec<Rc<Box<dyn PayloadReceiver>>>>>);
 
 impl PayloadReceiver for PayloadReceiverCollection {
-    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
+    fn receive(&self, channel: &Channel, mut response: ResponsePacket, itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) ->  Pin<Box<dyn Future<Output=ResponsePacket>>> {
         let all = lock!(self.0).clone();
         let itn = itn.clone();
         let channel = channel.clone();
+        let messages = messages.clone();
         Box::pin(async move {
             for receiver in all.iter() {
-                response = receiver.receive(&channel,response,&itn).await;
+                response = receiver.receive(&channel,response,&itn,&messages).await;
             }
             response
         })
@@ -39,30 +40,28 @@ pub struct RequestManagerData {
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
     next_id: u64,
-    queues: HashMap<(Channel,PacketPriority),RequestQueue>
+    queues: HashMap<(Channel,PacketPriority),RequestQueue>,
+    messages: MessageSender
 }
 
 impl RequestManagerData {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander) -> RequestManagerData {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender) -> RequestManagerData {
         RequestManagerData {
             integration: Rc::new(integration),
             receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
             commander: commander.clone(),
             next_id: 0,
-            queues: HashMap::new()
+            queues: HashMap::new(),
+            messages: messages.clone()
         }
+    }
+
+    pub fn message(&self, message: &str) {
+        self.messages.send(message);
     }
 
     pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {
         lock!(self.receiver.0).push(Rc::new(receiver));
-    }
-
-    fn error(&self, channel: &Channel, msg: &str) {
-        self.integration.error(channel,msg);
-    }
-
-    fn warn(&self, channel: &Channel, msg: &str) {
-        self.integration.warn(channel,msg);
     }
 
     fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<&mut RequestQueue> {
@@ -70,7 +69,7 @@ impl RequestManagerData {
             Entry::Vacant(e) => { 
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                e.insert(RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority)?)
+                e.insert(RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages)?)
             },
             Entry::Occupied(e) => { e.into_mut() }
         })
@@ -96,8 +95,8 @@ impl RequestManagerData {
 pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 
 impl RequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander) -> RequestManager {
-        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander))))
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender) -> RequestManager {
+        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages))))
     }
 
     pub fn set_timeout(&self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
@@ -118,11 +117,7 @@ impl RequestManager {
         lock!(self.0).add_receiver(receiver);
     }
 
-    pub fn error(&self, channel: &Channel, msg: &str) {
-        lock!(self.0).error(channel,msg);
-    }
-
-    pub fn warn(&self, channel: &Channel, msg: &str) {
-        lock!(self.0).warn(channel,msg);
+    pub fn message(&self, message: &str) {
+        lock!(self.0).message(message);
     }
 }

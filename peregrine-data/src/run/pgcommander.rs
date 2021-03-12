@@ -8,6 +8,7 @@ pub trait Commander {
     fn start(&self);
     fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>);
     fn make_lock(&self) -> Lock;
+    fn identity(&self) -> u64;
 }
 
 pub struct PgCommanderTaskSpec<T> {

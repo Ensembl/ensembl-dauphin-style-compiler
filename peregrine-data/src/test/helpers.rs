@@ -1,8 +1,8 @@
 use std::future::Future;
-use std::rc::Rc;
 use super::integrations::{ TestCommander, TestChannelIntegration, TestConsole, FakeDauphinReceiver };
+use crate::api::MessageSender;
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
-use crate::{ Channel, ChannelLocation, ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
+use crate::{ ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
 use url::Url;
@@ -21,12 +21,16 @@ pub struct TestHelpers {
 
 impl TestHelpers {
     pub(crate) fn new() -> TestHelpers {
-        let booted = CountingPromise::new();
         let console = TestConsole::new();
-        let channel = Box::new(TestChannelIntegration::new(&console));
+        let console2 = console.clone();
+        let messages = MessageSender::new(move |msg| {
+            console2.message(msg);
+        });
+        let booted = CountingPromise::new();
+        let channel = Box::new(TestChannelIntegration::new());
         let commander_inner = TestCommander::new(&console);
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
-        let mut manager = RequestManager::new(channel.clone(),&commander);
+        let mut manager = RequestManager::new(channel.clone(),&commander,&messages);
         let pdq = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&pdq).expect("d");
         let fdr = FakeDauphinReceiver::new(&commander,&pdq);

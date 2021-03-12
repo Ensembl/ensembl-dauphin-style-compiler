@@ -51,7 +51,7 @@ impl PgConsoleData {
     }
 
     pub fn message(&mut self, level: PgConsoleLevel, msg: &str) {
-        if !self.suppress() || true {
+        if !self.suppress() {
             self.log(level,msg);
         }
     }

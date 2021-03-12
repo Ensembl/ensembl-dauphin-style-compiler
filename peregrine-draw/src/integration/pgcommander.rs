@@ -68,9 +68,8 @@ impl CommanderState {
         js_throw(self.schedule());
     }
 
-    fn make_lock(&self) -> Lock {
-        self.executor.lock().unwrap().make_lock()
-    }
+    fn make_lock(&self) -> Lock { self.executor.lock().unwrap().make_lock() }
+    fn identity(&self) -> u64 { self.executor.lock().unwrap().identity() }
 
     fn schedule(&self) -> anyhow::Result<()> {
         let window = js_option(web_sys::window(),"cannot get window")?;
@@ -182,9 +181,8 @@ impl Commander for PgCommanderWeb {
         }        
     }
 
-    fn make_lock(&self) -> Lock {
-        self.state.make_lock()
-    }
+    fn make_lock(&self) -> Lock { self.state.make_lock() }
+    fn identity(&self) -> u64 { self.state.identity() }
 }
 
 #[derive(Clone)]

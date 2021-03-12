@@ -85,6 +85,8 @@ impl Commander for TestCommander {
     fn start(&self) {
     }
 
+    fn identity(&self) -> u64 { 0 }
+
     fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>) {
         let rc = RunConfig::new(slot,prio,timeout);
         let rc2 = RunConfig::new(None,prio,None);

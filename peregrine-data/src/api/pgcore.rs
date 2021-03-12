@@ -14,6 +14,19 @@ use crate::api::queue::ApiMessage;
 use crate::core::{ Track, Focus, StickId };
 
 #[derive(Clone)]
+pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(&str) + 'static + Send>>>);
+
+impl MessageSender {
+    pub(crate) fn new<F>(cb :F) -> MessageSender where F: FnMut(&str) + 'static + Send {
+        MessageSender(Arc::new(Mutex::new(Box::new(cb))))
+    }
+
+    pub(crate) fn send(&self,message: &str) {
+        (self.0.lock().unwrap())(message);
+    }
+}
+
+#[derive(Clone)]
 pub struct PeregrineCore {
     pub dauphin: PgDauphin,
     pub dauphin_queue: PgDauphinQueue,
@@ -34,11 +47,12 @@ pub struct PeregrineCore {
 }
 
 impl PeregrineCore {
-    pub fn new<M>(integration: Box<dyn PeregrineIntegration>, commander: M) -> anyhow::Result<PeregrineCore> 
-                where M: Commander + 'static {
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> anyhow::Result<PeregrineCore> 
+                where M: Commander + 'static, F: FnMut(&str) + 'static + Send {
+        let messages = MessageSender(Arc::new(Mutex::new(Box::new(messages))));
         let dauphin_queue = PgDauphinQueue::new();
         let commander = PgCommander::new(Box::new(commander));
-        let manager = RequestManager::new(integration.channel(),&commander);
+        let manager = RequestManager::new(integration.channel(),&commander,&messages);
         let data_store = DataStore::new(32,&commander,&manager);
         let booted = CountingPromise::new();
         let dauphin = PgDauphin::new(&dauphin_queue)?;

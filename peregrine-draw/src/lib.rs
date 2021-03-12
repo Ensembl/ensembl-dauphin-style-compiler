@@ -4,11 +4,8 @@ mod integration {
     pub(crate) mod pgdauphin;
     pub(crate) mod pgblackbox;
     pub(crate) mod pgchannel;
-    pub(crate) mod pgconsole;
     pub(crate) mod pgintegration;
     mod stream;
-
-    pub use pgconsole::{ PgConsoleWeb };
 }
 
 mod run {
@@ -141,5 +138,4 @@ mod webgl {
 }
 
 pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
-pub use crate::integration::{ PgConsoleWeb };
 pub use self::util::{ js_throw, js_option };

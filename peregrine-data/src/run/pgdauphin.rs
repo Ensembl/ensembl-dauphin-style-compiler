@@ -1,7 +1,7 @@
 use anyhow::{ self, anyhow as err };
 use blackbox::blackbox_log;
 use crate::lock;
-use commander::{ cdr_tick, RunSlot, CommanderStream };
+use commander::{ RunSlot };
 use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
@@ -9,9 +9,9 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use super::pgcommander::{ PgCommander, PgCommanderTaskSpec };
+use crate::api::MessageSender;
 use crate::request::channel::{ Channel, ChannelIntegration };
-use crate::request::manager::{ PayloadReceiver, RequestManager };
+use crate::request::manager::{ PayloadReceiver };
 use crate::request::packet::ResponsePacket;
 use crate::request::program::ProgramLoader;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
@@ -110,10 +110,11 @@ impl PgDauphin {
 }
 
 impl PayloadReceiver for PgDauphin {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<Box<dyn ChannelIntegration>>) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
+    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
         let pgd = self.clone();
         let channel = channel.clone();
         let channel_itn = channel_itn.clone();
+        let messages = messages.clone();
         Box::pin(async move {
             for bundle in response.programs().clone().iter() {
                 match pgd.add_binary(&channel,bundle.bundle_name(),bundle.program()).await {
@@ -123,7 +124,7 @@ impl PayloadReceiver for PgDauphin {
                         }
                     },
                     Err(e) => {
-                        channel_itn.error(&channel,&format!("error: {:?}",e));
+                        messages.send(&format!("error: {:?}",e));
                         for (in_channel_name,_) in bundle.name_map() {
                             pgd.mark_missing(&channel,in_channel_name);
                         }

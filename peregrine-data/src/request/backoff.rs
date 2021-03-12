@@ -1,12 +1,11 @@
 use anyhow::{ bail, anyhow as err };
 use blackbox::blackbox_count;
 use commander::cdr_timer;
-use owning_ref::RcRef;
 use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
-use super::request::{ RequestType, ResponseType };
+use super::request::{ RequestType };
 
 const BACKOFF: &'static [u32] = &[ 0, 1, 1, 1, 100, 100, 100, 500, 500, 500, 5000, 5000, 5000 ];
 
@@ -45,7 +44,7 @@ impl Backoff {
                     blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1.);
                     match resp.downcast::<GeneralFailure>() {
                         Ok(e) => { 
-                            manager.error(&channel,e.message());
+                            manager.message(e.message());
                             last_error = Some(e);
                         },
                         Err(_) => {
@@ -54,7 +53,7 @@ impl Backoff {
                     }
                 }
             }
-            manager.warn(&channel,&format!("temporary(?) failure of {}",channel.to_string()));
+            manager.message(&format!("temporary(?) failure of {}",channel.to_string()));
 
         }
         match last_error.unwrap().downcast_ref::<GeneralFailure>() {

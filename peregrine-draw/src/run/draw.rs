@@ -1,10 +1,10 @@
 use anyhow::{ self, Context, anyhow as err };
 use crate::{integration::pgchannel::PgChannel, shape::core::stage::ReadStageAxis};
-use crate::integration::pgconsole::{ PgConsoleWeb };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
+use crate::util::message::{ Message, message_register_callback };
 
 #[cfg(blackbox)]
 use crate::integration::pgblackbox::{ pgblackbox_setup };
@@ -83,12 +83,14 @@ impl PeregrineDraw {
 // TODO end buffers
 
 impl PeregrineDraw {
-    pub fn new(config: PeregrineConfig, console: PgConsoleWeb, canvas: Element) -> anyhow::Result<PeregrineDraw> {
+    pub fn new<F>(config: PeregrineConfig, canvas: Element, messages: F) -> anyhow::Result<PeregrineDraw> where F: FnMut(Message) + 'static + Send {
+        // XXX change commander init to allow message init to move to head
         let window = js_option(web_sys::window(),"cannot get window")?;
         let document = js_option(window.document(),"cannot get document")?;
         let html = js_option(document.body().clone(),"cannot get body")?;
         let commander = PgCommanderWeb::new(&html)?;
         commander.start();
+        message_register_callback(Some(commander.identity()),messages);
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| err!("cannot cast to canvas"))?;
         let context = canvas
             .get_context("webgl").map_err(|_| err!("cannot get webgl context"))?
@@ -97,8 +99,8 @@ impl PeregrineDraw {
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(console.clone()),trainset.clone(),webgl.clone()));
-        let mut core = PeregrineCore::new(integration,commander.clone())?;
+        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
+        let mut core = PeregrineCore::new(integration,commander.clone(),|msg| {})?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         core.application_ready();
         let mut out = PeregrineDraw {

@@ -4,7 +4,7 @@ mod api {
     mod queue;
 
     pub use api::{ PeregrineIntegration, CarriageSpeed };
-    pub use self::pgcore::PeregrineCore;
+    pub use self::pgcore::{ PeregrineCore, MessageSender };
     pub use queue::PeregrineApiQueue;
 }
 

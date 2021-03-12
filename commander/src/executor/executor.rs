@@ -17,7 +17,7 @@ use super::taskcontainer::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
 lazy_static! {
-    static ref next_identity : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
+    static ref NEXT_IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
 }    
 
 /// The main top-level object for commander, responsible for running tasks to completion.
@@ -40,7 +40,7 @@ impl Executor {
         blackbox_log!("commander","Commander Executor starting");
         let integration = ReenteringIntegration::new(integration);
         let identity = {
-            let mut id = next_identity.lock().unwrap();
+            let mut id = NEXT_IDENTITY.lock().unwrap();
             *id += 1;
             *id
         };
@@ -61,6 +61,8 @@ impl Executor {
 
     pub(crate) fn get_tasks(&self) -> &ExecutorTasks { &self.tasks }
     pub(crate) fn get_tasks_mut(&mut self) -> &mut ExecutorTasks { &mut self.tasks }
+
+    pub fn identity(&self) -> u64 { self.identity }
 
     /// Create new `RunSlot`.
     /// 
@@ -632,7 +634,7 @@ mod test {
         let step = async move {
             agent2.tick(10).await;
         };
-        let handle = x.add(step,agent);
+        x.add(step,agent);
         assert!(agent6.identity().is_some());
         assert_eq!(agent6.identity(),agent3.identity());
         let agent4 = x.new_agent(&cfg,"name2");
@@ -642,7 +644,7 @@ mod test {
         let step2 = async move {
             agent5.tick(10).await;
         };
-        let handle2 = x.add(step2,agent4);
+        x.add(step2,agent4);
         assert!(agent7.identity().is_some());
         assert_ne!(agent6.identity(),agent7.identity());        
     }

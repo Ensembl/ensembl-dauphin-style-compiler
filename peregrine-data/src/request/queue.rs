@@ -1,12 +1,13 @@
-use anyhow::{ Context, bail };
+use anyhow::{ Context };
 use crate::lock;
-use blackbox::{ blackbox_time, blackbox_count, blackbox_log };
+use blackbox::{ blackbox_count, blackbox_log };
 use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
+use crate::api::MessageSender;
 use super::bootstrap::BootstrapResponseBuilderType;
 use super::data::DataResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
@@ -15,7 +16,7 @@ use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
 use super::request::{ CommandRequest, ResponseType };
-use crate::run::{ PgCommander, PgDauphin };
+use crate::run::{ PgCommander };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
 use super::stickauthority::StickAuthorityResponseBuilderType;
@@ -39,7 +40,8 @@ struct RequestQueueData {
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
-    timeout: Option<f64>
+    timeout: Option<f64>,
+    messages: MessageSender
 }
 
 impl RequestQueueData {
@@ -52,7 +54,7 @@ impl RequestQueueData {
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Some(ref e) = msg.as_ref().err() {
-            self.integration.error(&self.channel,&format!("error: {:?}",e));
+            self.messages.send(&format!("error: {:?}",e));
         }
         msg
     }
@@ -67,10 +69,11 @@ impl RequestQueueData {
                 let stream = stream.clone();
                 let channel = self.channel.clone();
                 let integration = self.integration.clone();
+                let messages = self.messages.clone();
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
                         blackbox_log!(&format!("channel-{}",channel.to_string()),"timeout on channel '{}'",channel.to_string());
-                        integration.error(&channel,&format!("timeout on channel '{}'",channel.to_string()));
+                        messages.send(&format!("timeout on channel '{}'",channel.to_string()));
                     }
                 });
             }
@@ -82,7 +85,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<RequestQueue> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender) -> anyhow::Result<RequestQueue> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             builder: register_responses(),
@@ -91,6 +94,7 @@ impl RequestQueue {
             channel: channel.clone(),
             priority: priority.clone(),
             timeout: None,
+            messages: messages.clone()
         })));
         out.start(commander)?;
         Ok(out)
@@ -155,7 +159,8 @@ impl RequestQueue {
         let channel = lock!(self.0).channel.clone();
         let itn = lock!(self.0).integration.clone();
         let receiver = lock!(self.0).receiver.clone();
-        let mut response = receiver.receive(&channel,response,&itn).await;
+        let messages = lock!(self.0).messages.clone();
+        let mut response = receiver.receive(&channel,response,&itn,&messages).await;
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(stream) = streams.remove(&id) {

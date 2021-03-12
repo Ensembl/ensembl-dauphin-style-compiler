@@ -1,5 +1,9 @@
 use std::hash::{ Hash, Hasher };
 use std::collections::hash_map::{ DefaultHasher };
+use std::collections::HashMap;
+use std::sync::{ Arc, Mutex };
+use commander::cdr_identity;
+use lazy_static::lazy_static;
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -67,4 +71,39 @@ impl ToString for Message {
             Message::DroppedWithoutTidying(s) => format!("dropped object without tidying: {}",s)
         }
     }
+}
+
+struct MessageCatcher {
+    senders: HashMap<Option<u64>,Box<dyn FnMut(Message) + 'static + Send>>
+}
+
+impl MessageCatcher {
+    fn new() -> MessageCatcher {
+        MessageCatcher {
+            senders: HashMap::new()
+        }
+    }
+
+    fn add<F>(&mut self, id: Option<u64>, cb: F) where F: FnMut(Message) + 'static + Send {
+        self.senders.insert(id,Box::new(cb));
+    }
+
+    fn call(&mut self, id : Option<u64>, message: Message) {
+        if let Some(sender) = self.senders.get_mut(&id) {
+            sender(message);
+        }
+    }
+}
+
+lazy_static! {
+    static ref message_catcher : Arc<Mutex<MessageCatcher>> = Arc::new(Mutex::new(MessageCatcher::new()));
+}    
+
+pub(crate) fn message_register_callback<F>(id: Option<u64>,cb: F) where F: FnMut(Message) + 'static + Send {
+    message_catcher.lock().unwrap().add(id,cb);
+}
+
+pub(crate) fn message(message: Message) {
+    let id = cdr_identity().map(|x| x.0);
+    message_catcher.lock().unwrap().call(id,message);
 }

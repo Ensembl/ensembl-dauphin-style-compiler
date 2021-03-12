@@ -9,7 +9,7 @@ use peregrine_data::{
 };
 use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
-use peregrine_draw::{ PgConsoleWeb, js_option, js_throw };
+use peregrine_draw::{ js_option, js_throw };
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -32,14 +32,14 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
 }
 
 fn test_fn() -> anyhow::Result<()> {
-    let console = PgConsoleWeb::new(30,30.);
+//    let console = PgConsoleWeb::new(30,30.);
     let mut config = PeregrineConfig::new();
     config.set_f64("animate.fade.slow",500.);
     config.set_f64("animate.fade.fast",100.);
     let window = js_option(web_sys::window(),"cannot get window")?;
     let document = js_option(window.document(),"cannot get document")?;
     let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
-    let pg_web = js_throw(PeregrineDraw::new(config,console,canvas));
+    let pg_web = js_throw(PeregrineDraw::new(config,canvas,|message| {}));
     let commander = pg_web.commander();
     commander.add_task("test",100,None,None,Box::pin(test(pg_web)));
     Ok(())
