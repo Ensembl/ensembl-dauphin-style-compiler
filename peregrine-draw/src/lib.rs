@@ -64,6 +64,7 @@ mod train {
 mod util {
     pub(crate) mod ajax;
     pub(crate) mod error;
+    pub(crate) mod message;
     pub(crate) mod safeelement;
 
     pub use self::error::{ js_throw, js_option };
