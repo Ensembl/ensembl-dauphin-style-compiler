@@ -1,5 +1,3 @@
-use wasm_bindgen::prelude::*;
-
 mod integration {
     mod bell;
     pub(crate) mod pgcommander;
@@ -9,11 +7,15 @@ mod integration {
     pub(crate) mod pgconsole;
     pub(crate) mod pgintegration;
     mod stream;
+
+    pub use pgconsole::{ PgConsoleWeb };
 }
 
 mod run {
-    pub(crate) mod draw;
+    pub mod draw;
     mod frame;
+
+    pub use self::draw::{ PeregrineDraw, PeregrineDrawApi };
 }
 
 mod shape {
@@ -63,6 +65,8 @@ mod util {
     pub(crate) mod ajax;
     pub(crate) mod error;
     pub(crate) mod safeelement;
+
+    pub use self::error::{ js_throw, js_option };
 }
 
 mod webgl {
@@ -135,63 +139,6 @@ mod webgl {
     mod util;
 }
 
-use anyhow::{ self };
-use commander::{ cdr_timer };
-use crate::run::draw::{ PeregrineDraw, PeregrineDrawApi };
-#[cfg(blackbox)]
-use crate::integration::pgblackbox::{ pgblackbox_setup };
-use crate::util::error::{ js_throw };
-use peregrine_data::{ 
-    StickId, Channel, ChannelLocation, Commander, Track
-};
-use peregrine_data::{ PeregrineConfig };
-pub use url::Url;
-use crate::integration::pgconsole::{ PgConsoleWeb };
-use crate::util::error::{ js_option };
-
-#[cfg(blackbox)]
-use blackbox::{ blackbox_enable, blackbox_log };
-
-async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
-    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)))?;
-    draw_api.add_track(Track::new("gene-pc-fwd"));
-    //
-    draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
-    let mut pos = 2500000.;
-    let mut scale = 20.;
-    for _ in 0..20 {
-        pos += 500000.;
-        scale *= 0.1;
-        draw_api.set_x(pos);
-        draw_api.set_bp_per_screen(scale);
-        cdr_timer(1000.).await;
-    }
-    Ok(())
-}
-
-fn test_fn() -> anyhow::Result<()> {
-    let console = PgConsoleWeb::new(30,30.);
-    let mut config = PeregrineConfig::new();
-    config.set_f64("animate.fade.slow",500.);
-    config.set_f64("animate.fade.fast",100.);
-    let window = js_option(web_sys::window(),"cannot get window")?;
-    let document = js_option(window.document(),"cannot get document")?;
-    let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
-    let pg_web = js_throw(PeregrineDraw::new(config,console,canvas));
-    let commander = pg_web.commander();
-    commander.add_task("test",100,None,None,Box::pin(test(pg_web)));
-    Ok(())
-}
-
-// Called when the wasm module is instantiated
-#[wasm_bindgen(start)]
-pub fn main() -> Result<(), JsValue> {
-    console_error_panic_hook::set_once();
-    js_throw(test_fn());
-    Ok(())
-}
-
-#[wasm_bindgen]
-pub fn init_panic_hook() {
-    console_error_panic_hook::set_once();
-}
+pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
+pub use crate::integration::{ PgConsoleWeb };
+pub use self::util::{ js_throw, js_option };

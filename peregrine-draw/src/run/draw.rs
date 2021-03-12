@@ -76,7 +76,7 @@ impl PeregrineDraw {
         }
     }
     
-    pub(crate) fn commander(&self) -> PgCommanderWeb { self.commander.clone() }
+    pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 }
 
 // TODO redraw on change (? eh?)
