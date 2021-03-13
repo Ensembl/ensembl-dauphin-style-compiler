@@ -7,6 +7,7 @@ use crate::index::StickStore;
 use super::panelprogramstore::PanelProgramStore;
 use super::programregion::ProgramRegion;
 use super::panelrunstore::PanelRun;
+use crate::util::message::{ DataMessage };
 use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq)]
@@ -29,7 +30,7 @@ impl Panel {
     pub fn index(&self) -> u64 { self.index }
     pub fn scale(&self) -> &Scale { &self.scale }
 
-    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![
             self.stick.serialize()?,self.scale.serialize()?,self.focus().serialize()?,
             self.track.serialize()?,CborValue::Integer(self.index as i128)
@@ -48,20 +49,20 @@ impl Panel {
         self.index >> (scale.get_index() - self.scale.get_index())
     }
 
-    fn to_candidate(&self, ppr: &ProgramRegion) -> anyhow::Result<Panel> {
+    fn to_candidate(&self, ppr: &ProgramRegion) ->Panel {
         let scale = ppr.scale_up(&self.scale);
         let index = self.map_scale(&scale);
-        Ok(Panel {
+        Panel {
             stick: self.stick.clone(),
             scale, index,
             track: self.track.clone(),
             focus: self.focus.clone()
-        })
+        }
     }
 
-    pub async fn build_panel_run(&self, stick_store: &StickStore, panel_program_store: &PanelProgramStore) -> anyhow::Result<PanelRun> {
-        let tags : Vec<String> = stick_store.get(&self.stick).await?
-                        .as_ref().as_ref().ok_or_else(|| err!("No such stick"))?
+    pub async fn build_panel_run(&self, stick_store: &StickStore, panel_program_store: &PanelProgramStore) -> Result<PanelRun,DataMessage> {
+        let tags : Vec<String> = stick_store.get(&self.stick).await
+                        .as_ref().as_ref().ok_or_else(|| err!("No such stick")).map_err(|e| DataMessage::XXXTmp(e.to_string()))?
                         .tags().iter().cloned().collect();
         let mut ppr = ProgramRegion::new();
         ppr.set_stick_tags(&tags);
@@ -69,8 +70,8 @@ impl Panel {
         ppr.set_focus(self.focus.clone());
         ppr.set_tracks(&[self.track.clone()]);
         let (channel,prog,ppr) = panel_program_store.get(&ppr)
-            .ok_or_else(|| err!("no program to render this track!"))?;
-        let candidate = self.to_candidate(&ppr)?;
+            .ok_or_else(|| DataMessage::NoPanelProgram(self.clone()))?;
+        let candidate = self.to_candidate(&ppr);
         Ok(PanelRun::new(channel,&prog,&candidate))
     }
 }

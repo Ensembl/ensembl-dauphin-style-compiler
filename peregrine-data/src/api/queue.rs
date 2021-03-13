@@ -1,9 +1,11 @@
 use crate::api::PeregrineCore;
 use crate::core::{ Focus, StickId, Track, Viewport };
+use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
+use crate::util::message::DataMessage;
 use web_sys::console;
 
 #[derive(Debug)]
@@ -13,7 +15,7 @@ pub enum ApiMessage {
     AddTrack(Track),
     RemoveTrack(Track),
     SetPosition(f64),
-    SetScale(f64),
+    SetBpPerScreen(f64),
     SetFocus(Focus),
     SetStick(StickId),
     Bootstrap(Channel)
@@ -75,8 +77,8 @@ impl PeregrineApiQueue {
             ApiMessage::SetPosition(pos) =>{
                 self.update_viewport(data,data.viewport.set_position(pos));
             },
-            ApiMessage::SetScale(scale) => {
-                self.update_viewport(data,data.viewport.set_scale(scale));
+            ApiMessage::SetBpPerScreen(scale) => {
+                self.update_viewport(data,data.viewport.set_bp_per_screen(scale));
             },
             ApiMessage::SetFocus(focus) => {
                 self.update_viewport(data,data.viewport.set_focus(&focus));
@@ -93,7 +95,7 @@ impl PeregrineApiQueue {
     pub fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
-        data.commander.add_task(PgCommanderTaskSpec {
+        add_task::<Result<(),DataMessage>>(&data.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
             prio: 5,
             slot: None,

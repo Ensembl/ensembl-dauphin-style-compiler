@@ -9,6 +9,7 @@ use regex::Regex;
 use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
+use crate::util::message::DataMessage;
 
 lazy_static! {
     static ref CHANNEL_RE: Regex = Regex::new(r"(.*?)\((.*)\)").unwrap();
@@ -83,7 +84,7 @@ impl Display for PacketPriority {
 }
 
 impl Channel {
-    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(match self.0.as_ref() {
             ChannelLocation::HttpChannel(url) => CborValue::Array(vec![CborValue::Integer(0),CborValue::Text(url.to_string())])
         })

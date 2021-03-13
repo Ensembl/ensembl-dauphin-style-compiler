@@ -1,10 +1,10 @@
 use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, StickAuthorityStore, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
-    DataStore, PeregrineCore
+    PgCommander, PgCommanderTaskSpec, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
+    DataStore, PeregrineCore, DataMessage, add_task
 };
-use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
+use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
 use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
@@ -68,7 +68,7 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
                     Ok(())
                 })
             };
-            commander.add_task(task);        
+            add_task(&commander,task);        
         },
         Err(e) => {
             blackbox_log!("dauphin","{} failed {}",spec.in_bundle_name,e.to_string());
@@ -77,8 +77,8 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
     }
 }
 
-async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> anyhow::Result<()> {
-    let mut dauphin = Dauphin::new(command_suite()?);
+async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
+    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::XXXTmp(e.to_string()))?);
     integration.add_payloads(&mut dauphin);
     add_peregrine_payloads(&mut dauphin,&core.manager,&core.stick_store,&core.stick_authority_store,&core.booted,&core.panel_program_store,&core.data_store);
     loop {
@@ -91,7 +91,7 @@ async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCo
 }
 
 pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &PeregrineCore) {
-    core.commander.add_task(PgCommanderTaskSpec {
+    add_task(&core.commander,PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,

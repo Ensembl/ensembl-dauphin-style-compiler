@@ -8,6 +8,7 @@ use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use super::program::SuppliedBundle;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_map, cbor_string, cbor_map_iter };
+use crate::util::message::DataMessage;
 
 pub struct RequestPacket {
     requests: Vec<CommandRequest>
@@ -24,7 +25,7 @@ impl RequestPacket {
         self.requests.push(request);
     }
 
-    pub fn serialize(&self, channel: &Channel) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage> {
         let mut map = BTreeMap::new();
         let mut requests = vec![];
         for r in &self.requests {

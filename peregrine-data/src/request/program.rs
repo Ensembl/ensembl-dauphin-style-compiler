@@ -1,9 +1,6 @@
-use crate::lock;
 use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
-use std::rc::Rc;
-use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
@@ -13,8 +10,9 @@ use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, PgDauphin };
+use crate::run::{ PgCommander, Commander, PgDauphin, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use crate::util::message::DataMessage;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -80,7 +78,7 @@ impl ProgramCommandRequest {
 
 impl RequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
-    fn serialize(&self) -> anyhow::Result<CborValue> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
@@ -125,7 +123,7 @@ impl ProgramLoader {
                 let (channel,name) = (key.0.clone(),key.1.clone());
                 let manager = manager.clone();
                 let dauphin = dauphin.clone();
-                commander.add_task(PgCommanderTaskSpec {
+                add_task(&commander,PgCommanderTaskSpec {
                     name: format!("program-loader-{}-{}",channel,name),
                     prio: 3,
                     timeout: None,
@@ -135,13 +133,13 @@ impl ProgramLoader {
                         result.resolve(());
                         Ok(())
                     })
-                })
+                });
             })
         }
     }
 
     pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.store.get(&(channel.clone(),name.to_string())).await.unwrap_or(Arc::new(()));
+        self.store.get(&(channel.clone(),name.to_string())).await;
         Ok(())
     }
 

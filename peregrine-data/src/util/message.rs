@@ -1,23 +1,59 @@
+use std::error::Error;
+use std::sync::{ Arc, Mutex };
+use std::fmt;
 use crate::request::channel::Channel;
+use crate::panel::Panel;
 
+#[derive(Clone,Debug,Hash)]
 pub enum DataMessage {
     BadDauphinProgram(String),
-    BadBootstrapCannotStart(Channel),
+    BadBootstrapCannotStart(Channel,Box<DataMessage>),
     BackendTimeout(Channel),
-    PacketSendingError(Channel,String),
+    PacketError(Channel,String),
     TemporaryBackendFailure(Channel),
-    GeneralFailure(Channel,String)
+    BackendRefused(Channel,String),
+    DataHasNoAssociatedStyle(Vec<String>),
+    TaskTimedOut(String),
+    TaskUnexpectedlyCancelled(String),
+    TaskUnexpectedlySuperfluous(String),
+    TaskResultMissing(String),
+    TaskUnexpectedlyOngoing(String),
+    NoPanelProgram(Panel),
+    DataMissing(Box<DataMessage>),
+    CodeInvariantFailed(String),
+    XXXTmp(String)
 }
 
-impl ToString for DataMessage {
-    fn to_string(&self) -> String {
-        match self {
+impl fmt::Display for DataMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
-            DataMessage::BadBootstrapCannotStart(c) => format!("Bad bootstrap response. Cannot start. channel={}",c),
+            DataMessage::BadBootstrapCannotStart(c,cause) => format!("Bad bootstrap response. Cannot start. channel={}: {}",c,cause),
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
-            DataMessage::PacketSendingError(c,s) => format!("Error sending packet: '{}' channel={}",s,c),
+            DataMessage::PacketError(c,s) => format!("Error sending/receiving packet: '{}' channel={}",s,c),
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
-            DataMessage::GeneralFailure(c,s) => format!("General failure: '{}' channel={}",s,c)
+            DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
+            DataMessage::DataHasNoAssociatedStyle(tags) => 
+                format!("Data has no associated style: tags={}",tags.join(",")),
+            DataMessage::TaskTimedOut(s) => format!("Task '{}' timed out",s),
+            DataMessage::TaskUnexpectedlyCancelled(s) => format!("Task '{}' unexpectedly cancelled",s),
+            DataMessage::TaskUnexpectedlySuperfluous(s) => format!("Task '{}' unexpectedly superfluous",s),
+            DataMessage::TaskResultMissing(s) => format!("Task '{}' result unexpectedly missing",s),
+            DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
+            DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
+            DataMessage::NoPanelProgram(p) => format!("Missing panel program: {:?}",p),
+            DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
+            DataMessage::XXXTmp(s) => format!("temporary error: {}",s)
+        };
+        write!(f,"{}",s)
+    }
+}
+
+impl Error for DataMessage {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            DataMessage::DataMissing(s) =>Some(s),
+            _ => None
         }
     }
 }

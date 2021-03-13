@@ -44,12 +44,12 @@ pub(crate) struct TaskHandleState<R: 'static> {
 /// The handle on a submitted task from an executor.
 /// 
 /// In most simple cases an invoker will not care about the taskhandle and need not keep it.
-pub struct TaskHandle<R: 'static>(Arc<Mutex<TaskHandleState<R>>>);
+pub struct TaskHandle<R: 'static>(Arc<Mutex<TaskHandleState<R>>>,Option<String>);
 
 // Rust bug means dan't derive Clone on polymorphic types
 impl<R> Clone for TaskHandle<R> where R: 'static {
     fn clone(&self) -> Self {
-        TaskHandle(self.0.clone())
+        TaskHandle(self.0.clone(),self.1.clone())
     }
 }
 
@@ -62,7 +62,7 @@ impl<R> TaskHandle<R> where R: 'static {
             agent: agent.clone(),
             result: None,
             done: false
-        })))
+        })),None)
     }
 
     pub(crate) fn get_agent(&self) -> MutexGuardRef<TaskHandleState<R>,Agent> {
@@ -136,8 +136,11 @@ impl<R> TaskHandle<R> where R: 'static {
     }
 
     #[allow(unused)]
-    fn task_key(&self) -> String {
-        format!("commander-run-{}",self.summary().map(|x| x.get_name().to_string()).unwrap_or("".to_string()))
+    fn task_key(&mut self) -> &str {
+        let self2 = self.clone();
+        self.1.get_or_insert_with(move ||
+            format!("commander-run-{}",self2.summary().map(|x| x.get_name().to_string()).unwrap_or("".to_string()))
+        )
     }
 }
 

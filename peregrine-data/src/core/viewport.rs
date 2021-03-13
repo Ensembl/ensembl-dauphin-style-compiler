@@ -5,14 +5,14 @@ use super::layout::Layout;
 pub struct Viewport {
     layout: Layout,
     position: f64,
-    scale: f64
+    bp_per_screen: f64
 }
 
 impl Viewport {
-    pub fn new(layout: &Layout, position: f64, scale: f64) -> Viewport {
+    pub fn new(layout: &Layout, position: f64, bp_per_screen: f64) -> Viewport {
         Viewport {
             layout: layout.clone(),
-            position, scale
+            position, bp_per_screen
         }
     }
 
@@ -20,13 +20,13 @@ impl Viewport {
         Viewport {
             layout: Layout::empty(),
             position: 0.,
-            scale: 0.
+            bp_per_screen: 1.
         }
     }
 
     pub fn layout(&self) -> &Layout { &self.layout }
     pub fn position(&self) -> f64 { self.position }
-    pub fn scale(&self) -> f64 { self.scale }
+    pub fn bp_per_screen(&self) -> f64 { self.bp_per_screen }
 
     pub fn track_on(&self, track: &Track, yn: bool) -> Viewport {
         let mut out = self.clone();
@@ -46,9 +46,9 @@ impl Viewport {
         out
     }
 
-    pub fn set_scale(&self, scale: f64) -> Viewport {
+    pub fn set_bp_per_screen(&self, scale: f64) -> Viewport {
         let mut out = self.clone();
-        out.scale = scale;
+        out.bp_per_screen = scale;
         out
     }
 

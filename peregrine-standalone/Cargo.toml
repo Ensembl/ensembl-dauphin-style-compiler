@@ -13,6 +13,14 @@ wasm-bindgen-futures = "*"
 lazy_static = "*"
 console_error_panic_hook="*"
 url="*"
+serde_json="*"
+base64="*"
+fnv="*"
+
+[dependencies.blackbox]
+version="*"
+path="../blackbox"
+features=[]
 
 [dependencies.commander]
 version="*"

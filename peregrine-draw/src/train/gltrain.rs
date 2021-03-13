@@ -40,7 +40,6 @@ impl GLTrain {
     }
 
     pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        blackbox_log!("gltrain","done(index={})",self.index);
         for (_,mut carriage) in self.carriages.drain() {
             carriage.discard(gl)?;
         }

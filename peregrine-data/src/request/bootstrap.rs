@@ -4,7 +4,7 @@ use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
 use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
-use crate::run::{ PgDauphin, PgDauphinTaskSpec };
+use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::manager::RequestManager;
@@ -30,7 +30,7 @@ impl BootstrapCommandRequest {
         }
     }
 
-    async fn execute(self, mut manager: RequestManager) -> anyhow::Result<()> {
+    async fn execute(self, mut manager: RequestManager) -> Result<(),DataMessage> {
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing bootstrap request");
         blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-request",1.);
         let dauphin = self.dauphin.clone();
@@ -43,10 +43,9 @@ impl BootstrapCommandRequest {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1.);
                 Ok(b.bootstrap(&dauphin,&loader).await?)
             }
-            Err(_) => {
+            Err(e) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1.);
-                manager.message(DataMessage::BadBootstrapCannotStart(self.channel.clone()));
-                bail!("failed to bootstrap to '{}'. backend error",self.channel);
+                Err(DataMessage::BadBootstrapCannotStart(self.channel.clone(),Box::new(e.clone())))
             }
         }
     }
@@ -54,7 +53,7 @@ impl BootstrapCommandRequest {
 
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
-    fn serialize(&self) -> anyhow::Result<CborValue> { Ok(CborValue::Null) }
+    fn serialize(&self) -> Result<CborValue,DataMessage> { Ok(CborValue::Null) }
     fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
 }
 
@@ -69,7 +68,7 @@ impl ResponseType for BootstrapCommandResponse {
 }
 
 impl BootstrapCommandResponse {
-    async fn bootstrap(&self, dauphin: &PgDauphin, loader: &ProgramLoader) -> anyhow::Result<()> {
+    async fn bootstrap(&self, dauphin: &PgDauphin, loader: &ProgramLoader) -> Result<(),DataMessage> {
         blackbox_log!("bootstrap","bootstrapping using {} {}",self.channel.to_string(),self.name);
         dauphin.run_program(loader,PgDauphinTaskSpec {
             prio: 2,
@@ -78,7 +77,7 @@ impl BootstrapCommandResponse {
             channel: self.channel.clone(),
             program_name: self.name.to_string(),
             payloads: None
-        }).await?;
+        }).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
         Ok(())
     }
 }
@@ -98,7 +97,7 @@ pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, comma
     let booted_promise = booted_promise.clone();
     let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
     let boot_proc = req.execute(requests.clone());
-    commander.add_task(PgCommanderTaskSpec {
+    add_task(&commander,PgCommanderTaskSpec {
         name: "bootstrap".to_string(),
         prio: 4,
         slot: None,

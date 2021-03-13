@@ -3,6 +3,8 @@ use super::integrations::{ TestCommander, TestChannelIntegration, TestConsole, F
 use crate::api::MessageSender;
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
 use crate::{ ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
+use crate::run::add_task;
+use crate::util::message::DataMessage;
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
 use url::Url;
@@ -50,8 +52,8 @@ impl TestHelpers {
         }
     }
 
-    pub(crate) fn task<F>(&self, prog: F) where F: Future<Output=anyhow::Result<()>> + 'static {
-        self.commander.add_task(PgCommanderTaskSpec {
+    pub(crate) fn task<F>(&self, prog: F) where F: Future<Output=Result<(),DataMessage>> + 'static {
+        add_task(&self.commander,PgCommanderTaskSpec {
             name: "program".to_string(),
             prio: 4,
             slot: None,

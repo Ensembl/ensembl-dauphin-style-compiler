@@ -16,7 +16,7 @@ use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
 use super::request::{ CommandRequest, ResponseType };
-use crate::run::{ PgCommander };
+use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
 use super::stickauthority::StickAuthorityResponseBuilderType;
@@ -46,7 +46,7 @@ struct RequestQueueData {
 }
 
 impl RequestQueueData {
-    fn make_packet_sender(&self, packet: &RequestPacket) -> anyhow::Result<Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>> {
+    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>,DataMessage> {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
@@ -55,7 +55,7 @@ impl RequestQueueData {
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Some(ref e) = msg.as_ref().err() {
-            self.messages.send(DataMessage::PacketSendingError(self.channel.clone(),e.to_string()));
+            self.messages.send(DataMessage::PacketError(self.channel.clone(),e.to_string()));
         }
         msg
     }
@@ -86,7 +86,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender) -> anyhow::Result<RequestQueue> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender) -> Result<RequestQueue,DataMessage> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             builder: register_responses(),
@@ -105,12 +105,12 @@ impl RequestQueue {
         lock!(self.0).pending_send.add((request,stream));
     }
 
-    fn start(&self, commander: &PgCommander) -> anyhow::Result<()> {
+    fn start(&self, commander: &PgCommander) -> Result<(),DataMessage> {
         let data = lock!(self.0);
         let name = format!("backend: '{}' {}",data.channel.to_string(),data.priority.to_string());
         drop(data);
         let self2 = self.clone();
-        commander.add_task(PgCommanderTaskSpec {
+        add_task(&commander,PgCommanderTaskSpec {
             name,
             prio: 4,
             timeout: None,
@@ -176,15 +176,15 @@ impl RequestQueue {
         self.process_responses(response,streams).await;
     }
 
-    fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> anyhow::Result<T> {
-        a.with_context(|| format!("{} {}",msg,lock!(self.0).channel.to_string()))
+    fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> Result<T,DataMessage> {
+        a.map_err(|e| DataMessage::XXXTmp(e.to_string()))
     }
 
     pub(crate) fn set_timeout(&mut self, timeout: f64) {
         lock!(self.0).set_timeout(timeout);
     }
 
-    async fn main_loop(self) -> anyhow::Result<()> {
+    async fn main_loop(self) -> Result<(),DataMessage> {
         loop {
             let (mut request,mut streams) = self.err_context(self.build_packet().await,"preparing to send data")?;
             self.process_request(&mut request,&mut streams).await;

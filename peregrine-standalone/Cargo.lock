@@ -395,12 +395,16 @@ name = "peregrine-standalone"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "base64",
+ "blackbox",
  "commander",
  "console_error_panic_hook",
+ "fnv",
  "js-sys",
  "lazy_static",
  "peregrine_data",
  "peregrine_draw",
+ "serde_json",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",

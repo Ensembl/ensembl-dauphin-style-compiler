@@ -1,16 +1,16 @@
-use anyhow::{ self, Context };
+use anyhow::{ self };
 use blackbox::blackbox_log;
 use std::pin::Pin;
-use std::sync::{ Arc, Mutex };
+use std::sync::{ Arc, Mutex, MutexGuard };
 use std::future::Future;
-use commander::{ cdr_get_name, Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, TaskResult, cdr_new_agent, cdr_add, cdr_in_agent };
+use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, cdr_new_agent, cdr_add, cdr_in_agent };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
-use crate::util::error::{ js_error, js_option, js_throw, console_error, js_warn };
+use crate::util::error::{ js_error, js_option, js_throw };
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
-use peregrine_data::Commander;
+use peregrine_data::{ Commander, DataMessage };
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -63,6 +63,9 @@ impl CommanderState {
     }
 
     fn timer_tick(&self) {
+        if let Some((closure,_handle)) = self.sleep_state.lock().unwrap().timeout.take() {
+            drop(closure);
+        }
         self.sleep_state.lock().unwrap().timeout.take();
         self.tick();
         js_throw(self.schedule());
@@ -110,20 +113,6 @@ impl CommanderState {
     }
 }
 
-async fn catch_errors(f: Pin<Box<dyn Future<Output=anyhow::Result<()>>>>) {
-    js_warn(f.await.with_context(|| format!("async: {}",cdr_get_name())));
-}
-
-async fn finish(res: TaskHandle<()>, name: String) {
-    res.finish_future().await;
-    match res.task_state() {
-        TaskResult::Killed(reason) => {
-            console_error(&format!("async {}: {}",reason,name));
-        },
-        _ => {}
-    }
-}
-
 #[derive(Clone)]
 pub struct PgCommanderWeb {
     state: CommanderState,
@@ -159,30 +148,28 @@ impl PgCommanderWeb {
     }
 }
 
+// TODO check all add-tasks check result.
 impl Commander for PgCommanderWeb {
     fn start(&self) {
         self.state.tick();
     }
 
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>) {
+    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
         let rc = RunConfig::new(slot,prio,timeout);
-        let rc2 = RunConfig::new(None,prio,None);
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);
-            let res = cdr_add(Box::pin(catch_errors(f)),agent);
-            let agent = cdr_new_agent(Some(rc2),&format!("{}-finisher",name));
-            cdr_add(finish(res,name.to_string()),agent);
+             cdr_add(Box::pin(f),agent)
         } else {
             let mut exe = self.state.executor.lock().unwrap();
             let agent = exe.new_agent(&rc,name);
-            let res = exe.add_pin(Box::pin(catch_errors(f)),agent);
-            let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
-            exe.add(finish(res,name.to_string()),agent);
-        }        
+            exe.add_pin(Box::pin(f),agent)
+        }
     }
 
     fn make_lock(&self) -> Lock { self.state.make_lock() }
     fn identity(&self) -> u64 { self.state.identity() }
+
+    fn executor(&self) -> MutexGuard<Executor> { self.state.executor.lock().unwrap() }
 }
 
 #[derive(Clone)]

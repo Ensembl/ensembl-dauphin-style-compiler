@@ -59,10 +59,10 @@ impl PeregrineCore {
         let dauphin = PgDauphin::new(&dauphin_queue)?;
         let program_loader = ProgramLoader::new(&commander,&manager,&dauphin);
         let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&program_loader,&dauphin);
-        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted)?;
+        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted);
         let panel_program_store = PanelProgramStore::new();
-        let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&program_loader,&stick_store,&panel_program_store,&booted);
-        let panel_store = PanelStore::new(128,&commander,&panel_run_store);
+        let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&program_loader,&stick_store,&panel_program_store,&messages,&booted);
+        let panel_store = PanelStore::new(128,&commander,&panel_run_store,&messages);
         Ok(PeregrineCore {
             booted,
             commander,
@@ -74,7 +74,7 @@ impl PeregrineCore {
             panel_program_store,
             panel_run_store,
             integration: Arc::new(Mutex::new(integration)),
-            train_set: TrainSet::new(),
+            train_set: TrainSet::new(&messages),
             stick_store,
             stick_authority_store,
             program_loader,
@@ -122,8 +122,8 @@ impl PeregrineCore {
         self.queue.push(ApiMessage::SetPosition(pos));
     }
 
-    pub fn set_scale(&self, scale: f64) {
-        self.queue.push(ApiMessage::SetScale(scale));
+    pub fn set_bp_per_screen(&self, scale: f64) {
+        self.queue.push(ApiMessage::SetBpPerScreen(scale));
     }
 
     pub fn set_focus(&self, focus: &Focus) {

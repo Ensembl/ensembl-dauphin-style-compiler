@@ -1,13 +1,11 @@
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self, anyhow as err };
 use crate::{integration::pgchannel::PgChannel, shape::core::stage::ReadStageAxis};
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
-use crate::util::message::{ Message, message_register_callback };
+use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
-#[cfg(blackbox)]
-use crate::integration::pgblackbox::{ pgblackbox_setup };
 use crate::util::error::{ js_option };
 use peregrine_data::{ 
     Commander,
@@ -90,7 +88,9 @@ impl PeregrineDraw {
         let html = js_option(document.body().clone(),"cannot get body")?;
         let commander = PgCommanderWeb::new(&html)?;
         commander.start();
-        message_register_callback(Some(commander.identity()),messages);
+        let commander_id = commander.identity();
+        message_register_callback(Some(commander_id),messages);
+        message_register_default(commander_id);
         let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| err!("cannot cast to canvas"))?;
         let context = canvas
             .get_context("webgl").map_err(|_| err!("cannot get webgl context"))?
@@ -100,7 +100,9 @@ impl PeregrineDraw {
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
-        let mut core = PeregrineCore::new(integration,commander.clone(),|msg| {})?;
+        let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
+            routed_message(Some(commander_id),Message::DataError(e))
+        })?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         core.application_ready();
         let mut out = PeregrineDraw {
@@ -111,25 +113,7 @@ impl PeregrineDraw {
         Ok(out)
     }
     
-    #[cfg(blackbox)]
-    fn setup_blackbox(&self) {
-        let mut ign = pgblackbox_setup();
-        ign.set_url(&Url::parse("http://localhost:4040/blackbox/data").expect("bad blackbox url"));
-        let ign2 = ign.clone();
-        blackbox_enable("notice");
-        blackbox_enable("warn");
-        blackbox_enable("error");
-        self.commander.add_task("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await?; Ok(()) }));
-        blackbox_log("general","blackbox configured");
-        console::log_1(&format!("blackbox configured").into());
-    }
-
-    #[cfg(not(blackbox))]
-    fn setup_blackbox(&self) {
-    }
-
     fn setup(&mut self) -> anyhow::Result<()> {
-        self.setup_blackbox();
         run_animations(self);
         Ok(())
     }
@@ -167,7 +151,7 @@ impl PeregrineDrawApi for PeregrineDraw {
     }
 
     fn set_bp_per_screen(&mut self, z: f64) {
-        self.data_api.set_scale(z);
+        self.data_api.set_bp_per_screen(z);
         self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
     }
 

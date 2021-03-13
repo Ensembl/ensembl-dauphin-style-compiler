@@ -13,6 +13,7 @@ use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use crate::util::message::DataMessage;
 
 #[derive(Clone)]
 struct StickCommandRequest {
@@ -36,7 +37,7 @@ impl StickCommandRequest {
 
 impl RequestType for StickCommandRequest {
     fn type_index(&self) -> u8 { 2 }
-    fn serialize(&self) -> anyhow::Result<CborValue> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![CborValue::Text(self.stick_id.get_id().to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

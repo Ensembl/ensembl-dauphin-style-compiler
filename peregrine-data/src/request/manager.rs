@@ -65,7 +65,7 @@ impl RequestManagerData {
         lock!(self.receiver.0).push(Rc::new(receiver));
     }
 
-    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> anyhow::Result<&mut RequestQueue> {
+    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<&mut RequestQueue,DataMessage> {
         Ok(match self.queues.entry((channel.clone(),priority.clone())) {
             Entry::Vacant(e) => { 
                 let commander = self.commander.clone();
@@ -76,7 +76,7 @@ impl RequestManagerData {
         })
     }
 
-    pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<CommanderStream<Box<dyn ResponseType>>> {
+    pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
@@ -104,13 +104,13 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> anyhow::Result<Box<dyn ResponseType>> {
+    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> Result<Box<dyn ResponseType>,DataMessage> {
         let m = lock!(self.0).execute(channel,priority,request)?;
         let out = Ok(m.get().await);
         out
     }
 
-    pub fn execute_background(&self, channel: &Channel, request: Box<dyn RequestType>) -> anyhow::Result<()> {
+    pub fn execute_background(&self, channel: &Channel, request: Box<dyn RequestType>) -> Result<(),DataMessage> {
         lock!(self.0).execute(channel.clone(),PacketPriority::Batch,request).map(|_| ())
     }
 

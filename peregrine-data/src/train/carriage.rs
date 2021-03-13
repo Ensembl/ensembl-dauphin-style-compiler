@@ -1,11 +1,12 @@
 use blackbox::blackbox_log;
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
-use crate::api::PeregrineCore;
+use crate::api::{ PeregrineCore, MessageSender };
 use crate::core::Track;
 use crate::panel::{ Panel };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
+use crate::util::message::DataMessage;
 use web_sys::console;
 
 #[derive(Clone,Hash,PartialEq,Eq)]
@@ -36,7 +37,8 @@ impl Display for CarriageId {
 #[derive(Clone)]
 pub struct Carriage {
     id: CarriageId,
-    shapes: Arc<Mutex<Option<ShapeList>>>
+    shapes: Arc<Mutex<Option<ShapeList>>>,
+    messages: MessageSender
 }
 
 impl fmt::Debug for Carriage {
@@ -46,10 +48,11 @@ impl fmt::Debug for Carriage {
 }
 
 impl Carriage {
-    pub fn new(id: &CarriageId) -> Carriage {
+    pub fn new(id: &CarriageId, messages: &MessageSender) -> Carriage {
         Carriage {
             id: id.clone(),
-            shapes: Arc::new(Mutex::new(None))
+            shapes: Arc::new(Mutex::new(None)),
+            messages: messages.clone()
         }
     }
 
@@ -82,8 +85,14 @@ impl Carriage {
         let tracks : Vec<_> = panels.iter().map(|(t,p)| (t,data.panel_store.run(p))).collect();
         let mut new_shapes = ShapeList::new();
         for (track,future) in tracks {
-            let zoo = future.await?;
+            match future.await.as_ref() {
+                Ok(zoo) => {
             new_shapes.append(&zoo.track_shapes(track.name()));
+                },
+                Err(e) => {
+                    self.messages.send(e.clone());
+                }
+            }
         }
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {

@@ -2,7 +2,6 @@ mod integration {
     mod bell;
     pub(crate) mod pgcommander;
     pub(crate) mod pgdauphin;
-    pub(crate) mod pgblackbox;
     pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
     mod stream;
@@ -64,6 +63,7 @@ mod util {
     pub(crate) mod message;
     pub(crate) mod safeelement;
 
+    pub use self::ajax::PgAjax;
     pub use self::error::{ js_throw, js_option };
 }
 
@@ -138,4 +138,4 @@ mod webgl {
 }
 
 pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
-pub use self::util::{ js_throw, js_option };
+pub use self::util::{ js_throw, js_option, PgAjax };

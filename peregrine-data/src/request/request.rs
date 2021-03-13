@@ -4,10 +4,11 @@ use std::any::Any;
 use anyhow::{ self };
 use serde_cbor::Value as CborValue;
 use std::rc::Rc;
+use crate::util::message::DataMessage;
 
 pub trait RequestType {
     fn type_index(&self) -> u8;
-    fn serialize(&self) -> anyhow::Result<CborValue>;
+    fn serialize(&self) -> Result<CborValue,DataMessage>;
     fn to_failure(&self) -> Box<dyn ResponseType>;
 }
 
@@ -25,7 +26,7 @@ impl CommandRequest {
         CommandResponse::new(self.0,self.1.to_failure())
     }
 
-    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         let typ = self.1.type_index();
         Ok(CborValue::Array(vec![CborValue::Integer(self.0 as i128),CborValue::Integer(typ as i128),self.1.serialize()?]))
     }

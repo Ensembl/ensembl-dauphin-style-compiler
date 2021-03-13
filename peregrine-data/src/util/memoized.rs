@@ -1,3 +1,28 @@
+/*
+
+Memoized is a class which is used extensively in `peregrine-data` to handle results which can only be resolved
+asynchronously but which are static and so can be cached. It presents a simple async interface to the requestor
+while deduplicating pending requests and cacheing values.
+
+Cacheing can either be "complete" or an LRU-based cache. THe main reason why memoized is used over a simpler cache is
+to reduce the number of repeated pending requests.
+
+The class is polymorpih on `K`, they key and `V` the value.
+
+There are two memoized constructors, `new` and `new_cached`. BOth take a _resolver_ callback. This is the method to,
+in each case, actually populate any missing data. The resolver takes two arguments, the _key_ (of type `K`) and a
+`MemoizedDataResult`. This callback should then set in motion the resolution process, ultimately calling the `resolve`
+method on the `MemoizedDataResult`. Keys can also b added with the `add` method.
+
+Two classes from Commander are used in the implementation.
+
+* `PromiseFuture` is a simple suture which can later be resolved with a value. These are returned to each caller.
+* A `FusePromise` takes zero-or-more `PromiseFutures` and also has a method `fuse()` to set a result. From themoment
+`fuse()` is called all registered `PromiseFuture`s are satisfied with the value (which must be Clone). Any promises 
+added later are also instantly satisfied with the same value.
+
+*/
+
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::{ Arc, Mutex };
@@ -66,14 +91,14 @@ impl<K,V> Clone for Memoized<K,V> {
 }
 
 impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
-    pub fn new() -> MemoizedData<K,V> {
+    fn new() -> MemoizedData<K,V> {
         MemoizedData {
             known: MemoizedStore::Complete(HashMap::new()),
             pending: HashMap::new(),
         }
     }
 
-    pub fn new_cache(size: usize) -> MemoizedData<K,V> {
+    fn new_cache(size: usize) -> MemoizedData<K,V> {
         MemoizedData {
             known: MemoizedStore::LruCache(Cache::new(size)),
             pending: HashMap::new(),
@@ -108,17 +133,17 @@ impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
 }
 
 impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
-    pub fn new<F>(f: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
+    pub fn new<F>(resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
         Memoized {
             data: Arc::new(Mutex::new(MemoizedData::new())),
-            resolver: Arc::new(Box::new(f))
+            resolver: Arc::new(Box::new(resolver))
         }
     }
 
-    pub fn new_cache<F>(size: usize, f: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
+    pub fn new_cache<F>(size: usize, resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
         Memoized {
             data: Arc::new(Mutex::new(MemoizedData::new_cache(size))),
-            resolver: Arc::new(Box::new(f))
+            resolver: Arc::new(Box::new(resolver))
         }
     }
 
@@ -139,7 +164,7 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
         Ok(())
     }
 
-    pub async fn get(&self, key: &K) -> anyhow::Result<Arc<V>> {
+    pub async fn get(&self, key: &K) -> Arc<V> {
         let mut data = lock!(self.data);
         let (promise,request) = data.promise(key);
         drop(data);
@@ -149,6 +174,6 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
                 key: key.clone()
             });
         }
-        Ok(promise.await)
+        promise.await
     }
 }

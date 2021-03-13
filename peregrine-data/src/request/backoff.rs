@@ -23,7 +23,7 @@ impl Backoff {
     }
 
     pub async fn backoff<S,R,F>(&mut self, manager: &mut RequestManager, req: R, channel: &Channel, prio: PacketPriority, verify: F)
-                    -> anyhow::Result<anyhow::Result<Box<S>>>
+                    -> Result<Result<Box<S>,DataMessage>,DataMessage>
                     where R: RequestType+Clone + 'static, S: 'static, F: Fn(&S) -> Option<GeneralFailure> {
         let channel = channel.clone();
         let mut last_error = None;
@@ -45,11 +45,11 @@ impl Backoff {
                     blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1.);
                     match resp.downcast::<GeneralFailure>() {
                         Ok(e) => { 
-                            manager.message(DataMessage::GeneralFailure(channel.clone(),e.message().to_string()));
+                            manager.message(DataMessage::BackendRefused(channel.clone(),e.message().to_string()));
                             last_error = Some(e);
                         },
-                        Err(_) => {
-                            bail!("Unexpected response to request");
+                        Err(e) => {
+                            return Err(DataMessage::PacketError(channel,format!("unexpected response to request: {:?}",e)));
                         }
                     }
                 }
@@ -58,8 +58,8 @@ impl Backoff {
 
         }
         match last_error.unwrap().downcast_ref::<GeneralFailure>() {
-            Some(e) => Ok(Err(err!(e.message().to_string()))),
-            None => bail!("unexpected downcast error")
+            Some(e) => Ok(Err(DataMessage::BackendRefused(channel.clone(),e.message().to_string()))),
+            None => Err(DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string()))
         }
     }
 }

@@ -1,10 +1,11 @@
 use anyhow::Context;
 use std::pin::Pin;
 use std::future::Future;
-use std::sync::{ Arc, Mutex };
+use std::sync::{ Arc, Mutex, MutexGuard };
 use commander::{ Integration, Lock, SleepQuantity, Executor, RunSlot, RunConfig, cdr_get_name, TaskHandle, TaskResult, cdr_in_agent, cdr_new_agent, cdr_add };
 use crate::Commander;
 use super::console::TestConsole;
+use crate::util::message::DataMessage;
 
 #[derive(Clone)]
 pub struct TestCommanderIntegration {
@@ -67,7 +68,7 @@ pub(crate) fn console_warn(console: &TestConsole, e: anyhow::Result<()>) {
     }
 }
 
-async fn catch_errors(console: TestConsole, f: Pin<Box<dyn Future<Output=anyhow::Result<()>>>>) {
+async fn catch_errors(console: TestConsole, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>>>>) {
     console_warn(&console,f.await.with_context(|| format!("async: {}",cdr_get_name())));
 }
 
@@ -85,24 +86,22 @@ impl Commander for TestCommander {
     fn start(&self) {
     }
 
+    fn executor(&self) -> MutexGuard<Executor> { self.executor.lock().unwrap() }
+
     fn identity(&self) -> u64 { 0 }
 
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=anyhow::Result<()>> + 'static>>) {
+    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
         let rc = RunConfig::new(slot,prio,timeout);
         let rc2 = RunConfig::new(None,prio,None);
         let console = self.console.clone();
         let console2 = self.console.clone();
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);
-            let res = cdr_add(Box::pin(catch_errors(console,f)),agent);
-            let agent = cdr_new_agent(Some(rc2),&format!("{}-finisher",name));
-            cdr_add(finish(console2,res,name.to_string()),agent);
+            cdr_add(Box::pin(f),agent)
         } else {
             let mut exe = self.executor.lock().unwrap();
             let agent = exe.new_agent(&rc,name);
-            let res = exe.add_pin(Box::pin(catch_errors(console,f)),agent);
-            let agent = exe.new_agent(&rc2,&format!("{}-finisher",name));
-            exe.add(finish(console2,res,name.to_string()),agent);
+            exe.add_pin(Box::pin(f),agent)
         }        
     }
 

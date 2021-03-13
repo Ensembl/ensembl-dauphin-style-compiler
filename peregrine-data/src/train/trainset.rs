@@ -1,11 +1,12 @@
 use std::sync::{ Arc, Mutex };
 use crate::PgCommanderTaskSpec;
-use crate::api::PeregrineCore;
+use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
 use blackbox::{ blackbox_time, blackbox_log };
+use crate::run::add_task;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -16,16 +17,18 @@ pub struct TrainSetData {
     current: Option<Train>,
     future: Option<Train>,
     wanted: Option<Train>,
-    next_activation: u32
+    next_activation: u32,
+    messages: MessageSender
 }
 
 impl TrainSetData {
-    fn new() -> TrainSetData {
+    fn new(messages: &MessageSender) -> TrainSetData {
         TrainSetData {
             current: None,
             future: None,
             wanted: None,
-            next_activation: 0
+            next_activation: 0,
+            messages: messages.clone()
         }
     }
 
@@ -43,7 +46,7 @@ impl TrainSetData {
 
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
         blackbox_log!("uiapi","TrainSet.new_wanted()");
-        self.wanted = Some(Train::new(train_id,events,position));
+        self.wanted = Some(Train::new(train_id,events,position,&self.messages));
     }
 
     fn quiescent(&self) -> Option<&Train> {
@@ -60,7 +63,8 @@ impl TrainSetData {
     }
 
     fn maybe_update_target(&mut self, events: &mut CarriageEvents, viewport: &Viewport) {
-        let train_id = TrainId::new(viewport.layout(),&Scale::new_for_numeric(viewport.scale()));
+        use web_sys::console;
+        let train_id = TrainId::new(viewport.layout(),&Scale::new_bp_per_screen(viewport.bp_per_screen()));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent() {
             if quiescent.id() == train_id {
@@ -118,8 +122,8 @@ impl TrainSetData {
 pub struct TrainSet(Arc<Mutex<TrainSetData>>);
 
 impl TrainSet {
-    pub fn new() -> TrainSet {
-        TrainSet(Arc::new(Mutex::new(TrainSetData::new())))
+    pub fn new(messages: &MessageSender) -> TrainSet {
+        TrainSet(Arc::new(Mutex::new(TrainSetData::new(messages))))
     }
 
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
@@ -146,7 +150,7 @@ impl TrainSet {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let carriages = carriages.clone();
-        objects.commander.add_task(PgCommanderTaskSpec {
+        add_task(&objects.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,

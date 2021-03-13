@@ -1,16 +1,16 @@
-use anyhow::{ bail, anyhow as err };
+use anyhow::{ anyhow as err };
 use blackbox::{ blackbox_log, blackbox_count };
 use std::any::Any;
 use std::collections::HashMap;
-use std::rc::Rc;
 use super::channel::{ Channel, PacketPriority };
 use crate::Panel;
-use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_array, cbor_bytes };
+use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use serde_cbor::Value as CborValue;
 use super::failure::GeneralFailure;
 use super::manager::RequestManager;
+use crate::util::message::DataMessage;
 
 pub struct DataResponse {
     data: HashMap<String,Vec<u8>>
@@ -32,12 +32,12 @@ impl DataCommandRequest {
         }
     }
 
-    pub async fn execute(self, mut manager: RequestManager) -> anyhow::Result<Box<DataResponse>> {
+    pub async fn execute(self, mut manager: RequestManager) -> Result<Box<DataResponse>,DataMessage> {
         blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing data request");
         blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-request",1.);
         let mut backoff = Backoff::new();
         match backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
+                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))? {
             Ok(d) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"data response received");
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-success",1.);
@@ -45,7 +45,7 @@ impl DataCommandRequest {
             },
             Err(_) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-fail",1.);
-                bail!("failed to retrieve data");
+                Err(DataMessage::XXXTmp("failed to retrieve data".to_string()))
             }
         }
     }
@@ -53,7 +53,7 @@ impl DataCommandRequest {
 
 impl RequestType for DataCommandRequest {
     fn type_index(&self) -> u8 { 4 }
-    fn serialize(&self) -> anyhow::Result<CborValue> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.panel.serialize()?]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

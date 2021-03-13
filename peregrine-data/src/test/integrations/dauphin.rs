@@ -4,11 +4,13 @@ use std::sync::{ Arc, Mutex };
 use crate::{ PgCommander, PgCommanderTaskSpec };
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec, PgDauphinTaskSpec };
 use crate::util::cbor::cbor_string;
+use crate::util::message::DataMessage;
+use crate::run::add_task;
 
 #[derive(Clone)]
 pub struct FakeDauphinReceiver(Arc<Mutex<Vec<PgDauphinLoadTaskSpec>>>,Arc<Mutex<Vec<PgDauphinRunTaskSpec>>>);
 
-async fn main_loop(_commander: PgCommander, fdr: FakeDauphinReceiver, pdq: PgDauphinQueue) -> anyhow::Result<()> {
+async fn main_loop(_commander: PgCommander, fdr: FakeDauphinReceiver, pdq: PgDauphinQueue) -> Result<(),DataMessage> {
     loop {
         let e = pdq.get().await;
         let ok = match e.task {
@@ -22,7 +24,7 @@ async fn main_loop(_commander: PgCommander, fdr: FakeDauphinReceiver, pdq: PgDau
 impl FakeDauphinReceiver {
     pub fn new(commander: &PgCommander, pdq: &PgDauphinQueue) -> FakeDauphinReceiver {
         let fdr = FakeDauphinReceiver(Arc::new(Mutex::new(vec![])),Arc::new(Mutex::new(vec![])));
-        commander.add_task(PgCommanderTaskSpec {
+        add_task(&commander,PgCommanderTaskSpec {
             name: "dauphin runner".to_string(),
             prio: 2,
             slot: None,

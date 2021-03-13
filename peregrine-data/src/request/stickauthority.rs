@@ -14,6 +14,7 @@ use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::run::{ PgCommander, PgDauphin };
 use crate::run::pgcommander::PgCommanderTaskSpec;
+use crate::util::message::DataMessage;
 
 #[derive(Clone)]
 struct StickAuthorityCommandRequest {}
@@ -23,17 +24,17 @@ impl StickAuthorityCommandRequest {
         StickAuthorityCommandRequest {}
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<StickAuthority> {
+    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new();
         blackbox_log!("stickauthority","registering authority at {}",channel.to_string());
-        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
+        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name))
     }
 }
 
 impl RequestType for StickAuthorityCommandRequest {
     fn type_index(&self) -> u8 { 3 }
-    fn serialize(&self) -> anyhow::Result<CborValue> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Null)
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
@@ -68,7 +69,7 @@ impl ResponseBuilderType for StickAuthorityResponseBuilderType {
     }
 }
 
-pub async fn get_stick_authority(mut manager: RequestManager, channel: Channel) -> anyhow::Result<StickAuthority> {
+pub async fn get_stick_authority(mut manager: RequestManager, channel: Channel) -> Result<StickAuthority,DataMessage> {
     let req = StickAuthorityCommandRequest::new();
     req.execute(&channel,&mut manager).await
 }

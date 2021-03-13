@@ -1,10 +1,11 @@
 use std::sync::{ Arc, Mutex };
 use std::fmt::*;
-use crate::api::{ PeregrineCore, CarriageSpeed };
+use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
 use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
+use crate::run::add_task;
 use std::fmt::{ self, Display, Formatter };
 use crate::PgCommanderTaskSpec;
 
@@ -38,18 +39,20 @@ struct TrainData {
     id: TrainId,
     position: f64,
     max: Option<u64>,
-    carriages: Option<CarriageSet>
+    carriages: Option<CarriageSet>,
+    messages: MessageSender
 }
 
 impl TrainData {
-    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> TrainData {
+    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> TrainData {
         let mut out = TrainData {
             data_ready: false,
             active: None,
             id: id.clone(),
             position,
-            carriages: Some(CarriageSet::new(id,carriage_event,0)),
-            max: None
+            carriages: Some(CarriageSet::new(id,carriage_event,0,messages)),
+            max: None,
+            messages: messages.clone()
         };
         out.set_position(carriage_event,position);
         out
@@ -77,7 +80,7 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap());
+        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
         self.carriages = Some(carriages);
     }
 
@@ -115,8 +118,8 @@ impl fmt::Debug for Train {
 }
 
 impl Train {
-    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64) -> Train {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position))));
+    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> Train {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages))));
         carriage_event.train(&out);
         out
     }
@@ -146,10 +149,9 @@ impl Train {
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Option<u64> {
         let train_id = self.id();
-        if let Ok(stick) = data.stick_store.get(train_id.layout().stick().as_ref().unwrap()).await {
-            if let Some(stick) = &stick.as_ref() {
-                return Some(stick.size());
-            }
+        let stick = data.stick_store.get(train_id.layout().stick().as_ref().unwrap()).await;
+        if let Some(stick) = &stick.as_ref() {
+            return Some(stick.size());
         }
         return None;
     }
@@ -161,7 +163,7 @@ impl Train {
     pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
-        objects.commander.add_task(PgCommanderTaskSpec {
+        add_task(&objects.commander,PgCommanderTaskSpec {
             name: format!("max finder"),
             prio: 1,
             slot: None,

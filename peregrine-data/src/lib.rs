@@ -75,7 +75,7 @@ mod run {
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
-    pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec };
+    pub use self::pgcommander::{ PgCommander, PgCommanderTaskSpec, add_task };
     pub use self::pgdauphin::{ PgDauphin, PgDauphinTaskSpec };
     pub use self::instancepayload::InstancePayload;
 }
@@ -118,6 +118,7 @@ mod util {
     pub mod unlock;
 
     pub use self::miscpromises::CountingPromise;
+    pub use self::message::DataMessage;
 }
 
 #[cfg(test)]
@@ -139,11 +140,11 @@ pub use self::api::{ PeregrineCore, PeregrineIntegration, PeregrineApiQueue, Car
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };
-pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload };
+pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator
 };
 pub use self::train::{ Carriage, CarriageId };
-pub use self::util::CountingPromise;
+pub use self::util::{ CountingPromise, DataMessage };

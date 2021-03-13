@@ -1,8 +1,7 @@
 use std::sync::{ Arc };
-use crate::run::{ PgCommander, PgCommanderTaskSpec };
+use crate::run::{ PgCommander, PgCommanderTaskSpec, add_task };
 use crate::util::memoized::Memoized;
 use super::panel::Panel;
-use super::panelrunstore::PanelRunStore;
 use crate::{ Channel, RequestManager };
 use crate::request::data::{ DataCommandRequest, DataResponse };
 
@@ -23,7 +22,7 @@ impl DataStore {
                 let panel = panel.clone();
                 let channel = channel.clone();
                 let name = name.clone();
-                commander.add_task(PgCommanderTaskSpec {
+                add_task(&commander,PgCommanderTaskSpec {
                     name: format!("data for panel {:?}",panel),
                     prio: 1,
                     slot: None,
@@ -39,7 +38,7 @@ impl DataStore {
         }
     }
 
-    pub async fn get(&self, panel: &Panel, channel: &Channel, name: &str) -> anyhow::Result<Arc<Box<DataResponse>>> {
+    pub async fn get(&self, panel: &Panel, channel: &Channel, name: &str) -> Arc<Box<DataResponse>> {
         self.store.get(&(panel.clone(),channel.clone(),name.to_string())).await
     }
 }

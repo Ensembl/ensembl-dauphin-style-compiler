@@ -2,9 +2,6 @@ use crate::shape::layers::programstore::ProgramStore;
 use crate::webgl::{ FlatStore, TextureBindery,TextureStore };
 use web_sys::Document;
 use crate::webgl::util::handle_context_errors;
-
-#[cfg(blackbox)]
-use crate::integration::pgblackbox::{ pgblackbox_setup };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
 

@@ -2,6 +2,7 @@ use std::cmp::max;
 use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
+use crate::api::MessageSender;
 
 const CARRIAGE_FLANK : u64 = 2;
 
@@ -12,7 +13,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet) -> CarriageSet {
+    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         let mut pending = old.pending;
@@ -34,7 +35,7 @@ impl CarriageSet {
             carriages.push(if steal {
                 old_carriages.next().unwrap().1
             } else {
-                let out = Carriage::new(&CarriageId::new(train_id,index));
+                let out = Carriage::new(&CarriageId::new(train_id,index),messages);
                 carriage_events.carriage(&out);
                 pending = true;
                 out
@@ -43,15 +44,15 @@ impl CarriageSet {
         CarriageSet { carriages, start, pending }
     }
 
-    pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64) -> CarriageSet {
+    pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, messages: &MessageSender) -> CarriageSet {
         //console::log_1(&format!("CarriageSet.new()").into());
         let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
-        CarriageSet::create(train_id,carriage_events,centre,fake_old)
+        CarriageSet::create(train_id,carriage_events,centre,fake_old,messages)
     }
 
-    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet) -> CarriageSet {
+    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
         //console::log_1(&format!("CarriageSet.new_using()").into());
-        CarriageSet::create(train_id,carriage_events,centre,old)
+        CarriageSet::create(train_id,carriage_events,centre,old,messages)
     }
 
     pub(super) fn depend(&mut self) -> bool {

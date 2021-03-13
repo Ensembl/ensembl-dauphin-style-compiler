@@ -101,7 +101,7 @@ impl Bin {
     fn create_new_shelf(&mut self, width: u32, height: u32) -> u32 {
         let new_width = self.width - width;
         self.shelves.add(new_width,Shelf {
-            y_offset: self.height_watermark-width,
+            y_offset: self.height_watermark,
             height
         });
         let out = self.height_watermark;

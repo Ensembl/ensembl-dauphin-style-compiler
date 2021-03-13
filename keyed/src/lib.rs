@@ -105,13 +105,14 @@ impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
 
     fn next(&mut self) -> Option<K> {
         loop {
-            if self.index >= self.keyed_data.0.len() {
+            let index = self.index;
+            self.index += 1;
+            if index >= self.keyed_data.0.len() {
                 return None;
             }
-            if self.keyed_data.0[self.index].is_some() {
-                return Some(K::new(self.index));
+            if self.keyed_data.0[index].is_some() {
+                return Some(K::new(index));
             }
-            self.index += 1;
         }
     }
 }

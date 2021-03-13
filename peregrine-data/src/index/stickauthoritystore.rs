@@ -5,10 +5,11 @@ use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
 use crate::request::stickauthority::get_stick_authority;
 use super::stickauthority::StickAuthority;
-use crate::run::{ PgDauphin, PgDauphinTaskSpec };
-use crate::core::{ Stick, StickId };
+use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
+use crate::core::{ StickId };
 use std::sync::{ Arc, Mutex };
 use crate::{ PgCommander, PgCommanderTaskSpec, CountingPromise };
+use crate::util::message::DataMessage;
 
 struct StickAuthorityStoreData {
     authorities: Vec<StickAuthority>
@@ -52,7 +53,7 @@ impl StickAuthorityStore {
         }
     }
 
-    pub fn add(&self, channel: &Channel, booted: &CountingPromise) -> anyhow::Result<()> {
+    pub fn add(&self, channel: &Channel, booted: &CountingPromise) -> Result<(),DataMessage> {
         let channel = channel.clone();
         let manager = self.manager.clone();
         let loader = self.loader.clone();
@@ -60,13 +61,13 @@ impl StickAuthorityStore {
         let data = self.data.clone();
         booted.lock();
         let booted = booted.clone();
-        self.commander.add_task(PgCommanderTaskSpec {
+        add_task(&self.commander,PgCommanderTaskSpec {
             name: format!("stick authority loader: {}",channel.to_string()),
             prio: 2,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                add_stick_authority(manager,loader,dauphin,data,channel).await.context("adding stick authority")?;
+                add_stick_authority(manager,loader,dauphin,data,channel).await?;
                 booted.unlock();
                 Ok(())
             })
@@ -83,7 +84,7 @@ impl StickAuthorityStore {
     }
 }
 
-async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dauphin: PgDauphin, data: Arc<Mutex<StickAuthorityStoreData>>, channel: Channel) -> anyhow::Result<()> {
+async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dauphin: PgDauphin, data: Arc<Mutex<StickAuthorityStoreData>>, channel: Channel) -> Result<(),DataMessage> {
     let stick_authority = get_stick_authority(manager.clone(),channel.clone()).await?;
     let channel = stick_authority.channel().clone();
     let program_name = stick_authority.startup_program().to_string();
@@ -96,9 +97,9 @@ async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dau
         channel: channel.clone(),
         program_name,
         payloads: None
-    }).await?;
+    }).await.map_err(|e| e.to_string()).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
     if !dauphin.is_present(&channel,&lookup_name) {
-        loader.load_background(&channel,&lookup_name)?;
+        loader.load_background(&channel,&lookup_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
     }
     Ok(())
 }

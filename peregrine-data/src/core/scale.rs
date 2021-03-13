@@ -1,5 +1,6 @@
 use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
+use crate::util::message::DataMessage;
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);
@@ -9,8 +10,8 @@ impl Scale {
         Scale(scale)
     }
 
-    pub fn new_for_numeric(scale: f64) -> Scale {
-        Scale::new(scale.round() as u64)
+    pub fn new_bp_per_screen(bp_per_screen: f64) -> Scale {
+        Scale(bp_per_screen.log2().round() as u64) // TODO clever maths
     }
 
     pub fn prev_scale(&self) -> Scale {
@@ -33,7 +34,7 @@ impl Scale {
         (position / (self.bp_in_carriage() as f64)).floor() as u64
     }
 
-    pub fn serialize(&self) -> anyhow::Result<CborValue> {
+    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Integer(self.0 as i128))
     }
 }
