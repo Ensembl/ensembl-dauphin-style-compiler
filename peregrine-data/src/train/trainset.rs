@@ -134,13 +134,11 @@ impl TrainSet {
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
-            ////console::log_1(&format!("TrainSet.load_carriage() carriage={:?}",carriage).into());
             loads.push((carriage,carriage.load(&objects)));
         }
         for carriage in carriages {
             carriage.load(objects).await;
         }
-        //console::log_1(&format!("TrainSet.load_carriage() loaded!").into());
     }
     
     pub(super) fn poll(&mut self, objects: &mut PeregrineCore) {
@@ -151,7 +149,6 @@ impl TrainSet {
     }
 
     pub(super) fn run_load_carriages(&self, objects: &mut PeregrineCore, carriages: Vec<Carriage>) {
-        ////console::log_1(&format!("TrainSet.run_load_carriages").into());
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let carriages = carriages.clone();

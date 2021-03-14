@@ -23,6 +23,7 @@ mod shape {
         pub(super) mod fixgeometry;
         pub(super) mod pagegeometry;
         pub(super) mod pingeometry;
+        pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
         pub(crate) mod stage;

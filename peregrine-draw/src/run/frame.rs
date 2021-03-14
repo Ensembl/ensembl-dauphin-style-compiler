@@ -5,17 +5,21 @@ use peregrine_data::Commander;
 fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) {
     let read_stage = &web.stage.lock().unwrap().read_stage();
     web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed);
-    if web.stage.lock().unwrap().redraw_needed().test_and_reset() {
+    if read_stage.ready() {
         web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap());
     }
 }
 
 async fn animation_tick_loop(mut web: PeregrineDraw) {
     let mut start = cdr_current_time();
+    let lweb = web.lock().await;
+    let mut redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
+    drop(lweb);
     loop {
         let next = cdr_current_time();
         animation_tick(&mut web.lock().await,next-start);
         cdr_tick(1).await;
+        redraw.wait_until_redraw_needed().await;
         start = next;
     }
 }

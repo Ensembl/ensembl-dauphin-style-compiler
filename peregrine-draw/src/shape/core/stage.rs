@@ -1,9 +1,12 @@
 use anyhow::{ anyhow as err };
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::future::Future;
 use std::sync::Mutex;
 use crate::webgl::{ SourceInstrs, Uniform, GLArity, UniformHandle, Program, Process };
+use commander::PromiseFuture;
 use super::super::layers::consts::{ PR_DEF, PR_LOW };
+use super::redrawneeded::RedrawNeeded;
 
 #[derive(Clone)]
 struct BootLock(Boot,bool);
@@ -27,7 +30,7 @@ impl Boot {
 
     fn lock(&self) -> BootLock {
         *self.0.borrow_mut() += 1;
-        BootLock(self.clone(),false)
+        BootLock(self.clone(),true)
     }
 
     fn unlock(&self) {
@@ -74,32 +77,13 @@ fn stage_ok<T: Clone>(x: &Option<T>) -> anyhow::Result<T> {
     x.as_ref().cloned().ok_or_else(|| err!("accseeor used on non-ready stage"))
 }
 
-#[derive(Clone)]
-pub struct RedrawNeeded(Rc<Mutex<bool>>);
-
-impl RedrawNeeded {
-    pub fn new() -> RedrawNeeded {
-        RedrawNeeded(Rc::new(Mutex::new(false)))
-    }
-
-    pub fn set(&mut self) {
-        *self.0.lock().unwrap() = true;
-    }
-
-    pub fn test_and_reset(&mut self) -> bool {
-        let mut r = self.0.lock().unwrap();
-        let out = *r;
-        *r = false;
-        out
-    }
-}
-
 pub trait ReadStageAxis {
     fn position(&self) -> anyhow::Result<f64>;
     fn bp_per_screen(&self) -> anyhow::Result<f64>;
     fn size(&self) -> anyhow::Result<f64>;   
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
+    fn ready(&self) -> bool;
 }
 
 pub struct StageAxis {
@@ -113,7 +97,8 @@ pub struct StageAxis {
 }
 
 impl StageAxis {
-    fn new(boot: &Boot, redraw_needed: &RedrawNeeded) -> StageAxis {
+    fn new(redraw_needed: &RedrawNeeded) -> StageAxis {
+        let boot = Boot::new();
         let boot_lock = boot.lock();
         StageAxis {
             position: None,
@@ -126,13 +111,13 @@ impl StageAxis {
         }
     }
 
-    fn ready(&self) -> bool {
-        self.position.is_some() && self.bp_per_screen.is_some() && self.size.is_some()
+    fn data_ready(&self) -> bool {
+        self.position.is_some() && self.bp_per_screen.is_some()
     }
 
     fn changed(&mut self) {
         if !self.boot.booted() {
-            if self.ready() {
+            if self.data_ready() {
                 self.boot_lock.unlock();
             }
         }
@@ -165,6 +150,10 @@ impl ReadStageAxis for StageAxis {
         }
     }    
 
+    fn ready(&self) -> bool {
+        self.position.is_some() && self.bp_per_screen.is_some() && self.size.is_some()
+    }
+
     fn version(&self) -> u64 { self.version }
 }
 
@@ -183,6 +172,7 @@ pub struct ReadStage {
 impl ReadStage {
     pub fn x(&self) -> &dyn ReadStageAxis { self.x.as_ref() }
     pub fn y(&self) -> &dyn ReadStageAxis { self.y.as_ref() }
+    pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
 }
 
 impl Clone for ReadStage {
@@ -197,10 +187,10 @@ impl Clone for ReadStage {
 impl Stage {
     pub fn new() -> Stage { // XXX
         let redraw_needed = RedrawNeeded::new();
-        let boot = Boot::new();
+        let data_needed = RedrawNeeded::new();
         let mut out = Stage {
-            x: StageAxis::new(&boot,&redraw_needed),
-            y: StageAxis::new(&boot,&redraw_needed),
+            x: StageAxis::new(&redraw_needed),
+            y: StageAxis::new(&redraw_needed),
             redraw_needed
         };
         out.y.set_bp_per_screen(1.);

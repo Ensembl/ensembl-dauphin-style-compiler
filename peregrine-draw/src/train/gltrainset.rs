@@ -5,7 +5,8 @@ use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
 use super::gltrain::GLTrain;
 use crate::shape::layers::programstore::ProgramStore;
-use crate::shape::core::stage::{ Stage, ReadStage, RedrawNeeded };
+use crate::shape::core::stage::{ Stage, ReadStage };
+use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
@@ -13,7 +14,7 @@ use crate::shape::layers::drawingzmenus::ZMenuEvent;
 #[derive(Clone)]
 enum FadeState {
     Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,f64)
+    Fading(Option<u32>,u32,CarriageSpeed,f64,RedrawNeededLock)
 }
 
 struct GlTrainSetData {
@@ -21,7 +22,7 @@ struct GlTrainSetData {
     fast_fade_time: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
-    redraw_needed: RedrawNeeded,
+    redraw_needed: RedrawNeeded
 }
 
 impl GlTrainSetData {
@@ -53,11 +54,11 @@ impl GlTrainSetData {
     fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> anyhow::Result<()> {
         let from = match self.fade_state {
             FadeState::Constant(x) => x,
-            FadeState::Fading(_,_,_,_) => {
+            FadeState::Fading(_,_,_,_,_) => {
                 bail!("overlapping fades sent to UI");
             }
         };
-        self.fade_state = FadeState::Fading(from,index,speed,0.);
+        self.fade_state = FadeState::Fading(from,index,speed,0.,self.redraw_needed.clone().lock());
         Ok(())
     }
 
@@ -75,7 +76,7 @@ impl GlTrainSetData {
             FadeState::Constant(Some(index)) => {
                 self.get_train(gl,index).set_opacity(1.);
             },
-            FadeState::Fading(from,to,speed,elapsed) => {
+            FadeState::Fading(from,to,speed,elapsed,_) => {
                 let prop = self.fade_time(&speed,elapsed);
                 self.get_train(gl,to).set_opacity(prop);
                 if let Some(from) = from {
@@ -89,7 +90,7 @@ impl GlTrainSetData {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
-            FadeState::Fading(from,to,speed,mut elapsed) => {
+            FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
                 elapsed += newly_elapsed;
                 let prop = self.fade_time(&speed,elapsed);
                 if prop >= 1. {
@@ -101,7 +102,7 @@ impl GlTrainSetData {
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
                     complete = true;
                 } else {
-                    self.fade_state = FadeState::Fading(from,to,speed.clone(),elapsed);
+                    self.fade_state = FadeState::Fading(from,to,speed.clone(),elapsed,redraw);
                 }
                 self.notify_fade_state(gl);
             }
@@ -117,7 +118,7 @@ impl GlTrainSetData {
             FadeState::Constant(Some(train)) => {
                 self.get_train(gl,train).draw(gl,stage,&session)?;
             },
-            FadeState::Fading(from,to,_,_) => {
+            FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
                     self.get_train(gl,from).draw(gl,stage,&session)?;
                 }
@@ -131,7 +132,7 @@ impl GlTrainSetData {
     fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
-            FadeState::Fading(_,x,_,_) => Some(x)
+            FadeState::Fading(_,x,_,_,_) => Some(x)
         }.map(|id| {
             self.get_train(gl,id).intersects(stage,mouse)
         }).transpose()?.flatten())
@@ -140,7 +141,7 @@ impl GlTrainSetData {
     fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
-            FadeState::Fading(_,x,_,_) => Some(x)
+            FadeState::Fading(_,x,_,_,_) => Some(x)
         }.map(|id| {
             self.get_train(gl,id).intersects_fast(stage,mouse)
         }).transpose()?.unwrap_or(false))

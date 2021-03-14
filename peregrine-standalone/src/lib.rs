@@ -41,12 +41,9 @@ async fn test(mut draw_api: PeregrineDraw) -> Result<(),DataMessage> {
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-//    let mut scale = 20.;
     for _ in 0..20 {
         pos += 50000.;
-//        scale *= 0.1;
         draw_api.set_x(pos);
-  //      draw_api.set_bp_per_screen(scale);
         draw_api.set_bp_per_screen(bp_per_screen);
         bp_per_screen *= 0.95;
         cdr_timer(1000.).await;
