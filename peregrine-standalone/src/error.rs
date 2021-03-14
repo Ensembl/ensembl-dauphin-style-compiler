@@ -31,3 +31,7 @@ pub fn js_throw<T>(e: anyhow::Result<T>) -> T {
         }
     }
 }
+
+pub(crate) fn display_error<T,E>(e: Result<T,E>) -> anyhow::Result<T> where E: fmt::Display {
+    e.map_err(|e| err!(e.to_string()))
+}

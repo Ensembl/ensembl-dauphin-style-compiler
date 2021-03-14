@@ -87,7 +87,7 @@ impl Carriage {
         for (track,future) in tracks {
             match future.await.as_ref() {
                 Ok(zoo) => {
-            new_shapes.append(&zoo.track_shapes(track.name()));
+                    new_shapes.append(&zoo.track_shapes(track.name()));
                 },
                 Err(e) => {
                     self.messages.send(e.clone());

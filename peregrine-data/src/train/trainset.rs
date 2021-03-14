@@ -7,6 +7,7 @@ use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
 use blackbox::{ blackbox_time, blackbox_log };
 use crate::run::add_task;
+use crate::util::message::DataMessage;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -62,9 +63,9 @@ impl TrainSetData {
         }
     }
 
-    fn maybe_update_target(&mut self, events: &mut CarriageEvents, viewport: &Viewport) {
+    fn maybe_update_target(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         use web_sys::console;
-        let train_id = TrainId::new(viewport.layout(),&Scale::new_bp_per_screen(viewport.bp_per_screen()));
+        let train_id = TrainId::new(viewport.layout(),&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent() {
             if quiescent.id() == train_id {
@@ -72,24 +73,28 @@ impl TrainSetData {
             }
         }
         if new_target_needed {
-            self.new_wanted(events,&train_id,viewport.position());
+            self.new_wanted(events,&train_id,viewport.position()?);
         }
+        Ok(())
     }
 
-    fn update_train(&self, events: &mut CarriageEvents, train: &Option<Train>, viewport: &Viewport) {
+    fn update_train(&self, events: &mut CarriageEvents, train: &Option<Train>, viewport: &Viewport) -> Result<(),DataMessage> {
         if let Some(train) = train {
             if viewport.layout().stick() == train.id().layout().stick() {
-                train.set_position(&mut events.clone(),viewport.position());
+                train.set_position(&mut events.clone(),viewport.position()?);
             }
         }
+        Ok(())
     }
 
-    fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport) {
-        self.maybe_update_target(events,viewport);
-        self.update_train(events,&self.wanted,viewport);
-        self.update_train(events,&self.future,viewport);
-        self.update_train(events,&self.current,viewport);
+    fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+        if !viewport.ready() { return Ok(()); }
+        self.maybe_update_target(events,viewport)?;
+        self.update_train(events,&self.wanted,viewport)?;
+        self.update_train(events,&self.future,viewport)?;
+        self.update_train(events,&self.current,viewport)?;
         self.promote(events);
+        Ok(())
     }
 
     fn transition_complete(&mut self, events: &mut CarriageEvents) {

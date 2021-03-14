@@ -28,6 +28,8 @@ impl Layout {
         }
     }
 
+    pub fn ready(&self) -> bool { self.stick.is_some() }
+
     pub fn tracks(&self) -> &BTreeSet<Track> { &self.tracks }
     pub fn focus(&self) -> &Focus { &self.focus }
     pub fn stick(&self) -> &Option<StickId> { &self.stick }
