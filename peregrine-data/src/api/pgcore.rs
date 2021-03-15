@@ -44,7 +44,8 @@ pub struct PeregrineCore {
     pub stick_store: StickStore,
     pub stick_authority_store: StickAuthorityStore,
     pub viewport: Viewport,
-    pub queue: PeregrineApiQueue
+    pub queue: PeregrineApiQueue,
+    pub messages: MessageSender
 }
 
 impl PeregrineCore {
@@ -54,11 +55,11 @@ impl PeregrineCore {
         let dauphin_queue = PgDauphinQueue::new();
         let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
-        let data_store = DataStore::new(32,&commander,&manager);
+        let data_store = DataStore::new(32,&commander,&manager,&messages);
         let booted = CountingPromise::new();
         let dauphin = PgDauphin::new(&dauphin_queue)?;
         let program_loader = ProgramLoader::new(&commander,&manager,&dauphin);
-        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&program_loader,&dauphin);
+        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&program_loader,&dauphin,&messages);
         let stick_store = StickStore::new(&commander,&stick_authority_store,&booted);
         let panel_program_store = PanelProgramStore::new();
         let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&program_loader,&stick_store,&panel_program_store,&messages,&booted);
@@ -79,7 +80,8 @@ impl PeregrineCore {
             stick_authority_store,
             program_loader,
             viewport: Viewport::empty(),
-            queue: PeregrineApiQueue::new()
+            queue: PeregrineApiQueue::new(),
+            messages
         })
     }
 
@@ -92,7 +94,7 @@ impl PeregrineCore {
         self.queue.push(ApiMessage::Ready);
     }
 
-    pub fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {
+    pub fn bootstrap(&self, channel: Channel) {
         bootstrap(&self.manager,&self.program_loader,&self.commander,&self.dauphin,channel,&self.booted)
     }
 

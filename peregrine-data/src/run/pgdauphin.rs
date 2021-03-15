@@ -89,13 +89,13 @@ impl PgDauphin {
         data.names.insert((channel.channel_name(),name_in_channel.to_string()),None);
     }
 
-    pub async fn run_program(&self, loader: &ProgramLoader, spec: PgDauphinTaskSpec) -> anyhow::Result<()> {
+    pub async fn run_program(&self, loader: &ProgramLoader, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
         if !self.is_present(&spec.channel,&spec.program_name) {
-            loader.load(&spec.channel,&spec.program_name).await?;
+            loader.load(&spec.channel,&spec.program_name).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
         }
         let data = lock!(self.0);
         let (bundle_name,in_bundle_name) = data.names.get(&(spec.channel.to_string(),spec.program_name.to_string())).as_ref().unwrap().as_ref()
-            .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name))?.to_owned();
+            .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name)).map_err(|e| DataMessage::XXXTmp(e.to_string()))?.to_owned();
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
         payloads.insert("channel".to_string(),Box::new(spec.channel.clone()));
         let pdq = data.pdq.clone();
@@ -106,7 +106,7 @@ impl PgDauphin {
             timeout: spec.timeout,
             bundle_name, in_bundle_name,
             payloads
-        }).await
+        }).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))
     }
 }
 

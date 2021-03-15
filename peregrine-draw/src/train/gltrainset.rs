@@ -4,12 +4,12 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
 use super::gltrain::GLTrain;
-use crate::shape::layers::programstore::ProgramStore;
 use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 enum FadeState {
@@ -86,7 +86,7 @@ impl GlTrainSetData {
         }
     }
 
-    fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<bool> {
+    fn transition_animate_tick(&mut self, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<bool,Message> {
         let mut complete = false;
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
@@ -95,7 +95,7 @@ impl GlTrainSetData {
                 let prop = self.fade_time(&speed,elapsed);
                 if prop >= 1. {
                     if let Some(from) = from {
-                        self.get_train(gl,from).discard(gl)?;
+                        self.get_train(gl,from).discard(gl).map_err(|e| Message::XXXTmp(e.to_string()))?;
                         self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
@@ -110,22 +110,22 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut session = DrawingSession::new();
-        session.begin(gl,stage)?;
+        session.begin(gl,stage).map_err(|e| Message::XXXTmp(e.to_string()))?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(gl,stage,&session)?;
+                self.get_train(gl,train).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(gl,stage,&session)?;
+                    self.get_train(gl,from).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
                 }
-                self.get_train(gl,to).draw(gl,stage,&session)?;
+                self.get_train(gl,to).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
             },
         }
-        session.finish()?;
+        session.finish().map_err(|e| Message::XXXTmp(e.to_string()))?;
         Ok(())
     }
 
@@ -167,15 +167,15 @@ impl GlTrainSet {
         })
     }
 
-    pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> anyhow::Result<()> {
-        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
+    pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
+        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed).map_err(|e| Message::XXXTmp(e.to_string()))? {
             blackbox_log!("gltrain","transition_complete()");
             api.transition_complete();
         }
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.data.lock().unwrap().draw_animate_tick(stage,gl)
     }
 

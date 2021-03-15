@@ -4,6 +4,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use commander::{ Executor, RunSlot, Lock, RunConfig, TaskHandle, cdr_in_agent, cdr_add, cdr_new_agent, TaskResult, KillReason };
+use crate::api::MessageSender;
 use crate::util::message::DataMessage;
 
 pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHandle<Result<R,DataMessage>> {
@@ -40,6 +41,28 @@ pub async fn complete_task<R>(handle: TaskHandle<Result<R,DataMessage>>) -> Resu
             Err(DataMessage::TaskUnexpectedlyOngoing(handle.get_name()))
         },
     }
+}
+
+pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender, handle: TaskHandle<Result<(),DataMessage>>, error: F) 
+                                        where F: FnOnce(DataMessage) -> (DataMessage,bool) + 'static {
+    let messages = messages.clone();
+    add_task(commander,PgCommanderTaskSpec {
+        name: format!("catcher"),
+        prio: 10,
+        slot: None,
+        timeout: None,
+        task: Box::pin(async move {
+            if let Err(r) = complete_task(handle).await {
+                let orig_r = r.clone();
+                let r = error(r);
+                if r.1 {
+                    messages.send(orig_r);
+                }
+                messages.send(r.0);
+            }
+            Ok(())
+        })
+    });
 }
 
 pub trait Commander {

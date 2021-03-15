@@ -6,7 +6,7 @@ use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
 use blackbox::{ blackbox_time, blackbox_log };
-use crate::run::add_task;
+use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
@@ -152,7 +152,7 @@ impl TrainSet {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let carriages = carriages.clone();
-        add_task(&objects.commander,PgCommanderTaskSpec {
+        let handle = add_task(&objects.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,
@@ -163,6 +163,7 @@ impl TrainSet {
                 Ok(())
             })
         });
+        async_complete_task(&objects.commander, &objects.messages,handle,|e| (e,false));
     }
 
     pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) {

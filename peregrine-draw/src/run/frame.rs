@@ -1,13 +1,15 @@
 use super::draw::{ PeregrineDraw, LockedPeregrineDraw };
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
+use crate::util::message::Message;
 
-fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) {
+fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) -> Result<(),Message> {
     let read_stage = &web.stage.lock().unwrap().read_stage();
-    web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed);
+    web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
     if read_stage.ready() {
-        web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap());
+        web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap())?;
     }
+    Ok(())
 }
 
 async fn animation_tick_loop(mut web: PeregrineDraw) {

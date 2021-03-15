@@ -21,6 +21,7 @@ pub enum DataMessage {
     NoPanelProgram(Panel),
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
+    StickAuthorityUnavailable(Box<DataMessage>),
     XXXTmp(String)
 }
 
@@ -43,6 +44,7 @@ impl fmt::Display for DataMessage {
             DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
             DataMessage::NoPanelProgram(p) => format!("Missing panel program: {:?}",p),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
+            DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::XXXTmp(s) => format!("temporary error: {}",s)
         };
         write!(f,"{}",s)

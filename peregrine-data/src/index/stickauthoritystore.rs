@@ -1,11 +1,11 @@
 use anyhow::Context;
 use blackbox::blackbox_log;
-use crate::lock;
+use crate::{api::MessageSender, lock};
 use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
 use crate::request::stickauthority::get_stick_authority;
 use super::stickauthority::StickAuthority;
-use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
+use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task, async_complete_task };
 use crate::core::{ StickId };
 use std::sync::{ Arc, Mutex };
 use crate::{ PgCommander, PgCommanderTaskSpec, CountingPromise };
@@ -35,6 +35,7 @@ impl StickAuthorityStoreData {
 
 #[derive(Clone)]
 pub struct StickAuthorityStore {
+    messages: MessageSender,
     commander: PgCommander,
     manager: RequestManager,
     loader: ProgramLoader,
@@ -42,9 +43,12 @@ pub struct StickAuthorityStore {
     data: Arc<Mutex<StickAuthorityStoreData>>
 }
 
+// TODO API-supplied stick authorities
+
 impl StickAuthorityStore {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, loader: &ProgramLoader, dauphin: &PgDauphin) -> StickAuthorityStore {
+    pub fn new(commander: &PgCommander, manager: &RequestManager, loader: &ProgramLoader, dauphin: &PgDauphin, messages: &MessageSender) -> StickAuthorityStore {
         StickAuthorityStore {
+            messages: messages.clone(),
             commander: commander.clone(),
             manager: manager.clone(),
             loader: loader.clone(),
@@ -61,7 +65,7 @@ impl StickAuthorityStore {
         let data = self.data.clone();
         booted.lock();
         let booted = booted.clone();
-        add_task(&self.commander,PgCommanderTaskSpec {
+        let handle = add_task(&self.commander,PgCommanderTaskSpec {
             name: format!("stick authority loader: {}",channel.to_string()),
             prio: 2,
             slot: None,
@@ -71,6 +75,9 @@ impl StickAuthorityStore {
                 booted.unlock();
                 Ok(())
             })
+        });
+        async_complete_task(&self.commander, &self.messages,handle, |e| {
+            (DataMessage::StickAuthorityUnavailable(Box::new(e)),true)
         });
         Ok(())
     }
@@ -97,7 +104,7 @@ async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dau
         channel: channel.clone(),
         program_name,
         payloads: None
-    }).await.map_err(|e| e.to_string()).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+    }).await?;
     if !dauphin.is_present(&channel,&lookup_name) {
         loader.load_background(&channel,&lookup_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
     }

@@ -77,7 +77,7 @@ impl BootstrapCommandResponse {
             channel: self.channel.clone(),
             program_name: self.name.to_string(),
             payloads: None
-        }).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        }).await?;
         Ok(())
     }
 }
@@ -93,7 +93,7 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) -> anyhow::Result<()> {
+pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) {
     let booted_promise = booted_promise.clone();
     let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
     let boot_proc = req.execute(requests.clone());
@@ -108,7 +108,6 @@ pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, comma
             Ok(())
         })
     });
-    Ok(())
 }
 
 
@@ -143,7 +142,7 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
         h.run(30);
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
@@ -181,7 +180,7 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
         h.run(30);
         let reqs = h.channel.get_requests();
         print!("{:?}\n",reqs[0]);
@@ -214,7 +213,7 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
         for _ in 0..5 {
             h.run(30);
             h.commander_inner.add_time(100.);
@@ -242,7 +241,7 @@ mod test {
             h.channel.add_response(json! { "nonsense" },vec![]);
         }
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
         for _ in 0..25 {
             h.run(10);
             h.commander_inner.add_time(10000.);
@@ -283,7 +282,7 @@ mod test {
             },vec![]);
         }
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted).expect("b");
+        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
         for _ in 0..50 {
             h.run(10);
             h.commander_inner.add_time(1000.);

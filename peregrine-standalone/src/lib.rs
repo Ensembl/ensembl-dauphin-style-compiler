@@ -36,7 +36,7 @@ fn setup_blackbox(c_ommander: &Commander) {
 }
 
 async fn test(mut draw_api: PeregrineDraw) -> Result<(),DataMessage> {
-    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data").map_err(|e| DataMessage::XXXTmp(e.to_string()))?))).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data").map_err(|e| DataMessage::XXXTmp(e.to_string()))?)));
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;

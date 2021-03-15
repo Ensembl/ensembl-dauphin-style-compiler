@@ -75,8 +75,8 @@ impl Carriage {
         Panel::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
-    async fn load_full(&self, data: &PeregrineCore) -> anyhow::Result<()> {
-        if self.ready() { return Ok(()); }
+    pub(super) async fn load(&self, data: &PeregrineCore) {
+        if self.ready() { return; }
         let mut panels = vec![];
         for track in self.id.train.layout().tracks().iter() {
             panels.push((track,self.make_panel(track)));
@@ -97,17 +97,6 @@ impl Carriage {
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {
             *shapes = Some(new_shapes);
-        }
-        Ok(())
-    }
-
-    pub(super) async fn load(&self, data: &PeregrineCore) {
-        match self.load_full(data).await {
-            Ok(()) => (),
-            Err(e) => {
-                *self.shapes.lock().unwrap() = Some(ShapeList::new());
-                data.integration.lock().unwrap().report_error(&e.to_string());
-            }
         }
     }
 }

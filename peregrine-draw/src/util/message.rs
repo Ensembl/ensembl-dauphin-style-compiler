@@ -28,7 +28,8 @@ pub enum MessageCategory {
 
 pub enum Message {
     DroppedWithoutTidying(String),
-    DataError(DataMessage)
+    DataError(DataMessage),
+    XXXTmp(String)
 }
 
 impl Message {
@@ -40,7 +41,8 @@ impl Message {
                     DataMessage::TemporaryBackendFailure(_) => MessageLevel::Warn,
                     _ => MessageLevel::Error
                 }
-            }
+            },
+            Message::XXXTmp(_) => MessageLevel::Error
         }
     }
 
@@ -49,25 +51,28 @@ impl Message {
             Message::DroppedWithoutTidying(_) => MessageCategory::BadCode,
             Message::DataError(d) => {
                 match d {
-                    DataMessage::BadDauphinProgram(s) => MessageCategory::BadData,
+                    DataMessage::BadDauphinProgram(_) => MessageCategory::BadData,
                     DataMessage::BadBootstrapCannotStart(_,cause) => 
                         Message::DataError(cause.as_ref().clone()).category(),
-                    DataMessage::BackendTimeout(c) => MessageCategory::BadInfrastructure,
-                    DataMessage::PacketError(c,s) => MessageCategory::BadBackend,
-                    DataMessage::TemporaryBackendFailure(c) => MessageCategory::BadInfrastructure,
-                    DataMessage::BackendRefused(c,s) => MessageCategory::BadBackend,
-                    DataMessage::DataHasNoAssociatedStyle(tags) => MessageCategory::BadData,
-                    DataMessage::TaskTimedOut(s) => MessageCategory::Unknown,
-                    DataMessage::TaskUnexpectedlyCancelled(s) => MessageCategory::BadCode,
-                    DataMessage::TaskUnexpectedlySuperfluous(s) => MessageCategory::BadCode,
-                    DataMessage::TaskResultMissing(s) => MessageCategory::BadCode,
+                    DataMessage::BackendTimeout(_) => MessageCategory::BadInfrastructure,
+                    DataMessage::PacketError(_,_) => MessageCategory::BadBackend,
+                    DataMessage::TemporaryBackendFailure(_) => MessageCategory::BadInfrastructure,
+                    DataMessage::BackendRefused(_,_) => MessageCategory::BadBackend,
+                    DataMessage::DataHasNoAssociatedStyle(_) => MessageCategory::BadData,
+                    DataMessage::TaskTimedOut(_) => MessageCategory::Unknown,
+                    DataMessage::TaskUnexpectedlyCancelled(_) => MessageCategory::BadCode,
+                    DataMessage::TaskUnexpectedlySuperfluous(_) => MessageCategory::BadCode,
+                    DataMessage::TaskResultMissing(_) => MessageCategory::BadCode,
                     DataMessage::TaskUnexpectedlyOngoing(s) => MessageCategory::BadCode,
-                    DataMessage::DataMissing(source) => MessageCategory::Unknown,
-                    DataMessage::NoPanelProgram(p) => MessageCategory::BadData,
-                    DataMessage::CodeInvariantFailed(s) => MessageCategory::BadCode,
-                    DataMessage::XXXTmp(s) => MessageCategory::Unknown,        
+                    DataMessage::DataMissing(_) => MessageCategory::Unknown,
+                    DataMessage::NoPanelProgram(_) => MessageCategory::BadData,
+                    DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
+                    DataMessage::StickAuthorityUnavailable(cause) => 
+                        Message::DataError(cause.as_ref().clone()).category(),
+                    DataMessage::XXXTmp(_) => MessageCategory::Unknown,        
                 }
-            }
+            },
+            Message::XXXTmp(_) => MessageCategory::Unknown,
         }
     }
 
@@ -84,7 +89,8 @@ impl Message {
                     DataMessage::TaskUnexpectedlyOngoing(_) => true,
                     _ => false
                 }
-            }
+            },
+            Message::XXXTmp(_) => true
         }
     }
 
@@ -96,12 +102,13 @@ impl Message {
                     DataMessage::TemporaryBackendFailure(c) => false,
                     _ => true
                 }
-            }
+            },
+            Message::XXXTmp(_) => true
         }
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 16
+        // Next code is 18
         match self {
             Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
             Message::DataError(d) => {
@@ -122,9 +129,11 @@ impl Message {
                     DataMessage::DataMissing(cause) =>
                         (13,calculate_hash(&Message::DataError(cause.as_ref().clone()).code())),
                     DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
+                    DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
                     DataMessage::XXXTmp(s) => (14,calculate_hash(s)),
                 }
-            }
+            },
+            Message::XXXTmp(s) => (17,calculate_hash(s))
         }
     }
 }
@@ -133,7 +142,8 @@ impl Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             Message::DroppedWithoutTidying(s) => format!("dropped object without tidying: {}",s),
-            Message::DataError(d) => d.to_string()
+            Message::DataError(d) => d.to_string(),
+            Message::XXXTmp(s) => format!("temporary string error: {}",s)
         };
         write!(f,"{}",s)
     }

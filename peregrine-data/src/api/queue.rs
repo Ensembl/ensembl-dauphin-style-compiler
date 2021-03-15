@@ -46,17 +46,8 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn try_bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) -> anyhow::Result<()> {
-        bootstrap(&data.manager,&data.program_loader,&data.commander,&data.dauphin,channel,&data.booted)
-    }
-
     fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) {
-        match self.try_bootstrap(data,channel) {
-            Ok(()) => {}
-            Err(_e) => {
-                data.integration.lock().unwrap().report_error(&format!("Cannot bootstrap, nothing at far end"));
-            }
-        }
+        bootstrap(&data.manager,&data.program_loader,&data.commander,&data.dauphin,channel,&data.booted)
     }
 
     fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {

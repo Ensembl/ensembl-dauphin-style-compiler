@@ -36,6 +36,8 @@ pub struct PeregrineDraw {
     stage: Arc<Mutex<Stage>>
 }
 
+// TODO async/sync versions
+
 pub trait PeregrineDrawApi {
     fn x(&self) -> anyhow::Result<f64>;
     fn y(&self) -> anyhow::Result<f64>;
@@ -45,7 +47,7 @@ pub trait PeregrineDrawApi {
     fn set_y(&mut self, x: f64);
     fn set_size(&mut self, x: f64, y: f64);
     fn set_bp_per_screen(&mut self, z: f64);
-    fn bootstrap(&self, channel: Channel) -> anyhow::Result<()>;
+    fn bootstrap(&self, channel: Channel);
     fn add_track(&self, track: Track);
     fn remove_track(&self, track: Track);
     fn set_stick(&self, stick: &StickId);
@@ -122,7 +124,7 @@ impl PeregrineDraw {
 }
 
 impl PeregrineDrawApi for PeregrineDraw {
-    fn bootstrap(&self, channel: Channel) -> anyhow::Result<()> {
+    fn bootstrap(&self, channel: Channel) {
         self.data_api.bootstrap(channel)
     }
 
