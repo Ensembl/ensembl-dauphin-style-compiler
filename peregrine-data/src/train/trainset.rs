@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::PgCommanderTaskSpec;
+use crate::{PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
@@ -127,8 +127,8 @@ impl TrainSetData {
 pub struct TrainSet(Arc<Mutex<TrainSetData>>);
 
 impl TrainSet {
-    pub fn new(messages: &MessageSender) -> TrainSet {
-        TrainSet(Arc::new(Mutex::new(TrainSetData::new(messages))))
+    pub fn new(base: &PeregrineCoreBase) -> TrainSet {
+        TrainSet(Arc::new(Mutex::new(TrainSetData::new(&base.messages))))
     }
 
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
@@ -152,7 +152,7 @@ impl TrainSet {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let carriages = carriages.clone();
-        let handle = add_task(&objects.commander,PgCommanderTaskSpec {
+        let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,
@@ -163,7 +163,7 @@ impl TrainSet {
                 Ok(())
             })
         });
-        async_complete_task(&objects.commander, &objects.messages,handle,|e| (e,false));
+        async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
     }
 
     pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) {

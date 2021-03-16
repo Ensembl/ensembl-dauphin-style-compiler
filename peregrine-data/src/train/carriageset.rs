@@ -45,13 +45,11 @@ impl CarriageSet {
     }
 
     pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, messages: &MessageSender) -> CarriageSet {
-        //console::log_1(&format!("CarriageSet.new()").into());
         let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
         CarriageSet::create(train_id,carriage_events,centre,fake_old,messages)
     }
 
     pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
-        //console::log_1(&format!("CarriageSet.new_using()").into());
         CarriageSet::create(train_id,carriage_events,centre,old,messages)
     }
 

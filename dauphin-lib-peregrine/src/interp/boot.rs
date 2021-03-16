@@ -12,17 +12,22 @@ simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
 simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4,5));
 
-impl InterpCommand for AddStickAuthorityInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let self_channel = get_instance::<Channel>(context,"channel")?;
-        let registers = context.registers_mut();
-        let authorities = registers.get_strings(&self.0)?;
-        if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
-            for auth in authorities.iter() {
-                pc.stick_authority_store().add(&Channel::parse(&self_channel,auth)?,pc.booted())?;
-            }
+async fn add_stick_authority(context: &mut InterpContext, cmd: AddStickAuthorityInterpCommand) -> anyhow::Result<()> {
+    let self_channel = get_instance::<Channel>(context,"channel")?;
+    let registers = context.registers_mut();
+    let authorities = registers.get_strings(&cmd.0)?;
+    if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
+        for auth in authorities.iter() {
+            pc.agent_store().stick_authority_store().await.add(&Channel::parse(&self_channel,auth)?,pc.agent_store(),pc.booted())?;
         }
-        Ok(CommandResult::SyncResult())
+    }
+    Ok(())
+}
+
+impl InterpCommand for AddStickAuthorityInterpCommand {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(add_stick_authority(context,cmd))))))
     }
 }
 
@@ -77,33 +82,38 @@ impl InterpCommand for GetStickDataInterpCommand {
     }
 }
 
+async fn add_stick(context: &mut InterpContext, cmd: AddStickInterpCommand) -> anyhow::Result<()> {
+    let registers = context.registers_mut();
+    let sizes = registers.get_numbers(&cmd.1)?;
+    let topologies = registers.get_numbers(&cmd.2)?;
+    let tags_data = registers.get_strings(&cmd.3)?;
+    let tags_offsets = registers.get_indexes(&cmd.4)?;
+    let tags_lengths = registers.get_indexes(&cmd.5)?;
+    let mut sizes = sizes.iter().cycle();
+    let mut topologies = topologies.iter().cycle();
+    let mut tags_offsets = tags_offsets.iter().cycle();
+    let mut tags_lengths = tags_lengths.iter().cycle();
+    let ids = registers.get_strings(&cmd.0)?;
+    let mut sticks = vec![];
+    for id in ids.iter() {
+        let size = sizes.next().unwrap();
+        let topology = topologies.next().unwrap();
+        let tags_offset = tags_offsets.next().unwrap();
+        let tags_length = tags_lengths.next().unwrap();
+        let tags = tags_data[(*tags_offset..(tags_offset+tags_length))].to_vec();
+        sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags));
+    }
+    let pc = get_peregrine(context)?;
+    let stick_store = pc.agent_store().stick_store().await;
+    for stick in sticks.drain(..) {
+        stick_store.add(stick.get_id().clone(),stick);
+    }
+    Ok(())
+}
+
 impl InterpCommand for AddStickInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let registers = context.registers_mut();
-        let sizes = registers.get_numbers(&self.1)?;
-        let topologies = registers.get_numbers(&self.2)?;
-        let tags_data = registers.get_strings(&self.3)?;
-        let tags_offsets = registers.get_indexes(&self.4)?;
-        let tags_lengths = registers.get_indexes(&self.5)?;
-        let mut sizes = sizes.iter().cycle();
-        let mut topologies = topologies.iter().cycle();
-        let mut tags_offsets = tags_offsets.iter().cycle();
-        let mut tags_lengths = tags_lengths.iter().cycle();
-        let ids = registers.get_strings(&self.0)?;
-        let mut sticks = vec![];
-        for id in ids.iter() {
-            let size = sizes.next().unwrap();
-            let topology = topologies.next().unwrap();
-            let tags_offset = tags_offsets.next().unwrap();
-            let tags_length = tags_lengths.next().unwrap();
-            let tags = tags_data[(*tags_offset..(tags_offset+tags_length))].to_vec();
-            sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags));
-        }
-        let pc = get_peregrine(context)?;
-        let stick_store = pc.stick_store();
-        for stick in sticks.drain(..) {
-            stick_store.add(stick.get_id().clone(),Some(stick));
-        }
-        Ok(CommandResult::SyncResult())
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(add_stick(context,cmd))))))
     }
 }

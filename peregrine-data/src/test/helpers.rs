@@ -1,48 +1,59 @@
+pub use std::sync::{ Arc, Mutex };
 use std::future::Future;
-use super::integrations::{ TestCommander, TestChannelIntegration, TestConsole, FakeDauphinReceiver };
-use crate::api::MessageSender;
+use super::integrations::{ TestCommander, TestChannelIntegration, FakeDauphinReceiver };
+use crate::{PeregrineCoreBase, api::MessageSender};
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
 use crate::{ ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
+use crate::api::AgentStore;
 use crate::run::add_task;
 use crate::util::message::DataMessage;
+use commander::Agent;
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
 use url::Url;
 
 #[derive(Clone)]
 pub struct TestHelpers {
-    pub console: TestConsole,
+    pub base: PeregrineCoreBase,
+    pub agent_store: AgentStore,
+    pub console: Arc<Mutex<Vec<String>>>,
     pub channel: Box<TestChannelIntegration>,
-    pub dauphin: PgDauphin,
     pub commander_inner: TestCommander,
-    pub commander: PgCommander,
-    pub manager: RequestManager,
-    pub loader: ProgramLoader,
     pub fdr: FakeDauphinReceiver
 }
 
 impl TestHelpers {
     pub(crate) fn new() -> TestHelpers {
-        let console = TestConsole::new();
+        let mut agent_store = AgentStore::new();
+        let console = Arc::new(Mutex::new(vec![]));
         let console2 = console.clone();
         let messages = MessageSender::new(move |msg| {
-            console2.message(&msg.to_string());
+            console2.lock().unwrap().push(msg.to_string());
         });
         let booted = CountingPromise::new();
         let channel = Box::new(TestChannelIntegration::new());
-        let commander_inner = TestCommander::new(&console);
+        let commander_inner = TestCommander::new();
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
         let mut manager = RequestManager::new(channel.clone(),&commander,&messages);
-        let pdq = PgDauphinQueue::new();
-        let dauphin = PgDauphin::new(&pdq).expect("d");
-        let fdr = FakeDauphinReceiver::new(&commander,&pdq);
-        let loader = ProgramLoader::new(&commander,&manager,&dauphin);
-        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&loader,&dauphin,&messages);
-        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted);
-        manager.add_receiver(Box::new(dauphin.clone()));
+        let dauphin_queue = PgDauphinQueue::new();
+        let dauphin = PgDauphin::new(&dauphin_queue).expect("d");
+        let fdr = FakeDauphinReceiver::new(&commander,&dauphin_queue);
+        let mut base = PeregrineCoreBase {
+            messages,
+            dauphin_queue,
+            dauphin,
+            commander,
+            manager,
+            booted
+        };
+        agent_store.set_program_loader(ProgramLoader::new(&base));
+        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base));
+        let stick_store = StickStore::new(&base,&agent_store);
+        base.manager.add_receiver(Box::new(base.dauphin.clone()));
         TestHelpers {
-            console, channel, dauphin, commander_inner, commander,
-            manager, loader, fdr
+            console, base, agent_store,
+            channel, commander_inner,
+            fdr,
         }
     }
     
@@ -53,7 +64,7 @@ impl TestHelpers {
     }
 
     pub(crate) fn task<F>(&self, prog: F) where F: Future<Output=Result<(),DataMessage>> + 'static {
-        add_task(&self.commander,PgCommanderTaskSpec {
+        add_task(&self.base.commander,PgCommanderTaskSpec {
             name: "program".to_string(),
             prio: 4,
             slot: None,

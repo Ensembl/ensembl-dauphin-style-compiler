@@ -7,6 +7,7 @@ use crate::request::program::ProgramLoader;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;
+use crate::api::AgentStore;
 
 #[derive(Clone)]
 pub struct StickAuthority {
@@ -28,10 +29,10 @@ impl StickAuthority {
     pub fn startup_program(&self) -> &str { &self.startup_program_name }
     pub fn lookup_program(&self) -> &str { &self.resolution_program_name }
 
-    pub async fn try_lookup(&self, dauphin: PgDauphin, loader: ProgramLoader, id: StickId) -> Result<(),DataMessage> {
+    pub async fn try_lookup(&self, dauphin: PgDauphin, agent_store: &AgentStore, id: StickId) -> Result<(),DataMessage> {
         let mut payloads = HashMap::new();
         payloads.insert("stick_id".to_string(),Box::new(id) as Box<dyn Any>);
-        dauphin.run_program(&loader,PgDauphinTaskSpec {
+        dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,

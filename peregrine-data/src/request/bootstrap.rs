@@ -13,6 +13,7 @@ use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::backoff::Backoff;
 use crate::util::miscpromises::CountingPromise;
 use crate::util::message::DataMessage;
+use crate::api::{ MessageSender, PeregrineCoreBase, AgentStore };
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
@@ -93,23 +94,23 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub(crate) fn bootstrap(requests: &RequestManager, loader: &ProgramLoader, commander: &PgCommander, dauphin: &PgDauphin, channel: Channel, booted_promise: &CountingPromise) {
-    let booted_promise = booted_promise.clone();
-    let req = BootstrapCommandRequest::new(dauphin,loader,channel.clone());
-    let boot_proc = req.execute(requests.clone());
-    add_task(&commander,PgCommanderTaskSpec {
+pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel) {
+    let base2 = base.clone();
+    let agent_store = agent_store.clone();
+    add_task(&base.commander,PgCommanderTaskSpec {
         name: "bootstrap".to_string(),
         prio: 4,
         slot: None,
         timeout: None,
         task: Box::pin(async move {
-            boot_proc.await.unwrap_or(());
-            booted_promise.unlock();
+            let req = BootstrapCommandRequest::new(&base2.dauphin,&agent_store.program_loader().await,channel.clone());
+            let r = req.execute(base2.manager.clone()).await;
+            let r = r.unwrap_or(());
+            base2.booted.unlock();
             Ok(())
         })
     });
 }
-
 
 #[cfg(test)]
 mod test {
@@ -142,7 +143,8 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
+        let messages = MessageSender::new(|w| {});
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         h.run(30);
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
@@ -180,7 +182,8 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
+        let messages = MessageSender::new(|w| {});
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         h.run(30);
         let reqs = h.channel.get_requests();
         print!("{:?}\n",reqs[0]);
@@ -213,7 +216,8 @@ mod test {
             }
         },vec![]);
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
+        let messages = MessageSender::new(|w| {});
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..5 {
             h.run(30);
             h.commander_inner.add_time(100.);
@@ -241,7 +245,8 @@ mod test {
             h.channel.add_response(json! { "nonsense" },vec![]);
         }
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
+        let messages = MessageSender::new(|w| {});
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..25 {
             h.run(10);
             h.commander_inner.add_time(10000.);
@@ -257,8 +262,9 @@ mod test {
                 }
             },&reqs[i]));
         }
-        let v = h.console.take_all();
-        let v : Vec<_> = v.iter().filter(|x| x.contains("PERMANENT ERROR")).collect();
+        let v = h.console.lock().unwrap().drain(..).collect::<Vec<_>>();
+        print!("{}",v.join("\n"));
+        let v : Vec<_> = v.iter().filter(|x| x.contains("Fatal")).collect();
         assert!(v.len()>0);
     }
 
@@ -266,7 +272,7 @@ mod test {
     fn timeout() {
         let mut h = TestHelpers::new();
         let channel = Channel::new(&ChannelLocation::HttpChannel(urlc(1)));
-        h.manager.set_timeout(&channel,&PacketPriority::RealTime,42.).expect("a");
+        h.base.manager.set_timeout(&channel,&PacketPriority::RealTime,42.).expect("a");
         assert_eq!(vec![(channel,42.)],h.channel.get_timeouts());
         h.channel.wait(100.);
         for _ in 0..20 {
@@ -282,15 +288,17 @@ mod test {
             },vec![]);
         }
         let booted = CountingPromise::new();
-        bootstrap(&h.manager,&h.loader,&h.commander,&h.dauphin,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),&booted);
+        let messages = MessageSender::new(|w| {});
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..50 {
             h.run(10);
             h.commander_inner.add_time(1000.);
         }
-        let v = h.console.take_all();
-        let w : Vec<_> = v.iter().filter(|x| x.contains("PERMANENT ERROR")).collect();
+        let v = h.console.lock().unwrap().drain(..).collect::<Vec<_>>();
+        print!("v={:?}\n",v);
+        let w : Vec<_> = v.iter().filter(|x| x.contains("Fatal")).collect();
         assert!(w.len()>0);
-        let w : Vec<_> = v.iter().filter(|x| x.contains("timeout on channel")).collect();
+        let w : Vec<_> = v.iter().filter(|x| x.contains("Timeout")).collect();
         assert!(w.len()>0);
     }
 }

@@ -1,8 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
-use crate::lock;
 use std::sync::{ Arc };
-use crate::index::StickAuthorityStore;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::ProgramLoader;
@@ -15,7 +13,7 @@ use super::programdata::ProgramData;
 use crate::index::StickStore;
 use super::panelprogramstore::PanelProgramStore;
 pub use crate::util::message::DataMessage;
-use crate::api::MessageSender;
+use crate::api::{ MessageSender, PeregrineCoreBase, AgentStore };
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub struct PanelRun {
@@ -49,14 +47,14 @@ impl PanelRunOutput {
     pub fn shapes(&self) -> &ShapeOutput { &self.shapes }
 }
 
-async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader, panel_run: &PanelRun) -> Result<PanelRunOutput,DataMessage> {
-    booted.wait().await;
+async fn run(base: PeregrineCoreBase, agent_store: AgentStore, panel_run: &PanelRun) -> Result<PanelRunOutput,DataMessage> {
+    base.booted.wait().await;
     let mut payloads = HashMap::new();
     let pro = PanelRunOutput::new();
     payloads.insert("panel".to_string(),Box::new(panel_run.panel.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(pro.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
-    dauphin.run_program(&loader,PgDauphinTaskSpec {
+    base.dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
         prio: 1,
         slot: None,
         timeout: None,
@@ -69,62 +67,49 @@ async fn run(booted: CountingPromise, dauphin: PgDauphin, loader: ProgramLoader,
 
 #[derive(Clone)]
 pub struct PanelRunStore {
-    stick_store: StickStore,
-    panel_program_store: PanelProgramStore,
     store: Memoized<PanelRun,Result<Arc<PanelRunOutput>,DataMessage>>,
     programs: Memoized<Panel,Result<PanelRun,DataMessage>>
 }
 
 impl PanelRunStore {
-    pub fn new(cache_size: usize, commander: &PgCommander, dauphin: &PgDauphin, loader: &ProgramLoader, 
-                stick_store: &StickStore, panel_program_store: &PanelProgramStore, messages: &MessageSender, booted: &CountingPromise) -> PanelRunStore {
-        let commander = commander.clone();
-        let commander2 = commander.clone();
-        let booted = booted.clone();
-        let loader = loader.clone();
-        let dauphin = dauphin.clone();
-        let stick_store = stick_store.clone();
-        let panel_program_store = panel_program_store.clone();
-        let stick_store2 = stick_store.clone();
-        let panel_program_store2 = panel_program_store.clone();
-        let messages = messages.clone();
-        let messages2 = messages.clone();
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> PanelRunStore {
+        let base = base.clone();
+        let base2 = base.clone();
+        let agent_store = agent_store.clone();
+        let agent_store2 = agent_store.clone();
         PanelRunStore {
-            stick_store: stick_store,
-            panel_program_store: panel_program_store,
             store: Memoized::new_cache(cache_size, move |panel_run: &PanelRun, result| {
-                let booted = booted.clone();
-                let dauphin = dauphin.clone();
-                let loader = loader.clone();
+                let base = base2.clone();
+                let agent_store = agent_store.clone();
                 let panel_run = panel_run.clone();
-                let messages = messages.clone();
-                let handle = add_task(&commander,PgCommanderTaskSpec {
+                let handle = add_task(&base2.commander,PgCommanderTaskSpec {
                     name: format!("panel run for: {:?}",panel_run),
                     prio: 1,
                     slot: None,
                     timeout: None,
                     task: Box::pin(async move {
-                        result.resolve(run(booted.clone(),dauphin.clone(),loader.clone(),&panel_run).await.map(|x| Arc::new(x)));
+                        result.resolve(run(base,agent_store,&panel_run).await.map(|x| Arc::new(x)));
                         Ok(())
                     })
                 });
-                async_complete_task(&commander, &messages,handle,|e| (e,false));
+                async_complete_task(&base2.commander,&base2.messages,handle,|e| (e,false));
             }),
             programs: Memoized::new_cache(cache_size, move |panel: &Panel,result| {
                 let panel = panel.clone();
-                let stick_store = stick_store2.clone();
-                let panel_program_store = panel_program_store2.clone();
-                let messages = messages2.clone();
-                let handle = add_task(&commander2,PgCommanderTaskSpec {
+                let agent_store = agent_store2.clone();
+                let base2 = base.clone();
+                let handle = add_task(&base.commander,PgCommanderTaskSpec {
                     name: format!("panel build run for: {:?}",panel),
                     prio: 1,
                     slot: None,
                     timeout: None,
                     task: Box::pin(async move {
+                        let stick_store = agent_store.stick_store().await;
+                        let panel_program_store = agent_store.panel_program_store().await;
                         let r = match panel.clone().build_panel_run(&stick_store,&panel_program_store).await {
                             Ok(r) => Ok(r),
                             Err(e) => {
-                                messages.send(e.clone());
+                                base2.messages.send(e.clone());
                                 Err(DataMessage::DataMissing(Box::new(e)))
                             }
                         };
@@ -132,7 +117,7 @@ impl PanelRunStore {
                         Ok(())
                     })
                 });
-                async_complete_task(&commander2, &messages2,handle,|e| (e,false));
+                async_complete_task(&base.commander, &base.messages,handle,|e| (e,false));
             })
         }
     }

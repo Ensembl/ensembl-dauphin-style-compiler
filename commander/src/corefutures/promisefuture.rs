@@ -5,6 +5,7 @@ use std::sync::{ Arc, Mutex };
 use std::task::Poll;
 
 struct PromiseFutureState<T> {
+    taken: bool,
     value: Option<T>,
     waker: Option<Waker>
 }
@@ -25,6 +26,7 @@ impl<T> PromiseFuture<T> {
     /// Create PromiseFuture in Pending state.
     pub fn new() -> PromiseFuture<T> {
         PromiseFuture(Arc::new(Mutex::new(PromiseFutureState {
+            taken: false,
             value: None,
             waker: None
         })))
@@ -47,7 +49,11 @@ impl<T> Future for PromiseFuture<T> {
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context) -> Poll<T> {
         let mut state = self.0.lock().unwrap();
+        if state.taken {
+            panic!("promise recalled when satisfied!");
+        }
         if let Some(value) = state.value.take() {
+            state.taken = true;
             Poll::Ready(value)
         } else {
             state.waker = Some(ctx.waker().clone());

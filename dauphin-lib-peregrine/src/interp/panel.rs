@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use peregrine_data::{ Track, Scale, Channel };
-use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
+use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
@@ -82,26 +82,31 @@ impl InterpCommand for SetScaleInterpCommand {
     }
 }
 
+async fn data_source(context: &mut InterpContext, cmd: DataSourceInterpCommand) -> anyhow::Result<()> {
+    let self_channel = get_instance::<Channel>(context,"channel")?;
+    let registers = context.registers_mut();
+    let panel_ids = registers.get_indexes(&cmd.0)?.to_vec();
+    let channels = registers.get_strings(&cmd.1)?.to_vec();
+    let prog_names = registers.get_strings(&cmd.2)?.to_vec();
+    let programs : Vec<(_,_)> = prog_names.iter().zip(channels.iter().cycle()).map(|(x,y)| (y.to_string(),x.to_string())).collect();
+    drop(registers);
+    let peregrine = get_peregrine(context)?;
+    let panel_program_store = peregrine.agent_store().panel_program_store().await.clone();
+    let panel_builder = peregrine.panel_builder().clone();
+    let mut programs = programs.iter().cycle();
+    for panel_id in &panel_ids {
+        let (channel,name) = programs.next().unwrap();
+        let channel = Channel::parse(&self_channel,channel)?;
+        let panel = panel_builder.get(*panel_id)?;
+        panel_program_store.add(&panel.lock().unwrap(),&channel,name);
+    }
+    Ok(())
+}
+
 impl InterpCommand for DataSourceInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let self_channel = get_instance::<Channel>(context,"channel")?;
-        let registers = context.registers_mut();
-        let panel_ids = registers.get_indexes(&self.0)?.to_vec();
-        let channels = registers.get_strings(&self.1)?.to_vec();
-        let prog_names = registers.get_strings(&self.2)?.to_vec();
-        let programs : Vec<(_,_)> = prog_names.iter().zip(channels.iter().cycle()).map(|(x,y)| (y.to_string(),x.to_string())).collect();
-        drop(registers);
-        let peregrine = get_peregrine(context)?;
-        let panel_program_store = peregrine.panel_program_store().clone();
-        let panel_builder = peregrine.panel_builder().clone();
-        let mut programs = programs.iter().cycle();
-        for panel_id in &panel_ids {
-            let (channel,name) = programs.next().unwrap();
-            let channel = Channel::parse(&self_channel,channel)?;
-            let panel = panel_builder.get(*panel_id)?;
-            panel_program_store.add(&panel.lock().unwrap(),&channel,name);
-        }
-        Ok(CommandResult::SyncResult())
+        let cmd = self.clone();
+        Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(data_source(context,cmd))))))
     }
 }
 

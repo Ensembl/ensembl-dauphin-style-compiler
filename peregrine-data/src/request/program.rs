@@ -16,6 +16,7 @@ use super::manager::RequestManager;
 use crate::run::{ PgCommander, Commander, PgDauphin, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
+use crate::api::PeregrineCoreBase;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -116,23 +117,20 @@ pub struct ProgramLoader {
 }
 
 impl ProgramLoader {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, dauphin: &PgDauphin) -> ProgramLoader {
-        let manager = manager.clone();
-        let dauphin = dauphin.clone();
-        let commander = commander.clone();
+    pub fn new(base: &PeregrineCoreBase) -> ProgramLoader {
+        let base = base.clone();
         ProgramLoader {
-            manager: manager.clone(),
+            manager: base.manager.clone(),
             store: Memoized::new(move |key: &(Channel,String),result| {
                 let (channel,name) = (key.0.clone(),key.1.clone());
-                let manager = manager.clone();
-                let dauphin = dauphin.clone();
-                add_task(&commander,PgCommanderTaskSpec {
+                let base2 = base.clone();
+                add_task(&base.commander,PgCommanderTaskSpec {
                     name: format!("program-loader-{}-{}",channel,name),
                     prio: 3,
                     timeout: None,
                     slot: None,
                     task: Box::pin(async move {
-                        load_program(manager,dauphin,channel,name).await.unwrap_or(());
+                        load_program(base2.manager,base2.dauphin,channel,name).await.unwrap_or(());
                         result.resolve(());
                         Ok(())
                     })
@@ -173,10 +171,10 @@ mod test {
             }
         },vec![]);
         let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
-        let dauphin2 = h.dauphin.clone();
+        let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
-        let mut manager = h.manager.clone();
+        let mut manager = h.base.manager.clone();
         h.task(async move {
             let r = pcr.execute(&mut manager,&dauphin2).await;
             *success2.lock().unwrap() = Some(r.is_ok());
@@ -193,7 +191,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(h.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
     }
 
     #[test]
@@ -212,10 +210,10 @@ mod test {
             },vec![]);
         }
         let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
-        let dauphin2 = h.dauphin.clone();
+        let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
-        let mut manager = h.manager.clone();
+        let mut manager = h.base.manager.clone();
         h.task(async move {
             let r = pcr.execute(&mut manager,&dauphin2).await;
             *success2.lock().unwrap() = Some(r.is_ok());
@@ -235,7 +233,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(!h.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(!h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
     }
 
 }

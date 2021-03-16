@@ -52,7 +52,6 @@ async fn test(mut draw_api: PeregrineDraw) -> Result<(),DataMessage> {
 }
 
 fn test_fn() -> anyhow::Result<()> {
-//    let console = PgConsoleWeb::new(30,30.);
     let mut config = PeregrineConfig::new();
     config.set_f64("animate.fade.slow",500.);
     config.set_f64("animate.fade.fast",100.);

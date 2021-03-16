@@ -3,6 +3,7 @@ use std::sync::{ Arc, Mutex };
 use std::fmt;
 use crate::request::channel::Channel;
 use crate::panel::Panel;
+use crate::core::stick::StickId;
 
 #[derive(Clone,Debug,Hash)]
 pub enum DataMessage {
@@ -11,6 +12,7 @@ pub enum DataMessage {
     BackendTimeout(Channel),
     PacketError(Channel,String),
     TemporaryBackendFailure(Channel),
+    FatalBackendFailure(Channel),
     BackendRefused(Channel,String),
     DataHasNoAssociatedStyle(Vec<String>),
     TaskTimedOut(String),
@@ -22,6 +24,7 @@ pub enum DataMessage {
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
     StickAuthorityUnavailable(Box<DataMessage>),
+    NoSuchStick(StickId),
     XXXTmp(String)
 }
 
@@ -33,6 +36,7 @@ impl fmt::Display for DataMessage {
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
             DataMessage::PacketError(c,s) => format!("Error sending/receiving packet: '{}' channel={}",s,c),
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
+            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure (retrying) channel={}",c.to_string()),
             DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
             DataMessage::DataHasNoAssociatedStyle(tags) => 
                 format!("Data has no associated style: tags={}",tags.join(",")),
@@ -45,6 +49,7 @@ impl fmt::Display for DataMessage {
             DataMessage::NoPanelProgram(p) => format!("Missing panel program: {:?}",p),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
+            DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::XXXTmp(s) => format!("temporary error: {}",s)
         };
         write!(f,"{}",s)

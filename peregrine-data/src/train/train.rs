@@ -1,12 +1,12 @@
 use std::sync::{ Arc, Mutex };
-use std::fmt::*;
+use std::fmt;
 use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
 use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use crate::run::add_task;
-use std::fmt::{ self, Display, Formatter };
+use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
@@ -15,8 +15,8 @@ pub struct TrainId {
     scale: Scale
 }
 
-impl Display for TrainId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+impl fmt::Display for TrainId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"TrainId(layout={} scale={})",self.layout,self.scale)
     }
 }
@@ -147,13 +147,8 @@ impl Train {
         self.0.lock().unwrap().maybe_ready();
     }
 
-    async fn find_max(&self, data: &mut PeregrineCore) -> Option<u64> {
-        let train_id = self.id();
-        let stick = data.stick_store.get(train_id.layout().stick().as_ref().unwrap()).await;
-        if let Some(stick) = &stick.as_ref() {
-            return Some(stick.size());
-        }
-        return None;
+    async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
+        Ok(data.agent_store.stick_store().await.get(&self.id().layout().stick().as_ref().unwrap()).await?.size())
     }
 
     fn set_max(&self, max: u64) {
@@ -163,14 +158,14 @@ impl Train {
     pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
-        add_task(&objects.commander,PgCommanderTaskSpec {
+        add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("max finder"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
                 let max = self2.find_max(&mut objects2).await;
-                if let Some(max) = max{
+                if let Ok(max) = max{
                     self2.set_max(max);
                     objects2.train_set.clone().poll(&mut objects2);
                 } else {

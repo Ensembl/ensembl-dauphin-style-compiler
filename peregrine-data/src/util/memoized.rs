@@ -147,7 +147,7 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
         }
     }
 
-    pub fn add(&self, key: K, value: V) {
+    fn add(&self, key: K, value: V) {
         lock!(self.data).add(key,value);
     }
 

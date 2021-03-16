@@ -11,7 +11,7 @@ enum CarriageEvent {
     Transition(u32,u64,CarriageSpeed)
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub(super) struct CarriageEvents(Arc<Mutex<Vec<CarriageEvent>>>);
 
 impl CarriageEvents {

@@ -46,8 +46,9 @@ impl PeregrineApiQueue {
         }
     }
 
+    // TODO investigate bootstrap call chain
     fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) {
-        bootstrap(&data.manager,&data.program_loader,&data.commander,&data.dauphin,channel,&data.booted)
+        bootstrap(&data.base,&data.agent_store,channel)
     }
 
     fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
@@ -86,7 +87,7 @@ impl PeregrineApiQueue {
     pub fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();
         let mut data2 = data.clone();
-        add_task::<Result<(),DataMessage>>(&data.commander,PgCommanderTaskSpec {
+        add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
             prio: 5,
             slot: None,
@@ -94,7 +95,6 @@ impl PeregrineApiQueue {
             task: Box::pin(async move {
                 loop {
                     let message = self2.queue.get().await;
-                    //console::log_1(&format!("Queue.run() step got {:?}",message).into());
                     self2.run_message(&mut data2,message);
                 }
             })

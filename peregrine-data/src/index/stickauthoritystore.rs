@@ -1,6 +1,6 @@
 use anyhow::Context;
 use blackbox::blackbox_log;
-use crate::{api::MessageSender, lock};
+use crate::{AgentStore, PeregrineCoreBase, api::MessageSender, lock};
 use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
 use crate::request::stickauthority::get_stick_authority;
@@ -35,69 +35,59 @@ impl StickAuthorityStoreData {
 
 #[derive(Clone)]
 pub struct StickAuthorityStore {
-    messages: MessageSender,
-    commander: PgCommander,
-    manager: RequestManager,
-    loader: ProgramLoader,
-    dauphin: PgDauphin,
+    base: PeregrineCoreBase,
     data: Arc<Mutex<StickAuthorityStoreData>>
 }
 
 // TODO API-supplied stick authorities
 
 impl StickAuthorityStore {
-    pub fn new(commander: &PgCommander, manager: &RequestManager, loader: &ProgramLoader, dauphin: &PgDauphin, messages: &MessageSender) -> StickAuthorityStore {
+    pub fn new(base: &PeregrineCoreBase) -> StickAuthorityStore {
         StickAuthorityStore {
-            messages: messages.clone(),
-            commander: commander.clone(),
-            manager: manager.clone(),
-            loader: loader.clone(),
-            dauphin: dauphin.clone(),
+            base: base.clone(),
             data: Arc::new(Mutex::new(StickAuthorityStoreData::new()))
         }
     }
 
-    pub fn add(&self, channel: &Channel, booted: &CountingPromise) -> Result<(),DataMessage> {
+    pub fn add(&self, channel: &Channel, agent_store: &AgentStore, booted: &CountingPromise) -> Result<(),DataMessage> {
         let channel = channel.clone();
-        let manager = self.manager.clone();
-        let loader = self.loader.clone();
-        let dauphin = self.dauphin.clone();
+        let base = self.base.clone();
+        let agent_store = agent_store.clone();
         let data = self.data.clone();
         booted.lock();
-        let booted = booted.clone();
-        let handle = add_task(&self.commander,PgCommanderTaskSpec {
+        let handle = add_task(&self.base.commander,PgCommanderTaskSpec {
             name: format!("stick authority loader: {}",channel.to_string()),
             prio: 2,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                add_stick_authority(manager,loader,dauphin,data,channel).await?;
-                booted.unlock();
+                add_stick_authority(base.manager,agent_store,base.dauphin,data,channel).await?;
+                base.booted.unlock();
                 Ok(())
             })
         });
-        async_complete_task(&self.commander, &self.messages,handle, |e| {
+        async_complete_task(&self.base.commander, &self.base.messages,handle, |e| {
             (DataMessage::StickAuthorityUnavailable(Box::new(e)),true)
         });
         Ok(())
     }
 
-    pub async fn try_lookup(&self, stick_id: StickId) -> anyhow::Result<()> {
+    pub async fn try_lookup(&self, agent_store: &AgentStore, stick_id: StickId) -> Result<(),DataMessage> {
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            a.try_lookup(self.dauphin.clone(),self.loader.clone(),stick_id.clone()).await.unwrap_or(());
+            a.try_lookup(self.base.dauphin.clone(),agent_store,stick_id.clone()).await.unwrap_or(());
         }
         Ok(())
     }
 }
 
-async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dauphin: PgDauphin, data: Arc<Mutex<StickAuthorityStoreData>>, channel: Channel) -> Result<(),DataMessage> {
+async fn add_stick_authority(manager: RequestManager, agent_store: AgentStore, dauphin: PgDauphin, data: Arc<Mutex<StickAuthorityStoreData>>, channel: Channel) -> Result<(),DataMessage> {
     let stick_authority = get_stick_authority(manager.clone(),channel.clone()).await?;
     let channel = stick_authority.channel().clone();
     let program_name = stick_authority.startup_program().to_string();
     let lookup_name = stick_authority.lookup_program().to_string();
     lock!(data).add(stick_authority);
-    dauphin.run_program(&loader,PgDauphinTaskSpec {
+    dauphin.run_program(&agent_store.program_loader().await.clone(),PgDauphinTaskSpec {
         prio: 2,
         slot: None,
         timeout: None,
@@ -106,7 +96,7 @@ async fn add_stick_authority(manager: RequestManager, loader: ProgramLoader, dau
         payloads: None
     }).await?;
     if !dauphin.is_present(&channel,&lookup_name) {
-        loader.load_background(&channel,&lookup_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        agent_store.program_loader().await.load_background(&channel,&lookup_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
     }
     Ok(())
 }

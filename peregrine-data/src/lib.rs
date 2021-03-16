@@ -1,10 +1,12 @@
 mod api {
     mod api;
+    mod agentstore;
     mod pgcore;
     mod queue;
 
+    pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed };
-    pub use self::pgcore::{ PeregrineCore, MessageSender };
+    pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::PeregrineApiQueue;
 }
 
@@ -110,6 +112,7 @@ mod train {
 }
 
 mod util {
+    pub mod asyncmemoized;
     pub mod cbor;
     pub mod fuse;
     pub mod memoized;
@@ -126,9 +129,7 @@ mod test {
     pub(crate) mod integrations {
         mod channel;
         mod commander;
-        mod console;
         mod dauphin;
-        pub(crate) use self::console::TestConsole;
         pub(crate) use self::channel::{ TestChannelIntegration, cbor_matches, cbor_matches_print };
         pub(crate) use self::commander::{ TestCommander };
         pub(crate) use self::dauphin::FakeDauphinReceiver;
@@ -136,7 +137,7 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::api::{ PeregrineCore, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };

@@ -4,7 +4,6 @@ use std::future::Future;
 use std::sync::{ Arc, Mutex, MutexGuard };
 use commander::{ Integration, Lock, SleepQuantity, Executor, RunSlot, RunConfig, cdr_get_name, TaskHandle, TaskResult, cdr_in_agent, cdr_new_agent, cdr_add };
 use crate::Commander;
-use super::console::TestConsole;
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]
@@ -35,17 +34,15 @@ impl Integration for TestCommanderIntegration {
 #[derive(Clone)]
 pub struct TestCommander {
     integration: TestCommanderIntegration,
-    console: TestConsole,
     executor: Arc<Mutex<Executor>>
 }
 
 impl TestCommander {
-    pub(crate) fn new(console: &TestConsole) -> TestCommander {
+    pub(crate) fn new() -> TestCommander {
         let integration = TestCommanderIntegration::new();
         TestCommander {
             integration: integration.clone(),
-            executor: Arc::new(Mutex::new(Executor::new(integration))),
-            console: console.clone()
+            executor: Arc::new(Mutex::new(Executor::new(integration)))
         }
     }
 
@@ -59,6 +56,7 @@ impl TestCommander {
     }
 }
 
+/*
 pub(crate) fn console_warn(console: &TestConsole, e: anyhow::Result<()>) {
     match e {
         Ok(e) => e,
@@ -81,6 +79,7 @@ async fn finish(console: TestConsole, res: TaskHandle<()>, name: String) {
         _ => {}
     }
 }
+*/
 
 impl Commander for TestCommander {
     fn start(&self) {
@@ -93,8 +92,6 @@ impl Commander for TestCommander {
     fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
         let rc = RunConfig::new(slot,prio,timeout);
         let rc2 = RunConfig::new(None,prio,None);
-        let console = self.console.clone();
-        let console2 = self.console.clone();
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);
             cdr_add(Box::pin(f),agent)

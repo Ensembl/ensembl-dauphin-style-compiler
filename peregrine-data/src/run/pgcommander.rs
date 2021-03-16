@@ -88,8 +88,4 @@ impl PgCommander {
     pub fn new(c: Box<dyn Commander>) -> PgCommander {
         PgCommander(Arc::new(Mutex::new(c)))
     }
-
-    pub fn dd_task(&self, t: PgCommanderTaskSpec<()>) -> TaskHandle<Result<(),DataMessage>> {
-        lock!(self.0).add_task(&t.name,t.prio,t.slot,t.timeout,t.task)
-    }
 }

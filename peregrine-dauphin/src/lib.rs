@@ -68,7 +68,7 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
                     Ok(())
                 })
             };
-            add_task(&commander,task);        
+            add_task(&commander,task);
         },
         Err(e) => {
             blackbox_log!("dauphin","{} failed {}",spec.in_bundle_name,e.to_string());
@@ -80,18 +80,18 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
 async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
     let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::XXXTmp(e.to_string()))?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&core.manager,&core.stick_store,&core.stick_authority_store,&core.booted,&core.panel_program_store,&core.data_store);
+    add_peregrine_payloads(&mut dauphin,&core.base.manager,&core.agent_store,&core.base.booted);
     loop {
-        let e = core.dauphin_queue.get().await;
+        let e = core.base.dauphin_queue.get().await;
         match e.task {
             PgDauphinTaskSpec::Load(p) => load(&mut dauphin,p,e.channel),
-            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&core.commander,r,e.channel)
+            PgDauphinTaskSpec::Run(r) => run(&mut dauphin,&core.base.commander,r,e.channel)
         }
     }
 }
 
 pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &PeregrineCore) {
-    add_task(&core.commander,PgCommanderTaskSpec {
+    add_task(&core.base.commander,PgCommanderTaskSpec {
         name: "dauphin runner".to_string(),
         prio: 2,
         slot: None,

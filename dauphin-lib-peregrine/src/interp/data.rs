@@ -49,7 +49,7 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     if let Some(panel) = get_panel(registers,&cmd)? {
         drop(registers);
         let peregrine = get_peregrine(context)?;
-        let data_store = peregrine.data_store();
+        let data_store = peregrine.agent_store().data_store().await;
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
         let result = data_store.get(&panel,&channel,prog_name).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
         let id = program_data.add(result);

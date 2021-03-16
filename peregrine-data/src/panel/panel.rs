@@ -61,9 +61,7 @@ impl Panel {
     }
 
     pub async fn build_panel_run(&self, stick_store: &StickStore, panel_program_store: &PanelProgramStore) -> Result<PanelRun,DataMessage> {
-        let tags : Vec<String> = stick_store.get(&self.stick).await
-                        .as_ref().as_ref().ok_or_else(|| err!("No such stick")).map_err(|e| DataMessage::XXXTmp(e.to_string()))?
-                        .tags().iter().cloned().collect();
+        let tags : Vec<String> = stick_store.get(&self.stick).await?.as_ref().tags().iter().cloned().collect();
         let mut ppr = ProgramRegion::new();
         ppr.set_stick_tags(&tags);
         ppr.set_scale(self.scale.clone(),self.scale.next_scale());

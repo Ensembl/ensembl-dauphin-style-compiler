@@ -57,6 +57,7 @@ impl Backoff {
             manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
 
         }
+        manager.message(DataMessage::FatalBackendFailure(channel.clone()));
         match last_error.unwrap().downcast_ref::<GeneralFailure>() {
             Some(e) => Ok(Err(DataMessage::BackendRefused(channel.clone(),e.message().to_string()))),
             None => Err(DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string()))

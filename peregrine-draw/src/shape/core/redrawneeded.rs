@@ -76,8 +76,6 @@ impl RedrawNeeded {
     }
 
     pub fn set(&mut self) {
-        use web_sys::console;
-        console::log_1(&format!("set").into());
         self.0.lock().unwrap().set();
     }
 

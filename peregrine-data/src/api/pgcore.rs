@@ -1,3 +1,4 @@
+use anyhow::bail;
 use crate::core::{ Viewport };
 use crate::request::bootstrap::bootstrap;
 use crate::train::{ TrainSet };
@@ -11,8 +12,10 @@ use crate::{
 };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
+use crate::api::AgentStore;
 use crate::core::{ Track, Focus, StickId };
 use crate::util::message::DataMessage;
+use super::agentstore;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -28,65 +31,66 @@ impl MessageSender {
 }
 
 #[derive(Clone)]
-pub struct PeregrineCore {
-    pub dauphin: PgDauphin,
+pub struct PeregrineCoreBase {
+    pub messages: MessageSender,
     pub dauphin_queue: PgDauphinQueue,
-    pub booted: CountingPromise,
+    pub dauphin: PgDauphin,
     pub commander: PgCommander,
-    pub data_store: DataStore,
-    pub program_loader: ProgramLoader,
     pub manager: RequestManager,
-    pub panel_program_store: PanelProgramStore,
-    pub panel_run_store: PanelRunStore,
-    pub panel_store: PanelStore,
+    pub booted: CountingPromise,
+}
+
+#[derive(Clone)]
+pub struct PeregrineCore {
+    pub base: PeregrineCoreBase,
+    pub agent_store: AgentStore,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub train_set: TrainSet,
-    pub stick_store: StickStore,
-    pub stick_authority_store: StickAuthorityStore,
     pub viewport: Viewport,
     pub queue: PeregrineApiQueue,
-    pub messages: MessageSender
 }
 
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> anyhow::Result<PeregrineCore> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+        let mut agent_store = AgentStore::new();
         let messages = MessageSender(Arc::new(Mutex::new(Box::new(messages))));
         let dauphin_queue = PgDauphinQueue::new();
+        let dauphin = PgDauphin::new(&dauphin_queue)?;
         let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
-        let data_store = DataStore::new(32,&commander,&manager,&messages);
         let booted = CountingPromise::new();
-        let dauphin = PgDauphin::new(&dauphin_queue)?;
-        let program_loader = ProgramLoader::new(&commander,&manager,&dauphin);
-        let stick_authority_store = StickAuthorityStore::new(&commander,&manager,&program_loader,&dauphin,&messages);
-        let stick_store = StickStore::new(&commander,&stick_authority_store,&booted);
-        let panel_program_store = PanelProgramStore::new();
-        let panel_run_store = PanelRunStore::new(32,&commander,&dauphin,&program_loader,&stick_store,&panel_program_store,&messages,&booted);
-        let panel_store = PanelStore::new(128,&commander,&panel_run_store,&messages);
-        Ok(PeregrineCore {
+        let base = PeregrineCoreBase {
             booted,
             commander,
-            data_store,
             dauphin,
             dauphin_queue,
             manager,
-            panel_store,
-            panel_program_store,
-            panel_run_store,
+            messages
+        };
+        agent_store.set_data_store(DataStore::new(32,&base));
+        agent_store.set_program_loader(ProgramLoader::new(&base));
+        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base));
+        agent_store.set_stick_store(StickStore::new(&base,&agent_store));
+        agent_store.set_panel_store(PanelStore::new(128,&base,&agent_store));
+        agent_store.set_panel_program_store(PanelProgramStore::new());
+        agent_store.set_panel_run_store(PanelRunStore::new(32,&base,&agent_store));
+        let train_set = TrainSet::new(&base);
+        if !agent_store.ready() {
+            bail!("dependency injection failed");
+        }
+        Ok(PeregrineCore {
+            base,
+            agent_store,
             integration: Arc::new(Mutex::new(integration)),
-            train_set: TrainSet::new(&messages),
-            stick_store,
-            stick_authority_store,
-            program_loader,
+            train_set,
             viewport: Viewport::empty(),
             queue: PeregrineApiQueue::new(),
-            messages
         })
     }
 
     pub fn dauphin_ready(&mut self) {
-        self.manager.add_receiver(Box::new(self.dauphin.clone()));
+        self.base.manager.add_receiver(Box::new(self.base.dauphin.clone()));
     }
 
     pub fn application_ready(&mut self) {
@@ -95,7 +99,7 @@ impl PeregrineCore {
     }
 
     pub fn bootstrap(&self, channel: Channel) {
-        bootstrap(&self.manager,&self.program_loader,&self.commander,&self.dauphin,channel,&self.booted)
+        bootstrap(&self.base,&self.agent_store,channel)
     }
 
     /* from api */

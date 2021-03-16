@@ -57,6 +57,7 @@ impl Message {
                     DataMessage::BackendTimeout(_) => MessageCategory::BadInfrastructure,
                     DataMessage::PacketError(_,_) => MessageCategory::BadBackend,
                     DataMessage::TemporaryBackendFailure(_) => MessageCategory::BadInfrastructure,
+                    DataMessage::FatalBackendFailure(_) => MessageCategory::BadInfrastructure,
                     DataMessage::BackendRefused(_,_) => MessageCategory::BadBackend,
                     DataMessage::DataHasNoAssociatedStyle(_) => MessageCategory::BadData,
                     DataMessage::TaskTimedOut(_) => MessageCategory::Unknown,
@@ -69,6 +70,7 @@ impl Message {
                     DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
                     DataMessage::StickAuthorityUnavailable(cause) => 
                         Message::DataError(cause.as_ref().clone()).category(),
+                    DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
                     DataMessage::XXXTmp(_) => MessageCategory::Unknown,        
                 }
             },
@@ -108,7 +110,7 @@ impl Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 18
+        // Next code is 19
         match self {
             Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
             Message::DataError(d) => {
@@ -118,6 +120,7 @@ impl Message {
                     DataMessage::BackendTimeout(c) => (3,calculate_hash(c)),
                     DataMessage::PacketError(c,s) => (3,calculate_hash(&(c,s))),
                     DataMessage::TemporaryBackendFailure(c) => (4,calculate_hash(c)),
+                    DataMessage::FatalBackendFailure(c) => (18,calculate_hash(c)),
                     DataMessage::BackendRefused(c,s) => (5,calculate_hash(&(c,s))),
                     DataMessage::DataHasNoAssociatedStyle(tags) => (6,calculate_hash(tags)),
                     DataMessage::TaskTimedOut(s) => (7,calculate_hash(s)),
@@ -130,6 +133,7 @@ impl Message {
                         (13,calculate_hash(&Message::DataError(cause.as_ref().clone()).code())),
                     DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
                     DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
+                    DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
                     DataMessage::XXXTmp(s) => (14,calculate_hash(s)),
                 }
             },

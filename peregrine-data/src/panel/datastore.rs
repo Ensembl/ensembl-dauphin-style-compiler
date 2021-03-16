@@ -1,5 +1,5 @@
 use std::sync::{ Arc };
-use crate::api::MessageSender;
+use crate::api::{ MessageSender, PeregrineCoreBase };
 use crate::run::{ PgCommander, PgCommanderTaskSpec, add_task, async_complete_task };
 use crate::util::memoized::Memoized;
 use crate::util::message::{ DataMessage };
@@ -15,31 +15,28 @@ pub struct DataStore {
 }
 
 impl DataStore {
-    pub fn new(cache_size: usize, commander: &PgCommander, manager: &RequestManager, messages: &MessageSender) -> DataStore {
-        let manager = manager.clone();
-        let commander = commander.clone();
-        let messages = messages.clone();
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> DataStore {
+        let base = base.clone();
         DataStore {
             store: Memoized::new_cache(cache_size, move |data: &(Panel,Channel,String), result| {
                 let (panel,channel,name) = data;
-                let manager = manager.clone();
-                let commander = commander.clone();
+                let base2 = base.clone();
                 let panel = panel.clone();
                 let channel = channel.clone();
                 let name = name.clone();
-                let handle = add_task(&commander,PgCommanderTaskSpec {
+                let handle = add_task(&base.commander,PgCommanderTaskSpec {
                     name: format!("data for panel {:?}",panel),
                     prio: 1,
                     slot: None,
                     timeout: None,
                     task: Box::pin(async move {
                         let data_command_request = DataCommandRequest::new(&channel,&name,&panel);
-                        let r = data_command_request.execute(manager).await.map(|x| Arc::new(x));
+                        let r = data_command_request.execute(base2.manager).await.map(|x| Arc::new(x));
                         result.resolve(r);
                         Ok(())
                     })
                 });
-                async_complete_task(&commander,&messages,handle,|e| (e,false));
+                async_complete_task(&base.commander,&base.messages,handle,|e| (e,false));
             })
         }
     }

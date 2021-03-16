@@ -82,11 +82,14 @@ impl Carriage {
             panels.push((track,self.make_panel(track)));
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
-        let tracks : Vec<_> = panels.iter().map(|(t,p)| (t,data.panel_store.run(p))).collect();
+        let panel_store = data.agent_store.panel_store().await;
+        let tracks : Vec<_> = panels.iter().map(|(t,p)| (t,panel_store.run(p))).collect();
         let mut new_shapes = ShapeList::new();
         for (track,future) in tracks {
             match future.await.as_ref() {
                 Ok(zoo) => {
+                    use web_sys::console;
+                    console::log_1(&format!("ok {:?}",zoo).into());
                     new_shapes.append(&zoo.track_shapes(track.name()));
                 },
                 Err(e) => {
