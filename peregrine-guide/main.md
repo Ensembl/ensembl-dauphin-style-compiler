@@ -19,6 +19,10 @@ For any questions, see #new-website-genome-browser on slack.
 7. Physics Engine
 8. API
 
+## Getting started
+
+* [Developer Requirements](developer-requirements.md)
+
 ## Specific Algorithmic Complexities
 
 * [Geometry in WebGL](geometry.md)
