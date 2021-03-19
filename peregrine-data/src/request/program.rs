@@ -2,12 +2,13 @@ use crate::lock;
 use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
+use crate::agent::agent::Agent;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
-use crate::util::memoized::Memoized;
+use crate::util::memoized::{ Memoized, MemoizedType };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
@@ -16,7 +17,7 @@ use super::manager::RequestManager;
 use crate::run::{ PgCommander, Commander, PgDauphin, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
-use crate::api::PeregrineCoreBase;
+use crate::api::{ PeregrineCoreBase, AgentStore };
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -105,47 +106,25 @@ impl ResponseBuilderType for ProgramResponseBuilderType {
     }
 }
 
-async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: Channel, name: String) -> anyhow::Result<()> {
+async fn load_program(mut base: PeregrineCoreBase, _agent_store: AgentStore, (channel,name): (Channel,String)) -> Result<(),DataMessage> {
     let req = ProgramCommandRequest::new(&channel,&name);
-    req.execute(&mut manager,&dauphin).await
+    req.execute(&mut base.manager,&base.dauphin).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))
 }
 
 #[derive(Clone)]
-pub struct ProgramLoader {
-    store: Memoized<(Channel,String),()>,
-    manager: RequestManager
-}
+pub struct ProgramLoader(Agent<(Channel,String),()>);
 
 impl ProgramLoader {
-    pub fn new(base: &PeregrineCoreBase) -> ProgramLoader {
-        let base = base.clone();
-        ProgramLoader {
-            manager: base.manager.clone(),
-            store: Memoized::new(move |key: &(Channel,String),result| {
-                let (channel,name) = (key.0.clone(),key.1.clone());
-                let base2 = base.clone();
-                add_task(&base.commander,PgCommanderTaskSpec {
-                    name: format!("program-loader-{}-{}",channel,name),
-                    prio: 3,
-                    timeout: None,
-                    slot: None,
-                    task: Box::pin(async move {
-                        load_program(base2.manager,base2.dauphin,channel,name).await.unwrap_or(());
-                        result.resolve(());
-                        Ok(())
-                    })
-                });
-            })
-        }
+    pub fn new(base: &PeregrineCoreBase, agent_store: &AgentStore) -> ProgramLoader {
+        ProgramLoader(Agent::new(MemoizedType::Store,"program-loader",3,base,agent_store, load_program))
     }
 
-    pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.store.get(&(channel.clone(),name.to_string())).await;
-        Ok(())
+    pub async fn load(&self, channel: &Channel,name: &str) -> Result<(),DataMessage> {
+        self.0.get(&(channel.clone(),name.to_string())).await.as_ref().clone()
     }
 
-    pub fn load_background(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.store.get_no_wait(&(channel.clone(),name.to_string()))
+    pub fn load_background(&self, channel: &Channel, name: &str) -> Result<(),DataMessage> {
+        self.0.get_no_wait(&(channel.clone(),name.to_string()))
     }
 }
 

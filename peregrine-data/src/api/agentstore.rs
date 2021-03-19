@@ -48,13 +48,13 @@ pub struct AgentStore {
 impl AgentStore {
     pub fn new() -> AgentStore {
         AgentStore {
-            program_loader: DelayedLoader::new(),
-            stick_authority_store: DelayedLoader::new(),
-            panel_run_store: DelayedLoader::new(),
-            panel_store: DelayedLoader::new(),
-            panel_program_store: DelayedLoader::new(),
-            stick_store: DelayedLoader::new(),
-            data_store: DelayedLoader::new(),
+            program_loader: DelayedLoader::new(), // migrated
+            stick_authority_store: DelayedLoader::new(), // weird layout
+            panel_run_store: DelayedLoader::new(), // migrated
+            panel_store: DelayedLoader::new(), // migrated
+            panel_program_store: DelayedLoader::new(), // not memo/async
+            stick_store: DelayedLoader::new(), // special pending
+            data_store: DelayedLoader::new(), // migrated
         }
     }
 

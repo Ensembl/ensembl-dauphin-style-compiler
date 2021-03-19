@@ -1,47 +1,27 @@
 use std::sync::{ Arc };
-use crate::api::{ MessageSender, PeregrineCoreBase };
-use crate::run::{ PgCommander, PgCommanderTaskSpec, add_task, async_complete_task };
-use crate::util::memoized::Memoized;
+use crate::agent::agent::Agent;
+use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::util::memoized::{MemoizedType };
 use crate::util::message::{ DataMessage };
 use super::panel::Panel;
-use crate::{ Channel, RequestManager };
+use crate::{ Channel };
 use crate::request::data::{ DataCommandRequest, DataResponse };
 
 // TODO Memoized errors with retry semantics
 
-#[derive(Clone)]
-pub struct DataStore {
-    store: Memoized<(Panel,Channel,String),Result<Arc<Box<DataResponse>>,DataMessage>>
+async fn run(base: PeregrineCoreBase,_agent_store: AgentStore, (panel,channel,name): (Panel,Channel,String)) -> Result<Arc<Box<DataResponse>>,DataMessage> {
+    DataCommandRequest::new(&channel,&name,&panel).execute(base.manager).await.map(|x| Arc::new(x))
 }
 
+#[derive(Clone)]
+pub struct DataStore(Agent<(Panel,Channel,String),Arc<Box<DataResponse>>>);
+
 impl DataStore {
-    pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> DataStore {
-        let base = base.clone();
-        DataStore {
-            store: Memoized::new_cache(cache_size, move |data: &(Panel,Channel,String), result| {
-                let (panel,channel,name) = data;
-                let base2 = base.clone();
-                let panel = panel.clone();
-                let channel = channel.clone();
-                let name = name.clone();
-                let handle = add_task(&base.commander,PgCommanderTaskSpec {
-                    name: format!("data for panel {:?}",panel),
-                    prio: 1,
-                    slot: None,
-                    timeout: None,
-                    task: Box::pin(async move {
-                        let data_command_request = DataCommandRequest::new(&channel,&name,&panel);
-                        let r = data_command_request.execute(base2.manager).await.map(|x| Arc::new(x));
-                        result.resolve(r);
-                        Ok(())
-                    })
-                });
-                async_complete_task(&base.commander,&base.messages,handle,|e| (e,false));
-            })
-        }
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> DataStore {
+        DataStore(Agent::new(MemoizedType::Cache(cache_size),"data",1,base,agent_store, run))
     }
 
     pub async fn get(&self, panel: &Panel, channel: &Channel, name: &str) -> Result<Arc<Box<DataResponse>>,DataMessage> {
-        self.store.get(&(panel.clone(),channel.clone(),name.to_string())).await.as_ref().clone()
+        self.0.get(&(panel.clone(),channel.clone(),name.to_string())).await.as_ref().clone()
     }
 }

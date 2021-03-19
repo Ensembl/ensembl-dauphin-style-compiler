@@ -12,14 +12,24 @@ simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
 simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4,5));
 
+// TODO booted is a mess,  is it needed?
 async fn add_stick_authority(context: &mut InterpContext, cmd: AddStickAuthorityInterpCommand) -> anyhow::Result<()> {
     let self_channel = get_instance::<Channel>(context,"channel")?;
     let registers = context.registers_mut();
     let authorities = registers.get_strings(&cmd.0)?;
     if let Some(pc) = context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>() {
+        pc.booted().lock();
+        let agent_store = pc.agent_store().clone();
+        let stick_authority_store = agent_store.stick_authority_store().await.clone();
+        let mut tasks = vec![];
         for auth in authorities.iter() {
-            pc.agent_store().stick_authority_store().await.add(&Channel::parse(&self_channel,auth)?,pc.agent_store(),pc.booted())?;
+            let task = stick_authority_store.add(Channel::parse(&self_channel,auth)?);
+            tasks.push(task);
         }
+        for task in tasks {
+            task.await?;
+        }
+        pc.booted().unlock();
     }
     Ok(())
 }

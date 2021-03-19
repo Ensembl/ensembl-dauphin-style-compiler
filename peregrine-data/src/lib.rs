@@ -1,3 +1,7 @@
+mod agent {
+    pub mod agent;
+}
+
 mod api {
     mod api;
     mod agentstore;

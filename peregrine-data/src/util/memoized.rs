@@ -33,28 +33,32 @@ use super::fuse::FusePromise;
 
 enum MemoizedStore<K,V> {
     Complete(HashMap<K,Arc<V>>),
-    LruCache(Cache<K,Arc<V>>)
+    LruCache(Cache<K,Arc<V>>),
+    None
 }
 
 impl<K,V> MemoizedStore<K,V> where K: Clone+Eq+Hash {
     fn insert(&mut self, k: K, v: Arc<V>) {
         match self {
             MemoizedStore::Complete(hm) => { hm.insert(k,v); },
-            MemoizedStore::LruCache(c) => { c.put(&k,v); }
+            MemoizedStore::LruCache(c) => { c.put(&k,v); },
+            MemoizedStore::None => {},
         }
     }
 
     fn get(&mut self, k: &K) -> Option<&Arc<V>> {
         match self {
             MemoizedStore::Complete(hm) => { hm.get(k) },
-            MemoizedStore::LruCache(c) => { c.get(k) }
+            MemoizedStore::LruCache(c) => { c.get(k) },
+            MemoizedStore::None => { None }
         }
     }
 
     fn guaranteed(&self, k: &K) -> bool {
         match self {
             MemoizedStore::Complete(hm) => { hm.contains_key(k) },
-            MemoizedStore::LruCache(_) => { false }
+            MemoizedStore::LruCache(_) => { false },
+            MemoizedStore::None => { false }
         }
     }
 }
@@ -132,8 +136,13 @@ impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
     }
 }
 
+pub enum MemoizedType {
+    Store,
+    Cache(usize)
+}
+
 impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
-    pub fn new<F>(resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
+    pub fn new_store<F>(resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
         Memoized {
             data: Arc::new(Mutex::new(MemoizedData::new())),
             resolver: Arc::new(Box::new(resolver))
@@ -144,6 +153,13 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
         Memoized {
             data: Arc::new(Mutex::new(MemoizedData::new_cache(size))),
             resolver: Arc::new(Box::new(resolver))
+        }
+    }
+
+    pub fn new<F>(kind: MemoizedType, resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
+        match kind {
+            MemoizedType::Store => Self::new_store(resolver),
+            MemoizedType::Cache(size) => Self::new_cache(size,resolver)
         }
     }
 

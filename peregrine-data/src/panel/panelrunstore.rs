@@ -1,12 +1,13 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc };
+use crate::agent::agent::Agent;
 use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
 use crate::request::manager::{ RequestManager, PayloadReceiver };
 use crate::ProgramLoader;
 use crate::run::{ PgCommander, PgDauphin, PgCommanderTaskSpec, PgDauphinTaskSpec, add_task, async_complete_task };
 use crate::shape::ShapeOutput;
-use crate::util::memoized::Memoized;
+use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::CountingPromise;
 use super::panel::Panel;
 use super::programdata::ProgramData;
@@ -47,7 +48,7 @@ impl PanelRunOutput {
     pub fn shapes(&self) -> &ShapeOutput { &self.shapes }
 }
 
-async fn run(base: PeregrineCoreBase, agent_store: AgentStore, panel_run: &PanelRun) -> Result<PanelRunOutput,DataMessage> {
+async fn run(base: PeregrineCoreBase, agent_store: AgentStore, panel_run: PanelRun) -> Result<Arc<PanelRunOutput>,DataMessage> {
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let pro = PanelRunOutput::new();
@@ -62,70 +63,65 @@ async fn run(base: PeregrineCoreBase, agent_store: AgentStore, panel_run: &Panel
         program_name: panel_run.program.clone(),
         payloads: Some(payloads)
     }).await?;
-    Ok(pro)
+    Ok(Arc::new(pro))
+}
+
+async fn program(base: PeregrineCoreBase, agent_store: AgentStore, panel: Panel) -> Result<PanelRun,DataMessage> {
+    let stick_store = agent_store.stick_store().await;
+    let panel_program_store = agent_store.panel_program_store().await;
+    match panel.clone().build_panel_run(&stick_store,&panel_program_store).await {
+        Ok(r) => Ok(r),
+        Err(e) => {
+            base.messages.send(e.clone());
+            Err(DataMessage::DataMissing(Box::new(e)))
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct PanelRunCache(Agent<PanelRun,Arc<PanelRunOutput>>);
+
+impl PanelRunCache {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> PanelRunCache {
+        PanelRunCache(Agent::new(MemoizedType::Cache(cache_size),"panel-run-cache",1,base,agent_store, run))
+    }
+
+    pub async fn get(&self, panel_run: &PanelRun) -> Result<Arc<PanelRunOutput>,DataMessage> {
+        self.0.get(panel_run).await.as_ref().clone()
+    }
+}
+
+#[derive(Clone)]
+pub struct PanelPrograms(Agent<Panel,PanelRun>);
+
+impl PanelPrograms {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> PanelPrograms {
+        PanelPrograms(Agent::new(MemoizedType::Cache(cache_size),"panel-programs",1,base,agent_store, program))
+    }
+
+    pub async fn get(&self, panel: &Panel) -> Arc<Result<PanelRun,DataMessage>> {
+        self.0.get(panel).await
+    }
 }
 
 #[derive(Clone)]
 pub struct PanelRunStore {
-    store: Memoized<PanelRun,Result<Arc<PanelRunOutput>,DataMessage>>,
-    programs: Memoized<Panel,Result<PanelRun,DataMessage>>
+    store: PanelRunCache,
+    programs: PanelPrograms
 }
 
 impl PanelRunStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> PanelRunStore {
-        let base = base.clone();
-        let base2 = base.clone();
-        let agent_store = agent_store.clone();
-        let agent_store2 = agent_store.clone();
         PanelRunStore {
-            store: Memoized::new_cache(cache_size, move |panel_run: &PanelRun, result| {
-                let base = base2.clone();
-                let agent_store = agent_store.clone();
-                let panel_run = panel_run.clone();
-                let handle = add_task(&base2.commander,PgCommanderTaskSpec {
-                    name: format!("panel run for: {:?}",panel_run),
-                    prio: 1,
-                    slot: None,
-                    timeout: None,
-                    task: Box::pin(async move {
-                        result.resolve(run(base,agent_store,&panel_run).await.map(|x| Arc::new(x)));
-                        Ok(())
-                    })
-                });
-                async_complete_task(&base2.commander,&base2.messages,handle,|e| (e,false));
-            }),
-            programs: Memoized::new_cache(cache_size, move |panel: &Panel,result| {
-                let panel = panel.clone();
-                let agent_store = agent_store2.clone();
-                let base2 = base.clone();
-                let handle = add_task(&base.commander,PgCommanderTaskSpec {
-                    name: format!("panel build run for: {:?}",panel),
-                    prio: 1,
-                    slot: None,
-                    timeout: None,
-                    task: Box::pin(async move {
-                        let stick_store = agent_store.stick_store().await;
-                        let panel_program_store = agent_store.panel_program_store().await;
-                        let r = match panel.clone().build_panel_run(&stick_store,&panel_program_store).await {
-                            Ok(r) => Ok(r),
-                            Err(e) => {
-                                base2.messages.send(e.clone());
-                                Err(DataMessage::DataMissing(Box::new(e)))
-                            }
-                        };
-                        result.resolve(r);
-                        Ok(())
-                    })
-                });
-                async_complete_task(&base.commander, &base.messages,handle,|e| (e,false));
-            })
+            store: PanelRunCache::new(cache_size,&base,&agent_store),
+            programs: PanelPrograms::new(cache_size,&base,&agent_store)
         }
     }
-
+    
     pub async fn run(&self, panel: &Panel) -> Result<Arc<PanelRunOutput>,DataMessage> {
         match self.programs.get(&panel).await.as_ref() {
             Ok(panel_run) => {
-                self.store.get(&panel_run).await.as_ref().clone()
+                self.store.get(&panel_run).await
             },
             Err(e) => {
                 Err(e.clone())

@@ -24,7 +24,7 @@ impl StickStore {
         StickStore {
             pending,
             booted: base.booted.clone(),
-            store: Memoized::new(move |stick_id: &StickId, result| {
+            store: Memoized::new_store(move |stick_id: &StickId, result| {
                 pending2.lock().unwrap().insert(stick_id.clone(),None);
                 let stick_id = stick_id.clone();
                 let mut pending2 = pending2.clone();
@@ -36,7 +36,7 @@ impl StickStore {
                     slot: None,
                     task: Box::pin(async move {
                         // during this await, add should have been called
-                        let value = match agent_store.stick_authority_store().await.try_lookup(&agent_store,stick_id.clone()).await {
+                        let value = match agent_store.stick_authority_store().await.try_lookup(stick_id.clone()).await {
                             Ok(()) => {
                                 pending2.lock().unwrap().remove(&stick_id).flatten()
                                     .unwrap_or_else(|| Err(DataMessage::NoSuchStick(stick_id.clone())))

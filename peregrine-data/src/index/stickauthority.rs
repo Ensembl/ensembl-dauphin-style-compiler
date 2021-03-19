@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use blackbox::blackbox_log;
-use crate::lock;
+use crate::{PeregrineCoreBase, lock};
 use crate::core::{ Stick, StickId };
+use crate::request::stickauthority::get_stick_authority;
 use crate::request::{ Channel, RequestManager };
 use crate::request::program::ProgramLoader;
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
@@ -13,21 +14,39 @@ use crate::api::AgentStore;
 pub struct StickAuthority {
     channel: Channel,
     startup_program_name: String,
-    resolution_program_name: String
+    lookup_program_name: String
 }
 
 impl StickAuthority {
-    pub fn new(channel: &Channel, startup_program_name: &str, resolution_program_name: &str) -> StickAuthority {
+    pub fn new(channel: &Channel, startup_program_name: &str, lookup_program_name: &str) -> StickAuthority {
         StickAuthority {
             channel: channel.clone(),
             startup_program_name: startup_program_name.to_string(),
-            resolution_program_name: resolution_program_name.to_string(),
+            lookup_program_name: lookup_program_name.to_string(),
         }
     }
 
     pub fn channel(&self) -> &Channel { &self.channel }
     pub fn startup_program(&self) -> &str { &self.startup_program_name }
-    pub fn lookup_program(&self) -> &str { &self.resolution_program_name }
+    pub fn lookup_program(&self) -> &str { &self.lookup_program_name }
+
+    async fn run_startup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Result<(),DataMessage> {
+        base.dauphin.run_program(&agent_store.program_loader().await.clone(),PgDauphinTaskSpec {
+            prio: 2,
+            slot: None,
+            timeout: None,
+            channel: self.channel.clone(),
+            program_name: self.startup_program_name.clone(),
+            payloads: None
+        }).await   
+    }
+
+    async fn preload_lookup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Result<(),DataMessage> {
+        if !base.dauphin.is_present(&self.channel,&self.lookup_program_name) {
+            agent_store.program_loader().await.load_background(&self.channel,&self.lookup_program_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        }
+        Ok(())
+    }
 
     pub async fn try_lookup(&self, dauphin: PgDauphin, agent_store: &AgentStore, id: StickId) -> Result<(),DataMessage> {
         let mut payloads = HashMap::new();
@@ -37,9 +56,16 @@ impl StickAuthority {
             slot: None,
             timeout: None,
             channel: self.channel.clone(),
-            program_name: self.resolution_program_name.clone(),
+            program_name: self.lookup_program_name.clone(),
             payloads: Some(payloads)
         }).await?;
         Ok(())
     }
+}
+
+pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel) -> Result<StickAuthority,DataMessage> {
+    let stick_authority = get_stick_authority(base.manager.clone(),channel.clone()).await?;
+    stick_authority.preload_lookup_program(base,agent_store).await?;
+    stick_authority.run_startup_program(base,agent_store).await?;
+    Ok(stick_authority)
 }
