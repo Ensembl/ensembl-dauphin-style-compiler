@@ -56,31 +56,6 @@ impl TestCommander {
     }
 }
 
-/*
-pub(crate) fn console_warn(console: &TestConsole, e: anyhow::Result<()>) {
-    match e {
-        Ok(e) => e,
-        Err(e) => {
-            console.message(&format!("{:?}",e));
-        }
-    }
-}
-
-async fn catch_errors(console: TestConsole, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>>>>) {
-    console_warn(&console,f.await.with_context(|| format!("async: {}",cdr_get_name())));
-}
-
-async fn finish(console: TestConsole, res: TaskHandle<()>, name: String) {
-    res.finish_future().await;
-    match res.task_state() {
-        TaskResult::Killed(reason) => {
-            console.message(&format!("async {}: {}",reason,name));
-        },
-        _ => {}
-    }
-}
-*/
-
 impl Commander for TestCommander {
     fn start(&self) {
     }

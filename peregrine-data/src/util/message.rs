@@ -27,7 +27,11 @@ pub enum DataMessage {
     StickAuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
     CarriageUnavailable(CarriageId,Vec<DataMessage>),
-    XXXTmp(String)
+    DauphinProgramDidNotLoad(String),
+    DauphinIntegrationError(String),
+    DauphinRunError(String,String),
+    DauphinProgramMissing(String),
+    DataUnavailable(Channel,Box<DataMessage>)
 }
 
 impl fmt::Display for DataMessage {
@@ -54,7 +58,11 @@ impl fmt::Display for DataMessage {
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::CarriageUnavailable(id,causes) =>
                 format!("carriage {:?} unavilable. causes = [{}]",id,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
-            DataMessage::XXXTmp(s) => format!("temporary error: {}",s)
+            DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
+            DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
+            DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
+            DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
+            DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
         };
         write!(f,"{}",s)
     }
@@ -63,7 +71,8 @@ impl fmt::Display for DataMessage {
 impl Error for DataMessage {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            DataMessage::DataMissing(s) =>Some(s),
+            DataMessage::DataMissing(s) => Some(s),
+            DataMessage::CarriageUnavailable(_,causes) => Some(&causes[0]),
             _ => None
         }
     }

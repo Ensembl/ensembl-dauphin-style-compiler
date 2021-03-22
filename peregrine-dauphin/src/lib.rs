@@ -78,7 +78,7 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
 }
 
 async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
-    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::XXXTmp(e.to_string()))?);
+    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::DauphinIntegrationError(e.to_string()))?);
     integration.add_payloads(&mut dauphin);
     add_peregrine_payloads(&mut dauphin,&core.base.manager,&core.agent_store,&core.base.booted);
     loop {

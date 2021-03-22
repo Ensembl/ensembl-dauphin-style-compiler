@@ -29,6 +29,7 @@ pub enum MessageCategory {
 pub enum Message {
     DroppedWithoutTidying(String),
     DataError(DataMessage),
+    InvalidBackendLocation(String),
     XXXTmp(String)
 }
 
@@ -42,7 +43,8 @@ impl Message {
                     _ => MessageLevel::Error
                 }
             },
-            Message::XXXTmp(_) => MessageLevel::Error
+            Message::XXXTmp(_) => MessageLevel::Error,
+            Message::InvalidBackendLocation(_) => MessageLevel::Error,
         }
     }
 
@@ -64,7 +66,7 @@ impl Message {
                     DataMessage::TaskUnexpectedlyCancelled(_) => MessageCategory::BadCode,
                     DataMessage::TaskUnexpectedlySuperfluous(_) => MessageCategory::BadCode,
                     DataMessage::TaskResultMissing(_) => MessageCategory::BadCode,
-                    DataMessage::TaskUnexpectedlyOngoing(s) => MessageCategory::BadCode,
+                    DataMessage::TaskUnexpectedlyOngoing(_) => MessageCategory::BadCode,
                     DataMessage::DataMissing(_) => MessageCategory::Unknown,
                     DataMessage::NoPanelProgram(_) => MessageCategory::BadData,
                     DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
@@ -72,10 +74,15 @@ impl Message {
                         Message::DataError(cause.as_ref().clone()).category(),
                     DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
                     DataMessage::CarriageUnavailable(_,_) => MessageCategory::BadInfrastructure,
-                    DataMessage::XXXTmp(_) => MessageCategory::Unknown,        
+                    DataMessage::DauphinProgramDidNotLoad(_) => MessageCategory::BadBackend,
+                    DataMessage::DauphinIntegrationError(_) => MessageCategory::BadCode,
+                    DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
+                    DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
+                    DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure
                 }
             },
             Message::XXXTmp(_) => MessageCategory::Unknown,
+            Message::InvalidBackendLocation(_) => MessageCategory::BadFrontend,
         }
     }
 
@@ -90,28 +97,34 @@ impl Message {
                     DataMessage::TaskUnexpectedlySuperfluous(_) => true,
                     DataMessage::TaskResultMissing(_) => true,
                     DataMessage::TaskUnexpectedlyOngoing(_) => true,
+                    DataMessage::DauphinProgramDidNotLoad(_) => true,
+                    DataMessage::DauphinIntegrationError(_) => true,
+                    DataMessage::DauphinProgramMissing(_) => true,
                     _ => false
                 }
             },
-            Message::XXXTmp(_) => true
+            Message::XXXTmp(_) => true,
+            Message::InvalidBackendLocation(_) => true
         }
     }
 
     fn degraded_experience(&self) -> bool {
+        if self.now_unstable() { return true; }
         match self {
             Message::DroppedWithoutTidying(_) => true,
             Message::DataError(d) => {
                 match d {
-                    DataMessage::TemporaryBackendFailure(c) => false,
+                    DataMessage::TemporaryBackendFailure(_) => false,
                     _ => true
                 }
             },
-            Message::XXXTmp(_) => true
+            Message::XXXTmp(_) => true,
+            _ => true,
         }
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 21
+        // Next code is 26
         match self {
             Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
             Message::DataError(d) => {
@@ -136,10 +149,15 @@ impl Message {
                     DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
                     DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
                     DataMessage::CarriageUnavailable(c,_) => (20,calculate_hash(c)),
-                    DataMessage::XXXTmp(s) => (14,calculate_hash(s)),
+                    DataMessage::DauphinProgramDidNotLoad(name) => (21,calculate_hash(name)),
+                    DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
+                    DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
+                    DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
+                    DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e)))
                 }
             },
-            Message::XXXTmp(s) => (17,calculate_hash(s))
+            Message::XXXTmp(s) => (17,calculate_hash(s)),
+            Message::InvalidBackendLocation(s) => (25,calculate_hash(s)),
         }
     }
 }
@@ -149,7 +167,8 @@ impl Display for Message {
         let s = match self {
             Message::DroppedWithoutTidying(s) => format!("dropped object without tidying: {}",s),
             Message::DataError(d) => d.to_string(),
-            Message::XXXTmp(s) => format!("temporary string error: {}",s)
+            Message::XXXTmp(s) => format!("temporary string error: {}",s),
+            Message::InvalidBackendLocation(s) => format!("invalid backend locaiton: {}",s),
         };
         write!(f,"{}",s)
     }

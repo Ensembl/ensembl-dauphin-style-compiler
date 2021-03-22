@@ -13,30 +13,30 @@ use web_sys::console;
 use peregrine_data::{Channel, ChannelLocation, Commander, DataMessage, StickId, Track};
 use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
-use peregrine_draw::{ js_option, js_throw };
+use peregrine_draw::{ js_option, js_throw, PgCommanderWeb };
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
 
 #[cfg(blackbox)]
-fn setup_blackbox(commander: &Commander) {
+fn setup_blackbox(commander: &PgCommanderWeb) {
     let mut ign = pgblackbox_setup();
     ign.set_url(&Url::parse("http://localhost:4040/blackbox/data").expect("bad blackbox url"));
     let ign2 = ign.clone();
     blackbox_enable("notice");
     blackbox_enable("warn");
     blackbox_enable("error");
-    commander.add_task("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?; Ok(()) }));
+    commander.add::<()>("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await; Ok(()) }));
     blackbox_log("general","blackbox configured");
     console::log_1(&format!("blackbox configured").into());
 }
 
 #[cfg(not(blackbox))]
-fn setup_blackbox(c_ommander: &Commander) {
+fn setup_blackbox(c_ommander: &PgCommanderWeb) {
 }
 
-async fn test(mut draw_api: PeregrineDraw) -> Result<(),DataMessage> {
-    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data").map_err(|e| DataMessage::XXXTmp(e.to_string()))?)));
+async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
+    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(Url::parse("http://localhost:3333/api/data")?)));
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
@@ -63,7 +63,7 @@ fn test_fn() -> anyhow::Result<()> {
         console::log_1(&format!("{}",message).into());
     }));
     let commander = pg_web.commander();
-    commander.add_task("test",100,None,None,Box::pin(test(pg_web)));
+    commander.add("test",100,None,None,Box::pin(test(pg_web)));
     setup_blackbox(&commander);
     Ok(())
 }

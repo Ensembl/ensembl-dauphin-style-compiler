@@ -47,7 +47,7 @@ impl<K,V> Agent<K,V> where K: Clone+Eq+Hash+Debug + 'static, V: 'static {
         self.store.get(k).await
     }
 
-    pub fn get_no_wait(&self, k: &K) -> Result<(),DataMessage> {
-        self.store.get_no_wait(k).map_err(|x| DataMessage::XXXTmp(x.to_string()))
+    pub fn get_no_wait(&self, k: &K) {
+        self.store.get_no_wait(k)
     }
 }

@@ -90,12 +90,13 @@ impl PgDauphin {
     }
 
     pub async fn run_program(&self, loader: &ProgramLoader, spec: PgDauphinTaskSpec) -> Result<(),DataMessage> {
-        if !self.is_present(&spec.channel,&spec.program_name) {
-            loader.load(&spec.channel,&spec.program_name).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        let program_name = spec.program_name.clone();
+        if !self.is_present(&spec.channel,&program_name) {
+            loader.load(&spec.channel,&program_name).await.map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?;
         }
         let data = lock!(self.0);
         let (bundle_name,in_bundle_name) = data.names.get(&(spec.channel.to_string(),spec.program_name.to_string())).as_ref().unwrap().as_ref()
-            .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name)).map_err(|e| DataMessage::XXXTmp(e.to_string()))?.to_owned();
+            .ok_or(err!("Failed channel/program = {}/{}",spec.channel.to_string(),spec.program_name)).map_err(|e| DataMessage::DauphinProgramMissing(e.to_string()))?.to_owned();
         let mut payloads = spec.payloads.unwrap_or_else(|| HashMap::new());
         payloads.insert("channel".to_string(),Box::new(spec.channel.clone()));
         let pdq = data.pdq.clone();
@@ -106,7 +107,7 @@ impl PgDauphin {
             timeout: spec.timeout,
             bundle_name, in_bundle_name,
             payloads
-        }).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))
+        }).await.map_err(|e| DataMessage::DauphinRunError(program_name.clone(),e.to_string()))
     }
 }
 

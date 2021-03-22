@@ -1,10 +1,8 @@
 use std::collections::HashMap;
-use blackbox::blackbox_log;
-use crate::{PeregrineCoreBase, lock};
-use crate::core::{ Stick, StickId };
+use crate::{PeregrineCoreBase };
+use crate::core::{ StickId };
 use crate::request::stickauthority::get_stick_authority;
-use crate::request::{ Channel, RequestManager };
-use crate::request::program::ProgramLoader;
+use crate::request::{ Channel };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;
@@ -41,11 +39,10 @@ impl StickAuthority {
         }).await   
     }
 
-    async fn preload_lookup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Result<(),DataMessage> {
+    async fn preload_lookup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) {
         if !base.dauphin.is_present(&self.channel,&self.lookup_program_name) {
-            agent_store.program_loader().await.load_background(&self.channel,&self.lookup_program_name).map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+            agent_store.program_loader().await.load_background(&self.channel,&self.lookup_program_name);
         }
-        Ok(())
     }
 
     pub async fn try_lookup(&self, dauphin: PgDauphin, agent_store: &AgentStore, id: StickId) -> Result<(),DataMessage> {
@@ -65,7 +62,7 @@ impl StickAuthority {
 
 pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel) -> Result<StickAuthority,DataMessage> {
     let stick_authority = get_stick_authority(base.manager.clone(),channel.clone()).await?;
-    stick_authority.preload_lookup_program(base,agent_store).await?;
+    stick_authority.preload_lookup_program(base,agent_store).await;
     stick_authority.run_startup_program(base,agent_store).await?;
     Ok(stick_authority)
 }

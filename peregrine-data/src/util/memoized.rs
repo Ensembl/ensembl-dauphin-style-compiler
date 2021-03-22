@@ -168,7 +168,7 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
         lock!(self.data).add(key,value);
     }
 
-    pub fn get_no_wait(&self, key: &K) -> anyhow::Result<()> {
+    pub fn get_no_wait(&self, key: &K) {
         let mut data = lock!(self.data);
         let (_,request) = data.promise(key);
         drop(data);
@@ -178,7 +178,6 @@ impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
                 key: key.clone()
             });
         }
-        Ok(())
     }
 
     pub async fn get(&self, key: &K) -> Arc<V> {

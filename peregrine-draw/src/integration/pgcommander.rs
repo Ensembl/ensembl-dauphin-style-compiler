@@ -146,15 +146,8 @@ impl PgCommanderWeb {
         });
         Ok(out)
     }
-}
 
-// TODO check all add-tasks check result.
-impl Commander for PgCommanderWeb {
-    fn start(&self) {
-        self.state.tick();
-    }
-
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
+    pub fn add<E>(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),E>> + 'static>>) -> TaskHandle<Result<(),E>> {
         let rc = RunConfig::new(slot,prio,timeout);
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);
@@ -164,6 +157,17 @@ impl Commander for PgCommanderWeb {
             let agent = exe.new_agent(&rc,name);
             exe.add_pin(Box::pin(f),agent)
         }
+    }
+}
+
+// TODO check all add-tasks check result.
+impl Commander for PgCommanderWeb {
+    fn start(&self) {
+        self.state.tick();
+    }
+
+    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
+        self.add(name,prio,slot,timeout,f)
     }
 
     fn make_lock(&self) -> Lock { self.state.make_lock() }

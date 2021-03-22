@@ -37,15 +37,16 @@ impl DataCommandRequest {
         blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-request",1.);
         let mut backoff = Backoff::new();
         match backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))? {
+                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(d) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"data response received");
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-success",1.);
                 Ok(d)
             },
-            Err(_) => {
+            Err(e) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-fail",1.);
-                Err(DataMessage::XXXTmp("failed to retrieve data".to_string()))
+                // XXX and send via messagesender
+                Err(DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)))
             }
         }
     }

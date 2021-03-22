@@ -58,7 +58,7 @@ impl ProgramCommandRequest {
         }
     }
 
-    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> anyhow::Result<()> {
+    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new();
         let channel = self.channel.clone();
         let name = self.name.clone();
@@ -72,7 +72,7 @@ impl ProgramCommandRequest {
             }
         ).await??;
         if !dauphin.is_present(&self.channel,&self.name) {
-            bail!("program did not load");
+            return Err(DataMessage::DauphinProgramDidNotLoad(self.name));
         }
         Ok(())
     }
@@ -105,7 +105,7 @@ impl ResponseBuilderType for ProgramResponseBuilderType {
 
 async fn load_program(mut base: PeregrineCoreBase, _agent_store: AgentStore, (channel,name): (Channel,String)) -> Result<(),DataMessage> {
     let req = ProgramCommandRequest::new(&channel,&name);
-    req.execute(&mut base.manager,&base.dauphin).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))
+    req.execute(&mut base.manager,&base.dauphin).await
 }
 
 #[derive(Clone)]
@@ -120,7 +120,7 @@ impl ProgramLoader {
         self.0.get(&(channel.clone(),name.to_string())).await.as_ref().clone()
     }
 
-    pub fn load_background(&self, channel: &Channel, name: &str) -> Result<(),DataMessage> {
+    pub fn load_background(&self, channel: &Channel, name: &str) {
         self.0.get_no_wait(&(channel.clone(),name.to_string()))
     }
 }

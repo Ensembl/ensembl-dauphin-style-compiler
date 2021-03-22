@@ -176,10 +176,6 @@ impl RequestQueue {
         self.process_responses(response,streams).await;
     }
 
-    fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> Result<T,DataMessage> {
-        a.map_err(|e| DataMessage::XXXTmp(e.to_string()))
-    }
-
     pub(crate) fn set_timeout(&mut self, timeout: f64) {
         lock!(self.0).set_timeout(timeout);
     }

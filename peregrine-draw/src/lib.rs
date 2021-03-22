@@ -5,6 +5,8 @@ mod integration {
     pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
     mod stream;
+
+    pub use self::pgcommander::PgCommanderWeb;
 }
 
 mod run {
@@ -140,3 +142,4 @@ mod webgl {
 
 pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
 pub use self::util::{ js_throw, js_option, PgAjax };
+pub use crate::integration::PgCommanderWeb;
