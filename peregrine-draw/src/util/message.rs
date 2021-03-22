@@ -98,7 +98,6 @@ impl Error for Message {
     }
 }
 
-
 struct MessageCatcher {
     senders: HashMap<Option<u64>,Box<dyn FnMut(Message) + 'static + Send>>,
     default: Option<u64>

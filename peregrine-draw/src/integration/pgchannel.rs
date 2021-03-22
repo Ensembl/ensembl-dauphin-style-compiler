@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err };
 use peregrine_data::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, lock };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
@@ -30,22 +29,22 @@ fn add_priority(a: &Url, prio: PacketPriority) -> Result<Url,Message> {
     Ok(z)
 }
 
-async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: Option<f64>) -> Result<CborValue,String> {
+async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: Option<f64>) -> Result<CborValue,Message> {
     match channel.location().as_ref() {
         ChannelLocation::HttpChannel(url) => {
-            let mut ajax = PgAjax::new("POST",&add_priority(url,prio).map_err(|e| e.to_string())?);
+            let mut ajax = PgAjax::new("POST",&add_priority(url,prio)?);
             if let Some(timeout) = timeout {
                 ajax.set_timeout(timeout);
             }
-            ajax.set_body_cbor(&data).map_err(|e| e.to_string())?;
+            ajax.set_body_cbor(&data)?;
             let out = ajax.get_cbor().await;
-            out.map_err(|e| e.to_string())
+            out
         }
     }
 }
 
 async fn send_wrap(channel: Channel, prio: PacketPriority, data: CborValue, timeout: Option<f64>) -> Result<CborValue,DataMessage> {
-    send(channel,prio,data,timeout).await.map_err(|e| DataMessage::XXXDataTransmitError(e))
+    send(channel,prio,data,timeout).await.map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))
 }
 
 /* using async_trait gives odd errors re Send */

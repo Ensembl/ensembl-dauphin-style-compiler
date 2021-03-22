@@ -1,3 +1,4 @@
+use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
@@ -13,7 +14,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-#[derive(Clone,Debug,Hash)]
+#[derive(Clone,Debug)]
 pub enum DataMessage {
     BadDauphinProgram(String),
     BadBootstrapCannotStart(Channel,Box<DataMessage>),
@@ -39,7 +40,7 @@ pub enum DataMessage {
     DauphinRunError(String,String),
     DauphinProgramMissing(String),
     DataUnavailable(Channel,Box<DataMessage>),
-    XXXDataTransmitError(String),
+    TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
 }
 
 impl PeregrineMessage for DataMessage {
@@ -76,7 +77,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
             DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
             DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
-            DataMessage::XXXDataTransmitError(e) => MessageCategory::BadInfrastructure,
+            DataMessage::TunnelError(e) => MessageCategory::BadInfrastructure,
         }
     }
 
@@ -91,6 +92,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramDidNotLoad(_) => true,
             DataMessage::DauphinIntegrationError(_) => true,
             DataMessage::DauphinProgramMissing(_) => true,
+            DataMessage::TunnelError(e) => e.lock().unwrap().now_unstable(),
             _ => false
         }
     }
@@ -99,6 +101,7 @@ impl PeregrineMessage for DataMessage {
         if self.now_unstable() { return true; }
         match self {
             DataMessage::TemporaryBackendFailure(_) => false,
+            DataMessage::TunnelError(e) => e.lock().unwrap().degraded_experience(),
             _ => true
         }
     }
@@ -107,7 +110,7 @@ impl PeregrineMessage for DataMessage {
         // Next code is 27; 17, 25 unused; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
-            DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(cause)),
+            DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
             DataMessage::BackendTimeout(c) => (3,calculate_hash(c)),
             DataMessage::PacketError(c,s) => (3,calculate_hash(&(c,s))),
             DataMessage::TemporaryBackendFailure(c) => (4,calculate_hash(c)),
@@ -122,15 +125,15 @@ impl PeregrineMessage for DataMessage {
             DataMessage::NoPanelProgram(p) => (12,calculate_hash(p)),
             DataMessage::DataMissing(cause) => (13,calculate_hash(&cause.code())),
             DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
-            DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
+            DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
             DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
             DataMessage::CarriageUnavailable(c,_) => (20,calculate_hash(c)),
             DataMessage::DauphinProgramDidNotLoad(name) => (21,calculate_hash(name)),
             DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
             DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
             DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
-            DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e))),
-            DataMessage::XXXDataTransmitError(e) => (26,calculate_hash(e)),
+            DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e.code()))),
+            DataMessage::TunnelError(e) => e.lock().unwrap().code(),
         }
     }
 
@@ -162,7 +165,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
-            DataMessage::XXXDataTransmitError(e) => format!("data transmit error: '{}'",e),
+            DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
         }
     }
 

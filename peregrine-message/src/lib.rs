@@ -1,4 +1,5 @@
 use std::fmt;
+use std::hash::Hash;
 
 pub enum MessageLevel {
     Notice,
@@ -15,7 +16,7 @@ pub enum MessageCategory {
     Unknown
 }
 
-pub trait PeregrineMessage {
+pub trait PeregrineMessage : Send + Sync {
     fn level(&self) -> MessageLevel;
     fn category(&self) -> MessageCategory;
     fn now_unstable(&self) -> bool;
