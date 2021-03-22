@@ -1,23 +1,20 @@
-use crate::lock;
 use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
 use crate::agent::agent::Agent;
-use std::rc::Rc;
-use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
-use crate::util::memoized::{ Memoized, MemoizedType };
+use crate::util::memoized::{ MemoizedType };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, Commander, PgDauphin, add_task };
+use crate::run::{ PgDauphin, };
 use crate::run::pgcommander::PgCommanderTaskSpec;
-use crate::util::message::DataMessage;
 use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::util::message::DataMessage;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -131,6 +128,7 @@ impl ProgramLoader {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::sync::{ Arc, Mutex };
     use crate::{ Channel, ChannelLocation };
     use crate::test::helpers::{ TestHelpers, urlc };
     use crate::test::integrations::{ cbor_matches };

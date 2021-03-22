@@ -110,10 +110,11 @@ impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
     }
 
     fn add(&mut self, key: K, value: V) {
-        if self.known.guaranteed(&key) { return; }
         let v = Arc::new(value);
-        self.known.insert(key.clone(),v.clone());
-        if let Some(mut fuse) = self.pending.remove(&key) {
+        if !self.known.guaranteed(&key) { 
+            self.known.insert(key.clone(),v.clone());
+        }
+        if let Some(fuse) = self.pending.remove(&key) {
             fuse.fuse(v);
         }
     }
@@ -127,7 +128,7 @@ impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
             fuse.add(p.clone());
             false
         } else {
-            let mut fuse = FusePromise::new();
+            let fuse = FusePromise::new();
             fuse.add(p.clone());
             self.pending.insert(key.clone(),fuse);
             true

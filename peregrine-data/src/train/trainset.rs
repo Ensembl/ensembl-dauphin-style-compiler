@@ -34,7 +34,7 @@ impl TrainSetData {
     }
 
     fn promote(&mut self, events: &mut CarriageEvents) {
-        if self.wanted.as_ref().map(|x| x.train_ready()).unwrap_or(false) && self.future.is_none() {
+        if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
                 blackbox_log!("uiapi","TrainSet.promote_future() wanted -> future");
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
@@ -124,11 +124,11 @@ impl TrainSetData {
 }
 
 #[derive(Clone)]
-pub struct TrainSet(Arc<Mutex<TrainSetData>>);
+pub struct TrainSet(Arc<Mutex<TrainSetData>>,PeregrineCoreBase);
 
 impl TrainSet {
     pub fn new(base: &PeregrineCoreBase) -> TrainSet {
-        TrainSet(Arc::new(Mutex::new(TrainSetData::new(&base.messages))))
+        TrainSet(Arc::new(Mutex::new(TrainSetData::new(&base.messages))),base.clone())
     }
 
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
@@ -137,7 +137,10 @@ impl TrainSet {
             loads.push((carriage,carriage.load(&objects)));
         }
         for carriage in carriages {
-            carriage.load(objects).await;
+            let r = carriage.load(objects).await;
+            if let Err(e) = r {
+                self.1.messages.send(e);
+            }
         }
     }
     

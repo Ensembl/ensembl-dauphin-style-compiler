@@ -2,19 +2,14 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::sync::{ Arc };
 use crate::agent::agent::Agent;
-use crate::request::channel::{ Channel, PacketPriority, ChannelIntegration };
-use crate::request::manager::{ RequestManager, PayloadReceiver };
-use crate::ProgramLoader;
-use crate::run::{ PgCommander, PgDauphin, PgCommanderTaskSpec, PgDauphinTaskSpec, add_task, async_complete_task };
+use crate::request::channel::{ Channel };
+use crate::run::{ PgDauphinTaskSpec };
 use crate::shape::ShapeOutput;
-use crate::util::memoized::{ Memoized, MemoizedType };
-use crate::CountingPromise;
+use crate::util::memoized::{ MemoizedType };
 use super::panel::Panel;
 use super::programdata::ProgramData;
-use crate::index::StickStore;
-use super::panelprogramstore::PanelProgramStore;
 pub use crate::util::message::DataMessage;
-use crate::api::{ MessageSender, PeregrineCoreBase, AgentStore };
+use crate::api::{ PeregrineCoreBase, AgentStore };
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub struct PanelRun {

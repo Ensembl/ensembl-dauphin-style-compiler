@@ -14,7 +14,8 @@ pub struct Agent<K,V> {
 
 impl<K,V> Agent<K,V> where K: Clone+Eq+Hash+Debug + 'static, V: 'static {
     pub fn new<F,W>(kind: MemoizedType, name: &str, prio: i8, base: &PeregrineCoreBase, agent_store: &AgentStore, callback: F) -> Agent<K,V>
-                where F: Fn(PeregrineCoreBase,AgentStore,K) -> W+ 'static, W: Future<Output=Result<V,DataMessage>> {
+                where F: Fn(PeregrineCoreBase,AgentStore,K) -> W + 'static,
+                      W: Future<Output=Result<V,DataMessage>> {
         let agent_store = agent_store.clone();
         let base = base.clone();
         let name = name.to_string();

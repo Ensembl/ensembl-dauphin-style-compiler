@@ -5,7 +5,7 @@ use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
-use crate::run::add_task;
+use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
 
@@ -34,6 +34,7 @@ impl TrainId {
 }
 
 struct TrainData {
+    broken: bool,
     data_ready: bool,
     active: Option<u32>,
     id: TrainId,
@@ -46,6 +47,7 @@ struct TrainData {
 impl TrainData {
     fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> TrainData {
         let mut out = TrainData {
+            broken: false,
             data_ready: false,
             active: None,
             id: id.clone(),
@@ -72,9 +74,16 @@ impl TrainData {
 
     fn id(&self) -> &TrainId { &self.id }
     fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
+    fn is_broken(&self) -> bool { self.broken }
 
-    fn set_max(&mut self, max: u64) {
-        self.max = Some(max);
+    fn set_max(&mut self, max: Result<u64,DataMessage>) {
+        match max {
+            Ok(max) => { self.max = Some(max); },
+            Err(e) => {
+                self.messages.send(e.clone());
+                self.broken = true;
+            }
+        }
     }
 
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
@@ -109,7 +118,7 @@ impl TrainData {
 
 // XXX circular chroms
 #[derive(Clone)]
-pub struct Train(Arc<Mutex<TrainData>>);
+pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
 
 impl fmt::Debug for Train {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -119,13 +128,14 @@ impl fmt::Debug for Train {
 
 impl Train {
     pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> Train {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages))));
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages))),messages.clone());
         carriage_event.train(&out);
         out
     }
 
     pub fn id(&self) -> TrainId { self.0.lock().unwrap().id().clone() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
+    pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
         self.0.lock().unwrap().set_active(carriage_event,index,quick);
@@ -151,29 +161,26 @@ impl Train {
         Ok(data.agent_store.stick_store().await.get(&self.id().layout().stick().as_ref().unwrap()).await?.size())
     }
 
-    fn set_max(&self, max: u64) {
+    fn set_max(&self, max: Result<u64,DataMessage>) {
         self.0.lock().unwrap().set_max(max);
     }
     
     pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
-        add_task(&objects.base.commander,PgCommanderTaskSpec {
+        let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("max finder"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
                 let max = self2.find_max(&mut objects2).await;
-                if let Ok(max) = max{
-                    self2.set_max(max);
-                    objects2.train_set.clone().poll(&mut objects2);
-                } else {
-                    // XXX bad sticks
-                }
+                self2.set_max(max);
+                objects2.train_set.clone().poll(&mut objects2);
                 Ok(())
             })
         });
+        async_complete_task(&objects.base.commander,&objects.base.messages,handle, |e| (e,false));
     }
     
     pub(super) fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {

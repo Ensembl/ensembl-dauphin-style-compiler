@@ -120,7 +120,7 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>)> {
+    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let pending = lock!(self.0).pending_send.clone();
         let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
@@ -134,7 +134,7 @@ impl RequestQueue {
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);
-        Ok((packet,channels))
+        (packet,channels)
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
@@ -186,7 +186,7 @@ impl RequestQueue {
 
     async fn main_loop(self) -> Result<(),DataMessage> {
         loop {
-            let (mut request,mut streams) = self.err_context(self.build_packet().await,"preparing to send data")?;
+            let (mut request,mut streams) = self.build_packet().await;
             self.process_request(&mut request,&mut streams).await;
         }
     }

@@ -4,6 +4,7 @@ use std::fmt;
 use crate::request::channel::Channel;
 use crate::panel::Panel;
 use crate::core::stick::StickId;
+use crate::train::CarriageId;
 
 #[derive(Clone,Debug,Hash)]
 pub enum DataMessage {
@@ -25,6 +26,7 @@ pub enum DataMessage {
     CodeInvariantFailed(String),
     StickAuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
+    CarriageUnavailable(CarriageId,Vec<DataMessage>),
     XXXTmp(String)
 }
 
@@ -50,6 +52,8 @@ impl fmt::Display for DataMessage {
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
+            DataMessage::CarriageUnavailable(id,causes) =>
+                format!("carriage {:?} unavilable. causes = [{}]",id,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::XXXTmp(s) => format!("temporary error: {}",s)
         };
         write!(f,"{}",s)

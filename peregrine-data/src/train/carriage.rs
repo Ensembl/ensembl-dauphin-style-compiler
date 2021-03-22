@@ -9,7 +9,7 @@ use super::train::TrainId;
 use crate::util::message::DataMessage;
 use web_sys::console;
 
-#[derive(Clone,Hash,PartialEq,Eq)]
+#[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {
     train: TrainId,
     index: u64
@@ -75,13 +75,14 @@ impl Carriage {
         Panel::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
-    pub(super) async fn load(&self, data: &PeregrineCore) {
-        if self.ready() { return; }
+    pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
+        if self.ready() { return Ok(()); }
         let mut panels = vec![];
         for track in self.id.train.layout().tracks().iter() {
             panels.push((track,self.make_panel(track)));
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
+        let mut errors = vec![];
         let panel_store = data.agent_store.panel_store().await;
         let tracks : Vec<_> = panels.iter().map(|(t,p)| (t,panel_store.run(p))).collect();
         let mut new_shapes = ShapeList::new();
@@ -94,12 +95,18 @@ impl Carriage {
                 },
                 Err(e) => {
                     self.messages.send(e.clone());
+                    errors.push(e.clone());
                 }
             }
         }
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {
             *shapes = Some(new_shapes);
+        }
+        if errors.len() == 0 {
+            Ok(())
+        } else {
+            Err(DataMessage::CarriageUnavailable(self.id.clone(),errors))
         }
     }
 }

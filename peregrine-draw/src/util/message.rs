@@ -71,6 +71,7 @@ impl Message {
                     DataMessage::StickAuthorityUnavailable(cause) => 
                         Message::DataError(cause.as_ref().clone()).category(),
                     DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
+                    DataMessage::CarriageUnavailable(_,_) => MessageCategory::BadInfrastructure,
                     DataMessage::XXXTmp(_) => MessageCategory::Unknown,        
                 }
             },
@@ -110,7 +111,7 @@ impl Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 19
+        // Next code is 21
         match self {
             Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
             Message::DataError(d) => {
@@ -134,6 +135,7 @@ impl Message {
                     DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
                     DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
                     DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
+                    DataMessage::CarriageUnavailable(c,_) => (20,calculate_hash(c)),
                     DataMessage::XXXTmp(s) => (14,calculate_hash(s)),
                 }
             },

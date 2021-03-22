@@ -1,14 +1,9 @@
-use anyhow::Context;
 use blackbox::blackbox_log;
-use crate::agent::agent::Agent;
 use crate::{AgentStore, PeregrineCoreBase, api::MessageSender, lock};
 use crate::request::{ Channel, RequestManager };
-use crate::request::program::ProgramLoader;
 use super::stickauthority::{ StickAuthority, load_stick_authority };
-use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task, async_complete_task, complete_task };
 use crate::core::{ StickId };
 use std::sync::{ Arc, Mutex };
-use crate::{ PgCommander, PgCommanderTaskSpec, CountingPromise };
 use crate::util::message::DataMessage;
 
 struct StickAuthorityStoreData {

@@ -25,6 +25,7 @@ impl<V> FuseState<V> where V: Clone {
     }
 
     fn fuse(&mut self, value: V) {
+        if self.fused.is_some() { return; }
         self.fused = Some(value.clone());
         for p in &self.promises {
             p.satisfy(value.clone());
