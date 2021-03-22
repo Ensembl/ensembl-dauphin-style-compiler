@@ -1,10 +1,9 @@
 use anyhow::{ anyhow as err };
-use crate::{util::message::MessageCategory, webgl::{ SourceInstrs, Phase, GPUSpec }};
+use crate::{ webgl::{ SourceInstrs, Phase, GPUSpec }};
 use super::program::Program;
 use web_sys::{ WebGlRenderingContext, WebGlShader };
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
-
 
 pub(crate) struct WebGlCompiler {
     context: WebGlRenderingContext,

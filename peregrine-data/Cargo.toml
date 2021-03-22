@@ -37,6 +37,10 @@ path="../commander"
 version="*"
 path="../peregrine-dauphin-queue"
 
+[dependencies.peregrine_message]
+versio="*"
+path="../peregrine-message"
+
 [dependencies.dauphin_interp]
 version="*"
 path="../dauphin-interp"

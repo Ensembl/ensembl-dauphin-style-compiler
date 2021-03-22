@@ -33,6 +33,10 @@ features=[]
 version="*"
 path="../commander"
 
+[dependencies.peregrine_message]
+version="*"
+path="../peregrine-message"
+
 [dependencies.web-sys]
 version = "*"
 features = [

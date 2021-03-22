@@ -1,0 +1,5 @@
+[package]
+name = "peregrine_message"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"

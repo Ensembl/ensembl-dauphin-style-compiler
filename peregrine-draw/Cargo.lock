@@ -405,6 +405,7 @@ dependencies = [
  "lazy_static",
  "owning_ref",
  "peregrine_dauphin_queue",
+ "peregrine_message",
  "regex",
  "serde_cbor",
  "serde_json",
@@ -458,6 +459,7 @@ dependencies = [
  "peregrine_data",
  "peregrine_dauphin",
  "peregrine_dauphin_queue",
+ "peregrine_message",
  "serde_cbor",
  "serde_json",
  "url",
@@ -465,6 +467,10 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
 ]
+
+[[package]]
+name = "peregrine_message"
+version = "0.0.0"
 
 [[package]]
 name = "pin-project-lite"

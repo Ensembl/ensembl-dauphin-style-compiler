@@ -490,6 +490,7 @@ dependencies = [
  "lazy_static",
  "owning_ref",
  "peregrine_dauphin_queue",
+ "peregrine_message",
  "regex",
  "serde_cbor",
  "serde_json",
@@ -507,6 +508,10 @@ dependencies = [
  "commander",
  "serde_cbor",
 ]
+
+[[package]]
+name = "peregrine_message"
+version = "0.0.0"
 
 [[package]]
 name = "pin-project"

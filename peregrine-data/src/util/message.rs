@@ -1,10 +1,17 @@
+use std::{ hash::{ Hash, Hasher }, fmt };
+use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use std::sync::{ Arc, Mutex };
-use std::fmt;
 use crate::request::channel::Channel;
 use crate::panel::Panel;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
+use peregrine_message::{ MessageLevel, MessageCategory, PeregrineMessage };
+
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
 
 #[derive(Clone,Debug,Hash)]
 pub enum DataMessage {
@@ -35,9 +42,100 @@ pub enum DataMessage {
     XXXDataTransmitError(String),
 }
 
-impl fmt::Display for DataMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
+impl PeregrineMessage for DataMessage {
+    fn level(&self) -> MessageLevel {
+        match self {
+            DataMessage::TemporaryBackendFailure(_) => MessageLevel::Warn,
+            _ => MessageLevel::Error
+        }
+    }
+
+    fn category(&self) -> MessageCategory {
+        match self {
+            DataMessage::BadDauphinProgram(_) => MessageCategory::BadData,
+            DataMessage::BadBootstrapCannotStart(_,cause) => cause.category(),
+            DataMessage::BackendTimeout(_) => MessageCategory::BadInfrastructure,
+            DataMessage::PacketError(_,_) => MessageCategory::BadBackend,
+            DataMessage::TemporaryBackendFailure(_) => MessageCategory::BadInfrastructure,
+            DataMessage::FatalBackendFailure(_) => MessageCategory::BadInfrastructure,
+            DataMessage::BackendRefused(_,_) => MessageCategory::BadBackend,
+            DataMessage::DataHasNoAssociatedStyle(_) => MessageCategory::BadData,
+            DataMessage::TaskTimedOut(_) => MessageCategory::Unknown,
+            DataMessage::TaskUnexpectedlyCancelled(_) => MessageCategory::BadCode,
+            DataMessage::TaskUnexpectedlySuperfluous(_) => MessageCategory::BadCode,
+            DataMessage::TaskResultMissing(_) => MessageCategory::BadCode,
+            DataMessage::TaskUnexpectedlyOngoing(_) => MessageCategory::BadCode,
+            DataMessage::DataMissing(_) => MessageCategory::Unknown,
+            DataMessage::NoPanelProgram(_) => MessageCategory::BadData,
+            DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
+            DataMessage::StickAuthorityUnavailable(cause) => cause.category(),
+            DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
+            DataMessage::CarriageUnavailable(_,_) => MessageCategory::BadInfrastructure,
+            DataMessage::DauphinProgramDidNotLoad(_) => MessageCategory::BadBackend,
+            DataMessage::DauphinIntegrationError(_) => MessageCategory::BadCode,
+            DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
+            DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
+            DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
+            DataMessage::XXXDataTransmitError(e) => MessageCategory::BadInfrastructure,
+        }
+    }
+
+    fn now_unstable(&self) -> bool {
+        match self {
+            DataMessage::BadBootstrapCannotStart(_,_) => true,
+            DataMessage::TaskTimedOut(_) => true,
+            DataMessage::TaskUnexpectedlyCancelled(_) => true,
+            DataMessage::TaskUnexpectedlySuperfluous(_) => true,
+            DataMessage::TaskResultMissing(_) => true,
+            DataMessage::TaskUnexpectedlyOngoing(_) => true,
+            DataMessage::DauphinProgramDidNotLoad(_) => true,
+            DataMessage::DauphinIntegrationError(_) => true,
+            DataMessage::DauphinProgramMissing(_) => true,
+            _ => false
+        }
+    }
+
+    fn degraded_experience(&self) -> bool {
+        if self.now_unstable() { return true; }
+        match self {
+            DataMessage::TemporaryBackendFailure(_) => false,
+            _ => true
+        }
+    }
+
+    fn code(&self) -> (u64,u64) {
+        // Next code is 27; 17, 25 unused; 499 is last.
+        match self {
+            DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
+            DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(cause)),
+            DataMessage::BackendTimeout(c) => (3,calculate_hash(c)),
+            DataMessage::PacketError(c,s) => (3,calculate_hash(&(c,s))),
+            DataMessage::TemporaryBackendFailure(c) => (4,calculate_hash(c)),
+            DataMessage::FatalBackendFailure(c) => (18,calculate_hash(c)),
+            DataMessage::BackendRefused(c,s) => (5,calculate_hash(&(c,s))),
+            DataMessage::DataHasNoAssociatedStyle(tags) => (6,calculate_hash(tags)),
+            DataMessage::TaskTimedOut(s) => (7,calculate_hash(s)),
+            DataMessage::TaskUnexpectedlyCancelled(s) => (8,calculate_hash(s)),
+            DataMessage::TaskUnexpectedlySuperfluous(s) => (9,calculate_hash(s)),
+            DataMessage::TaskResultMissing(s) => (10,calculate_hash(s)),
+            DataMessage::TaskUnexpectedlyOngoing(s) => (11,calculate_hash(s)),
+            DataMessage::NoPanelProgram(p) => (12,calculate_hash(p)),
+            DataMessage::DataMissing(cause) => (13,calculate_hash(&cause.code())),
+            DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
+            DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(cause)),
+            DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
+            DataMessage::CarriageUnavailable(c,_) => (20,calculate_hash(c)),
+            DataMessage::DauphinProgramDidNotLoad(name) => (21,calculate_hash(name)),
+            DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
+            DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
+            DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
+            DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e))),
+            DataMessage::XXXDataTransmitError(e) => (26,calculate_hash(e)),
+        }
+    }
+
+    fn to_message_string(&self) -> String {
+        match self {
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
             DataMessage::BadBootstrapCannotStart(c,cause) => format!("Bad bootstrap response. Cannot start. channel={}: {}",c,cause),
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
@@ -65,17 +163,32 @@ impl fmt::Display for DataMessage {
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::XXXDataTransmitError(e) => format!("data transmit error: '{}'",e),
-        };
-        write!(f,"{}",s)
+        }
+    }
+
+    fn cause_message(&self) -> Option<&(dyn PeregrineMessage + 'static)> {
+        self.cause().map(|x| x as &dyn PeregrineMessage)
     }
 }
 
-impl Error for DataMessage {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
+impl DataMessage {
+    fn cause(&self) -> Option<&DataMessage> {
         match self {
             DataMessage::DataMissing(s) => Some(s),
             DataMessage::CarriageUnavailable(_,causes) => Some(&causes[0]),
             _ => None
         }
+    }
+}
+
+impl fmt::Display for DataMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.to_message_string())
+    }
+}
+
+impl Error for DataMessage {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.cause().map(|x| x as &dyn Error)
     }
 }
