@@ -8,6 +8,7 @@ use crate::webgl::DrawingSession;
 use blackbox::blackbox_log;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
+use crate::util::message::Message;
 
 pub struct GLTrain {
 //    programs: ProgramStore,
@@ -40,14 +41,14 @@ impl GLTrain {
         }
     }
 
-    pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for (_,mut carriage) in self.carriages.drain() {
             carriage.discard(gl)?;
         }
         Ok(())
     }
 
-    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut dont_keeps : HashSet<_> = self.carriages.keys().cloned().collect();
         let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.id()).cloned().collect();
         for new in new_carriages {
@@ -78,7 +79,7 @@ impl GLTrain {
         Ok(())
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         for carriage in self.carriages.values() {
             if let Some(zmenu) = carriage.intersects(stage,mouse)? {
                 return Ok(Some(zmenu));
@@ -87,7 +88,7 @@ impl GLTrain {
         Ok(None)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         for carriage in self.carriages.values() {
             if carriage.intersects_fast(stage,mouse)? {
                 return Ok(true);
@@ -96,7 +97,7 @@ impl GLTrain {
         Ok(false)
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         for carriage in self.carriages.values_mut() {
             carriage.draw(gl,stage,session)?;
         }

@@ -7,6 +7,7 @@ use crate::webgl::{ SourceInstrs, Uniform, GLArity, UniformHandle, Program, Proc
 use commander::PromiseFuture;
 use super::super::layers::consts::{ PR_DEF, PR_LOW };
 use super::redrawneeded::RedrawNeeded;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 struct BootLock(Boot,bool);
@@ -52,7 +53,7 @@ pub(crate) struct ProgramStage {
 }
 
 impl ProgramStage {
-    pub fn new(program: &Rc<Program>) -> anyhow::Result<ProgramStage> {
+    pub fn new(program: &Rc<Program>) -> Result<ProgramStage,Message> {
         Ok(ProgramStage {
             hpos: program.get_uniform_handle("uStageHpos")?,
             vpos: program.get_uniform_handle("uStageVpos")?,
@@ -62,7 +63,7 @@ impl ProgramStage {
         })
     }
 
-    pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, process: &mut Process) -> anyhow::Result<()> {
+    pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, process: &mut Process) -> Result<(),Message> {
         process.set_uniform(&self.hpos,vec![stage.x.position()?-left])?;
         process.set_uniform(&self.vpos,vec![stage.y.position()?])?;
         process.set_uniform(&self.bp_per_screen,vec![2./stage.x.bp_per_screen()?])?;
@@ -73,14 +74,14 @@ impl ProgramStage {
     }
 }
 
-fn stage_ok<T: Clone>(x: &Option<T>) -> anyhow::Result<T> {
-    x.as_ref().cloned().ok_or_else(|| err!("accseeor used on non-ready stage"))
+fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
+    x.as_ref().cloned().ok_or_else(|| Message::XXXTmp("accseeor used on non-ready stage".to_string()))
 }
 
 pub trait ReadStageAxis {
-    fn position(&self) -> anyhow::Result<f64>;
-    fn bp_per_screen(&self) -> anyhow::Result<f64>;
-    fn size(&self) -> anyhow::Result<f64>;   
+    fn position(&self) -> Result<f64,Message>;
+    fn bp_per_screen(&self) -> Result<f64,Message>;
+    fn size(&self) -> Result<f64,Message>;   
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
     fn ready(&self) -> bool;
@@ -133,9 +134,9 @@ impl StageAxis {
 }
 
 impl ReadStageAxis for StageAxis {
-    fn position(&self) -> anyhow::Result<f64> { stage_ok(&self.position) }
-    fn bp_per_screen(&self) -> anyhow::Result<f64> { stage_ok(&self.bp_per_screen) }
-    fn size(&self) -> anyhow::Result<f64> { stage_ok(&self.size) }
+    fn position(&self) -> Result<f64,Message> { stage_ok(&self.position) }
+    fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
+    fn size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
 
     // secret clone only accessible via read-only subsets
     fn copy(&self) -> StageAxis {

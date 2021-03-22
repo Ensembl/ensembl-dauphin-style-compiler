@@ -5,6 +5,7 @@ use keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
+use crate::util::message::Message;
 
 pub struct Program {
     context: WebGlRenderingContext,
@@ -15,7 +16,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub(crate) fn new(context: &WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> anyhow::Result<Program> {
+    pub(crate) fn new(context: &WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> Result<Program,Message> {
         let mut out = Program {
             program,
             context: context.clone(),
@@ -30,20 +31,20 @@ impl Program {
     pub(crate) fn set_method(&mut self, method: u32) { self.method = method; }
     pub(crate) fn get_method(&self) -> u32 { self.method }
 
-    pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> anyhow::Result<()> {
+    pub(crate) fn add_uniform(&mut self, uniform: &Uniform) -> Result<(),Message> {
         self.uniforms.add(uniform.name(),uniform.clone());
         Ok(())
     }
 
-    pub fn get_attrib_handle(&self, name: &str) -> anyhow::Result<AttribHandle> {
-        self.attribs.get_handle(name)
+    pub fn get_attrib_handle(&self, name: &str) -> Result<AttribHandle,Message> {
+        self.attribs.get_handle(name).map_err(|e| Message::XXXTmp(e.to_string()))
     }
 
-    pub fn get_uniform_handle(&self, name: &str) -> anyhow::Result<UniformHandle> {
-        self.uniforms.get_handle(name)
+    pub fn get_uniform_handle(&self, name: &str) -> Result<UniformHandle,Message> {
+        self.uniforms.get_handle(name).map_err(|e| Message::XXXTmp(e.to_string()))
     }
 
-    pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> anyhow::Result<()> {
+    pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> Result<(),Message> {
         self.attribs.add(attrib.name(),attrib.clone());
         Ok(())
     }
@@ -56,11 +57,11 @@ impl Program {
         ProcessStanzaBuilder::new(&self.attribs)
     }
 
-    pub(crate) fn make_stanzas(&self, stanza_builder: &ProcessStanzaBuilder) -> anyhow::Result<Vec<ProcessStanza>> {
+    pub(crate) fn make_stanzas(&self, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
         stanza_builder.make_stanzas(&self.context,&self.attribs)
     }
 
-    pub(crate) fn select_program(&self) -> anyhow::Result<()> {
+    pub(crate) fn select_program(&self) -> Result<(),Message> {
         self.context.use_program(Some(&self.program));
         handle_context_errors(&self.context)?;
         Ok(())

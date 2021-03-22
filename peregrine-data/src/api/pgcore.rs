@@ -51,12 +51,12 @@ pub struct PeregrineCore {
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> anyhow::Result<PeregrineCore> 
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
         let mut agent_store = AgentStore::new();
         let messages = MessageSender(Arc::new(Mutex::new(Box::new(messages))));
         let dauphin_queue = PgDauphinQueue::new();
-        let dauphin = PgDauphin::new(&dauphin_queue)?;
+        let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
         let booted = CountingPromise::new();
@@ -77,7 +77,7 @@ impl PeregrineCore {
         agent_store.set_panel_run_store(PanelRunStore::new(32,&base,&agent_store));
         let train_set = TrainSet::new(&base);
         if !agent_store.ready() {
-            bail!("dependency injection failed");
+            return Err(DataMessage::CodeInvariantFailed(format!("dependency injection failed")));
         }
         Ok(PeregrineCore {
             base,

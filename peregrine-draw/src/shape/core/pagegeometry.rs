@@ -6,6 +6,7 @@ use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 pub struct PageProgram {
@@ -14,7 +15,7 @@ pub struct PageProgram {
 }
 
 impl PageProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<PageProgram> {
+    pub(crate) fn new(program: &Program) -> Result<PageProgram,Message> {
         Ok(PageProgram {
             vertexes: program.get_attrib_handle("aVertexPosition")?,
             signs: program.get_attrib_handle("aSign")?
@@ -50,11 +51,11 @@ impl PageData {
 }
 
 impl GeometryData for PageData {
-    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> anyhow::Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>> {
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message> {
         Ok(Box::new(self.x.iter_screen(stage.x())?.zip(self.y.iter_screen(stage.y())?)))
     }
 
-    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         let mouse = (mouse.0 as f64, mouse.1 as f64);
         Ok(!(mouse.0 < self.x.min_screen(stage.x())? || mouse.0 > self.x.max_screen(stage.x())? || 
            mouse.1 < self.y.min_screen(stage.y())? || mouse.1 > self.y.max_screen(stage.y())?))
@@ -68,11 +69,11 @@ pub struct PageGeometry {
 }
 
 impl PageGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &PageProgram) -> anyhow::Result<PageGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &PageProgram) ->Result<PageGeometry,Message> {
         Ok(PageGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self,layer: &mut Layer, data: PageData) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn add(&self,layer: &mut Layer, data: PageData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.y.make_elements(layer, &GeometryProcessName::Page,&self.patina)?;
         elements.add(&self.variety.vertexes,data.x.vec2d(&data.y))?;
         elements.add(&self.variety.signs,data.x.signs_2d(&data.y))?;

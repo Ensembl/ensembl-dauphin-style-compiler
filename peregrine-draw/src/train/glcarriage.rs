@@ -7,6 +7,7 @@ use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 use crate::shape::core::stage::ReadStage;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
+use crate::util::message::Message;
 
 pub(crate) struct GLCarriage {
     id: CarriageId,
@@ -29,7 +30,7 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> anyhow::Result<GLCarriage> {
+    pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
         let mut drawing = DrawingBuilder::new(gl,carriage.id().left());
         let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().drain(..).map(|s| drawing.prepare_shape(s)).collect();
         drawing.finish_preparation(gl)?;
@@ -50,20 +51,20 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> anyhow::Result<()> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) ->Result<(),Message> {
         let opacity = self.opacity.lock().unwrap().clone();
         self.drawing.draw(gl,stage,session,opacity)
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.drawing.intersects(stage,mouse)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         self.drawing.intersects_fast(stage,mouse)
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.drawing.discard(gl)?;
         Ok(())
     }

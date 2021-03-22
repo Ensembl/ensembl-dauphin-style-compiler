@@ -1,6 +1,7 @@
 use anyhow::bail;
 use std::collections::BTreeMap;
 use crate::webgl::GPUSpec;
+use crate::util::message::Message;
 
 /* see alloc.md in guide for details */
 
@@ -173,7 +174,7 @@ fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>)
     }
 }
 
-pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow::Result<(Vec<(u32,u32)>,u32,u32)> {
+pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
     let max_size = gpu_spec.max_texture_size() as u64;
     if let Some(result) = try_allocate_areas(sizes,max_size,None) {
         return Ok(result);
@@ -185,5 +186,5 @@ pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> anyhow:
         }    
         max_area /= 2;
     }
-    bail!("could not generate areas")
+    Err(Message::XXXTmp(format!("could not generate areas")))
 }

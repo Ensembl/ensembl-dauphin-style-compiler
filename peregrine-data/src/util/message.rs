@@ -31,7 +31,8 @@ pub enum DataMessage {
     DauphinIntegrationError(String),
     DauphinRunError(String,String),
     DauphinProgramMissing(String),
-    DataUnavailable(Channel,Box<DataMessage>)
+    DataUnavailable(Channel,Box<DataMessage>),
+    XXXDataTransmitError(String),
 }
 
 impl fmt::Display for DataMessage {
@@ -63,6 +64,7 @@ impl fmt::Display for DataMessage {
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
+            DataMessage::XXXDataTransmitError(e) => format!("data transmit error: '{}'",e),
         };
         write!(f,"{}",s)
     }

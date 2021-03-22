@@ -2,6 +2,7 @@ use super::process::Process;
 use crate::shape::core::stage::{ Stage, ReadStage, ReadStageAxis };
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::global::WebGlGlobal;
+use crate::util::message::Message;
 
 // TODO clever viewport on resize
 
@@ -16,7 +17,7 @@ impl DrawingSession {
         }
     }
 
-    fn update_viewport(&mut self, gl: &mut WebGlGlobal,  stage: &ReadStage) -> anyhow::Result<()> {
+    fn update_viewport(&mut self, gl: &mut WebGlGlobal,  stage: &ReadStage) -> Result<(),Message> {
         let size = (stage.x().size()?,stage.y().size()?);
         if let Some((old_x,old_y)) = self.size {
             if old_x == size.0 && old_y == size.1 {
@@ -29,11 +30,11 @@ impl DrawingSession {
         Ok(())
     }
 
-    pub(crate) fn run_process(&self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> anyhow::Result<()> {
+    pub(crate) fn run_process(&self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> Result<(),Message> {
         process.draw(gl,stage,opacity)
     }
 
-    pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage) -> anyhow::Result<()> {
+    pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage) -> Result<(),Message> {
         self.update_viewport(gl,stage)?;
         gl.context().clear_color(1., 1., 1., 1.);
         gl.handle_context_errors()?;

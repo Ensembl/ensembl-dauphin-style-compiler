@@ -3,6 +3,7 @@ use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
+use crate::util::message::Message;
 
 const THICKNESS: f64 = 1.; // XXX
 
@@ -12,7 +13,7 @@ pub struct WiggleProgram {
 }
 
 impl WiggleProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<WiggleProgram> {
+    pub(crate) fn new(program: &Program) -> Result<WiggleProgram,Message> {
         Ok(WiggleProgram {
             data: program.get_attrib_handle("aData")?,
         })
@@ -62,11 +63,11 @@ pub struct WiggleGeometry {
 }
 
 impl WiggleGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &WiggleProgram) -> anyhow::Result<WiggleGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &WiggleProgram) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> anyhow::Result<ProcessStanzaArray> {
+    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> Result<ProcessStanzaArray,Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,

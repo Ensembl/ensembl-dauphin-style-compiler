@@ -26,7 +26,7 @@ struct GlTrainSetData {
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded) -> anyhow::Result<GlTrainSetData> {
+    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
             slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
             fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
@@ -43,7 +43,7 @@ impl GlTrainSetData {
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
+    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> Result<(),Message> {
         self.get_train(gl,index).set_carriages(new_carriages,gl)
     }
 
@@ -51,11 +51,11 @@ impl GlTrainSetData {
         self.get_train(gl,index).set_max(len);
     }
 
-    fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> anyhow::Result<()> {
+    fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> Result<(),Message> {
         let from = match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
-                bail!("overlapping fades sent to UI");
+                return Err(Message::XXXTmp(format!("overlapping fades sent to UI")));
             }
         };
         self.fade_state = FadeState::Fading(from,index,speed,0.,self.redraw_needed.clone().lock());
@@ -129,7 +129,7 @@ impl GlTrainSetData {
         Ok(())
     }
 
-    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -138,7 +138,7 @@ impl GlTrainSetData {
         }).transpose()?.flatten())
     }
 
-    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<bool,Message> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -147,7 +147,7 @@ impl GlTrainSetData {
         }).transpose()?.unwrap_or(false))
     }
 
-    fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for(_,mut train) in self.trains.drain() {
             train.discard(gl)?;
         }
@@ -161,7 +161,7 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, stage: &Stage) -> anyhow::Result<GlTrainSet> {
+    pub fn new(config: &PeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
         Ok(GlTrainSet {
             data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
         })
@@ -179,25 +179,25 @@ impl GlTrainSet {
         self.data.lock().unwrap().draw_animate_tick(stage,gl)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> anyhow::Result<()> {
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {
         self.data.lock().unwrap().set_carriages(gl,new_carriages,index)
     }
 
-    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> anyhow::Result<()> {
+    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(index,speed)?;
         self.data.lock().unwrap().set_max(gl,index,max);
         Ok(())
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.data.lock().unwrap().intersects(stage,gl,mouse)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) ->Result<bool,Message> {
         self.data.lock().unwrap().intersects_fast(stage,gl,mouse)
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.data.lock().unwrap().discard(gl)
     }
 }

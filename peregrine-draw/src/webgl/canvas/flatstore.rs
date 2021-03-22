@@ -5,6 +5,7 @@ use web_sys::{ Document };
 use super::flat::Flat;
 use keyed::keyed_handle;
 use crate::util::error::js_warn;
+use crate::util::message::Message;
 
 // TODO test discard webgl buffers etc
 // TODO document etc to common data structure
@@ -24,7 +25,7 @@ impl FlatStore {
         }
     }
 
-    pub(crate) fn scratch(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<&mut Flat> {
+    pub(crate) fn scratch(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<&mut Flat,Message> {
         let mut use_cached = false;
         if let Some(existing) = self.scratch.get(weave) {
             let ex_size = existing.size();
@@ -39,21 +40,21 @@ impl FlatStore {
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
-    pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+    pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
         Ok(self.main_canvases.add(Flat::new(document,weave,size)?))
     }
 
-    pub(crate) fn get(&self, id: &FlatId) -> anyhow::Result<&Flat> {
-        self.main_canvases.get(id)
+    pub(crate) fn get(&self, id: &FlatId) -> Result<&Flat,Message> {
+        self.main_canvases.get(id).map_err(|e| Message::XXXTmp(e.to_string()))
     }
 
-    pub(crate) fn discard(&mut self, id: &FlatId) -> anyhow::Result<()> {
-        self.main_canvases.get_mut(id)?.discard()?;
+    pub(crate) fn discard(&mut self, id: &FlatId) -> Result<(),Message> {
+        self.main_canvases.get_mut(id).map_err(|x| Message::XXXTmp(format!("missing key")))?.discard()?;
         self.main_canvases.remove(id);
         Ok(())
     }
 
-    pub(crate) fn discard_all(&mut self) -> anyhow::Result<()> {
+    pub(crate) fn discard_all(&mut self) -> Result<(),Message> {
         for canvas in self.main_canvases.values_mut() {
             canvas.discard()?;
         }

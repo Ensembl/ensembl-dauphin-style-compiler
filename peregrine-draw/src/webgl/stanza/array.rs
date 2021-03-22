@@ -5,6 +5,7 @@ use super::builder::ProcessStanzaAddable;
 use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 pub(crate) struct ProcessStanzaArray {
@@ -22,7 +23,7 @@ impl ProcessStanzaArray {
         }
     }
 
-    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> anyhow::Result<Option<ProcessStanza>> {
+    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> Result<Option<ProcessStanza>,Message> {
         ProcessStanza::new_array(context,self.len,values,&self.attribs)
     }
 
@@ -32,12 +33,12 @@ impl ProcessStanzaArray {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaArray {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
         self.attribs.borrow_mut().get_mut(handle).extend_from_slice(&values);
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
         let mut remaining = self.len;

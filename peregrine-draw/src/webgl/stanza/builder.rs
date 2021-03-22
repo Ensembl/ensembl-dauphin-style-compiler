@@ -7,10 +7,11 @@ use super::stanza::ProcessStanza;
 use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::util::message::Message;
 
 pub trait ProcessStanzaAddable {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()>;
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()>;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message>;
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) ->Result<(),Message>;
 }
 
 pub struct ProcessStanzaBuilder {
@@ -42,9 +43,9 @@ impl ProcessStanzaBuilder {
         self.elements.last_mut().unwrap()
     }
 
-    pub(crate) fn make_elements(&mut self, count: usize, indexes: &[u16]) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn make_elements(&mut self, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
         if *self.active.borrow() {
-            bail!("can only have one active campaign/array at once");
+            return Err(Message::XXXTmp(format!("can only have one active campaign/array at once")));
         }
         if self.elements.len() == 0 {
             self.make_elements_entry();
@@ -53,9 +54,9 @@ impl ProcessStanzaBuilder {
         Ok(ProcessStanzaElements::new(self,count,indexes))
     }
 
-    pub(crate) fn make_array(&mut self, len: usize) -> anyhow::Result<ProcessStanzaArray> {
+    pub(crate) fn make_array(&mut self, len: usize) -> Result<ProcessStanzaArray,Message> {
         if *self.active.borrow() {
-            bail!("can only have one active campaign/array at once");
+            return Err(Message::XXXTmp(format!("can only have one active campaign/array at once")));
         }
         let out = ProcessStanzaArray::new(&self.active,&self.maker,len);
         self.arrays.push(out.clone());
@@ -63,9 +64,9 @@ impl ProcessStanzaBuilder {
         Ok(out)
     }
 
-    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, attribs: &KeyedValues<AttribHandle,Attribute>) -> anyhow::Result<Vec<ProcessStanza>> {
+    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
         if *self.active.borrow() {
-            bail!("can only make when inactive");
+            return Err(Message::XXXTmp(format!("can only have one active campaign/array at once")));
         }
         let mut out = self.elements.iter().map(|x| x.replace(ProcessStanzaElementsEntry::new(&self.maker)).make_stanza(attribs.data(),context)).collect::<Result<Vec<_>,_>>()?;
         out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context)).collect::<Result<_,_>>()?);

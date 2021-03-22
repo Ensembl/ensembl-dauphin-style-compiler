@@ -10,6 +10,7 @@ use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::{shape::core::stage::ReadStageAxis, webgl::ProcessStanzaElements};
 use super::super::layers::layer::{ Layer };
+use crate::util::message::Message;
 
 fn add(v: &[f64], delta: f64) -> Vec<f64> {
     v.iter().map(|x| x+delta).collect()
@@ -120,23 +121,23 @@ impl GLAxis {
     fn min_sign(&self) -> f64 { *self.signs.first().unwrap() }
     fn max_sign(&self) -> f64 { *self.signs.last().unwrap() }
 
-    pub(crate) fn min_screen(&self, axis: &ReadStageAxis) -> anyhow::Result<f64> {
+    pub(crate) fn min_screen(&self, axis: &ReadStageAxis) -> Result<f64,Message> {
         let size = axis.size()?;
         Ok(if self.min_sign() < 0. { size - self.min() } else { self.min() })
     }
 
-    pub(crate) fn max_screen(&self, axis: &ReadStageAxis) -> anyhow::Result<f64> {
+    pub(crate) fn max_screen(&self, axis: &ReadStageAxis) -> Result<f64,Message> {
         let size = axis.size()?;
         Ok(if self.max_sign() < 0. { size - self.max() } else { self.max() })
     }
 
-    pub(crate) fn min_paper(&self,  axis: &ReadStageAxis) -> anyhow::Result<f64> {
+    pub(crate) fn min_paper(&self,  axis: &ReadStageAxis) -> Result<f64,Message> {
         let bp_per_screen = axis.bp_per_screen()?;
         let bp_left = axis.position()? - bp_per_screen;
         Ok((self.min() - bp_left) / bp_per_screen)
     }
 
-    pub(crate) fn max_paper(&self,  axis: &ReadStageAxis) -> anyhow::Result<f64> {
+    pub(crate) fn max_paper(&self,  axis: &ReadStageAxis) -> Result<f64,Message> {
         let bp_per_screen = axis.bp_per_screen()?;
         let bp_left = axis.position()? - bp_per_screen;
         Ok((self.max() - bp_left) / bp_per_screen)
@@ -150,7 +151,7 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn iter_screen<'t>(&'t self, axis: &ReadStageAxis) -> anyhow::Result<Box<dyn Iterator<Item=(f64,f64)> + 't>> {
+    pub(crate) fn iter_screen<'t>(&'t self, axis: &ReadStageAxis) -> Result<Box<dyn Iterator<Item=(f64,f64)> + 't>,Message> {
         let size = axis.size()?;
         let flip_min = self.min_sign() < 0.;
         let flip_max = self.max_sign() < 0.;
@@ -161,7 +162,7 @@ impl GLAxis {
         ))))
     }
 
-    pub(crate) fn iter_paper<'t>(&'t self, axis: &ReadStageAxis) -> anyhow::Result<Box<dyn Iterator<Item=(f64,f64)> + 't>> {
+    pub(crate) fn iter_paper<'t>(&'t self, axis: &ReadStageAxis) -> Result<Box<dyn Iterator<Item=(f64,f64)> + 't>,Message> {
         let size = axis.size()?;
         let bp_per_screen = axis.bp_per_screen()?;
         let bp_left = axis.position()? - bp_per_screen;
@@ -222,7 +223,7 @@ impl GLAxis {
         vec1d_y(self,self.hollow,self.origin)
     }
 
-    pub(crate) fn make_elements(&self, layer: &mut Layer, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn make_elements(&self, layer: &mut Layer, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessStanzaElements,Message> {
         make_rect_elements(layer,geometry,patina,self.min.len(),self.hollow)
     }
 

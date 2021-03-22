@@ -6,6 +6,7 @@ use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
 use crate::shape::core::stage::ReadStage;
+use crate::util::message::Message;
 
 pub(crate) struct DrawingTools {
     text: DrawingText,
@@ -23,12 +24,12 @@ impl DrawingTools {
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
-    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
+    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
         self.text.populate_allocator(gl,allocator)?;
         Ok(())
     }
 
-    pub(crate) fn build(&mut self, canvas_store: &FlatStore, builder: &mut DrawingFlatsDrawable) -> anyhow::Result<()> {
+    pub(crate) fn build(&mut self, canvas_store: &FlatStore, builder: &mut DrawingFlatsDrawable) -> Result<(),Message> {
         self.text.build(canvas_store,builder)?;
         Ok(())
     }
@@ -49,24 +50,24 @@ impl DrawingBuilder {
         }
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: Shape) -> anyhow::Result<PreparedShape> {
+    pub(crate) fn prepare_shape(&mut self, shape: Shape) -> Result<PreparedShape,Message> {
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape)
     }
 
-    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut canvas_allocator = FlatPlotAllocator::new("uSampler");
         self.tools.finish_preparation(gl,&mut canvas_allocator)?;
         self.flats = Some(canvas_allocator.make(gl)?);
         Ok(())
     }
 
-    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> anyhow::Result<()> {
+    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> Result<(),Message> {
         let (layer, tools, canvas_builder) = (&mut self.main_layer,&mut self.tools,&self.flats.as_ref().unwrap());
         add_shape_to_layer(layer,tools,canvas_builder,gl.bindery(),shape)
     }
 
-    pub fn build(mut self, gl: &mut WebGlGlobal) -> anyhow::Result<Drawing> {
+    pub fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
         let (tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
         tools.build(gl.canvas_store_mut(),&mut builder)?;
         let canvases = builder.built();
@@ -83,7 +84,7 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
-    fn new(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> anyhow::Result<Drawing> {
+    fn new(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
         Ok(Drawing {
             processes,
             canvases,
@@ -91,22 +92,22 @@ impl Drawing {
         })
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.zmenus.intersects(stage,mouse)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         self.zmenus.intersects_fast(stage,mouse)
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> anyhow::Result<()> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> Result<(),Message> {
         for process in &mut self.processes {
             session.run_process(gl,stage,process,opacity)?;
         }
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for process in &mut self.processes {
             process.discard(gl)?;
         }

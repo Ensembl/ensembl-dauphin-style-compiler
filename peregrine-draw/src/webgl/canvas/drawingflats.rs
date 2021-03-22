@@ -4,6 +4,7 @@ use crate::webgl::ProtoProcess;
 use super::flatstore::{ FlatId, FlatStore };
 use super::flatplotallocator::FlatPlotRequestHandle;
 use crate::webgl::global::WebGlGlobal;
+use crate::util::message::Message;
 
 pub struct DrawingFlats {
     uniform_name: String,
@@ -18,21 +19,21 @@ impl DrawingFlats {
         }
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
         let document = gl.document().clone();
         let id = gl.canvas_store_mut().allocate(&document,weave,size)?;
         self.main_canvases.push(id.clone());
         Ok(id)
     }
 
-    pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> anyhow::Result<()> {
+    pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> Result<(),Message> {
         for id in &self.main_canvases {
             process.add_texture(&self.uniform_name,id)?;
         }
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, store: &mut FlatStore) -> anyhow::Result<()> {
+    pub(crate) fn discard(&mut self, store: &mut FlatStore) -> Result<(),Message> {
         for id in self.main_canvases.drain(..) {
             store.discard(&id)?;
         }
@@ -65,7 +66,7 @@ impl DrawingFlatsDrawable {
         });
     }
 
-    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> anyhow::Result<FlatId> {
+    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
         self.drawing_flats.allocate(gl,weave,size)
     }
 

@@ -6,6 +6,7 @@ use peregrine_data::{ScreenEdge, ShipEnd };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 pub struct FixProgram {
@@ -14,7 +15,7 @@ pub struct FixProgram {
 }
 
 impl FixProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<FixProgram> {
+    pub(crate) fn new(program: &Program) -> Result<FixProgram,Message> {
         Ok(FixProgram {
             vertexes: program.get_attrib_handle("aVertexPosition")?,
             signs: program.get_attrib_handle("aSign")?
@@ -50,13 +51,13 @@ impl FixData {
 }
 
 impl GeometryData for FixData {
-    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         let mouse = (mouse.0 as f64, mouse.1 as f64);
         Ok(!(mouse.0 < self.x.min_screen(stage.x())? || mouse.0 > self.x.max_screen(stage.x())? || 
            mouse.1 < self.y.min_screen(stage.y())? || mouse.1 > self.y.max_screen(stage.y())?))
     }
 
-    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> anyhow::Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>> {
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message> {
         Ok(Box::new(self.x.iter_screen(stage.x())?.zip(self.y.iter_screen(stage.y())?)))
     }
 }
@@ -68,11 +69,11 @@ pub struct FixGeometry {
 }
 
 impl FixGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &FixProgram) -> anyhow::Result<FixGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &FixProgram) -> Result<FixGeometry,Message> {
         Ok(FixGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self, layer: &mut Layer, data: FixData) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn add(&self, layer: &mut Layer, data: FixData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x.make_elements(layer,&GeometryProcessName::Fix,&self.patina)?;
         elements.add(&self.variety.vertexes,data.x.vec2d(&data.y))?;
         elements.add(&self.variety.signs,data.x.signs_2d(&data.y))?;

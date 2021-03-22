@@ -106,7 +106,7 @@ impl TestChannelIntegration {
 }
 
 impl ChannelIntegration for TestChannelIntegration {
-    fn get_sender(&self, _channel: Channel, _prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>> {
+    fn get_sender(&self, _channel: Channel, _prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>> {
         self.requests.lock().unwrap().push(data);
         let resp = self.responses.clone();
         if resp.lock().unwrap().len() == 0 {

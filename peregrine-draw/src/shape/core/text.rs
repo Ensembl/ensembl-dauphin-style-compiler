@@ -6,6 +6,7 @@ use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, 
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
+use crate::util::message::Message;
 
 // TODO padding measurements!
 
@@ -25,7 +26,7 @@ impl Text {
         Text { pen: pen.clone(), text: text.to_string(), size: None, colour: colour.clone(), text_origin: None, mask_origin: None }
     }
 
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let document = gl.document().clone();
         let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(16,16))?;
         canvas.set_font(&self.pen)?;
@@ -33,7 +34,7 @@ impl Text {
         Ok(())
     }
 
-    fn build(&mut self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> anyhow::Result<()> {
+    fn build(&mut self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> Result<(),Message> {
         let size = self.size.unwrap();
         self.text_origin = Some(text_origin);
         self.mask_origin = Some(mask_origin);
@@ -42,11 +43,11 @@ impl Text {
         Ok(())
     }
 
-    pub fn get_texture_areas(&self) -> anyhow::Result<CanvasTextureAreas> {
+    pub fn get_texture_areas(&self) -> Result<CanvasTextureAreas,Message> {
         Ok(CanvasTextureAreas::new(
-            self.text_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            self.mask_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            self.size.as_ref().cloned().ok_or_else(|| err!("no size"))?
+            self.text_origin.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no origin".to_string()))?,
+            self.mask_origin.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no origin".to_string()))?,
+            self.size.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no size".to_string()))?
         ))
     }
 }
@@ -68,7 +69,7 @@ impl DrawingText {
         self.texts.add(Text::new(pen,text,colour))
     }
 
-    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         /* All this to minimise font changes (which are slow) */
         let mut texts_by_pen = HashMap::new();
         for text in self.texts.values_mut() {
@@ -82,7 +83,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn populate_allocator(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
+    pub(crate) fn populate_allocator(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
@@ -95,7 +96,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn build(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> anyhow::Result<()> {
+    pub fn build(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());
@@ -108,12 +109,12 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> anyhow::Result<FlatId> {
-        let request = self.request.as_ref().cloned().ok_or_else(|| err!("no such id"))?;
+    pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
+        let request = self.request.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no such id".to_string()))?;
         Ok(builder.canvas(&request))
     }
 
-    pub fn get_texture_areas(&self, handle: &TextHandle) -> anyhow::Result<CanvasTextureAreas> {
+    pub fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureAreas,Message> {
         self.texts.get(handle).get_texture_areas()
     }
 }

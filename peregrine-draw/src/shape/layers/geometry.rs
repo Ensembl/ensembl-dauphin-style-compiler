@@ -7,6 +7,7 @@ use super::patina::PatinaProcessName;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program };
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
+use crate::util::message::Message;
 
 pub(crate) enum GeometryProgram {
     Pin(PinProgram),
@@ -17,7 +18,7 @@ pub(crate) enum GeometryProgram {
 }
 
 impl GeometryProgram {
-    pub(super) fn make_geometry_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> anyhow::Result<GeometryProcess> {
+    pub(super) fn make_geometry_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> Result<GeometryProcess,Message> {
         Ok(match self {
             GeometryProgram::Pin(v) => GeometryProcess::Pin(PinGeometry::new(process,skin,v)?),
             GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(process,skin,v)?),
@@ -43,7 +44,7 @@ impl GeometryProgramName {
         }
     }
 
-    pub(super) fn make_geometry_program(&self, program: &Program) -> anyhow::Result<GeometryProgram> {
+    pub(super) fn make_geometry_program(&self, program: &Program) -> Result<GeometryProgram,Message> {
         Ok(match self {
             GeometryProgramName::Page => GeometryProgram::Page(PageProgram::new(program)?),
             GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(program)?),

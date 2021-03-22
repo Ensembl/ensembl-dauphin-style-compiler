@@ -78,7 +78,8 @@ impl Message {
                     DataMessage::DauphinIntegrationError(_) => MessageCategory::BadCode,
                     DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
                     DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
-                    DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure
+                    DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
+                    DataMessage::XXXDataTransmitError(e) => MessageCategory::BadInfrastructure,
                 }
             },
             Message::XXXTmp(_) => MessageCategory::Unknown,
@@ -124,7 +125,7 @@ impl Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 26
+        // Next code is 27
         match self {
             Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
             Message::DataError(d) => {
@@ -153,7 +154,8 @@ impl Message {
                     DataMessage::DauphinIntegrationError(e) => (22,calculate_hash(e)),
                     DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
                     DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
-                    DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e)))
+                    DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e))),
+                    DataMessage::XXXDataTransmitError(e) => (26,calculate_hash(e)),
                 }
             },
             Message::XXXTmp(s) => (17,calculate_hash(s)),

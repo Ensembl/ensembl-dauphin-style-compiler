@@ -6,6 +6,7 @@ use web_sys::{ CustomEvent, CustomEventInit, HtmlElement };
 use crate::util::error::{ js_error, js_throw };
 use crate::util::safeelement::SafeElement;
 use wasm_bindgen::JsCast;
+use crate::util::message::Message;
 
 lazy_static! {
     static ref IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -27,12 +28,12 @@ impl BellSender {
         }
     }
 
-    pub fn ring(&self) -> anyhow::Result<()> {
+    pub fn ring(&self) -> Result<(),Message> {
         let name = &format!("{}-{}",MESSAGE_KEY,self.identity);
         let mut cvi = CustomEventInit::new();
         cvi.bubbles(false);
-        let e = js_error(CustomEvent::new_with_event_init_dict(name,&cvi)).context("creating bell event")?;
-        js_error(self.el.get()?.dispatch_event(&e)).context("sending bell event")?;
+        let e = js_error(CustomEvent::new_with_event_init_dict(name,&cvi))?;
+        js_error(self.el.get()?.dispatch_event(&e))?;
         Ok(())
     }
 }
@@ -51,7 +52,7 @@ fn run_callbacks(callbacks: Arc<Mutex<Vec<Box<dyn Fn()>>>>) {
 }
 
 impl BellReceiverState {
-    fn new(identity: u64, el: &HtmlElement) -> anyhow::Result<BellReceiverState> {
+    fn new(identity: u64, el: &HtmlElement) -> Result<BellReceiverState,Message> {
         let mut out = BellReceiverState {
             name: format!("{}-{}",MESSAGE_KEY,identity),
             callbacks: Arc::new(Mutex::new(Vec::new())),
@@ -66,15 +67,16 @@ impl BellReceiverState {
         self.callbacks.lock().unwrap().push(callback);
     }
 
-    fn call_dom(&mut self) -> anyhow::Result<()> {
+    fn call_dom(&mut self) -> Result<(),Message> {
         let callbacks = self.callbacks.clone();
         self.closure = Some(Closure::wrap(Box::new(move || {
             let callbacks = callbacks.clone();
             let closure = Closure::once_into_js(move || {
                 run_callbacks(callbacks);
             });
-            let window = js_throw(web_sys::window().ok_or(err!("cannot get window object")));
-            js_throw(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),0).map_err(|_| err!("cannot set zero timeout")));
+            let window = js_throw(web_sys::window().ok_or( Message::XXXTmp(format!("cannot get window object"))));
+            js_throw(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),0)
+                .map_err(|_| Message::XXXTmp(format!("cannot set zero timeout"))));
         })));
         js_error(self.el.add_event_listener_with_callback(&self.name,self.closure.as_ref().unwrap().as_ref().unchecked_ref()))?;
         Ok(())
@@ -93,7 +95,7 @@ impl Drop for BellReceiverState {
 pub struct BellReceiver(Arc<Mutex<BellReceiverState>>);
 
 impl BellReceiver {
-    fn new(identity: u64, el: &HtmlElement) -> anyhow::Result<BellReceiver> {
+    fn new(identity: u64, el: &HtmlElement) -> Result<BellReceiver,Message> {
         Ok(BellReceiver(Arc::new(Mutex::new(BellReceiverState::new(identity,el)?))))
     }
 
@@ -102,7 +104,7 @@ impl BellReceiver {
     }
 }
 
-pub fn make_bell(el: &HtmlElement) -> anyhow::Result<(BellSender,BellReceiver)> {
+pub fn make_bell(el: &HtmlElement) -> Result<(BellSender,BellReceiver),Message> {
     let mut source = IDENTITY.lock().unwrap();
     let identity = *source;
     *source += 1;

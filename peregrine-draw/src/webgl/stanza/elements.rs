@@ -6,6 +6,7 @@ use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
 use web_sys::{ WebGlRenderingContext };
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::util::message::Message;
 
 const LIMIT : usize = 16384;
 
@@ -40,7 +41,7 @@ impl ProcessStanzaElementsEntry {
         self.attribs.get_mut(handle).extend_from_slice(values);
     }
 
-    pub(super) fn make_stanza(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> anyhow::Result<Option<ProcessStanza>> {
+    pub(super) fn make_stanza(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> Result<Option<ProcessStanza>,Message> {
         ProcessStanza::new_elements(context,&self.index,values,self.attribs)
     }
 }
@@ -97,10 +98,10 @@ impl ProcessStanzaElements {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaElements {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
         let array_size = self.tuple_size * self.count;
         if values.len() != array_size {
-            bail!("incorrect array length: expected {} got {}",array_size,values.len());
+            return Err(Message::XXXTmp(format!("incorrect array length: expected {} got {}",array_size,values.len())));
         }
         let mut offset = 0;
         for (entry,count) in &mut self.elements {
@@ -111,7 +112,7 @@ impl ProcessStanzaAddable for ProcessStanzaElements {
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
         for (entry,count) in &mut self.elements {

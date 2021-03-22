@@ -5,6 +5,7 @@ use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
 use super::super::core::stage::get_stage_source;
 use web_sys::WebGlRenderingContext;
+use crate::util::message::Message;
 
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
@@ -23,7 +24,7 @@ pub(crate) struct ProgramStoreEntry {
 }
 
 impl ProgramStoreEntry {
-    fn new(program: Program, index: &ProgramIndex) -> anyhow::Result<ProgramStoreEntry> {
+    fn new(program: Program, index: &ProgramIndex) -> Result<ProgramStoreEntry,Message> {
         let geometry = index.0.make_geometry_program(&program)?;
         let patina = index.1.make_patina_program(&program)?;
         Ok(ProgramStoreEntry {
@@ -45,7 +46,7 @@ pub struct ProgramStoreData {
 }
 
 impl ProgramStoreData {
-    fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStoreData> {
+    fn new(context: &WebGlRenderingContext) ->Result<ProgramStoreData,Message> {
         let gpuspec = GPUSpec::new(context)?;
         let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
         Ok(ProgramStoreData {
@@ -55,7 +56,7 @@ impl ProgramStoreData {
         })
     }
 
-    fn make_program(&self, index: &ProgramIndex) -> anyhow::Result<()> {
+    fn make_program(&self, index: &ProgramIndex) -> Result<(),Message> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
@@ -64,7 +65,7 @@ impl ProgramStoreData {
         Ok(())
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
         let index = ProgramIndex(geometry,patina);
         if self.programs.borrow()[index.get_index()].is_none() {
             self.make_program(&index)?;
@@ -79,11 +80,11 @@ impl ProgramStoreData {
 pub struct ProgramStore(Rc<ProgramStoreData>);
 
 impl ProgramStore {
-    pub(crate) fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStore> {
+    pub(crate) fn new(context: &WebGlRenderingContext) -> Result<ProgramStore,Message> {
         Ok(ProgramStore(Rc::new(ProgramStoreData::new(context)?)))
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
         self.0.get_program(geometry,patina)
     }
 

@@ -14,6 +14,7 @@ use super::geometry::{ GeometryProcess, GeometryProcessName };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
 use peregrine_data::DirectColour;
+use crate::util::message::Message;
 
 /* 
 TODO ensure + index
@@ -43,7 +44,7 @@ struct SubLayerHolder(Option<SubLayer>,f64);
 impl SubLayerHolder {
     fn new(left: f64) -> SubLayerHolder { SubLayerHolder(None,left) }
 
-    fn make(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<()> {
+    fn make(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<(),Message> {
         let program_store_entry = programs.get_program(geometry.get_program_name(),patina.get_program_name())?;
         let process = ProtoProcess::new(program_store_entry.program().clone(),self.1);
         let geometry = program_store_entry.get_geometry().make_geometry_process(&process,patina)?;
@@ -52,26 +53,26 @@ impl SubLayerHolder {
         Ok(())
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&mut ProtoProcess> {
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
         self.make(programs,geometry,patina)?;
         Ok(&mut self.0.as_mut().unwrap().process)
     }
 
-    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&GeometryProcess> {
+    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
         self.make(programs,geometry,patina)?;
         Ok(&self.0.as_mut().unwrap().geometry)
     }
 
-    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&PatinaProcess> {
+    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
         self.make(programs,geometry,patina)?;
         Ok(&self.0.as_mut().unwrap().patina)
     }
 
-    fn set_canvases(&mut self, canvases: &DrawingFlats) -> anyhow::Result<()> {
+    fn set_canvases(&mut self, canvases: &DrawingFlats) -> Result<(),Message> {
         canvases.add_process(&mut self.0.as_mut().unwrap().process)
     }
 
-    fn build(self) -> anyhow::Result<Option<Process>> {
+    fn build(self) -> Result<Option<Process>,Message> {
         if let Some(sub) = self.0 {
             Ok(Some(sub.process.build()?))
         } else {
@@ -97,7 +98,7 @@ impl GeometrySubLayer {
         }
     }
 
-    fn holder(&mut self, patina: &PatinaProcessName) -> anyhow::Result<&mut SubLayerHolder> {
+    fn holder(&mut self, patina: &PatinaProcessName) -> Result<&mut SubLayerHolder,Message> {
         let left = self.left;
         Ok(match &patina{
             PatinaProcessName::Direct => &mut self.direct,
@@ -106,19 +107,19 @@ impl GeometrySubLayer {
         })
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&mut ProtoProcess> {
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
         self.holder(patina)?.get_process_mut(programs,geometry,patina)
     }
 
-    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&GeometryProcess> {
+    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
         self.holder(patina)?.get_geometry(programs,geometry,patina)
     }
 
-    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&PatinaProcess> {
+    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
         self.holder(patina)?.get_patina(programs,geometry,patina)
     }
 
-    fn build(mut self, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
+    fn build(mut self, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
         if let Some(process) = self.direct.build()? {
             processes.push(process);
         }
@@ -149,18 +150,18 @@ pub(crate) struct Layer {
 
 macro_rules! layer_geometry_accessor {
     ($func:ident,$geom_type:ty,$geom_name:ident) => {
-        pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> anyhow::Result<$geom_type> {
+        pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> Result<$geom_type,Message> {
             let geom = self.get_geometry(&GeometryProcessName::$geom_name,patina)?;
-            match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+            match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
         }
     };
 }
 
 macro_rules! layer_patina_accessor {
     ($func:ident,$patina_type:ty,$patina_name:ident) => {
-        pub(crate) fn $func(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<$patina_type> {
+        pub(crate) fn $func(&mut self, geometry: &GeometryProcessName) -> Result<$patina_type,Message> {
             let patina = self.get_patina(geometry,&PatinaProcessName::$patina_name)?;
-            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ =>  Err(Message::XXXTmp(format!("inconsistent layer"))) }
         }                
     };
 }
@@ -180,7 +181,7 @@ impl Layer {
 
     pub(crate) fn left(&self) -> f64 { self.left }
 
-    fn holder(&mut self, geometry: &GeometryProcessName) -> anyhow::Result<(&mut GeometrySubLayer,&ProgramStore)> {
+    fn holder(&mut self, geometry: &GeometryProcessName) -> Result<(&mut GeometrySubLayer,&ProgramStore),Message> {
         Ok(match geometry {
             GeometryProcessName::Pin => (&mut self.pin,&self.programs),
             GeometryProcessName::Fix => (&mut self.fix,&self.programs),
@@ -190,27 +191,27 @@ impl Layer {
         })
     }
 
-    pub(crate) fn get_process_mut(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&mut ProtoProcess> {
+    pub(crate) fn get_process_mut(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
         sub.get_process_mut(compiler,geometry,patina)
     }
 
-    fn get_geometry(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&GeometryProcess> {
+    fn get_geometry(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
        sub.get_geometry(compiler,geometry,patina)
     }
 
-    fn get_patina(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> anyhow::Result<&PatinaProcess> {
+    fn get_patina(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
         sub.get_patina(compiler,geometry,patina)
     }
 
-    pub(crate) fn make_elements(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn make_elements(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
         let process = self.get_process_mut(geometry,patina)?;
         Ok(process.get_stanza_builder().make_elements(count,indexes)?)
     }
 
-    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) -> anyhow::Result<ProcessStanzaArray> {
+    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) ->Result<ProcessStanzaArray,Message> {
         let process = self.get_process_mut(geometry,patina)?;
         Ok(process.get_stanza_builder().make_array(count)?)
     }
@@ -223,17 +224,17 @@ impl Layer {
 
     layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
 
-    pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> anyhow::Result<SpotColourDraw> {
+    pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> Result<SpotColourDraw,Message> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
-        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
     }
 
-    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, element_id: &FlatId) -> anyhow::Result<TextureDraw> {
+    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, element_id: &FlatId) -> Result<TextureDraw,Message> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Texture(element_id.clone()))?;
-        match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => bail!("inconsistent layer") }
+        match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
     }
 
-    pub(super) fn build(self, process: &mut Vec<Process>, canvases: &DrawingFlats) -> anyhow::Result<()> {
+    pub(super) fn build(self, process: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
         self.pin.build(process,canvases)?;
         self.tape.build(process,canvases)?;
         self.page.build(process,canvases)?;

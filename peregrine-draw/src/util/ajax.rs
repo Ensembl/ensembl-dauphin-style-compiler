@@ -9,6 +9,7 @@ use crate::util::error::{ js_option, js_error, display_error };
 use serde_json::Value as JsonValue;
 use url::Url;
 use serde_cbor::Value as CborValue;
+use crate::util::message::Message;
 
 pub struct PgAjax {
     method: String,
@@ -57,12 +58,12 @@ impl PgAjax {
         self.body = Some(body);
     }
 
-    pub fn set_body_cbor(&mut self, value: &CborValue) -> anyhow::Result<()> {
-        self.set_body(serde_cbor::to_vec(&value).context("building trace bytes")?);
+    pub fn set_body_cbor(&mut self, value: &CborValue) -> Result<(),Message> {
+        self.set_body(serde_cbor::to_vec(&value).map_err(|e| Message::XXXTmp(e.to_string()))?);
         Ok(())
     }
 
-    fn add_timeout(&self, init: &mut RequestInit, timeout: f64) -> anyhow::Result<()> {
+    fn add_timeout(&self, init: &mut RequestInit, timeout: f64) -> Result<(),Message> {
         let controller = js_error(AbortController::new())?;
         let signal = controller.signal();
         init.signal(Some(&signal));
@@ -72,7 +73,7 @@ impl PgAjax {
         Ok(())
     }
 
-    async fn get(&self) -> anyhow::Result<JsValue> {
+    async fn get(&self) -> Result<JsValue,Message> {
         let mut init = RequestInit::new();
         init.method(&self.method).mode(RequestMode::Cors);
         if let Some(body) = &self.body {
@@ -90,22 +91,22 @@ impl PgAjax {
         Ok(js_error(JsFuture::from(window.fetch_with_request(&req)).await)?)
     }
 
-    pub async fn get_json(&mut self) -> anyhow::Result<JsonValue> {
+    pub async fn get_json(&mut self) -> Result<JsonValue,Message> {
         self.add_request_header("Content-Type","application/json");
         let response = self.get().await?;
-        let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
+        let response: Response = js_error(response.dyn_into())?;
         let json = js_error(JsFuture::from(js_error(response.json())?).await)?;
-        let json : JsonValue = display_error(json.into_serde()).context("not JSON")?;
+        let json : JsonValue = display_error(json.into_serde())?;
         Ok(json)
     }
 
-    pub async fn get_cbor(&mut self) -> anyhow::Result<CborValue> {
+    pub async fn get_cbor(&mut self) -> Result<CborValue,Message> {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await?;
-        let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
+        let response: Response = js_error(response.dyn_into())?;
         let array_buffer_value = js_error(JsFuture::from(js_error(response.array_buffer())?).await)?;
         let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
-        let cbor = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+        let cbor = serde_cbor::from_slice(&buffer).map_err(|e| Message::XXXTmp(e.to_string()))?;
         Ok(cbor)
     }
 }

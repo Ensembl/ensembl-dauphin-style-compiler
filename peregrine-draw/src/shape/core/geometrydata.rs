@@ -7,10 +7,11 @@ use super::super::util::arrayutil::{ empty_is };
 use super::super::util::glaxis::GLAxis;
 use super::super::layers::drawingzmenus::{ ZMenuResult };
 use crate::shape::core::stage::{ ReadStage, ReadStageAxis };
+use crate::util::message::Message;
 
 pub trait GeometryData {
-    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> anyhow::Result<Box<Iterator<Item=((f64,f64),(f64,f64))> + 'x>>;
-    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool>;
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message>;
+    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message>;
 }
 
 pub struct ZMenuRectangle {
@@ -27,7 +28,7 @@ impl ZMenuRectangle {
         }
     }
 
-    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<(usize,&'t str)>> {
+    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<(usize,&'t str)>,Message> {
         if !self.data.in_bounds(stage,mouse)? {
             return Ok(None);
         }
@@ -40,11 +41,11 @@ impl ZMenuRectangle {
         Ok(None)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         Ok(self.intersects_test(stage,mouse)?.is_some())
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuResult>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuResult>,Message> {
         Ok(self.intersects_test(stage,mouse)?.map(|(index,allotment)| {
             ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment)
         }))

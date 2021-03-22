@@ -6,9 +6,10 @@ use keyed::{ KeyedData };
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 use crate::webgl::Attribute;
+use crate::util::message::Message;
 
-fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> anyhow::Result<WebGlBuffer> {
-    let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
+fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
+    let buffer = context.create_buffer().ok_or(Message::XXXTmp(format!("failed to create buffer")))?;
     // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Uint16Array::view(values);
@@ -30,7 +31,7 @@ pub(crate) struct ProcessStanza {
 }
 
 impl ProcessStanza {
-    pub(super) fn new_elements(context: &WebGlRenderingContext, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f64>>) -> anyhow::Result<Option<ProcessStanza>> {
+    pub(super) fn new_elements(context: &WebGlRenderingContext, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f64>>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
@@ -42,7 +43,7 @@ impl ProcessStanza {
         }
     }
 
-    pub(super) fn new_array(context: &WebGlRenderingContext, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &Rc<RefCell<KeyedData<AttribHandle,Vec<f64>>>>) -> anyhow::Result<Option<ProcessStanza>> {
+    pub(super) fn new_array(context: &WebGlRenderingContext, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &Rc<RefCell<KeyedData<AttribHandle,Vec<f64>>>>) -> Result<Option<ProcessStanza>,Message> {
         if len > 0 {
             Ok(Some(ProcessStanza {
                 index: None,
@@ -54,7 +55,7 @@ impl ProcessStanza {
         }
     }
 
-    pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(index) = &self.index {
             context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(index));
             handle_context_errors(context)?;
@@ -65,13 +66,13 @@ impl ProcessStanza {
         Ok(())
     }
 
-    pub(crate) fn deactivate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub(crate) fn deactivate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,None);
         handle_context_errors(context)?;
         Ok(())
     }
 
-    pub fn draw(&self, context: &WebGlRenderingContext, method: u32) -> anyhow::Result<()> {
+    pub fn draw(&self, context: &WebGlRenderingContext, method: u32) -> Result<(),Message> {
         if self.index.is_some() {
             context.draw_elements_with_i32(method,self.len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
             handle_context_errors(context)?;
@@ -82,7 +83,7 @@ impl ProcessStanza {
         Ok(())
     }
 
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(index) = &self.index {
             context.delete_buffer(Some(index));
             handle_context_errors(context)?;

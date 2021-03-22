@@ -4,7 +4,7 @@ mod pgblackbox;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{ cdr_timer };
-use peregrine_draw::{ PeregrineDraw, PeregrineDrawApi };
+use peregrine_draw::{ PeregrineDraw, PeregrineDrawApi, Message };
 #[cfg(blackbox)]
 use crate::pgblackbox::{ pgblackbox_setup };
 #[cfg(blackbox)]
@@ -51,7 +51,7 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn test_fn() -> anyhow::Result<()> {
+fn test_fn() -> Result<(),Message> {
     let mut config = PeregrineConfig::new();
     config.set_f64("animate.fade.slow",500.);
     config.set_f64("animate.fade.fast",100.);

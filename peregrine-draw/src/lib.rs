@@ -68,6 +68,7 @@ mod util {
 
     pub use self::ajax::PgAjax;
     pub use self::error::{ js_throw, js_option };
+    pub use self::message::Message;
 }
 
 mod webgl {
@@ -141,5 +142,5 @@ mod webgl {
 }
 
 pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
-pub use self::util::{ js_throw, js_option, PgAjax };
+pub use self::util::{ js_throw, js_option, PgAjax, Message };
 pub use crate::integration::PgCommanderWeb;

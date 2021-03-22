@@ -1,6 +1,7 @@
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::scale_colour;
+use crate::util::message::Message;
 
 #[derive(Clone)]
 pub struct DirectProgram {
@@ -8,7 +9,7 @@ pub struct DirectProgram {
 }
 
 impl DirectProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<DirectProgram> {
+    pub(crate) fn new(program: &Program) -> Result<DirectProgram,Message> {
         Ok(DirectProgram {
             colour: program.get_attrib_handle("aVertexColour")?
         })
@@ -19,11 +20,11 @@ impl DirectProgram {
 pub struct DirectColourDraw(DirectProgram);
 
 impl DirectColourDraw {
-    pub(crate) fn new(_process: &ProtoProcess, variety: &DirectProgram) -> anyhow::Result<DirectColourDraw> {
+    pub(crate) fn new(_process: &ProtoProcess, variety: &DirectProgram) -> Result<DirectColourDraw,Message> {
         Ok(DirectColourDraw(variety.clone()))
     }
 
-    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &[DirectColour], vertexes: usize) -> anyhow::Result<()> {
+    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &[DirectColour], vertexes: usize) -> Result<(),Message> {
         let mut codes = vec![];
         for c in colours {
             for _ in 0..vertexes {

@@ -6,6 +6,7 @@ use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use super::geometrydata::GeometryData;
 use crate::shape::core::stage::{ ReadStage };
+use crate::util::message::Message;
 
 #[derive(Clone)]
 pub struct TapeProgram {
@@ -15,7 +16,7 @@ pub struct TapeProgram {
 }
 
 impl TapeProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<TapeProgram> {
+    pub(crate) fn new(program: &Program) -> Result<TapeProgram,Message> {
         Ok(TapeProgram {
             origins: program.get_attrib_handle("aOrigin")?,
             vertexes: program.get_attrib_handle("aVertexPosition")?,
@@ -59,7 +60,7 @@ impl TapeData {
 }
 
 impl GeometryData for TapeData {
-    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> anyhow::Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>> {
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message> {
         let x_vertex = self.x_vertex.iter_screen(stage.x())?;
         let x_origin = self.x_origin.iter_paper(stage.x())?;
         let x = x_vertex.zip(x_origin).map(|(s,p)| (s.0+p.0,s.1+p.1));
@@ -67,7 +68,7 @@ impl GeometryData for TapeData {
         Ok(Box::new(x.zip(y)))
     }
 
-    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         let mouse = (mouse.0 as f64, mouse.1 as f64);
         let min_x = self.x_vertex.min_screen(stage.x())? - self.x_origin.min_paper(stage.x())?;
         let max_x = self.x_vertex.max_screen(stage.x())? + self.x_origin.max_paper(stage.x())?;
@@ -84,11 +85,11 @@ pub struct TapeGeometry {
 }
 
 impl TapeGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> anyhow::Result<TapeGeometry> {
+    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> Result<TapeGeometry,Message> {
         Ok(TapeGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self, layer: &mut Layer, data: TapeData) -> anyhow::Result<ProcessStanzaElements> {
+    pub(crate) fn add(&self, layer: &mut Layer, data: TapeData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Tape,&self.patina)?;
         elements.add(&self.variety.origins,data.x_origin.vec1d_x())?;
         elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex))?;

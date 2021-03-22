@@ -5,6 +5,7 @@ use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlRenderingContext, WebGlBuffer };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
+use crate::util::message::Message;
 
 keyed_handle!(AttribHandle);
 
@@ -36,20 +37,20 @@ impl Source for Attribute {
         format!("attribute {} {};\n",spec.best_size(&self.precision,&Phase::Vertex).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, program: &mut Program) -> anyhow::Result<()> { 
+    fn build(&mut self, program: &mut Program) -> Result<(),Message> { 
         let context = program.context();
         let location = context.get_attrib_location(program.program(),&self.name);
         handle_context_errors(context)?;
         if location == -1 {
-            bail!("cannot get attrib '{}'",self.name);
+            return Err(Message::XXXTmp(format!("cannot get attrib '{}'",self.name)));
         }
         self.location = Some(location as u32);
         program.add_attrib(&self)
     }
 }
 
-fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> anyhow::Result<WebGlBuffer> {
-    let buffer = context.create_buffer().ok_or(err!("failed to create buffer"))?;
+fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> Result<WebGlBuffer,Message> {
+    let buffer = context.create_buffer().ok_or(Message::XXXTmp(format!("failed to create buffer")))?;
     // After `Float64Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Float64Array::view(values);
@@ -71,7 +72,7 @@ pub(crate) struct AttributeValues {
 }
 
 impl AttributeValues {
-    pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> anyhow::Result<AttributeValues> {
+    pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> Result<AttributeValues,Message> {
         Ok(AttributeValues {
             gl_value: create_buffer(context,&our_value)?,
             arity: object.arity.to_num() as i32,
@@ -79,7 +80,7 @@ impl AttributeValues {
         })
     }
 
-    pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         let location = self.location;
         context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&self.gl_value));
         handle_context_errors(context)?;
@@ -90,7 +91,7 @@ impl AttributeValues {
         Ok(())
     }
 
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.delete_buffer(Some(&self.gl_value));
         handle_context_errors(context)?;
         Ok(())

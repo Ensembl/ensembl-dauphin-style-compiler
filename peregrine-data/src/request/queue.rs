@@ -46,7 +46,7 @@ struct RequestQueueData {
 }
 
 impl RequestQueueData {
-    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>,DataMessage> {
+    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>,DataMessage> {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();

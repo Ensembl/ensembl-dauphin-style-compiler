@@ -6,6 +6,7 @@ use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingFlatsDrawable };
 use crate::webgl::global::WebGlGlobal;
 use keyed::keyed_handle;
+use crate::util::message::Message;
 
 keyed_handle!(FlatPlotRequestHandle);
 
@@ -35,7 +36,7 @@ impl WeaveAllocator {
         });
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> anyhow::Result<()> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> Result<(),Message> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
@@ -92,7 +93,7 @@ impl FlatPlotAllocator {
         out.iter().cloned().collect()
     }
 
-    pub(crate) fn make(self, gl: &mut WebGlGlobal) -> anyhow::Result<DrawingFlatsDrawable> {
+    pub(crate) fn make(self, gl: &mut WebGlGlobal) -> Result<DrawingFlatsDrawable,Message> {
         let mut weave_allocators = HashMap::new();
         let all_weaves = self.all_weaves();
         for weave in all_weaves.iter() {

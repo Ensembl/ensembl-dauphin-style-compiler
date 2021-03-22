@@ -4,6 +4,7 @@ use web_sys::Document;
 use crate::webgl::util::handle_context_errors;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
+use crate::util::message::Message;
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,
@@ -15,7 +16,7 @@ pub struct WebGlGlobal {
 }
 
 impl WebGlGlobal {
-    pub(crate) fn new(document: &Document, context: &WebGlRenderingContext) -> anyhow::Result<WebGlGlobal> {
+    pub(crate) fn new(document: &Document, context: &WebGlRenderingContext) -> Result<WebGlGlobal,Message> {
         let program_store = ProgramStore::new(&context)?;
         let canvas_store = FlatStore::new();
         let bindery = TextureBindery::new(program_store.gpu_spec());
@@ -37,7 +38,7 @@ impl WebGlGlobal {
     pub(crate) fn bindery(&mut self) -> &mut TextureBindery { &mut self.bindery }
     pub(crate) fn texture_store(&mut self) -> &mut TextureStore { &mut self.texture_store }
 
-    pub(crate) fn handle_context_errors(&mut self) -> anyhow::Result<()> {
+    pub(crate) fn handle_context_errors(&mut self) -> Result<(),Message> {
         handle_context_errors(&self.context)?;
         Ok(())
     }

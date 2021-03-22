@@ -17,7 +17,7 @@ lazy_static! {
 
 pub trait ChannelIntegration {
     fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>;
+    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]

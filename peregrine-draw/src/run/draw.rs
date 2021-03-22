@@ -39,10 +39,10 @@ pub struct PeregrineDraw {
 // TODO async/sync versions
 
 pub trait PeregrineDrawApi {
-    fn x(&self) -> anyhow::Result<f64>;
-    fn y(&self) -> anyhow::Result<f64>;
-    fn size(&self) -> anyhow::Result<(f64,f64)>;
-    fn bp_per_screen(&self) -> anyhow::Result<f64>;
+    fn x(&self) -> Result<f64,Message>;
+    fn y(&self) -> Result<f64,Message>;
+    fn size(&self) -> Result<(f64,f64),Message>;
+    fn bp_per_screen(&self) -> Result<f64,Message>;
     fn set_x(&mut self, x: f64);
     fn set_y(&mut self, x: f64);
     fn set_size(&mut self, x: f64, y: f64);
@@ -83,7 +83,7 @@ impl PeregrineDraw {
 // TODO end buffers
 
 impl PeregrineDraw {
-    pub fn new<F>(config: PeregrineConfig, canvas: Element, messages: F) -> anyhow::Result<PeregrineDraw> where F: FnMut(Message) + 'static + Send {
+    pub fn new<F>(config: PeregrineConfig, canvas: Element, messages: F) -> Result<PeregrineDraw,Message> where F: FnMut(Message) + 'static + Send {
         // XXX change commander init to allow message init to move to head
         let window = js_option(web_sys::window(),"cannot get window")?;
         let document = js_option(window.document(),"cannot get document")?;
@@ -93,18 +93,18 @@ impl PeregrineDraw {
         let commander_id = commander.identity();
         message_register_callback(Some(commander_id),messages);
         message_register_default(commander_id);
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| err!("cannot cast to canvas"))?;
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| Message::XXXTmp(format!("cannot cast to canvas")))?;
         let context = canvas
-            .get_context("webgl").map_err(|_| err!("cannot get webgl context"))?
+            .get_context("webgl").map_err(|_| Message::XXXTmp(format!("cannot get webgl context")))?
             .unwrap()
-            .dyn_into::<WebGlRenderingContext>().map_err(|_| err!("cannot get webgl context"))?;
+            .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::XXXTmp(format!("cannot get webgl context")))?;
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        })?;
+        }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         core.application_ready();
         let mut out = PeregrineDraw {
@@ -115,7 +115,7 @@ impl PeregrineDraw {
         Ok(out)
     }
     
-    fn setup(&mut self) -> anyhow::Result<()> {
+    fn setup(&mut self) -> Result<(),Message> {
         run_animations(self);
         Ok(())
     }
@@ -128,15 +128,15 @@ impl PeregrineDrawApi for PeregrineDraw {
         self.data_api.bootstrap(channel)
     }
 
-    fn x(&self) -> anyhow::Result<f64> { self.stage.lock().unwrap().x().position() }
-    fn y(&self) -> anyhow::Result<f64> { self.stage.lock().unwrap().y().position() }
-    fn size(&self) -> anyhow::Result<(f64,f64)> { 
+    fn x(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().position() }
+    fn y(&self) -> Result<f64,Message> { self.stage.lock().unwrap().y().position() }
+    fn size(&self) -> Result<(f64,f64),Message> { 
         Ok((
             self.stage.lock().unwrap().y().position()?,
             self.stage.lock().unwrap().y().position()?
         ))
     }
-    fn bp_per_screen(&self) -> anyhow::Result<f64> { self.stage.lock().unwrap().x().bp_per_screen() }
+    fn bp_per_screen(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().bp_per_screen() }
     
     fn set_x(&mut self, x: f64) {
         self.data_api.set_position(x);

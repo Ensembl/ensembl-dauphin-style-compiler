@@ -6,6 +6,7 @@ use crate::webgl::FlatId;
 use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
 use peregrine_data::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
+use crate::util::message::Message;
 
 pub(crate) enum PatinaProgram {
     Direct(DirectProgram),
@@ -14,19 +15,19 @@ pub(crate) enum PatinaProgram {
 }
 
 impl PatinaProgram {
-    pub(super) fn make_patina_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> anyhow::Result<PatinaProcess> {
+    pub(super) fn make_patina_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
         Ok(match self {
             PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(process,v)?),
             PatinaProgram::Texture(v) => {
                 match skin {
                     PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(process,v)?),
-                    _ => bail!("unexpected type mismatch")
+                    _ => { return Err(Message::XXXTmp(format!("unexpected type mismatch"))); }
                 }
             },
             PatinaProgram::Spot(v) => {
                 match skin {
                     PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(process,colour,v)?),
-                    _ => bail!("unexpected type mismatch")
+                    _ => { return Err(Message::XXXTmp(format!("unexpected type mismatch"))); }
                 }
             }
         })
@@ -46,7 +47,7 @@ impl PatinaProgramName {
         }
     }
 
-    pub(super) fn make_patina_program(&self, program: &Program) -> anyhow::Result<PatinaProgram> {
+    pub(super) fn make_patina_program(&self, program: &Program) -> Result<PatinaProgram,Message> {
         Ok(match self {
             PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(program)?),
             PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(program)?),

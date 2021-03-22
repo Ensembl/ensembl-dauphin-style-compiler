@@ -8,6 +8,7 @@ use crate::shape::core::tapegeometry::{ TapeData };
 use peregrine_data::ZMenuFixed;
 use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
+use crate::util::message::Message;
 
 pub struct ZMenuResult {
     menu: ZMenuFixed,
@@ -108,7 +109,7 @@ impl DrawingZMenus {
         }
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         for entry in &self.entries {
             if let Some(result) = entry.intersects(stage,mouse)? {
                 return Ok(Some(ZMenuEvent {
@@ -122,7 +123,7 @@ impl DrawingZMenus {
         Ok(None)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         for entry in &self.entries {
             if entry.intersects_fast(stage,mouse)? {
                 return Ok(true);

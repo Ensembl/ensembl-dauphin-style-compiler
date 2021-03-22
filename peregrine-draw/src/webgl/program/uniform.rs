@@ -5,6 +5,7 @@ use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
+use crate::util::message::Message;
 
 keyed_handle!(UniformHandle);
 
@@ -47,7 +48,7 @@ impl Source for Uniform {
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, program: &mut Program) -> anyhow::Result<()> {
+    fn build(&mut self, program: &mut Program) -> Result<(),Message> {
         let context = program.context();
         self.location = context.get_uniform_location(program.program(),self.name());
         handle_context_errors(context)?;
@@ -68,7 +69,7 @@ impl UniformValues {
         }
     }
 
-    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(gl_value) = &self.gl_value {
             let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
             if let Some(location) = &self.object.location {
@@ -77,7 +78,7 @@ impl UniformValues {
                     2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
                     3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
                     4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-                    x => bail!("bad uniform size {}",x)
+                    x => { return Err(Message::XXXTmp(format!("bad uniform size {}",x))); }
                 }
                 handle_context_errors(context)?;
             }
@@ -85,12 +86,12 @@ impl UniformValues {
         Ok(())
     }
 
-    pub fn set_value(&mut self, _context: &WebGlRenderingContext, our_value: Vec<f64>) -> anyhow::Result<()> {
+    pub fn set_value(&mut self, _context: &WebGlRenderingContext, our_value: Vec<f64>) -> Result<(),Message> {
         self.gl_value = Some(our_value);
         Ok(())
     }
 
-    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> anyhow::Result<()> {
+    pub fn discard(&mut self, _context: &WebGlRenderingContext) -> Result<(),Message> {
         Ok(())
     }
 }

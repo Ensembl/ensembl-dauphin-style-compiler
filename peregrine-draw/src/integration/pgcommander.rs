@@ -11,6 +11,7 @@ use crate::util::error::{ js_error, js_option, js_throw };
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
 use peregrine_data::{ Commander, DataMessage };
+use crate::util::message::Message;
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -74,7 +75,7 @@ impl CommanderState {
     fn make_lock(&self) -> Lock { self.executor.lock().unwrap().make_lock() }
     fn identity(&self) -> u64 { self.executor.lock().unwrap().identity() }
 
-    fn schedule(&self) -> anyhow::Result<()> {
+    fn schedule(&self) -> Result<(),Message> {
         let window = js_option(web_sys::window(),"cannot get window")?;
         let mut state = self.sleep_state.lock().unwrap();
         if let Some((_,handle)) = state.timeout.take() {
@@ -120,7 +121,7 @@ pub struct PgCommanderWeb {
 }
 
 impl PgCommanderWeb {
-    pub fn new(el: &HtmlElement) -> anyhow::Result<PgCommanderWeb> {
+    pub fn new(el: &HtmlElement) -> Result<PgCommanderWeb,Message> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             raf_pending: None,

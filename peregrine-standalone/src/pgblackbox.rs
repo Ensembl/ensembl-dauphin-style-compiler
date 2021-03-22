@@ -13,6 +13,7 @@ use serde_json::Value as JsonValue;
 use fnv::FnvHasher;
 use base64;
 use url::Url;
+use peregrine_draw::Message;
 
 #[derive(Clone)]
 pub struct PgBlackboxIntegration {
@@ -36,23 +37,23 @@ impl PgBlackboxIntegration {
     }
 
     #[cfg(blackbox)]
-    async fn send_data(&self, data: &JsonValue) -> anyhow::Result<()> {
+    async fn send_data(&self, data: &JsonValue) -> Result<(),Message> {
         if let Some(url) = self.url() {
             let mut ajax = PgAjax::new("POST",&url);
             let mut buffer = Vec::new();
             display_error(serde_json::to_writer(&mut buffer,&data))?;
             ajax.set_body(buffer);
-            let response = ajax.get_json().await.context("sending blackbox data")?;
+            let response = ajax.get_json().await?;
             blackbox_config(&response);
         }
         Ok(())
     }    
 
     #[cfg(blackbox)]
-    pub async fn sync_task(&self) -> anyhow::Result<()> {
+    pub async fn sync_task(&self) -> Result<(),Message> {
         loop {
             let data = blackbox_take_json();
-            js_warn(self.send_data(&data).await.context("sending blackbox"));
+            js_warn(self.send_data(&data).await);
             cdr_timer(10000.).await;
         }
     }

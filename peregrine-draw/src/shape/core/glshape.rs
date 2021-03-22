@@ -9,6 +9,7 @@ use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, TextureBindery};
 use super::super::layers::drawing::DrawingTools;
+use crate::util::message::Message;
 
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
@@ -24,7 +25,7 @@ fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> anyhow::Result<(ProcessStanzaElements,GeometryProcessName)> {
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<(ProcessStanzaElements,GeometryProcessName),Message> {
     match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
             let pin_data = PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow);
@@ -45,7 +46,7 @@ fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaPr
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>, hollow: bool) -> anyhow::Result<(ProcessStanzaElements,GeometryProcessName)> {
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>, hollow: bool) -> Result<(ProcessStanzaElements,GeometryProcessName),Message> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -74,12 +75,12 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     }
 }
 
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> anyhow::Result<(ProcessStanzaArray,GeometryProcessName)> {    
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> Result<(ProcessStanzaArray,GeometryProcessName),Message> {    
     let stanza_builder = layer.get_wiggle(patina)?.add_wiggle(layer,start,end,y,height)?;
     Ok((stanza_builder,GeometryProcessName::Pin))
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> anyhow::Result<()> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> Result<(),Message> {
     match colour {
         Colour::Direct(d) => {
             let direct = layer.get_direct(geometry)?;
@@ -94,7 +95,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
     Ok(())
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> anyhow::Result<PreparedShape> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<PreparedShape,Message> {
     Ok(match shape {
         Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)
@@ -115,7 +116,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     })
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> anyhow::Result<()> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> Result<(),Message> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
