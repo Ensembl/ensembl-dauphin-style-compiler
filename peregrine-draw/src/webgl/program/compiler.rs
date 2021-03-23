@@ -19,7 +19,7 @@ impl WebGlCompiler {
     }
 
     fn compile_shader(&self, shader_type: u32, source: &str) -> Result<WebGlShader,Message> {
-        let shader = self.context.create_shader(shader_type).ok_or_else(|| Message::XXXTmp("Unable to create shader object".to_string()))?;
+        let shader = self.context.create_shader(shader_type).ok_or_else(|| Message::WebGLFailure("Unable to create shader object".to_string()))?;
         handle_context_errors(&self.context)?;
         self.context.shader_source(&shader, source);
         handle_context_errors(&self.context)?;
@@ -30,7 +30,7 @@ impl WebGlCompiler {
             handle_context_errors(&self.context)?;
             Ok(shader)
         } else {
-            Err(Message::XXXTmp(self.context.get_shader_info_log(&shader).unwrap_or_else(|| String::from("Unknown error creating shader"))))
+            Err(Message::WebGLFailure(self.context.get_shader_info_log(&shader).unwrap_or_else(|| String::from("Unknown error creating shader"))))
         }
     }
     
@@ -45,7 +45,7 @@ impl WebGlCompiler {
     }
     
     pub(crate) fn make_program(&self, source: SourceInstrs) -> Result<Program,Message> {
-        let program = self.context.create_program().ok_or_else(|| Message::XXXTmp(format!("could not create program")))?;
+        let program = self.context.create_program().ok_or_else(|| Message::WebGLFailure(format!("could not create program")))?;
         handle_context_errors(&self.context)?;
         self.context.attach_shader(&program,&self.make_vertex_shader(&source)?);
         handle_context_errors(&self.context)?;
@@ -57,7 +57,7 @@ impl WebGlCompiler {
             handle_context_errors(&self.context)?;
             Ok(Program::new(&self.context,program,source)?)
         } else {
-            Err(Message::XXXTmp(self.context.get_program_info_log(&program).unwrap_or_else(|| String::from("Unknown error creating program object"))))
+            Err(Message::WebGLFailure(self.context.get_program_info_log(&program).unwrap_or_else(|| String::from("Unknown error creating program object"))))
         }
     }    
 }

@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err, bail };
 use super::source::Source;
 use super::program::Program;
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
@@ -42,7 +41,7 @@ impl Source for Attribute {
         let location = context.get_attrib_location(program.program(),&self.name);
         handle_context_errors(context)?;
         if location == -1 {
-            return Err(Message::XXXTmp(format!("cannot get attrib '{}'",self.name)));
+            return Err(Message::WebGLFailure(format!("cannot get attrib '{}'",self.name)));
         }
         self.location = Some(location as u32);
         program.add_attrib(&self)
@@ -50,7 +49,7 @@ impl Source for Attribute {
 }
 
 fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> Result<WebGlBuffer,Message> {
-    let buffer = context.create_buffer().ok_or(Message::XXXTmp(format!("failed to create buffer")))?;
+    let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     // After `Float64Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Float64Array::view(values);

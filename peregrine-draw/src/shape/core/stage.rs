@@ -75,7 +75,7 @@ impl ProgramStage {
 }
 
 fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
-    x.as_ref().cloned().ok_or_else(|| Message::XXXTmp("accseeor used on non-ready stage".to_string()))
+    x.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("accseeor used on non-ready stage".to_string()))
 }
 
 pub trait ReadStageAxis {

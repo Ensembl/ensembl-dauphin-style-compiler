@@ -1,4 +1,3 @@
-use anyhow::{ bail, anyhow as err };
 use std::collections::VecDeque;
 use crate::webgl::{ FlatId, FlatStore };
 use keyed::KeyedData;
@@ -37,14 +36,14 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
 
 fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<WebGlTexture,Message> {
     let canvas = canvas_store.get(our_data)?;
-    let texture = context.create_texture().ok_or_else(|| Message::XXXTmp("cannot create texture".to_string()))?;
+    let texture = context.create_texture().ok_or_else(|| Message::WebGLFailure("cannot create texture".to_string()))?;
     handle_context_errors(context)?;
     context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
     handle_context_errors(context)?;
     context.tex_image_2d_with_u32_and_u32_and_canvas( // wow
         WebGlRenderingContext::TEXTURE_2D,0,WebGlRenderingContext::RGBA as i32,WebGlRenderingContext::RGBA,
         WebGlRenderingContext::UNSIGNED_BYTE,canvas.element()?
-    ).map_err(|e| Message::XXXTmp(format!("cannot bind texture: {:?}",&e.as_string())))?;
+    ).map_err(|e| Message::WebGLFailure(format!("cannot bind texture: {:?}",&e.as_string())))?;
     handle_context_errors(context)?;
     apply_weave(context,canvas.weave())?;
     Ok(texture)
@@ -66,7 +65,7 @@ impl TextureStore {
     }
 
     fn remove(&mut self, id: &FlatId) -> Result<WebGlTexture,Message> {
-        self.0.remove(id).ok_or_else(|| Message::XXXTmp(format!("no such texture")))
+        self.0.remove(id).ok_or_else(|| Message::CodeInvariantFailed(format!("missing key B")))
     }
 }
 
@@ -159,7 +158,7 @@ impl TextureBindery {
     fn set(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
         if let Some(index) = self.lru.pop_front() {
             let mut old_texture = None;
-            if let Some(old_id) = self.position_to_flat.get(index as usize).ok_or_else(|| Message::XXXTmp(format!("bad index")))?.clone() {
+            if let Some(old_id) = self.position_to_flat.get(index as usize).ok_or_else(|| Message::CodeInvariantFailed(format!("bad index A")))?.clone() {
                 self.unbind(&old_id)?;
                 old_texture = Some(old_id);
             } else {
@@ -168,7 +167,7 @@ impl TextureBindery {
             let new_index = self.bind(flat,index)?;
             Ok(Rebind::new(old_texture,flat.clone(),new_index))
         } else {
-            Err(Message::XXXTmp("too many textures bound".to_string()))
+            Err(Message::CodeInvariantFailed("too many textures bound".to_string()))
         }
     }
 
@@ -191,6 +190,6 @@ impl TextureBindery {
     }
 
     pub(crate) fn gl_index(&self, flat_id: &FlatId) -> Result<u32,Message> {
-        Ok(self.flat_to_binding.get(flat_id).as_ref().ok_or_else(|| Message::XXXTmp(format!("no index assigned")))?.gl_index)
+        Ok(self.flat_to_binding.get(flat_id).as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("no index assigned")))?.gl_index)
     }
 }

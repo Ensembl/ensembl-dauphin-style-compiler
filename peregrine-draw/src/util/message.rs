@@ -16,66 +16,84 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 
 #[derive(Debug)]
 pub enum Message {
-    DroppedWithoutTidying(String),
+    CodeInvariantFailed(String),
     DataError(DataMessage),
     InvalidBackendLocation(String),
-    XXXTmp(String)
+    ConfusedWebBrowser(String),
+    SerializationError(String),
+    WebGLFailure(String),
+    Canvas2DFailure(String),
+    BadWebGLProgram(String,String),
+    CannotPackRectangles(String),
+    BadBackendConnection(String),
 }
 
 impl PeregrineMessage for Message {
     fn level(&self) -> MessageLevel {
         match self {
-            Message::DroppedWithoutTidying(_) => MessageLevel::Warn,
             Message::DataError(d) => d.level(),
-            Message::XXXTmp(_) => MessageLevel::Error,
-            Message::InvalidBackendLocation(_) => MessageLevel::Error,
+            _ => MessageLevel::Warn,
         }
     }
 
     fn category(&self) -> MessageCategory {
         match self {
-            Message::DroppedWithoutTidying(_) => MessageCategory::BadCode,
+            Message::CodeInvariantFailed(_) => MessageCategory::BadCode,
             Message::DataError(d) => d.category(),
-            Message::XXXTmp(_) => MessageCategory::Unknown,
             Message::InvalidBackendLocation(_) => MessageCategory::BadFrontend,
+            Message::ConfusedWebBrowser(_) => MessageCategory::BadFrontend,
+            Message::SerializationError(_) => MessageCategory::BadCode,
+            Message::WebGLFailure(_) => MessageCategory::BadCode,
+            Message::Canvas2DFailure(_) => MessageCategory::BadCode,
+            Message::BadWebGLProgram(_,_) => MessageCategory::BadCode,
+            Message::CannotPackRectangles(_) => MessageCategory::BadCode,
+            Message::BadBackendConnection(_) => MessageCategory::BadBackend,
         }
     }
 
     fn now_unstable(&self) -> bool {
         match self {
-            Message::DroppedWithoutTidying(_) => false,
             Message::DataError(d) => d.now_unstable(),
-            Message::XXXTmp(_) => true,
-            Message::InvalidBackendLocation(_) => true
+            _ => true,
         }
     }
 
     fn degraded_experience(&self) -> bool {
         if self.now_unstable() { return true; }
         match self {
-            Message::DroppedWithoutTidying(_) => true,
             Message::DataError(d) => d.degraded_experience(),
-            Message::XXXTmp(_) => true,
             _ => true,
         }
     }
 
     fn code(&self) -> (u64,u64) {
-        // allowed 500-999; next is 503
+        // allowed 500-999; next is 511; 501 is unused
         match self {
-            Message::DroppedWithoutTidying(s) => (0,calculate_hash(s)),
+            Message::CodeInvariantFailed(s) => (503,calculate_hash(s)),
             Message::DataError(d) => d.code(),
-            Message::XXXTmp(s) => (501,calculate_hash(s)),
             Message::InvalidBackendLocation(s) => (502,calculate_hash(s)),
+            Message::ConfusedWebBrowser(s) => (504,calculate_hash(s)),
+            Message::SerializationError(s) => (505,calculate_hash(s)),
+            Message::WebGLFailure(s) => (506,calculate_hash(s)),
+            Message::Canvas2DFailure(s) => (507,calculate_hash(s)),
+            Message::BadWebGLProgram(s,p) => (508,calculate_hash(&(s,p))),
+            Message::CannotPackRectangles(s) => (509,calculate_hash(s)),
+            Message::BadBackendConnection(s) => (510,calculate_hash(s)),
         }
     }
 
     fn to_message_string(&self) -> String {
         match self {
-            Message::DroppedWithoutTidying(s) => format!("dropped object without tidying: {}",s),
+            Message::CodeInvariantFailed(s) => format!("code invariant violated: {}",s),
             Message::DataError(d) => d.to_string(),
-            Message::XXXTmp(s) => format!("temporary string error: {}",s),
             Message::InvalidBackendLocation(s) => format!("invalid backend locaiton: {}",s),
+            Message::ConfusedWebBrowser(s) => format!("confused web browser: {}",s),
+            Message::SerializationError(s) => format!("serialization error: {}",s),
+            Message::WebGLFailure(s) => format!("WebGL failure: {}",s),
+            Message::Canvas2DFailure(s) => format!("2D canvas failuesL {}",s),
+            Message::BadWebGLProgram(s,p) => format!("bad Webglprogram '{}' : {}",s,p),
+            Message::CannotPackRectangles(s) => format!("cannot pack rectangles: {}",s),
+            Message::BadBackendConnection(s) => format!("bad backend connection: {}",s),
         }
     }
 }

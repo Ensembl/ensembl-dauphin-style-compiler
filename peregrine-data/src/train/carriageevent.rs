@@ -37,12 +37,14 @@ impl CarriageEvents {
 
     pub(super) fn run(&mut self, objects: &mut PeregrineCore) {
         let events : Vec<CarriageEvent> = self.0.lock().unwrap().drain(..).collect();
+        let mut errors = vec![];
         let mut loads = vec![];
         let mut transition = None; /* delay till after corresponding set also eat multiples */
         for e in events {
             match e {
                 CarriageEvent::Set(carriages,index) => {
-                    objects.integration.lock().unwrap().set_carriages(&carriages,index);
+                    let r = objects.integration.lock().unwrap().set_carriages(&carriages,index);
+                    if let Err(r) = r { errors.push(r); }
                 },
                 CarriageEvent::Transition(index,max,speed) => {
                     transition = Some((index,max,speed));
@@ -59,7 +61,14 @@ impl CarriageEvents {
             objects.train_set.clone().run_load_carriages(objects,loads);
         }
         if let Some((index,max,speed)) = transition {
-            objects.integration.lock().unwrap().start_transition(index,max,speed);
+            let r = objects.integration.lock().unwrap().start_transition(index,max,speed);
+            if let Err(r) = r {
+                errors.push(r);
+                objects.transition_complete();
+            }
+        }
+        for e in errors.drain(..) {
+            objects.base.messages.send(e);
         }
     }
 }

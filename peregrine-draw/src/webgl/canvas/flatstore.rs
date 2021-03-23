@@ -4,7 +4,6 @@ use keyed::KeyedOptionalValues;
 use web_sys::{ Document };
 use super::flat::Flat;
 use keyed::keyed_handle;
-use crate::util::error::js_warn;
 use crate::util::message::Message;
 
 // TODO test discard webgl buffers etc
@@ -45,11 +44,11 @@ impl FlatStore {
     }
 
     pub(crate) fn get(&self, id: &FlatId) -> Result<&Flat,Message> {
-        self.main_canvases.get(id).map_err(|e| Message::XXXTmp(e.to_string()))
+        self.main_canvases.get(id).map_err(|_| Message::CodeInvariantFailed(format!("missing key B")))
     }
 
     pub(crate) fn discard(&mut self, id: &FlatId) -> Result<(),Message> {
-        self.main_canvases.get_mut(id).map_err(|x| Message::XXXTmp(format!("missing key")))?.discard()?;
+        self.main_canvases.get_mut(id).map_err(|_| Message::CodeInvariantFailed(format!("missing key A")))?.discard()?;
         self.main_canvases.remove(id);
         Ok(())
     }
@@ -68,6 +67,6 @@ impl FlatStore {
 
 impl Drop for FlatStore {
     fn drop(&mut self) {
-        js_warn(self.discard_all());
+        self.discard_all();
     }
 }

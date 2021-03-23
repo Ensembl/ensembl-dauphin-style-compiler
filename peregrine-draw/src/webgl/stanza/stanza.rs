@@ -9,7 +9,7 @@ use crate::webgl::Attribute;
 use crate::util::message::Message;
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
-    let buffer = context.create_buffer().ok_or(Message::XXXTmp(format!("failed to create buffer")))?;
+    let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Uint16Array::view(values);

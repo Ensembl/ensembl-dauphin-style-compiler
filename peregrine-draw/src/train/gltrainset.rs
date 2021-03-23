@@ -55,7 +55,7 @@ impl GlTrainSetData {
         let from = match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
-                return Err(Message::XXXTmp(format!("overlapping fades sent to UI")));
+                return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
         self.fade_state = FadeState::Fading(from,index,speed,0.,self.redraw_needed.clone().lock());
@@ -95,7 +95,7 @@ impl GlTrainSetData {
                 let prop = self.fade_time(&speed,elapsed);
                 if prop >= 1. {
                     if let Some(from) = from {
-                        self.get_train(gl,from).discard(gl).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                        self.get_train(gl,from).discard(gl)?;
                         self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
@@ -112,20 +112,20 @@ impl GlTrainSetData {
 
     fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut session = DrawingSession::new();
-        session.begin(gl,stage).map_err(|e| Message::XXXTmp(e.to_string()))?;
+        session.begin(gl,stage)?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                self.get_train(gl,train).draw(gl,stage,&session)?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                    self.get_train(gl,from).draw(gl,stage,&session)?;
                 }
-                self.get_train(gl,to).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                self.get_train(gl,to).draw(gl,stage,&session)?;
             },
         }
-        session.finish().map_err(|e| Message::XXXTmp(e.to_string()))?;
+        session.finish()?;
         Ok(())
     }
 
@@ -168,7 +168,7 @@ impl GlTrainSet {
     }
 
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
-        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed).map_err(|e| Message::XXXTmp(e.to_string()))? {
+        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
             blackbox_log!("gltrain","transition_complete()");
             api.transition_complete();
         }

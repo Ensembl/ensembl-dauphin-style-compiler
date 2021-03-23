@@ -20,7 +20,7 @@ impl PgChannel {
 
 fn add_priority(a: &Url, prio: PacketPriority) -> Result<Url,Message> {
     let mut z = a.clone();
-    let mut path = z.path_segments_mut().map_err(|_| Message::XXXTmp(format!("cannot manipulate URL")))?;
+    let mut path = z.path_segments_mut().map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
     path.push(match prio {
         PacketPriority::RealTime => "hi",
         PacketPriority::Batch => "lo"

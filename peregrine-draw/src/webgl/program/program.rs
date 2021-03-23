@@ -37,11 +37,11 @@ impl Program {
     }
 
     pub fn get_attrib_handle(&self, name: &str) -> Result<AttribHandle,Message> {
-        self.attribs.get_handle(name).map_err(|e| Message::XXXTmp(e.to_string()))
+        self.attribs.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing attrib key")))
     }
 
     pub fn get_uniform_handle(&self, name: &str) -> Result<UniformHandle,Message> {
-        self.uniforms.get_handle(name).map_err(|e| Message::XXXTmp(e.to_string()))
+        self.uniforms.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing uniform key")))
     }
 
     pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> Result<(),Message> {

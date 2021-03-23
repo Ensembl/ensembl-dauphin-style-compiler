@@ -45,9 +45,9 @@ impl Text {
 
     pub fn get_texture_areas(&self) -> Result<CanvasTextureAreas,Message> {
         Ok(CanvasTextureAreas::new(
-            self.text_origin.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no origin".to_string()))?,
-            self.mask_origin.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no origin".to_string()))?,
-            self.size.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no size".to_string()))?
+            self.text_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))?,
+            self.mask_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. m origin".to_string()))?,
+            self.size.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. size".to_string()))?
         ))
     }
 }
@@ -110,7 +110,7 @@ impl DrawingText {
     }
 
     pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
-        let request = self.request.as_ref().cloned().ok_or_else(|| Message::XXXTmp("no such id".to_string()))?;
+        let request = self.request.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("missing canvas id")))?;
         Ok(builder.canvas(&request))
     }
 

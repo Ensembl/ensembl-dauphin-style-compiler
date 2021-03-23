@@ -21,13 +21,13 @@ impl PatinaProgram {
             PatinaProgram::Texture(v) => {
                 match skin {
                     PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(process,v)?),
-                    _ => { return Err(Message::XXXTmp(format!("unexpected type mismatch"))); }
+                    _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not texture"))); }
                 }
             },
             PatinaProgram::Spot(v) => {
                 match skin {
                     PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(process,colour,v)?),
-                    _ => { return Err(Message::XXXTmp(format!("unexpected type mismatch"))); }
+                    _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not spot"))); }
                 }
             }
         })

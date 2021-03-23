@@ -78,7 +78,7 @@ impl UniformValues {
                     2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
                     3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
                     4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-                    x => { return Err(Message::XXXTmp(format!("bad uniform size {}",x))); }
+                    x => { return Err(Message::CodeInvariantFailed(format!("bad uniform size {}",x))); }
                 }
                 handle_context_errors(context)?;
             }

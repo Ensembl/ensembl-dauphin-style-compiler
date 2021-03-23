@@ -152,7 +152,7 @@ macro_rules! layer_geometry_accessor {
     ($func:ident,$geom_type:ty,$geom_name:ident) => {
         pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> Result<$geom_type,Message> {
             let geom = self.get_geometry(&GeometryProcessName::$geom_name,patina)?;
-            match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
+            match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer A"))) }
         }
     };
 }
@@ -161,7 +161,7 @@ macro_rules! layer_patina_accessor {
     ($func:ident,$patina_type:ty,$patina_name:ident) => {
         pub(crate) fn $func(&mut self, geometry: &GeometryProcessName) -> Result<$patina_type,Message> {
             let patina = self.get_patina(geometry,&PatinaProcessName::$patina_name)?;
-            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ =>  Err(Message::XXXTmp(format!("inconsistent layer"))) }
+            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ =>  Err(Message::CodeInvariantFailed(format!("inconsistent layer B"))) }
         }                
     };
 }
@@ -226,12 +226,12 @@ impl Layer {
 
     pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> Result<SpotColourDraw,Message> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
-        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
+        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer C"))) }
     }
 
     pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, element_id: &FlatId) -> Result<TextureDraw,Message> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Texture(element_id.clone()))?;
-        match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::XXXTmp(format!("inconsistent layer"))) }
+        match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
     }
 
     pub(super) fn build(self, process: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {

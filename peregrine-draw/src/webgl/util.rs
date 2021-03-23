@@ -10,7 +10,7 @@ pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(
         errors.push(err);
     }
     if errors.len() > 0 {
-        Err(Message::XXXTmp(format!("webgl errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(","))))
+        Err(Message::WebGLFailure(format!("context errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(","))))
     } else {
         Ok(())
     }

@@ -13,7 +13,8 @@ use web_sys::console;
 use peregrine_data::{Channel, ChannelLocation, Commander, DataMessage, StickId, Track};
 use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
-use peregrine_draw::{ js_option, js_throw, PgCommanderWeb };
+use peregrine_draw::{ PgCommanderWeb };
+use crate::error::{ js_option, js_throw };
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -55,9 +56,9 @@ fn test_fn() -> Result<(),Message> {
     let mut config = PeregrineConfig::new();
     config.set_f64("animate.fade.slow",500.);
     config.set_f64("animate.fade.fast",100.);
-    let window = js_option(web_sys::window(),"cannot get window")?;
-    let document = js_option(window.document(),"cannot get document")?;
-    let canvas = js_option(document.get_element_by_id("trainset"),"canvas gone AWOL")?;
+    let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
+    let document = window.document().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get document")))?;
+    let canvas = document.get_element_by_id("trainset").ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get canvas")))?;
     let pg_web = js_throw(PeregrineDraw::new(config,canvas,|message| {
         use web_sys::console;
         console::log_1(&format!("{}",message).into());

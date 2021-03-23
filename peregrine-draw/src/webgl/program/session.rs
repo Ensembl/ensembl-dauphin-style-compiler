@@ -43,7 +43,7 @@ impl DrawingSession {
         Ok(())
     }
 
-    pub(crate) fn finish(&self) -> anyhow::Result<()> {
+    pub(crate) fn finish(&self) -> Result<(),Message> {
         Ok(())
     }
 }

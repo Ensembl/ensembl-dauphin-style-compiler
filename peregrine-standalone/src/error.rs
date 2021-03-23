@@ -14,16 +14,7 @@ pub(crate) fn console_error(s: &str) {
     }
 }
 
-pub(crate) fn js_warn(e: Result<(),Message>) {
-    match e {
-        Ok(e) => e,
-        Err(e) => {
-            console_error(&format!("{}",e));
-        }
-    }
-}
-
-pub fn js_throw<T>(e: anyhow::Result<T>) -> T {
+pub fn js_throw<T>(e: Result<T,Message>) -> T {
     match e {
         Ok(e) => e,
         Err(e) => {
@@ -31,8 +22,4 @@ pub fn js_throw<T>(e: anyhow::Result<T>) -> T {
             panic!("panic");
         }
     }
-}
-
-pub(crate) fn display_error<T,E>(e: Result<T,E>) -> Result<T,Message> where E: fmt::Display {
-    e.map_err(|e| Message::XXXTmp(e.to_string()))
 }

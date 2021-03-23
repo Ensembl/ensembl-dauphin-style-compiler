@@ -186,5 +186,5 @@ pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<
         }    
         max_area /= 2;
     }
-    Err(Message::XXXTmp(format!("could not generate areas")))
+    Err(Message::CannotPackRectangles(format!("all attempts failed")))
 }

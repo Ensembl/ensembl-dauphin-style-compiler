@@ -1,4 +1,3 @@
-use anyhow::{ self };
 use blackbox::blackbox_log;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex, MutexGuard };
@@ -7,11 +6,10 @@ use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity,
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
-use crate::util::error::{ js_error, js_option, js_throw };
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
 use peregrine_data::{ Commander, DataMessage };
-use crate::util::message::Message;
+use crate::util::message::{ message, Message };
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -38,7 +36,17 @@ use crate::util::message::Message;
  * world, they would block until schedule exited.
  */
 
+ 
 const MS_PER_TICK : f64 = 7.;
+
+pub fn js_panic(e: Result<(),Message>) {
+    match e {
+        Ok(_) => (),
+        Err(e) => {
+            message(e);
+        }
+    }
+}
 
 struct CommanderSleepState {
     raf_pending: Option<Closure<dyn Fn()>>,
@@ -60,7 +68,7 @@ impl CommanderState {
     fn raf_tick(&self) {
         self.sleep_state.lock().unwrap().raf_pending = None;
         self.tick();
-        js_throw(self.schedule());
+        js_panic(self.schedule());
     }
 
     fn timer_tick(&self) {
@@ -69,14 +77,14 @@ impl CommanderState {
         }
         self.sleep_state.lock().unwrap().timeout.take();
         self.tick();
-        js_throw(self.schedule());
+        js_panic(self.schedule());
     }
 
     fn make_lock(&self) -> Lock { self.executor.lock().unwrap().make_lock() }
     fn identity(&self) -> u64 { self.executor.lock().unwrap().identity() }
 
     fn schedule(&self) -> Result<(),Message> {
-        let window = js_option(web_sys::window(),"cannot get window")?;
+        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
         let mut state = self.sleep_state.lock().unwrap();
         if let Some((_,handle)) = state.timeout.take() {
             window.clear_timeout_with_handle(handle);
@@ -88,7 +96,7 @@ impl CommanderState {
                 let closure = Closure::wrap(Box::new(move || {
                     handle.timer_tick();
                 }) as Box<dyn Fn()>);
-                let handle = js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),0))?;
+                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),0).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout A: {:?}",e)))?;
                 state.timeout = Some((closure,handle));
             },
             SleepQuantity::Forever => {},
@@ -98,7 +106,7 @@ impl CommanderState {
                     state.raf_pending = Some(Closure::wrap(Box::new(move || {
                         handle.raf_tick()
                     })));
-                    js_error(window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()))?;
+                    window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback")))?;
                 }
             },
             SleepQuantity::Time(t) => {
@@ -106,7 +114,7 @@ impl CommanderState {
                 let closure = Closure::wrap(Box::new(move || {
                     handle.timer_tick()
                 }) as Box<dyn Fn()>);
-                let handle = js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),t as i32))?;
+                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
                 state.timeout = Some((closure,handle));
             }
         }
@@ -143,7 +151,7 @@ impl PgCommanderWeb {
         };
         out.bell_receiver.add(move || {
             blackbox_log!("commander-integration","bell received");
-            js_throw(state.schedule());
+            js_panic(state.schedule());
         });
         Ok(out)
     }
@@ -191,7 +199,7 @@ impl Integration for PgIntegration {
     fn sleep(&self, amount: SleepQuantity) {
         blackbox_log!("commander-integration","setting sleep to {:?}",amount);
         *self.quantity.lock().unwrap() = amount;
-        js_throw(self.bell_sender.ring());
+        js_panic(self.bell_sender.ring());
         blackbox_log!("commander-integration","bell sent");
     }
 }

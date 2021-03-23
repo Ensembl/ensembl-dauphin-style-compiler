@@ -6,7 +6,6 @@ use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
-use crate::util::error::{ js_option };
 use peregrine_data::{ 
     Commander,
     PeregrineCore,
@@ -85,19 +84,19 @@ impl PeregrineDraw {
 impl PeregrineDraw {
     pub fn new<F>(config: PeregrineConfig, canvas: Element, messages: F) -> Result<PeregrineDraw,Message> where F: FnMut(Message) + 'static + Send {
         // XXX change commander init to allow message init to move to head
-        let window = js_option(web_sys::window(),"cannot get window")?;
-        let document = js_option(window.document(),"cannot get document")?;
-        let html = js_option(document.body().clone(),"cannot get body")?;
+        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
+        let document = window.document().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get document")))?;
+        let html = document.body().clone().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get body")))?;
         let commander = PgCommanderWeb::new(&html)?;
         commander.start();
         let commander_id = commander.identity();
         message_register_callback(Some(commander_id),messages);
         message_register_default(commander_id);
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| Message::XXXTmp(format!("cannot cast to canvas")))?;
+        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser(format!("cannot cast to canvas")))?;
         let context = canvas
-            .get_context("webgl").map_err(|_| Message::XXXTmp(format!("cannot get webgl context")))?
+            .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
             .unwrap()
-            .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::XXXTmp(format!("cannot get webgl context")))?;
+            .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;

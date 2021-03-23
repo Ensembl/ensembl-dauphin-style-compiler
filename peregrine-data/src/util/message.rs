@@ -107,7 +107,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 27; 17, 25 unused; 499 is last.
+        // Next code is 27; 0, 17, 25 unused; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),

@@ -101,7 +101,7 @@ impl ProcessStanzaAddable for ProcessStanzaElements {
     fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
         let array_size = self.tuple_size * self.count;
         if values.len() != array_size {
-            return Err(Message::XXXTmp(format!("incorrect array length: expected {} got {}",array_size,values.len())));
+            return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} got {}",array_size,values.len())));
         }
         let mut offset = 0;
         for (entry,count) in &mut self.elements {

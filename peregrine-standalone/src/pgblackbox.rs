@@ -8,12 +8,12 @@ use js_sys::Date;
 use js_sys::Math::random;
 use lazy_static::lazy_static;
 use peregrine_draw::{ PgAjax };
-use crate::error::{ display_error, js_warn };
 use serde_json::Value as JsonValue;
 use fnv::FnvHasher;
 use base64;
 use url::Url;
 use peregrine_draw::Message;
+use web_sys::console;
 
 #[derive(Clone)]
 pub struct PgBlackboxIntegration {
@@ -41,7 +41,7 @@ impl PgBlackboxIntegration {
         if let Some(url) = self.url() {
             let mut ajax = PgAjax::new("POST",&url);
             let mut buffer = Vec::new();
-            display_error(serde_json::to_writer(&mut buffer,&data))?;
+            serde_json::to_writer(&mut buffer,&data).map_err(|e| Message::SerializationError(e.to_string()))?;
             ajax.set_body(buffer);
             let response = ajax.get_json().await?;
             blackbox_config(&response);
@@ -53,7 +53,9 @@ impl PgBlackboxIntegration {
     pub async fn sync_task(&self) -> Result<(),Message> {
         loop {
             let data = blackbox_take_json();
-            js_warn(self.send_data(&data).await);
+            if let Err(e) = self.send_data(&data).await {
+                console::log_1(&format!("blackbox: {}",e).into());
+            }
             cdr_timer(10000.).await;
         }
     }

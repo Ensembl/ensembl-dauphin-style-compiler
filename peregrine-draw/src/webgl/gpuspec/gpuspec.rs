@@ -40,8 +40,8 @@ fn get_precisions(out: &mut Vec<(GLSize,Precision)>, context: &WebGlRenderingCon
 }
 
 fn get_parameter_u32(context: &WebGlRenderingContext, name: u32) -> Result<u32,Message> {
-    let value : Option<f64> = context.get_parameter(name).map_err(|e| Message::XXXTmp(format!("could not get {}: {:?}",name,e.as_string())))?.as_f64();
-    let value = value.ok_or_else(|| Message::XXXTmp(format!("could not get {}: null value",name)))?;
+    let value : Option<f64> = context.get_parameter(name).map_err(|e| Message::WebGLFailure(format!("could not get {}: {:?}",name,e.as_string())))?.as_f64();
+    let value = value.ok_or_else(|| Message::WebGLFailure(format!("could not get {}: null value",name)))?;
     Ok(value as u32)
 }
 
@@ -78,7 +78,7 @@ impl GPUSpec {
         get_precisions(&mut self.vert_precs,context,WebGlRenderingContext::VERTEX_SHADER);
         get_precisions(&mut self.frag_precs,context,WebGlRenderingContext::FRAGMENT_SHADER);
         if self.vert_precs.len() == 0 || self.frag_precs.len() == 0 {
-            return Err(Message::XXXTmp(format!("retrieving GPU spec failed")))
+            return Err(Message::WebGLFailure(format!("retrieving GPU spec failed")))
         }
         Ok(())
     }
