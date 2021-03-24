@@ -15,43 +15,41 @@ use super::frame::run_animations;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
-use wasm_bindgen::JsCast;
 use super::dom::PeregrineDom;
 use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::webgl::global::WebGlGlobal;
-use commander::{ Lock, LockGuard, cdr_lock };
+use commander::{ Lock, LockGuard, cdr_lock, CommanderStream };
 use peregrine_data::{ Channel, Track, StickId };
 use crate::util::pgblackbox::setup_blackbox;
-
-#[cfg(blackbox)]
-use blackbox::{ blackbox_enable, blackbox_log };
-
-#[derive(Clone)]
-pub struct PeregrineDraw {
-    lock: Lock,
-    commander: PgCommanderWeb,
-    data_api: PeregrineCore,
-    trainset: GlTrainSet,
-    webgl: Arc<Mutex<WebGlGlobal>>,
-    stage: Arc<Mutex<Stage>>
-}
 
 // TODO async/sync versions
 
 pub trait PeregrineDrawApi {
+    fn set_message_reporter<F>(&mut self,callback: F) where F: FnMut(Message) + 'static;
     fn setup_blackbox(&self, url: &str) -> Result<(),Message>;
     fn x(&self) -> Result<f64,Message>;
     fn y(&self) -> Result<f64,Message>;
     fn size(&self) -> Result<(f64,f64),Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
     fn set_x(&mut self, x: f64);
-    fn set_y(&mut self, x: f64);
+    fn set_y(&mut self, y: f64);
     fn set_size(&mut self, x: f64, y: f64);
     fn set_bp_per_screen(&mut self, z: f64);
     fn bootstrap(&self, channel: Channel);
     fn add_track(&self, track: Track);
     fn remove_track(&self, track: Track);
     fn set_stick(&self, stick: &StickId);
+}
+
+#[derive(Clone)]
+pub struct PeregrineDraw {
+    messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
+    lock: Lock,
+    commander: PgCommanderWeb,
+    data_api: PeregrineCore,
+    trainset: GlTrainSet,
+    webgl: Arc<Mutex<WebGlGlobal>>,
+    stage: Arc<Mutex<Stage>>
 }
 
 pub struct LockedPeregrineDraw<'t> {
@@ -80,16 +78,41 @@ impl PeregrineDraw {
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 }
 
+/* There's a separate message sending task so that there's no problems with recursive message sending.
+ * their_callback is synchronous so cannot cause this loop to run recursively even if it issues API commands.
+ */
+async fn message_sending_task(our_queue: CommanderStream<Message>, their_callback: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>) -> Result<(),Message> {
+    loop {
+        let message = our_queue.get().await;
+        let mut callback = their_callback.lock().unwrap();
+        if let Some(callback) = callback.as_mut() {
+            callback(message);
+        }
+        drop(callback);
+    }
+}
+
+fn setup_message_sending_task(commander: &PgCommanderWeb, their_callback: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>) -> CommanderStream<Message> {
+    let stream = CommanderStream::new();
+    commander.add("message-sender",10,None,None,Box::pin(message_sending_task(stream.clone(),their_callback)));
+    // TODO failure handling
+    stream
+}
+
 // TODO redraw on change (? eh?)
 // TODO end buffers
 impl PeregrineDraw {
-    pub fn new<F>(config: PeregrineConfig, dom: PeregrineDom, messages: F) -> Result<PeregrineDraw,Message> where F: FnMut(Message) + 'static + Send {
+    pub fn new(config: PeregrineConfig, dom: PeregrineDom) -> Result<PeregrineDraw,Message> {
         // XXX change commander init to allow message init to move to head
         let commander = PgCommanderWeb::new(&dom)?;
         commander.start();
+        let messages = Arc::new(Mutex::new(None));
+        let message_sender = setup_message_sending_task(&commander, messages.clone());
         let commander_id = commander.identity();
-        message_register_callback(Some(commander_id),messages);
         message_register_default(commander_id);
+        message_register_callback(Some(commander_id),move |message| {
+            message_sender.add(message);            
+        });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
@@ -101,6 +124,7 @@ impl PeregrineDraw {
         core.application_ready();
         let mut out = PeregrineDraw {
             lock: commander.make_lock(),
+            messages,
             data_api: core.clone(), commander, trainset, stage,  webgl
         };
         out.setup()?;
@@ -118,6 +142,10 @@ impl PeregrineDraw {
 impl PeregrineDrawApi for PeregrineDraw {
     fn bootstrap(&self, channel: Channel) {
         self.data_api.bootstrap(channel)
+    }
+
+    fn set_message_reporter<F>(&mut self, callback: F) where F: FnMut(Message) + 'static {
+        *self.messages.lock().unwrap() = Some(Box::new(callback));
     }
 
     fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
