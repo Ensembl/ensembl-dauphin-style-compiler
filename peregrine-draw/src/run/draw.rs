@@ -21,6 +21,7 @@ use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{ Lock, LockGuard, cdr_lock };
 use peregrine_data::{ Channel, Track, StickId };
+use crate::util::pgblackbox::setup_blackbox;
 
 #[cfg(blackbox)]
 use blackbox::{ blackbox_enable, blackbox_log };
@@ -38,6 +39,7 @@ pub struct PeregrineDraw {
 // TODO async/sync versions
 
 pub trait PeregrineDrawApi {
+    fn setup_blackbox(&self, url: &str) -> Result<(),Message>;
     fn x(&self) -> Result<f64,Message>;
     fn y(&self) -> Result<f64,Message>;
     fn size(&self) -> Result<(f64,f64),Message>;
@@ -116,6 +118,11 @@ impl PeregrineDraw {
 impl PeregrineDrawApi for PeregrineDraw {
     fn bootstrap(&self, channel: Channel) {
         self.data_api.bootstrap(channel)
+    }
+
+    fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
+        setup_blackbox(&self.commander,url);
+        Ok(())
     }
 
     fn x(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().position() }

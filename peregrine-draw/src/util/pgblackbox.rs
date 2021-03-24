@@ -1,18 +1,15 @@
-#![cfg(blackbox)]
-use anyhow::{ self, Context };
+//#![cfg(blackbox)] XXX
 use std::hash::Hasher;
 use std::sync::{ Arc, Mutex };
-use blackbox::{ Integration, blackbox_config, blackbox_integration, blackbox_take_json };
+use blackbox::{ Integration, blackbox_config, blackbox_integration, blackbox_take_json, blackbox_enable, blackbox_log };
 use commander::{ cdr_timer };
 use js_sys::Date;
 use js_sys::Math::random;
-use lazy_static::lazy_static;
-use peregrine_draw::{ PgAjax };
+use crate::{ PgAjax, Message, PgCommanderWeb };
 use serde_json::Value as JsonValue;
 use fnv::FnvHasher;
 use base64;
 use url::Url;
-use peregrine_draw::Message;
 use web_sys::console;
 
 #[derive(Clone)]
@@ -36,7 +33,6 @@ impl PgBlackboxIntegration {
         }
     }
 
-    #[cfg(blackbox)]
     async fn send_data(&self, data: &JsonValue) -> Result<(),Message> {
         if let Some(url) = self.url() {
             let mut ajax = PgAjax::new("POST",&url);
@@ -49,7 +45,6 @@ impl PgBlackboxIntegration {
         Ok(())
     }    
 
-    #[cfg(blackbox)]
     pub async fn sync_task(&self) -> Result<(),Message> {
         loop {
             let data = blackbox_take_json();
@@ -82,3 +77,22 @@ pub fn pgblackbox_setup() -> PgBlackboxIntegration {
     blackbox_integration(ign.clone());
     ign
 }
+
+//#[cfg(blackbox)]
+pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
+    let mut ign = pgblackbox_setup();
+    ign.set_url(&Url::parse(url).expect("bad blackbox url"));
+    let ign2 = ign.clone();
+    blackbox_enable("notice");
+    blackbox_enable("warn");
+    blackbox_enable("error");
+    commander.add::<()>("blackbox",10,None,None,Box::pin(async move { ign2.sync_task().await; Ok(()) }));
+    blackbox_log("general","blackbox configured");
+    console::log_1(&format!("blackbox configured").into());
+}
+
+/*
+#[cfg(not(blackbox))]
+pub fn setup_blackbox(_commander: &PgCommanderWeb, url: &str) {
+}
+*/

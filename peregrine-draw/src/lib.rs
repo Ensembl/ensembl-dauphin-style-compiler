@@ -68,6 +68,10 @@ mod util {
     pub(crate) mod message;
     pub(crate) mod safeelement;
 
+    // XXX no comment out
+    //#[cfg(blackbox)]
+    pub(crate) mod pgblackbox;
+
     pub use self::ajax::PgAjax;
     pub use self::message::Message;
 }

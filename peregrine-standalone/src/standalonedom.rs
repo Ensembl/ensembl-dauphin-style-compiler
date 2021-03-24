@@ -1,5 +1,7 @@
 use peregrine_draw::{ Message, PeregrineDom };
 
+/* $ gets replaced by a random string each time this is run to avoid namespace collisions. */
+
 const HTML : &str = r#"
     <div class="$-container">
         <div class="$-sticky"></div>

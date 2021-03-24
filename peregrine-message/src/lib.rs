@@ -1,5 +1,4 @@
 use std::fmt;
-use std::hash::Hash;
 
 pub enum MessageLevel {
     Notice,
