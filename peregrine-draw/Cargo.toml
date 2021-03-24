@@ -44,7 +44,7 @@ features = [
   'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d',
   'Document',
   'Element',
-  'HtmlElement', 'Headers', 'HtmlCanvasElement',
+  'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'TextMetrics',
