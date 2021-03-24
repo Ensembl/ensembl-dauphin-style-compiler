@@ -10,9 +10,11 @@ mod integration {
 }
 
 mod run {
+    mod dom;
     pub mod draw;
     mod frame;
 
+    pub use self::dom::PeregrineDom;
     pub use self::draw::{ PeregrineDraw, PeregrineDrawApi };
 }
 
@@ -140,6 +142,6 @@ mod webgl {
     mod util;
 }
 
-pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
+pub use crate::run::{ PeregrineDraw, PeregrineDrawApi, PeregrineDom };
 pub use self::util::{ PgAjax, Message };
 pub use crate::integration::PgCommanderWeb;

@@ -10,6 +10,7 @@ use super::bell::{ BellReceiver, make_bell, BellSender };
 use web_sys::{ HtmlElement };
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
+use crate::PeregrineDom;
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -129,14 +130,15 @@ pub struct PgCommanderWeb {
 }
 
 impl PgCommanderWeb {
-    pub fn new(el: &HtmlElement) -> Result<PgCommanderWeb,Message> {
+    pub fn new(dom: &PeregrineDom) -> Result<PgCommanderWeb,Message> {
+        let body = dom.body();
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             raf_pending: None,
             quantity: quantity.clone(),
             timeout: None
         }));
-        let (bell_sender, bell_receiver) = make_bell(el)?;
+        let (bell_sender, bell_receiver) = make_bell(dom.body())?;
         let integration = PgIntegration {
             quantity,
             bell_sender

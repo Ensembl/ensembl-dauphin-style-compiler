@@ -17,14 +17,3 @@ html, body {
     height: 100%;
     overflow-y: auto;
 }
-
-.browser {
-    height: 1234px;
-}
-
-.sticky {
-    background: url(http://www.ensembl.info/wp-content/uploads/2018/02/weird_genomes_4tile2.png) repeat;
-    position: sticky;
-    top: 0;
-    height: 100%;
-}

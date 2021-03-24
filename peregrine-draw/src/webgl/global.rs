@@ -4,7 +4,9 @@ use web_sys::Document;
 use crate::webgl::util::handle_context_errors;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext };
+use crate::PeregrineDom;
 use crate::util::message::Message;
+use wasm_bindgen::JsCast;
 
 pub struct WebGlGlobal {
     program_store: ProgramStore,
@@ -16,7 +18,12 @@ pub struct WebGlGlobal {
 }
 
 impl WebGlGlobal {
-    pub(crate) fn new(document: &Document, context: &WebGlRenderingContext) -> Result<WebGlGlobal,Message> {
+    pub(crate) fn new(dom: &PeregrineDom) -> Result<WebGlGlobal,Message> {
+        let context = dom.canvas()
+            .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
+            .unwrap()
+            .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
+
         let program_store = ProgramStore::new(&context)?;
         let canvas_store = FlatStore::new();
         let bindery = TextureBindery::new(program_store.gpu_spec());
@@ -26,7 +33,7 @@ impl WebGlGlobal {
             bindery,
             texture_store: TextureStore::new(),
             context: context.clone(),
-            document: document.clone()
+            document: dom.document().clone()
         })
     }
 

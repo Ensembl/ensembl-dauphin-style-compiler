@@ -38,6 +38,10 @@ version = "*"
 [dependencies.web-sys]
 version = "*"
 
+features = [
+  'Element', 'HtmlCollection', 'Document'
+]
+
 [dependencies.peregrine_data]
 version="*"
 path="../peregrine-data"

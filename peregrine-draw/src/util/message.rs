@@ -26,6 +26,7 @@ pub enum Message {
     BadWebGLProgram(String,String),
     CannotPackRectangles(String),
     BadBackendConnection(String),
+    BadTemplate(String),
 }
 
 impl PeregrineMessage for Message {
@@ -48,6 +49,7 @@ impl PeregrineMessage for Message {
             Message::BadWebGLProgram(_,_) => MessageCategory::BadCode,
             Message::CannotPackRectangles(_) => MessageCategory::BadCode,
             Message::BadBackendConnection(_) => MessageCategory::BadBackend,
+            Message::BadTemplate(_) => MessageCategory::BadFrontend,
         }
     }
 
@@ -67,7 +69,7 @@ impl PeregrineMessage for Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // allowed 500-999; next is 511; 501 is unused
+        // allowed 500-999; next is 511
         match self {
             Message::CodeInvariantFailed(s) => (503,calculate_hash(s)),
             Message::DataError(d) => d.code(),
@@ -79,6 +81,7 @@ impl PeregrineMessage for Message {
             Message::BadWebGLProgram(s,p) => (508,calculate_hash(&(s,p))),
             Message::CannotPackRectangles(s) => (509,calculate_hash(s)),
             Message::BadBackendConnection(s) => (510,calculate_hash(s)),
+            Message::BadTemplate(s) => (501,calculate_hash(s)),
         }
     }
 
@@ -94,6 +97,7 @@ impl PeregrineMessage for Message {
             Message::BadWebGLProgram(s,p) => format!("bad Webglprogram '{}' : {}",s,p),
             Message::CannotPackRectangles(s) => format!("cannot pack rectangles: {}",s),
             Message::BadBackendConnection(s) => format!("bad backend connection: {}",s),
+            Message::BadTemplate(s) => format!("bad template: {}",s),
         }
     }
 }

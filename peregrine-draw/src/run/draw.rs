@@ -1,4 +1,3 @@
-use anyhow::{ self, anyhow as err };
 use crate::{integration::pgchannel::PgChannel, shape::core::stage::ReadStageAxis};
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
@@ -17,6 +16,7 @@ pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
 use wasm_bindgen::JsCast;
+use super::dom::PeregrineDom;
 use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{ Lock, LockGuard, cdr_lock };
@@ -80,24 +80,15 @@ impl PeregrineDraw {
 
 // TODO redraw on change (? eh?)
 // TODO end buffers
-
 impl PeregrineDraw {
-    pub fn new<F>(config: PeregrineConfig, canvas: Element, messages: F) -> Result<PeregrineDraw,Message> where F: FnMut(Message) + 'static + Send {
+    pub fn new<F>(config: PeregrineConfig, dom: PeregrineDom, messages: F) -> Result<PeregrineDraw,Message> where F: FnMut(Message) + 'static + Send {
         // XXX change commander init to allow message init to move to head
-        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
-        let document = window.document().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get document")))?;
-        let html = document.body().clone().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get body")))?;
-        let commander = PgCommanderWeb::new(&html)?;
+        let commander = PgCommanderWeb::new(&dom)?;
         commander.start();
         let commander_id = commander.identity();
         message_register_callback(Some(commander_id),messages);
         message_register_default(commander_id);
-        let canvas = canvas.dyn_into::<web_sys::HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser(format!("cannot cast to canvas")))?;
-        let context = canvas
-            .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
-            .unwrap()
-            .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
-        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&document,&context)?));
+        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
