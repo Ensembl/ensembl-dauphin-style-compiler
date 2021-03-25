@@ -1,5 +1,6 @@
-use std::collections::VecDeque;
-use crate::webgl::{ FlatId, FlatStore };
+use std::collections::{ VecDeque, HashMap, BinaryHeap };
+use crate::webgl::{Flat, FlatId, FlatStore, program::uniform};
+use js_sys::Math::max;
 use keyed::KeyedData;
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
@@ -8,6 +9,7 @@ use web_sys::WebGlTexture;
 use crate::webgl::util::handle_context_errors;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
+use crate::util::evictlist::EvictList;
 
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Message> {
     let (minf,magf,wraps,wrapt) = match weave {
@@ -61,11 +63,11 @@ impl TextureStore {
     }
     
     fn get(&mut self, id: &FlatId) -> Result<Option<&WebGlTexture>,Message> {
-        Ok(self.0.get(id).as_ref())
+        Ok(self.0.try_get(id).as_ref())
     }
 
     fn remove(&mut self, id: &FlatId) -> Result<WebGlTexture,Message> {
-        self.0.remove(id).ok_or_else(|| Message::CodeInvariantFailed(format!("missing key B")))
+        self.0.remove(id).ok_or_else(|| Message::CodeInvariantFailed(format!("missing key C")))
     }
 }
 
@@ -86,6 +88,10 @@ impl Rebind {
 
     fn remove(flat_id: FlatId) -> Rebind {
         Rebind { old_texture: Some(flat_id), new_texture: None, new_index: 0}
+    }
+
+    fn noop() ->Rebind {
+        Rebind {old_texture: None, new_texture: None, new_index: 0 }
     }
 
     pub(crate) fn apply(&self, gl: &mut WebGlGlobal) -> Result<u32,Message> {
@@ -111,85 +117,62 @@ impl Rebind {
     }
 }
 
-struct Binding {
-    position: usize,
-    gl_index: u32
-}
-
 pub struct TextureBindery {
-    flat_to_binding: KeyedData<FlatId,Option<Binding>>,
-    position_to_flat: Vec<Option<FlatId>>,
-    lru: VecDeque<usize>,
-    in_use: Vec<usize>,
+    lru: EvictList,
+    in_use: HashMap<FlatId,u32>,
+    max_textures: u32,
+    current_textures: u32,
+    current_epoch: i64,
     next_gl_index: u32
 }
 
 impl TextureBindery {
     pub(crate) fn new(gpuspec: &GPUSpec) -> TextureBindery {
+        let max_textures = gpuspec.max_textures();
         TextureBindery {
-            flat_to_binding: KeyedData::new(),
-            position_to_flat: vec![None;gpuspec.max_textures() as usize],
-            lru: VecDeque::new(),
-            in_use: vec![],
+            lru: EvictList::new(),
+            in_use: HashMap::new(),
+            current_textures: 0,
+            max_textures,
+            current_epoch: 0,
             next_gl_index: 0
         }
     }
 
-    fn get(&self, flat: &FlatId) -> Result<Option<&Binding>,Message> {
-        Ok(self.flat_to_binding.get(flat).as_ref())
-    }
-
-    fn unbind(&mut self, flat: &FlatId) -> Result<(),Message> {
-        if let Some(b) = self.flat_to_binding.remove(flat) {
-            self.position_to_flat[b.position as usize] = None;
+    pub fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+        self.lru.remove_item(flat);
+        if let Some(index) = self.in_use.get(flat) {
+            return Ok(Rebind::cached(flat,*index));
         }
-        Ok(())
-    }
-
-    fn bind(&mut self, flat_id: &FlatId, index: usize) -> Result<u32,Message> {
-        let gl_index = self.next_gl_index;
-        let binding = Binding { position: index, gl_index };
-        self.flat_to_binding.insert(flat_id,binding);
+        let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
-        self.position_to_flat[index as usize] = Some(flat_id.clone());
-        Ok(gl_index)
-    }
-
-    fn set(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
-        if let Some(index) = self.lru.pop_front() {
-            let mut old_texture = None;
-            if let Some(old_id) = self.position_to_flat.get(index as usize).ok_or_else(|| Message::CodeInvariantFailed(format!("bad index A")))?.clone() {
-                self.unbind(&old_id)?;
-                old_texture = Some(old_id);
+        self.in_use.insert(flat.clone(),our_gl_index);
+        self.current_textures += 1;
+        let mut old = None;
+        if self.current_textures > self.max_textures {
+            if let Some((_,old_item)) = self.lru.remove_oldest() {
+                self.current_textures -= 1;
+                old = Some(old_item);
             } else {
-                self.in_use.push(index);
+                return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
             }
-            let new_index = self.bind(flat,index)?;
-            Ok(Rebind::new(old_texture,flat.clone(),new_index))
+        }
+        Ok(Rebind::new(old,flat.clone(),our_gl_index))
+    }
+
+    pub fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+        if self.lru.remove_item(flat) { 
+            Ok(Rebind::remove(flat.clone()))
         } else {
-            Err(Message::CodeInvariantFailed("too many textures bound".to_string()))
+            Ok(Rebind::noop())
         }
     }
 
-    pub(crate) fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
-        if let Some(b) = self.get(flat)? {
-            return Ok(Rebind::cached(flat,b.gl_index));
+    pub fn clear(&mut self) {
+        for (flat,_) in self.in_use.drain() {
+            self.lru.insert(&flat,self.current_epoch);
         }
-        self.set(flat)
-    }
-
-    pub(crate) fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
-        self.unbind(flat)?;
-        Ok(Rebind::remove(flat.clone()))
-    }
-
-    pub(crate) fn clear(&mut self) {
-        self.lru.extend(self.in_use.iter());
-        self.in_use = vec![];
+        self.current_epoch += 1;
         self.next_gl_index = 0;
-    }
-
-    pub(crate) fn gl_index(&self, flat_id: &FlatId) -> Result<u32,Message> {
-        Ok(self.flat_to_binding.get(flat_id).as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("no index assigned")))?.gl_index)
     }
 }

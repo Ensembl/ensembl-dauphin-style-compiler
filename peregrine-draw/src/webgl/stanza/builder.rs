@@ -9,8 +9,8 @@ use std::cell::RefCell;
 use crate::util::message::Message;
 
 pub trait ProcessStanzaAddable {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message>;
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) ->Result<(),Message>;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message>;
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) ->Result<(),Message>;
 }
 
 pub struct ProcessStanzaBuilder {

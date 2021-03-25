@@ -33,15 +33,16 @@ impl ProcessStanzaArray {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaArray {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, _dims: usize) -> Result<(),Message> {
+        // TODO check size
         self.attribs.borrow_mut().get_mut(handle).extend_from_slice(&values);
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
-        let mut remaining = self.len;
+        let mut remaining = self.len * dims;
         while remaining > 0 {
             let mut real_count = remaining;
             if offset+real_count > values_size { real_count = values_size-offset; }

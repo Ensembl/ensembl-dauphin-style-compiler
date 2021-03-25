@@ -1,7 +1,6 @@
 use crate::lock;
 use std::sync::{ Arc, Mutex };
-use super::fuse::FusePromise;
-use commander::PromiseFuture;
+use commander::{ PromiseFuture, FusePromise };
 
 #[derive(Clone)]
 pub struct LockPromise(Arc<Mutex<(u64,FusePromise<()>)>>);

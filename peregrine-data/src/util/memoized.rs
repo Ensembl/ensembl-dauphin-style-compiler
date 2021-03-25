@@ -28,8 +28,7 @@ use std::hash::Hash;
 use std::sync::{ Arc, Mutex };
 use crate::lock;
 use varea::Cache;
-use commander::PromiseFuture;
-use super::fuse::FusePromise;
+use commander::{ PromiseFuture, FusePromise };
 
 enum MemoizedStore<K,V> {
     Complete(HashMap<K,Arc<V>>),

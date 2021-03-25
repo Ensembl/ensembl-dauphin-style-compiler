@@ -20,12 +20,12 @@ impl PinData {
                                     base_x: Vec<f64>, base_y: Vec<f64>,
                                     ship_x: ShipEnd, ship_y: ShipEnd,
                                     size_x: Vec<f64>, size_y: Vec<f64>, hollow: bool) -> PinData {
-        let x_origin = GLAxis::new_single_origin(&base_x,-layer.left(), true, hollow);
+        let x_origin = GLAxis::new_single_origin(&base_x,-layer.left(), None, hollow);
         PinData {
-            x_vertex: GLAxis::new_from_single_delta(x_origin.len(),&ship_x,&size_x,true,hollow),
-            y_vertex: GLAxis::new_from_single_delta(x_origin.len(),&ship_y,&size_y,false,hollow),
+            x_vertex: GLAxis::new_from_single_delta(&ship_x,&size_x,&x_origin,hollow),
+            y_vertex: GLAxis::new_from_single_delta(&ship_y,&size_y,&x_origin,hollow),
+            y_origin: GLAxis::new_single_origin(&base_y,0., Some(&x_origin), hollow),
             x_origin,
-            y_origin: GLAxis::new_single_origin(&base_y,0., false, hollow),
         }
     }
 
@@ -35,12 +35,12 @@ impl PinData {
                                     pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                     pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                                     hollow: bool) -> PinData {
-        let x_origin = GLAxis::new_double_origin(&axx1, &axx2,-layer.left(), true,hollow);
+        let x_origin = GLAxis::new_double_origin(&axx1, &axx2,-layer.left(), None,hollow);
         PinData {
-            x_vertex: GLAxis::new_from_double_delta(x_origin.len(), &pxx1, &pxx2, true,hollow),
-            y_vertex: GLAxis::new_from_double_delta(x_origin.len(), &pyy1, &pyy2, false,hollow),
+            x_vertex: GLAxis::new_from_double_delta(&pxx1, &pxx2, &x_origin,hollow),
+            y_vertex: GLAxis::new_from_double_delta(&pyy1, &pyy2, &x_origin,hollow),
+            y_origin: GLAxis::new_double_origin(&ayy1, &ayy2,0., Some(&x_origin),hollow),
             x_origin,
-            y_origin: GLAxis::new_double_origin(&ayy1, &ayy2,0., false,hollow),
         }
     }
 }
@@ -94,8 +94,8 @@ impl PinGeometry {
 
     pub(crate) fn add(&self, layer: &mut Layer, data: PinData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x_origin.make_elements(layer, &GeometryProcessName::Pin,&self.patina)?;
-        elements.add(&self.variety.origins,data.x_origin.vec2d(&data.y_origin))?;
-        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex))?;
+        elements.add(&self.variety.origins,data.x_origin.vec2d(&data.y_origin),2)?;
+        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
         Ok(elements)
     }
 }

@@ -125,6 +125,13 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
         self.0[index.get()] = Some(value);
     }
 
+    pub fn try_get(&self, index: &K) -> &Option<T> {
+        if index.get() >= self.0.len() {
+            return &None;
+        }
+        self.get(index)
+    }
+
     pub fn remove(&mut self, index: &K) -> Option<T> {
         self.0[index.get()].take()
     }

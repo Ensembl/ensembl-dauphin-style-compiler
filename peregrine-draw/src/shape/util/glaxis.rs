@@ -17,7 +17,7 @@ fn add(v: &[f64], delta: f64) -> Vec<f64> {
 }
 
 pub(crate) struct GLAxis {
-    primary: bool,
+    length: usize,
     min: Vec<f64>,
     max: Vec<f64>,
     range: RefCell<Option<(f64,f64)>>,
@@ -27,11 +27,12 @@ pub(crate) struct GLAxis {
 }
 
 impl GLAxis {
-    pub(crate) fn new_from_single(screen: &ScreenEdge, ship: &ShipEnd, size: &Vec<f64>, primary: bool, hollow: bool) -> GLAxis {
+    pub(crate) fn new_from_single(screen: &ScreenEdge, ship: &ShipEnd, size: &Vec<f64>, ruler: Option<&GLAxis>, hollow: bool) -> GLAxis {
         let min = calculate_vertex(screen, ship, size,false);
+        let min = if ruler.is_none() { min } else { empty_is(min,0.) };
         GLAxis {
-            primary,
-            min: if primary { min } else { empty_is(min,0.) },
+            length: ruler.map(|r| r.len()).unwrap_or_else(|| min.len()),
+            min,
             max: empty_is(calculate_vertex(screen, ship, size,true)  ,0.),
             signs: vec![sea_sign(screen)],
             range: RefCell::new(None),
@@ -40,12 +41,13 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn new_from_single_delta(count: usize, ship: &ShipEnd, size: &Vec<f64>, primary: bool, hollow: bool) -> GLAxis {
-        let min = calculate_vertex_delta(count, ship, size,false);
+    pub(crate) fn new_from_single_delta(ship: &ShipEnd, size: &Vec<f64>, ruler: &GLAxis, hollow: bool) -> GLAxis {
+        let min = calculate_vertex_delta(ruler.len(), ship, size,false);
+        let min = empty_is(min,0.);
         GLAxis {
-            primary,
-            min: if primary { min } else { empty_is(min,0.) },
-            max: empty_is(calculate_vertex_delta(count, ship, size,true)  ,0.),
+            length: ruler.len(),
+            min,
+            max: empty_is(calculate_vertex_delta(ruler.len(), ship, size,true)  ,0.),
             signs: vec![1.],
             range: RefCell::new(None),
             hollow,
@@ -53,11 +55,13 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn new_single_origin(coords: &[f64], delta: f64, primary: bool, hollow: bool) -> GLAxis {
+    pub(crate) fn new_single_origin(coords: &[f64], delta: f64, ruler: Option<&GLAxis>, hollow: bool) -> GLAxis {
+        let min = add(coords,delta);
+        let min = if ruler.is_none() { min } else { empty_is(min,0.) };
         GLAxis {
-            primary,
-            min: if primary { add(coords,delta) } else { empty_is(add(coords,delta),0.) },
-            max: empty_is(add(coords,delta),0.),
+            length: ruler.map(|r| r.len()).unwrap_or_else(|| min.len()),
+            max: min.clone(),
+            min,
             signs: vec![1.],
             range: RefCell::new(None),
             hollow,
@@ -65,11 +69,12 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn new_from_double(edge_min: &ScreenEdge, ship_min: &ShipEnd, edge_max: &ScreenEdge, ship_max: &ShipEnd, primary: bool, hollow: bool) -> GLAxis {
+    pub(crate) fn new_from_double(edge_min: &ScreenEdge, ship_min: &ShipEnd, edge_max: &ScreenEdge, ship_max: &ShipEnd, ruler: Option<&GLAxis>, hollow: bool) -> GLAxis {
         let min = calculate_stretch_vertex(&edge_min,&ship_min);
+        let min = if ruler.is_none() { min } else { empty_is(min,0.) };
         GLAxis {
-            primary,
-            min: if primary { min } else { empty_is(min,0.) },
+            length: ruler.map(|r| r.len()).unwrap_or_else(|| min.len()),
+            min,
             max: empty_is(calculate_stretch_vertex(&edge_max,&ship_max),0.),
             signs: vec![sea_sign(edge_min),sea_sign(edge_max)],
             range: RefCell::new(None),
@@ -78,12 +83,13 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn new_from_double_delta(count: usize, ship_min: &ShipEnd, ship_max: &ShipEnd, primary: bool, hollow: bool) -> GLAxis {
-        let min = calculate_stretch_vertex_delta(count,&ship_min);
+    pub(crate) fn new_from_double_delta(ship_min: &ShipEnd, ship_max: &ShipEnd, ruler: &GLAxis, hollow: bool) -> GLAxis {
+        let min = calculate_stretch_vertex_delta(ruler.len(),&ship_min);
+        let min = empty_is(min,0.);
         GLAxis {
-            primary,
-            min: if primary { min } else { empty_is(min,0.) },
-            max: empty_is(calculate_stretch_vertex_delta(count,&ship_max),0.),
+            length: ruler.len(),
+            min,
+            max: empty_is(calculate_stretch_vertex_delta(ruler.len(),&ship_max),0.),
             signs: vec![1.],
             range: RefCell::new(None),
             hollow,
@@ -91,10 +97,12 @@ impl GLAxis {
         }
     }
 
-    pub(crate) fn new_double_origin(min: &[f64], max: &Vec<f64>, delta: f64, primary: bool, hollow: bool) -> GLAxis {
+    pub(crate) fn new_double_origin(min: &[f64], max: &Vec<f64>, delta: f64, ruler: Option<&GLAxis>, hollow: bool) -> GLAxis {
+        let primary = ruler.is_none();
+        let min = if primary { add(min,delta) } else { empty_is(add(min,delta),0.) };
         GLAxis {
-            primary,
-            min: if primary { add(min,delta) } else { empty_is(add(min,delta),0.) },
+            length: ruler.map(|r| r.len()).unwrap_or_else(|| min.len()),
+            min,
             max: empty_is(add(max,delta),0.),
             signs: vec![1.],
             range: RefCell::new(None),
@@ -144,11 +152,8 @@ impl GLAxis {
     }
 
     pub(crate) fn iter<'t>(&'t self) -> Box<dyn Iterator<Item=(&f64,&f64)> + 't> {
-        if self.primary {
-            Box::new(self.min.iter().zip(self.max.iter().cycle()))
-        } else {
-            Box::new(self.min.iter().cycle().zip(self.max.iter().cycle()))
-        }
+        let looper = self.min.iter().cycle().zip(self.max.iter().cycle());
+        Box::new(IterFixed::new(looper,self.length))
     }
 
     pub(crate) fn iter_screen<'t>(&'t self, axis: &ReadStageAxis) -> Result<Box<dyn Iterator<Item=(f64,f64)> + 't>,Message> {
@@ -206,9 +211,8 @@ impl GLAxis {
     pub(crate) fn signs_y(&self) -> Vec<f64> { self.signs(false) }
 
     pub(crate) fn signs_2d<'t>(&'t self, other: &'t GLAxis) -> Vec<f64> {
-        let len = if other.primary { other.min.len() } else { self.min.len() };
         let items : Vec<_> = self.sign_one_shape_2d(other).cloned().collect();
-        IterFixed::new(items.iter().cycle(),len).cloned().collect()
+        IterFixed::new(items.iter().cycle(),self.length).cloned().collect()
     }
 
     pub(crate) fn vec2d(&self, y: &GLAxis) -> Vec<f64> {

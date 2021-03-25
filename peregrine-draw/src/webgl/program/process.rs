@@ -75,8 +75,8 @@ impl Process {
     }
 
     fn apply_textures(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let (textures, uniforms, context) = (&self.textures,&mut self.uniforms,&self.program.context());
-        for entry in textures.iter() {
+        let (textures, uniforms, context) = (&mut self.textures,&mut self.uniforms,&self.program.context());
+        for entry in textures.iter_mut() {
             let (uniform_handle,value) = entry.apply(gl)?;
             uniforms.get_mut(uniform_handle).set_value(context,vec![value as f64])?;
         }

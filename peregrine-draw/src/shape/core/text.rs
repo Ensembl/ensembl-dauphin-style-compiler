@@ -43,11 +43,11 @@ impl Text {
         Ok(())
     }
 
-    pub fn get_texture_areas(&self) -> Result<CanvasTextureAreas,Message> {
+    fn get_texture_areas(&self) -> Result<CanvasTextureAreas,Message> {
         Ok(CanvasTextureAreas::new(
             self.text_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))?,
             self.mask_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. m origin".to_string()))?,
-            self.size.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. size".to_string()))?
+            self.size.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. size A".to_string()))?
         ))
     }
 }
@@ -83,7 +83,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn populate_allocator(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
+    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
@@ -96,7 +96,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn build(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+    pub fn finish_preparation(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());

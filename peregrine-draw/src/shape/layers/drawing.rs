@@ -24,13 +24,13 @@ impl DrawingTools {
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
-    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
-        self.text.populate_allocator(gl,allocator)?;
+    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
+        self.text.start_preparation(gl,allocator)?;
         Ok(())
     }
 
-    pub(crate) fn build(&mut self, canvas_store: &FlatStore, builder: &mut DrawingFlatsDrawable) -> Result<(),Message> {
-        self.text.build(canvas_store,builder)?;
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+        self.text.finish_preparation(canvas_store,builder)?;
         Ok(())
     }
 }
@@ -57,8 +57,10 @@ impl DrawingBuilder {
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut canvas_allocator = FlatPlotAllocator::new("uSampler");
-        self.tools.finish_preparation(gl,&mut canvas_allocator)?;
-        self.flats = Some(canvas_allocator.make(gl)?);
+        self.tools.start_preparation(gl,&mut canvas_allocator)?;
+        let drawable = canvas_allocator.make(gl)?;
+        self.tools.finish_preparation(gl.canvas_store_mut(),&drawable)?;
+        self.flats = Some(drawable);
         Ok(())
     }
 
@@ -68,8 +70,7 @@ impl DrawingBuilder {
     }
 
     pub fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
-        let (tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
-        tools.build(gl.canvas_store_mut(),&mut builder)?;
+        let (_tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
         let canvases = builder.built();
         let mut processes = vec![];
         self.main_layer.build(&mut processes,&canvases)?;

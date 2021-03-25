@@ -33,7 +33,7 @@ impl DirectColourDraw {
                 codes.push(scale_colour(c.2));
             }
         }
-        addable.add_n(&self.0.colour,codes)?;
+        addable.add_n(&self.0.colour,codes,3)?;
         Ok(())
     }
 }

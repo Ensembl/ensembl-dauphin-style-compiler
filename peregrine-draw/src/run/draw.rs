@@ -20,9 +20,14 @@ use crate::shape::core::stage::{ Stage, ReadStage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{ Lock, LockGuard, cdr_lock, CommanderStream };
 use peregrine_data::{ Channel, Track, StickId };
+#[cfg(blackbox)]
 use crate::util::pgblackbox::setup_blackbox;
 
 // TODO async/sync versions
+
+pub struct Progress {
+//    fuse: FusePromise
+}
 
 pub trait PeregrineDrawApi {
     fn set_message_reporter<F>(&mut self,callback: F) where F: FnMut(Message) + 'static;

@@ -117,7 +117,6 @@ mod train {
 
 mod util {
     pub mod cbor;
-    pub mod fuse;
     pub mod indirectanswer;
     pub mod memoized;
     pub mod message;

@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use commander::PromiseFuture;
-use crate::util::fuse::FusePromise;
+use commander::FusePromise;
 use crate::{ ProgramLoader, StickAuthorityStore, PanelRunStore, StickStore, PanelProgramStore, PanelStore, DataStore };
 
 #[derive(Clone)]

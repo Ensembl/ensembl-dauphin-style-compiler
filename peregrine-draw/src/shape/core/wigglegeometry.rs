@@ -86,7 +86,7 @@ impl WiggleGeometry {
             }
             let mut array = layer.make_array(&GeometryProcessName::Wiggle,&self.patina,pusher.x.len())?;
             apply_left(&mut pusher.x,layer.left());
-            array.add(&self.variety.data,interleave_pair(&pusher.x,&pusher.y))?;
+            array.add(&self.variety.data,interleave_pair(&pusher.x,&pusher.y),2)?;
             Ok(array)
         } else {
             Ok(layer.make_array(&GeometryProcessName::Wiggle,&self.patina,0)?)

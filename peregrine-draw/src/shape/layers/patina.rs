@@ -76,7 +76,7 @@ impl PatinaProgramName {
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
                     Statement::new_vertex("vMaskCoord = aMaskCoord"),
-                    Statement::new_fragment("gl_FragColor = texture2d(uSampler,vTextureCoord)"),
+                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                     Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
                 ]

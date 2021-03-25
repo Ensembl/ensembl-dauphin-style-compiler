@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 mod standalonedom;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
@@ -29,6 +30,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
  * name and arguments to this API are still up in the air, but you get the idea....
  */
 async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
+    draw_api.set_size(100.,100.);
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
@@ -61,14 +63,14 @@ fn setup_genome_browser() -> Result<(),Message> {
     /*
      * Create a genome browser object.
      */
-    let draw_api = js_throw(PeregrineDraw::new(config,dom));
+    let mut draw_api = js_throw(PeregrineDraw::new(config,dom));
     /* 
      * Configure the message reporter. This gets notifications of errors, etc. Note that this may be async to the
      * request which caused it (eg it may be after a fair few AJAX calls that we finally realise some data we supplied
      * was dodgy). Shortly there should be a mechanism to tie the message and originating request together.
      */
     draw_api.set_message_reporter(|message| {
-        console::log_1(&format!("{}",message).into());
+        console::error_1(&format!("{}",message).into());
     });
     /*
      * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and

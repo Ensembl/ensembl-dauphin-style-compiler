@@ -27,8 +27,8 @@ impl ProcessStanzaElementsEntry {
         self.index.len()
     }
 
-    fn space(&self, size: usize) -> usize {
-        (LIMIT - self.index.len()) / size
+    fn space(&self, points_per_shape: usize) -> usize {
+        (LIMIT - self.index.len()) / points_per_shape
     }
 
     fn add_indexes(&mut self, indexes: &[u16], count: usize) {
@@ -48,17 +48,17 @@ impl ProcessStanzaElementsEntry {
 
 pub struct ProcessStanzaElements {
     elements: Vec<(Rc<RefCell<ProcessStanzaElementsEntry>>,usize)>,
-    tuple_size: usize,
-    count: usize,
+    points_per_shape: usize,
+    shape_count: usize,
     active: Rc<RefCell<bool>>
 }
 
 impl ProcessStanzaElements {
-    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, count: usize, indexes: &[u16]) -> ProcessStanzaElements {
+    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, shape_count: usize, indexes: &[u16]) -> ProcessStanzaElements {
         let mut out = ProcessStanzaElements {
-            tuple_size: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
+            points_per_shape: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
             elements: vec![],
-            count,
+            shape_count,
             active: stanza_builder.active().clone()
         };
         let bases = out.allocate_entries(stanza_builder);
@@ -68,17 +68,17 @@ impl ProcessStanzaElements {
 
     fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder) -> Vec<usize> {
         let mut bases = vec![];
-        let mut remaining = self.count;
-        while remaining > 0 {
+        let mut remaining_shapes = self.shape_count;
+        while remaining_shapes > 0 {
             let entry = stanza_builder.elements().clone();
-            let mut space = entry.borrow().space(self.tuple_size);
-            if space > remaining { space = remaining; }
-            if space > 0 {
+            let mut space_in_shapes = entry.borrow().space(self.points_per_shape);
+            if space_in_shapes > remaining_shapes { space_in_shapes = remaining_shapes; }
+            if space_in_shapes > 0 {
                 bases.push(entry.borrow().base());
-                self.elements.push((entry,space));
+                self.elements.push((entry,space_in_shapes));
             }
-            remaining -= space;
-            if remaining > 0 {
+            remaining_shapes -= space_in_shapes;
+            if remaining_shapes > 0 {
                 stanza_builder.make_elements_entry();
             }
         }
@@ -98,25 +98,25 @@ impl ProcessStanzaElements {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaElements {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
-        let array_size = self.tuple_size * self.count;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
+        let array_size = self.points_per_shape * self.shape_count * dims;
         if values.len() != array_size {
             return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} got {}",array_size,values.len())));
         }
         let mut offset = 0;
-        for (entry,count) in &mut self.elements {
-            let slice_size = *count*self.tuple_size;
+        for (entry,shape_count) in &mut self.elements {
+            let slice_size = *shape_count*self.points_per_shape*dims;
             entry.borrow_mut().add(handle,&values[offset..(offset+slice_size)]);
             offset += slice_size;
         }
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> Result<(),Message> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
-        for (entry,count) in &mut self.elements {
-            let mut remaining = *count*self.tuple_size;
+        for (entry,shape_count) in &mut self.elements {
+            let mut remaining = *shape_count*self.points_per_shape*dims;
             while remaining > 0 {
                 let mut real_count = remaining;
                 if offset+real_count > values_size { real_count = values_size-offset; }

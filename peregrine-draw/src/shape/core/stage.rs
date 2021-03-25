@@ -186,7 +186,7 @@ impl Clone for ReadStage {
 }
 
 impl Stage {
-    pub fn new() -> Stage { // XXX
+    pub fn new() -> Stage {
         let redraw_needed = RedrawNeeded::new();
         let data_needed = RedrawNeeded::new();
         let mut out = Stage {
@@ -194,6 +194,7 @@ impl Stage {
             y: StageAxis::new(&redraw_needed),
             redraw_needed
         };
+        out.y.set_position(0.);
         out.y.set_bp_per_screen(1.);
         out
     }

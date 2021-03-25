@@ -21,7 +21,6 @@ impl CanvasTextureAreas {
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    sampler: UniformHandle,
     texture: AttribHandle,
     mask: AttribHandle
 }
@@ -29,9 +28,8 @@ pub struct TextureProgram {
 impl TextureProgram {
     pub(crate) fn new(program: &Program) -> Result<TextureProgram,Message> {
         Ok(TextureProgram {
-            sampler: program.get_uniform_handle("uSampler")?,
-            texture: program.get_attrib_handle("vTextureCoord")?,
-            mask: program.get_attrib_handle("vMaskCoord")?,
+            texture: program.get_attrib_handle("aTextureCoord")?,
+            mask: program.get_attrib_handle("aMaskCoord")?,
         })
     }
 }
@@ -55,13 +53,11 @@ impl TextureDraw {
             data.push((origin.0+size.0) as f64); data.push(origin.1 as f64); // (max,min)
             data.push((origin.0+size.0) as f64); data.push((origin.1+size.1) as f64); // (max,max)
         }
-        addable.add_n(attrib,data)?;
+        addable.add_n(attrib,data,2)?;
         Ok(())
     }
 
     pub(crate) fn add_rectangle(&self, process: &mut ProtoProcess, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas]) -> Result<(),Message> {
-        let canvas = bindery.gl_index(canvas)?;
-        process.set_uniform(&self.0.sampler,vec![canvas as f64])?;
         self.add_rectangle_one(addable,&self.0.texture,&mut dims.iter().map(|x| (x.texture_origin(),x.size())))?;
         self.add_rectangle_one(addable,&self.0.mask,&mut dims.iter().map(|x| (x.mask_origin(),x.size())))?;
         Ok(())

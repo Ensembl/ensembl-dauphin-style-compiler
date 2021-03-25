@@ -1,12 +1,11 @@
-use commander::PromiseFuture;
+use commander::{ PromiseFuture, FusePromise };
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::Hash;
 use std::sync::{ Arc, Mutex };
-use super::fuse::FusePromise;
 
 #[derive(Clone)]
-pub struct IndirectData<K,V>(Arc<Mutex<HashMap<K,FusePromise<V>>>>,bool);
+pub struct IndirectData<K,V>(Arc<Mutex<HashMap<K,FusePromise<V>>>>,bool) where V: Clone;
 
 impl<K,V> IndirectData<K,V> where K: Eq+Hash+Clone, V: Clone {
     pub(crate) fn new_keep() -> IndirectData<K,V> {

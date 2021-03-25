@@ -36,11 +36,11 @@ impl TapeData {
                                     base_x: Vec<f64>, sea_y: ScreenEdge,
                                     ship_x: ShipEnd, ship_y: ShipEnd,
                                     size_x: Vec<f64>, size_y: Vec<f64>, hollow: bool) -> TapeData {
-        let x_origin = GLAxis::new_single_origin(&base_x, -layer.left(), true,hollow);
+        let x_origin = GLAxis::new_single_origin(&base_x, -layer.left(), None,hollow);
         TapeData {
-            x_origin: GLAxis::new_single_origin(&base_x, -layer.left(), true,hollow),
-            x_vertex: GLAxis::new_from_single_delta(x_origin.len(),&ship_x,&size_x,true,hollow),
-            y_vertex: GLAxis::new_from_single(&sea_y,&ship_y,&size_y,false,hollow)
+            x_vertex: GLAxis::new_from_single_delta(&ship_x,&size_x,&x_origin,hollow),
+            y_vertex: GLAxis::new_from_single(&sea_y,&ship_y,&size_y,Some(&x_origin),hollow),
+            x_origin,
         }
     }
 
@@ -50,11 +50,11 @@ impl TapeData {
                                         pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                         pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                                         hollow: bool) -> TapeData {
-        let x_origin = GLAxis::new_double_origin(&axx1,&axx2, -layer.left(), true,hollow);
+        let x_origin = GLAxis::new_double_origin(&axx1,&axx2, -layer.left(), None,hollow);
         TapeData {
-            x_origin: GLAxis::new_double_origin(&axx1,&axx2, -layer.left(), true,hollow),
-            x_vertex: GLAxis::new_from_double_delta(x_origin.len(), &pxx1,&pxx2,true,hollow),
-            y_vertex: GLAxis::new_from_double(&ayy1, &pyy1, &ayy2, &pyy2, false,hollow)
+            x_vertex: GLAxis::new_from_double_delta(&pxx1,&pxx2,&x_origin,hollow),
+            y_vertex: GLAxis::new_from_double(&ayy1, &pyy1, &ayy2, &pyy2, Some(&x_origin),hollow),
+            x_origin,
         }
     }
 }
@@ -91,9 +91,9 @@ impl TapeGeometry {
 
     pub(crate) fn add(&self, layer: &mut Layer, data: TapeData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Tape,&self.patina)?;
-        elements.add(&self.variety.origins,data.x_origin.vec1d_x())?;
-        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex))?;
-        elements.add(&self.variety.signs,data.y_vertex.signs_y())?;
+        elements.add(&self.variety.origins,data.x_origin.vec1d_x(),1)?;
+        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
+        elements.add(&self.variety.signs,data.y_vertex.signs_y(),1)?;
         Ok(elements)
     }
 }
