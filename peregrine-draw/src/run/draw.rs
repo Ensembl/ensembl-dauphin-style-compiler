@@ -11,39 +11,35 @@ use peregrine_data::{
     PeregrineConfig
 };
 use peregrine_dauphin::peregrine_dauphin;
+use peregrine_message::Instigator;
 use super::frame::run_animations;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
+use super::api::PeregrineDrawApi;
 use super::dom::PeregrineDom;
-use crate::shape::core::stage::{ Stage, ReadStage };
+use crate::shape::core::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
-use commander::{ Lock, LockGuard, cdr_lock, CommanderStream };
-use peregrine_data::{ Channel, Track, StickId };
-#[cfg(blackbox)]
-use crate::util::pgblackbox::setup_blackbox;
+use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
+use peregrine_data::{ Channel, Track, StickId, DataMessage };
+use crate::run::progress::Progress;
 
 // TODO async/sync versions
 
-pub struct Progress {
-//    fuse: FusePromise
+#[cfg(blackbox)]
+pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
+    use crate::util::pgblackbox::setup_blackbox_real;
+
+    setup_blackbox_real(commander,url);
 }
 
-pub trait PeregrineDrawApi {
-    fn set_message_reporter<F>(&mut self,callback: F) where F: FnMut(Message) + 'static;
-    fn setup_blackbox(&self, url: &str) -> Result<(),Message>;
-    fn x(&self) -> Result<f64,Message>;
-    fn y(&self) -> Result<f64,Message>;
-    fn size(&self) -> Result<(f64,f64),Message>;
-    fn bp_per_screen(&self) -> Result<f64,Message>;
-    fn set_x(&mut self, x: f64);
-    fn set_y(&mut self, y: f64);
-    fn set_size(&mut self, x: f64, y: f64);
-    fn set_bp_per_screen(&mut self, z: f64);
-    fn bootstrap(&self, channel: Channel);
-    fn add_track(&self, track: Track);
-    fn remove_track(&self, track: Track);
-    fn set_stick(&self, stick: &StickId);
+
+#[cfg(not(blackbox))]
+pub fn setup_blackbox(_commander: &PgCommanderWeb, url: &str) {
+}
+
+fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>) {
+    inst.merge(inst_data,|e| Message::DataError(e));
 }
 
 #[derive(Clone)]
@@ -140,8 +136,6 @@ impl PeregrineDraw {
         run_animations(self);
         Ok(())
     }
-
-    fn read_stage(&self) -> ReadStage { self.stage.lock().unwrap().read_stage() }
 }
 
 impl PeregrineDrawApi for PeregrineDraw {
@@ -168,9 +162,12 @@ impl PeregrineDrawApi for PeregrineDraw {
     }
     fn bp_per_screen(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().bp_per_screen() }
     
-    fn set_x(&mut self, x: f64) {
-        self.data_api.set_position(x);
+    fn set_x(&mut self, x: f64) -> Progress {
+        let (progress,mut instigator) = Progress::new();
+        data_inst(&mut instigator,self.data_api.set_position(x));
         self.stage.lock().unwrap().x_mut().set_position(x);
+        instigator.done();
+        progress
     }
 
     fn set_y(&mut self, y: f64) {
@@ -182,21 +179,33 @@ impl PeregrineDrawApi for PeregrineDraw {
         self.stage.lock().unwrap().y_mut().set_size(y);
     }
 
-    fn set_bp_per_screen(&mut self, z: f64) {
-        self.data_api.set_bp_per_screen(z);
+    fn set_bp_per_screen(&mut self, z: f64) -> Progress {
+        let (progress,mut instigator) = Progress::new();
+        data_inst(&mut instigator,self.data_api.set_bp_per_screen(z));
         self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
+        instigator.done();
+        progress
     }
 
-    fn add_track(&self, track: Track) {
-        self.data_api.add_track(track);
+    fn add_track(&self, track: Track) -> Progress {
+        let (progress,mut instigator) = Progress::new();
+        data_inst(&mut instigator,self.data_api.add_track(track));
+        instigator.done();
+        progress
     }
 
-    fn remove_track(&self, track: Track) {
-        self.data_api.remove_track(track);
+    fn remove_track(&self, track: Track) -> Progress {
+        let (progress,mut instigator) = Progress::new();
+        data_inst(&mut instigator,self.data_api.remove_track(track));
+        instigator.done();
+        progress
     }
 
-    fn set_stick(&self, stick: &StickId) {
-        self.data_api.set_stick(stick)
+    fn set_stick(&self, stick: &StickId) -> Progress {
+        let (progress,mut instigator) = Progress::new();
+        data_inst(&mut instigator,self.data_api.set_stick(stick));
+        instigator.done();
+        progress
     }
 }
 // TODO redraw on track change etc.

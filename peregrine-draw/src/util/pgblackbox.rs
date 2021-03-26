@@ -1,4 +1,4 @@
-//#![cfg(blackbox)] XXX
+#![cfg(blackbox)]
 use std::hash::Hasher;
 use std::sync::{ Arc, Mutex };
 use blackbox::{ Integration, blackbox_config, blackbox_integration, blackbox_take_json, blackbox_enable, blackbox_log };
@@ -72,14 +72,13 @@ impl Integration for PgBlackboxIntegration {
     fn get_time_units(&self) -> String { "ms".to_string() }
 }
 
-pub fn pgblackbox_setup() -> PgBlackboxIntegration {
+fn pgblackbox_setup() -> PgBlackboxIntegration {
     let ign = PgBlackboxIntegration::new();
     blackbox_integration(ign.clone());
     ign
 }
 
-//#[cfg(blackbox)]
-pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
+pub fn setup_blackbox_real(commander: &PgCommanderWeb, url: &str) {
     let mut ign = pgblackbox_setup();
     ign.set_url(&Url::parse(url).expect("bad blackbox url"));
     let ign2 = ign.clone();
@@ -90,9 +89,3 @@ pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
     blackbox_log("general","blackbox configured");
     console::log_1(&format!("blackbox configured").into());
 }
-
-/*
-#[cfg(not(blackbox))]
-pub fn setup_blackbox(_commander: &PgCommanderWeb, url: &str) {
-}
-*/

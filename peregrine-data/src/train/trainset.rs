@@ -8,6 +8,7 @@ use super::carriageevent::CarriageEvents;
 use blackbox::{ blackbox_time, blackbox_log };
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
+use peregrine_message::Instigator;
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -169,7 +170,7 @@ impl TrainSet {
         async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
     }
 
-    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) {
+    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, instigator: Instigator<DataMessage>) {
         blackbox_time!("train","trainset-set",{
             let mut events = CarriageEvents::new();
             if viewport.layout().stick().is_some() {

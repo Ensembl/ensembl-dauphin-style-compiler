@@ -10,12 +10,15 @@ mod integration {
 }
 
 mod run {
+    pub mod api;
     mod dom;
     pub mod draw;
     mod frame;
+    pub(crate) mod progress;
 
     pub use self::dom::PeregrineDom;
-    pub use self::draw::{ PeregrineDraw, PeregrineDrawApi };
+    pub use self::api::PeregrineDrawApi;
+    pub use self::draw::{ PeregrineDraw };
 }
 
 mod shape {

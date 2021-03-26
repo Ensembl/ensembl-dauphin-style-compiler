@@ -353,6 +353,9 @@ dependencies = [
 [[package]]
 name = "peregrine_message"
 version = "0.0.0"
+dependencies = [
+ "commander",
+]
 
 [[package]]
 name = "pin-project"

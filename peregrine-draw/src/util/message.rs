@@ -14,7 +14,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub enum Message {
     CodeInvariantFailed(String),
     DataError(DataMessage),

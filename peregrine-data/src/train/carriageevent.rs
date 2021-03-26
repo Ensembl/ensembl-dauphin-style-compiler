@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex };
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::Carriage;
 use crate::train::train::Train;
+use peregrine_message::Instigator;
 
 #[derive(Debug)]
 enum CarriageEvent {
