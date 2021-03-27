@@ -4,8 +4,6 @@ use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, C
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
 use peregrine_data::{ StickId, Panel, Channel, Scale, Focus, Track, ProgramData };
 use serde_cbor::Value as CborValue;
-use peregrine_data::DataMessage;
-use web_sys::console;
 
 simple_interp_command!(GetPanelInterpCommand,GetPanelDeserializer,21,5,(0,1,2,3,4));
 simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,8,(0,1,2,3,4,5,6,7));

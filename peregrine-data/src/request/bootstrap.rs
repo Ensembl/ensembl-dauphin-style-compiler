@@ -1,9 +1,9 @@
 use std::any::Any;
-use anyhow::{ self, bail };
+use anyhow::{ self, };
 use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
-use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
+use crate::run::pgcommander::{ PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
@@ -11,9 +11,8 @@ use super::manager::RequestManager;
 use super::program::ProgramLoader;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::backoff::Backoff;
-use crate::util::miscpromises::CountingPromise;
 use crate::util::message::DataMessage;
-use crate::api::{ MessageSender, PeregrineCoreBase, AgentStore };
+use crate::api::{ PeregrineCoreBase, AgentStore };
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
@@ -120,6 +119,7 @@ mod test {
     use crate::test::integrations::{ cbor_matches, cbor_matches_print };
     use serde_json::json;
     use crate::test::helpers::{ TestHelpers, urlc };
+    use crate::util::miscpromises::CountingPromise;
 
     #[test]
     fn test_bootstrap() {

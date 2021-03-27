@@ -1,5 +1,4 @@
-use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
-use std::cmp::{ max, min };
+use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
 
 #[derive(Debug)]

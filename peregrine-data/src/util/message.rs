@@ -77,7 +77,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
             DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
             DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
-            DataMessage::TunnelError(e) => MessageCategory::BadInfrastructure,
+            DataMessage::TunnelError(_) => MessageCategory::BadInfrastructure,
         }
     }
 

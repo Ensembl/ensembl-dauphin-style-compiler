@@ -1,11 +1,9 @@
 use std::sync::{ Arc, Mutex };
-use anyhow::Context;
-use peregrine_data::{ Commander, CarriageSpeed, PeregrineCore, PeregrineIntegration, Carriage, PeregrineApiQueue, ChannelIntegration };
-use web_sys::console;
+use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration };
 use super::pgchannel::PgChannel;
 use blackbox::blackbox_log;
 use crate::train::GlTrainSet;
-use peregrine_data::{ PeregrineConfig, DataMessage };
+use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 
 pub struct PgIntegration {
@@ -16,6 +14,7 @@ pub struct PgIntegration {
 
 impl PeregrineIntegration for PgIntegration {
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32) -> Result<(),DataMessage> {
+        #[cfg(blackbox)]
         let carriages_str : Vec<_> = carriages.iter().map(|x| x.id().to_string()).collect();
         blackbox_log!("uiapi","set_carriages(carriages={:?}({}) index={:?})",carriages_str.join(", "),carriages_str.len(),index);
         let mut webgl = self.webgl.lock().unwrap();

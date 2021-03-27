@@ -15,7 +15,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender, Reporter: &Reporter<DataMessage>) -> CarriageSet {
+    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         let mut pending = old.pending;
@@ -38,20 +38,20 @@ impl CarriageSet {
                 old_carriages.next().unwrap().1
             } else {
                 let out = Carriage::new(&CarriageId::new(train_id,index),messages);
-                carriage_events.carriage(&out,Reporter);
-                pending = Some(Reporter.clone());
+                carriage_events.carriage(&out,reporter);
+                pending = Some(reporter.clone());
                 out
             });
         }
         CarriageSet { carriages, start, pending }
     }
 
-    pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, messages: &MessageSender, Reporter: &Reporter<DataMessage>) -> CarriageSet {
+    pub(super) fn new() -> CarriageSet {
         CarriageSet { carriages: vec![], start: 0, pending: None }
     }
 
-    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender, Reporter: &Reporter<DataMessage>) -> CarriageSet {
-        CarriageSet::create(train_id,carriage_events,centre,old,messages,Reporter)
+    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> CarriageSet {
+        CarriageSet::create(train_id,carriage_events,centre,old,messages,reporter)
     }
 
     pub(super) fn depend(&mut self) -> Option<Reporter<DataMessage>> {

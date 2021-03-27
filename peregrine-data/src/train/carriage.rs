@@ -1,4 +1,3 @@
-use blackbox::blackbox_log;
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
@@ -7,7 +6,6 @@ use crate::panel::{ Panel };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
-use web_sys::console;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {

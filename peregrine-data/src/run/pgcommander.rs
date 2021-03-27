@@ -1,4 +1,3 @@
-use crate::lock;
 use std::sync::MutexGuard;
 use std::future::Future;
 use std::pin::Pin;
@@ -13,7 +12,7 @@ pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHa
         let agent = cdr_new_agent(Some(rc),&t.name);
          cdr_add(Box::pin(t.task),agent)
     } else {
-        let mut commander = commander.0.lock().unwrap();
+        let commander = commander.0.lock().unwrap();
         let mut exe = commander.executor();
         let agent = exe.new_agent(&rc,&t.name);
         exe.add_pin(Box::pin(t.task),agent)

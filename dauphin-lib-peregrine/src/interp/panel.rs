@@ -104,7 +104,7 @@ async fn data_source(context: &mut InterpContext, cmd: DataSourceInterpCommand) 
 }
 
 impl InterpCommand for DataSourceInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(data_source(context,cmd))))))
     }

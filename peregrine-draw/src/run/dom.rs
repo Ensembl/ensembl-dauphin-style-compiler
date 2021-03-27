@@ -35,11 +35,11 @@ fn unique_element(c: HtmlCollection) -> Result<Element,Message> {
 }
 
 fn add_css(document: &Document, css: &str) -> Result<(),Message> {
-    let style = document.create_element("style").map_err(|e| Message::ConfusedWebBrowser(format!("Cannot create style element")))?;
+    let style = document.create_element("style").map_err(|e| Message::ConfusedWebBrowser(format!("Cannot create style element: {:?}",e.as_string())))?;
     style.set_text_content(Some(css));
-    style.set_attribute("type","text/css").map_err(|e| Message::ConfusedWebBrowser(format!("Cannot set style element attr")))?;
+    style.set_attribute("type","text/css").map_err(|e| Message::ConfusedWebBrowser(format!("Cannot set style element attr {:?}",e.as_string())))?;
     let body = document.body().ok_or_else(|| Message::ConfusedWebBrowser(format!("Document has no body")))?;
-    body.append_with_node_1(&style).map_err(|e| Message::ConfusedWebBrowser(format!("Cannot append node")))?;
+    body.append_with_node_1(&style).map_err(|e| Message::ConfusedWebBrowser(format!("Cannot append node: {:?}",e.as_string())))?;
     Ok(())
 }
 

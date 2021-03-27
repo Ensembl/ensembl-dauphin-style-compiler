@@ -7,7 +7,6 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
 use super::bell::{ BellReceiver, make_bell, BellSender };
-use web_sys::{ HtmlElement };
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
 use crate::PeregrineDom;
@@ -107,7 +106,7 @@ impl CommanderState {
                     state.raf_pending = Some(Closure::wrap(Box::new(move || {
                         handle.raf_tick()
                     })));
-                    window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback")))?;
+                    window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback: {:?}",e.as_string())))?;
                 }
             },
             SleepQuantity::Time(t) => {
@@ -131,7 +130,6 @@ pub struct PgCommanderWeb {
 
 impl PgCommanderWeb {
     pub fn new(dom: &PeregrineDom) -> Result<PgCommanderWeb,Message> {
-        let body = dom.body();
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             raf_pending: None,

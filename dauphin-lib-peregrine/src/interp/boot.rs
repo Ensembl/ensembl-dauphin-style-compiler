@@ -122,7 +122,7 @@ async fn add_stick(context: &mut InterpContext, cmd: AddStickInterpCommand) -> a
 }
 
 impl InterpCommand for AddStickInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+    fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(add_stick(context,cmd))))))
     }

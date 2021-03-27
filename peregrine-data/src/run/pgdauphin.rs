@@ -112,10 +112,9 @@ impl PgDauphin {
 }
 
 impl PayloadReceiver for PgDauphin {
-    fn receive(&self, channel: &Channel, response: ResponsePacket, channel_itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
+    fn receive(&self, channel: &Channel, response: ResponsePacket, _channel_itn: &Rc<Box<dyn ChannelIntegration>>, messages: &MessageSender) -> Pin<Box<dyn Future<Output=ResponsePacket>>> {
         let pgd = self.clone();
         let channel = channel.clone();
-        let channel_itn = channel_itn.clone();
         let messages = messages.clone();
         Box::pin(async move {
             for bundle in response.programs().clone().iter() {

@@ -69,7 +69,6 @@ impl RequestQueueData {
             for (response,stream) in streams {
                 let stream = stream.clone();
                 let channel = self.channel.clone();
-                let integration = self.integration.clone();
                 let messages = self.messages.clone();
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
@@ -122,6 +121,7 @@ impl RequestQueue {
 
     async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let pending = lock!(self.0).pending_send.clone();
+        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
@@ -138,6 +138,7 @@ impl RequestQueue {
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let sender = lock!(self.0).make_packet_sender(packet)?;
         blackbox_log!(&format!("channel-{}",channel.to_string()),"sending packet");

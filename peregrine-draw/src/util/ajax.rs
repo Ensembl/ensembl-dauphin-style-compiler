@@ -1,4 +1,3 @@
-use anyhow::{ self, Context };
 use wasm_bindgen::{ JsCast, JsValue };
 use js_sys::{ Uint8Array };
 use wasm_bindgen::prelude::*;
@@ -87,13 +86,13 @@ impl PgAjax {
             req.headers().set(k,v).map_err(|e| Message::ConfusedWebBrowser(format!("cannot set header {}={}: {:?}",k,v,e)))?;
         }
         let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
-        JsFuture::from(window.fetch_with_request(&req)).await.map_err(|e| Message::BadBackendConnection(format!("cannot send request")))
+        JsFuture::from(window.fetch_with_request(&req)).await.map_err(|e| Message::BadBackendConnection(format!("cannot send request: {:?}",e.as_string())))
     }
 
     pub async fn get_json(&mut self) -> Result<JsonValue,Message> {
         self.add_request_header("Content-Type","application/json");
         let response = self.get().await?;
-        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response")))?;
+        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response: {:?}",e.as_string())))?;
         let json_future = response.json().map_err(|e| Message::BadBackendConnection(format!("expected json: {:?}",e)))?;
         let json = JsFuture::from(json_future).await.map_err(|e| Message::SerializationError(format!("{:?}",e)))?;
         let json : JsonValue = json.into_serde().map_err(|e| Message::SerializationError(e.to_string()))?;
@@ -103,9 +102,9 @@ impl PgAjax {
     pub async fn get_cbor(&mut self) -> Result<CborValue,Message> {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await?;
-        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response")))?;
-        let ajax_array_buffer = response.array_buffer().map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer")))?;
-        let array_buffer_value = JsFuture::from(ajax_array_buffer).await.map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer value")))?;
+        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response: {:?}",e.as_string())))?;
+        let ajax_array_buffer = response.array_buffer().map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer: {:?}",e.as_string())))?;
+        let array_buffer_value = JsFuture::from(ajax_array_buffer).await.map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer value: {:?}",e.as_string())))?;
         let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
         let cbor = serde_cbor::from_slice(&buffer).map_err(|e| Message::SerializationError(e.to_string()))?;
         Ok(cbor)

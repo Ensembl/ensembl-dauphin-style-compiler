@@ -1,4 +1,3 @@
-use anyhow::{ self, Context, anyhow as err };
 use std::sync::{ Arc, Mutex };
 use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
@@ -91,7 +90,7 @@ impl BellReceiverState {
             });
             js_panic(add_zero_callback(closure));
         })));
-        self.el.add_event_listener_with_callback(&self.name,self.closure.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannt create event callback")))?;
+        self.el.add_event_listener_with_callback(&self.name,self.closure.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannt create event callback: {:?}",e.as_string())))?;
         Ok(())
     }
 }

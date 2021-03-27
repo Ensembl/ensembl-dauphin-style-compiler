@@ -22,7 +22,7 @@ impl LockPromise {
             fuse = Some(v.1.clone());
         }
         drop(v);
-        if let Some(mut fuse) = fuse {
+        if let Some(fuse) = fuse {
             fuse.fuse(());
         }
     }

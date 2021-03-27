@@ -53,7 +53,7 @@ impl TrainData {
             active: None,
             id: id.clone(),
             position,
-            carriages: Some(CarriageSet::new(id,carriage_event,0,messages,reporter)),
+            carriages: Some(CarriageSet::new()),
             max: None,
             messages: messages.clone()
         };

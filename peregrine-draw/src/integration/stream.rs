@@ -17,7 +17,9 @@
 use blackbox::{ blackbox_log };
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ StreamConnector, Stream };
+#[cfg(blackbox)]
 use commander::{ cdr_get_name };
+#[cfg(blackbox)]
 use web_sys::console;
 
 pub struct WebStreamConnector();
@@ -50,6 +52,7 @@ impl StreamConnector for WebStreamConnector {
 }
 
 #[cfg(not(console))]
+#[allow(unused)]
 impl StreamConnector for WebStreamConnector {
     fn notice(&self, msg: &str) -> anyhow::Result<()> {
         blackbox_log!("notice","dauphin '{}': {}",cdr_get_name(),msg);

@@ -3,7 +3,6 @@ use crate::simple_interp_command;
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
-use web_sys::console;
 use inflate::inflate_bytes_zlib;
 use std::str::from_utf8;
 

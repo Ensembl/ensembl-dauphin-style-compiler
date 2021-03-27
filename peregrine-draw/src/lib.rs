@@ -67,7 +67,6 @@ mod train {
 
 mod util {
     pub(crate) mod ajax;
-    pub(crate) mod error;
     pub(crate) mod evictlist;
     pub(crate) mod message;
     pub(crate) mod safeelement;

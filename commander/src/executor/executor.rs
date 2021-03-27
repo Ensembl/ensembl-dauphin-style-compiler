@@ -100,7 +100,6 @@ impl Executor {
         let tasks = self.get_tasks_mut(); // shared to avoid race to slot
         if tasks.check_slot(&agent) {
             let container_handle = tasks.create_handle(&agent,task,id);
-            agent.name_agent().set_identity(container_handle.identity());
             tasks.use_slot(&agent,&container_handle);
             if !agent.finish_agent().finished() {
                 tasks.start_task(&container_handle);
