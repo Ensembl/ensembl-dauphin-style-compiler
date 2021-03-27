@@ -54,17 +54,17 @@ impl SubLayerHolder {
     }
 
     fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
-        self.make(programs,geometry,patina)?;
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&mut self.0.as_mut().unwrap().process)
     }
 
     fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
-        self.make(programs,geometry,patina)?;
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&self.0.as_mut().unwrap().geometry)
     }
 
     fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
-        self.make(programs,geometry,patina)?;
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&self.0.as_mut().unwrap().patina)
     }
 

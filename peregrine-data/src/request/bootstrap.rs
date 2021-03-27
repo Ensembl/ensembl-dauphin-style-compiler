@@ -120,6 +120,7 @@ mod test {
     use serde_json::json;
     use crate::test::helpers::{ TestHelpers, urlc };
     use crate::util::miscpromises::CountingPromise;
+    use crate::api::MessageSender;
 
     #[test]
     fn test_bootstrap() {

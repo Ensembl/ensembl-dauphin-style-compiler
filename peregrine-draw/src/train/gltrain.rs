@@ -5,13 +5,13 @@ use super::glcarriage::GLCarriage;
 use crate::shape::core::stage::{ ReadStage };
 use crate::shape::core::redrawneeded::{ RedrawNeeded };
 use crate::webgl::DrawingSession;
-use blackbox::blackbox_log;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
+#[cfg(blackbox)]
+use blackbox::blackbox_log;
 
 pub struct GLTrain {
-//    programs: ProgramStore,
     carriages: HashMap<CarriageId,GLCarriage>,
     opacity: f64,
     max: Option<u64>,
@@ -21,7 +21,6 @@ pub struct GLTrain {
 impl GLTrain {
     pub fn new(programs: &ProgramStore, redraw_needed: &RedrawNeeded) -> GLTrain {
         GLTrain {
-//            programs: programs.clone(),
             carriages: HashMap::new(),
             opacity: 0.,
             max: None,
