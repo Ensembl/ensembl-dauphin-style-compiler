@@ -21,6 +21,7 @@ For any questions, see #new-website-genome-browser on slack.
 
 ## Specific Algorithmic Complexities
 
+* [Trains](trains.md)
 * [Geometry in WebGL](geometry.md)
 * [Texture packing](alloc.md)
 * [2D-Canvas Handling](canvas.md)

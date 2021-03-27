@@ -8,7 +8,7 @@ use super::carriageevent::CarriageEvents;
 use blackbox::{ blackbox_time, blackbox_log };
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use peregrine_message::Instigator;
+use peregrine_message::{ Instigator, Reporter };
 
 /* current: train currently being displayed, if any. During transition, the outgoing train.
  * future: incoming train during transition.
@@ -18,7 +18,7 @@ use peregrine_message::Instigator;
 pub struct TrainSetData {
     current: Option<Train>,
     future: Option<Train>,
-    wanted: Option<Train>,
+    wanted: Option<(Train,Reporter<DataMessage>)>,
     next_activation: u32,
     messages: MessageSender
 }
@@ -35,25 +35,25 @@ impl TrainSetData {
     }
 
     fn promote(&mut self, events: &mut CarriageEvents) {
-        if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
-            if let Some(mut wanted) = self.wanted.take() {
+        if self.wanted.as_ref().map(|x| x.0.train_ready() && !x.0.train_broken()).unwrap_or(false) && self.future.is_none() {
+            if let Some((mut wanted,wanted_reporter)) = self.wanted.take() {
                 blackbox_log!("uiapi","TrainSet.promote_future() wanted -> future");
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
-                wanted.set_active(events,self.next_activation,quick);
+                wanted.set_active(events,self.next_activation,quick,&wanted_reporter);
                 self.next_activation += 1;
                 self.future = Some(wanted);
             }
         }
     }
 
-    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64) {
+    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64, reporter: &Reporter<DataMessage>) {
         blackbox_log!("uiapi","TrainSet.new_wanted()");
-        self.wanted = Some(Train::new(train_id,events,position,&self.messages));
+        self.wanted = Some((Train::new(train_id,events,position,&self.messages,reporter),reporter.clone()));
     }
 
     fn quiescent(&self) -> Option<&Train> {
         /* The quiescent train is the train which, barring this and any future changes will ultimately be displayed. */
-        if let Some(wanted) = &self.wanted {
+        if let Some((wanted,_)) = &self.wanted {
             Some(wanted)
         } else if let Some(future) = &self.future {
             Some(future)
@@ -64,8 +64,7 @@ impl TrainSetData {
         }
     }
 
-    fn maybe_update_target(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        use web_sys::console;
+    fn maybe_new_wanted(&mut self, events: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         let train_id = TrainId::new(viewport.layout(),&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent() {
@@ -74,26 +73,27 @@ impl TrainSetData {
             }
         }
         if new_target_needed {
-            self.new_wanted(events,&train_id,viewport.position()?);
+            self.new_wanted(events,&train_id,viewport.position()?,reporter);
         }
         Ok(())
     }
 
-    fn update_train(&self, events: &mut CarriageEvents, train: &Option<Train>, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn set_train_position(&self, events: &mut CarriageEvents, train: Option<&Train>, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         if let Some(train) = train {
             if viewport.layout().stick() == train.id().layout().stick() {
-                train.set_position(&mut events.clone(),viewport.position()?);
+                train.set_position(&mut events.clone(),viewport.position()?,reporter);
             }
         }
         Ok(())
     }
 
-    fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport, reporter: Instigator<DataMessage>) -> Result<(),DataMessage> {
+        let reporter = reporter.to_reporter();
         if !viewport.ready() { return Ok(()); }
-        self.maybe_update_target(events,viewport)?;
-        self.update_train(events,&self.wanted,viewport)?;
-        self.update_train(events,&self.future,viewport)?;
-        self.update_train(events,&self.current,viewport)?;
+        self.maybe_new_wanted(events,viewport,&reporter)?;
+        self.set_train_position(events,self.wanted.as_ref().map(|x| &x.0),viewport,&reporter)?;
+        self.set_train_position(events,self.future.as_ref(),viewport,&reporter)?;
+        self.set_train_position(events,self.current.as_ref(),viewport,&reporter)?;
         self.promote(events);
         Ok(())
     }
@@ -107,82 +107,93 @@ impl TrainSetData {
         self.promote(events);
     }
 
-    fn maybe_ready(&mut self, events: &mut CarriageEvents) {
+    fn update_trains(&mut self) -> CarriageEvents {
+        let mut events = CarriageEvents::new();
         if let Some(wanted) = &mut self.wanted {
-            wanted.maybe_ready();
-            self.promote(events);
+            wanted.0.maybe_ready();
+            self.promote(&mut events);
         }
-    }
-
-    fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
         if let Some(train) = &mut self.future {
-            train.maybe_notify_ui(events);
+            train.set_carriages(&mut events);
         }
         if let Some(train) = &mut self.current {
-            train.maybe_notify_ui(events);
+            train.set_carriages(&mut events);
         }
+        events
     }
 }
 
 #[derive(Clone)]
-pub struct TrainSet(Arc<Mutex<TrainSetData>>,PeregrineCoreBase);
+pub struct TrainSet {
+    state: Arc<Mutex<TrainSetData>>,
+    messages: MessageSender
+}
 
 impl TrainSet {
     pub fn new(base: &PeregrineCoreBase) -> TrainSet {
-        TrainSet(Arc::new(Mutex::new(TrainSetData::new(&base.messages))),base.clone())
+        TrainSet {
+            state: Arc::new(Mutex::new(TrainSetData::new(&base.messages))),
+            messages: base.messages.clone()
+        }
     }
 
-    async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[Carriage]) {
+    async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[(Carriage,Reporter<DataMessage>)]) {
         let mut loads = vec![];
-        for carriage in carriages {
-            loads.push((carriage,carriage.load(&objects)));
+        for (carriage,reporter) in carriages {
+            loads.push((carriage.load(&objects),reporter));
         }
-        for carriage in carriages {
-            let r = carriage.load(objects).await;
+        for (future,reporter) in loads {
+            let r = future.await;
             if let Err(e) = r {
-                self.1.messages.send(e);
+                self.messages.send(e.clone());
+                reporter.error(e.clone());
             }
         }
     }
-    
-    pub(super) fn poll(&mut self, objects: &mut PeregrineCore) {
-        let mut events = CarriageEvents::new();
-        self.0.lock().unwrap().maybe_ready(&mut events);
-        self.0.lock().unwrap().maybe_notify_ui(&mut events);
-        events.run(objects);
+
+    fn run(&self, mut events: CarriageEvents, objects: &mut PeregrineCore) {
+        let loads = events.run(objects);
+        if loads.len() > 0 {
+           self.run_load_carriages(objects,loads);
+        }
     }
 
-    pub(super) fn run_load_carriages(&self, objects: &mut PeregrineCore, carriages: Vec<Carriage>) {
+    pub(super) fn update_trains(&mut self, objects: &mut PeregrineCore) {
+        let events = self.state.lock().unwrap().update_trains();
+        self.run(events,objects);
+    }
+
+    pub(super) fn run_load_carriages(&self, objects: &mut PeregrineCore, loads: Vec<(Carriage,Reporter<DataMessage>)>) {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
-        let carriages = carriages.clone();
+        let loads = loads.clone();
         let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                self2.load_carriages(&mut objects2,&carriages).await;
-                self2.poll(&mut objects2);
+                self2.load_carriages(&mut objects2,&loads).await;
+                self2.update_trains(&mut objects2);
                 Ok(())
             })
         });
         async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
     }
 
-    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, instigator: Instigator<DataMessage>) {
+    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, reporter: Instigator<DataMessage>) {
         blackbox_time!("train","trainset-set",{
-            let mut events = CarriageEvents::new();
             if viewport.layout().stick().is_some() {
-                self.0.lock().unwrap().set(&mut events,viewport);
+                let mut events = CarriageEvents::new();
+                self.state.lock().unwrap().set(&mut events,viewport,reporter);
+                self.run(events,objects);
             }
-            events.run(objects);
         });
     }
 
     pub fn transition_complete(&self, objects: &mut PeregrineCore) {
         let mut events = CarriageEvents::new();
-        self.0.lock().unwrap().transition_complete(&mut events);
-        events.run(objects);
+        self.state.lock().unwrap().transition_complete(&mut events);
+        self.run(events,objects);
     }
 }

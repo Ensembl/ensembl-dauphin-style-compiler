@@ -16,12 +16,12 @@ impl<E> Instigator<E> where E: Clone + 'static {
 
     // TODO access fuse
 
-    pub fn error(&mut self, error: E) {
+    pub fn error(&self, error: E) {
         *self.1.lock().unwrap() = 0;
         self.0.fuse(Err(error));
     }
 
-    pub fn done(&mut self) {
+    pub fn done(&self) {
         let mut v = self.1.lock().unwrap();
         *v -= 1;
         if *v == 0 {
@@ -30,7 +30,7 @@ impl<E> Instigator<E> where E: Clone + 'static {
         }
     }
 
-    pub fn merge<F,G>(&mut self, mut other: Instigator<G>, cb: F) where F: FnOnce(G) -> E + 'static, G: Clone {
+    pub fn merge<F,G>(&self, mut other: Instigator<G>, cb: F) where F: FnOnce(G) -> E + 'static, G: Clone {
         /* if other is already fused as successful then we can just ignore it as we aren't */
         if *other.1.lock().unwrap() != -1 {
             other.0.add_downstream(&self.0, |v| v.map_err(move |e| cb(e)));
@@ -38,6 +38,23 @@ impl<E> Instigator<E> where E: Clone + 'static {
             other.1 = self.1.clone();
         }
     }
+
+    pub fn to_reporter(self) -> Reporter<E> { Reporter(Arc::new(Mutex::new(ReporterDropper(self)))) }
+}
+
+struct ReporterDropper<E>(Instigator<E>) where E: Clone + 'static;
+
+impl<E> Drop for ReporterDropper<E> where E: Clone + 'static {
+    fn drop(&mut self) {
+        self.0.done();
+    }
+}
+
+#[derive(Clone)]
+pub struct Reporter<E>(Arc<Mutex<ReporterDropper<E>>>) where E: Clone + 'static;
+
+impl<E> Reporter<E> where E: Clone + 'static {
+    pub fn error(&self, error: E) { self.0.lock().unwrap().0.error(error); }
 }
 
 pub enum MessageLevel {

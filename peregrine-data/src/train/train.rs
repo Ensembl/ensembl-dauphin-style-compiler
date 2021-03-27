@@ -8,6 +8,7 @@ use super::carriageevent::CarriageEvents;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
+use peregrine_message::{ Reporter };
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct TrainId {
@@ -45,25 +46,25 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> TrainData {
+    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> TrainData {
         let mut out = TrainData {
             broken: false,
             data_ready: false,
             active: None,
             id: id.clone(),
             position,
-            carriages: Some(CarriageSet::new(id,carriage_event,0,messages)),
+            carriages: Some(CarriageSet::new(id,carriage_event,0,messages,reporter)),
             max: None,
             messages: messages.clone()
         };
-        out.set_position(carriage_event,position);
+        out.set_position(carriage_event,position,reporter);
         out
     }
 
-    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
+    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
         if self.active != Some(index) {
             let speed = if quick { CarriageSpeed::Quick } else { CarriageSpeed::Slow };
-            carriage_event.transition(index,self.max.unwrap(),speed);
+            carriage_event.transition(index,self.max.unwrap(),speed,reporter);
         }
         self.active = Some(index);
     }
@@ -86,10 +87,11 @@ impl TrainData {
         }
     }
 
-    fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64) {
+    // TODO don't always update CarriageSet
+    fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64, reporter: &Reporter<DataMessage>) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
+        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages,reporter);
         self.carriages = Some(carriages);
     }
 
@@ -105,11 +107,11 @@ impl TrainData {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
-    fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
+    fn set_carriages(&mut self, events: &mut CarriageEvents) {
         if let Some(carriages) = &mut self.carriages {
-            if carriages.depend() {
+            if let Some(reporter) = carriages.depend() {
                 if let Some(index) = self.active {
-                    events.set_carriages(&self.carriages(),index);
+                    events.set_carriages(&self.carriages(),index,&reporter);
                 }
             }
         }
@@ -127,9 +129,9 @@ impl fmt::Debug for Train {
 }
 
 impl Train {
-    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender) -> Train {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages))),messages.clone());
-        carriage_event.train(&out);
+    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Train {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages,reporter))),messages.clone());
+        carriage_event.train(&out,reporter);
         out
     }
 
@@ -137,16 +139,16 @@ impl Train {
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
 
-    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
-        self.0.lock().unwrap().set_active(carriage_event,index,quick);
+    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
+        self.0.lock().unwrap().set_active(carriage_event,index,quick,reporter);
     }
 
     pub(super) fn set_inactive(&mut self) {
         self.0.lock().unwrap().set_inactive();
     }
 
-    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, position: f64) {
-        self.0.lock().unwrap().set_position(carriage_event,position);
+    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, position: f64, reporter: &Reporter<DataMessage>) {
+        self.0.lock().unwrap().set_position(carriage_event,position,reporter);
     }
 
     pub(super) fn compatible_with(&self, other: &Train) -> bool {
@@ -165,9 +167,10 @@ impl Train {
         self.0.lock().unwrap().set_max(max);
     }
     
-    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
+    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore, reporter: &Reporter<DataMessage>) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
+        let reporter = reporter.clone();
         let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("max finder"),
             prio: 1,
@@ -175,15 +178,19 @@ impl Train {
             timeout: None,
             task: Box::pin(async move {
                 let max = self2.find_max(&mut objects2).await;
+                if let Err(e) = &max { 
+                    reporter.error(e.clone());
+                    objects2.base.messages.send(e.clone());
+                }
                 self2.set_max(max);
-                objects2.train_set.clone().poll(&mut objects2);
+                objects2.train_set.clone().update_trains(&mut objects2);
                 Ok(())
             })
         });
         async_complete_task(&objects.base.commander,&objects.base.messages,handle, |e| (e,false));
     }
     
-    pub(super) fn maybe_notify_ui(&mut self, events: &mut CarriageEvents) {
-        self.0.lock().unwrap().maybe_notify_ui(events);
+    pub(super) fn set_carriages(&mut self, events: &mut CarriageEvents) {
+        self.0.lock().unwrap().set_carriages(events);
     }
 }
