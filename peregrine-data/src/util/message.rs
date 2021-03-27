@@ -137,6 +137,15 @@ impl PeregrineMessage for DataMessage {
         }
     }
 
+    fn knock_on(&self) -> bool {
+        match self {
+            DataMessage::DataMissing(_) => true,
+            DataMessage::StickAuthorityUnavailable(_) => true,
+            DataMessage::CarriageUnavailable(_,_) => true,
+            _ => false
+        }
+    }
+
     fn to_message_string(&self) -> String {
         match self {
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),

@@ -6,6 +6,7 @@ use commander::{ cdr_timer };
 use peregrine_draw::{ PeregrineDraw, PeregrineDrawApi, Message };
 use peregrine_data::{Channel, ChannelLocation, StickId, Track};
 use peregrine_data::{ PeregrineConfig };
+use peregrine_message::PeregrineMessage;
 pub use url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::console;
@@ -37,11 +38,21 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
     let mut bp_per_screen = 1000000.;
     for _ in 0..20 {
         pos += 50000.;
-        draw_api.set_x(pos);
-        draw_api.set_bp_per_screen(bp_per_screen);
+        let mut p = draw_api.set_x(pos);
+        p.add_callback(move |v| {
+            console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
+        });
+        let mut p = draw_api.set_bp_per_screen(bp_per_screen);
+        p.add_callback(move |v| {
+            console::log_1(&format!("set_bp_per_screen({}) = {:?}",pos,v).into());
+        });
         bp_per_screen *= 0.95;
         cdr_timer(1000.).await; // Wait one second
     }
+    let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
+    p.add_callback(move |v| {
+        console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
+    });
     Ok(())
 }
 
@@ -70,7 +81,9 @@ fn setup_genome_browser() -> Result<(),Message> {
      * was dodgy). Shortly there should be a mechanism to tie the message and originating request together.
      */
     draw_api.set_message_reporter(|message| {
-        console::error_1(&format!("{}",message).into());
+        if !message.knock_on() && message.degraded_experience() {
+            console::error_1(&format!("{}",message).into());
+        }
     });
     /*
      * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and

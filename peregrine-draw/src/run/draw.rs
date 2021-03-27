@@ -35,7 +35,7 @@ pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
 
 
 #[cfg(not(blackbox))]
-pub fn setup_blackbox(_commander: &PgCommanderWeb, url: &str) {
+pub fn setup_blackbox(_commander: &PgCommanderWeb, _url: &str) {
 }
 
 fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>) {

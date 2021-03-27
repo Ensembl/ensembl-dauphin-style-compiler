@@ -400,6 +400,7 @@ dependencies = [
  "js-sys",
  "peregrine_data",
  "peregrine_draw",
+ "peregrine_message",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",

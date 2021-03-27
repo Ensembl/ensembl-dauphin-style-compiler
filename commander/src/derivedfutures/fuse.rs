@@ -21,7 +21,8 @@ impl<F,G> DownstreamFuse<F> for Downstream<F,G> where G: Clone {
 struct FuseState<V> {
     fused: Option<V>,
     promises: Vec<PromiseFuture<V>>,
-    downstreams: Vec<Box<dyn DownstreamFuse<V> + 'static>>
+    downstreams: Vec<Box<dyn DownstreamFuse<V> + 'static>>,
+    callbacks: Vec<Box<dyn FnOnce(V)>>
 }
 
 impl<V> FuseState<V> where V: Clone {
@@ -29,7 +30,16 @@ impl<V> FuseState<V> where V: Clone {
         FuseState {
             fused: None,
             promises: vec![],
-            downstreams: vec![]
+            downstreams: vec![],
+            callbacks: vec![]
+        }
+    }
+
+    fn add_callback(&mut self, callback: Box<dyn FnOnce(V)>) {
+        if let Some(value) = &self.fused {
+            callback(value.clone());
+        } else {
+            self.callbacks.push(callback);
         }
     }
 
@@ -46,6 +56,9 @@ impl<V> FuseState<V> where V: Clone {
         self.fused = Some(value.clone());
         for p in &self.promises {
             p.satisfy(value.clone());
+        }
+        for cb in self.callbacks.drain(..) {
+            cb(value.clone());
         }
         for d in &mut self.downstreams {
             d.fuse(value.clone());
@@ -74,6 +87,11 @@ impl<V> FusePromise<V> where V: Clone {
     /// Create a new FusePromise
     pub fn new() -> FusePromise<V> {
         FusePromise(Arc::new(Mutex::new(FuseState::new())))
+    }
+
+    /// Add a callback to call when `fuse()` has been called.
+    pub fn add_callback<F>(&mut self, callback: F) where F: FnOnce(V) + 'static {
+        self.0.lock().unwrap().add_callback(Box::new(callback));
     }
 
     /// Add a PromiseFuture to be satisfied when `fuse()` has been called.

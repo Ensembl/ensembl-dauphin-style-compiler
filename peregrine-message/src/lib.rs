@@ -80,6 +80,7 @@ pub trait PeregrineMessage : Send + Sync {
     fn code(&self) -> (u64,u64);
     fn to_message_string(&self) -> String;
     fn cause_message(&self) -> Option<&(dyn PeregrineMessage + 'static)> { None }
+    fn knock_on(&self) -> bool;
 }
 
 impl fmt::Display for dyn PeregrineMessage {

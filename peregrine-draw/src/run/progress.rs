@@ -22,6 +22,10 @@ impl Progress {
         self.waiter().await
     }
 
+    pub fn add_callback<F>(&mut self, cb: F) where F: FnOnce(Result<(),Message>) + 'static {
+        self.0.add_callback(cb);
+    }
+
     pub fn new_merged(&self, other: Progress) -> Progress {
         let fuse = FusePromise::new();
         self.0.add_downstream(&fuse,|e| e);
@@ -29,5 +33,3 @@ impl Progress {
         Progress(fuse)
     }
 }
-
-// TODO run callback

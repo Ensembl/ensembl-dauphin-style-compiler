@@ -37,6 +37,13 @@ impl PeregrineMessage for Message {
         }
     }
 
+    fn knock_on(&self) -> bool {
+        match self {
+            Message::DataError(d) => d.knock_on(),
+            _ => false
+        }
+    }
+
     fn category(&self) -> MessageCategory {
         match self {
             Message::CodeInvariantFailed(_) => MessageCategory::BadCode,

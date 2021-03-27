@@ -36,3 +36,7 @@ path="../peregrine-data"
 [dependencies.peregrine_draw]
 version="*"
 path="../peregrine-draw"
+
+[dependencies.peregrine_message]
+version="*"
+path="../peregrine-message"
