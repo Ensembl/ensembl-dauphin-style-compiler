@@ -69,6 +69,9 @@ impl ProcessStanza {
     pub(crate) fn deactivate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,None);
         handle_context_errors(context)?;
+        for attrib in self.attribs.values() {
+            attrib.deactivate(context)?;
+        }
         Ok(())
     }
 

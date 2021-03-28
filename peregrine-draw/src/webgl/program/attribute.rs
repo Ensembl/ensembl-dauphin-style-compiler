@@ -91,6 +91,12 @@ impl AttributeValues {
         Ok(())
     }
 
+    pub(crate) fn deactivate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
+        context.disable_vertex_attrib_array(self.location);
+        handle_context_errors(context)?;
+        Ok(())
+    }
+
     pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.delete_buffer(Some(&self.gl_value));
         handle_context_errors(context)?;
