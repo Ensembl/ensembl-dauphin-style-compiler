@@ -50,6 +50,7 @@ impl Source for Attribute {
 
 fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> Result<WebGlBuffer,Message> {
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
+    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&buffer));
     // After `Float64Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Float64Array::view(values);

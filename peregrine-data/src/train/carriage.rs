@@ -88,7 +88,7 @@ impl Carriage {
             match future.await.as_ref() {
                 Ok(zoo) => {
                     use web_sys::console;
-                    console::log_1(&format!("ok {:?}",zoo).into());
+                    console::log_1(&format!("got new shapes").into());
                     new_shapes.append(&zoo.track_shapes(track.name()));
                 },
                 Err(e) => {

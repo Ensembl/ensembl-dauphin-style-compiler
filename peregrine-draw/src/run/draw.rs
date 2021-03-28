@@ -45,6 +45,7 @@ fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>)
 #[derive(Clone)]
 pub struct PeregrineDraw {
     messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
+    message_sender: CommanderStream<Message>,
     lock: Lock,
     commander: PgCommanderWeb,
     data_api: PeregrineCore,
@@ -59,6 +60,7 @@ pub struct LockedPeregrineDraw<'t> {
     pub trainset: &'t mut GlTrainSet,
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
+    pub message_sender: &'t mut CommanderStream<Message>,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -72,6 +74,7 @@ impl PeregrineDraw {
             trainset: &mut self.trainset,
             webgl: &mut self.webgl,
             stage: &mut self.stage,
+            message_sender: &mut self.message_sender,
             guard
         }
     }
@@ -111,8 +114,9 @@ impl PeregrineDraw {
         let message_sender = setup_message_sending_task(&commander, messages.clone());
         let commander_id = commander.identity();
         message_register_default(commander_id);
+        let message_sender2 = message_sender.clone();
         message_register_callback(Some(commander_id),move |message| {
-            message_sender.add(message);            
+            message_sender2.add(message);            
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
@@ -125,7 +129,7 @@ impl PeregrineDraw {
         core.application_ready();
         let mut out = PeregrineDraw {
             lock: commander.make_lock(),
-            messages,
+            messages, message_sender,
             data_api: core.clone(), commander, trainset, stage,  webgl
         };
         out.setup()?;

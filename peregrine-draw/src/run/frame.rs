@@ -19,7 +19,12 @@ async fn animation_tick_loop(mut web: PeregrineDraw) {
     drop(lweb);
     loop {
         let next = cdr_current_time();
-        animation_tick(&mut web.lock().await,next-start);
+        let mut lweb = web.lock().await;
+        let r = animation_tick(&mut lweb,next-start);
+        if let Err(e) = r { 
+            lweb.message_sender.add(e);
+        }
+        drop(lweb);
         cdr_tick(1).await;
         redraw.wait_until_redraw_needed().await;
         start = next;

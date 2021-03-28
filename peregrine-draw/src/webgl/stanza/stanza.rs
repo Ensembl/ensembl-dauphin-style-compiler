@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err };
 use std::rc::Rc;
 use std::cell::RefCell;
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
@@ -10,6 +9,7 @@ use crate::util::message::Message;
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
+    context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(&buffer));
     // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
         let value_array = js_sys::Uint16Array::view(values);

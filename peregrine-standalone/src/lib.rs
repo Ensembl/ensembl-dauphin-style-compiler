@@ -36,7 +36,7 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-    for _ in 0..1 {
+    for _ in 0..20 {
         pos += 50000.;
         let mut p = draw_api.set_x(pos);
         p.add_callback(move |v| {
@@ -49,12 +49,10 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
         bp_per_screen *= 0.95;
         cdr_timer(1000.).await; // Wait one second
     }
-    /* 
     let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
     p.add_callback(move |v| {
         console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
     });
-    */
     Ok(())
 }
 

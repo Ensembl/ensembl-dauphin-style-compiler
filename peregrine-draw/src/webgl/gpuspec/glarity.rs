@@ -14,7 +14,7 @@ impl GLArity {
             GLArity::Vec2 => 2,
             GLArity::Vec3 => 3,
             GLArity::Vec4 => 4,
-            GLArity::Sampler2D => 0
+            GLArity::Sampler2D => 1
         }
     }
 }

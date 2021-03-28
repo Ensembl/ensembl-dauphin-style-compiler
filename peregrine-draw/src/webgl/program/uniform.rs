@@ -72,13 +72,16 @@ impl UniformValues {
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(gl_value) = &self.gl_value {
             let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
+            if gl_value.len() != self.object.arity.to_num() as usize {
+                return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.name,self.object.arity.to_num(),gl_value.len())));
+            }
             if let Some(location) = &self.object.location {
-                match gl_value.len() {
-                    1 => context.uniform1f(Some(location),gl_value[0]),
-                    2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
-                    3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
-                    4 => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-                    x => { return Err(Message::CodeInvariantFailed(format!("bad uniform size {}",x))); }
+                match self.object.arity {
+                    GLArity::Scalar => context.uniform1f(Some(location),gl_value[0]),
+                    GLArity::Vec2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
+                    GLArity::Vec3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
+                    GLArity::Vec4  => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
+                    GLArity::Sampler2D  => context.uniform1i(Some(location),gl_value[0] as i32)
                 }
                 handle_context_errors(context)?;
             }
