@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 

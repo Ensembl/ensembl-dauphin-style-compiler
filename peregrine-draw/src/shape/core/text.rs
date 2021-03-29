@@ -1,4 +1,3 @@
-use anyhow::{ anyhow as err };
 use keyed::KeyedData;
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;

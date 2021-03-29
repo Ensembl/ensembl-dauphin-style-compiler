@@ -1,5 +1,3 @@
-use anyhow::{ anyhow as err };
-use varea::{ VareaItem, Discrete, RTreeRange };
 use crate::core::focus::Focus;
 use crate::core::track::Track;
 use crate::core::{ Scale, StickId };

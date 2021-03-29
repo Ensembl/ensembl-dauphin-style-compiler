@@ -1,11 +1,10 @@
 use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
-    DataStore, PeregrineCore, DataMessage, add_task
+    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, DataMessage, add_task
 };
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
-use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
+use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
 use std::any::Any;

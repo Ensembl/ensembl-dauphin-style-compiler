@@ -1,11 +1,6 @@
-use anyhow::{ anyhow as err };
 use std::rc::Rc;
-use std::cell::RefCell;
-use std::future::Future;
 use std::sync::Mutex;
-use crate::webgl::{ SourceInstrs, Uniform, GLArity, UniformHandle, Program, Process };
 use commander::PromiseFuture;
-use super::super::layers::consts::{ PR_DEF, PR_LOW };
 
 struct RedrawNeededData {
     edge: bool,

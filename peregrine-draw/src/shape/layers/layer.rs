@@ -1,4 +1,3 @@
-use anyhow::bail;
 use std::collections::HashMap;
 use super::super::core::pingeometry::PinGeometry;
 use super::super::core::fixgeometry::FixGeometry;

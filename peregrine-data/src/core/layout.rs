@@ -1,4 +1,4 @@
-use std::collections::{ BTreeSet, HashSet };
+use std::collections::{ BTreeSet };
 use std::fmt::{ self, Display, Formatter };
 use super::focus::Focus;
 use super::stick::StickId;

@@ -1,6 +1,6 @@
 use blackbox::blackbox_log;
-use crate::{AgentStore, PeregrineCoreBase, api::MessageSender, lock};
-use crate::request::{ Channel, RequestManager };
+use crate::{AgentStore, PeregrineCoreBase, lock};
+use crate::request::{ Channel };
 use super::stickauthority::{ StickAuthority, load_stick_authority };
 use crate::core::{ StickId };
 use std::sync::{ Arc, Mutex };

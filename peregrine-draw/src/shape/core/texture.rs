@@ -1,4 +1,4 @@
-use crate::webgl::{ UniformHandle, AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use crate::webgl::{ FlatId };
 use crate::webgl::TextureBindery;
 use crate::util::message::Message;

@@ -6,7 +6,6 @@ use commander::CommanderStream;
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 use crate::util::message::DataMessage;
-use web_sys::console;
 use peregrine_message::Instigator;
 
 #[derive(Debug)]

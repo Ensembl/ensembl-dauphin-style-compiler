@@ -1,12 +1,7 @@
-use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
-use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable };
-use peregrine_data::{ScreenEdge, ShipEnd, ZMenuGenerator };
+use peregrine_data::{ ZMenuGenerator };
 use super::super::util::arrayutil::{ empty_is };
-use super::super::util::glaxis::GLAxis;
 use super::super::layers::drawingzmenus::{ ZMenuResult };
-use crate::shape::core::stage::{ ReadStage, ReadStageAxis };
+use crate::shape::core::stage::{ ReadStage };
 use crate::util::message::Message;
 
 pub trait GeometryData {
