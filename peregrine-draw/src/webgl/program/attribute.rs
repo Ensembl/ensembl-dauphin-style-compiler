@@ -49,11 +49,13 @@ impl Source for Attribute {
 }
 
 fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> Result<WebGlBuffer,Message> {
+    // TODO less big-big to avoid f32 issue
+    let values: Vec<f32> = values.iter().map(|x| (*x) as f32).collect(); let values = &values;
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&buffer));
-    // After `Float64Array::view` be very careful not to do any memory allocations before it's dropped.
+    // After `Float32Array::view` be very careful not to do any memory allocations before it's dropped.
     unsafe {
-        let value_array = js_sys::Float64Array::view(values);
+        let value_array = js_sys::Float32Array::view(values);
         context.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &value_array,
