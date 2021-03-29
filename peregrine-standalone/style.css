@@ -17,3 +17,23 @@ html, body {
     height: 100%;
     overflow-y: auto;
 }
+
+
+.controls{
+
+    margin: 20px
+}
+.controls span{
+    
+    display: inline-block;
+    margin-right: 20px;
+    border: 1px solid #ccc;
+    padding: 20px;
+    color: #0f91df;
+    cursor: pointer;
+
+}
+
+.controls span:hover{
+    border-color: #000;
+}

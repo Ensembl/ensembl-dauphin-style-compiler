@@ -5,14 +5,30 @@
   </head>
   <body>
     <div class="grid">
+      <div class="controls">
+        <span onclick="sendMessage(`Top`);">Top</span>
+        <span onclick="sendMessage(`Left`);">Left</span>
+        <span onclick="sendMessage(`Bottom`);">Bottom</span>
+        <span onclick="sendMessage(`Right`);">Right</span>
+        <span onclick="sendMessage(`Error1`);">Error 1</span>
+        <span onclick="sendMessage(`Error2`);">Error 2</span>
+        <span onclick="sendMessage(`Panic`);">Panic</span>
+      </div>
       <div class="viewport" id="browser">
       </div>
     </div>
+
     <script type="module">
       import init from './pkg/peregrine_standalone.js';
+      import communicate from './js/communication.js';
+      
 
       async function run() {
         await init();
+
+        const message = new communicate();
+        window.sendMessage = message.send;
+        message.send({action : "Hello", payload: {a:1}});
       }
 
       run();

@@ -25,6 +25,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     }
 }
 
+
 /*
  * This function just does some daft stuff to kick the tyres for now. Don't worry too much about it. But it is quite
  * a good example of the sort of API calls you might make on receiving events from the browser chrome. The exact
@@ -36,7 +37,7 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-    for _ in 0..20 {
+    for _ in 0..5 {
         pos += 50000.;
         let mut p = draw_api.set_x(pos);
         p.add_callback(move |v| {
@@ -119,4 +120,13 @@ pub fn main() -> Result<(), JsValue> {
 #[wasm_bindgen]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
+}
+
+
+
+#[wasm_bindgen]
+pub fn do_action(payload: JsValue) {
+
+    console::log_1(&format!("payload {:?}", payload.as_string()).into());
+
 }
