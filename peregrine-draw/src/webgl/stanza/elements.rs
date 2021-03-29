@@ -1,4 +1,3 @@
-use anyhow::{ bail };
 use super::super::program::attribute::{ Attribute, AttribHandle };
 use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::ProcessStanza;
@@ -12,29 +11,30 @@ const LIMIT : usize = 16384;
 
 pub(super) struct ProcessStanzaElementsEntry {
     attribs: KeyedData<AttribHandle,Vec<f64>>,
-    index: Vec<u16>
+    index: Vec<u16>,
+    offset: u16
 }
 
 impl ProcessStanzaElementsEntry {
     pub(super) fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f64>>) -> ProcessStanzaElementsEntry {
         ProcessStanzaElementsEntry {
             attribs: maker.make(),
-            index: vec![]
+            index: vec![],
+            offset: 0
         }
     }
 
-    fn base(&self) -> usize {
-        self.index.len()
-    }
-
-    fn space(&self, points_per_shape: usize) -> usize {
+    fn space_in_shapes(&self, points_per_shape: usize) -> usize {
         (LIMIT - self.index.len()) / points_per_shape
     }
 
-    fn add_indexes(&mut self, indexes: &[u16], count: usize) {
-        for _ in 0..count {
-            self.index.extend_from_slice(indexes);
+    fn add_indexes(&mut self, indexes: &[u16], count: u16) {
+        let max_index = self.offset + *(if let Some(x) = indexes.iter().max() { x } else { return; });
+        for index in 0..count {
+            let offset = index * (max_index+1);
+            self.index.extend(indexes.iter().map(|x| *x+offset));
         }
+        self.offset += count * (max_index+1);
     }
 
     fn add(&mut self, handle: &AttribHandle, values: &[f64]) {
@@ -61,20 +61,18 @@ impl ProcessStanzaElements {
             shape_count,
             active: stanza_builder.active().clone()
         };
-        let bases = out.allocate_entries(stanza_builder);
-        out.add_indexes(indexes,&bases);
+        out.allocate_entries(stanza_builder);
+        out.add_indexes(indexes);
         out
     }
 
-    fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder) -> Vec<usize> {
-        let mut bases = vec![];
+    fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder) {
         let mut remaining_shapes = self.shape_count;
         while remaining_shapes > 0 {
             let entry = stanza_builder.elements().clone();
-            let mut space_in_shapes = entry.borrow().space(self.points_per_shape);
+            let mut space_in_shapes = entry.borrow().space_in_shapes(self.points_per_shape);
             if space_in_shapes > remaining_shapes { space_in_shapes = remaining_shapes; }
             if space_in_shapes > 0 {
-                bases.push(entry.borrow().base());
                 self.elements.push((entry,space_in_shapes));
             }
             remaining_shapes -= space_in_shapes;
@@ -82,13 +80,11 @@ impl ProcessStanzaElements {
                 stanza_builder.make_elements_entry();
             }
         }
-        bases
     }
 
-    fn add_indexes(&mut self, indexes: &[u16], bases: &[usize]) {
+    fn add_indexes(&mut self, indexes: &[u16]) {
         for (i,(entry,count)) in self.elements.iter().enumerate() {
-            let these_indexes : Vec<u16> = indexes.iter().map(|x| *x+(bases[i] as u16)).collect();
-            entry.borrow_mut().add_indexes(&these_indexes,*count);
+            entry.borrow_mut().add_indexes(&indexes,*count as u16);
         }
     }
 

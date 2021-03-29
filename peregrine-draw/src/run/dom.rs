@@ -20,7 +20,7 @@ fn get_body(e: &Element) -> Result<HtmlElement,Message> {
 const CHARS : &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-";
 
 fn random_string() -> String {
-    let mut out = String::new();
+    let mut out = "z".to_string();
     for _ in 0..16 {
         let index = (random() * (CHARS.len() as f64)).floor() as usize;
         let char = CHARS.index(index..(index+1));
@@ -52,8 +52,8 @@ impl DollarReplace {
 
 fn setup_dom(el: &Element, html: &str, css: &str) -> Result<Element,Message> {
     let dollar = DollarReplace::new();
-    el.set_inner_html(&dollar.replace(html));
     add_css(&el.owner_document().ok_or_else(|| Message::ConfusedWebBrowser(format!("Element has no document")))?,&dollar.replace(css))?;
+    el.set_inner_html(&dollar.replace(html));
     Ok(unique_element(el.get_elements_by_class_name(&dollar.replace("$-browser-canvas")))?)
 }
 

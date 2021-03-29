@@ -95,10 +95,10 @@ impl Process {
         let context = self.program.context();
         self.program.select_program()?;
         for stanza in self.stanzas.iter() {
+            stanza.activate(context)?;
             for entry in self.uniforms.values() {
                 entry.activate(context)?;
             }
-            stanza.activate(context)?;
             stanza.draw(context,self.program.get_method())?;
             stanza.deactivate(context)?;
             handle_context_errors(context)?;

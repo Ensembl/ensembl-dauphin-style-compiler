@@ -4,8 +4,8 @@ use peregrine_draw::{ Message, PeregrineDom };
 
 const HTML : &str = r#"
     <div class="$-container">
-        <div class="$-sticky"></div>
-        <div class="$-browser"><canvas class="$-browser-canvas"></canvas></div>
+        <div class="$-sticky"><canvas width="500" height="500" class="$-browser-canvas"></canvas></div>
+        <div class="$-browser"></div>
     </div>
 "#;
 
@@ -15,10 +15,14 @@ const CSS : &str = r#"
     }
 
     .$-sticky {
-        background: url(http://www.ensembl.info/wp-content/uploads/2018/02/weird_genomes_4tile2.png) repeat;
         position: sticky;
         top: 0;
         height: 100%;
+    }
+
+    .$-browser-canvas {
+        width: 500px;
+        height: 500px;
     }
 "#;
 

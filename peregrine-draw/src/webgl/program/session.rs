@@ -37,6 +37,7 @@ impl DrawingSession {
     pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage) -> Result<(),Message> {
         self.update_viewport(gl,stage)?;
         gl.context().clear_color(1., 1., 1., 1.);
+        gl.context().enable(WebGlRenderingContext::DEPTH_TEST);
         gl.handle_context_errors()?;
         gl.context().clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
         gl.handle_context_errors()?;

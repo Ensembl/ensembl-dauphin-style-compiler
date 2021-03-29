@@ -25,8 +25,6 @@ impl<T> DelayedLoader<T> where T: Clone {
     }
 
     fn set(&mut self, value: T) {
-        use web_sys::console;
-        console::log_1(&format!("inject").into());
         self.item.lock().unwrap().replace(value);
         self.fuse.fuse(());
     }

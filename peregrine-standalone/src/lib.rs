@@ -31,7 +31,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
  * name and arguments to this API are still up in the air, but you get the idea....
  */
 async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
-    draw_api.set_size(100.,100.);
+    draw_api.set_size(500.,500.);
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
