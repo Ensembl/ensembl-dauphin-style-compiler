@@ -19,6 +19,9 @@ For any questions, see #new-website-genome-browser on slack.
 7. Physics Engine
 8. API
 
+## General Architecture
+* [Tracks](tracks.md)
+
 ## Specific Algorithmic Complexities
 
 * [Trains](trains.md)
