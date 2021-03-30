@@ -98,6 +98,12 @@ More info: https://cbor2.readthedocs.io/en/latest/
 A package for accessing bigWig files using libBigWig
 
 Installation command: $ `pip install pyBigWig`
+
+### requests
+
+HTTP library for Python.
+
+Installation command: $ `pip install requests`
   
 
 ### Data files path:
