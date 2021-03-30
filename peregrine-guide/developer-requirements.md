@@ -1,14 +1,9 @@
 
 # Developer requirements
 
-  
-
-This documents is incomplete.
-
-  
+This documents is incomplete.  
 
 This document is intended to help you in getting the genome browser setup and running on your local machine for debugging and development purposes.
-
 
 ## Global requirements
 
@@ -16,26 +11,28 @@ This document is intended to help you in getting the genome browser setup and ru
 
 Python is an interpreted, high-level and general-purpose programming language. Python's design philosophy emphasizes code readability with its notable use of significant indentation.
 
-https://www.python.org/downloads/
-  
+Installation guide: https://www.python.org/downloads/
+
+Please note that you might need to install the required python packages using the command `python3` rather than `python` if you also have Python 2 installed.
 
 ### Pip
 
-pip is the package installer for Python
+`pip` is the package installer for Python. 
 
-https://pip.pypa.io/en/stable/installing/
+Installation guide: https://pip.pypa.io/en/stable/installing/
 
 ### Rustc
 
 `rustc` is the compiler for the Rust programming language, provided by the project itself. Compilers take your source code and produce binary code, either as a library or executable.
 
-Refer here to learn more about rustc:
+Installation guide: https://www.rust-lang.org/tools/install
 
-https://doc.rust-lang.org/rustc/what-is-rustc.html
+More info: https://doc.rust-lang.org/rustc/what-is-rustc.html
 
 `Cargo` is the Rust package manager. Cargo downloads your Rust package's dependencies, compiles your packages, makes distributable packages, and uploads them to crates.io, the Rust community’s package registry.
 
 Cargo usually gets shipped along with `rustc` so we may not have to install it separately.
+
 
 ## Backend-server requirements
 
@@ -43,7 +40,7 @@ Cargo usually gets shipped along with `rustc` so we may not have to install it s
 
 Uvicorn is a lightning-fast ASGI server implementation, using uvloop and httptools.
 
-https://www.uvicorn.org/
+Installation guide and more info: https://www.uvicorn.org/
 
   
 
@@ -51,43 +48,33 @@ https://www.uvicorn.org/
 
 `wasm-pack` helps you build rust-generated WebAssembly packages that you could publish to the npm registry, or otherwise use alongside any javascript packages in workflows that you already use, such as webpack.
 
-**Documentation:**
+Installation guide: https://rustwasm.github.io/wasm-pack/installer/
 
-https://github.com/rustwasm/wasm-pack
-
-**Installation:**
-
-https://rustwasm.github.io/wasm-pack/installer/
-
-  
+More: https://github.com/rustwasm/wasm-pack
 
 ### fastapi
 
 FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+ based on standard Python type hints.
 
-https://pypi.org/project/fastapi/
+Installation command: $ `pip install fastapi` 
 
-$ `pip install fastapi`
-
-  
+More info: https://pypi.org/project/fastapi/
   
 
 ### loguru
 
 Loguru is a library which aims to bring enjoyable logging in Python.
 
-https://pypi.org/project/loguru/
+Installation command: $ `pip install loguru`
 
-$ `pip install loguru`
-
-  
+More info: https://pypi.org/project/loguru/
   
 
 ### pyyaml
 
 YAML is a data serialization format designed for human readability and interaction with scripting languages. PyYAML is a YAML parser and emitter for Python.
 
-$ `pip install pyyaml`
+Installation guide: $ `pip install pyyaml`
 
   
 
@@ -95,32 +82,22 @@ $ `pip install pyyaml`
 
 A Python library for parsing and creating TOML.
 
-$ `pip install toml`
-
-  
-  
+Installation guide: $ `pip install toml`
 
 ### cbor2
 
 This library provides encoding and decoding for the Concise Binary Object Representation (CBOR) (RFC 7049) serialization format.
 
-Documentation:
+Installation command: $ `pip install cbor2`
 
-https://cbor2.readthedocs.io/en/latest/
-
-
-Installation:
-
-https://pypi.org/project/cbor2/
-
-$ `pip install cbor2`
+More info: https://cbor2.readthedocs.io/en/latest/
 
 
 ### pyBigWig
 
 A package for accessing bigWig files using libBigWig
 
-$ pip install pyBigWig
+Installation command: $ `pip install pyBigWig`
   
 
 ### Data files path:
@@ -134,6 +111,10 @@ Download an unpack the following file inside the data files directory (./example
 
 `/homes/dan/datafile-upload.tar.gz`
 
+Copy from `ebi-cli-001`:
+
+$ `rsync -aWv your-username@ebi-cli-001:/homes/dan/datafile-upload.tar.gz backend-server/example_data/data/`
+
 Unpack by running:
 
 $ `tar -xf datafile-upload.tar.gz`
@@ -143,8 +124,6 @@ Starting the backend server:
 $ `./build.sh`
 
   
-  
-
 # Peregrine-standalone
 
 The standalone application can be started by running the following:
