@@ -11,17 +11,17 @@ export class Communicate {
     this.ping();
   }
 
-  ping() {
+  private ping() {
     do_action({action: 'Initial', payload: {a: 1}, id: 1});
     this.onRecipientReady();
   }
 
-  onRecipientReady = () => {
+  private onRecipientReady = () => {
     this.isRecepientReady = true;
 
   };
 
-  addToOutgoingQueue(task) {
+  private addToOutgoingQueue(task) {
 
     var task_id = this.outgoingQueue.length  + 1;
 
@@ -35,7 +35,7 @@ export class Communicate {
     this.processOutgoing();
   }
 
-  processOutgoing() {
+  private processOutgoing() {
 
     var task = this.outgoingQueue.shift();
     
@@ -59,7 +59,7 @@ export class Communicate {
 //     this.window.addEventListener("message", this.handleMessage);
 //   }
 
-  handleIncoming = (message) => {
+private handleIncoming = (message) => {
     const {task_id, payload, error} = message;
 
     // TODO: Handle incoming messages without task IDs
@@ -79,7 +79,7 @@ export class Communicate {
   };
 
 
-  send = (task) => {
+public send = (task) => {
 
     if (!this.isRecepientReady) {
       this.outgoingQueue.push(task);

@@ -398,6 +398,7 @@ dependencies = [
  "commander",
  "console_error_panic_hook",
  "js-sys",
+ "lazy_static",
  "peregrine_data",
  "peregrine_draw",
  "peregrine_message",

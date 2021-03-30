@@ -12,6 +12,7 @@ anyhow="*"
 wasm-bindgen-futures = "*"
 console_error_panic_hook="*"
 url="*"
+lazy_static="*"
 
 [dependencies.commander]
 version="*"
