@@ -51,7 +51,8 @@ pub struct PeregrineDraw {
     data_api: PeregrineCore,
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
-    stage: Arc<Mutex<Stage>>
+    stage: Arc<Mutex<Stage>>,
+    dom: PeregrineDom
 }
 
 pub struct LockedPeregrineDraw<'t> {
@@ -61,6 +62,7 @@ pub struct LockedPeregrineDraw<'t> {
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Message>,
+    pub dom: &'t mut PeregrineDom,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -75,6 +77,7 @@ impl PeregrineDraw {
             webgl: &mut self.webgl,
             stage: &mut self.stage,
             message_sender: &mut self.message_sender,
+            dom: &mut self.dom,
             guard
         }
     }
@@ -126,18 +129,20 @@ impl PeregrineDraw {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        let dom2 = dom.clone();
         core.application_ready();
         let mut out = PeregrineDraw {
             lock: commander.make_lock(),
             messages, message_sender,
-            data_api: core.clone(), commander, trainset, stage,  webgl
+            data_api: core.clone(), commander, trainset, stage,  webgl,
+            dom
         };
-        out.setup()?;
+        out.setup(&dom2)?;
         Ok(out)
     }
     
-    fn setup(&mut self) -> Result<(),Message> {
-        run_animations(self);
+    fn setup(&mut self, dom: &PeregrineDom) -> Result<(),Message> {
+        run_animations(self,dom)?;
         Ok(())
     }
 }

@@ -1,7 +1,9 @@
 use super::draw::{ PeregrineDraw, LockedPeregrineDraw };
+use super::size::SizeManager;
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
 use crate::util::message::Message;
+use super::dom::PeregrineDom;
 
 fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) -> Result<(),Message> {
     let read_stage = &web.stage.lock().unwrap().read_stage();
@@ -12,12 +14,13 @@ fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) -> Result<(),Mess
     Ok(())
 }
 
-async fn animation_tick_loop(mut web: PeregrineDraw) {
+async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) {
     let mut start = cdr_current_time();
     let lweb = web.lock().await;
     let mut redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
     drop(lweb);
     loop {
+        size_manager.xxx();
         let next = cdr_current_time();
         let mut lweb = web.lock().await;
         let r = animation_tick(&mut lweb,next-start);
@@ -31,10 +34,12 @@ async fn animation_tick_loop(mut web: PeregrineDraw) {
     }
 }
 
-pub fn run_animations(web: &PeregrineDraw) {
+pub fn run_animations(web: &mut PeregrineDraw, dom: &PeregrineDom) -> Result<(),Message> {
     let other = web.clone();
+    let size_manager = SizeManager::new(web,&dom)?;
     web.commander().add_task("animator",0,None,None,Box::pin(async move {
-        animation_tick_loop(other).await;
+        animation_tick_loop(other,size_manager).await;
         Ok(())
     }));
+    Ok(())
 }

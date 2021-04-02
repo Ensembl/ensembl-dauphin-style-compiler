@@ -15,6 +15,7 @@ mod run {
     pub mod draw;
     mod frame;
     pub(crate) mod progress;
+    mod size;
 
     pub use self::dom::PeregrineDom;
     pub use self::api::PeregrineDrawApi;
@@ -69,6 +70,7 @@ mod util {
     pub(crate) mod ajax;
     pub(crate) mod evictlist;
     pub(crate) mod message;
+    pub(crate) mod resizeobserver;
     pub(crate) mod safeelement;
 
     #[cfg(blackbox)]

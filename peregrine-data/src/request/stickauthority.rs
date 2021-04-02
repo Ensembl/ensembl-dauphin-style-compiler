@@ -1,7 +1,4 @@
-use anyhow::bail;
 use std::any::Any;
-use std::collections::{ HashMap };
-use std::rc::Rc;
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId };
@@ -12,8 +9,6 @@ use super::failure::GeneralFailure;
 use crate::index::stickauthority::StickAuthority;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, PgDauphin };
-use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]

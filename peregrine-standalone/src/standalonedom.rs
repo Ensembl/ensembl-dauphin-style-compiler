@@ -4,7 +4,7 @@ use peregrine_draw::{ Message, PeregrineDom };
 
 const HTML : &str = r#"
     <div class="$-container">
-        <div class="$-sticky"><canvas width="500" height="500" class="$-browser-canvas"></canvas></div>
+        <div class="$-sticky"><canvas width="1500" height="1500" class="$-browser-canvas"></canvas></div>
         <div class="$-browser"></div>
     </div>
 "#;
@@ -18,6 +18,7 @@ const CSS : &str = r#"
         position: sticky;
         top: 0;
         height: 100%;
+        overflow: hidden;
     }
 
     .$-browser-canvas {

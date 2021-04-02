@@ -42,7 +42,7 @@ version = "*"
 features = [
   'AbortController', 'AbortSignal',
   'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d',
-  'Document',
+  'Document', 'DomRect',
   'Element',
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
   'Node',
