@@ -1,6 +1,5 @@
-use std::collections::{ VecDeque, HashMap, BinaryHeap };
-use crate::webgl::{Flat, FlatId, FlatStore, program::uniform};
-use js_sys::Math::max;
+use std::collections::{ HashSet };
+use crate::webgl::{ FlatId, FlatStore };
 use keyed::KeyedData;
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
@@ -119,7 +118,8 @@ impl Rebind {
 
 pub struct TextureBindery {
     lru: EvictList,
-    in_use: HashMap<FlatId,u32>,
+    active: Vec<FlatId>,
+    available: HashSet<FlatId>,
     max_textures: u32,
     current_textures: u32,
     current_epoch: i64,
@@ -131,7 +131,8 @@ impl TextureBindery {
         let max_textures = gpuspec.max_textures();
         TextureBindery {
             lru: EvictList::new(),
-            in_use: HashMap::new(),
+            active: vec![],
+            available: HashSet::new(),
             current_textures: 0,
             max_textures,
             current_epoch: 0,
@@ -140,18 +141,20 @@ impl TextureBindery {
     }
 
     pub fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+        self.active.push(flat.clone());
         self.lru.remove_item(flat);
-        if let Some(index) = self.in_use.get(flat) {
-            return Ok(Rebind::cached(flat,*index));
-        }
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
-        self.in_use.insert(flat.clone(),our_gl_index);
+        if self.available.contains(flat) {
+            return Ok(Rebind::cached(flat,our_gl_index));
+        }
+        self.available.insert(flat.clone());
         self.current_textures += 1;
         let mut old = None;
         if self.current_textures > self.max_textures {
             if let Some((_,old_item)) = self.lru.remove_oldest() {
                 self.current_textures -= 1;
+                self.available.remove(&old_item);
                 old = Some(old_item);
             } else {
                 return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
@@ -162,6 +165,7 @@ impl TextureBindery {
 
     pub fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
         if self.lru.remove_item(flat) { 
+            self.available.remove(flat);
             Ok(Rebind::remove(flat.clone()))
         } else {
             Ok(Rebind::noop())
@@ -169,7 +173,7 @@ impl TextureBindery {
     }
 
     pub fn clear(&mut self) {
-        for (flat,_) in self.in_use.drain() {
+        for flat in self.active.drain(..) {
             self.lru.insert(&flat,self.current_epoch);
         }
         self.current_epoch += 1;
