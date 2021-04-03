@@ -1,20 +1,20 @@
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
-use web_sys::{ HtmlElement, HtmlCanvasElement };
+use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext};
 use super::dom::PeregrineDom;
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineDraw;
 use crate::shape::core::redrawneeded::RedrawNeeded;
 use crate::util::monostable::Monostable;
 
-fn round_up(value: f64, sf: u32) -> f64 {
+fn round_up(value: u32, sf: u32) -> u32 {
     let x : u64 = value as u64;
     let y = 64-x.leading_zeros()-sf;
     let z = x+(1<<(y-1));
-    (((z >> y)+1) << y) as f64
+    (((z >> y)+1) << y) as u32
 }
 struct SizeManagerState {
-    container_size: Option<(f64,f64)>,
+    container_size: Option<(u32,u32)>,
     canvas_element: HtmlElement,
     container_element: HtmlElement,
     resize_observer: Option<PgResizeObserver>
@@ -23,7 +23,7 @@ struct SizeManagerState {
 impl SizeManagerState {
     fn check_container_size(&mut self) -> bool {
         let size = self.container_element.get_bounding_client_rect();
-        let (x,y) = (size.width(),size.height());
+        let (x,y) = (size.width() as u32,size.height() as u32);
         let out = self.container_size.map(|(old_x,old_y)| {
             old_x != x || old_y != y
         }).unwrap_or(true);
@@ -35,17 +35,19 @@ impl SizeManagerState {
         self.resize_observer = Some(observer);
     }
 
-    fn canvas_size(&self) -> (f64,f64) {
+    fn canvas_size(&self) -> (u32,u32) {
         let size = self.canvas_element.get_bounding_client_rect();
-        (size.width(),size.height())
+        (size.width() as u32,size.height() as u32)
     }
 
-    fn test_update_canvas_size(&self, active: bool) -> Option<(f64,f64)> {
+    fn test_update_canvas_size(&self, active: bool) -> Option<(u32,u32)> {
         let (canvas_x,canvas_y) = self.canvas_size();
         if let Some((container_x,container_y)) = self.container_size {
             if active {
-                let min_x = round_up(container_x,2); // XXX configurable
-                let min_y = round_up(container_y,2); // XXX configurable
+                let min_x = round_up(container_x,2) as u32; // XXX configurable
+                let min_y = round_up(container_y,2) as u32; // XXX configurable
+                let min_x = min_x.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
+                let min_y = min_y.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 if canvas_x < min_x || canvas_y <min_y {
                     return Some((min_x,min_y));
                 }
@@ -108,9 +110,9 @@ impl SizeManager {
         self.redraw_needed.set();
     }
 
-    fn update_canvas_size(&self, x: f64, y: f64) -> Result<(),Message> {
-        self.canvas_element.set_width(x as u32);
-        self.canvas_element.set_height(y as u32);
+    fn update_canvas_size(&self, x: u32, y: u32) -> Result<(),Message> {
+        self.canvas_element.set_width(x);
+        self.canvas_element.set_height(y);
         Ok(())
     }
 
