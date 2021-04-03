@@ -9,7 +9,7 @@ html, body {
     grid-template: "header header" "viewport sidebar";
     grid-template-columns: 1fr min-content;
     grid-template-rows: 100px 1fr;
-    transition: 2s;
+    transition: min-width 2s, height 0s;
 }
 
 .other {
@@ -18,7 +18,7 @@ html, body {
 
 .other2 {
     min-width: 50px;
-    transition: 2s;
+    transition: min-width 2s, height 0s;
 }
 
 .viewport {

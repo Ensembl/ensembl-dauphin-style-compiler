@@ -20,11 +20,6 @@ const CSS : &str = r#"
         height: 100%;
         overflow: hidden;
     }
-
-    .$-browser-canvas {
-        width: 500px;
-        height: 500px;
-    }
 "#;
 
 pub(crate) fn make_dom() -> Result<PeregrineDom,Message> {

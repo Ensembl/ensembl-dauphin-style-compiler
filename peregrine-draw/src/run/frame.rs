@@ -20,7 +20,7 @@ async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) 
     let mut redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
     drop(lweb);
     loop {
-        size_manager.xxx();
+        size_manager.maybe_update_canvas_size();
         let next = cdr_current_time();
         let mut lweb = web.lock().await;
         let r = animation_tick(&mut lweb,next-start);

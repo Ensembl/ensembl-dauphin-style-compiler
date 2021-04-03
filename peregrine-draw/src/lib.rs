@@ -70,6 +70,7 @@ mod util {
     pub(crate) mod ajax;
     pub(crate) mod evictlist;
     pub(crate) mod message;
+    pub(crate) mod monostable;
     pub(crate) mod resizeobserver;
     pub(crate) mod safeelement;
 
