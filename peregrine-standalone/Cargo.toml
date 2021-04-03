@@ -28,6 +28,7 @@ version = "*"
 
 [dependencies.web-sys]
 version = "*"
+features=["CssStyleDeclaration","HtmlElement","DomTokenList"]
 
 [dependencies.peregrine_data]
 version="*"

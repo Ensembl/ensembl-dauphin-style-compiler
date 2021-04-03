@@ -2,14 +2,14 @@ use std::fmt::Debug;
 mod standalonedom;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
-use commander::{ cdr_timer };
+use commander::{ cdr_timer, cdr_tick };
 use peregrine_draw::{ PeregrineDraw, PeregrineDrawApi, Message };
 use peregrine_data::{Channel, ChannelLocation, StickId, Track};
 use peregrine_data::{ PeregrineConfig };
 use peregrine_message::PeregrineMessage;
 pub use url::Url;
 use crate::standalonedom::make_dom;
-use web_sys::console;
+use web_sys::{HtmlElement, console, window};
 
 /*
  * This utility just catches handles serious errors in setting up this demonstration. It's not the main error-handling
@@ -31,12 +31,18 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
  * name and arguments to this API are still up in the air, but you get the idea....
  */
 async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
-    draw_api.set_size(500.,500.);
+    use wasm_bindgen::JsCast;
+
+    let window = web_sys::window().unwrap();
+    let document = window.document().unwrap();
+    let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
+
+    draw_api.set_size(1500.,1500.);
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-    for _ in 0..20 {
+    for _ in 0..1_u32 {
         pos += 50000.;
         let mut p = draw_api.set_x(pos);
         p.add_callback(move |v| {
@@ -49,10 +55,14 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
         bp_per_screen *= 0.95;
         cdr_timer(1000.).await; // Wait one second
     }
+    /*
     let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
     p.add_callback(move |v| {
         console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
     });
+    */
+    cdr_timer(500.).await;
+    el.class_list().add_1("other2");
     Ok(())
 }
 

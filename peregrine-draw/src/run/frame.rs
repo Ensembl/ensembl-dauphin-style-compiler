@@ -35,10 +35,22 @@ async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) 
 }
 
 pub fn run_animations(web: &mut PeregrineDraw, dom: &PeregrineDom) -> Result<(),Message> {
-    let other = web.clone();
-    let size_manager = SizeManager::new(web,&dom)?;
+    let mut other = web.clone();
+    let dom = dom.clone();
     web.commander().add_task("animator",0,None,None,Box::pin(async move {
-        animation_tick_loop(other,size_manager).await;
+        // TODO factor this pattern
+        let lweb = other.lock().await;
+        let message_sender = lweb.message_sender.clone();
+        drop(lweb);
+        let size_manager = SizeManager::new(&mut other,&dom).await;
+        match size_manager {
+            Ok(size_manager) => {
+                animation_tick_loop(other,size_manager).await;
+            },
+            Err(e) => {
+                message_sender.add(e);
+            }
+        }
         Ok(())
     }));
     Ok(())

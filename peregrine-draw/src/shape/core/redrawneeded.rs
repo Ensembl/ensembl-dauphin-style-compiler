@@ -70,11 +70,11 @@ impl RedrawNeeded {
         RedrawNeededLock(self.clone())
     }
 
-    pub fn set(&mut self) {
+    pub fn set(&self) {
         self.0.lock().unwrap().set();
     }
 
-    pub async fn wait_until_redraw_needed(&mut self) {
+    pub async fn wait_until_redraw_needed(&self) {
         loop {
             let mut r = self.0.lock().unwrap();
             let promise = r.maybe_needed();

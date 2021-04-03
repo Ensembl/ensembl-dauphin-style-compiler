@@ -1,6 +1,7 @@
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 
+#[cfg(debug_webgl)]
 pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(),Message> {
     let mut errors = vec![];
     loop {
@@ -13,4 +14,9 @@ pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(
     } else {
         Ok(())
     }
+}
+
+#[cfg(not(debug_webgl))]
+pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(),Message> {
+    Ok(())
 }
