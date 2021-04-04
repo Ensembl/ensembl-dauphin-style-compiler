@@ -5,7 +5,8 @@ use peregrine_data::Commander;
 use crate::util::message::Message;
 use super::dom::PeregrineDom;
 
-fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) -> Result<(),Message> {
+fn animation_tick(web: &mut LockedPeregrineDraw, size_manager: &SizeManager, elapsed: f64) -> Result<(),Message> {
+    size_manager.maybe_update_canvas_size(web)?;
     let read_stage = &web.stage.lock().unwrap().read_stage();
     web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
     if read_stage.ready() {
@@ -17,13 +18,12 @@ fn animation_tick(web: &mut LockedPeregrineDraw, elapsed: f64) -> Result<(),Mess
 async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) {
     let mut start = cdr_current_time();
     let lweb = web.lock().await;
-    let mut redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
+    let redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
     drop(lweb);
     loop {
-        size_manager.maybe_update_canvas_size();
         let next = cdr_current_time();
         let mut lweb = web.lock().await;
-        let r = animation_tick(&mut lweb,next-start);
+        let r = animation_tick(&mut lweb,&size_manager,next-start);
         if let Err(e) = r { 
             lweb.message_sender.add(e);
         }

@@ -112,7 +112,7 @@ impl GlTrainSetData {
 
     fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut session = DrawingSession::new();
-        session.begin(gl,stage)?;
+        session.begin(gl)?;
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {

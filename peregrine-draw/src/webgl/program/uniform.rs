@@ -81,6 +81,7 @@ impl UniformValues {
                     GLArity::Vec2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
                     GLArity::Vec3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
                     GLArity::Vec4  => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
+                    GLArity::Matrix4 => context.uniform_matrix4fv_with_f32_array(Some(location),false,&gl_value),
                     GLArity::Sampler2D  => context.uniform1i(Some(location),gl_value[0] as i32)
                 }
                 handle_context_errors(context)?;

@@ -61,7 +61,7 @@ impl GeometryProgramName {
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aOrigin"),
                 Statement::new_vertex("
-                    gl_Position = vec4(
+                    gl_Position = uModel * vec4(
                         (aOrigin.x -uStageHpos) * uStageZoom + 
                                     aVertexPosition.x / uSize.x,
                         - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
@@ -72,7 +72,7 @@ impl GeometryProgramName {
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("
-                    gl_Position = vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
+                    gl_Position = uModel * vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
                                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign.y,
                                         0.0, 1.0)")
             ],
@@ -82,7 +82,7 @@ impl GeometryProgramName {
                 Attribute::new(PR_LOW,GLArity::Scalar,"aVertexSign"),
                 Attribute::new(PR_LOW,GLArity::Scalar,"aOrigin"),
                 Statement::new_vertex("
-                    gl_Position = vec4(
+                    gl_Position = uModel * vec4(
                         (aOrigin - uStageHpos) * uStageZoom + 
                                     aVertexPosition.x / uSize.x,
                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign,
@@ -93,7 +93,7 @@ impl GeometryProgramName {
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("
-                    gl_Position = vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
+                    gl_Position = uModel * vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
                                        (- (aVertexPosition.y - uStageVpos) / uSize.y) * aVertexSign.y, 
                                        0.0, 1.0)")
             ],
@@ -101,7 +101,7 @@ impl GeometryProgramName {
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
                 Attribute::new(PR_LOW,GLArity::Vec2,"aData"),
                 Statement::new_vertex("
-                    gl_Position = vec4(
+                    gl_Position = uModel * vec4(
                         (aData.x -uStageHpos) * uStageZoom,
                         - (aData.y - uStageVpos) / uSize.y, 
                         0.0, 1.0)")

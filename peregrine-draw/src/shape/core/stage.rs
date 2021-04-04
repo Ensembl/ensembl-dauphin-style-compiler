@@ -45,7 +45,8 @@ pub(crate) struct ProgramStage {
     vpos: UniformHandle,
     bp_per_screen: UniformHandle,
     size: UniformHandle,
-    opacity: UniformHandle
+    opacity: UniformHandle,
+    model: UniformHandle
 }
 
 impl ProgramStage {
@@ -55,17 +56,31 @@ impl ProgramStage {
             vpos: program.get_uniform_handle("uStageVpos")?,
             bp_per_screen: program.get_uniform_handle("uStageZoom")?,
             size: program.get_uniform_handle("uSize")?,
-            opacity: program.get_uniform_handle("uOpacity")?
+            opacity: program.get_uniform_handle("uOpacity")?,
+            model: program.get_uniform_handle("uModel")?
         })
+    }
+
+    fn model_matrix(&self, stage: &ReadStage) -> Result<Vec<f64>,Message> {
+        let x = stage.x.scale_shift()?;
+        let y = stage.y.scale_shift()?;
+        Ok(vec![
+            x.0, 0.,  0., 0.,
+            0.,  y.0, 0., 0.,
+            0.,  0.,  1., 0.,
+            x.1,-y.1, 0., 1.
+        ])
     }
 
     pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, process: &mut Process) -> Result<(),Message> {
         process.set_uniform(&self.hpos,vec![stage.x.position()?-left])?;
         process.set_uniform(&self.vpos,vec![stage.y.position()?])?;
         process.set_uniform(&self.bp_per_screen,vec![2./stage.x.bp_per_screen()?])?;
-        let size = (stage.x.size()?,stage.y.size()?);
+        /* uSize gets drawable_size because it's later scaled by size/drawable_size */
+        let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
         process.set_uniform(&self.size,vec![size.0/2.,size.1/2.])?;
         process.set_uniform(&self.opacity,vec![opacity])?;
+        process.set_uniform(&self.model, self.model_matrix(stage)?)?;
         Ok(())
     }
 }
@@ -77,7 +92,9 @@ fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
 pub trait ReadStageAxis {
     fn position(&self) -> Result<f64,Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
-    fn size(&self) -> Result<f64,Message>;   
+    fn size(&self) -> Result<f64,Message>;
+    fn scale_shift(&self) -> Result<(f64,f64),Message>;
+    fn drawable_size(&self) -> Result<f64,Message>;   
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
     fn ready(&self) -> bool;
@@ -87,6 +104,8 @@ pub struct StageAxis {
     position: Option<f64>,
     bp_per_screen: Option<f64>,
     size: Option<f64>,
+    draw_size: Option<f64>,
+    scale_shift: Option<(f64,f64)>,
     redraw_needed: RedrawNeeded,
     boot: Boot,
     boot_lock: BootLock,
@@ -101,11 +120,26 @@ impl StageAxis {
             position: None,
             bp_per_screen: None,
             size: None,
+            draw_size: None,
+            scale_shift: None,
             redraw_needed: redraw_needed.clone(),
             boot: boot.clone(),
             boot_lock,
             version: 0
         }
+    }
+
+    fn recompute_scale_shift(&mut self) {
+        if self.size.is_none() || self.draw_size.is_none() {
+            self.draw_size = None;
+            return;
+        }
+        /* we need -1 to stay stationary. our scaling sets it to -scale so we need to add scale-1 */
+        let scale = self.draw_size.unwrap() / self.size.unwrap();
+        self.scale_shift = Some((
+            scale,
+            scale-1.
+        ));
     }
 
     fn data_ready(&self) -> bool {
@@ -125,7 +159,8 @@ impl StageAxis {
     }
 
     pub fn set_position(&mut self, x: f64) { self.position = Some(x); self.changed(); }
-    pub fn set_size(&mut self, x: f64) { self.size = Some(x); self.changed(); }
+    pub fn set_size(&mut self, x: f64) { self.size = Some(x); self.recompute_scale_shift(); self.changed(); }
+    pub fn set_drawable_size(&mut self, x: f64) { self.draw_size = Some(x); self.recompute_scale_shift(); self.changed(); }
     pub fn set_bp_per_screen(&mut self, z: f64) { self.bp_per_screen = Some(z); self.changed(); }
 }
 
@@ -133,6 +168,8 @@ impl ReadStageAxis for StageAxis {
     fn position(&self) -> Result<f64,Message> { stage_ok(&self.position) }
     fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
     fn size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
+    fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
+    fn scale_shift(&self) -> Result<(f64,f64),Message> { stage_ok(&self.scale_shift) }
 
     // secret clone only accessible via read-only subsets
     fn copy(&self) -> StageAxis {
@@ -140,6 +177,8 @@ impl ReadStageAxis for StageAxis {
             position: self.position.clone(),
             bp_per_screen: self.bp_per_screen.clone(),
             size: self.size.clone(),
+            draw_size: self.draw_size.clone(),
+            scale_shift: self.scale_shift.clone(),
             redraw_needed: self.redraw_needed.clone(),
             version: self.version,
             boot: self.boot.clone(),
@@ -148,7 +187,7 @@ impl ReadStageAxis for StageAxis {
     }    
 
     fn ready(&self) -> bool {
-        self.position.is_some() && self.bp_per_screen.is_some() && self.size.is_some()
+        self.position.is_some() && self.bp_per_screen.is_some() && self.size.is_some() && self.draw_size.is_some()
     }
 
     fn version(&self) -> u64 { self.version }
@@ -218,6 +257,7 @@ pub(crate) fn get_stage_source() -> SourceInstrs {
         Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
         Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
         Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
+        Uniform::new_vertex(PR_DEF,GLArity::Matrix4,"uModel"),
         Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity")
     ])
 }

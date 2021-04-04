@@ -36,8 +36,6 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
-
-    draw_api.set_size(1500.,1500.);
     draw_api.add_track(Track::new("gene-pc-fwd"));
     draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;

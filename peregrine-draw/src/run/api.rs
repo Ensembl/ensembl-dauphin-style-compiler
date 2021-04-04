@@ -7,7 +7,6 @@ use super::progress::Progress;
 pub trait PeregrineDrawApi {
     fn set_message_reporter<F>(&mut self,callback: F) where F: FnMut(Message) + 'static;
     fn setup_blackbox(&self, url: &str) -> Result<(),Message>;
-    fn set_size(&mut self, x: f64, y: f64);
     fn size(&self) -> Result<(f64,f64),Message>;
     fn bootstrap(&self, channel: Channel);
 

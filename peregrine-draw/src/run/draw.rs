@@ -183,11 +183,6 @@ impl PeregrineDrawApi for PeregrineDraw {
         self.stage.lock().unwrap().y_mut().set_position(y);
     }
 
-    fn set_size(&mut self, x: f64, y: f64) {
-        self.stage.lock().unwrap().x_mut().set_size(x);
-        self.stage.lock().unwrap().y_mut().set_size(y);
-    }
-
     fn set_bp_per_screen(&mut self, z: f64) -> Progress {
         let (progress,mut instigator) = Progress::new();
         data_inst(&mut instigator,self.data_api.set_bp_per_screen(z));

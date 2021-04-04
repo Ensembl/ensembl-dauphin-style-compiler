@@ -7,35 +7,24 @@ use crate::util::message::Message;
 // TODO clever viewport on resize
 
 pub struct DrawingSession {
-    size: Option<(f64,f64)>
 }
 
 impl DrawingSession {
     pub fn new() -> DrawingSession {
         DrawingSession {
-           size: None
         }
-    }
-
-    fn update_viewport(&mut self, gl: &mut WebGlGlobal,  stage: &ReadStage) -> Result<(),Message> {
-        let size = (stage.x().size()?,stage.y().size()?);
-        if let Some((old_x,old_y)) = self.size {
-            if old_x == size.0 && old_y == size.1 {
-                return Ok(())
-            }
-        }
-        self.size = Some(size);
-        gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
-        gl.handle_context_errors()?;
-        Ok(())
     }
 
     pub(crate) fn run_process(&self, gl: &mut WebGlGlobal, stage: &ReadStage, process: &mut Process, opacity: f64) -> Result<(),Message> {
         process.draw(gl,stage,opacity)
     }
 
-    pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage) -> Result<(),Message> {
-        self.update_viewport(gl,stage)?;
+    pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        let size = gl.canvas_size().clone()
+            .ok_or_else(|| Message::ConfusedWebBrowser(format!("unsized canvas")))?;
+        gl.context().enable(WebGlRenderingContext::SCISSOR_TEST);
+        gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
+        gl.context().scissor(0,0,size.0 as i32,size.1 as i32);
         gl.context().clear_color(1., 1., 1., 1.);
         gl.context().enable(WebGlRenderingContext::DEPTH_TEST);
         gl.handle_context_errors()?;

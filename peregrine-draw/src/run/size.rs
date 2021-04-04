@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
 use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext};
-use super::dom::PeregrineDom;
+use super::{dom::PeregrineDom, draw::LockedPeregrineDraw};
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineDraw;
 use crate::shape::core::redrawneeded::RedrawNeeded;
@@ -17,7 +17,8 @@ struct SizeManagerState {
     container_size: Option<(u32,u32)>,
     canvas_element: HtmlElement,
     container_element: HtmlElement,
-    resize_observer: Option<PgResizeObserver>
+    resize_observer: Option<PgResizeObserver>,
+    pending_container_size: Option<(u32,u32)>
 }
 
 impl SizeManagerState {
@@ -28,6 +29,9 @@ impl SizeManagerState {
             old_x != x || old_y != y
         }).unwrap_or(true);
         self.container_size = Some((x,y));
+        if out {
+            self.pending_container_size = self.container_size.clone();
+        }
         out
     }
 
@@ -57,6 +61,10 @@ impl SizeManagerState {
         }
         None
     }
+
+    fn get_pending_drawable_size(&mut self) -> Option<(u32,u32)> {
+        self.pending_container_size.take()
+    }
 }
 
 #[derive(Clone)]
@@ -85,14 +93,14 @@ impl SizeManager {
                 container_size: None,
                 resize_observer: None,
                 container_element,
-                canvas_element: canvas_element2
+                canvas_element: canvas_element2,
+                pending_container_size: None
             })),
             redraw_needed,
             activity_monostable: Monostable::new(&commander,5000., move || {
                 redraw_needed2.set();
             }), // XXX configurable
             canvas_element
-
         };
         let out2 = out.clone();
         let resize_observer = PgResizeObserver::new(web, move|_el| {
@@ -110,17 +118,26 @@ impl SizeManager {
         self.redraw_needed.set();
     }
 
-    fn update_canvas_size(&self, x: u32, y: u32) -> Result<(),Message> {
+    fn update_canvas_size(&self, draw: &mut LockedPeregrineDraw, x: u32, y: u32) -> Result<(),Message> {
         self.canvas_element.set_width(x);
         self.canvas_element.set_height(y);
+        *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
+        let mut stage = draw.stage.lock().unwrap();
+        stage.x_mut().set_size(x as f64);
+        stage.y_mut().set_size(y as f64);
         Ok(())
     }
 
-    pub(crate) fn maybe_update_canvas_size(&self) -> Result<(),Message> {
+    pub(crate) fn maybe_update_canvas_size(&self, draw: &mut LockedPeregrineDraw) -> Result<(),Message> {
         let active = self.activity_monostable.get();
         let resize = self.state.lock().unwrap().test_update_canvas_size(active); // to drop lock immediately
         if let Some((resize_x,resize_y)) = resize {
-            self.update_canvas_size(resize_x,resize_y)?;
+            self.update_canvas_size(draw,resize_x,resize_y)?;
+        }
+        if let Some(drawable) = self.state.lock().unwrap().get_pending_drawable_size() {
+            let mut stage = draw.stage.lock().unwrap();
+            stage.x_mut().set_drawable_size(drawable.0 as f64);
+            stage.y_mut().set_drawable_size(drawable.1 as f64);
         }
         Ok(())
     }
