@@ -18,7 +18,8 @@ struct SizeManagerState {
     canvas_element: HtmlElement,
     container_element: HtmlElement,
     resize_observer: Option<PgResizeObserver>,
-    pending_container_size: Option<(u32,u32)>
+    pending_container_size: Option<(u32,u32)>,
+    booted: bool
 }
 
 impl SizeManagerState {
@@ -44,8 +45,12 @@ impl SizeManagerState {
         (size.width() as u32,size.height() as u32)
     }
 
-    fn test_update_canvas_size(&self, active: bool) -> Option<(u32,u32)> {
+    fn test_update_canvas_size(&mut self, active: bool) -> Option<(u32,u32)> {
         let (canvas_x,canvas_y) = self.canvas_size();
+        if !self.booted {
+            self.booted = true;
+            return Some((canvas_x,canvas_y));
+        }
         if let Some((container_x,container_y)) = self.container_size {
             if active {
                 let min_x = round_up(container_x,2) as u32; // XXX configurable
@@ -94,7 +99,8 @@ impl SizeManager {
                 resize_observer: None,
                 container_element,
                 canvas_element: canvas_element2,
-                pending_container_size: None
+                pending_container_size: None,
+                booted: false
             })),
             redraw_needed,
             activity_monostable: Monostable::new(&commander,5000., move || {
@@ -123,6 +129,8 @@ impl SizeManager {
         self.canvas_element.set_height(y);
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
         let mut stage = draw.stage.lock().unwrap();
+        use web_sys::console;
+        console::log_1(&format!("{},{}",x,y).into());
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())
