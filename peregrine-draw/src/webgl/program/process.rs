@@ -10,7 +10,7 @@ use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
-pub struct ProtoProcess {
+pub(crate) struct ProtoProcess {
     program: Rc<Program>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: KeyedData<UniformHandle,UniformValues>,
@@ -31,11 +31,11 @@ impl ProtoProcess {
         }
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
+    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
         self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
     }
 
-    pub fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
+    pub(crate) fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
         let handle = self.program.get_uniform_handle(uniform_name)?;
         let entry = TextureValues::new(&handle,canvas_id)?;
         self.textures.push(entry);
@@ -46,7 +46,7 @@ impl ProtoProcess {
         &mut self.stanza_builder
     }
 
-    pub fn build(self) -> Result<Process,Message> {
+    pub(crate) fn build(self) -> Result<Process,Message> {
         Process::new(self)
     }
 }

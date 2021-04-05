@@ -24,7 +24,6 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        pub(super) mod looper;
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;

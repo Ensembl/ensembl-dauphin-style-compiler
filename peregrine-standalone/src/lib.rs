@@ -59,7 +59,7 @@ async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
         console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
     });
     */
-    cdr_timer(500.).await;
+    cdr_timer(5000.).await;
     el.class_list().add_1("other2");
     Ok(())
 }

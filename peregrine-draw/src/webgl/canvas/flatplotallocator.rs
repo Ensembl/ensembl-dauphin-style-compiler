@@ -65,7 +65,7 @@ struct FlatPlotRequest {
     sizes: Vec<(u32,u32)>
 }
 
-pub struct FlatPlotAllocator {
+pub(crate) struct FlatPlotAllocator {
     uniform_name: String,
     requests: KeyedData<FlatPlotRequestHandle,FlatPlotRequest>
 }

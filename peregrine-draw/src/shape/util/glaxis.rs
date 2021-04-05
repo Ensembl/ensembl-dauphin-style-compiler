@@ -16,6 +16,7 @@ fn add(v: &[f64], delta: f64) -> Vec<f64> {
     v.iter().map(|x| x+delta).collect()
 }
 
+#[derive(Debug)]
 pub(crate) struct GLAxis {
     length: usize,
     min: Vec<f64>,
@@ -98,6 +99,8 @@ impl GLAxis {
     }
 
     pub(crate) fn new_double_origin(min: &[f64], max: &Vec<f64>, delta: f64, ruler: Option<&GLAxis>, hollow: bool) -> GLAxis {
+        //use web_sys::console;
+        //console::log_1(&format!("ndo min={:?} max={:?}",min,max).into());
         let primary = ruler.is_none();
         let min = if primary { add(min,delta) } else { empty_is(add(min,delta),0.) };
         GLAxis {

@@ -1,7 +1,7 @@
 use std::cmp::{ Ordering, PartialOrd };
 
 #[derive(PartialEq,Clone,Copy)]
-pub enum Precision {
+pub(crate) enum Precision {
     Float(i32,i32),
     Int(i32)
 }

@@ -73,6 +73,19 @@ impl ProgramStage {
     }
 
     pub fn apply(&self, stage: &ReadStage, left: f64, opacity: f64, process: &mut Process) -> Result<(),Message> {
+        /*
+        use web_sys::console;
+        let size = (stage.x.size()?,stage.y.size()?);
+        console::log_1(&format!("
+            hpos={:?} vpos={:?} 2./bp_per_screen={:?} size={:?} opacity={:?} model={:?}
+        ",
+        vec![stage.x.position()?-left],
+        vec![stage.y.position()?],
+        vec![2./stage.x.bp_per_screen()?],
+        vec![size.0/2.,size.1/2.],
+        vec![opacity],
+        self.model_matrix(stage)).into());  
+        */
         process.set_uniform(&self.hpos,vec![stage.x.position()?-left])?;
         process.set_uniform(&self.vpos,vec![stage.y.position()?])?;
         process.set_uniform(&self.bp_per_screen,vec![2./stage.x.bp_per_screen()?])?;
@@ -223,7 +236,6 @@ impl Clone for ReadStage {
 impl Stage {
     pub fn new() -> Stage {
         let redraw_needed = RedrawNeeded::new();
-        let data_needed = RedrawNeeded::new();
         let mut out = Stage {
             x: StageAxis::new(&redraw_needed),
             y: StageAxis::new(&redraw_needed),

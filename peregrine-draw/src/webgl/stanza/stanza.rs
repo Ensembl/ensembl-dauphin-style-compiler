@@ -33,6 +33,8 @@ pub(crate) struct ProcessStanza {
 impl ProcessStanza {
     pub(super) fn new_elements(context: &WebGlRenderingContext, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f64>>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
+            //use web_sys::console;
+            //console::log_1(&format!("new_elements index={:?}",index).into());
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
                 len: index.len(),
@@ -57,6 +59,8 @@ impl ProcessStanza {
 
     pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(index) = &self.index {
+            //use web_sys::console;
+            //console::log_1(&format!("index bind_buffer({:?})",self.index).into());
             context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(index));
             handle_context_errors(context)?;
         }
@@ -77,6 +81,8 @@ impl ProcessStanza {
 
     pub fn draw(&self, context: &WebGlRenderingContext, method: u32) -> Result<(),Message> {
         if self.index.is_some() {
+            //use web_sys::console;
+            //console::log_1(&format!("draw_elements {}",self.len).into());
             context.draw_elements_with_i32(method,self.len as i32,WebGlRenderingContext::UNSIGNED_SHORT,0);
             handle_context_errors(context)?;
         } else {

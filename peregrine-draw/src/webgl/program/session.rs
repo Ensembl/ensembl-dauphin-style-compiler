@@ -6,7 +6,7 @@ use crate::util::message::Message;
 
 // TODO clever viewport on resize
 
-pub struct DrawingSession {
+pub(crate) struct DrawingSession {
 }
 
 impl DrawingSession {
@@ -22,6 +22,8 @@ impl DrawingSession {
     pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let size = gl.canvas_size().clone()
             .ok_or_else(|| Message::ConfusedWebBrowser(format!("unsized canvas")))?;
+        //use web_sys::console;
+        //console::log_1(&format!("init {} {}",size.0,size.1).into());    
         gl.context().enable(WebGlRenderingContext::SCISSOR_TEST);
         gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
         gl.context().scissor(0,0,size.0 as i32,size.1 as i32);

@@ -1,6 +1,6 @@
 #[allow(dead_code)]
 #[derive(Clone,PartialEq,Eq,Hash)]
-pub enum CanvasWeave {
+pub(crate) enum CanvasWeave {
     Crisp,
     Fuzzy
 }

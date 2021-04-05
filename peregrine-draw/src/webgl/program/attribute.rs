@@ -83,6 +83,8 @@ impl AttributeValues {
     }
 
     pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
+        //use web_sys::console;
+        //console::log_1(&format!("bind/enable attribute").into());
         let location = self.location;
         context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&self.gl_value));
         handle_context_errors(context)?;
@@ -99,7 +101,7 @@ impl AttributeValues {
         Ok(())
     }
 
-    pub fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
+    pub(crate) fn discard(&mut self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.delete_buffer(Some(&self.gl_value));
         handle_context_errors(context)?;
         Ok(())

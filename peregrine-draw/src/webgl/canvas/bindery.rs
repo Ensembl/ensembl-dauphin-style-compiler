@@ -116,7 +116,7 @@ impl Rebind {
     }
 }
 
-pub struct TextureBindery {
+pub(crate) struct TextureBindery {
     lru: EvictList,
     active: Vec<FlatId>,
     available: HashSet<FlatId>,
@@ -140,7 +140,7 @@ impl TextureBindery {
         }
     }
 
-    pub fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+    pub(crate) fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
         self.active.push(flat.clone());
         self.lru.remove_item(flat);
         let our_gl_index = self.next_gl_index;
@@ -163,7 +163,7 @@ impl TextureBindery {
         Ok(Rebind::new(old,flat.clone(),our_gl_index))
     }
 
-    pub fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+    pub(crate) fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
         if self.lru.remove_item(flat) { 
             self.available.remove(flat);
             Ok(Rebind::remove(flat.clone()))
@@ -172,7 +172,7 @@ impl TextureBindery {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         for flat in self.active.drain(..) {
             self.lru.insert(&flat,self.current_epoch);
         }

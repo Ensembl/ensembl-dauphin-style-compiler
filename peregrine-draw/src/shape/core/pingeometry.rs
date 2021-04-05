@@ -35,7 +35,10 @@ impl PinData {
                                     pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                     pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                                     hollow: bool) -> PinData {
+        //use web_sys::console;
+        //console::log_1(&format!("add_stretchtangle({:?},{:?})",axx1,axx2).into());
         let x_origin = GLAxis::new_double_origin(&axx1, &axx2,-layer.left(), None,hollow);
+        //console::log_1(&format!("x_origin = {:?}",x_origin).into());
         PinData {
             x_vertex: GLAxis::new_from_double_delta(&pxx1, &pxx2, &x_origin,hollow),
             y_vertex: GLAxis::new_from_double_delta(&pyy1, &pyy2, &x_origin,hollow),
@@ -93,9 +96,15 @@ impl PinGeometry {
     }
 
     pub(crate) fn add(&self, layer: &mut Layer, data: PinData) -> Result<ProcessStanzaElements,Message> {
+        //use web_sys::console;
+        //console::log_1(&format!("add = {:?}",data.x_origin).into());
         let mut elements = data.x_origin.make_elements(layer, &GeometryProcessName::Pin,&self.patina)?;
+        //console::log_1(&format!("origins").into());
         elements.add(&self.variety.origins,data.x_origin.vec2d(&data.y_origin),2)?;
+        //console::log_1(&format!("vertexes").into());
         elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
+        //console::log_1(&format!("/").into());
+
         Ok(elements)
     }
 }

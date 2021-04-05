@@ -54,7 +54,7 @@ impl GeometryProgramName {
         })
     }
 
-    pub fn get_source(&self) -> SourceInstrs {
+    pub(crate) fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
             GeometryProgramName::Pin => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),

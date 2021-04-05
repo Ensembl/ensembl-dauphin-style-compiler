@@ -69,7 +69,7 @@ impl DrawingBuilder {
         add_shape_to_layer(layer,tools,canvas_builder,gl.bindery(),shape)
     }
 
-    pub fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
+    pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
         let (_tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
         let canvases = builder.built();
         let mut processes = vec![];

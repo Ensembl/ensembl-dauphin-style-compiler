@@ -11,7 +11,7 @@ use crate::util::message::Message;
 
 keyed_handle!(FlatId);
 
-pub struct FlatStore {
+pub(crate) struct FlatStore {
     scratch: HashMap<CanvasWeave,Flat>,
     main_canvases: KeyedOptionalValues<FlatId,Flat>
 }

@@ -39,7 +39,7 @@ impl ProgramStoreEntry {
     pub(crate) fn get_patina(&self) -> &PatinaProgram { &self.patina }
 }
 
-pub struct ProgramStoreData {
+pub(crate) struct ProgramStoreData {
     compiler: WebGlCompiler,
     gpu_spec: GPUSpec,
     programs: RefCell<Vec<Option<Rc<ProgramStoreEntry>>>>

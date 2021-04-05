@@ -22,13 +22,13 @@ impl Clone for SourceInstrs {
 }
 
 impl SourceInstrs {
-    pub fn new(source: Vec<Box<dyn Source>>) -> SourceInstrs {
+    pub(crate) fn new(source: Vec<Box<dyn Source>>) -> SourceInstrs {
         SourceInstrs {
             source
         }
     }
 
-    pub fn merge(&mut self, mut other: SourceInstrs) {
+    pub(crate) fn merge(&mut self, mut other: SourceInstrs) {
         self.source.extend(other.source.drain(..));
     }
 
@@ -48,13 +48,13 @@ impl SourceInstrs {
         out
     }
 
-    pub fn serialise(&self, gpuspec: &GPUSpec, phase: Phase) -> String {
+    pub(crate) fn serialise(&self, gpuspec: &GPUSpec, phase: Phase) -> String {
         format!("{}\n\nvoid main() {{\n{}\n}}",
             self.declare(gpuspec,phase),
             self.statements(phase))
     }
 
-    pub fn build(&mut self, program: &mut Program) -> Result<(),Message> {
+    pub(crate) fn build(&mut self, program: &mut Program) -> Result<(),Message> {
         for v in self.source.iter_mut() {
             v.build(program)?;
         }

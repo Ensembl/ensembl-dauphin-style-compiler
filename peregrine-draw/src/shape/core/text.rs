@@ -95,7 +95,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn finish_preparation(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+    pub(crate) fn finish_preparation(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());
@@ -108,12 +108,12 @@ impl DrawingText {
         Ok(())
     }
 
-    pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
+    pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
         let request = self.request.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("missing canvas id")))?;
         Ok(builder.canvas(&request))
     }
 
-    pub fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureAreas,Message> {
+    pub(crate) fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureAreas,Message> {
         self.texts.get(handle).get_texture_areas()
     }
 }

@@ -46,7 +46,7 @@ struct FlatPlotResponse {
     origin: Vec<(u32,u32)>
 }
 
-pub struct DrawingFlatsDrawable {
+pub(crate) struct DrawingFlatsDrawable {
     responses: KeyedData<FlatPlotRequestHandle,Option<FlatPlotResponse>>,
     drawing_flats: DrawingFlats
 }

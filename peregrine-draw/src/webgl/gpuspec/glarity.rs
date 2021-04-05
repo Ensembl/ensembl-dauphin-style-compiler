@@ -1,5 +1,5 @@
 #[derive(Clone,Copy,PartialEq,Eq)]
-pub enum GLArity {
+pub(crate) enum GLArity {
     Scalar,
     Vec2,
     Vec3,
