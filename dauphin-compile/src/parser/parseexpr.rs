@@ -110,15 +110,12 @@ fn parse_atom_id(lexer: &mut Lexer, defstore: &DefStore, identifier: &Identifier
 }
 
 fn peek_enum_ctor(lexer: &mut Lexer) -> bool {
-    let pos = lexer.pos();
-    let x = lexer.get();
-    let y = &lexer.peek(None,1)[0];
-    let out = if let Token::Identifier(_) = y {
-        x == Token::Other(':')
+    let tokens = lexer.peek(None,2);
+    let out = if let Token::Identifier(_) = tokens[1] {
+        tokens[0] == Token::Other(':')
     } else {
         false
     };
-    lexer.back_to(pos);
     out
 }
 

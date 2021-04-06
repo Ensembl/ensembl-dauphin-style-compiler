@@ -19,9 +19,9 @@ futures="*"
 
 dauphin_interp = { path = "../dauphin-interp" }
 
-#[profile.test]
-#opt-level = 3
-
 [dev-dependencies]
 dauphin_lib_std = { path = "../dauphin-lib-std", features=["compile"] }
 dauphin_test_harness = { path = "../dauphin-test-harness" }
+
+#[profile.test]
+#opt-level = 3
