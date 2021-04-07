@@ -2,14 +2,14 @@ use crate::core::focus::Focus;
 use crate::core::track::Track;
 use crate::core::{ Scale, StickId };
 use crate::index::StickStore;
-use super::panelprogramstore::PanelProgramStore;
+use super::laneprogramstore::LaneProgramStore;
 use super::programregion::ProgramRegion;
-use super::panelrunstore::PanelRun;
+use super::lanerunstore::LaneRun;
 use crate::util::message::{ DataMessage };
 use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq)]
-pub struct Panel {
+pub struct Lane {
     stick: StickId,
     scale: Scale,
     focus: Focus,
@@ -17,9 +17,9 @@ pub struct Panel {
     index: u64
 }
 
-impl Panel {
-    pub fn new(stick: StickId, index: u64, scale: Scale, focus: Focus, track: Track) -> Panel {
-        Panel { stick, scale, focus, track, index }
+impl Lane {
+    pub fn new(stick: StickId, index: u64, scale: Scale, focus: Focus, track: Track) -> Lane {
+        Lane { stick, scale, focus, track, index }
     }
 
     pub fn stick_id(&self) -> &StickId { &self.stick }
@@ -47,10 +47,10 @@ impl Panel {
         self.index >> (scale.get_index() - self.scale.get_index())
     }
 
-    fn to_candidate(&self, ppr: &ProgramRegion) ->Panel {
+    fn to_candidate(&self, ppr: &ProgramRegion) ->Lane {
         let scale = ppr.scale_up(&self.scale);
         let index = self.map_scale(&scale);
-        Panel {
+        Lane {
             stick: self.stick.clone(),
             scale, index,
             track: self.track.clone(),
@@ -58,16 +58,16 @@ impl Panel {
         }
     }
 
-    pub async fn build_panel_run(&self, stick_store: &StickStore, panel_program_store: &PanelProgramStore) -> Result<PanelRun,DataMessage> {
+    pub async fn build_lane_run(&self, stick_store: &StickStore, lane_program_store: &LaneProgramStore) -> Result<LaneRun,DataMessage> {
         let tags : Vec<String> = stick_store.get(&self.stick).await?.as_ref().tags().iter().cloned().collect();
         let mut ppr = ProgramRegion::new();
         ppr.set_stick_tags(&tags);
         ppr.set_scale(self.scale.clone(),self.scale.next_scale());
         ppr.set_focus(self.focus.clone());
         ppr.set_tracks(&[self.track.clone()]);
-        let (channel,prog,ppr) = panel_program_store.get(&ppr)
-            .ok_or_else(|| DataMessage::NoPanelProgram(self.clone()))?;
+        let (channel,prog,ppr) = lane_program_store.get(&ppr)
+            .ok_or_else(|| DataMessage::NoLaneProgram(self.clone()))?;
         let candidate = self.to_candidate(&ppr);
-        Ok(PanelRun::new(channel,&prog,&candidate))
+        Ok(LaneRun::new(channel,&prog,&candidate))
     }
 }

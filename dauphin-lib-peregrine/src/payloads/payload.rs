@@ -18,14 +18,14 @@ use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
 use peregrine_data::{ RequestManager, CountingPromise, AgentStore };
-use super::panelbuilder::PanelBuilder;
+use super::lanebuilder::LaneBuilder;
 use super::geometrybuilder::GeometryBuilder;
 
 pub struct PeregrinePayload {
     booted: CountingPromise,
     agent_store: AgentStore,
     manager: RequestManager,
-    panel_builder: PanelBuilder,
+    lane_builder: LaneBuilder,
     geometry_builder: GeometryBuilder
 }
 
@@ -41,7 +41,7 @@ impl PeregrinePayload {
             booted: booted.clone(),
             agent_store: agent_store.clone(),
             manager: manager.clone(),
-            panel_builder: PanelBuilder::new(),
+            lane_builder: LaneBuilder::new(),
             geometry_builder: GeometryBuilder::new()
         }
     }
@@ -49,7 +49,7 @@ impl PeregrinePayload {
     pub fn agent_store(&self) -> &AgentStore { &self.agent_store }
     pub fn manager(&self) -> &RequestManager { &self.manager }
     pub fn booted(&self) -> &CountingPromise { &self.booted }
-    pub fn panel_builder(&self) -> &PanelBuilder { &self.panel_builder }
+    pub fn lane_builder(&self) -> &LaneBuilder { &self.lane_builder }
     pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
 }
 

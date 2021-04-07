@@ -60,7 +60,7 @@ impl GeometryBuilderData {
     }
 
     fn get(&self, id: u32) -> anyhow::Result<GeometryBuilderEntry> {
-        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("bad panel id"))?.clone())
+        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("bad lane id"))?.clone())
     }
 }
 

@@ -1,14 +1,14 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
-use super::data::{ GetPanelDeserializer, GetDataDeserializer, DataStreamDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer };
 use super::decompress::{ 
     InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
     ClassifyDeserializer, SplitStringDeserializer
 };
 
-use super::panel::{ 
-    NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer,
-    PanelSetMaxScaleJumpDeserializer
+use super::lane::{ 
+    NewLaneDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer,
+    LaneSetMaxScaleJumpDeserializer
 };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
@@ -21,7 +21,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0xAAEE123877191698)
+    CommandSetId::new("peregrine",(1,0),0x20905D9CE1E9207C)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -30,7 +30,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(GetStickIdDeserializer());
     set.push(GetStickDataDeserializer());
     set.push(AddStickDeserializer());
-    set.push(NewPanelDeserializer());
+    set.push(NewLaneDeserializer());
     set.push(AddTagDeserializer());
     set.push(AddTrackDeserializer());
     set.push(SetScaleDeserializer());
@@ -47,7 +47,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(PinEndDeserializer());
     set.push(Rectangle2Deserializer());
     set.push(Rectangle1Deserializer());
-    set.push(GetPanelDeserializer());
+    set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());
     set.push(InflateBytesDeserializer());
@@ -66,6 +66,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(PanelSetMaxScaleJumpDeserializer());
+    set.push(LaneSetMaxScaleJumpDeserializer());
     set
 }

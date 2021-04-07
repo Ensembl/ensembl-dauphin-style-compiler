@@ -3,7 +3,7 @@ use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
 use crate::request::channel::Channel;
-use crate::panel::Panel;
+use crate::lane::Lane;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
 use peregrine_message::{ MessageLevel, MessageCategory, PeregrineMessage };
@@ -29,7 +29,7 @@ pub enum DataMessage {
     TaskUnexpectedlySuperfluous(String),
     TaskResultMissing(String),
     TaskUnexpectedlyOngoing(String),
-    NoPanelProgram(Panel),
+    NoLaneProgram(Lane),
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
     StickAuthorityUnavailable(Box<DataMessage>),
@@ -67,7 +67,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskResultMissing(_) => MessageCategory::BadCode,
             DataMessage::TaskUnexpectedlyOngoing(_) => MessageCategory::BadCode,
             DataMessage::DataMissing(_) => MessageCategory::Unknown,
-            DataMessage::NoPanelProgram(_) => MessageCategory::BadData,
+            DataMessage::NoLaneProgram(_) => MessageCategory::BadData,
             DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
             DataMessage::StickAuthorityUnavailable(cause) => cause.category(),
             DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
@@ -122,7 +122,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskUnexpectedlySuperfluous(s) => (9,calculate_hash(s)),
             DataMessage::TaskResultMissing(s) => (10,calculate_hash(s)),
             DataMessage::TaskUnexpectedlyOngoing(s) => (11,calculate_hash(s)),
-            DataMessage::NoPanelProgram(p) => (12,calculate_hash(p)),
+            DataMessage::NoLaneProgram(p) => (12,calculate_hash(p)),
             DataMessage::DataMissing(cause) => (13,calculate_hash(&cause.code())),
             DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
             DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
@@ -163,7 +163,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskResultMissing(s) => format!("Task '{}' result unexpectedly missing",s),
             DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
             DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
-            DataMessage::NoPanelProgram(p) => format!("Missing panel program: {:?}",p),
+            DataMessage::NoLaneProgram(p) => format!("Missing lane program: {:?}",p),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),

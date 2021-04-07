@@ -3,7 +3,7 @@ use blackbox::{ blackbox_log, blackbox_count };
 use std::any::Any;
 use std::collections::HashMap;
 use super::channel::{ Channel, PacketPriority };
-use crate::Panel;
+use crate::Lane;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
@@ -20,15 +20,15 @@ pub struct DataResponse {
 pub struct DataCommandRequest {
     channel: Channel,
     name: String,
-    panel: Panel
+    lane: Lane
 }
 
 impl DataCommandRequest {
-    pub fn new(channel: &Channel, name: &str, panel: &Panel) -> DataCommandRequest {
+    pub fn new(channel: &Channel, name: &str, lane: &Lane) -> DataCommandRequest {
         DataCommandRequest {
             channel: channel.clone(),
             name: name.to_string(),
-            panel: panel.clone()
+            lane: lane.clone()
         }
     }
 
@@ -55,7 +55,7 @@ impl DataCommandRequest {
 impl RequestType for DataCommandRequest {
     fn type_index(&self) -> u8 { 4 }
     fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.panel.serialize()?]))
+        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.lane.serialize()?]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(GeneralFailure::new("data loading failed"))

@@ -125,7 +125,7 @@ impl PayloadReceiver for PgDauphin {
                         }
                     },
                     Err(e) => {
-                        messages.send(DataMessage::BadDauphinProgram(e.to_string()));
+                        messages.send(DataMessage::BadDauphinProgram(format!("{:#}",e)));
                         for (in_channel_name,_) in bundle.name_map() {
                             pgd.mark_missing(&channel,in_channel_name);
                         }

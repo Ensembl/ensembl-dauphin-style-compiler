@@ -3,38 +3,38 @@ use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 
-struct PanelBuilderData {
+struct LaneBuilderData {
     next_id: usize,
-    panels: HashMap<usize,Arc<Mutex<ProgramRegion>>>
+    lanes: HashMap<usize,Arc<Mutex<ProgramRegion>>>
 }
 
-impl PanelBuilderData {
-    fn new() -> PanelBuilderData {
-        PanelBuilderData {
+impl LaneBuilderData {
+    fn new() -> LaneBuilderData {
+        LaneBuilderData {
             next_id: 0,
-            panels: HashMap::new()
+            lanes: HashMap::new()
         }
     }
 
     fn allocate(&mut self) -> usize {
         let psr = Arc::new(Mutex::new(ProgramRegion::new()));
         let id = self.next_id;
-        self.panels.insert(id,psr.clone());
+        self.lanes.insert(id,psr.clone());
         self.next_id += 1;
         id
     }
 
     fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<ProgramRegion>>> {
-        Ok(self.panels.get(&id).ok_or(err!("bad panel id"))?.clone())
+        Ok(self.lanes.get(&id).ok_or(err!("bad lane id"))?.clone())
     }
 }
 
 #[derive(Clone)]
-pub struct PanelBuilder(Arc<Mutex<PanelBuilderData>>);
+pub struct LaneBuilder(Arc<Mutex<LaneBuilderData>>);
 
-impl PanelBuilder {
-    pub fn new() -> PanelBuilder {
-        PanelBuilder(Arc::new(Mutex::new(PanelBuilderData::new())))
+impl LaneBuilder {
+    pub fn new() -> LaneBuilder {
+        LaneBuilder(Arc::new(Mutex::new(LaneBuilderData::new())))
     }
 
     pub fn allocate(&self) -> usize {

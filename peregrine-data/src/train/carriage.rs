@@ -2,7 +2,7 @@ use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
 use crate::core::Track;
-use crate::panel::{ Panel };
+use crate::lane::{ Lane };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
@@ -69,20 +69,20 @@ impl Carriage {
         self.shapes.lock().unwrap().is_some()
     }
 
-    fn make_panel(&self, track: &Track) -> Panel {
-        Panel::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
+    fn make_lane(&self, track: &Track) -> Lane {
+        Lane::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
     }
 
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
-        let mut panels = vec![];
+        let mut lanes = vec![];
         for track in self.id.train.layout().tracks().iter() {
-            panels.push((track,self.make_panel(track)));
+            lanes.push((track,self.make_lane(track)));
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
-        let panel_store = data.agent_store.panel_store().await;
-        let tracks : Vec<_> = panels.iter().map(|(t,p)| (t,panel_store.run(p))).collect();
+        let lane_store = data.agent_store.lane_store().await;
+        let tracks : Vec<_> = lanes.iter().map(|(t,p)| (t,lane_store.run(p))).collect();
         let mut new_shapes = ShapeList::new();
         for (track,future) in tracks {
             match future.await.as_ref() {

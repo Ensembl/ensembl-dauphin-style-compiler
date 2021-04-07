@@ -22,7 +22,7 @@ mod interp {
     mod data;
     mod decompress;
     mod geometry;
-    mod panel;
+    mod lane;
     mod shape;
     pub mod library;
 }
@@ -30,7 +30,7 @@ pub use interp::library::make_peregrine_interp;
 
 mod payloads {
     mod geometrybuilder;
-    mod panelbuilder;
+    mod lanebuilder;
     mod payload;
     pub use payload::{ PeregrinePayloadFactory, PeregrinePayload, add_peregrine_payloads };
 }
@@ -44,7 +44,7 @@ mod compile {
     mod data;
     mod decompress;
     mod geometry;
-    mod panel;
+    mod lane;
     mod shape;
     pub mod library;
 }

@@ -40,21 +40,21 @@ mod index {
     pub use self::stickauthoritystore::StickAuthorityStore;
 }
 
-mod panel {
+mod lane {
     mod datastore;
-    mod panel;
-    mod panelprogramstore;
+    mod lane;
+    mod laneprogramstore;
     mod programregion;
-    mod panelrunstore;
-    mod panelstore;
+    mod lanerunstore;
+    mod lanestore;
     mod programdata;
     pub use self::datastore::DataStore;
-    pub use self::panel::{ Panel };
+    pub use self::lane::{ Lane };
     pub use self::programdata::ProgramData;
     pub use self::programregion::ProgramRegion;
-    pub use self::panelrunstore::{ PanelRunStore, PanelRunOutput };
-    pub use self::panelprogramstore::PanelProgramStore;
-    pub use self::panelstore::PanelStore;
+    pub use self::lanerunstore::{ LaneRunStore, LaneRunOutput };
+    pub use self::laneprogramstore::LaneProgramStore;
+    pub use self::lanestore::LaneStore;
 }
 
 mod request {
@@ -143,7 +143,7 @@ mod test {
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };
+pub use self::lane::{ Lane, LaneProgramStore, LaneRunStore, ProgramRegion, LaneRunOutput, LaneStore, DataStore, ProgramData };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
