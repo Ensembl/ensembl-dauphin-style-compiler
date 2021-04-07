@@ -3,6 +3,7 @@ use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle };
 use keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues };
+use super::texture::{ Texture, TextureValues };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 use crate::util::message::Message;
@@ -28,6 +29,7 @@ pub struct Program {
     program: WebGlProgram,
     uniforms: KeyedValues<UniformHandle,Uniform>,
     attribs: KeyedValues<AttribHandle,Attribute>,
+    textures: KeyedValues<UniformHandle,Texture>,
     method: u32
 }
 
@@ -37,6 +39,7 @@ impl Program {
             program,
             attribs: KeyedValues::new(),
             uniforms: KeyedValues::new(),
+            textures: KeyedValues::new(),
             method: WebGlRenderingContext::TRIANGLES
         };
         let mut source = proto.source.clone();
@@ -52,12 +55,21 @@ impl Program {
         Ok(())
     }
 
+    pub(crate) fn add_texture(&mut self, texture: &Texture) -> Result<(),Message> {
+        self.textures.add(texture.name(),texture.clone());
+        Ok(())
+    }
+
     pub(crate) fn get_attrib_handle(&self, name: &str) -> Result<AttribHandle,Message> {
         self.attribs.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing attrib key: {}",name)))
     }
 
     pub(crate) fn get_uniform_handle(&self, name: &str) -> Result<UniformHandle,Message> {
         self.uniforms.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing uniform key: {}",name)))
+    }
+
+    pub(crate) fn get_texture_handle(&self, name: &str) -> Result<UniformHandle,Message> {
+        self.textures.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing texture key: {}",name)))
     }
 
     pub(crate) fn add_attrib(&mut self, attrib: &Attribute) -> Result<(),Message> {
@@ -67,6 +79,10 @@ impl Program {
 
     pub(crate) fn make_uniforms(&self) -> KeyedData<UniformHandle,UniformValues> {
         self.uniforms.data().map::<_,_,()>(|_,u| Ok(UniformValues::new(u.clone()))).unwrap()
+    }
+
+    pub(crate) fn make_textures(&self) -> KeyedData<UniformHandle,TextureValues> {
+        self.textures.data().map::<_,_,()>(|_,t| Ok(TextureValues::new(t.clone()))).unwrap()
     }
 
     pub(crate) fn make_stanza_builder(&self) -> ProcessStanzaBuilder {

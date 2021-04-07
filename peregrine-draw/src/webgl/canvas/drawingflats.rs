@@ -2,39 +2,38 @@ use crate::webgl::CanvasWeave;
 use keyed::KeyedData;
 use crate::webgl::ProtoProcess;
 use super::flatstore::{ FlatId, FlatStore };
+use crate::webgl::Texture;
 use super::flatplotallocator::FlatPlotRequestHandle;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 pub struct DrawingFlats {
-    uniform_name: String,
-    main_canvases: Vec<FlatId>,
+    main_canvases: Vec<(FlatId,String)>,
 }
 
 impl DrawingFlats {
-     fn new(uniform_name: &str) -> DrawingFlats {
+     fn new() -> DrawingFlats {
         DrawingFlats {
-            uniform_name: uniform_name.to_string(),
             main_canvases: vec![],
         }
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
         let document = gl.document().clone();
         let id = gl.canvas_store_mut().allocate(&document,weave,size)?;
-        self.main_canvases.push(id.clone());
+        self.main_canvases.push((id.clone(),uniform_name.to_string()));
         Ok(id)
     }
 
     pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> Result<(),Message> {
-        for id in &self.main_canvases {
-            process.add_texture(&self.uniform_name,id)?;
+        for (id,uniform_name) in &self.main_canvases {
+            process.set_texture(uniform_name,id)?;
         }
         Ok(())
     }
 
     pub(crate) fn discard(&mut self, store: &mut FlatStore) -> Result<(),Message> {
-        for id in self.main_canvases.drain(..) {
+        for (id,_) in self.main_canvases.drain(..) {
             store.discard(&id)?;
         }
         Ok(())
@@ -42,6 +41,7 @@ impl DrawingFlats {
 }
 
 struct FlatPlotResponse {
+    uniform_name: String,
     canvas: FlatId,
     origin: Vec<(u32,u32)>
 }
@@ -52,22 +52,23 @@ pub(crate) struct DrawingFlatsDrawable {
 }
 
 impl DrawingFlatsDrawable {
-    pub(super) fn new(uniform_name: &str) -> DrawingFlatsDrawable {
+    pub(super) fn new() -> DrawingFlatsDrawable {
         DrawingFlatsDrawable {
             responses: KeyedData::new(),
-            drawing_flats: DrawingFlats::new(uniform_name)
+            drawing_flats: DrawingFlats::new()
         }
     }
 
-    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId, origin: Vec<(u32,u32)>) {
+    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId, origin: Vec<(u32,u32)>, uniform_name: &str) {
         self.responses.insert(&id,FlatPlotResponse {
+            uniform_name: uniform_name.to_string(),
             canvas: canvas.clone(),
             origin
         });
     }
 
-    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
-        self.drawing_flats.allocate(gl,weave,size)
+    pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
+        self.drawing_flats.allocate(gl,weave,size,uniform_name)
     }
 
     pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {

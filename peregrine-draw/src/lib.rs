@@ -145,6 +145,7 @@ mod webgl {
     pub(crate) use program::session::DrawingSession;
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
+    pub(crate) use program::texture::Texture;
 
     pub(crate) mod global;
     mod util;

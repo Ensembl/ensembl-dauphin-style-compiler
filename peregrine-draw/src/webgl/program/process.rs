@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
-use super::program::Program;
+use super::program::{ Program, ProtoProgram };
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use keyed::KeyedData;
@@ -13,32 +13,31 @@ use crate::util::message::Message;
 pub(crate) struct ProtoProcess {
     program: Rc<Program>,
     stanza_builder: ProcessStanzaBuilder,
-    uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>,
+    uniforms: Vec<(UniformHandle,Vec<f64>)>,
+    textures: Vec<(UniformHandle,FlatId)>,
     left: f64
 }
 
 impl ProtoProcess {
     pub(crate) fn new(program: Rc<Program>, left: f64) -> ProtoProcess {
-        let uniforms = program.make_uniforms();
         let stanza_builder = program.make_stanza_builder();
         ProtoProcess {
             program,
             stanza_builder,
-            uniforms,
+            uniforms: vec![],
             textures: vec![],
             left
         }
     }
 
     pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
-        self.uniforms.get_mut(handle).set_value(values)
+        self.uniforms.push((handle.clone(),values));
+        Ok(())
     }
 
-    pub(crate) fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
-        let handle = self.program.get_uniform_handle(uniform_name)?;
-        let entry = TextureValues::new(&handle,canvas_id)?;
-        self.textures.push(entry);
+    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
+        let handle = self.program.get_texture_handle(uniform_name)?;
+        self.textures.push((handle.clone(),canvas_id.clone()));
         Ok(())
     }
 
@@ -47,7 +46,17 @@ impl ProtoProcess {
     }
 
     pub(crate) fn build(self, gl: &mut WebGlGlobal) -> Result<Process,Message> {
-        Process::new(gl,self)
+        let mut uniforms = self.program.make_uniforms();
+        for (name,value) in self.uniforms {
+            uniforms.get_mut(&name).set_value(value)?;
+        }
+        let textures = self.program.make_textures();
+        let (program,stanza_builder,left) = (
+            self.program,
+            self.stanza_builder,
+            self.left
+        );
+        Process::new(gl,program,stanza_builder,uniforms,textures,left)
     }
 }
 
@@ -56,31 +65,22 @@ pub struct Process {
     stanzas: Vec<ProcessStanza>,
     program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>,
+    textures: KeyedData<UniformHandle,TextureValues>,
     left: f64
 }
 
 impl Process {
-    fn new(gl: &mut WebGlGlobal, builder: ProtoProcess) -> Result<Process,Message> {
-        let stanzas = builder.program.make_stanzas(gl.context(),&builder.stanza_builder)?;
-        let program_stage = ProgramStage::new(&builder.program)?;
+    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<UniformHandle,TextureValues>, left: f64) -> Result<Process,Message> {
+        let stanzas = program.make_stanzas(gl.context(),&stanza_builder)?;
+        let program_stage = ProgramStage::new(&program)?;
         Ok(Process {
-            program: builder.program,
+            program,
             stanzas,
             program_stage,
-            uniforms: builder.uniforms,
-            textures: builder.textures,
-            left: builder.left
+            uniforms,
+            textures,
+            left
         })
-    }
-
-    fn apply_textures(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let (textures, uniforms) = (&mut self.textures,&mut self.uniforms);
-        for entry in textures.iter_mut() {
-            let (uniform_handle,value) = entry.apply(gl)?;
-            uniforms.get_mut(uniform_handle).set_value(vec![value as f64])?;
-        }
-        Ok(())
     }
 
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
@@ -91,7 +91,9 @@ impl Process {
         gl.bindery().clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
-        self.apply_textures(gl)?;
+        for entry in self.textures.values_mut() {
+            entry.apply(gl)?;
+        }
         let context = gl.context();
         self.program.select_program(context)?;
         for stanza in self.stanzas.iter() {
@@ -112,7 +114,7 @@ impl Process {
             entry.discard(context)?;
         }
         drop(context);
-        for entry in self.textures.iter_mut() {
+        for entry in self.textures.values_mut() {
             entry.discard(gl)?;
         }
         let context = gl.context();

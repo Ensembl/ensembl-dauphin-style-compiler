@@ -2,7 +2,7 @@ use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::webgl::FlatId;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program, Texture };
 use peregrine_data::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
@@ -68,7 +68,7 @@ impl PatinaProgramName {
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],
                 PatinaProgramName::Texture => vec![
-                    Uniform::new_fragment(PR_DEF,GLArity::Sampler2D,"uSampler"),
+                    Texture::new("uSampler"),
                     Attribute::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
                     Attribute::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),

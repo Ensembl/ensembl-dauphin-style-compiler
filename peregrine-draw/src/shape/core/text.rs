@@ -82,7 +82,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
+    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator,uniform_name: &str) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
@@ -91,7 +91,7 @@ impl DrawingText {
             sizes.push(size);
             sizes.push(size);
         }
-        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes));
+        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes,uniform_name));
         Ok(())
     }
 

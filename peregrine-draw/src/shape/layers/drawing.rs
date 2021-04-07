@@ -25,7 +25,7 @@ impl DrawingTools {
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
-        self.text.start_preparation(gl,allocator)?;
+        self.text.start_preparation(gl,allocator,"uSampler")?;
         Ok(())
     }
 
@@ -56,7 +56,7 @@ impl DrawingBuilder {
     }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut canvas_allocator = FlatPlotAllocator::new("uSampler");
+        let mut canvas_allocator = FlatPlotAllocator::new();
         self.tools.start_preparation(gl,&mut canvas_allocator)?;
         let drawable = canvas_allocator.make(gl)?;
         self.tools.finish_preparation(gl.canvas_store_mut(),&drawable)?;
@@ -70,11 +70,11 @@ impl DrawingBuilder {
     }
 
     pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
-        let (_tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
-        let canvases = builder.built();
+        let (_tools, mut flats_builder) = (&mut self.tools, self.flats.take().unwrap());
+        let flats = flats_builder.built();
         let mut processes = vec![];
-        self.main_layer.build(gl,&mut processes,&canvases)?;
-        Ok(Drawing::new(processes,canvases,self.tools.zmenus.build())?)
+        self.main_layer.build(gl,&mut processes,&flats)?;
+        Ok(Drawing::new(processes,flats,self.tools.zmenus.build())?)
     }
 }
 
