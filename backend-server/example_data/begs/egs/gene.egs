@@ -5,7 +5,7 @@ import "lib:peregrine"; use "peregrine";
  * actually get the data from the server
  */
 
-data := get_data("self()","gene",get_panel());
+data := get_data("self()","gene",get_lane());
 
 /*
  * undo the compression applied by the server basically by applying

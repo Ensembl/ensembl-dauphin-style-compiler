@@ -27,3 +27,20 @@ pub enum Token {
     EndOfFile,
     EndOfLex
 }
+
+impl Token {
+    pub fn name_for_errors(&self) -> String {
+        match self {
+            Token::Identifier(name) => { name.to_string() },
+            Token::Number(number) => { number.to_string() },
+            Token::Operator(oper) => { oper.to_string() },
+            Token::Other(c) => { c.to_string() },
+            Token::Error(error) => { error.to_string() },
+            Token::LiteralString(s) => { s.to_string() },
+            Token::LiteralBytes(_) => { "byte-literal".to_string() },
+            Token::FourDots => { "::".to_string() },
+            Token::EndOfFile => { "end of file".to_string() },
+            Token::EndOfLex => { "end of file".to_string() }
+        }
+    }
+}

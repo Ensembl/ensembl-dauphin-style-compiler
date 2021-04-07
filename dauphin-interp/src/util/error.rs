@@ -85,6 +85,18 @@ pub fn error_locate(error: anyhow::Error, filename: &str, line: u32) -> anyhow::
     }
 }
 
+pub fn extend_error(error: anyhow::Error, more: &str) -> anyhow::Error {
+    match error.downcast::<DauphinError>() {
+        Ok(de) => {
+            anyhow::Error::new(match de {
+                DauphinError::SourceError(msg,file,line) => DauphinError::SourceError(format!("{} ({})",msg,more),file,line),
+                x => x
+            })
+        },
+        Err(e) => e
+    }
+}
+
 pub fn result_locate<T>(result: anyhow::Result<T>, filename: &str, line: u32) -> anyhow::Result<T> {
     match result {
         Ok(r) => Ok(r),

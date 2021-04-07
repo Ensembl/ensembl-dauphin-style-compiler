@@ -58,24 +58,42 @@ pub fn get_identifier(lexer: &mut Lexer) -> anyhow::Result<String> {
     match lexer.get() {
         Token::Identifier(symbol) => Ok(symbol),
         Token::Number(symbol) => Ok(symbol),
-        x => Err(parse_error(&format!("expected identifier, got {:?}",x),lexer))
+        x => Err(parse_error(&format!("expected identifier, got '{}'",x.name_for_errors()),lexer))
     }
 }
 
 pub fn get_operator(lexer: &mut Lexer, mode: bool) -> anyhow::Result<String> {
     match lexer.get_oper(mode) {
         Token::Operator(symbol) => Ok(symbol),
-        x => Err(parse_error(&format!("expected operator not {:?}",x),lexer))
+        x => Err(parse_error(&format!("expected operator not '{}'",x.name_for_errors()),lexer))
     }
+}
+
+fn char_list(s: &str) -> String {
+    let mut chars : Vec<char> = s.chars().collect();
+    let len = chars.len();
+    let mut out = String::new();
+    for (index,c) in chars.drain(..).enumerate() {
+        out.push('\'');
+        out.push(c);
+        out.push('\'');
+        if index+2 < len {
+            out.push_str(", ");
+        } else if index < len-1 {
+            out.push_str(", or ");
+        }
+    }
+    if out == "" { out.push_str("nothing"); }
+    out
 }
 
 pub fn get_other(lexer: &mut Lexer, ok: &str) -> anyhow::Result<char> {
     let out = match lexer.get() {
         Token::Other(symbol) => Ok(symbol),
-        _ => Err(parse_error(&format!("Expected one of \"{}\"",ok),lexer))
+        x => Err(parse_error(&format!("Expected {}, not '{}'",char_list(ok),x.name_for_errors()),lexer))
     }?;
     if !ok.contains(out) {
-        Err(parse_error(&format!("Expected one of \"{}\"",ok),lexer))?;
+        Err(parse_error(&format!("Expected {}, not '{}'",char_list(ok),out),lexer))?;
     }
     Ok(out)
 }
