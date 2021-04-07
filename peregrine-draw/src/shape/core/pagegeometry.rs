@@ -1,12 +1,13 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
 use crate::util::message::Message;
+use web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub struct PageProgram {
@@ -67,12 +68,12 @@ pub struct PageGeometry {
 }
 
 impl PageGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &PageProgram) ->Result<PageGeometry,Message> {
+    pub(crate) fn new(patina: &PatinaProcessName, variety: &PageProgram) ->Result<PageGeometry,Message> {
         Ok(PageGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self,layer: &mut Layer, data: PageData) -> Result<ProcessStanzaElements,Message> {
-        let mut elements = data.y.make_elements(layer, &GeometryProcessName::Page,&self.patina)?;
+    pub(crate) fn add(&self,layer: &mut Layer,  context: &WebGlRenderingContext, gpuspec: &GPUSpec,data: PageData) -> Result<ProcessStanzaElements,Message> {
+        let mut elements = data.y.make_elements(layer, context,gpuspec,&GeometryProcessName::Page,&self.patina)?;
         elements.add(&self.variety.vertexes,data.x.vec2d(&data.y),2)?;
         elements.add(&self.variety.signs,data.x.signs_2d(&data.y),2)?;
         Ok(elements)

@@ -2,7 +2,6 @@ use crate::webgl::FlatId;
 use crate::webgl::global::WebGlGlobal;
 use super::uniform::UniformHandle;
 use crate::util::message::Message;
-use keyed::KeyedHandle;
 
 pub(crate) struct TextureValues {
     uniform_handle: UniformHandle,

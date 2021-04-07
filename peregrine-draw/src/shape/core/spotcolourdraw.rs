@@ -23,7 +23,7 @@ pub struct SpotColourDraw {
 }
 
 impl SpotColourDraw {
-    pub(crate) fn new(_process: &ProtoProcess, colour: &DirectColour, variety: &SpotProgram) -> Result<SpotColourDraw,Message> {
+    pub(crate) fn new(colour: &DirectColour, variety: &SpotProgram) -> Result<SpotColourDraw,Message> {
         Ok(SpotColourDraw { colour: colour.clone(), variety: variety.clone() })
     }
 

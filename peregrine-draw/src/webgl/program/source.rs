@@ -1,12 +1,13 @@
 use super::super::{ GPUSpec, Phase };
 use super::program::Program;
 use crate::util::message::Message;
+use web_sys::WebGlRenderingContext;
 
 pub(crate) trait Source {
     fn cloned(&self) -> Box<dyn Source>;
     fn declare(&self, _spec: &GPUSpec, _phase: Phase) -> String { String::new() }
     fn statement(&self, _phase: Phase) -> String { String::new() }
-    fn build(&mut self, _program: &mut Program) -> Result<(),Message> { Ok(()) }
+    fn build(&mut self,  _context: &WebGlRenderingContext,_program: &mut Program) -> Result<(),Message> { Ok(()) }
 }
 
 pub(crate) struct SourceInstrs {
@@ -54,9 +55,9 @@ impl SourceInstrs {
             self.statements(phase))
     }
 
-    pub(crate) fn build(&mut self, program: &mut Program) -> Result<(),Message> {
+    pub(crate) fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> {
         for v in self.source.iter_mut() {
-            v.build(program)?;
+            v.build(context,program)?;
         }
         Ok(())
     }

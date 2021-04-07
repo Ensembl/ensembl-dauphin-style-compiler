@@ -41,7 +41,7 @@ pub struct TextureDraw(TextureProgram);
 // TODO to array utils
 
 impl TextureDraw {
-    pub(crate) fn new(_process: &ProtoProcess, variety: &TextureProgram) -> Result<TextureDraw,Message> {
+    pub(crate) fn new(variety: &TextureProgram) -> Result<TextureDraw,Message> {
         Ok(TextureDraw(variety.clone()))
     }
 

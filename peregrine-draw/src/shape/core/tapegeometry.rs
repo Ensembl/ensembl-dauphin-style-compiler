@@ -1,12 +1,13 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use super::geometrydata::GeometryData;
 use crate::shape::core::stage::{ ReadStage };
 use crate::util::message::Message;
+use web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub struct TapeProgram {
@@ -85,12 +86,12 @@ pub struct TapeGeometry {
 }
 
 impl TapeGeometry {
-    pub(crate) fn new(_process: &ProtoProcess, patina: &PatinaProcessName, variety: &TapeProgram) -> Result<TapeGeometry,Message> {
+    pub(crate) fn new(patina: &PatinaProcessName, variety: &TapeProgram) -> Result<TapeGeometry,Message> {
         Ok(TapeGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self, layer: &mut Layer, data: TapeData) -> Result<ProcessStanzaElements,Message> {
-        let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Tape,&self.patina)?;
+    pub(crate) fn add(&self, layer: &mut Layer,  context: &WebGlRenderingContext, gpuspec: &GPUSpec, data: TapeData) -> Result<ProcessStanzaElements,Message> {
+        let mut elements = data.x_origin.make_elements(layer,context,gpuspec,&GeometryProcessName::Tape,&self.patina)?;
         elements.add(&self.variety.origins,data.x_origin.vec1d_x(),1)?;
         elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
         elements.add(&self.variety.signs,data.y_vertex.signs_y(),1)?;

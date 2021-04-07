@@ -18,13 +18,13 @@ pub(crate) enum GeometryProgram {
 }
 
 impl GeometryProgram {
-    pub(super) fn make_geometry_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> Result<GeometryProcess,Message> {
+    pub(super) fn make_geometry_process(&self, skin: &PatinaProcessName) -> Result<GeometryProcess,Message> {
         Ok(match self {
-            GeometryProgram::Pin(v) => GeometryProcess::Pin(PinGeometry::new(process,skin,v)?),
-            GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(process,skin,v)?),
-            GeometryProgram::Tape(v) => GeometryProcess::Tape(TapeGeometry::new(process,skin,v)?),
-            GeometryProgram::Page(v) => GeometryProcess::Page(PageGeometry::new(process,skin,v)?),
-            GeometryProgram::Wiggle(v) => GeometryProcess::Wiggle(WiggleGeometry::new(process,skin,v)?),            
+            GeometryProgram::Pin(v) => GeometryProcess::Pin(PinGeometry::new(skin,v)?),
+            GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(skin,v)?),
+            GeometryProgram::Tape(v) => GeometryProcess::Tape(TapeGeometry::new(skin,v)?),
+            GeometryProgram::Page(v) => GeometryProcess::Page(PageGeometry::new(skin,v)?),
+            GeometryProgram::Wiggle(v) => GeometryProcess::Wiggle(WiggleGeometry::new(skin,v)?),            
         })
     }
 }

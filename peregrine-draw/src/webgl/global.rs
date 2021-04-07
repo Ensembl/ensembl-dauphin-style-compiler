@@ -8,6 +8,8 @@ use crate::PeregrineDom;
 use crate::util::message::Message;
 use wasm_bindgen::JsCast;
 
+use super::GPUSpec;
+
 pub struct WebGlGlobal {
     program_store: ProgramStore,
     context: WebGlRenderingContext,
@@ -15,7 +17,8 @@ pub struct WebGlGlobal {
     bindery: TextureBindery,
     texture_store: TextureStore,
     document: Document,
-    canvas_size: Option<(u32,u32)>
+    canvas_size: Option<(u32,u32)>,
+    gpuspec: GPUSpec
 }
 
 impl WebGlGlobal {
@@ -24,7 +27,7 @@ impl WebGlGlobal {
             .get_context("webgl").map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
-
+        let gpuspec = GPUSpec::new(&context)?;
         let program_store = ProgramStore::new(&context)?;
         let canvas_store = FlatStore::new();
         let bindery = TextureBindery::new(program_store.gpu_spec());
@@ -35,7 +38,8 @@ impl WebGlGlobal {
             texture_store: TextureStore::new(),
             context: context.clone(),
             document: dom.document().clone(),
-            canvas_size: None
+            canvas_size: None,
+            gpuspec
         })
     }
 
@@ -47,6 +51,7 @@ impl WebGlGlobal {
     pub(crate) fn bindery(&mut self) -> &mut TextureBindery { &mut self.bindery }
     pub(crate) fn texture_store(&mut self) -> &mut TextureStore { &mut self.texture_store }
     pub(crate) fn canvas_size(&mut self) -> &mut Option<(u32,u32)> { &mut self.canvas_size }
+    pub(crate) fn gpuspec(&self) -> &GPUSpec { &self.gpuspec }
 
     pub(crate) fn handle_context_errors(&mut self) -> Result<(),Message> {
         handle_context_errors(&self.context)?;

@@ -32,7 +32,7 @@ impl ProtoProcess {
     }
 
     pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
-        self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
+        self.uniforms.get_mut(handle).set_value(values)
     }
 
     pub(crate) fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
@@ -46,8 +46,8 @@ impl ProtoProcess {
         &mut self.stanza_builder
     }
 
-    pub(crate) fn build(self) -> Result<Process,Message> {
-        Process::new(self)
+    pub(crate) fn build(self, gl: &mut WebGlGlobal) -> Result<Process,Message> {
+        Process::new(gl,self)
     }
 }
 
@@ -61,8 +61,8 @@ pub struct Process {
 }
 
 impl Process {
-    fn new(builder: ProtoProcess) -> Result<Process,Message> {
-        let stanzas = builder.program.make_stanzas(&builder.stanza_builder)?;
+    fn new(gl: &mut WebGlGlobal, builder: ProtoProcess) -> Result<Process,Message> {
+        let stanzas = builder.program.make_stanzas(gl.context(),&builder.stanza_builder)?;
         let program_stage = ProgramStage::new(&builder.program)?;
         Ok(Process {
             program: builder.program,
@@ -75,16 +75,16 @@ impl Process {
     }
 
     fn apply_textures(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let (textures, uniforms, context) = (&mut self.textures,&mut self.uniforms,&self.program.context());
+        let (textures, uniforms) = (&mut self.textures,&mut self.uniforms);
         for entry in textures.iter_mut() {
             let (uniform_handle,value) = entry.apply(gl)?;
-            uniforms.get_mut(uniform_handle).set_value(context,vec![value as f64])?;
+            uniforms.get_mut(uniform_handle).set_value(vec![value as f64])?;
         }
         Ok(())
     }
 
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
-        self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
+        self.uniforms.get_mut(handle).set_value(values)
     }
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
@@ -92,8 +92,8 @@ impl Process {
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
         self.apply_textures(gl)?;
-        let context = self.program.context();
-        self.program.select_program()?;
+        let context = gl.context();
+        self.program.select_program(context)?;
         for stanza in self.stanzas.iter() {
             stanza.activate(context)?;
             for entry in self.uniforms.values() {
@@ -107,13 +107,15 @@ impl Process {
     }
 
     pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let context = self.program.context();
+        let context = gl.context();
         for entry in self.uniforms.values_mut() {
             entry.discard(context)?;
         }
+        drop(context);
         for entry in self.textures.iter_mut() {
             entry.discard(gl)?;
         }
+        let context = gl.context();
         for stanza in self.stanzas.iter_mut() {
             stanza.discard(context)?;
         }

@@ -48,8 +48,7 @@ impl Source for Uniform {
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, program: &mut Program) -> Result<(),Message> {
-        let context = program.context();
+    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> {
         self.location = context.get_uniform_location(program.program(),self.name());
         handle_context_errors(context)?;
         program.add_uniform(&self)
@@ -90,7 +89,7 @@ impl UniformValues {
         Ok(())
     }
 
-    pub fn set_value(&mut self, _context: &WebGlRenderingContext, our_value: Vec<f64>) -> Result<(),Message> {
+    pub fn set_value(&mut self, our_value: Vec<f64>) -> Result<(),Message> {
         self.gl_value = Some(our_value);
         Ok(())
     }

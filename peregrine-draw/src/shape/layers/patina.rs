@@ -14,18 +14,18 @@ pub(crate) enum PatinaProgram {
 }
 
 impl PatinaProgram {
-    pub(super) fn make_patina_process(&self, process: &ProtoProcess, skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
+    pub(super) fn make_patina_process(&self, skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
         Ok(match self {
-            PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(process,v)?),
+            PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
             PatinaProgram::Texture(v) => {
                 match skin {
-                    PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(process,v)?),
+                    PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(v)?),
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not texture"))); }
                 }
             },
             PatinaProgram::Spot(v) => {
                 match skin {
-                    PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(process,colour,v)?),
+                    PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(colour,v)?),
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not spot"))); }
                 }
             }

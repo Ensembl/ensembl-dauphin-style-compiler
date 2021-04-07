@@ -11,6 +11,8 @@ use super::super::layers::patina::PatinaProcessName;
 use crate::{shape::core::stage::ReadStageAxis, webgl::ProcessStanzaElements};
 use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
+use web_sys::WebGlRenderingContext;
+use crate::webgl::GPUSpec;
 
 fn add(v: &[f64], delta: f64) -> Vec<f64> {
     v.iter().map(|x| x+delta).collect()
@@ -230,8 +232,8 @@ impl GLAxis {
         vec1d_y(self,self.hollow,self.origin)
     }
 
-    pub(crate) fn make_elements(&self, layer: &mut Layer, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessStanzaElements,Message> {
-        make_rect_elements(layer,geometry,patina,self.min.len(),self.hollow)
+    pub(crate) fn make_elements(&self, layer: &mut Layer,  context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessStanzaElements,Message> {
+        make_rect_elements(layer,context,gpuspec,geometry,patina,self.min.len(),self.hollow)
     }
 
     pub(crate) fn len(&self) -> usize { self.min.len() }

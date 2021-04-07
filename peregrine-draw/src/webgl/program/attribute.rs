@@ -36,8 +36,7 @@ impl Source for Attribute {
         format!("attribute {} {};\n",spec.best_size(&self.precision,&Phase::Vertex).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, program: &mut Program) -> Result<(),Message> { 
-        let context = program.context();
+    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> { 
         let location = context.get_attrib_location(program.program(),&self.name);
         handle_context_errors(context)?;
         if location == -1 {

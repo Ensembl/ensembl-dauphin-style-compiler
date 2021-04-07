@@ -1,5 +1,5 @@
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
-use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
+use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle };
 use keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues };
@@ -7,8 +7,24 @@ use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 use crate::util::message::Message;
 
+pub(crate) struct ProtoProgram {
+    source: SourceInstrs
+}
+
+impl ProtoProgram {
+    pub(crate) fn new(source: SourceInstrs) -> Result<ProtoProgram,Message> {
+        Ok(ProtoProgram {
+            source
+        })
+    }
+
+    pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Program,Message> {
+        let gl_prog = make_program(context, gpuspec, self.source.clone())?;
+        Program::new(context,gl_prog,self)
+    }
+}
+
 pub struct Program {
-    context: WebGlRenderingContext,
     program: WebGlProgram,
     uniforms: KeyedValues<UniformHandle,Uniform>,
     attribs: KeyedValues<AttribHandle,Attribute>,
@@ -16,15 +32,15 @@ pub struct Program {
 }
 
 impl Program {
-    pub(crate) fn new(context: &WebGlRenderingContext, program: WebGlProgram, mut source: SourceInstrs) -> Result<Program,Message> {
+    fn new(context: &WebGlRenderingContext, program: WebGlProgram, proto: &ProtoProgram) -> Result<Program,Message> {
         let mut out = Program {
             program,
-            context: context.clone(),
             attribs: KeyedValues::new(),
             uniforms: KeyedValues::new(),
             method: WebGlRenderingContext::TRIANGLES
         };
-        source.build(&mut out)?;
+        let mut source = proto.source.clone();
+        source.build(context,&mut out)?;
         Ok(out)
     }
 
@@ -57,25 +73,20 @@ impl Program {
         ProcessStanzaBuilder::new(&self.attribs)
     }
 
-    pub(crate) fn make_stanzas(&self, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
-        stanza_builder.make_stanzas(&self.context,&self.attribs)
+    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
+        stanza_builder.make_stanzas(context,&self.attribs)
     }
 
-    pub(crate) fn select_program(&self) -> Result<(),Message> {
-        self.context.use_program(Some(&self.program));
-        handle_context_errors(&self.context)?;
+    pub(crate) fn select_program(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
+        context.use_program(Some(&self.program));
+        handle_context_errors(&context)?;
         Ok(())
     }
 
-    pub(crate) fn context(&self) -> &WebGlRenderingContext {
-        &self.context
-    }
-
     pub(crate) fn program(&self) -> &WebGlProgram { &self.program }
-}
 
-impl Drop for Program {
-    fn drop(&mut self) {
-        self.context.delete_program(Some(&self.program));
+    // XXX ensure called!
+    fn discard(&mut self, context: &WebGlRenderingContext) {
+        context.delete_program(Some(&self.program));
     }
 }

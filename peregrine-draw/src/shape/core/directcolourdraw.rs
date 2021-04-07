@@ -20,7 +20,7 @@ impl DirectProgram {
 pub struct DirectColourDraw(DirectProgram);
 
 impl DirectColourDraw {
-    pub(crate) fn new(_process: &ProtoProcess, variety: &DirectProgram) -> Result<DirectColourDraw,Message> {
+    pub(crate) fn new(variety: &DirectProgram) -> Result<DirectColourDraw,Message> {
         Ok(DirectColourDraw(variety.clone()))
     }
 

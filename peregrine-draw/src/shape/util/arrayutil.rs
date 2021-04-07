@@ -4,17 +4,19 @@ use crate::shape::layers::patina::PatinaProcessName;
 use crate::shape::layers::geometry::GeometryProcessName;
 use crate::webgl::ProcessStanzaElements;
 use crate::util::message::Message;
+use web_sys::WebGlRenderingContext;
+use crate::webgl::GPUSpec;
 
 /* convert 0-255 colour indices to 0.0-1.0 */
 pub(crate) fn scale_colour(value: u8) -> f64 {
     (value as f64)/255.
 }
 
-pub(crate) fn make_rect_elements(layer: &mut Layer, geometry: &GeometryProcessName, patina: &PatinaProcessName, len: usize, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+pub(crate) fn make_rect_elements(layer: &mut Layer,  context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName, len: usize, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     if hollow {
-        layer.make_elements(geometry,patina,len,&[0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1])
+        layer.make_elements(context,gpuspec,geometry,patina,len,&[0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1])
     } else {
-        layer.make_elements(geometry,patina,len,&[0,3,1,2,0,3])
+        layer.make_elements(context,gpuspec,geometry,patina,len,&[0,3,1,2,0,3])
     }
 }
 

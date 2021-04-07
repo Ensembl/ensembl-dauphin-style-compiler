@@ -66,14 +66,14 @@ impl DrawingBuilder {
 
     pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> Result<(),Message> {
         let (layer, tools, canvas_builder) = (&mut self.main_layer,&mut self.tools,&self.flats.as_ref().unwrap());
-        add_shape_to_layer(layer,tools,canvas_builder,gl.bindery(),shape)
+        add_shape_to_layer(layer,&gl.context().clone(),&gl.gpuspec().clone(),tools,canvas_builder,gl.bindery(),shape)
     }
 
     pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
         let (_tools, mut builder) = (&mut self.tools, self.flats.take().unwrap());
         let canvases = builder.built();
         let mut processes = vec![];
-        self.main_layer.build(&mut processes,&canvases)?;
+        self.main_layer.build(gl,&mut processes,&canvases)?;
         Ok(Drawing::new(processes,canvases,self.tools.zmenus.build())?)
     }
 }
