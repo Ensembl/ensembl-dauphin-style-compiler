@@ -402,6 +402,7 @@ dependencies = [
  "peregrine_data",
  "peregrine_draw",
  "peregrine_message",
+ "serde_json",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",

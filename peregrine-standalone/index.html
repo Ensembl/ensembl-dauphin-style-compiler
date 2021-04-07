@@ -20,13 +20,13 @@
 
     <script type="module">
       import init from './pkg/peregrine_standalone.js';
-      import communicate from './js/communication.js';
+      // import communicate from './js/communication.ts';
       
 
       async function run() {
         await init();
 
-        const message = new communicate();
+        // const message = new communicate();
         window.sendMessage = message.send;
         message.send({action : "Hello", payload: {a:1}});
       }
