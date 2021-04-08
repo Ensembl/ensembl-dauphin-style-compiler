@@ -1,31 +1,30 @@
 use crate::webgl::FlatId;
 use crate::webgl::global::WebGlGlobal;
-use super::uniform::UniformHandle;
 use crate::util::message::Message;
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext };
+use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
-use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use super::program::Program;
+use super::super::{ GPUSpec, Phase };
+use super::program::{ Program, ProgramBuilder };
 use crate::webgl::util::handle_context_errors;
 
+// XXX some merging into uniform?
+
 #[derive(Clone)]
-pub(crate) struct Texture {
-    name: String,
-    location: Option<WebGlUniformLocation>
+pub(crate) struct TextureProto {
+    name: String
 }
 
-impl Texture {
-    pub(crate) fn new(name: &str) -> Box<Texture> {
-        Box::new(Texture {
-            name: name.to_string(),
-            location: None
+impl TextureProto {
+    pub fn new(name: &str) -> Box<TextureProto> {
+        Box::new(TextureProto {
+            name: name.to_string()
         })
     }
 
     pub fn name(&self) -> &str { &self.name }
 }
 
-impl Source for Texture {
+impl Source for TextureProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
     fn declare(&self, _spec: &GPUSpec, phase: Phase) -> String {
@@ -33,10 +32,22 @@ impl Source for Texture {
         format!("uniform sampler2D {};\n",self.name)
     }
 
-    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> {
-        self.location = context.get_uniform_location(program.program(),&self.name);
+    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+        builder.add_texture(&self)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct Texture {
+    proto: TextureProto,
+    location: Option<WebGlUniformLocation>
+}
+
+impl Texture {
+    pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Message> {
+        let location = context.get_uniform_location(program,&proto.name);
         handle_context_errors(context)?;
-        program.add_texture(&self)
+        Ok(Texture { proto: proto.clone(), location })
     }
 }
 

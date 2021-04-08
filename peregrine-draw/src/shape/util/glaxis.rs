@@ -232,8 +232,8 @@ impl GLAxis {
         vec1d_y(self,self.hollow,self.origin)
     }
 
-    pub(crate) fn make_elements(&self, layer: &mut Layer,  context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessStanzaElements,Message> {
-        make_rect_elements(layer,context,gpuspec,geometry,patina,self.min.len(),self.hollow)
+    pub(crate) fn make_elements(&self, layer: &mut Layer, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ProcessStanzaElements,Message> {
+        make_rect_elements(layer,geometry,patina,self.min.len(),self.hollow)
     }
 
     pub(crate) fn len(&self) -> usize { self.min.len() }

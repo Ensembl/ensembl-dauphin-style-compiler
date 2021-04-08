@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::super::core::pingeometry::PinGeometry;
+use super::{super::core::pingeometry::PinGeometry, patina};
 use super::super::core::fixgeometry::FixGeometry;
 use super::super::core::tapegeometry::TapeGeometry;
 use super::super::core::pagegeometry::PageGeometry;
@@ -46,27 +46,29 @@ struct SubLayerHolder(Option<SubLayer>,f64);
 impl SubLayerHolder {
     fn new(left: f64) -> SubLayerHolder { SubLayerHolder(None,left) }
 
-    fn make(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<(),Message> {
-        let program_store_entry = programs.get_program(context,gpuspec,geometry.get_program_name(),patina.get_program_name())?;
-        let process = ProtoProcess::new(program_store_entry.program().clone(),self.1);
-        let geometry = program_store_entry.get_geometry().make_geometry_process(patina)?;
-        let patina = program_store_entry.get_patina().make_patina_process(patina)?;
+    fn make(&mut self, programs: &ProgramStore, geometry_process_name: &GeometryProcessName, patina_process_name: &PatinaProcessName) -> Result<(),Message> {
+        let geometry_program_name = geometry_process_name.get_program_name();
+        let patina_program_name = patina_process_name.get_program_name();
+        let program_store_entry = programs.get_program(geometry_program_name,patina_program_name)?;
+        let process = ProtoProcess::new(program_store_entry.builder().clone(),self.1);
+        let geometry = program_store_entry.get_geometry().make_geometry_process(patina_process_name)?;
+        let patina = program_store_entry.get_patina().make_patina_process(patina_process_name)?;
         self.0 = Some(SubLayer { process, geometry, patina });
         Ok(())
     }
 
-    fn get_process_mut(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
-        if self.0.is_none() { self.make(context,gpuspec,programs,geometry,patina)?; }
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&mut self.0.as_mut().unwrap().process)
     }
 
-    fn get_geometry(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
-        if self.0.is_none() { self.make(context,gpuspec,programs,geometry,patina)?; }
+    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&self.0.as_mut().unwrap().geometry)
     }
 
-    fn get_patina(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec,programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
-        if self.0.is_none() { self.make(context,gpuspec,programs,geometry,patina)?; }
+    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
+        if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&self.0.as_mut().unwrap().patina)
     }
 
@@ -109,16 +111,16 @@ impl GeometrySubLayer {
         })
     }
 
-    fn get_process_mut(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
-        self.holder(patina)?.get_process_mut(context,gpuspec,programs,geometry,patina)
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+        self.holder(patina)?.get_process_mut(programs,geometry,patina)
     }
 
-    fn get_geometry(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec,programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
-        self.holder(patina)?.get_geometry(context,gpuspec,programs,geometry,patina)
+    fn get_geometry(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
+        self.holder(patina)?.get_geometry(programs,geometry,patina)
     }
 
-    fn get_patina(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec,programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
-        self.holder(patina)?.get_patina(context,gpuspec,programs,geometry,patina)
+    fn get_patina(&mut self, programs: &ProgramStore, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
+        self.holder(patina)?.get_patina(programs,geometry,patina)
     }
 
     fn build(mut self, gl: &mut WebGlGlobal, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
@@ -152,8 +154,8 @@ pub(crate) struct Layer {
 
 macro_rules! layer_geometry_accessor {
     ($func:ident,$geom_type:ty,$geom_name:ident) => {
-        pub(crate) fn $func(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, patina: &PatinaProcessName) -> Result<$geom_type,Message> {
-            let geom = self.get_geometry(context,gpuspec,&GeometryProcessName::$geom_name,patina)?;
+        pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> Result<$geom_type,Message> {
+            let geom = self.get_geometry(&GeometryProcessName::$geom_name,patina)?;
             match geom { GeometryProcess::$geom_name(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer A"))) }
         }
     };
@@ -161,8 +163,8 @@ macro_rules! layer_geometry_accessor {
 
 macro_rules! layer_patina_accessor {
     ($func:ident,$patina_type:ty,$patina_name:ident) => {
-        pub(crate) fn $func(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName) -> Result<$patina_type,Message> {
-            let patina = self.get_patina(context,gpuspec,geometry,&PatinaProcessName::$patina_name)?;
+        pub(crate) fn $func(&mut self, geometry: &GeometryProcessName) -> Result<$patina_type,Message> {
+            let patina = self.get_patina(geometry,&PatinaProcessName::$patina_name)?;
             match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ =>  Err(Message::CodeInvariantFailed(format!("inconsistent layer B"))) }
         }                
     };
@@ -193,28 +195,28 @@ impl Layer {
         })
     }
 
-    pub(crate) fn get_process_mut(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+    pub(crate) fn get_process_mut(&mut self,  geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
-        sub.get_process_mut(context,gpuspec,compiler,geometry,patina)
+        sub.get_process_mut(compiler,geometry,patina)
     }
 
-    fn get_geometry(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
+    fn get_geometry(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&GeometryProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
-       sub.get_geometry(context,gpuspec,compiler,geometry,patina)
+       sub.get_geometry(compiler,geometry,patina)
     }
 
-    fn get_patina(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
+    fn get_patina(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
         let (sub,compiler) = self.holder(geometry)?;
-        sub.get_patina(context,gpuspec,compiler,geometry,patina)
+        sub.get_patina(compiler,geometry,patina)
     }
 
-    pub(crate) fn make_elements(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec,geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
-        let process = self.get_process_mut(context,gpuspec,geometry,patina)?;
+    pub(crate) fn make_elements(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
+        let process = self.get_process_mut(geometry,patina)?;
         Ok(process.get_stanza_builder().make_elements(count,indexes)?)
     }
 
-    pub(crate) fn make_array(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) ->Result<ProcessStanzaArray,Message> {
-        let process = self.get_process_mut(context,gpuspec,geometry,patina)?;
+    pub(crate) fn make_array(&mut self, geometry: &GeometryProcessName, patina: &PatinaProcessName, count: usize) ->Result<ProcessStanzaArray,Message> {
+        let process = self.get_process_mut(geometry,patina)?;
         Ok(process.get_stanza_builder().make_array(count)?)
     }
 
@@ -226,13 +228,13 @@ impl Layer {
 
     layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
 
-    pub(crate) fn get_spot(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, colour: &DirectColour) -> Result<SpotColourDraw,Message> {
-        let patina = self.get_patina(context,gpuspec,geometry,&PatinaProcessName::Spot(colour.clone()))?;
+    pub(crate) fn get_spot(&mut self, geometry: &GeometryProcessName, colour: &DirectColour) -> Result<SpotColourDraw,Message> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
         match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer C"))) }
     }
 
-    pub(crate) fn get_texture(&mut self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: &GeometryProcessName, element_id: &FlatId) -> Result<TextureDraw,Message> {
-        let patina = self.get_patina(context,gpuspec,geometry,&PatinaProcessName::Texture(element_id.clone()))?;
+    pub(crate) fn get_texture(&mut self, geometry: &GeometryProcessName, element_id: &FlatId) -> Result<TextureDraw,Message> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(element_id.clone()))?;
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
     }
 

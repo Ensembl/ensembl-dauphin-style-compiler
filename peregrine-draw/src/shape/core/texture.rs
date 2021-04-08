@@ -1,4 +1,4 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
 use crate::webgl::TextureBindery;
 use crate::util::message::Message;
@@ -27,10 +27,10 @@ pub struct TextureProgram {
 }
 
 impl TextureProgram {
-    pub(crate) fn new(program: &Program) -> Result<TextureProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Message> {
         Ok(TextureProgram {
-            texture: program.get_attrib_handle("aTextureCoord")?,
-            mask: program.get_attrib_handle("aMaskCoord")?,
+            texture: builder.get_attrib_handle("aTextureCoord")?,
+            mask: builder.get_attrib_handle("aMaskCoord")?,
         })
     }
 }

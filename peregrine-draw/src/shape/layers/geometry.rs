@@ -4,7 +4,7 @@ use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
 use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
 use super::super::core::wigglegeometry::{ WiggleGeometry, WiggleProgram };
 use super::patina::PatinaProcessName;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program };
+use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program, AttributeProto, ProgramBuilder };
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
@@ -44,13 +44,13 @@ impl GeometryProgramName {
         }
     }
 
-    pub(super) fn make_geometry_program(&self, program: &Program) -> Result<GeometryProgram,Message> {
+    pub(super) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
         Ok(match self {
-            GeometryProgramName::Page => GeometryProgram::Page(PageProgram::new(program)?),
-            GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(program)?),
-            GeometryProgramName::Tape => GeometryProgram::Tape(TapeProgram::new(program)?),
-            GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(program)?),
-            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(program)?)
+            GeometryProgramName::Page => GeometryProgram::Page(PageProgram::new(builder)?),
+            GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(builder)?),
+            GeometryProgramName::Tape => GeometryProgram::Tape(TapeProgram::new(builder)?),
+            GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(builder)?),
+            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(builder)?)
         })
     }
 
@@ -58,8 +58,8 @@ impl GeometryProgramName {
         SourceInstrs::new(match self {
             GeometryProgramName::Pin => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aOrigin"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aOrigin"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(
                         (aOrigin.x -uStageHpos) * uStageZoom + 
@@ -69,8 +69,8 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Fix => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
                                         (1.0 - aVertexPosition.y / uSize.y) * aVertexSign.y,
@@ -78,9 +78,9 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Tape => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Attribute::new(PR_LOW,GLArity::Scalar,"aVertexSign"),
-                Attribute::new(PR_LOW,GLArity::Scalar,"aOrigin"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aVertexSign"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aOrigin"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(
                         (aOrigin - uStageHpos) * uStageZoom + 
@@ -90,8 +90,8 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Page => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexPosition"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aVertexSign"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4((aVertexPosition.x / uSize.x - 1.0) * aVertexSign.x,
                                        (- (aVertexPosition.y - uStageVpos) / uSize.y) * aVertexSign.y, 
@@ -99,7 +99,7 @@ impl GeometryProgramName {
             ],
             GeometryProgramName::Wiggle => vec![
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
-                Attribute::new(PR_LOW,GLArity::Vec2,"aData"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aData"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(
                         (aData.x -uStageHpos) * uStageZoom,

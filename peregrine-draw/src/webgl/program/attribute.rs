@@ -1,7 +1,7 @@
 use super::source::Source;
-use super::program::Program;
+use super::program::{ Program, ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use web_sys::{ WebGlRenderingContext, WebGlBuffer };
+use web_sys::{ WebGlRenderingContext, WebGlBuffer, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
@@ -9,26 +9,24 @@ use crate::util::message::Message;
 keyed_handle!(AttribHandle);
 
 #[derive(Clone)]
-pub(crate) struct Attribute {
+pub(crate) struct AttributeProto {
     precision: Precision,
     arity: GLArity,
     name: String,
-    location: Option<u32>
 }
 
-impl Attribute {
-    pub fn new(precision: Precision, arity: GLArity, name: &str) -> Box<Attribute> {
-        Box::new(Attribute {
+impl AttributeProto {
+    pub fn new(precision: Precision, arity: GLArity, name: &str) -> Box<AttributeProto> {
+        Box::new(AttributeProto {
             precision, arity,
-            name: name.to_string(),
-            location: None
+            name: name.to_string()
         })
     }
 
     pub fn name(&self) -> &str { &self.name }
 }
 
-impl Source for Attribute {
+impl Source for AttributeProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
     fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
@@ -36,14 +34,28 @@ impl Source for Attribute {
         format!("attribute {} {};\n",spec.best_size(&self.precision,&Phase::Vertex).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> { 
-        let location = context.get_attrib_location(program.program(),&self.name);
+    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> { 
+        builder.add_attrib(&self)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct Attribute {
+    proto: AttributeProto,
+    location: Option<u32>
+}
+
+impl Attribute {
+    pub(super) fn new(proto: &AttributeProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Attribute,Message> { 
+        let location = context.get_attrib_location(program,&proto.name);
         handle_context_errors(context)?;
         if location == -1 {
-            return Err(Message::WebGLFailure(format!("cannot get attrib '{}'",self.name)));
+            return Err(Message::WebGLFailure(format!("cannot get attrib '{}'",proto.name)));
         }
-        self.location = Some(location as u32);
-        program.add_attrib(&self)
+        Ok(Attribute {
+            proto: proto.clone(),
+            location: Some(location as u32)
+        })
     }
 }
 
@@ -76,7 +88,7 @@ impl AttributeValues {
     pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> Result<AttributeValues,Message> {
         Ok(AttributeValues {
             gl_value: create_buffer(context,&our_value)?,
-            arity: object.arity.to_num() as i32,
+            arity: object.proto.arity.to_num() as i32,
             location: object.location.unwrap()
         })
     }

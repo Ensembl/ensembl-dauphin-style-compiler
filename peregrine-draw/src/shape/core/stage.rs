@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::webgl::{ SourceInstrs, Uniform, GLArity, UniformHandle, Program, Process };
+use crate::webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process };
 use super::super::layers::consts::{ PR_DEF, PR_LOW };
 use super::redrawneeded::RedrawNeeded;
 use crate::util::message::Message;
@@ -50,14 +50,14 @@ pub(crate) struct ProgramStage {
 }
 
 impl ProgramStage {
-    pub fn new(program: &Rc<Program>) -> Result<ProgramStage,Message> {
+    pub fn new(builder: &ProgramBuilder) -> Result<ProgramStage,Message> {
         Ok(ProgramStage {
-            hpos: program.get_uniform_handle("uStageHpos")?,
-            vpos: program.get_uniform_handle("uStageVpos")?,
-            bp_per_screen: program.get_uniform_handle("uStageZoom")?,
-            size: program.get_uniform_handle("uSize")?,
-            opacity: program.get_uniform_handle("uOpacity")?,
-            model: program.get_uniform_handle("uModel")?
+            hpos: builder.get_uniform_handle("uStageHpos")?,
+            vpos: builder.get_uniform_handle("uStageVpos")?,
+            bp_per_screen: builder.get_uniform_handle("uStageZoom")?,
+            size: builder.get_uniform_handle("uSize")?,
+            opacity: builder.get_uniform_handle("uOpacity")?,
+            model: builder.get_uniform_handle("uModel")?
         })
     }
 
@@ -265,11 +265,11 @@ impl Stage {
 
 pub(crate) fn get_stage_source() -> SourceInstrs {
     SourceInstrs::new(vec![
-        Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
-        Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
-        Uniform::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
-        Uniform::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
-        Uniform::new_vertex(PR_DEF,GLArity::Matrix4,"uModel"),
-        Uniform::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity")
+        UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Matrix4,"uModel"),
+        UniformProto::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity")
     ])
 }

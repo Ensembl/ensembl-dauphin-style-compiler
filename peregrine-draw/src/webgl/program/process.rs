@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
-use super::program::{ Program, ProtoProgram };
+use super::program::{ Program, ProtoProgram, ProgramBuilder };
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use keyed::KeyedData;
@@ -11,18 +11,18 @@ use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 pub(crate) struct ProtoProcess {
-    program: Rc<Program>,
+    builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: Vec<(UniformHandle,Vec<f64>)>,
-    textures: Vec<(UniformHandle,FlatId)>,
+    textures: Vec<(String,FlatId)>,
     left: f64
 }
 
 impl ProtoProcess {
-    pub(crate) fn new(program: Rc<Program>, left: f64) -> ProtoProcess {
-        let stanza_builder = program.make_stanza_builder();
+    pub(crate) fn new(builder: Rc<ProgramBuilder>, left: f64) -> ProtoProcess {
+        let stanza_builder = builder.make_stanza_builder();
         ProtoProcess {
-            program,
+            builder,
             stanza_builder,
             uniforms: vec![],
             textures: vec![],
@@ -36,8 +36,7 @@ impl ProtoProcess {
     }
 
     pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
-        let handle = self.program.get_texture_handle(uniform_name)?;
-        self.textures.push((handle.clone(),canvas_id.clone()));
+        self.textures.push((uniform_name.to_string(),canvas_id.clone()));
         Ok(())
     }
 
@@ -46,20 +45,22 @@ impl ProtoProcess {
     }
 
     pub(crate) fn build(self, gl: &mut WebGlGlobal) -> Result<Process,Message> {
-        let mut uniforms = self.program.make_uniforms();
+        let program = self.builder.make(gl.context(),gl.gpuspec())?; // XXX cache
+        let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
             uniforms.get_mut(&name).set_value(value)?;
         }
-        let mut textures = self.program.make_textures();
+        let mut textures = program.make_textures();
         for (name,value) in self.textures {
-            textures.get_mut(&name).set_value(&value)?;
+            let handle = self.builder.get_texture_handle(&name)?;
+            textures.get_mut(&handle).set_value(&value)?;
         }
         let (program,stanza_builder,left) = (
-            self.program,
+            program,
             self.stanza_builder,
             self.left
         );
-        Process::new(gl,program,stanza_builder,uniforms,textures,left)
+        Process::new(gl,Rc::new(program),&self.builder,stanza_builder,uniforms,textures,left)
     }
 }
 
@@ -73,9 +74,9 @@ pub struct Process {
 }
 
 impl Process {
-    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<UniformHandle,TextureValues>, left: f64) -> Result<Process,Message> {
+    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<UniformHandle,TextureValues>, left: f64) -> Result<Process,Message> {
         let stanzas = program.make_stanzas(gl.context(),&stanza_builder)?;
-        let program_stage = ProgramStage::new(&program)?;
+        let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
             program,
             stanzas,

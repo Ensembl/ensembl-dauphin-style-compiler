@@ -54,6 +54,14 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
     pub fn make_maker<'f,F,U>(&self, template: F) -> KeyedDataMaker<'f,K,U> where F: Fn() -> U + 'f {
         KeyedDataMaker(self.0.len(),Box::new(template),PhantomData)
     }
+
+    fn map<U>(&self) -> KeyedKeys<K,U> {
+        let mut out = HashMap::new();
+        for (k,v) in self.0.iter() {
+            out.insert(k.clone(),v.clone_handle());
+        }
+        KeyedKeys(out,PhantomData)
+    }
 }
 
 pub struct KeyedDataMaker<'f,K: KeyedHandle,T>(usize,Box<dyn Fn() -> T + 'f>,PhantomData<K>);
@@ -220,7 +228,15 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
         self.our_keys.get_handle(name)
     }
 
+    pub fn map<F,U,E>(&self, f: F) -> Result<KeyedValues<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
+        Ok(KeyedValues {
+            our_keys: self.our_keys.map(),
+            entries: self.entries.map(f)?
+        })
+    }
+
     pub fn data(&self) -> &KeyedData<K,T> { &self.entries }
+    pub fn data_mut(&mut self) -> &mut KeyedData<K,T> { &mut self.entries }
 }
 
 // TODO ducument

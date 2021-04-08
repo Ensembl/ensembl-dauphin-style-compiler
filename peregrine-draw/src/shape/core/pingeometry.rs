@@ -1,7 +1,7 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
@@ -77,10 +77,10 @@ pub struct PinProgram {
 }
 
 impl PinProgram {
-    pub(crate) fn new(program: &Program) -> Result<PinProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<PinProgram,Message> {
         Ok(PinProgram {
-            vertexes: program.get_attrib_handle("aVertexPosition")?,
-            origins: program.get_attrib_handle("aOrigin")?
+            vertexes: builder.get_attrib_handle("aVertexPosition")?,
+            origins: builder.get_attrib_handle("aOrigin")?
         })
     }
 }
@@ -96,10 +96,10 @@ impl PinGeometry {
         Ok(PinGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add(&self, layer: &mut Layer, context: &WebGlRenderingContext, gpuspec: &GPUSpec, data: PinData) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn add(&self, layer: &mut Layer, data: PinData) -> Result<ProcessStanzaElements,Message> {
         //use web_sys::console;
         //console::log_1(&format!("add = {:?}",data.x_origin).into());
-        let mut elements = data.x_origin.make_elements(layer, context,gpuspec,&GeometryProcessName::Pin,&self.patina)?;
+        let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Pin,&self.patina)?;
         //console::log_1(&format!("origins").into());
         elements.add(&self.variety.origins,data.x_origin.vec2d(&data.y_origin),2)?;
         //console::log_1(&format!("vertexes").into());

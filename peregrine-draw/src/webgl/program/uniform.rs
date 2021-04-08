@@ -1,8 +1,7 @@
-use anyhow::{ bail };
 use super::source::{ Source };
-use super::program::Program;
+use super::program::{ Program, ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use web_sys::{ WebGlUniformLocation, WebGlRenderingContext };
+use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
@@ -10,37 +9,34 @@ use crate::util::message::Message;
 keyed_handle!(UniformHandle);
 
 #[derive(Clone)]
-pub(crate) struct Uniform {
+pub(crate) struct UniformProto {
     precision: Precision,
     arity: GLArity,
     phase: Phase,
     name: String,
-    location: Option<WebGlUniformLocation>
 }
 
-impl Uniform {
-    pub fn new_fragment(precision: Precision, arity: GLArity, name: &str) -> Box<Uniform> {
-        Box::new(Uniform {
+impl UniformProto {
+    pub fn new_fragment(precision: Precision, arity: GLArity, name: &str) -> Box<UniformProto> {
+        Box::new(UniformProto {
             precision, arity,
             name: name.to_string(),
-            phase: Phase::Fragment,
-            location: None
+            phase: Phase::Fragment
         })
     }
 
-    pub fn new_vertex(precision: Precision, arity: GLArity, name: &str) -> Box<Uniform> {
-        Box::new(Uniform {
+    pub fn new_vertex(precision: Precision, arity: GLArity, name: &str) -> Box<UniformProto> {
+        Box::new(UniformProto {
             precision, arity,
             name: name.to_string(),
-            phase: Phase::Vertex,
-            location: None
+            phase: Phase::Vertex
         })
     }
 
     pub fn name(&self) -> &str { &self.name }
 }
 
-impl Source for Uniform {
+impl Source for UniformProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
     fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
@@ -48,10 +44,22 @@ impl Source for Uniform {
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
     }
 
-    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> {
-        self.location = context.get_uniform_location(program.program(),self.name());
+    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+        builder.add_uniform(&self)
+    }
+}
+
+#[derive(Clone)]
+pub(crate) struct Uniform {
+    proto: UniformProto,
+    location: Option<WebGlUniformLocation>
+}
+
+impl Uniform {
+    pub fn new(proto: &UniformProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Uniform,Message> {
+        let location = context.get_uniform_location(program,&proto.name);
         handle_context_errors(context)?;
-        program.add_uniform(&self)
+        Ok(Uniform { proto: proto.clone(), location })
     }
 }
 
@@ -71,11 +79,11 @@ impl UniformValues {
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         if let Some(gl_value) = &self.gl_value {
             let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
-            if gl_value.len() != self.object.arity.to_num() as usize {
-                return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.name,self.object.arity.to_num(),gl_value.len())));
+            if gl_value.len() != self.object.proto.arity.to_num() as usize {
+                return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.proto.name,self.object.proto.arity.to_num(),gl_value.len())));
             }
             if let Some(location) = &self.object.location {
-                match self.object.arity {
+                match self.object.proto.arity {
                     GLArity::Scalar => context.uniform1f(Some(location),gl_value[0]),
                     GLArity::Vec2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
                     GLArity::Vec3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),

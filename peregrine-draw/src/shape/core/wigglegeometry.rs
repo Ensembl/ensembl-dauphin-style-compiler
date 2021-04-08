@@ -3,7 +3,7 @@ use web_sys::WebGlRenderingContext;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProcessName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
 
@@ -15,9 +15,9 @@ pub struct WiggleProgram {
 }
 
 impl WiggleProgram {
-    pub(crate) fn new(program: &Program) -> Result<WiggleProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleProgram,Message> {
         Ok(WiggleProgram {
-            data: program.get_attrib_handle("aData")?,
+            data: builder.get_attrib_handle("aData")?,
         })
     }
 }
@@ -69,7 +69,7 @@ impl WiggleGeometry {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 
-    pub(crate) fn add_wiggle(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> Result<ProcessStanzaArray,Message> {
+    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> Result<ProcessStanzaArray,Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
@@ -86,12 +86,12 @@ impl WiggleGeometry {
                     pusher.inactive();
                 }
             }
-            let mut array = layer.make_array(context,gpuspec,&GeometryProcessName::Wiggle,&self.patina,pusher.x.len())?;
+            let mut array = layer.make_array(&GeometryProcessName::Wiggle,&self.patina,pusher.x.len())?;
             apply_left(&mut pusher.x,layer.left());
             array.add(&self.variety.data,interleave_pair(&pusher.x,&pusher.y),2)?;
             Ok(array)
         } else {
-            Ok(layer.make_array(context,gpuspec,&GeometryProcessName::Wiggle,&self.patina,0)?)
+            Ok(layer.make_array(&GeometryProcessName::Wiggle,&self.patina,0)?)
         }
     }
 }

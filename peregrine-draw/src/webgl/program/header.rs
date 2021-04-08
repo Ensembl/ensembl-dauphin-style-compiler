@@ -1,7 +1,6 @@
 use super::source::Source;
-use super::program::Program;
+use super::program::{ Program, ProgramBuilder };
 use crate::util::message::Message;
-use web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub(crate) struct Header {
@@ -19,8 +18,8 @@ impl Header {
 impl Source for Header {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn build(&mut self, context: &WebGlRenderingContext, program: &mut Program) -> Result<(),Message> {
-        program.set_method(self.method);
+    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+        builder.set_method(self.method);
         Ok(())
     }
 }

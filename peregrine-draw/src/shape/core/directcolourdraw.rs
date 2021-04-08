@@ -1,4 +1,4 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
+use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, ProgramBuilder };
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;
@@ -9,9 +9,9 @@ pub struct DirectProgram {
 }
 
 impl DirectProgram {
-    pub(crate) fn new(program: &Program) -> Result<DirectProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<DirectProgram,Message> {
         Ok(DirectProgram {
-            colour: program.get_attrib_handle("aVertexColour")?
+            colour: builder.get_attrib_handle("aVertexColour")?
         })
     }
 }

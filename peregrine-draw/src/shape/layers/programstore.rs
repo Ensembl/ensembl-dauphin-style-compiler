@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::webgl::{ make_program, Program, SourceInstrs, GPUSpec };
+use crate::webgl::{ make_program, Program, SourceInstrs, GPUSpec, ProgramBuilder };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
 use super::super::core::stage::get_stage_source;
@@ -19,23 +19,23 @@ impl ProgramIndex {
 }
 
 pub(crate) struct ProgramStoreEntry {
-    program: Rc<Program>,
+    builder: Rc<ProgramBuilder>,
     geometry: GeometryProgram,
     patina: PatinaProgram
 }
 
 impl ProgramStoreEntry {
-    fn new(program: Program, index: &ProgramIndex) -> Result<ProgramStoreEntry,Message> {
-        let geometry = index.0.make_geometry_program(&program)?;
-        let patina = index.1.make_patina_program(&program)?;
+    fn new(builder: ProgramBuilder, index: &ProgramIndex) -> Result<ProgramStoreEntry,Message> {
+        let geometry = index.0.make_geometry_program(&builder)?;
+        let patina = index.1.make_patina_program(&builder)?;
         Ok(ProgramStoreEntry {
-            program: Rc::new(program),
+            builder: Rc::new(builder),
             geometry,
             patina
         })
     }
 
-    pub(crate) fn program(&self) -> &Rc<Program> { &self.program }
+    pub(crate) fn builder(&self) -> &Rc<ProgramBuilder> { &self.builder }
     pub(crate) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
     pub(crate) fn get_patina(&self) -> &PatinaProgram { &self.patina }
 }
@@ -55,20 +55,21 @@ impl ProgramStoreData {
         })
     }
 
-    fn make_program(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, index: &ProgramIndex) -> Result<(),Message> {
+    fn make_program(&self, index: &ProgramIndex) -> Result<(),Message> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
         source.merge(index.1.get_source());
         let proto = ProtoProgram::new(source)?;
-        self.programs.borrow_mut()[index.get_index()] = Some(Rc::new(ProgramStoreEntry::new(proto.make(context,gpuspec)?,&index)?));
+        let builder = proto.make()?;
+        self.programs.borrow_mut()[index.get_index()] = Some(Rc::new(ProgramStoreEntry::new(builder,&index)?));
         Ok(())
     }
 
-    pub(super) fn get_program(&self,context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
         let index = ProgramIndex(geometry,patina);
         if self.programs.borrow()[index.get_index()].is_none() {
-            self.make_program(context,gpuspec,&index)?;
+            self.make_program(&index)?;
         }
         Ok(self.programs.borrow()[index.get_index()].as_ref().unwrap().clone())
     }
@@ -84,8 +85,8 @@ impl ProgramStore {
         Ok(ProgramStore(Rc::new(ProgramStoreData::new(context)?)))
     }
 
-    pub(super) fn get_program(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
-        self.0.get_program(context,gpuspec,geometry,patina)
+    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
+        self.0.get_program(geometry,patina)
     }
 
     pub(crate) fn gpu_spec(&self) -> &GPUSpec { self.0.gpu_spec() }

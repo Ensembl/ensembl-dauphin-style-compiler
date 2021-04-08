@@ -1,4 +1,4 @@
-use super::super::program::attribute::{ Attribute, AttribHandle };
+use super::super::program::attribute::{ Attribute, AttributeProto, AttribHandle };
 use keyed::{ KeyedValues, KeyedDataMaker };
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
@@ -22,7 +22,7 @@ pub struct ProcessStanzaBuilder {
 }
 
 impl ProcessStanzaBuilder {
-    pub(crate) fn new(attribs: &KeyedValues<AttribHandle,Attribute>) -> ProcessStanzaBuilder {
+    pub(crate) fn new(attribs: &KeyedValues<AttribHandle,AttributeProto>) -> ProcessStanzaBuilder {
         let maker = attribs.keys().make_maker(|| vec![]);
         ProcessStanzaBuilder {
             maker,

@@ -135,17 +135,17 @@ mod webgl {
     pub(crate) use stanza::array::ProcessStanzaArray;
     pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
     pub(crate) use stanza::stanza::ProcessStanza;
-    pub(crate) use program::program::{ Program, ProtoProgram };
+    pub(crate) use program::program::{ Program, ProtoProgram, ProgramBuilder };
     pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::make_program;
     pub(crate) use program::header::Header;
-    pub(crate) use program::uniform::{ Uniform, UniformHandle };
-    pub(crate) use program::attribute::{ Attribute, AttribHandle };
+    pub(crate) use program::uniform::{ Uniform, UniformProto, UniformHandle };
+    pub(crate) use program::attribute::{ Attribute, AttribHandle, AttributeProto };
     pub(crate) use program::varying::Varying;
     pub(crate) use program::session::DrawingSession;
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::statement::Statement;
-    pub(crate) use program::texture::Texture;
+    pub(crate) use program::texture::{ Texture, TextureProto };
 
     pub(crate) mod global;
     mod util;

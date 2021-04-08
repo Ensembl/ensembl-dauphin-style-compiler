@@ -1,4 +1,4 @@
-use crate::webgl::{ ProtoProcess, UniformHandle, Program };
+use crate::webgl::{ ProtoProcess, UniformHandle, ProgramBuilder };
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::{ scale_colour };
 use crate::util::message::Message;
@@ -9,9 +9,9 @@ pub struct SpotProgram {
 }
 
 impl SpotProgram {
-    pub(crate) fn new(program: &Program) -> Result<SpotProgram,Message> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<SpotProgram,Message> {
         Ok(SpotProgram {
-            uniform: program.get_uniform_handle("uColour")?
+            uniform: builder.get_uniform_handle("uColour")?
         })
     }
 }

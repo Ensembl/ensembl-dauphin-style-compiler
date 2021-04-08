@@ -2,7 +2,7 @@ use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::webgl::FlatId;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Uniform, Attribute, GLArity, Varying, Statement, Program, Texture };
+use crate::webgl::{ ProtoProcess, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use peregrine_data::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
@@ -46,11 +46,11 @@ impl PatinaProgramName {
         }
     }
 
-    pub(super) fn make_patina_program(&self, program: &Program) -> Result<PatinaProgram,Message> {
+    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaProgram,Message> {
         Ok(match self {
-            PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(program)?),
-            PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(program)?),
-            PatinaProgramName::Texture => PatinaProgram::Texture(TextureProgram::new(program)?),
+            PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(builder)?),
+            PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(builder)?),
+            PatinaProgramName::Texture => PatinaProgram::Texture(TextureProgram::new(builder)?),
         })
     }
 
@@ -58,19 +58,19 @@ impl PatinaProgramName {
         SourceInstrs::new(
             match self {
                 PatinaProgramName::Direct => vec![
-                    Attribute::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec3,"vColour"),
                     Statement::new_vertex("vColour = vec3(aVertexColour)"),
                     Statement::new_fragment("gl_FragColor = vec4(vColour,uOpacity)")
                 ],
                 PatinaProgramName::Spot => vec![
-                    Uniform::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
+                    UniformProto::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],
                 PatinaProgramName::Texture => vec![
-                    Texture::new("uSampler"),
-                    Attribute::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
-                    Attribute::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
+                    TextureProto::new("uSampler"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
