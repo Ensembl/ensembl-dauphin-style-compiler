@@ -66,7 +66,7 @@ impl DrawingBuilder {
 
     pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> Result<(),Message> {
         let (layer, tools, canvas_builder) = (&mut self.main_layer,&mut self.tools,&self.flats.as_ref().unwrap());
-        add_shape_to_layer(layer,&gl.context().clone(),&gl.gpuspec().clone(),tools,canvas_builder,gl.bindery(),shape)
+        add_shape_to_layer(layer,gl,tools,canvas_builder,shape)
     }
 
     pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {

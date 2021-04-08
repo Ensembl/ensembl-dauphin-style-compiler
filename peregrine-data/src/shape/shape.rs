@@ -50,7 +50,7 @@ impl Shape {
                                         filter(&allotment,&which,false))
             },
 
-            Shape::Text(anchor,pen,allotment,text) => {
+            Shape::Text(anchor,pen,text,allotment) => {
                 let count = anchor.len();
                 let anchor = anchor.clone().bulk(count,true);
                 let pen = pen.clone().bulk(count,false);                

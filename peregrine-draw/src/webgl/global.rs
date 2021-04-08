@@ -48,7 +48,8 @@ impl WebGlGlobal {
     pub(crate) fn context(&self) -> &WebGlRenderingContext { &self.context }
     pub(crate) fn flat_store(&self) -> &FlatStore { &self.canvas_store }
     pub(crate) fn canvas_store_mut(&mut self) -> &mut FlatStore { &mut self.canvas_store }
-    pub(crate) fn bindery(&mut self) -> &mut TextureBindery { &mut self.bindery }
+    pub(crate) fn bindery(&self) -> &TextureBindery { &self.bindery }
+    pub(crate) fn bindery_mut(&mut self) -> &mut TextureBindery { &mut self.bindery }
     pub(crate) fn texture_store(&mut self) -> &mut TextureStore { &mut self.texture_store }
     pub(crate) fn canvas_size(&mut self) -> &mut Option<(u32,u32)> { &mut self.canvas_size }
     pub(crate) fn gpuspec(&self) -> &GPUSpec { &self.gpuspec }

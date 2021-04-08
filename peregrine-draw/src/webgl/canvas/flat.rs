@@ -74,7 +74,7 @@ impl Flat {
         Ok(())
     }
 
-    pub(super) fn size(&self) -> &(u32,u32) { &self.size }
+    pub(crate) fn size(&self) -> &(u32,u32) { &self.size }
     pub(crate) fn weave(&self) -> &CanvasWeave { &self.weave }
     pub(crate) fn element(&self) -> Result<&HtmlCanvasElement,Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }

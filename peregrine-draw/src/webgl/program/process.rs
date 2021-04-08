@@ -50,7 +50,10 @@ impl ProtoProcess {
         for (name,value) in self.uniforms {
             uniforms.get_mut(&name).set_value(value)?;
         }
-        let textures = self.program.make_textures();
+        let mut textures = self.program.make_textures();
+        for (name,value) in self.textures {
+            textures.get_mut(&name).set_value(&value)?;
+        }
         let (program,stanza_builder,left) = (
             self.program,
             self.stanza_builder,
@@ -88,16 +91,20 @@ impl Process {
     }
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
-        gl.bindery().clear();
+        gl.bindery_mut().clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
-        for entry in self.textures.values_mut() {
-            entry.apply(gl)?;
-        }
         let context = gl.context();
         self.program.select_program(context)?;
+        drop(context);
         for stanza in self.stanzas.iter() {
+            let context = gl.context();
             stanza.activate(context)?;
+            drop(context);
+            for entry in self.textures.values_mut() {
+                entry.apply(gl)?;
+            }
+            let context = gl.context();
             for entry in self.uniforms.values() {
                 entry.activate(context)?;
             }

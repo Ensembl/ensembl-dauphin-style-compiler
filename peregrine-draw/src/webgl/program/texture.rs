@@ -28,7 +28,7 @@ impl Texture {
 impl Source for Texture {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
+    fn declare(&self, _spec: &GPUSpec, phase: Phase) -> String {
         if phase != Phase::Fragment { return String::new(); }
         format!("uniform sampler2D {};\n",self.name)
     }
@@ -59,9 +59,10 @@ impl TextureValues {
 
     pub(super) fn apply(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
-            let index = gl.bindery().allocate(flat_id)?.apply(gl)?;
+            let index = gl.bindery_mut().allocate(flat_id)?.apply(gl)?;
             self.bound = true;
-            gl.context().uniform1f(Some(location),index as f32);
+            gl.context().uniform1i(Some(location),index as i32);
+            handle_context_errors(gl.context())?;
         }
         Ok(())
     }
@@ -69,7 +70,7 @@ impl TextureValues {
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         if self.bound {
             if let Some(flat) = &self.flat_id {
-                gl.bindery().free(flat)?.apply(gl)?;
+                gl.bindery_mut().free(flat)?.apply(gl)?;
             }
         }
         Ok(())

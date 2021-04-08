@@ -9,6 +9,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProcessName;
 use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, TextureBindery, GPUSpec};
+use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 
@@ -117,20 +118,20 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     })
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, context: &WebGlRenderingContext, gpuspec: &GPUSpec,  tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, bindery: &TextureBindery, shape: PreparedShape) -> Result<(),Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, shape: PreparedShape) -> Result<(),Message> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
                 Patina::Filled(colour) => {
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_rectangle(layer,context,gpuspec,anchor,&patina,allotment,x_size,y_size,false)?;
-                    add_colour(&mut campaign,layer,context,gpuspec,&geometry,&colour,4)?;
+                    let (mut campaign,geometry) = add_rectangle(layer,gl.context(),gl.gpuspec(),anchor,&patina,allotment,x_size,y_size,false)?;
+                    add_colour(&mut campaign,layer,gl.context(),gl.gpuspec(),&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_rectangle(layer,context,gpuspec,anchor,&patina,allotment,x_size,y_size,true)?;
-                    add_colour(&mut campaign,layer,context,gpuspec,&geometry,&colour,4)?;
+                    let (mut campaign,geometry) = add_rectangle(layer,gl.context(),gl.gpuspec(),anchor,&patina,allotment,x_size,y_size,true)?;
+                    add_colour(&mut campaign,layer,gl.context(),gl.gpuspec(),&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::ZMenu(zmenu,values) =>{
@@ -142,14 +143,14 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, context: &WebGlRenderingCont
             match patina {
                 Patina::Filled(colour) => {
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_stretchtangle(layer,context,gpuspec,anchors,&patina,allotment,false)?;
-                    add_colour(&mut campaign,layer,context,gpuspec,&geometry,&colour,4)?;
+                    let (mut campaign,geometry) = add_stretchtangle(layer,gl.context(),gl.gpuspec(),anchors,&patina,allotment,false)?;
+                    add_colour(&mut campaign,layer,gl.context(),gl.gpuspec(),&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_stretchtangle(layer,context,gpuspec,anchors,&patina,allotment,true)?;
-                    add_colour(&mut campaign,layer,context,gpuspec,&geometry,&colour,4)?;
+                    let (mut campaign,geometry) = add_stretchtangle(layer,gl.context(),gl.gpuspec(),anchors,&patina,allotment,true)?;
+                    add_colour(&mut campaign,layer,gl.context(),gl.gpuspec(),&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::ZMenu(zmenu,values) =>{
@@ -158,9 +159,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, context: &WebGlRenderingCont
         },
         PreparedShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             let patina = colour_to_patina(Colour::Spot(colour.clone()));
-            let (mut array,geometry) = add_wiggle(layer,context,gpuspec,start,end,y,height,&patina,allotment)?;
-            let spot = layer.get_spot(context,gpuspec,&geometry,&colour)?;
-            let mut process = layer.get_process_mut(context,gpuspec,&geometry,&patina)?;
+            let (mut array,geometry) = add_wiggle(layer,gl.context(),gl.gpuspec(),start,end,y,height,&patina,allotment)?;
+            let spot = layer.get_spot(gl.context(),gl.gpuspec(),&geometry,&colour)?;
+            let mut process = layer.get_process_mut(gl.context(),gl.gpuspec(),&geometry,&patina)?;
             spot.spot(&mut process)?;
             array.close();
         },
@@ -178,10 +179,10 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, context: &WebGlRenderingCont
                 y_sizes.push(size.1 as f64);
                 dims.push(texture_areas);
             }
-            let (mut campaign,geometry) = add_rectangle(layer,context,gpuspec,anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
-            let patina = layer.get_texture(context,gpuspec,&geometry,&canvas)?;
-            let mut process = layer.get_process_mut(context,gpuspec,&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
-            patina.add_rectangle(&mut process,&mut campaign,bindery,&canvas,&dims)?;
+            let (mut campaign,geometry) = add_rectangle(layer,gl.context(),gl.gpuspec(),anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
+            let patina = layer.get_texture(gl.context(),gl.gpuspec(),&geometry,&canvas)?;
+            let mut process = layer.get_process_mut(gl.context(),gl.gpuspec(),&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
+            patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
         }
     }

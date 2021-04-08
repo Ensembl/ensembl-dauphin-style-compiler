@@ -2,6 +2,7 @@ use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
 use crate::webgl::{ FlatId };
 use crate::webgl::TextureBindery;
 use crate::util::message::Message;
+use crate::webgl::canvas::flatstore::FlatStore;
 
 pub struct CanvasTextureAreas {
     texture_origin: (u32,u32),
@@ -40,26 +41,35 @@ pub struct TextureDraw(TextureProgram);
 // TODO structify
 // TODO to array utils
 
+fn push(data: &mut Vec<f64>,x: u32, y: u32, size: &(u32,u32)) {
+    data.push((x as f64)/(size.0 as f64)); data.push((y as f64)/(size.1 as f64));
+}
+
 impl TextureDraw {
     pub(crate) fn new(variety: &TextureProgram) -> Result<TextureDraw,Message> {
         Ok(TextureDraw(variety.clone()))
     }
 
-    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>) -> Result<(),Message> {
+    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
         let mut data = vec![];
         for (origin,size) in dims {
-            data.push(origin.0 as f64); data.push(origin.1 as f64); // (min,min)
-            data.push(origin.0 as f64); data.push((origin.1+size.1) as f64); // (min,max)
-            data.push((origin.0+size.0) as f64); data.push(origin.1 as f64); // (max,min)
-            data.push((origin.0+size.0) as f64); data.push((origin.1+size.1) as f64); // (max,max)
+            push(&mut data, origin.0,origin.1,&csize);
+            push(&mut data, origin.0,origin.1+size.1,&csize);
+            push(&mut data, origin.0+size.0,origin.1,&csize);
+            push(&mut data, origin.0+size.0,origin.1+size.1,&csize);
         }
         addable.add_n(attrib,data,2)?;
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, process: &mut ProtoProcess, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas]) -> Result<(),Message> {
-        self.add_rectangle_one(addable,&self.0.texture,&mut dims.iter().map(|x| (x.texture_origin(),x.size())))?;
-        self.add_rectangle_one(addable,&self.0.mask,&mut dims.iter().map(|x| (x.mask_origin(),x.size())))?;
+    pub(crate) fn add_rectangle(&self, process: &mut ProtoProcess, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas],flat_store: &FlatStore) -> Result<(),Message> {
+        let size = flat_store.get(canvas)?.size();
+        let mut texture_data = dims.iter()
+            .map(|x| (x.texture_origin(),x.size()));
+        let mut mask_data = dims.iter()
+            .map(|x| (x.mask_origin(),x.size()));
+        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
+        self.add_rectangle_one(addable,&self.0.mask,&mut mask_data,size)?;
         Ok(())
     }
 }
