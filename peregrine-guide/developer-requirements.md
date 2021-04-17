@@ -119,7 +119,7 @@ Download an unpack the following file inside the data files directory (./example
 
 Copy from `ebi-cli-001`:
 
-$ `rsync -aWv your-username@ebi-cli-001:/homes/dan/datafile-upload.tar.gz backend-server/example_data/data/`
+$ `rsync -aWv your-username@noah-login-01:/homes/dan/datafile-upload.tar.gz backend-server/example_data/data/`
 
 Unpack by running:
 
