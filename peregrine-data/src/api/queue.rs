@@ -46,9 +46,8 @@ impl PeregrineApiQueue {
         }
     }
 
-    // TODO investigate bootstrap call chain
-    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) {
-        bootstrap(&data.base,&data.agent_store,channel)
+    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel, instigator: Instigator<DataMessage>) {
+        bootstrap(&data.base,&data.agent_store,channel,instigator)
     }
 
     fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage, instigator: Instigator<DataMessage>) {
@@ -79,7 +78,7 @@ impl PeregrineApiQueue {
                 self.update_viewport(data,data.viewport.set_stick(&stick),instigator);
             },
             ApiMessage::Bootstrap(channel) => {
-                self.bootstrap(data,channel);
+                self.bootstrap(data,channel,instigator);
             }
         }
     }

@@ -1,17 +1,17 @@
 use std::fmt;
 use std::sync::{ Arc, Mutex };
-use commander::FusePromise;
+use commander::SendFusePromise;
 
 #[derive(Clone)]
-pub struct Instigator<E>(FusePromise<Result<(),E>>,Arc<Mutex<i32>>) where E: Clone + 'static;
+pub struct Instigator<E>(SendFusePromise<Result<(),E>>,Arc<Mutex<i32>>) where E: Clone + Send + 'static;
 
-impl<E> Instigator<E> where E: Clone + 'static {
-    pub fn new_with_fuse(fuse: FusePromise<Result<(),E>>) -> Instigator<E> {
+impl<E> Instigator<E> where E: Clone + 'static + Send {
+    pub fn new_with_fuse(fuse: SendFusePromise<Result<(),E>>) -> Instigator<E> {
         Instigator(fuse,Arc::new(Mutex::new(1)))
     }
 
     pub fn new() -> Instigator<E> {
-        Self::new_with_fuse(FusePromise::new())
+        Self::new_with_fuse(SendFusePromise::new())
     }
 
     // TODO access fuse
@@ -30,7 +30,7 @@ impl<E> Instigator<E> where E: Clone + 'static {
         }
     }
 
-    pub fn merge<F,G>(&self, mut other: Instigator<G>, cb: F) where F: FnOnce(G) -> E + 'static, G: Clone {
+    pub fn merge<F,G>(&self, mut other: Instigator<G>, cb: F) where F: FnOnce(G) -> E + 'static + Send+Sync, G: Clone + Send {
         /* if other is already fused as successful then we can just ignore it as we aren't */
         if *other.1.lock().unwrap() != -1 {
             other.0.add_downstream(&self.0, |v| v.map_err(move |e| cb(e)));
@@ -42,18 +42,18 @@ impl<E> Instigator<E> where E: Clone + 'static {
     pub fn to_reporter(self) -> Reporter<E> { Reporter(Arc::new(Mutex::new(ReporterDropper(self)))) }
 }
 
-struct ReporterDropper<E>(Instigator<E>) where E: Clone + 'static;
+struct ReporterDropper<E>(Instigator<E>) where E: Clone + 'static + Send;
 
-impl<E> Drop for ReporterDropper<E> where E: Clone + 'static {
+impl<E> Drop for ReporterDropper<E> where E: Clone + 'static + Send {
     fn drop(&mut self) {
         self.0.done();
     }
 }
 
 #[derive(Clone)]
-pub struct Reporter<E>(Arc<Mutex<ReporterDropper<E>>>) where E: Clone + 'static;
+pub struct Reporter<E>(Arc<Mutex<ReporterDropper<E>>>) where E: Clone + 'static + Send;
 
-impl<E> Reporter<E> where E: Clone + 'static {
+impl<E> Reporter<E> where E: Clone + 'static + Send {
     pub fn error(&self, error: E) { self.0.lock().unwrap().0.error(error); }
 }
 

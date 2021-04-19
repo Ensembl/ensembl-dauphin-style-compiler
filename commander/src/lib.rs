@@ -247,6 +247,7 @@ mod corefutures {
 mod derivedfutures {
   pub(crate) mod commanderstream;
   pub(crate) mod fuse;
+  pub(crate) mod sendfuse;
 }
 
 mod integration {
@@ -297,6 +298,7 @@ pub use crate::executor::lock::{ Lock, LockGuard };
 pub use crate::corefutures::promisefuture::PromiseFuture;
 pub use crate::derivedfutures::commanderstream::CommanderStream;
 pub use crate::derivedfutures::fuse::FusePromise;
+pub use crate::derivedfutures::sendfuse::SendFusePromise;
 pub use crate::integration::integration::{ Integration, SleepQuantity };
 pub use crate::task::runconfig::RunConfig;
 pub use crate::task::slot::RunSlot;

@@ -2,14 +2,19 @@ use std::fmt::Debug;
 mod standalonedom;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
-use commander::{ cdr_timer, cdr_tick };
-use peregrine_draw::{ PeregrineDraw, PeregrineDrawApi, Message };
+use commander::{ cdr_timer };
+use peregrine_draw::{ PeregeineAPI, Message };
 use peregrine_data::{Channel, ChannelLocation, StickId, Track};
 use peregrine_data::{ PeregrineConfig };
 use peregrine_message::PeregrineMessage;
 pub use url::Url;
 use crate::standalonedom::make_dom;
-use web_sys::{HtmlElement, console, window};
+use web_sys::{HtmlElement, console };
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref API : PeregeineAPI = PeregeineAPI::new();
+}
 
 /*
  * This utility just catches handles serious errors in setting up this demonstration. It's not the main error-handling
@@ -30,27 +35,30 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
  * a good example of the sort of API calls you might make on receiving events from the browser chrome. The exact
  * name and arguments to this API are still up in the air, but you get the idea....
  */
-async fn test(mut draw_api: PeregrineDraw) -> anyhow::Result<()> {
+async fn test() -> anyhow::Result<()> {
     use wasm_bindgen::JsCast;
 
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
-    draw_api.add_track(Track::new("gene-pc-fwd"));
-    draw_api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
+
+    API.add_track(Track::new("gene-pc-fwd"));
+    API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-    for _ in 0..1_u32 {
+
+    for _ in 0..10_u32 {
         pos += 50000.;
-        let mut p = draw_api.set_x(pos);
+        let mut p = API.set_x(pos);
         p.add_callback(move |v| {
             console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
         });
-        let mut p = draw_api.set_bp_per_screen(bp_per_screen);
+        let mut p = API.set_bp_per_screen(bp_per_screen);
         p.add_callback(move |v| {
             console::log_1(&format!("set_bp_per_screen({}) = {:?}",pos,v).into());
         });
         bp_per_screen *= 0.95;
+        console::log_1(&format!("{:?}",API.bp_per_screen()).into());
         cdr_timer(1000.).await; // Wait one second
     }
     /*
@@ -82,32 +90,34 @@ fn setup_genome_browser() -> Result<(),Message> {
     /*
      * Create a genome browser object.
      */
-    let mut draw_api = js_throw(PeregrineDraw::new(config,dom));
+    let commander = API.run(config,dom)?;
     /* 
      * Configure the message reporter. This gets notifications of errors, etc. Note that this may be async to the
      * request which caused it (eg it may be after a fair few AJAX calls that we finally realise some data we supplied
      * was dodgy). Shortly there should be a mechanism to tie the message and originating request together.
      */
-    draw_api.set_message_reporter(|message| {
+    API.set_message_reporter(Box::new(|message| {
         if !message.knock_on() && message.degraded_experience() {
             console::error_1(&format!("{}",message).into());
         }
-    });
+    }));
     /*
      * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and
      * performance-tweaking tool. Just don't call this if you don't care.
      */
-    js_throw(draw_api.setup_blackbox("http://localhost:4040/blackbox/data"));
+    API.setup_blackbox("http://localhost:4040/blackbox/data");
     /*
      * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
      */
     let url = "http://localhost:3333/api/data";
-    draw_api.bootstrap(Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
+    let mut p = API.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
+    p.add_callback(move |v| {
+        console::log_1(&format!("bootstrapped").into());
+    });
     /*
      * For now just start an async process to do some daft stuff to kick the tyres.
      */
-    let commander = draw_api.commander();
-    commander.add("test",100,None,None,Box::pin(test(draw_api)));
+    commander.add("test",100,None,None,Box::pin(test()));
     Ok(())
 }
 

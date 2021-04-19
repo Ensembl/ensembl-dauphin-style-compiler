@@ -98,8 +98,10 @@ impl PeregrineCore {
         self.queue.push(ApiMessage::Ready,instigator);
     }
 
-    pub fn bootstrap(&self, channel: Channel) {
-        bootstrap(&self.base,&self.agent_store,channel)
+    pub fn bootstrap(&self, channel: Channel) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.queue.push(ApiMessage::Bootstrap(channel),instigator.clone());
+        instigator
     }
 
     /* from api */

@@ -1,11 +1,11 @@
-use super::draw::{ PeregrineDraw, LockedPeregrineDraw };
+use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use super::size::SizeManager;
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
 use crate::util::message::Message;
 use super::dom::PeregrineDom;
 
-fn animation_tick(web: &mut LockedPeregrineDraw, size_manager: &SizeManager, elapsed: f64) -> Result<(),Message> {
+fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, elapsed: f64) -> Result<(),Message> {
     size_manager.maybe_update_canvas_size(web)?;
     let read_stage = &web.stage.lock().unwrap().read_stage();
     web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
@@ -15,7 +15,7 @@ fn animation_tick(web: &mut LockedPeregrineDraw, size_manager: &SizeManager, ela
     Ok(())
 }
 
-async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) {
+async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManager) {
     let mut start = cdr_current_time();
     let lweb = web.lock().await;
     let redraw = lweb.stage.lock().unwrap().redraw_needed().clone();
@@ -27,14 +27,18 @@ async fn animation_tick_loop(mut web: PeregrineDraw, size_manager: SizeManager) 
         if let Err(e) = r { 
             lweb.message_sender.add(e);
         }
+        let position =  lweb.stage.lock().unwrap().read_stage().position();
         drop(lweb);
+        if let Ok(position) = position {
+            web.set_position(position);
+        }
         cdr_tick(1).await;
         redraw.wait_until_redraw_needed().await;
         start = next;
     }
 }
 
-pub fn run_animations(web: &mut PeregrineDraw, dom: &PeregrineDom) -> Result<(),Message> {
+pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
     let mut other = web.clone();
     let dom = dom.clone();
     web.commander().add_task("animator",0,None,None,Box::pin(async move {

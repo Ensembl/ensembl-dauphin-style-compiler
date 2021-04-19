@@ -1,9 +1,9 @@
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
 use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext};
-use super::{dom::PeregrineDom, draw::LockedPeregrineDraw};
+use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
-use crate::PeregrineDraw;
+use crate::PeregrineInnerAPI;
 use crate::shape::core::redrawneeded::RedrawNeeded;
 use crate::util::monostable::Monostable;
 
@@ -81,11 +81,11 @@ pub(crate) struct SizeManager {
 }
 
 impl SizeManager {
-    async fn redraw_needed(web: &mut PeregrineDraw) -> RedrawNeeded {
+    async fn redraw_needed(web: &mut PeregrineInnerAPI) -> RedrawNeeded {
         web.lock().await.stage.lock().unwrap().redraw_needed().clone()
     }
 
-    pub(crate) async fn new(web: &mut PeregrineDraw, dom: &PeregrineDom) -> Result<SizeManager,Message> {
+    pub(crate) async fn new(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<SizeManager,Message> {
         let redraw_needed = Self::redraw_needed(web).await;
         let redraw_needed2 = redraw_needed.clone();
         let commander = web.lock().await.commander.clone();
@@ -124,7 +124,7 @@ impl SizeManager {
         self.redraw_needed.set();
     }
 
-    fn update_canvas_size(&self, draw: &mut LockedPeregrineDraw, x: u32, y: u32) -> Result<(),Message> {
+    fn update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI, x: u32, y: u32) -> Result<(),Message> {
         self.canvas_element.set_width(x);
         self.canvas_element.set_height(y);
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
@@ -136,7 +136,7 @@ impl SizeManager {
         Ok(())
     }
 
-    pub(crate) fn maybe_update_canvas_size(&self, draw: &mut LockedPeregrineDraw) -> Result<(),Message> {
+    pub(crate) fn maybe_update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI) -> Result<(),Message> {
         let active = self.activity_monostable.get();
         let resize = self.state.lock().unwrap().test_update_canvas_size(active); // to drop lock immediately
         if let Some((resize_x,resize_y)) = resize {

@@ -3,7 +3,7 @@ use peregrine_data::Commander;
 use std::sync::{ Arc, Mutex, Weak };
 use wasm_bindgen::prelude::*;
 use crate::util::message::Message;
-use crate::{ PeregrineDraw, PgCommanderWeb };
+use crate::{ PeregrineInnerAPI, PgCommanderWeb };
 use wasm_bindgen::JsCast;
 use web_sys::Element;
 use js_sys::Array;
@@ -82,7 +82,7 @@ struct ROPolyfill {
 }
 
 impl ROPolyfill {
-    fn new(web: &mut PeregrineDraw, cb: Arc<dyn Fn(&Element)>) -> ROPolyfill {
+    fn new(web: &mut PeregrineInnerAPI, cb: Arc<dyn Fn(&Element)>) -> ROPolyfill {
         let elements =  Arc::new(Mutex::new(vec![]));
         let elements2 = elements.clone();
         web.commander().add_task("resize-polyfill",10,None,None,Box::pin(async move {
@@ -114,7 +114,7 @@ impl PgResizeObserver {
         ResizeObserver::new(closure.as_ref().unchecked_ref()).ok()
     }
 
-    pub(crate) fn new<F>(web: &mut PeregrineDraw, cb: F) -> Result<PgResizeObserver,Message> where F: Fn(&Element) + 'static {
+    pub(crate) fn new<F>(web: &mut PeregrineInnerAPI, cb: F) -> Result<PgResizeObserver,Message> where F: Fn(&Element) + 'static {
         let cb = Arc::new(cb);
         let cb2 = cb.clone();
         let closure = Closure::wrap(Box::new(move |entries: JsValue,_observer| {

@@ -16,15 +16,12 @@ use super::frame::run_animations;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
-use super::api::PeregrineDrawApi;
 use super::dom::PeregrineDom;
-use crate::shape::core::stage::{ Stage };
+use crate::shape::core::stage::{ Stage, Position };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, Track, StickId, DataMessage };
 use crate::run::progress::Progress;
-
-// TODO async/sync versions
 
 #[cfg(blackbox)]
 pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
@@ -32,7 +29,6 @@ pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
 
     setup_blackbox_real(commander,url);
 }
-
 
 #[cfg(not(blackbox))]
 pub fn setup_blackbox(_commander: &PgCommanderWeb, _url: &str) {
@@ -43,19 +39,21 @@ fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>)
 }
 
 #[derive(Clone)]
-pub struct PeregrineDraw {
+pub struct PeregrineInnerAPI {
     messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
     message_sender: CommanderStream<Message>,
+    position_callbacks: Arc<Mutex<Option<Box<dyn FnMut(Option<Position>)>>>>,
     lock: Lock,
     commander: PgCommanderWeb,
     data_api: PeregrineCore,
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
+    position: Option<Position>,
     dom: PeregrineDom
 }
 
-pub struct LockedPeregrineDraw<'t> {
+pub struct LockedPeregrineInnerAPI<'t> {
     pub commander: &'t mut PgCommanderWeb,
     pub data_api: &'t mut PeregrineCore,
     pub trainset: &'t mut GlTrainSet,
@@ -65,24 +63,6 @@ pub struct LockedPeregrineDraw<'t> {
     pub dom: &'t mut PeregrineDom,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
-}
-
-impl PeregrineDraw {
-    pub(crate) async fn lock<'t>(&'t mut self) -> LockedPeregrineDraw<'t> {
-        let guard = cdr_lock(&self.lock).await;
-        LockedPeregrineDraw{ 
-            commander: &mut self.commander,
-            data_api: &mut self.data_api,
-            trainset: &mut self.trainset,
-            webgl: &mut self.webgl,
-            stage: &mut self.stage,
-            message_sender: &mut self.message_sender,
-            dom: &mut self.dom,
-            guard
-        }
-    }
-    
-    pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 }
 
 /* There's a separate message sending task so that there's no problems with recursive message sending.
@@ -108,8 +88,24 @@ fn setup_message_sending_task(commander: &PgCommanderWeb, their_callback: Arc<Mu
 
 // TODO redraw on change (? eh?)
 // TODO end buffers
-impl PeregrineDraw {
-    pub fn new(config: PeregrineConfig, dom: PeregrineDom) -> Result<PeregrineDraw,Message> {
+impl PeregrineInnerAPI {
+    pub(crate) async fn lock<'t>(&'t mut self) -> LockedPeregrineInnerAPI<'t> {
+        let guard = cdr_lock(&self.lock).await;
+        LockedPeregrineInnerAPI{ 
+            commander: &mut self.commander,
+            data_api: &mut self.data_api,
+            trainset: &mut self.trainset,
+            webgl: &mut self.webgl,
+            stage: &mut self.stage,
+            message_sender: &mut self.message_sender,
+            dom: &mut self.dom,
+            guard
+        }
+    }
+    
+    pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
+
+    pub(super) fn new(config: PeregrineConfig, dom: PeregrineDom) -> Result<PeregrineInnerAPI,Message> {
         // XXX change commander init to allow message init to move to head
         let commander = PgCommanderWeb::new(&dom)?;
         commander.start();
@@ -131,85 +127,76 @@ impl PeregrineDraw {
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let dom2 = dom.clone();
         core.application_ready();
-        let mut out = PeregrineDraw {
+        let mut out = PeregrineInnerAPI {
             lock: commander.make_lock(),
             messages, message_sender,
+            position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
+            position: None,
             dom
         };
         out.setup(&dom2)?;
         Ok(out)
     }
     
+    pub(super) fn xxx_set_callbacks<F>(&self, cb: F) where F: FnMut(Option<Position>) + 'static {
+        *self.position_callbacks.lock().unwrap() = Some(Box::new(cb));
+    }
+
+    pub fn set_position(&self, position: Option<Position>) {
+        if let Some(cb) = self.position_callbacks.lock().unwrap().as_mut() {
+            cb(position);
+        }
+    }
+
     fn setup(&mut self, dom: &PeregrineDom) -> Result<(),Message> {
         run_animations(self,dom)?;
         Ok(())
     }
-}
 
-impl PeregrineDrawApi for PeregrineDraw {
-    fn bootstrap(&self, channel: Channel) {
-        self.data_api.bootstrap(channel)
+    pub(super) fn bootstrap(&self, channel: Channel, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.bootstrap(channel));
+        instigator.done();
     }
 
-    fn set_message_reporter<F>(&mut self, callback: F) where F: FnMut(Message) + 'static {
-        *self.messages.lock().unwrap() = Some(Box::new(callback));
+    pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(Message) + 'static>) {
+        *self.messages.lock().unwrap() = Some(callback);
     }
 
-    fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
+    pub(super) fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
         setup_blackbox(&self.commander,url);
         Ok(())
     }
-
-    fn x(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().position() }
-    fn y(&self) -> Result<f64,Message> { self.stage.lock().unwrap().y().position() }
-    fn size(&self) -> Result<(f64,f64),Message> { 
-        Ok((
-            self.stage.lock().unwrap().y().position()?,
-            self.stage.lock().unwrap().y().position()?
-        ))
-    }
-    fn bp_per_screen(&self) -> Result<f64,Message> { self.stage.lock().unwrap().x().bp_per_screen() }
     
-    fn set_x(&mut self, x: f64) -> Progress {
-        let (progress,mut instigator) = Progress::new();
-        data_inst(&mut instigator,self.data_api.set_position(x));
+    pub(super) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.set_position(x));
         self.stage.lock().unwrap().x_mut().set_position(x);
         instigator.done();
-        progress
     }
 
-    fn set_y(&mut self, y: f64) {
+    pub(super) fn set_y(&mut self, y: f64) {
         self.stage.lock().unwrap().y_mut().set_position(y);
     }
 
-    fn set_bp_per_screen(&mut self, z: f64) -> Progress {
-        let (progress,mut instigator) = Progress::new();
-        data_inst(&mut instigator,self.data_api.set_bp_per_screen(z));
+    pub(super) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.set_bp_per_screen(z));
         self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
         instigator.done();
-        progress
     }
 
-    fn add_track(&self, track: Track) -> Progress {
-        let (progress,mut instigator) = Progress::new();
-        data_inst(&mut instigator,self.data_api.add_track(track));
+    pub(super) fn add_track(&self, track: Track, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.add_track(track));
         instigator.done();
-        progress
     }
 
-    fn remove_track(&self, track: Track) -> Progress {
-        let (progress,mut instigator) = Progress::new();
-        data_inst(&mut instigator,self.data_api.remove_track(track));
+    pub(super) fn remove_track(&self, track: Track, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.remove_track(track));
         instigator.done();
-        progress
     }
 
-    fn set_stick(&self, stick: &StickId) -> Progress {
-        let (progress,mut instigator) = Progress::new();
-        data_inst(&mut instigator,self.data_api.set_stick(stick));
+    pub(super) fn set_stick(&self, stick: &StickId, instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.set_stick(stick));
         instigator.done();
-        progress
     }
 }
 // TODO redraw on track change etc.
