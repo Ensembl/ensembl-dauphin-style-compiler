@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
-use super::program::{ Program, ProtoProgram, ProgramBuilder };
+use super::program::{ Program, ProgramBuilder };
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use keyed::KeyedData;

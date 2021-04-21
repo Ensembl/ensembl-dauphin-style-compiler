@@ -45,7 +45,7 @@ impl WeaveAllocator {
             let req = self.requests.get(req_id).as_ref().unwrap();
             sizes.extend(req.sizes.iter());
         }
-        let (mut origins,width,height) = allocate_areas(&sizes,gl.program_store().gpu_spec())?;
+        let (mut origins,width,height) = allocate_areas(&sizes,gl.gpuspec())?;
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
             let req = self.requests.get_mut(req_id).as_mut().unwrap();

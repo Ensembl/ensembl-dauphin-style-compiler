@@ -28,9 +28,9 @@ impl WebGlGlobal {
             .unwrap()
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let gpuspec = GPUSpec::new(&context)?;
-        let program_store = ProgramStore::new(&context)?;
+        let program_store = ProgramStore::new()?;
         let canvas_store = FlatStore::new();
-        let bindery = TextureBindery::new(program_store.gpu_spec());
+        let bindery = TextureBindery::new(&gpuspec);
         Ok(WebGlGlobal {
             program_store, 
             canvas_store, 

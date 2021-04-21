@@ -6,7 +6,6 @@ use super::patina::{ PatinaProgramName, PatinaProgram };
 use super::super::core::stage::get_stage_source;
 use web_sys::WebGlRenderingContext;
 use crate::util::message::Message;
-use crate::webgl::ProtoProgram;
 
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
@@ -41,16 +40,13 @@ impl ProgramStoreEntry {
 }
 
 pub(crate) struct ProgramStoreData {
-    gpu_spec: GPUSpec,
     programs: RefCell<Vec<Option<Rc<ProgramStoreEntry>>>>
 }
 
 impl ProgramStoreData {
-    fn new(context: &WebGlRenderingContext) ->Result<ProgramStoreData,Message> {
-        let gpuspec = GPUSpec::new(context)?;
+    fn new() ->Result<ProgramStoreData,Message> {
         let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
         Ok(ProgramStoreData {
-            gpu_spec: gpuspec,
             programs
         })
     }
@@ -60,8 +56,7 @@ impl ProgramStoreData {
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
         source.merge(index.1.get_source());
-        let proto = ProtoProgram::new(source)?;
-        let builder = proto.make()?;
+        let builder = ProgramBuilder::new(&source)?;
         self.programs.borrow_mut()[index.get_index()] = Some(Rc::new(ProgramStoreEntry::new(builder,&index)?));
         Ok(())
     }
@@ -73,21 +68,17 @@ impl ProgramStoreData {
         }
         Ok(self.programs.borrow()[index.get_index()].as_ref().unwrap().clone())
     }
-
-    pub(super) fn gpu_spec(&self) -> &GPUSpec { &self.gpu_spec }
 }
 
 #[derive(Clone)]
 pub struct ProgramStore(Rc<ProgramStoreData>);
 
 impl ProgramStore {
-    pub(crate) fn new(context: &WebGlRenderingContext) -> Result<ProgramStore,Message> {
-        Ok(ProgramStore(Rc::new(ProgramStoreData::new(context)?)))
+    pub(crate) fn new() -> Result<ProgramStore,Message> {
+        Ok(ProgramStore(Rc::new(ProgramStoreData::new()?)))
     }
 
     pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<Rc<ProgramStoreEntry>,Message> {
         self.0.get_program(geometry,patina)
     }
-
-    pub(crate) fn gpu_spec(&self) -> &GPUSpec { self.0.gpu_spec() }
 }

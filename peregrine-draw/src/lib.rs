@@ -135,7 +135,7 @@ mod webgl {
     pub(crate) use stanza::array::ProcessStanzaArray;
     pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
     pub(crate) use stanza::stanza::ProcessStanza;
-    pub(crate) use program::program::{ Program, ProtoProgram, ProgramBuilder };
+    pub(crate) use program::program::{ Program, ProgramBuilder };
     pub(crate) use program::process::{ ProtoProcess, Process };
     pub(crate) use program::compiler::make_program;
     pub(crate) use program::header::Header;

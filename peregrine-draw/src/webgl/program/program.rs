@@ -8,22 +8,6 @@ use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 use crate::util::message::Message;
 
-pub(crate) struct ProtoProgram {
-    source: SourceInstrs
-}
-
-impl ProtoProgram {
-    pub(crate) fn new(source: SourceInstrs) -> Result<ProtoProgram,Message> {
-        Ok(ProtoProgram {
-            source
-        })
-    }
-
-    pub(crate) fn make(&self) -> Result<ProgramBuilder,Message> {
-        ProgramBuilder::new(&self.source)
-    }
-}
-
 pub struct ProgramBuilder {
     source: SourceInstrs,
     uniforms: KeyedValues<UniformHandle,UniformProto>,
@@ -33,7 +17,7 @@ pub struct ProgramBuilder {
 }
 
 impl ProgramBuilder {
-    fn new(source: &SourceInstrs) -> Result<ProgramBuilder,Message> {
+    pub(crate) fn new(source: &SourceInstrs) -> Result<ProgramBuilder,Message> {
         let mut out = ProgramBuilder {
             source: source.clone(),
             uniforms: KeyedValues::new(),

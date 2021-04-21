@@ -1,5 +1,5 @@
 use crate::{ webgl::{ SourceInstrs, Phase, GPUSpec }};
-use super::program::{ Program, ProtoProgram };
+use super::program::{ Program };
 use web_sys::{ WebGlRenderingContext, WebGlShader, WebGlProgram };
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
@@ -45,7 +45,3 @@ pub(crate) fn make_program(context: &WebGlRenderingContext, gpuspec: &GPUSpec, s
     handle_context_errors(&context)?;
     Ok(program)
 }
-
-//    let proto = ProtoProgram::new(context,gpuspec,source);
-//    Ok(proto.make(&context,program)?)
-//}    
