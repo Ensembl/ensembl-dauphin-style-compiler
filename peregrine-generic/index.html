@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <div class="grid" id="grid">
+      <div>
+
+      </div>
+      <div class="viewport" id="browser">
+      </div>
+      <div class="other" id="other"></div>
+    </div>
+    <script type="module">
+      import init from './pkg/peregrine_standalone.js';
+
+      async function run() {
+        await init();
+      }
+
+      run();
+    </script>
+  </body>
+</html>

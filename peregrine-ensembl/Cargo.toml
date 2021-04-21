@@ -1,5 +1,5 @@
 [package]
-name = "peregrine-standalone"
+name = "peregrine-ensembl"
 version = "0.0.0"
 authors = ["ensembl-webteam@ebi.ac.uk"]
 edition = "2018"
