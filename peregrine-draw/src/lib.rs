@@ -62,6 +62,10 @@ mod stage {
     pub(crate) mod stage;
 }
 
+pub(crate) mod switch {
+    pub(crate) mod switch;
+}
+
 mod train {
     mod glcarriage;
     mod gltrain;

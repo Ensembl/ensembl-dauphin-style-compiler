@@ -1,5 +1,4 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd };
@@ -7,7 +6,6 @@ use super::super::util::glaxis::GLAxis;
 use crate::stage::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
 use crate::util::message::Message;
-use web_sys::WebGlRenderingContext;
 
 pub struct PinData {
     x_vertex: GLAxis,

@@ -19,6 +19,8 @@ enum DrawMessage {
     AddTrack(Track),
     RemoveTrack(Track),
     SetStick(StickId),
+    SetSwitch(Vec<String>),
+    ClearSwitch(Vec<String>),
     Bootstrap(Channel),
     SetupBlackbox(String),
     SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>)
@@ -45,6 +47,14 @@ impl DrawMessage {
             }
             DrawMessage::SetStick(stick) => {
                 draw.set_stick(&stick,&mut instigator);
+            },
+            DrawMessage::SetSwitch(path) => {
+                draw.set_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
+                instigator.done();
+            },
+            DrawMessage::ClearSwitch(path) => {
+                draw.clear_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
+                instigator.done();
             },
             DrawMessage::Bootstrap(channel) => {
                 draw.bootstrap(channel.clone(),&mut instigator);
@@ -109,6 +119,18 @@ impl PeregeineAPI {
     pub fn remove_track(&self, track: Track) -> Progress {
         let (progress,insitgator) = Progress::new();
         self.queue.add((DrawMessage::RemoveTrack(track),insitgator.clone()));
+        progress
+    }
+
+    pub fn set_switch(&self, path: &[&str]) -> Progress {
+        let (progress,insitgator) = Progress::new();
+        self.queue.add((DrawMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()),insitgator.clone()));
+        progress
+    }
+
+    pub fn clear_switch(&self, path: &[&str]) -> Progress {
+        let (progress,insitgator) = Progress::new();
+        self.queue.add((DrawMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()),insitgator.clone()));
         progress
     }
 
