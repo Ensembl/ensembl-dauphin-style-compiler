@@ -1,7 +1,7 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use super::geometrydata::GeometryData;
@@ -25,7 +25,7 @@ impl TapeProgram {
         })
     }
 
-    pub(crate) fn add(&self, process: &mut ProtoProcess, data: TapeData) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn add(&self, process: &mut ProcessBuilder, data: TapeData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x_origin.make_elements(process)?;
         elements.add(&self.origins,data.x_origin.vec1d_x(),1)?;
         elements.add(&self.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;

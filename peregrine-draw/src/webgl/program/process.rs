@@ -10,23 +10,21 @@ use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
-pub(crate) struct ProtoProcess {
+pub(crate) struct ProcessBuilder {
     builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
     uniforms: Vec<(UniformHandle,Vec<f64>)>,
-    textures: Vec<(String,FlatId)>,
-    left: f64
+    textures: Vec<(String,FlatId)>
 }
 
-impl ProtoProcess {
-    pub(crate) fn new(builder: Rc<ProgramBuilder>, left: f64) -> ProtoProcess {
+impl ProcessBuilder {
+    pub(crate) fn new(builder: Rc<ProgramBuilder>) -> ProcessBuilder {
         let stanza_builder = builder.make_stanza_builder();
-        ProtoProcess {
+        ProcessBuilder {
             builder,
             stanza_builder,
             uniforms: vec![],
-            textures: vec![],
-            left
+            textures: vec![]
         }
     }
 
@@ -44,7 +42,7 @@ impl ProtoProcess {
         &mut self.stanza_builder
     }
 
-    pub(crate) fn build(self, gl: &mut WebGlGlobal) -> Result<Process,Message> {
+    pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64) -> Result<Process,Message> {
         let program = self.builder.make(gl.context(),gl.gpuspec())?; // XXX cache
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
@@ -55,10 +53,9 @@ impl ProtoProcess {
             let handle = self.builder.get_texture_handle(&name)?;
             textures.get_mut(&handle).set_value(&value)?;
         }
-        let (program,stanza_builder,left) = (
+        let (program,stanza_builder) = (
             program,
-            self.stanza_builder,
-            self.left
+            self.stanza_builder
         );
         Process::new(gl,Rc::new(program),&self.builder,stanza_builder,uniforms,textures,left)
     }

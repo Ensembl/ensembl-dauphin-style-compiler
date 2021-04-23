@@ -1,4 +1,4 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProgramBuilder };
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;

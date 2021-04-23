@@ -1,4 +1,4 @@
-use crate::webgl::{ ProtoProcess, UniformHandle, ProgramBuilder };
+use crate::webgl::{ ProcessBuilder, UniformHandle, ProgramBuilder };
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::{ scale_colour };
 use crate::util::message::Message;
@@ -27,7 +27,7 @@ impl SpotColourDraw {
         Ok(SpotColourDraw { colour: colour.clone(), variety: variety.clone() })
     }
 
-    pub(crate) fn spot(&self, process: &mut ProtoProcess) -> Result<(),Message> {
+    pub(crate) fn spot(&self, process: &mut ProcessBuilder) -> Result<(),Message> {
         process.set_uniform(&self.variety.uniform,vec![
             scale_colour(self.colour.0),scale_colour(self.colour.1),scale_colour(self.colour.2)])?;
         Ok(())

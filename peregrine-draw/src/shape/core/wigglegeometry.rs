@@ -3,7 +3,7 @@ use web_sys::WebGlRenderingContext;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
 
@@ -21,7 +21,7 @@ impl WiggleProgram {
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProtoProcess, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64) -> Result<ProcessStanzaArray,Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64) -> Result<ProcessStanzaArray,Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,

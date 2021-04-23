@@ -1,5 +1,5 @@
 use super::super::layers::layer::{ Layer };
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ScreenEdge, ShipEnd };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
@@ -21,7 +21,7 @@ impl FixProgram {
         })
     }
 
-    pub(crate) fn add(&self, process: &mut ProtoProcess, data: FixData) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn add(&self, process: &mut ProcessBuilder, data: FixData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.x.make_elements(process)?;
         elements.add(&self.vertexes,data.x.vec2d(&data.y),2)?;
         elements.add(&self.signs,data.x.signs_2d(&data.y),2)?;

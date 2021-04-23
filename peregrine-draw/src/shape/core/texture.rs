@@ -1,4 +1,4 @@
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
 use crate::webgl::TextureBindery;
 use crate::util::message::Message;
@@ -62,7 +62,7 @@ impl TextureDraw {
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, process: &mut ProtoProcess, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas],flat_store: &FlatStore) -> Result<(),Message> {
+    pub(crate) fn add_rectangle(&self, process: &mut ProcessBuilder, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas],flat_store: &FlatStore) -> Result<(),Message> {
         let size = flat_store.get(canvas)?.size();
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));

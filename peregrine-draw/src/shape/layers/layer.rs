@@ -9,7 +9,7 @@ use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
 use super::super::core::texture::TextureDraw;
 use crate::webgl::FlatId;
-use crate::webgl::{ ProtoProcess, Process, ProcessStanzaElements, ProcessStanzaArray, DrawingFlats };
+use crate::webgl::{ ProcessBuilder, Process, ProcessStanzaElements, ProcessStanzaArray, DrawingFlats };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
@@ -37,27 +37,27 @@ TODO intersection cache
 */
 
 struct SubLayer {
-    process: ProtoProcess,
+    process: ProcessBuilder,
     geometry: GeometryProgram,
     patina: PatinaProcess
 }
 
-struct SubLayerHolder(Option<SubLayer>,f64);
+struct SubLayerHolder(Option<SubLayer>);
 
 impl SubLayerHolder {
-    fn new(left: f64) -> SubLayerHolder { SubLayerHolder(None,left) }
+    fn new() -> SubLayerHolder { SubLayerHolder(None) }
 
     fn make(&mut self, programs: &ProgramStore, geometry_program_name: &GeometryProgramName, patina_process_name: &PatinaProcessName) -> Result<(),Message> {
         let patina_program_name = patina_process_name.get_program_name();
         let program_store_entry = programs.get_program(geometry_program_name.clone(),patina_program_name)?;
-        let process = ProtoProcess::new(program_store_entry.builder().clone(),self.1);
+        let process = ProcessBuilder::new(program_store_entry.builder().clone());
         let geometry = program_store_entry.get_geometry().clone();
         let patina = program_store_entry.get_patina().make_patina_process(patina_process_name)?;
         self.0 = Some(SubLayer { process, geometry, patina });
         Ok(())
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProcessBuilder,Message> {
         if self.0.is_none() { self.make(programs,geometry,patina)?; }
         Ok(&mut self.0.as_mut().unwrap().process)
     }
@@ -76,9 +76,9 @@ impl SubLayerHolder {
         canvases.add_process(&mut self.0.as_mut().unwrap().process)
     }
 
-    fn build(self,gl: &mut WebGlGlobal) -> Result<Option<Process>,Message> {
+    fn build(self, gl: &mut WebGlGlobal, left: f64) -> Result<Option<Process>,Message> {
         if let Some(sub) = self.0 {
-            Ok(Some(sub.process.build(gl)?))
+            Ok(Some(sub.process.build(gl,left)?))
         } else {
             Ok(None)
         }
@@ -95,7 +95,7 @@ struct GeometrySubLayer {
 impl GeometrySubLayer {
     fn new(left: f64) -> GeometrySubLayer {
         GeometrySubLayer {
-            direct: SubLayerHolder::new(left),
+            direct: SubLayerHolder::new(),
             spot: HashMap::new(),
             texture: HashMap::new(),
             left
@@ -103,15 +103,14 @@ impl GeometrySubLayer {
     }
 
     fn holder(&mut self, patina: &PatinaProcessName) -> Result<&mut SubLayerHolder,Message> {
-        let left = self.left;
         Ok(match &patina{
             PatinaProcessName::Direct => &mut self.direct,
-            PatinaProcessName::Spot(c) => self.spot.entry(c.clone()).or_insert_with(|| SubLayerHolder::new(left)),
-            PatinaProcessName::Texture(c) => self.texture.entry(c.clone()).or_insert_with(|| SubLayerHolder::new(left)),
+            PatinaProcessName::Spot(c) => self.spot.entry(c.clone()).or_insert_with(|| SubLayerHolder::new()),
+            PatinaProcessName::Texture(c) => self.texture.entry(c.clone()).or_insert_with(|| SubLayerHolder::new()),
         })
     }
 
-    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+    fn get_process_mut(&mut self, programs: &ProgramStore, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProcessBuilder,Message> {
         self.holder(patina)?.get_process_mut(programs,geometry,patina)
     }
 
@@ -124,17 +123,17 @@ impl GeometrySubLayer {
     }
 
     fn build(mut self, gl: &mut WebGlGlobal, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
-        if let Some(process) = self.direct.build(gl)? {
+        if let Some(process) = self.direct.build(gl,self.left)? {
             processes.push(process);
         }
         for (_,sub) in self.spot.drain() {
-            if let Some(process) = sub.build(gl)? {
+            if let Some(process) = sub.build(gl,self.left)? {
                 processes.push(process);
             }
         }
         for (_,mut sub) in self.texture.drain() {
             sub.set_canvases(canvases)?;
-            if let Some(process) = sub.build(gl)? {
+            if let Some(process) = sub.build(gl,self.left)? {
                 processes.push(process);
             }
         }
@@ -195,7 +194,7 @@ impl Layer {
         })
     }
 
-    pub(crate) fn get_process_mut(&mut self,  geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProtoProcess,Message> {
+    pub(crate) fn get_process_mut(&mut self,  geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProcessBuilder,Message> {
         let (sub,compiler) = self.holder(geometry)?;
         sub.get_process_mut(compiler,geometry,patina)
     }

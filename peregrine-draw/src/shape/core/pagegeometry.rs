@@ -1,7 +1,7 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec,ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec,ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
@@ -23,7 +23,7 @@ impl PageProgram {
         })
     }
 
-    pub(crate) fn add(&self,process: &mut ProtoProcess, data: PageData) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn add(&self,process: &mut ProcessBuilder, data: PageData) -> Result<ProcessStanzaElements,Message> {
         let mut elements = data.y.make_elements(process)?;
         elements.add(&self.vertexes,data.x.vec2d(&data.y),2)?;
         elements.add(&self.signs,data.x.signs_2d(&data.y),2)?;

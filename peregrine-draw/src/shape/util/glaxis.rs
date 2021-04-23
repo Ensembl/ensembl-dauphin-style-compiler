@@ -12,7 +12,7 @@ use crate::{shape::core::stage::ReadStageAxis, webgl::ProcessStanzaElements};
 use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
 use web_sys::WebGlRenderingContext;
-use crate::webgl::{ GPUSpec, ProtoProcess };
+use crate::webgl::{ GPUSpec, ProcessBuilder };
 
 fn add(v: &[f64], delta: f64) -> Vec<f64> {
     v.iter().map(|x| x+delta).collect()
@@ -232,7 +232,7 @@ impl GLAxis {
         vec1d_y(self,self.hollow,self.origin)
     }
 
-    pub(crate) fn make_elements(&self, process: &mut ProtoProcess) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn make_elements(&self, process: &mut ProcessBuilder) -> Result<ProcessStanzaElements,Message> {
         make_rect_elements(process,self.min.len(),self.hollow)
     }
 

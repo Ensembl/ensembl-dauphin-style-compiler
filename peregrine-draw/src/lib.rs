@@ -46,6 +46,7 @@ mod shape {
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
+        mod shapeprogram;
         pub(super) mod patina;
     }
 
@@ -136,10 +137,10 @@ mod webgl {
     pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
     pub(crate) use stanza::stanza::ProcessStanza;
     pub(crate) use program::program::{ Program, ProgramBuilder };
-    pub(crate) use program::process::{ ProtoProcess, Process };
+    pub(crate) use program::process::{ ProcessBuilder, Process };
     pub(crate) use program::compiler::make_program;
     pub(crate) use program::header::Header;
-    pub(crate) use program::uniform::{ Uniform, UniformProto, UniformHandle };
+    pub(crate) use program::uniform::{ UniformProto, UniformHandle };
     pub(crate) use program::attribute::{ Attribute, AttribHandle, AttributeProto };
     pub(crate) use program::varying::Varying;
     pub(crate) use program::session::DrawingSession;

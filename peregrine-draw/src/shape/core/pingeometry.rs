@@ -1,7 +1,7 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd };
 use super::super::util::glaxis::GLAxis;
 use crate::shape::core::stage::{ ReadStage };
@@ -84,7 +84,7 @@ impl PinProgram {
         })
     }
 
-    pub(crate) fn add(&self, process: &mut ProtoProcess, data: PinData) -> Result<ProcessStanzaElements,Message> {
+    pub(crate) fn add(&self, process: &mut ProcessBuilder, data: PinData) -> Result<ProcessStanzaElements,Message> {
         //use web_sys::console;
         //console::log_1(&format!("add = {:?}",data.x_origin).into());
         let mut elements = data.x_origin.make_elements(process)?;

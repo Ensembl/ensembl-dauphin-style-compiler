@@ -1,6 +1,6 @@
 use crate::webgl::CanvasWeave;
 use keyed::KeyedData;
-use crate::webgl::ProtoProcess;
+use crate::webgl::ProcessBuilder;
 use super::flatstore::{ FlatId, FlatStore };
 use crate::webgl::Texture;
 use super::flatplotallocator::FlatPlotRequestHandle;
@@ -25,7 +25,7 @@ impl DrawingFlats {
         Ok(id)
     }
 
-    pub(crate) fn add_process(&self, process: &mut ProtoProcess) -> Result<(),Message> {
+    pub(crate) fn add_process(&self, process: &mut ProcessBuilder) -> Result<(),Message> {
         for (id,uniform_name) in &self.main_canvases {
             process.set_texture(uniform_name,id)?;
         }
