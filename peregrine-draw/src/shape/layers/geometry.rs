@@ -3,7 +3,7 @@ use super::super::core::fixgeometry::{ FixProgram };
 use super::super::core::tapegeometry::{TapeProgram };
 use super::super::core::pagegeometry::{ PageProgram };
 use super::super::core::wigglegeometry::{WiggleProgram };
-use crate::webgl::{ SourceInstrs, Attribute, GLArity, Header, Statement, Program, AttributeProto, ProgramBuilder };
+use crate::webgl::{ SourceInstrs, GLArity, Header, Statement, Program, AttributeProto, ProgramBuilder };
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;

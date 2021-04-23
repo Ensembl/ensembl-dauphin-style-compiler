@@ -42,12 +42,12 @@ pub(crate) struct DrawingBuilder {
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(gl: &WebGlGlobal, left: f64) -> DrawingBuilder {
-        DrawingBuilder {
-            main_layer: Layer::new(gl.program_store(),left),
+    pub(crate) fn new(gl: &WebGlGlobal, left: f64) -> Result<DrawingBuilder,Message> {
+        Ok(DrawingBuilder {
+            main_layer: Layer::new(gl.program_store(),left)?,
             tools: DrawingTools::new(),
             flats: None
-        }
+        })
     }
 
     pub(crate) fn prepare_shape(&mut self, shape: Shape) -> Result<PreparedShape,Message> {
