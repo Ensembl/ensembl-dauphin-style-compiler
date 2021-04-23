@@ -1,7 +1,7 @@
 use peregrine_data::{ ZMenuGenerator };
 use super::super::util::arrayutil::{ empty_is };
 use super::super::layers::drawingzmenus::{ ZMenuResult };
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use crate::util::message::Message;
 
 pub trait GeometryData {

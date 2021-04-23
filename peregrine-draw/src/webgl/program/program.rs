@@ -67,7 +67,6 @@ impl ProgramBuilder {
     }
 
     pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Rc<Program>,Message> {
-        use web_sys::console;
         let mut prog = self.program.borrow_mut();
         if prog.is_none() {
             let gl_prog = make_program(context, gpuspec, self.source.clone())?;

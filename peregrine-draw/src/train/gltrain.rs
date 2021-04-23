@@ -2,7 +2,7 @@ use peregrine_data::{ Carriage, CarriageId };
 use std::collections::{ HashMap, HashSet };
 use crate::shape::layers::programstore::ProgramStore;
 use super::glcarriage::GLCarriage;
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use crate::shape::core::redrawneeded::{ RedrawNeeded };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;

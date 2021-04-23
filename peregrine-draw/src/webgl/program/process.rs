@@ -5,7 +5,7 @@ use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues };
 use keyed::KeyedData;
 use crate::webgl::util::handle_context_errors;
-use crate::shape::core::stage::{ ReadStage, ProgramStage };
+use crate::stage::stage::{ ReadStage, ProgramStage };
 use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;

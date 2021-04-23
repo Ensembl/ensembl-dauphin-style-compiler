@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use peregrine_data::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use crate::shape::core::fixgeometry::{ FixData };
 use crate::shape::core::pagegeometry::{ PageData };
 use crate::shape::core::pingeometry::{ PinData };

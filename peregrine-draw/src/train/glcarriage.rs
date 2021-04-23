@@ -5,7 +5,7 @@ use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
-use crate::shape::core::stage::ReadStage;
+use crate::stage::stage::ReadStage;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
 

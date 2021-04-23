@@ -1,13 +1,11 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
 use super::geometrydata::GeometryData;
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use crate::util::message::Message;
-use web_sys::WebGlRenderingContext;
 
 #[derive(Clone)]
 pub struct TapeProgram {

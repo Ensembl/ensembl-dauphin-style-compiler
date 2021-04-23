@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::webgl::{ make_program, Program, SourceInstrs, GPUSpec, ProgramBuilder };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::patina::{ PatinaProgramName, PatinaProgram };
-use super::super::core::stage::get_stage_source;
+use crate::stage::stage::get_stage_source;
 use web_sys::WebGlRenderingContext;
 use crate::util::message::Message;
 

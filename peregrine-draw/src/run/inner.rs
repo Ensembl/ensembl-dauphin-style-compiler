@@ -1,4 +1,4 @@
-use crate::{integration::pgchannel::PgChannel, shape::core::stage::ReadStageAxis};
+use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
@@ -17,11 +17,10 @@ pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
 use super::dom::PeregrineDom;
-use crate::shape::core::stage::{ Stage, Position };
+use crate::stage::stage::{ Stage, Position };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, Track, StickId, DataMessage };
-use crate::run::progress::Progress;
 
 #[cfg(blackbox)]
 pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {

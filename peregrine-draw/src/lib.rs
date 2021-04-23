@@ -33,7 +33,6 @@ mod shape {
         pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
-        pub(crate) mod stage;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
@@ -42,7 +41,7 @@ mod shape {
     pub(crate) mod layers {
         pub(crate) mod drawing;
         pub(crate) mod drawingzmenus;
-        pub(super) mod consts;
+        pub(crate) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
@@ -56,6 +55,11 @@ mod shape {
         pub(super) mod quickvec;
         pub(crate) mod arrayutil;
     }
+}
+
+mod stage {
+    pub(crate) mod axis;
+    pub(crate) mod stage;
 }
 
 mod train {

@@ -6,7 +6,7 @@ use super::progress::Progress;
 use commander::CommanderStream;
 use peregrine_message::Instigator;
 use super::inner::PeregrineInnerAPI;
-use crate::shape::core::stage::Position;
+use crate::stage::stage::Position;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 

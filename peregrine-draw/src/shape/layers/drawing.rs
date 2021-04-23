@@ -5,7 +5,7 @@ use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, Fl
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
-use crate::shape::core::stage::ReadStage;
+use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 pub(crate) struct DrawingTools {

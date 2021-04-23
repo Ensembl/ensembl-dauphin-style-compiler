@@ -4,7 +4,7 @@ use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec,ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
 use super::super::util::glaxis::GLAxis;
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
 use crate::util::message::Message;
 use web_sys::WebGlRenderingContext;

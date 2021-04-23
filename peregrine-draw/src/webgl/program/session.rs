@@ -1,5 +1,5 @@
 use super::process::Process;
-use crate::shape::core::stage::{ ReadStage };
+use crate::stage::stage::{ ReadStage };
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
 use super::gltrain::GLTrain;
-use crate::shape::core::stage::{ Stage, ReadStage };
+use crate::stage::stage::{ Stage, ReadStage };
 use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;

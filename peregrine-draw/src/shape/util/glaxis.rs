@@ -6,9 +6,8 @@ use super::arrayutil::{
 };
 use super::iterators::{ IterRepeat, IterInterleave, IterFixed };
 use std::cell::RefCell;
-use super::super::layers::geometry::GeometryProgramName;
-use super::super::layers::patina::PatinaProcessName;
-use crate::{shape::core::stage::ReadStageAxis, webgl::ProcessStanzaElements};
+use crate::webgl::ProcessStanzaElements;
+use crate::stage::axis::ReadStageAxis;
 use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
 use web_sys::WebGlRenderingContext;
