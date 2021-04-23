@@ -1,7 +1,7 @@
 use web_sys::WebGlRenderingContext;
 
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
@@ -19,6 +19,32 @@ impl WiggleProgram {
         Ok(WiggleProgram {
             data: builder.get_attrib_handle("aData")?,
         })
+    }
+
+    pub(crate) fn add_wiggle(&self, process: &mut ProtoProcess, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64) -> Result<ProcessStanzaArray,Message> {
+        if yy.len() > 1 {
+            let mut pusher = WigglePusher {
+                prev_active: true,
+                x_step: (end-start)/(yy.len() as f64),
+                x_pos: start,
+                y_height: height,
+                x: vec![],
+                y: vec![]
+            };
+            for y_pos in &yy {
+                if let Some(y_pos) = y_pos {
+                    pusher.active(*y_pos);
+                } else {
+                    pusher.inactive();
+                }
+            }
+            let mut array = process.get_stanza_builder().make_array(pusher.x.len())?;
+            apply_left(&mut pusher.x,left);
+            array.add(&self.data,interleave_pair(&pusher.x,&pusher.y),2)?;
+            Ok(array)
+        } else {
+            Ok(process.get_stanza_builder().make_array(0)?)
+        }
     }
 }
 
@@ -67,31 +93,5 @@ pub struct WiggleGeometry {
 impl WiggleGeometry {
     pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgram) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-
-    pub(crate) fn add_wiggle(&self, layer: &mut Layer, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64) -> Result<ProcessStanzaArray,Message> {
-        if yy.len() > 1 {
-            let mut pusher = WigglePusher {
-                prev_active: true,
-                x_step: (end-start)/(yy.len() as f64),
-                x_pos: start,
-                y_height: height,
-                x: vec![],
-                y: vec![]
-            };
-            for y_pos in &yy {
-                if let Some(y_pos) = y_pos {
-                    pusher.active(*y_pos);
-                } else {
-                    pusher.inactive();
-                }
-            }
-            let mut array = layer.make_array(&GeometryProcessName::Wiggle,&self.patina,pusher.x.len())?;
-            apply_left(&mut pusher.x,layer.left());
-            array.add(&self.variety.data,interleave_pair(&pusher.x,&pusher.y),2)?;
-            Ok(array)
-        } else {
-            Ok(layer.make_array(&GeometryProcessName::Wiggle,&self.patina,0)?)
-        }
     }
 }

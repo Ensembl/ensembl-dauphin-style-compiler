@@ -7,7 +7,7 @@ use super::pingeometry::PinData;
 use super::tapegeometry::TapeData;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
-use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::geometry::GeometryProgramName;
 use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, TextureBindery, GPUSpec};
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
@@ -27,28 +27,70 @@ fn colour_to_patina(colour: Colour) -> PatinaProcessName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<(ProcessStanzaElements,GeometryProcessName),Message> {
-    match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
-        (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
-            let pin_data = PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow);
-            Ok((layer.get_pin(skin)?.add(layer,pin_data)?,GeometryProcessName::Pin))
+fn rectangle_to_geometry(anchor: &SingleAnchor) -> GeometryProgramName {
+    match (&(anchor.0).0,&(anchor.0).1,&(anchor.1).0,&(anchor.1).1) {
+        (SeaEnd::Paper(_),_,SeaEnd::Paper(_),_) => {
+            GeometryProgramName::Pin
         },
-        (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-            let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,hollow);
-            Ok((layer.get_fix(skin)?.add(layer,fix_data)?,GeometryProcessName::Fix))
+        (SeaEnd::Screen(_),_,SeaEnd::Screen(_),_) => {
+            GeometryProgramName::Fix
         },
-        (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-            let tape_data = TapeData::add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow);
-            Ok((layer.get_tape(skin)?.add(layer,tape_data)?,GeometryProcessName::Tape))         
+        (SeaEnd::Paper(_),_,SeaEnd::Screen(_),_) => {
+            GeometryProgramName::Tape
         },
-        (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
-            let page_data = PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,hollow);
-            Ok((layer.get_page(skin)?.add(layer,page_data)?,GeometryProcessName::Page))
+        (SeaEnd::Screen(_),_,SeaEnd::Paper(_),_) => {
+            GeometryProgramName::Page
         }
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>, hollow: bool) -> Result<(ProcessStanzaElements,GeometryProcessName),Message> {
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+    match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
+        (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
+            let pin_data = PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow);
+            let pin = layer.get_pin(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Pin, skin)?;
+            Ok(pin.add(process,pin_data)?)
+        },
+        (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
+            let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,hollow);
+            let fix = layer.get_fix(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Fix,skin)?;
+            Ok(fix.add(process,fix_data)?)
+        },
+        (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
+            let tape_data = TapeData::add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow);
+            let tape = layer.get_tape(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Tape,skin)?;
+            Ok(tape.add(process,tape_data)?)         
+        },
+        (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
+            let page_data = PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,hollow);
+            let page = layer.get_page(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Page,skin)?;
+            Ok(page.add(process,page_data)?)
+        }
+    }
+}
+
+fn stretchtangle_to_geometry(anchors: &AnchorPair) -> GeometryProgramName {
+    match (&(anchors.0).0,&(anchors.1).0) {
+        (SeaEndPair::Paper(_,_),SeaEndPair::Paper(_,_)) => {
+            GeometryProgramName::Pin
+        },
+        (SeaEndPair::Screen(_,_),SeaEndPair::Screen(_,_)) => {
+            GeometryProgramName::Fix
+        },
+        (SeaEndPair::Paper(_,_),SeaEndPair::Screen(_,_)) => {
+            GeometryProgramName::Tape
+        },
+        (SeaEndPair::Screen(_,_),SeaEndPair::Paper(_,_)) => {
+            GeometryProgramName::Page
+        }
+    }
+}
+
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -60,29 +102,40 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     match (anchor_sea_x,anchor_sea_y) {
         (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
             let pin_data = PinData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
-            Ok((layer.get_pin(skin)?.add(layer,pin_data)?,GeometryProcessName::Pin))
+            let pin = layer.get_pin(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Pin, skin)?;
+            Ok(pin.add(process,pin_data)?)
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
             let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
-            Ok((layer.get_fix(skin)?.add(layer,fix_data)?,GeometryProcessName::Fix))
+            let fix = layer.get_fix(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Fix,skin)?;
+            Ok(fix.add(process,fix_data)?)
         },
         (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
             let tape_data = TapeData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
-            Ok((layer.get_tape(skin)?.add(layer,tape_data)?,GeometryProcessName::Tape))
+            let tape = layer.get_tape(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Tape,&skin)?;
+            Ok(tape.add(process,tape_data)?)
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
             let page_data = PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
-            Ok((layer.get_page(skin)?.add(layer,page_data)?,GeometryProcessName::Page))
+            let page = layer.get_page(skin)?;
+            let process = layer.get_process_mut(&GeometryProgramName::Page,skin)?;
+            Ok(page.add(process,page_data)?)
         }
     }
 }
 
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> Result<(ProcessStanzaArray,GeometryProcessName),Message> {    
-    let stanza_builder = layer.get_wiggle(patina)?.add_wiggle(layer,start,end,y,height)?;
-    Ok((stanza_builder,GeometryProcessName::Pin))
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
+    let wiggle = layer.get_wiggle(patina)?;
+    let left = layer.left();
+    let process = layer.get_process_mut(&GeometryProgramName::Page,patina)?;
+    let stanza_builder = wiggle.add_wiggle(process,start,end,y,height,left)?;
+    Ok((stanza_builder,GeometryProgramName::Pin))
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProcessName, colour: &Colour, vertexes: usize) -> Result<(),Message> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, colour: &Colour, vertexes: usize) -> Result<(),Message> {
     match colour {
         Colour::Direct(d) => {
             let direct = layer.get_direct(geometry)?;
@@ -123,14 +176,16 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             match patina {
                 Patina::Filled(colour) => {
+                    let geometry = rectangle_to_geometry(&anchor);
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,false)?;
+                    let mut campaign = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,false)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
+                    let geometry = rectangle_to_geometry(&anchor);
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,true)?;
+                    let mut campaign = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,true)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
@@ -142,14 +197,16 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
         PreparedShape::DoubleAnchorRect(anchors,patina,allotment) => {
             match patina {
                 Patina::Filled(colour) => {
+                    let geometry = stretchtangle_to_geometry(&anchors);
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_stretchtangle(layer,anchors,&patina,allotment,false)?;
+                    let mut campaign = add_stretchtangle(layer,anchors,&patina,allotment,false)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
+                    let geometry = stretchtangle_to_geometry(&anchors);
                     let patina = colour_to_patina(colour.clone());
-                    let (mut campaign,geometry) = add_stretchtangle(layer,anchors,&patina,allotment,true)?;
+                    let mut campaign = add_stretchtangle(layer,anchors,&patina,allotment,true)?;
                     add_colour(&mut campaign,layer,&geometry,&colour,4)?;
                     campaign.close();
                 },
@@ -179,7 +236,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 y_sizes.push(size.1 as f64);
                 dims.push(texture_areas);
             }
-            let (mut campaign,geometry) = add_rectangle(layer,anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
+            let geometry = rectangle_to_geometry(&anchor);
+            let mut campaign= add_rectangle(layer,anchor,&PatinaProcessName::Texture(canvas.clone()),allotments,x_sizes,y_sizes,false)?;
             let patina = layer.get_texture(&geometry,&canvas)?;
             let mut process = layer.get_process_mut(&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;

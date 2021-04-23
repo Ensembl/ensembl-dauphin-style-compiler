@@ -1,14 +1,14 @@
-use super::super::core::pingeometry::{ PinGeometry, PinProgram };
-use super::super::core::fixgeometry::{ FixGeometry, FixProgram };
-use super::super::core::tapegeometry::{ TapeGeometry, TapeProgram };
-use super::super::core::pagegeometry::{ PageGeometry, PageProgram };
-use super::super::core::wigglegeometry::{ WiggleGeometry, WiggleProgram };
-use super::patina::PatinaProcessName;
-use crate::webgl::{ ProtoProcess, SourceInstrs, Attribute, GLArity, Header, Statement, Program, AttributeProto, ProgramBuilder };
+use super::super::core::pingeometry::{ PinProgram };
+use super::super::core::fixgeometry::{ FixProgram };
+use super::super::core::tapegeometry::{TapeProgram };
+use super::super::core::pagegeometry::{ PageProgram };
+use super::super::core::wigglegeometry::{WiggleProgram };
+use crate::webgl::{ SourceInstrs, Attribute, GLArity, Header, Statement, Program, AttributeProto, ProgramBuilder };
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 
+#[derive(Clone)]
 pub(crate) enum GeometryProgram {
     Pin(PinProgram),
     Fix(FixProgram),
@@ -17,18 +17,7 @@ pub(crate) enum GeometryProgram {
     Wiggle(WiggleProgram)
 }
 
-impl GeometryProgram {
-    pub(super) fn make_geometry_process(&self, skin: &PatinaProcessName) -> Result<GeometryProcess,Message> {
-        Ok(match self {
-            GeometryProgram::Pin(v) => GeometryProcess::Pin(PinGeometry::new(skin,v)?),
-            GeometryProgram::Fix(v)=> GeometryProcess::Fix(FixGeometry::new(skin,v)?),
-            GeometryProgram::Tape(v) => GeometryProcess::Tape(TapeGeometry::new(skin,v)?),
-            GeometryProgram::Page(v) => GeometryProcess::Page(PageGeometry::new(skin,v)?),
-            GeometryProgram::Wiggle(v) => GeometryProcess::Wiggle(WiggleGeometry::new(skin,v)?),            
-        })
-    }
-}
-
+#[derive(Clone)]
 pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page, Wiggle }
 
 impl GeometryProgramName {
@@ -107,27 +96,5 @@ impl GeometryProgramName {
                         0.0, 1.0)")
             ]
         })
-    }
-}
-
-pub(super) enum GeometryProcess {
-    Pin(PinGeometry),
-    Fix(FixGeometry),
-    Tape(TapeGeometry),
-    Page(PageGeometry),
-    Wiggle(WiggleGeometry)
-}
-
-pub enum GeometryProcessName { Pin, Fix, Tape, Page, Wiggle }
-
-impl GeometryProcessName {
-    pub(super) fn get_program_name(&self) -> GeometryProgramName {
-        match self {
-            GeometryProcessName::Pin => GeometryProgramName::Pin,
-            GeometryProcessName::Fix => GeometryProgramName::Fix,
-            GeometryProcessName::Tape => GeometryProgramName::Tape,
-            GeometryProcessName::Page => GeometryProgramName::Page,
-            GeometryProcessName::Wiggle => GeometryProgramName::Wiggle
-        }
     }
 }

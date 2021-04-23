@@ -1,6 +1,4 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
-use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ScreenEdge, ShipEnd };
 use super::super::util::glaxis::GLAxis;
@@ -21,6 +19,13 @@ impl FixProgram {
             vertexes: builder.get_attrib_handle("aVertexPosition")?,
             signs: builder.get_attrib_handle("aSign")?
         })
+    }
+
+    pub(crate) fn add(&self, process: &mut ProtoProcess, data: FixData) -> Result<ProcessStanzaElements,Message> {
+        let mut elements = data.x.make_elements(process)?;
+        elements.add(&self.vertexes,data.x.vec2d(&data.y),2)?;
+        elements.add(&self.signs,data.x.signs_2d(&data.y),2)?;
+        Ok(elements)
     }
 }
 
@@ -58,24 +63,5 @@ impl GeometryData for FixData {
 
     fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message> {
         Ok(Box::new(self.x.iter_screen(stage.x())?.zip(self.y.iter_screen(stage.y())?)))
-    }
-}
-
-#[derive(Clone)]
-pub struct FixGeometry {
-    variety: FixProgram,
-    patina: PatinaProcessName
-}
-
-impl FixGeometry {
-    pub(crate) fn new(patina: &PatinaProcessName, variety: &FixProgram) -> Result<FixGeometry,Message> {
-        Ok(FixGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-
-    pub(crate) fn add(&self, layer: &mut Layer, data: FixData) -> Result<ProcessStanzaElements,Message> {
-        let mut elements = data.x.make_elements(layer,&GeometryProcessName::Fix,&self.patina)?;
-        elements.add(&self.variety.vertexes,data.x.vec2d(&data.y),2)?;
-        elements.add(&self.variety.signs,data.x.signs_2d(&data.y),2)?;
-        Ok(elements)
     }
 }

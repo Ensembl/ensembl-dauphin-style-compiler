@@ -1,5 +1,5 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd };
@@ -83,6 +83,18 @@ impl PinProgram {
             origins: builder.get_attrib_handle("aOrigin")?
         })
     }
+
+    pub(crate) fn add(&self, process: &mut ProtoProcess, data: PinData) -> Result<ProcessStanzaElements,Message> {
+        //use web_sys::console;
+        //console::log_1(&format!("add = {:?}",data.x_origin).into());
+        let mut elements = data.x_origin.make_elements(process)?;
+        //console::log_1(&format!("origins").into());
+        elements.add(&self.origins,data.x_origin.vec2d(&data.y_origin),2)?;
+        //console::log_1(&format!("vertexes").into());
+        elements.add(&self.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
+        //console::log_1(&format!("/").into());
+        Ok(elements)
+    }
 }
 
 #[derive(Clone)]
@@ -94,18 +106,5 @@ pub struct PinGeometry {
 impl PinGeometry {
     pub(crate) fn new(patina: &PatinaProcessName, variety: &PinProgram) -> Result<PinGeometry,Message> {
         Ok(PinGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-
-    pub(crate) fn add(&self, layer: &mut Layer, data: PinData) -> Result<ProcessStanzaElements,Message> {
-        //use web_sys::console;
-        //console::log_1(&format!("add = {:?}",data.x_origin).into());
-        let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Pin,&self.patina)?;
-        //console::log_1(&format!("origins").into());
-        elements.add(&self.variety.origins,data.x_origin.vec2d(&data.y_origin),2)?;
-        //console::log_1(&format!("vertexes").into());
-        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
-        //console::log_1(&format!("/").into());
-
-        Ok(elements)
     }
 }

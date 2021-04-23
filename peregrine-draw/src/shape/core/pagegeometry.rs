@@ -1,5 +1,5 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec,ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
@@ -21,6 +21,13 @@ impl PageProgram {
             vertexes: builder.get_attrib_handle("aVertexPosition")?,
             signs: builder.get_attrib_handle("aSign")?
         })
+    }
+
+    pub(crate) fn add(&self,process: &mut ProtoProcess, data: PageData) -> Result<ProcessStanzaElements,Message> {
+        let mut elements = data.y.make_elements(process)?;
+        elements.add(&self.vertexes,data.x.vec2d(&data.y),2)?;
+        elements.add(&self.signs,data.x.signs_2d(&data.y),2)?;
+        Ok(elements)
     }
 }
 
@@ -58,24 +65,5 @@ impl GeometryData for PageData {
         let mouse = (mouse.0 as f64, mouse.1 as f64);
         Ok(!(mouse.0 < self.x.min_screen(stage.x())? || mouse.0 > self.x.max_screen(stage.x())? || 
            mouse.1 < self.y.min_screen(stage.y())? || mouse.1 > self.y.max_screen(stage.y())?))
-    }
-}
-
-#[derive(Clone)]
-pub struct PageGeometry {
-    variety: PageProgram,
-    patina: PatinaProcessName
-}
-
-impl PageGeometry {
-    pub(crate) fn new(patina: &PatinaProcessName, variety: &PageProgram) ->Result<PageGeometry,Message> {
-        Ok(PageGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-
-    pub(crate) fn add(&self,layer: &mut Layer, data: PageData) -> Result<ProcessStanzaElements,Message> {
-        let mut elements = data.y.make_elements(layer, &GeometryProcessName::Page,&self.patina)?;
-        elements.add(&self.variety.vertexes,data.x.vec2d(&data.y),2)?;
-        elements.add(&self.variety.signs,data.x.signs_2d(&data.y),2)?;
-        Ok(elements)
     }
 }

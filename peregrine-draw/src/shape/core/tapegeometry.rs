@@ -1,5 +1,5 @@
 use super::super::layers::layer::{ Layer };
-use super::super::layers::geometry::GeometryProcessName;
+use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{ AttribHandle, ProtoProcess, ProcessStanzaElements, Program, ProcessStanzaAddable, GPUSpec, ProgramBuilder };
 use peregrine_data::{ ShipEnd, ScreenEdge };
@@ -23,6 +23,14 @@ impl TapeProgram {
             vertexes: builder.get_attrib_handle("aVertexPosition")?,
             signs: builder.get_attrib_handle("aSign")?
         })
+    }
+
+    pub(crate) fn add(&self, process: &mut ProtoProcess, data: TapeData) -> Result<ProcessStanzaElements,Message> {
+        let mut elements = data.x_origin.make_elements(process)?;
+        elements.add(&self.origins,data.x_origin.vec1d_x(),1)?;
+        elements.add(&self.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
+        elements.add(&self.signs,data.y_vertex.signs_y(),1)?;
+        Ok(elements)
     }
 }
 
@@ -88,13 +96,5 @@ pub struct TapeGeometry {
 impl TapeGeometry {
     pub(crate) fn new(patina: &PatinaProcessName, variety: &TapeProgram) -> Result<TapeGeometry,Message> {
         Ok(TapeGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-
-    pub(crate) fn add(&self, layer: &mut Layer, data: TapeData) -> Result<ProcessStanzaElements,Message> {
-        let mut elements = data.x_origin.make_elements(layer,&GeometryProcessName::Tape,&self.patina)?;
-        elements.add(&self.variety.origins,data.x_origin.vec1d_x(),1)?;
-        elements.add(&self.variety.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
-        elements.add(&self.variety.signs,data.y_vertex.signs_y(),1)?;
-        Ok(elements)
     }
 }
