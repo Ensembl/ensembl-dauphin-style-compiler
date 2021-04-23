@@ -7,8 +7,11 @@ use super::texture::{ Texture, TextureValues, TextureProto };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 use crate::util::message::Message;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct ProgramBuilder {
+    program: RefCell<Option<Rc<Program>>>,
     source: SourceInstrs,
     uniforms: KeyedValues<UniformHandle,UniformProto>,
     textures: KeyedValues<UniformHandle,TextureProto>,
@@ -19,6 +22,7 @@ pub struct ProgramBuilder {
 impl ProgramBuilder {
     pub(crate) fn new(source: &SourceInstrs) -> Result<ProgramBuilder,Message> {
         let mut out = ProgramBuilder {
+            program: RefCell::new(None),
             source: source.clone(),
             uniforms: KeyedValues::new(),
             textures: KeyedValues::new(),
@@ -62,9 +66,14 @@ impl ProgramBuilder {
         self.attribs.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing attrib key: {}",name)))
     }
 
-    pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Program,Message> {
-        let gl_prog = make_program(context, gpuspec, self.source.clone())?;
-        Program::new(context,gl_prog,&self)
+    pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Rc<Program>,Message> {
+        use web_sys::console;
+        let mut prog = self.program.borrow_mut();
+        if prog.is_none() {
+            let gl_prog = make_program(context, gpuspec, self.source.clone())?;
+            *prog = Some(Rc::new(Program::new(context,gl_prog,&self)?));
+        }
+        Ok(prog.as_ref().unwrap().clone())
     }
 }
 
@@ -118,7 +127,7 @@ impl Program {
     }
 
     // XXX ensure called!
-    fn discard(&mut self, context: &WebGlRenderingContext) {
+    fn discard(&self, context: &WebGlRenderingContext) {
         context.delete_program(Some(&self.program));
     }
 }

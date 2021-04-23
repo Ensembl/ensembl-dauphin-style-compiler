@@ -43,7 +43,7 @@ impl ProcessBuilder {
     }
 
     pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64) -> Result<Process,Message> {
-        let program = self.builder.make(gl.context(),gl.gpuspec())?; // XXX cache
+        let program = self.builder.make(gl.context(),gl.gpuspec())?;
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
             uniforms.get_mut(&name).set_value(value)?;
@@ -57,7 +57,7 @@ impl ProcessBuilder {
             program,
             self.stanza_builder
         );
-        Process::new(gl,Rc::new(program),&self.builder,stanza_builder,uniforms,textures,left)
+        Process::new(gl,program,&self.builder,stanza_builder,uniforms,textures,left)
     }
 }
 
