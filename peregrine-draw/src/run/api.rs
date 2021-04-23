@@ -49,12 +49,10 @@ impl DrawMessage {
                 draw.set_stick(&stick,&mut instigator);
             },
             DrawMessage::SetSwitch(path) => {
-                draw.set_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
-                instigator.done();
+                draw.set_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),&mut instigator);
             },
             DrawMessage::ClearSwitch(path) => {
-                draw.clear_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
-                instigator.done();
+                draw.clear_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),&mut instigator);
             },
             DrawMessage::Bootstrap(channel) => {
                 draw.bootstrap(channel.clone(),&mut instigator);

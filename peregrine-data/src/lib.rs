@@ -104,6 +104,10 @@ mod shape {
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
 }
 
+pub(crate) mod switch {
+    pub(crate) mod switch;
+}
+
 mod train {
     mod carriage;
     mod carriageevent;

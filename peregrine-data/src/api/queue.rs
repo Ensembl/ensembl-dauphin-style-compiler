@@ -18,7 +18,9 @@ pub enum ApiMessage {
     SetBpPerScreen(f64),
     SetFocus(Focus),
     SetStick(StickId),
-    Bootstrap(Channel)
+    Bootstrap(Channel),
+    SetSwitch(Vec<String>),
+    ClearSwitch(Vec<String>)
 }
 
 #[derive(Clone)]
@@ -79,6 +81,12 @@ impl PeregrineApiQueue {
             },
             ApiMessage::Bootstrap(channel) => {
                 self.bootstrap(data,channel,instigator);
+            },
+            ApiMessage::SetSwitch(path) => {
+                data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+            },
+            ApiMessage::ClearSwitch(path) => {
+                data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
             }
         }
     }

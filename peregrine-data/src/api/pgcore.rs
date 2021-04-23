@@ -15,6 +15,7 @@ use crate::api::AgentStore;
 use crate::core::{ Track, Focus, StickId };
 use crate::util::message::DataMessage;
 use peregrine_message::Instigator;
+use crate::switch::switch::Switches;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -47,6 +48,7 @@ pub struct PeregrineCore {
     pub train_set: TrainSet,
     pub viewport: Viewport,
     pub queue: PeregrineApiQueue,
+    pub switches: Switches,
 }
 
 impl PeregrineCore {
@@ -85,6 +87,7 @@ impl PeregrineCore {
             train_set,
             viewport: Viewport::empty(),
             queue: PeregrineApiQueue::new(),
+            switches: Switches::new()
         })
     }
 
@@ -124,6 +127,18 @@ impl PeregrineCore {
     pub fn add_track(&self, track: Track) -> Instigator<DataMessage> {
         let instigator = Instigator::new();
         self.queue.push(ApiMessage::AddTrack(track),instigator.clone());
+        instigator
+    }
+
+    pub fn set_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
+        instigator
+    }
+
+    pub fn clear_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
         instigator
     }
 

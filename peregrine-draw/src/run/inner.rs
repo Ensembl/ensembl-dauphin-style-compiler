@@ -19,7 +19,6 @@ use crate::train::GlTrainSet;
 use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage, Position };
 use crate::webgl::global::WebGlGlobal;
-use crate::switch::switch::Switches;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, Track, StickId, DataMessage };
 
@@ -50,7 +49,6 @@ pub struct PeregrineInnerAPI {
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     position: Option<Position>,
-    switches: Switches,
     dom: PeregrineDom
 }
 
@@ -134,7 +132,6 @@ impl PeregrineInnerAPI {
             position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
             position: None,
-            switches: Switches::new(),
             dom
         };
         out.setup(&dom2)?;
@@ -151,12 +148,13 @@ impl PeregrineInnerAPI {
         }
     }
 
-    pub(crate) fn set_switch(&self, path: &[&str]) {
-        self.switches.set_switch(path);
+    pub(crate) fn set_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.set_switch(path));
     }
 
-    pub(crate) fn clear_switch(&self, path: &[&str]) {
-        self.switches.clear_switch(path);
+    pub(crate) fn clear_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
+        data_inst(instigator,self.data_api.clear_switch(path));
+
     }
 
     fn setup(&mut self, dom: &PeregrineDom) -> Result<(),Message> {
