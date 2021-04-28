@@ -44,15 +44,20 @@ impl TrackConfigNode {
     }
 }
 
+fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq, V: Hash>(map: &HashMap<K,V>, state: &mut H) {
+    let mut kids : Vec<_> = map.keys().collect();
+    kids.sort();
+    kids.len().hash(state);
+    for kid in kids.drain(..) {
+        kid.hash(state);
+        map.get(kid).as_ref().unwrap().hash(state);
+    }
+}
+
 impl Hash for TrackConfigNode {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let mut kids : Vec<_> = self.kids.keys().collect();
-        kids.sort();
-        kids.len().hash(state);
-        for kid in kids.drain(..) {
-            kid.hash(state);
-            self.kids.get(kid).as_ref().unwrap().hash(state);
-        }
+        hashmap_hasher(&self.kids,state);
     }
 }
 
@@ -76,6 +81,12 @@ impl Hash for TrackConfig {
 
 #[derive(Clone)]
 pub struct TrackConfigList(Arc<HashMap<String,Arc<TrackConfig>>>);
+
+impl Hash for TrackConfigList {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        hashmap_hasher(&self.0,state);
+    }
+}
 
 impl TrackConfigList {
     pub(crate) fn new(root: &Switch) -> TrackConfigList {
@@ -104,5 +115,11 @@ impl TrackConfigList {
 
     pub(crate) fn list_tracks(&self) -> Vec<String> {
         self.0.keys().cloned().collect()
+    }
+
+    pub(crate) fn hash_value(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        hasher.finish()
     }
 }
