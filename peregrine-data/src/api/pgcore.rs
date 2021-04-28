@@ -1,5 +1,4 @@
 use crate::core::{ Viewport };
-use crate::request::bootstrap::bootstrap;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use peregrine_dauphin_queue::{ PgDauphinQueue };

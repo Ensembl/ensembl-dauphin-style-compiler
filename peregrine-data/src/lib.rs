@@ -106,6 +106,7 @@ mod shape {
 
 pub(crate) mod switch {
     pub(crate) mod switch;
+    pub(crate) mod trackconfig;
 }
 
 mod train {

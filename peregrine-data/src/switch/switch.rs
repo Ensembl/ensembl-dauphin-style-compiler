@@ -1,11 +1,12 @@
-use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::sync::{ Arc, Mutex };
 use std::collections::HashMap;
+use super::trackconfig::{ TrackConfigList, TrackConfigNode };
 
-struct Switch {
+pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
     set: bool,
-    tracks: Vec<String>
+    tracks: Vec<String>,
+    triggers: Vec<String>
 }
 
 impl Switch {
@@ -13,7 +14,8 @@ impl Switch {
         Switch {
             kids: HashMap::new(),
             set: false,
-            tracks: vec![]
+            tracks: vec![],
+            triggers: vec![]
         }
     }
 
@@ -31,24 +33,47 @@ impl Switch {
         }
     }
 
-    fn get_tracks(&self, tracks: &mut Vec<String>) {
+    pub(super) fn get_triggered(&self, out: &mut Vec<String>) {
         if !self.set { return; }
-        tracks.extend(self.tracks.iter().cloned());
-        for (_,kid) in self.kids.iter() {
-            kid.get_tracks(tracks);
+        out.extend(self.triggers.iter().cloned());
+        for kid in self.kids.values() {
+            kid.get_triggered(out);
         }
     }
 
-    fn set_hash<H: Hasher>(&self, hasher: &mut H) {
-        if !self.set { return; }
-        let mut kids : Vec<String> = self.kids.keys().cloned().collect();
-        kids.len().hash(hasher);
-        kids.sort();
-        for name in kids {
-            let kid = self.kids.get(&name).unwrap();
+    fn new_active<'a>(&self, new_active: &'a mut Vec<String>, active: &'a [String]) -> &'a [String] {
+        let mut active = active;
+        if self.tracks.len() > 0 {
+            *new_active = active.to_vec();
+            for track in &self.tracks {
+                if !new_active.contains(track) {
+                    new_active.push(track.clone());
+                }
+            }
+            active = new_active;
+        }
+        active
+    }
+
+    fn add_nodes(&self, out: &mut HashMap<String,TrackConfigNode>, path: &[String], active: &[String]) {
+        if active.len() > 0 {
+            for track in active {
+                if let Some(node) = out.get_mut(track) {
+                    node.merge(path);
+                }
+            }
+        }
+    }
+
+    pub(super) fn build_track_config_list(&self, out: &mut HashMap<String,TrackConfigNode>, path: &mut Vec<String>, active: &[String]) {
+        let mut new_active = vec![];
+        let new_active = self.new_active(&mut new_active,active);
+        self.add_nodes(out,path,new_active);
+        for (kid_name,kid) in &self.kids {
             if kid.set {
-                name.hash(hasher);
-                kid.set_hash(hasher);
+                path.push(kid_name.to_string());
+                kid.build_track_config_list(out, path, new_active);
+                path.pop();
             }
         }
     }
@@ -56,22 +81,15 @@ impl Switch {
 
 struct SwitchesData {
     root: Switch,
-    track_paths: HashMap<String,Vec<Vec<String>>>,
-    track_hash_cache: HashMap<String,u64>
+    track_config_list: Option<TrackConfigList>
 }
 
 impl SwitchesData {
-    fn compute_track_hash(&mut self, track: &str) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        if let Some(paths) =  self.track_paths.get(track) {
-            let mut paths = paths.clone();
-            paths.sort();
-            for path in paths {
-                path.hash(&mut hasher);
-                self.root.get_target(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>()).set_hash(&mut hasher);
-            }
+    fn get_track_config_list(&mut self) -> &TrackConfigList {
+        if self.track_config_list.is_none() {
+            self.track_config_list = Some(TrackConfigList::new(&self.root));
         }
-        hasher.finish()
+        self.track_config_list.as_ref().unwrap()
     }
 }
 
@@ -82,8 +100,7 @@ impl Switches {
     pub fn new() -> Switches {
         let out = Switches(Arc::new(Mutex::new(SwitchesData {
             root: Switch::new(),
-            track_paths: HashMap::new(),
-            track_hash_cache: HashMap::new()
+            track_config_list: None
         })));
         out.set_switch(&[]);
         out
@@ -92,35 +109,61 @@ impl Switches {
     pub fn set_switch(&self, path: &[&str]) {
         let mut data = self.0.lock().unwrap();        
         data.root.get_target(path).set = true;
-        data.track_hash_cache.clear();
+        data.track_config_list = None;
     }
 
     pub fn clear_switch(&self, path: &[&str]) {
         let mut data = self.0.lock().unwrap();
         data.root.get_target(path).set = false;        
-        data.track_hash_cache.clear();
+        data.track_config_list = None;
     }
 
-    pub fn add_track(&self, path: &[&str], track: &str) {
+    pub fn add_track(&self, path: &[&str], track: &str, trigger: bool) {
         let mut data = self.0.lock().unwrap();
-        data.root.get_target(path).tracks.push(track.to_string());
-        let paths = data.track_paths.entry(track.to_string()).or_insert_with(||vec![]);
-        paths.push(path.iter().map(|x| x.to_string()).collect());
-        data.track_hash_cache.clear();
-    }
-
-    pub fn get_tracks(&self) -> Vec<String> {
-        let mut tracks = vec![];
-        self.0.lock().unwrap().root.get_tracks(&mut tracks);
-        tracks
-    }
-
-    fn get_track_hash(&self, track: &str) -> u64 {
-        let mut data = self.0.lock().unwrap();
-        if !data.track_hash_cache.contains_key(track) {
-            let hash = data.compute_track_hash(track);
-            data.track_hash_cache.insert(track.to_string(),hash);
+        let target = data.root.get_target(path);
+        target.tracks.push(track.to_string());
+        if trigger {
+            target.triggers.push(track.to_string());
         }
-        *data.track_hash_cache.get(track).unwrap()
+        data.track_config_list = None;
+    }
+
+    fn get_track_config_list(&self) -> TrackConfigList {
+        let mut data = self.0.lock().unwrap();
+        data.get_track_config_list().clone()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn switch_smoke() {
+        let switches = Switches::new();
+        switches.add_track(&["track","A"],"A",true);
+        switches.add_track(&["general"],"A",false);
+        switches.add_track(&["track","B"],"B",true);
+        switches.add_track(&["general"],"B",false);
+        switches.set_switch(&["general"]);
+        switches.set_switch(&["track"]);
+        switches.set_switch(&["track","B"]);
+        switches.set_switch(&["track","B","normal"]);
+        let track_config_list = switches.get_track_config_list();
+        assert_eq!(vec!["B"],track_config_list.list_tracks());
+        let track_b = track_config_list.get_track("B").unwrap();
+        assert_eq!(true,track_b.contains(&["track"]));
+        assert_eq!(Some(vec!["B".to_string()]),track_b.get(&["track"]));
+        assert_eq!(true,track_b.contains(&["general"]));
+        assert_eq!(Some(vec![]),track_b.get(&["general"]));
+        assert_eq!(true,track_b.contains(&["track","B"]));
+        assert_eq!(Some(vec!["normal".to_string()]),track_b.get(&["track","B"]));
+        assert_eq!(false,track_b.contains(&["missing"]));
+        assert_eq!(None,track_b.get(&["missing"]));
+        /* check modification */
+        switches.set_switch(&["track","A"]);
+        let track_config_list = switches.get_track_config_list();
+        assert_eq!(true,track_config_list.list_tracks().contains(&"A".to_string()));
+        assert_eq!(true,track_config_list.list_tracks().contains(&"B".to_string()));
     }
 }
