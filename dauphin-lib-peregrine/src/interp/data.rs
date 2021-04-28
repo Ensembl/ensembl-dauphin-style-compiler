@@ -2,11 +2,11 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_data::{ StickId, Lane, Channel, Scale, Focus, Track, ProgramData };
+use peregrine_data::{ StickId, Lane, Channel, Scale, Track, ProgramData };
 use serde_cbor::Value as CborValue;
 
-simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,5,(0,1,2,3,4));
-simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,4,(0,1,2,3));
+simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,7,(0,1,2,3,4,5,6));
 simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
 
 impl InterpCommand for GetLaneInterpCommand {
@@ -17,11 +17,6 @@ impl InterpCommand for GetLaneInterpCommand {
         registers.write(&self.1,InterpValue::Numbers(vec![lane.index() as f64]));
         registers.write(&self.2,InterpValue::Numbers(vec![lane.scale().get_index() as f64]));
         registers.write(&self.3,InterpValue::Strings(vec![lane.track().name().to_string()]));
-        if let Some(focus) = lane.focus().name() {
-            registers.write(&self.4,InterpValue::Strings(vec![focus.to_string()]));
-        } else {
-            registers.write(&self.4,InterpValue::Strings(vec![]));
-        }
         Ok(CommandResult::SyncResult())
     }
 }
@@ -32,9 +27,7 @@ fn get_lane(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::Res
     let index = &registers.get_numbers(&cmd.4)?[0];
     let scale = &registers.get_numbers(&cmd.5)?[0];
     let track = &registers.get_strings(&cmd.6)?[0];
-    let focus = &registers.get_strings(&cmd.7)?;
-    let focus = focus.get(0);
-    Ok(Some(Lane::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64),Focus::new(focus.map(|x| &x as &str)),Track::new(track))))
+    Ok(Some(Lane::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64),Track::new(track))))
 }
 
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {

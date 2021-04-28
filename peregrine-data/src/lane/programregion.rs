@@ -1,5 +1,4 @@
 use varea::{ VareaItem, Discrete, RTreeRange };
-use crate::core::focus::Focus;
 use crate::core::track::Track;
 use crate::core::{ Scale };
 use std::cmp::{ min, max };
@@ -8,7 +7,6 @@ use std::cmp::{ min, max };
 pub struct ProgramRegion {
     stick_tags: Option<Vec<String>>,
     scale: Option<(Scale,Scale)>,
-    focus: Option<Focus>,
     track: Option<Vec<Track>>,
     max_scale_jump: Option<u64>
 }
@@ -18,7 +16,6 @@ impl ProgramRegion {
         ProgramRegion {
             stick_tags: None,
             scale: None,
-            focus: None,
             track: None,
             max_scale_jump: None
         }
@@ -31,7 +28,6 @@ impl ProgramRegion {
 
     pub fn set_stick_tags(&mut self, stick_tags: &[String]) { self.stick_tags = Some(stick_tags.to_vec()); }
     pub fn set_scale(&mut self, a: Scale, b: Scale) { self.scale = Some((a,b)); }
-    pub fn set_focus(&mut self, f: Focus) { self.focus = Some(f); }
     pub fn set_tracks(&mut self, t: &[Track]) {  self.track = Some(t.to_vec()); }
     pub fn set_max_scale_jump(&mut self, jump: u32) { self.max_scale_jump = Some(jump as u64); }
 
@@ -59,9 +55,6 @@ impl ProgramRegion {
         }
         if let Some(scale) = &self.scale {
             item.add("scale",RTreeRange::new(scale.0.get_index(),scale.1.get_index()));
-        }
-        if let Some(focus) = &self.focus {
-            item.add("focus",Discrete::new(&[focus.clone()]));
         }
         if let Some(track) = &self.track {
             let tracks = track.iter().cloned().collect::<Vec<_>>();

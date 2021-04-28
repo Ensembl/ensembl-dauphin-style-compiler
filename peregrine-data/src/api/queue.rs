@@ -74,7 +74,7 @@ impl PeregrineApiQueue {
                 self.update_viewport(data,data.viewport.set_bp_per_screen(scale),instigator);
             },
             ApiMessage::SetFocus(focus) => {
-                self.update_viewport(data,data.viewport.set_focus(&focus),instigator);
+                // XXX currently unimplemented
             },
             ApiMessage::SetStick(stick) => {
                 self.update_viewport(data,data.viewport.set_stick(&stick),instigator);

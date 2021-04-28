@@ -1,4 +1,4 @@
-use crate::{DataMessage, core::{ Focus, StickId, Track }};
+use crate::{DataMessage, core::{ StickId, Track }};
 use super::layout::Layout;
 
 fn unwrap<T>(x: Option<T>) -> Result<T,DataMessage> {
@@ -62,12 +62,6 @@ impl Viewport {
     pub fn set_stick(&self, stick: &StickId) -> Viewport {
         let mut out = self.clone();
         out.layout = out.layout.set_stick(stick);
-        out
-    }
-
-    pub fn set_focus(&self, focus: &Focus) -> Viewport {
-        let mut out = self.clone();
-        out.layout = out.layout.set_focus(focus);
         out
     }
 }

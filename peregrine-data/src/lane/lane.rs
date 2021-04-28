@@ -1,4 +1,3 @@
-use crate::core::focus::Focus;
 use crate::core::track::Track;
 use crate::core::{ Scale, StickId };
 use crate::index::StickStore;
@@ -12,25 +11,23 @@ use serde_cbor::Value as CborValue;
 pub struct Lane {
     stick: StickId,
     scale: Scale,
-    focus: Focus,
     track: Track,
     index: u64
 }
 
 impl Lane {
-    pub fn new(stick: StickId, index: u64, scale: Scale, focus: Focus, track: Track) -> Lane {
-        Lane { stick, scale, focus, track, index }
+    pub fn new(stick: StickId, index: u64, scale: Scale, track: Track) -> Lane {
+        Lane { stick, scale, track, index }
     }
 
     pub fn stick_id(&self) -> &StickId { &self.stick }
     pub fn track(&self) -> &Track { &self.track }
-    pub fn focus(&self) -> &Focus { &self.focus }
     pub fn index(&self) -> u64 { self.index }
     pub fn scale(&self) -> &Scale { &self.scale }
 
     pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![
-            self.stick.serialize()?,self.scale.serialize()?,self.focus().serialize()?,
+            self.stick.serialize()?,self.scale.serialize()?,
             self.track.serialize()?,CborValue::Integer(self.index as i128)
         ]))
     }
@@ -53,8 +50,7 @@ impl Lane {
         Lane {
             stick: self.stick.clone(),
             scale, index,
-            track: self.track.clone(),
-            focus: self.focus.clone()
+            track: self.track.clone()
         }
     }
 
@@ -63,7 +59,6 @@ impl Lane {
         let mut ppr = ProgramRegion::new();
         ppr.set_stick_tags(&tags);
         ppr.set_scale(self.scale.clone(),self.scale.next_scale());
-        ppr.set_focus(self.focus.clone());
         ppr.set_tracks(&[self.track.clone()]);
         let (channel,prog,ppr) = lane_program_store.get(&ppr)
             .ok_or_else(|| DataMessage::NoLaneProgram(self.clone()))?;

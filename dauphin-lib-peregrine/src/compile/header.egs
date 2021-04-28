@@ -21,8 +21,7 @@ struct lane {
     stick: string,
     index: number,
     scale: number,
-    track: string,
-    focus: string
+    track: string
 };
 
 struct datasource { value: number };

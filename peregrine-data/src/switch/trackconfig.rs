@@ -44,7 +44,7 @@ impl TrackConfigNode {
     }
 }
 
-fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq, V: Hash>(map: &HashMap<K,V>, state: &mut H) {
+fn hashmap_hasher<H: Hasher, K: Hash+PartialEq+Eq+PartialOrd+Ord, V: Hash>(map: &HashMap<K,V>, state: &mut H) {
     let mut kids : Vec<_> = map.keys().collect();
     kids.sort();
     kids.len().hash(state);

@@ -16,7 +16,7 @@ class Handler:
 
 class Panel(object):
     def __init__(self, data):
-        (self.stick,self.scale,self.focus,self.track,self.index) = data
+        (self.stick,self.scale,self.track,self.index) = data
         self.start = (1<<self.scale)*self.index
         self.end = (1<<self.scale)*(self.index+1)
 

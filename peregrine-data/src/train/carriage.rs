@@ -70,7 +70,7 @@ impl Carriage {
     }
 
     fn make_lane(&self, track: &Track) -> Lane {
-        Lane::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),self.id.train.layout().focus().clone(),track.clone())
+        Lane::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),track.clone())
     }
 
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
