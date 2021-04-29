@@ -13,6 +13,7 @@ use super::manager::RequestManager;
 use crate::run::{ PgDauphin, };
 use crate::api::{ PeregrineCoreBase, AgentStore };
 use crate::util::message::DataMessage;
+use crate::lane::programname::ProgramName;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -43,34 +44,31 @@ impl SuppliedBundle {
 
 #[derive(Clone)]
 struct ProgramCommandRequest {
-    channel: Channel,
-    name: String // in-channel name
+    program_name: ProgramName
 }
 
 impl ProgramCommandRequest {
-    pub(crate) fn new(channel: &Channel, name: &str) -> ProgramCommandRequest {
-        blackbox_log!(&format!("channel-{}",channel.to_string()),"requesting program {}",name);
+    pub(crate) fn new(program_name: &ProgramName) -> ProgramCommandRequest {
+        blackbox_log!(&format!("channel-{}",program_name.0.to_string()),"requesting program {}",program_name);
         ProgramCommandRequest {
-            channel: channel.clone(),
-            name: name.to_string()
+            program_name: program_name.clone()
         }
     }
 
     pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new();
-        let channel = self.channel.clone();
-        let name = self.name.clone();
+        let program_name = self.program_name.clone();
         backoff.backoff::<ProgramCommandResponse,_,_>(
-            manager,self.clone(),&self.channel,PacketPriority::RealTime, move |_| {
-                if dauphin.is_present(&channel,&name) {
+            manager,self.clone(),&self.program_name.0,PacketPriority::RealTime, move |_| {
+                if dauphin.is_present(&program_name) {
                     None
                 } else {
                     Some(GeneralFailure::new("program was returned but did not load successfully"))
                 }
             }
         ).await??;
-        if !dauphin.is_present(&self.channel,&self.name) {
-            return Err(DataMessage::DauphinProgramDidNotLoad(self.name));
+        if !dauphin.is_present(&self.program_name) {
+            return Err(DataMessage::DauphinProgramDidNotLoad(self.program_name));
         }
         Ok(())
     }
@@ -79,7 +77,7 @@ impl ProgramCommandRequest {
 impl RequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
     fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
+        self.program_name.serialize()
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(GeneralFailure::new("program loading failed"))
@@ -101,25 +99,25 @@ impl ResponseBuilderType for ProgramResponseBuilderType {
     }
 }
 
-async fn load_program(mut base: PeregrineCoreBase, _agent_store: AgentStore, (channel,name): (Channel,String)) -> Result<(),DataMessage> {
-    let req = ProgramCommandRequest::new(&channel,&name);
+async fn load_program(mut base: PeregrineCoreBase, _agent_store: AgentStore, program_name: ProgramName) -> Result<(),DataMessage> {
+    let req = ProgramCommandRequest::new(&program_name);
     req.execute(&mut base.manager,&base.dauphin).await
 }
 
 #[derive(Clone)]
-pub struct ProgramLoader(Agent<(Channel,String),()>);
+pub struct ProgramLoader(Agent<ProgramName,()>);
 
 impl ProgramLoader {
     pub fn new(base: &PeregrineCoreBase, agent_store: &AgentStore) -> ProgramLoader {
         ProgramLoader(Agent::new(MemoizedType::Store,"program-loader",3,base,agent_store, load_program))
     }
 
-    pub async fn load(&self, channel: &Channel,name: &str) -> Result<(),DataMessage> {
-        self.0.get(&(channel.clone(),name.to_string())).await.as_ref().clone()
+    pub async fn load(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
+        self.0.get(program_name).await.as_ref().clone()
     }
 
-    pub fn load_background(&self, channel: &Channel, name: &str) {
-        self.0.get_no_wait(&(channel.clone(),name.to_string()))
+    pub fn load_background(&self, program_name: &ProgramName) {
+        self.0.get_no_wait(program_name)
     }
 }
 
@@ -145,7 +143,8 @@ mod test {
                 ],
             }
         },vec![]);
-        let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
+        let program_name = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2".to_string());
+        let pcr = ProgramCommandRequest::new(&program_name);
         let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
@@ -166,7 +165,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(h.base.dauphin.is_present(&program_name));
     }
 
     #[test]
@@ -184,7 +183,8 @@ mod test {
                 }
             },vec![]);
         }
-        let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
+        let program_name = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2".to_string());
+        let pcr = ProgramCommandRequest::new(&program_name);
         let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
@@ -208,7 +208,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(!h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(h.base.dauphin.is_present(&program_name));
     }
 
 }

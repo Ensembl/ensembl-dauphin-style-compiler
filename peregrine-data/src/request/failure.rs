@@ -2,8 +2,6 @@ use std::any::Any;
 use anyhow::{ self, };
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
-use crate::run::pgcommander::{ PgCommander, PgCommanderTaskSpec };
-use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 
 pub struct GeneralFailure {

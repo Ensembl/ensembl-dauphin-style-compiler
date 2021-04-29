@@ -5,8 +5,9 @@ use std::sync::{ Arc, Mutex };
 use super::shapelist::ShapeList;
 use owning_ref::MutexGuardRefMut;
 use super::core::{ Patina, AnchorPair, SingleAnchor, track_split, bulk, Pen, Plotter };
+use crate::Track;
 
-fn track_sort(tracks: &[String]) -> (Vec<usize>, Vec<String>) {
+fn track_sort(tracks: &[Track]) -> (Vec<usize>, Vec<Track>) {
     let mut next_idx = 0;
     let mut fwd = vec![];
     let mut out = vec![];
@@ -18,7 +19,7 @@ fn track_sort(tracks: &[String]) -> (Vec<usize>, Vec<String>) {
                 let idx = next_idx;
                 next_idx += 1;
                 e.insert(idx);
-                fwd.push(track.to_string());
+                fwd.push(track.clone());
                 idx
             }
         };
@@ -30,7 +31,7 @@ fn track_sort(tracks: &[String]) -> (Vec<usize>, Vec<String>) {
 
 #[derive(Debug)]
 pub struct ShapeOutputData {
-    shapes: HashMap<String,ShapeList>
+    shapes: HashMap<Track,ShapeList>
 }
 
 impl ShapeOutputData {
@@ -40,14 +41,14 @@ impl ShapeOutputData {
         }
     }
 
-    fn track(&mut self, track: &str) -> &mut ShapeList {
-        self.shapes.entry(track.to_string()).or_insert_with(|| ShapeList::new())
+    fn track(&mut self, track: &Track) -> &mut ShapeList {
+        self.shapes.entry(track.clone()).or_insert_with(|| ShapeList::new())
     }
 
     fn filter(&self, min_value: f64, max_value: f64) -> ShapeOutputData {
         let mut new_shapes = HashMap::new();
         for (track,shapes) in self.shapes.iter() {
-            new_shapes.insert(track.to_string(),shapes.filter(min_value,max_value));
+            new_shapes.insert(track.clone(),shapes.filter(min_value,max_value));
         }
         ShapeOutputData {
             shapes: new_shapes
@@ -67,7 +68,7 @@ impl ShapeOutput {
         }
     }
 
-    pub fn track_shapes(&self, track: &str) -> MutexGuardRefMut<ShapeOutputData,ShapeList> {
+    pub fn track_shapes(&self, track: &Track) -> MutexGuardRefMut<ShapeOutputData,ShapeList> {
         MutexGuardRefMut::new(self.data.lock().unwrap()).map_mut(|x| x.track(track))
     }
 
@@ -78,7 +79,7 @@ impl ShapeOutput {
         }
     }
 
-    pub fn add_rectangle_1(&self, anchors: SingleAnchor, x_size: Vec<f64>, y_size: Vec<f64>, patina: Patina, allotments: Vec<String>, tracks: Vec<String>) {
+    pub fn add_rectangle_1(&self, anchors: SingleAnchor, x_size: Vec<f64>, y_size: Vec<f64>, patina: Patina, allotments: Vec<String>, tracks: Vec<Track>) {
         let (track_map,track_names) = track_sort(&tracks);
         let track_map = bulk(track_map,anchors.len(),true);
         let count = anchors.len();
@@ -99,7 +100,7 @@ impl ShapeOutput {
         }
     }
 
-    pub fn add_rectangle_2(&self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>, tracks: Vec<String>) {
+    pub fn add_rectangle_2(&self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>, tracks: Vec<Track>) {
         let (track_map,track_names) = track_sort(&tracks);
         let track_map = bulk(track_map,anchors.len(),true);
         let count = anchors.len();
@@ -116,7 +117,7 @@ impl ShapeOutput {
         }
     }
 
-    pub fn add_text(&self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>, tracks: Vec<String>) {
+    pub fn add_text(&self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>, tracks: Vec<Track>) {
         let (track_map,track_names) = track_sort(&tracks);
         let track_map = bulk(track_map,anchors.len(),true);
         let count = anchors.len();
@@ -135,7 +136,7 @@ impl ShapeOutput {
         }
     }
 
-    pub fn add_wiggle(&self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: String, track: String) {
+    pub fn add_wiggle(&self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: String, track: Track) {
         self.track_shapes(&track).add_wiggle(min,max,plotter,values,allotment);
     }
 }

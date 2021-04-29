@@ -1,11 +1,11 @@
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
-use crate::core::Track;
 use crate::lane::{ Lane };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
+use crate::switch::trackconfig::TrackConfig;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {
@@ -39,12 +39,6 @@ pub struct Carriage {
     messages: MessageSender
 }
 
-impl fmt::Debug for Carriage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,"{:?}/{}",self.id.train,self.id.index)
-    }
-}
-
 impl Carriage {
     pub fn new(id: &CarriageId, messages: &MessageSender) -> Carriage {
         Carriage {
@@ -69,15 +63,19 @@ impl Carriage {
         self.shapes.lock().unwrap().is_some()
     }
 
-    fn make_lane(&self, track: &Track) -> Lane {
+    fn make_lane(&self, track: &TrackConfig) -> Lane {
         Lane::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),track.clone())
     }
 
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut lanes = vec![];
-        for track in self.id.train.layout().tracks().iter() {
-            lanes.push((track,self.make_lane(track)));
+        let track_config_list = self.id.train.layout().track_config_list();
+        let track_list = track_config_list.as_ref().map(|x| x.list_tracks()).unwrap_or_else(|| vec![]);
+        for track in track_list {
+            if let Some(track_config) = track_config_list.as_ref().and_then(|x| x.get_track(&track)) {
+                lanes.push((track,self.make_lane(&track_config)));
+            }
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
@@ -89,7 +87,7 @@ impl Carriage {
                 Ok(zoo) => {
                     use web_sys::console;
                     console::log_1(&format!("got new shapes").into());
-                    new_shapes.append(&zoo.track_shapes(track.name()));
+                    new_shapes.append(&zoo.track_shapes(track));
                 },
                 Err(e) => {
                     self.messages.send(e.clone());

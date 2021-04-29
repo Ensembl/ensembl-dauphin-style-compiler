@@ -20,7 +20,7 @@ use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage, Position };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, Track, StickId, DataMessage };
+use peregrine_data::{ Channel, StickId, DataMessage };
 
 #[cfg(blackbox)]
 pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
@@ -189,16 +189,6 @@ impl PeregrineInnerAPI {
     pub(super) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.set_bp_per_screen(z));
         self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
-        instigator.done();
-    }
-
-    pub(super) fn add_track(&self, track: Track, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.add_track(track));
-        instigator.done();
-    }
-
-    pub(super) fn remove_track(&self, track: Track, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.remove_track(track));
         instigator.done();
     }
 

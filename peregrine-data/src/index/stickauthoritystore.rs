@@ -18,8 +18,8 @@ impl StickAuthorityStoreData {
     }
 
     fn add(&mut self, stick_authority: StickAuthority) {
-        blackbox_log!("stickauthority","added stick authority channel={} startup={} lookup={}",
-                        stick_authority.channel(),stick_authority.startup_program(),stick_authority.lookup_program());
+        blackbox_log!("stickauthority","added stick authoritystartup={} lookup={}",
+                        stick_authority.startup_program(),stick_authority.lookup_program());
         self.authorities.push(stick_authority);
     }
 

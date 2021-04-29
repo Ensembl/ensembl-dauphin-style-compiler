@@ -4,6 +4,7 @@ use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
 use crate::request::channel::Channel;
 use crate::lane::Lane;
+use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
 use peregrine_message::{ MessageLevel, MessageCategory, PeregrineMessage };
@@ -35,9 +36,9 @@ pub enum DataMessage {
     StickAuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
     CarriageUnavailable(CarriageId,Vec<DataMessage>),
-    DauphinProgramDidNotLoad(String),
+    DauphinProgramDidNotLoad(ProgramName),
     DauphinIntegrationError(String),
-    DauphinRunError(String,String),
+    DauphinRunError(ProgramName,String),
     DauphinProgramMissing(String),
     DataUnavailable(Channel,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),

@@ -52,3 +52,7 @@ features=["console"]
 
 [dependencies.js-sys]
 version="*"
+
+[dependencies.identitynumber]
+version="*"
+path="../identitynumber"

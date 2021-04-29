@@ -711,6 +711,7 @@ dependencies = [
  "commander",
  "dauphin_interp",
  "futures",
+ "identitynumber",
  "js-sys",
  "keyed",
  "lazy_static",

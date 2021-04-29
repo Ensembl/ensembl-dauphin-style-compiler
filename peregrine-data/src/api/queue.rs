@@ -1,5 +1,5 @@
 use crate::api::PeregrineCore;
-use crate::core::{ Focus, StickId, Track, Viewport };
+use crate::core::{ Focus, StickId, Viewport };
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
@@ -12,15 +12,14 @@ use peregrine_message::Instigator;
 pub enum ApiMessage {
     Ready,
     TransitionComplete,
-    AddTrack(Track),
-    RemoveTrack(Track),
     SetPosition(f64),
     SetBpPerScreen(f64),
     SetFocus(Focus),
     SetStick(StickId),
     Bootstrap(Channel),
     SetSwitch(Vec<String>),
-    ClearSwitch(Vec<String>)
+    ClearSwitch(Vec<String>),
+    RegeneraateTrackConfig
 }
 
 #[derive(Clone)]
@@ -61,12 +60,6 @@ impl PeregrineApiQueue {
                 let train_set = data.train_set.clone();
                 train_set.transition_complete(data);
             },
-            ApiMessage::AddTrack(track) => {
-                self.update_viewport(data,data.viewport.track_on(&track,true),instigator);
-            },
-            ApiMessage::RemoveTrack(track) => {
-                self.update_viewport(data,data.viewport.track_on(&track,false),instigator);
-            },
             ApiMessage::SetPosition(pos) =>{
                 self.update_viewport(data,data.viewport.set_position(pos),instigator);
             },
@@ -84,9 +77,14 @@ impl PeregrineApiQueue {
             },
             ApiMessage::SetSwitch(path) => {
                 data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()),instigator);
             },
             ApiMessage::ClearSwitch(path) => {
                 data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()),instigator);
+            },
+            ApiMessage::RegeneraateTrackConfig => {
+                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()),instigator);
             }
         }
     }

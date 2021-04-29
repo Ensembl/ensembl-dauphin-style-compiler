@@ -1,5 +1,12 @@
 mod agent {
     pub mod agent;
+    pub(crate) mod laneprogramlookup;
+    pub(crate) mod lanescaler;
+    pub(crate) mod shapeprogramrunagent;
+
+    pub use self::shapeprogramrunagent::{ ShapeProgramRunAgent };
+    pub use self::laneprogramlookup::LaneProgramLookup;
+    pub use self::lanescaler::LaneScaler;
 }
 
 mod api {
@@ -11,7 +18,7 @@ mod api {
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
-    pub use queue::PeregrineApiQueue;
+    pub use queue::{ ApiMessage, PeregrineApiQueue };
 }
 
 mod core {
@@ -20,7 +27,6 @@ mod core {
     mod layout;
     mod scale;
     pub mod stick;
-    pub mod track;
     mod viewport;
 
     pub use self::config::{ PeregrineConfig, ConfigValue };
@@ -28,7 +34,6 @@ mod core {
     pub use self::layout::Layout;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
-    pub use track::Track;
     pub use viewport::Viewport;
 }
 
@@ -43,18 +48,17 @@ mod index {
 mod lane {
     mod datastore;
     mod lane;
-    mod laneprogramstore;
-    mod programregion;
-    mod lanerunstore;
+    pub(crate) mod programregion;
     mod lanestore;
-    mod programdata;
+    pub(crate)mod programdata;
+    pub(crate) mod programname;
+
     pub use self::datastore::DataStore;
-    pub use self::lane::{ Lane };
+    pub use self::lane::{ Lane, Region };
     pub use self::programdata::ProgramData;
-    pub use self::programregion::ProgramRegion;
-    pub use self::lanerunstore::{ LaneRunStore, LaneRunOutput };
-    pub use self::laneprogramstore::LaneProgramStore;
-    pub use self::lanestore::LaneStore;
+    pub use self::programname::ProgramName;
+    pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
+    pub use self::lanestore::{ LaneStore };
 }
 
 mod request {
@@ -105,6 +109,7 @@ mod shape {
 }
 
 pub(crate) mod switch {
+    pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
 }
@@ -145,15 +150,18 @@ mod test {
     pub(crate) mod helpers;
 }
 
+pub use self::agent::{ LaneProgramLookup, LaneScaler, ShapeProgramRunAgent };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
-pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
+pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::lane::{ Lane, LaneProgramStore, LaneRunStore, ProgramRegion, LaneRunOutput, LaneStore, DataStore, ProgramData };
+pub use self::lane::{ Lane, Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeOutput
 };
+pub use self::switch::switch::{ Switches };
+pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage };

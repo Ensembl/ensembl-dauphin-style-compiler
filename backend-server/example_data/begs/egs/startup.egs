@@ -4,7 +4,7 @@ import "lib:peregrine"; use "peregrine";
 /* most zoomed out gene view: no structure, but with labels */
 p := lane_new();
 lane_add_tag(p,"local");
-lane_add_track(p,"gene-pc-fwd");
+lane_add_trigger(p,["track","gene-pc-fwd"]);
 lane_set_scale(p,19,50);
 lane_set_max_scale_jump(p,6);
 lane_apply(p,"self()","gene");

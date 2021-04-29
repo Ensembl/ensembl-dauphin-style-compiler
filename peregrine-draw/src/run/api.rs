@@ -1,7 +1,7 @@
 use crate::util::message::{ Message };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use peregrine_data::{Channel, PeregrineConfig, PgCommanderTaskSpec, StickId, Track};
+use peregrine_data::{Channel, PeregrineConfig, PgCommanderTaskSpec, StickId };
 use super::progress::Progress;
 use commander::CommanderStream;
 use peregrine_message::Instigator;
@@ -16,8 +16,6 @@ enum DrawMessage {
     SetX(f64),
     SetY(f64),
     SetBpPerScreen(f64),
-    AddTrack(Track),
-    RemoveTrack(Track),
     SetStick(StickId),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
@@ -39,12 +37,6 @@ impl DrawMessage {
                 draw.set_y(y);
                 instigator.done();
             },
-            DrawMessage::AddTrack(track) => {
-                draw.add_track(track,&mut instigator);
-            },
-            DrawMessage::RemoveTrack(track) => {
-                draw.remove_track(track,&mut instigator);
-            }
             DrawMessage::SetStick(stick) => {
                 draw.set_stick(&stick,&mut instigator);
             },
@@ -105,18 +97,6 @@ impl PeregeineAPI {
     pub fn set_bp_per_screen(&self, bp: f64) -> Progress {
         let (progress,insitgator) = Progress::new();
         self.queue.add((DrawMessage::SetBpPerScreen(bp),insitgator.clone()));
-        progress
-    }
-
-    pub fn add_track(&self, track: Track) -> Progress {
-        let (progress,insitgator) = Progress::new();
-        self.queue.add((DrawMessage::AddTrack(track),insitgator.clone()));
-        progress
-    }
-
-    pub fn remove_track(&self, track: Track) -> Progress {
-        let (progress,insitgator) = Progress::new();
-        self.queue.add((DrawMessage::RemoveTrack(track),insitgator.clone()));
         progress
     }
 

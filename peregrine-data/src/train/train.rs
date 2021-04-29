@@ -122,12 +122,6 @@ impl TrainData {
 #[derive(Clone)]
 pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
 
-impl fmt::Debug for Train {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,"{:?}",self.id())
-    }
-}
-
 impl Train {
     pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Train {
         let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages,reporter))),messages.clone());

@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use peregrine_data::{
-    LaneRunOutput, AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor
+    AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor, ShapeOutput, Lane
 };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
@@ -34,11 +34,14 @@ impl InterpCommand for Rectangle2InterpCommand {
         let ship_y0 = geometry.shipend(ship_y0_id[0] as u32)?.as_ref().clone();
         let ship_y1 = geometry.shipend(ship_y1_id[0] as u32)?.as_ref().clone();
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
-        let out = get_instance::<LaneRunOutput>(context,"out")?;
-        let zoo = out.shapes();
+        let zoo = get_instance::<ShapeOutput>(context,"out")?;
+        /**/
+        let lane = get_instance::<Lane>(context,"lane")?;
+        let track = lane.track_config().track().clone();
+        /**/
         zoo.add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
-                                        patina,allotment,track);
+                                        patina,allotment,vec![track]);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -63,12 +66,15 @@ impl InterpCommand for Rectangle1InterpCommand {
         let sea_y = geometry.seaend(sea_y_id[0] as u32)?.as_ref().clone();
         let ship_y = geometry.shipend(ship_y_id[0] as u32)?.as_ref().clone();
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
-        let out = get_instance::<LaneRunOutput>(context,"out")?;
-        let zoo = out.shapes();
+        let zoo = get_instance::<ShapeOutput>(context,"out")?;
+        /**/
+        let lane = get_instance::<Lane>(context,"lane")?;
+        let track = lane.track_config().track().clone();
+        /**/
         zoo.add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
                                                      SingleAnchorAxis(sea_y,ship_y)),
                                         size_x, size_y,
-                                        patina,allotment,track);
+                                        patina,allotment,vec![track]);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -92,9 +98,12 @@ impl InterpCommand for TextInterpCommand {
         let sea_y = geometry.seaend(sea_y_id[0] as u32)?.as_ref().clone();
         let ship_y = geometry.shipend(ship_y_id[0] as u32)?.as_ref().clone();
         let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
-        let out = get_instance::<LaneRunOutput>(context,"out")?;
-        let zoo = out.shapes();
-        zoo.add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotment,track);
+        let zoo = get_instance::<ShapeOutput>(context,"out")?;
+        /**/
+        let lane = get_instance::<Lane>(context,"lane")?;
+        let track = lane.track_config().track().clone();
+        /**/
+        zoo.add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotment,vec![track]);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -114,8 +123,11 @@ impl InterpCommand for WiggleInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
-        let out = get_instance::<LaneRunOutput>(context,"out")?;
-        let zoo = out.shapes();
+        let zoo = get_instance::<ShapeOutput>(context,"out")?;
+        /**/
+        let lane = get_instance::<Lane>(context,"lane")?;
+        let track = lane.track_config().track().clone();
+        /**/        
         zoo.add_wiggle(x_min,x_max,plotter,values,allotment,track);
         Ok(CommandResult::SyncResult())
     }

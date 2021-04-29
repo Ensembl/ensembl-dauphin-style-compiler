@@ -6,10 +6,13 @@ use super::lane::Lane;
 use crate::util::message::DataMessage;
 use crate::api::{ PeregrineCoreBase, AgentStore };
 
-async fn run(_base: PeregrineCoreBase,agent_store: AgentStore, lane: Lane) -> Result<ShapeOutput,DataMessage> {
-    match agent_store.lane_run_store().await.run(&lane).await {
+async fn run(_base: PeregrineCoreBase, agent_store: AgentStore, wanted_lane: Lane) -> Result<ShapeOutput,DataMessage> {
+    let lane_scaler = agent_store.lane_scaler().await;
+    let scaled_lane = lane_scaler.get(&wanted_lane).await;
+    let scaled_lane = scaled_lane.as_ref().as_ref().map_err(|e| e.clone())?;
+    match agent_store.shape_program_run_agent().await.get(scaled_lane).await {
         Ok(pro) => {
-            Ok(pro.shapes().filter(lane.min_value() as f64,lane.max_value() as f64))
+            Ok(pro.filter(wanted_lane.min_value() as f64,wanted_lane.max_value() as f64))
         },
         Err(e) => {
             Err(DataMessage::DataMissing(Box::new(e.clone())))

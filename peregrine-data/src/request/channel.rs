@@ -20,7 +20,7 @@ pub trait ChannelIntegration {
     fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>;
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum ChannelLocation {
     HttpChannel(Url)
 }
@@ -39,7 +39,7 @@ impl ChannelLocation {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct Channel(Arc<ChannelLocation>);
 
 impl Channel {

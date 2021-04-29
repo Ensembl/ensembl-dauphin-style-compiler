@@ -4,7 +4,7 @@ use super::integrations::{ TestCommander, TestChannelIntegration, FakeDauphinRec
 use crate::{PeregrineCoreBase, api::MessageSender};
 use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
 use crate::{ ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
-use crate::api::AgentStore;
+use crate::api::{ AgentStore, PeregrineApiQueue };
 use crate::run::add_task;
 use crate::util::message::DataMessage;
 use commander::Agent;
@@ -44,11 +44,11 @@ impl TestHelpers {
             dauphin,
             commander,
             manager,
-            booted
+            booted,
+            queue: PeregrineApiQueue::new()
         };
         agent_store.set_program_loader(ProgramLoader::new(&base,&agent_store));
         agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));
-        let stick_store = StickStore::new(&base,&agent_store);
         base.manager.add_receiver(Box::new(base.dauphin.clone()));
         TestHelpers {
             console, base, agent_store,

@@ -6,42 +6,41 @@ use crate::request::{ Channel };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;
-use crate::api::AgentStore;
+use crate::api::{ AgentStore, ApiMessage };
+use crate::lane::programname::ProgramName;
+use peregrine_message::Instigator;
 
 #[derive(Clone)]
 pub struct StickAuthority {
-    channel: Channel,
-    startup_program_name: String,
-    lookup_program_name: String
+    startup_program_name: ProgramName,
+    lookup_program_name: ProgramName
 }
 
 impl StickAuthority {
     pub fn new(channel: &Channel, startup_program_name: &str, lookup_program_name: &str) -> StickAuthority {
         StickAuthority {
-            channel: channel.clone(),
-            startup_program_name: startup_program_name.to_string(),
-            lookup_program_name: lookup_program_name.to_string(),
+            startup_program_name: ProgramName(channel.clone(),startup_program_name.to_string()),
+            lookup_program_name: ProgramName(channel.clone(),lookup_program_name.to_string())
         }
     }
-
-    pub fn channel(&self) -> &Channel { &self.channel }
-    pub fn startup_program(&self) -> &str { &self.startup_program_name }
-    pub fn lookup_program(&self) -> &str { &self.lookup_program_name }
 
     async fn run_startup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Result<(),DataMessage> {
         base.dauphin.run_program(&agent_store.program_loader().await.clone(),PgDauphinTaskSpec {
             prio: 2,
             slot: None,
             timeout: None,
-            channel: self.channel.clone(),
             program_name: self.startup_program_name.clone(),
             payloads: None
-        }).await   
+        }).await?;
+        use web_sys::console;
+        console::log_1(&format!("stick authority program finished").into());
+        base.queue.push(ApiMessage::RegeneraateTrackConfig,Instigator::new());
+        Ok(())
     }
 
     async fn preload_lookup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) {
-        if !base.dauphin.is_present(&self.channel,&self.lookup_program_name) {
-            agent_store.program_loader().await.load_background(&self.channel,&self.lookup_program_name);
+        if !base.dauphin.is_present(&self.lookup_program_name) {
+            agent_store.program_loader().await.load_background(&self.lookup_program_name);
         }
     }
 
@@ -52,7 +51,6 @@ impl StickAuthority {
             prio: 2,
             slot: None,
             timeout: None,
-            channel: self.channel.clone(),
             program_name: self.lookup_program_name.clone(),
             payloads: Some(payloads)
         }).await?;

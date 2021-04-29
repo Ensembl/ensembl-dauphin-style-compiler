@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{ cdr_timer };
 use peregrine_draw::{ PeregeineAPI, Message };
-use peregrine_data::{Channel, ChannelLocation, StickId, Track};
+use peregrine_data::{Channel, ChannelLocation, StickId };
 use peregrine_data::{ PeregrineConfig };
 use peregrine_message::PeregrineMessage;
 pub use url::Url;
@@ -41,9 +41,8 @@ async fn test() -> anyhow::Result<()> {
     let window = web_sys::window().unwrap();
     let document = window.document().unwrap();
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
-
-    API.set_switch(&["gene-pc-fwd"]);
-    API.add_track(Track::new("gene-pc-fwd"));
+    API.set_switch(&["track"]);
+    API.set_switch(&["track","gene-pc-fwd"]);
     API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;

@@ -2,11 +2,11 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_data::{ StickId, Lane, Channel, Scale, Track, ProgramData };
+use peregrine_data::{ StickId, Lane, Region, Channel, Scale, ProgramData };
 use serde_cbor::Value as CborValue;
 
-simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,4,(0,1,2,3));
-simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,7,(0,1,2,3,4,5,6));
+simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
+simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,6,(0,1,2,3,4,5));
 simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
 
 impl InterpCommand for GetLaneInterpCommand {
@@ -16,18 +16,16 @@ impl InterpCommand for GetLaneInterpCommand {
         registers.write(&self.0,InterpValue::Strings(vec![lane.stick_id().get_id().to_string()]));
         registers.write(&self.1,InterpValue::Numbers(vec![lane.index() as f64]));
         registers.write(&self.2,InterpValue::Numbers(vec![lane.scale().get_index() as f64]));
-        registers.write(&self.3,InterpValue::Strings(vec![lane.track().name().to_string()]));
         Ok(CommandResult::SyncResult())
     }
 }
 
-fn get_lane(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::Result<Option<Lane>> {
+fn get_region(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::Result<Option<Region>> {
     if registers.len(&cmd.3)? == 0 { return Ok(None); }
     let stick = &registers.get_strings(&cmd.3)?[0];
     let index = &registers.get_numbers(&cmd.4)?[0];
     let scale = &registers.get_numbers(&cmd.5)?[0];
-    let track = &registers.get_strings(&cmd.6)?[0];
-    Ok(Some(Lane::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64),Track::new(track))))
+    Ok(Some(Region::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64))))
 }
 
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {
@@ -37,12 +35,12 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let channel_name = registers.get_strings(&cmd.1)?;
     let prog_name = &registers.get_strings(&cmd.2)?[0];
     let mut ids = vec![];
-    if let Some(lane) = get_lane(registers,&cmd)? {
+    if let Some(region) = get_region(registers,&cmd)? {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let data_store = peregrine.agent_store().data_store().await;
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
-        let result = data_store.get(&lane,&channel,prog_name).await?;
+        let result = data_store.get(&region,&channel,prog_name).await?;
         let id = program_data.add(result);
         ids.push(id as usize);
     }

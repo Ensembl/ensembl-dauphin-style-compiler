@@ -20,8 +20,7 @@ struct plotterspec { value: number };
 struct lane {
     stick: string,
     index: number,
-    scale: number,
-    track: string
+    scale: number
 };
 
 struct datasource { value: number };
@@ -33,7 +32,8 @@ proc add_stick(stick);
 
 func lane_new() becomes laneid;
 proc lane_add_tag(laneid,string);
-proc lane_add_track(laneid,string);
+proc lane_add_trigger(laneid,vec(string));
+proc lane_add_switch(laneid,vec(string));
 proc lane_set_scale(laneid,number,number);
 proc lane_set_max_scale_jump(laneid,number);
 proc lane_apply(laneid,string,string);

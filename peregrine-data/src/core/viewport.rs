@@ -1,5 +1,6 @@
-use crate::{DataMessage, core::{ StickId, Track }};
+use crate::{DataMessage, core::{ StickId }};
 use super::layout::Layout;
+use crate::switch::trackconfig::TrackConfigList;
 
 fn unwrap<T>(x: Option<T>) -> Result<T,DataMessage> {
     x.ok_or_else(|| DataMessage::CodeInvariantFailed("unready viewport queried".to_string()))
@@ -35,12 +36,6 @@ impl Viewport {
     pub fn position(&self) -> Result<f64,DataMessage> { unwrap(self.position) }
     pub fn bp_per_screen(&self) -> Result<f64,DataMessage> { unwrap(self.bp_per_screen) }
 
-    pub fn track_on(&self, track: &Track, yn: bool) -> Viewport {
-        let mut out = self.clone();
-        out.layout = out.layout.track_on(track,yn);
-        out
-    }
-
     pub fn new_layout(&self, layout: &Layout) -> Viewport {
         let mut out = self.clone();
         out.layout = layout.clone();
@@ -62,6 +57,12 @@ impl Viewport {
     pub fn set_stick(&self, stick: &StickId) -> Viewport {
         let mut out = self.clone();
         out.layout = out.layout.set_stick(stick);
+        out
+    }
+
+    pub fn set_track_config_list(&self, track_config_list: &TrackConfigList) -> Viewport {
+        let mut out = self.clone();
+        out.layout = out.layout.set_track_config_list(track_config_list);
         out
     }
 }
