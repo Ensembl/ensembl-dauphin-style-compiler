@@ -5,6 +5,4 @@ import "lib:peregrine"; use "peregrine";
 p := lane_new("self()","gene",19,50,6);
 lane_add_tag(p,"local");
 lane_add_trigger(p,["track","gene-pc-fwd"]);
-lane_set_scale(p,19,50);
-lane_set_max_scale_jump(p,6);
 lane_apply(p);

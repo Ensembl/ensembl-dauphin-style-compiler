@@ -7,8 +7,7 @@ use super::decompress::{
 };
 
 use super::lane::{ 
-    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, SetScaleDeserializer, DataSourceDeserializer,
-    LaneSetMaxScaleJumpDeserializer
+    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer,
 };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
@@ -21,7 +20,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(5,0),0x2C048E7B2BEF6E13)
+    CommandSetId::new("peregrine",(6,0),0xA09E51ECE5D2E012)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -33,7 +32,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(NewLaneDeserializer());
     set.push(AddTagDeserializer());
     set.push(AddTriggerDeserializer());
-    set.push(SetScaleDeserializer());
     set.push(DataSourceDeserializer());
     set.push(IntervalDeserializer());
     set.push(ScreenStartPairDeserializer());
@@ -66,6 +64,5 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(LaneSetMaxScaleJumpDeserializer());
     set
 }

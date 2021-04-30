@@ -24,12 +24,15 @@ impl ProgramRegionBuilder {
         self.mounts.push((path,trigger));
     }
 
-    // XXX name
     pub fn build(&mut self, track: &Track, switches: &Switches) -> ProgramRegion {
         for (path,trigger) in &self.mounts {
             let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
             switches.add_track(&path,track,*trigger);
         }
+        let scale = track.scale();
+        self.program_region.set_scale(Scale::new(scale.0),Scale::new(scale.1));
+        self.program_region.set_max_scale_jump(track.max_scale_jump() as u32);
+        self.program_region.set_stick_tags(track.tags());
         self.program_region.clone()
     }
 }

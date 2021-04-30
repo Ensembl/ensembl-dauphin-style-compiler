@@ -10,8 +10,7 @@ use super::decompress::{
     ClassifyCommandType, SplitStringCommandType
 };
 use super::lane::{ 
-    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, SetScaleCommandType, DataSourceCommandType,
-    SetMaxScaleJumpCommandType
+    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType
 };
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
@@ -22,7 +21,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(5,0),0x2C048E7B2BEF6E13)
+    CommandSetId::new("peregrine",(6,0),0xA09E51ECE5D2E012)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -34,7 +33,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("lane_new",Some(4),NewLaneCommandType());
     set.push("lane_add_tag",Some(5),AddTagCommandType());
     set.push("lane_add_track",Some(6),AddTrackCommandType());
-    set.push("lane_set_scale",Some(7),SetScaleCommandType());
+    set.push("wiggle",Some(7),WiggleCommandType());
     set.push("lane_apply",Some(8),DataSourceCommandType());
     set.push("interval",Some(9),IntervalCommandType());
     set.push("screen_start_pair",Some(10),ScreenStartPairCommandType());
@@ -66,8 +65,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("pen",Some(36),PenCommandType());
     set.push("text",Some(37),TextCommandType());
     set.push("plotter",Some(38),PlotterCommandType());
-    set.push("wiggle",Some(39),WiggleCommandType());
-    set.push("lane_set_max_scale_jump",Some(40),SetMaxScaleJumpCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

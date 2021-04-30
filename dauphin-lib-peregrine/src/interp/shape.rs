@@ -10,7 +10,7 @@ use crate::util::{ get_instance, get_peregrine };
 simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,9,(0,1,2,3,4,5,6,7,8));
 simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,9,(0,1,2,3,4,5,6,7,8));
 simple_interp_command!(TextInterpCommand,TextDeserializer,37,8,(0,1,2,3,4,5,6,7));
-simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,39,7,(0,1,2,3,4,5,6));
+simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,7,7,(0,1,2,3,4,5,6));
 
 impl InterpCommand for Rectangle2InterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

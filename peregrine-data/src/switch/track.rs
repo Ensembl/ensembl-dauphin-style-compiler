@@ -10,7 +10,8 @@ pub struct Track {
     min_scale: u64,
     max_scale: u64,
     scale_jump: u64,
-    program_name: ProgramName
+    program_name: ProgramName,
+    tags: Vec<String>
 }
 
 impl Track {
@@ -18,10 +19,15 @@ impl Track {
         Track {
             id: IDS.next(),
             min_scale, max_scale, scale_jump,
-            program_name: program_name.clone()
+            program_name: program_name.clone(),
+            tags: vec![]
         }
     }
 
+    pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
     pub fn program_name(&self) -> &ProgramName { &self.program_name }
     pub fn id(&self) -> u64 { self.id }
+    pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }
+    pub fn max_scale_jump(&self) -> u64 { self.scale_jump }
+    pub fn tags(&self) -> &[String] { &self.tags }
 }
