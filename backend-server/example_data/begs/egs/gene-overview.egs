@@ -1,0 +1,88 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+/* 
+ * actually get the data from the server
+ */
+
+data := get_data("self()","gene",get_lane());
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+gene_id := string_seq(data,"gene_ids");
+gene_name := string_seq(data,"gene_names");
+gene_desc := string_seq(data,"gene_descs");
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+strand := positive_seq(data,"strands");
+designated_transcript_id := string_seq(data,"designated_transcript_ids");
+designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
+designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
+strand_string := len([strand]) (*) "negative strand";
+strand_string#[strand>0] := "positive strand";
+
+/*
+ * Which allotment and track does data go into?
+ *
+ * There are separate allotments for protein_coding and non-protein_coding
+ * and also for forward and reverse strand. As usual there is a fifth 
+ * allotment for a focus-feature.
+ *
+ * For the data on each allotment there are currently two tracks: the
+ * main data and the labels.
+ */
+
+allotment_idx := len([gene_id]) (*) 0;
+
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+
+allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd"]);
+
+/*
+ * Which track does the data go into. Basically the same as the allotment
+ * but the labels go into a "subtrack"
+ */
+
+track := allotment;
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+non_pc_colour := colour(250,250,250);
+pc_colour := colour(128,128,128);
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+
+textpen := pen("Lato",12,colour(111,129,144));
+
+/*
+ * prepare the zmenus
+ */
+
+// TODO multiline strings
+
+/* transcript part */
+zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
+                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation]][]);
+
+/* gene part */
+zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id]][]);
+
+/*
+ * draw everything!
+ */
+
+rectangle_on_genome(start,end,5,patina,allotment,track);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment,track);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment,track);
+text_underneath(start,8,textpen,gene_name,allotment,track);

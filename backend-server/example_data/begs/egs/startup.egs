@@ -1,8 +1,33 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
+/* guidelines
+/scren  scale type
+1bp      0
+10bp     3
+100pb    6
+1kb     10
+10kb    13    ^
+100kb   16  exon structure
+1Mb     20  labels
+10Mb    23  no labels
+100Mb   26
+*/
+
 /* most zoomed out gene view: no structure, but with labels */
-p := lane_new("self()","gene",19,50,6);
+p := lane_new("self()","gene",17,20,6);
 lane_add_tag(p,"local");
 lane_add_trigger(p,["track","gene-pc-fwd"]);
+lane_add_trigger(p,["track","gene-pc-rev"]);
+lane_add_trigger(p,["track","gene-none-fwd"]);
+lane_add_trigger(p,["track","gene-none-rev"]);
+lane_apply(p);
+
+/* most zoomed out gene view: no structure, no labels */
+p := lane_new("self()","gene-overview",20,100,6);
+lane_add_tag(p,"local");
+lane_add_trigger(p,["track","gene-pc-fwd"]);
+lane_add_trigger(p,["track","gene-pc-rev"]);
+lane_add_trigger(p,["track","gene-none-fwd"]);
+lane_add_trigger(p,["track","gene-none-rev"]);
 lane_apply(p);

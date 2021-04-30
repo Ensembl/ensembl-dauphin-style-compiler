@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use super::switch::Switch;
 use super::track::Track;
 use super::trackconfig::{ TrackConfig, TrackConfigNode, hashmap_hasher };
+use crate::core::{ Layout, Scale };
 
 #[derive(Clone)]
 pub struct TrackConfigList {
@@ -63,5 +64,39 @@ impl TrackConfigList {
 
     pub(crate) fn list_tracks(&self) -> Vec<Track> {
         self.configs.keys().cloned().collect()
+    }
+
+    fn new_filter<F>(&self, f: F) -> TrackConfigList where F: Fn(&Track) -> bool {
+        let mut builder = HashMap::new();
+        for (track,config) in self.configs.iter() {
+            if f(track) {
+                builder.insert(track.clone(),config.clone());
+            }
+        }
+        let mut hasher = DefaultHasher::new();
+        hashmap_hasher(&builder,&mut hasher);
+        TrackConfigList {
+            configs: Arc::new(builder),
+            hash: hasher.finish()
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct TrainTrackConfigList(TrackConfigList);
+
+impl TrainTrackConfigList {
+    pub fn new(layout: &Layout, scale: &Scale) -> TrainTrackConfigList {
+        TrainTrackConfigList(layout.track_config_list().new_filter(|track| {
+            track.available(layout,scale)
+        }))
+    }
+
+    pub(crate) fn get_track(&self, track: &Track) -> Option<Arc<TrackConfig>> {
+        self.0.get_track(track)
+    }
+
+    pub(crate) fn list_tracks(&self) -> Vec<Track> {
+        self.0.list_tracks()
     }
 }

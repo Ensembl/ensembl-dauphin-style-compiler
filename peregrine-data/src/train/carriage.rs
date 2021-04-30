@@ -5,7 +5,8 @@ use crate::lane::{ Lane };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
-use crate::switch::trackconfig::TrackConfig;
+use crate::switch::trackconfig::{ TrackConfig };
+use crate::switch::trackconfiglist::TrainTrackConfigList;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {
@@ -35,15 +36,17 @@ impl Display for CarriageId {
 #[derive(Clone)]
 pub struct Carriage {
     id: CarriageId,
+    track_configs: TrainTrackConfigList,
     shapes: Arc<Mutex<Option<ShapeList>>>,
     messages: MessageSender
 }
 
 impl Carriage {
-    pub fn new(id: &CarriageId, messages: &MessageSender) -> Carriage {
+    pub fn new(id: &CarriageId, configs: &TrainTrackConfigList, messages: &MessageSender) -> Carriage {
         Carriage {
             id: id.clone(),
             shapes: Arc::new(Mutex::new(None)),
+            track_configs: configs.clone(),
             messages: messages.clone()
         }
     }
@@ -71,8 +74,10 @@ impl Carriage {
         if self.ready() { return Ok(()); }
         let mut lanes = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
-        let track_list = track_config_list.list_tracks();
+        let track_list = self.track_configs.list_tracks();
         for track in track_list {
+            use web_sys::console;
+            console::log_1(&format!("track: {} ({:?})",track.program_name().1,self.id).into());
             if let Some(track_config) = track_config_list.get_track(&track) {
                 lanes.push((track,self.make_lane(&track_config)));
             }

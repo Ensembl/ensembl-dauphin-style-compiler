@@ -8,6 +8,7 @@ class DataHandler(Handler):
     def __init__(self):
         self.handlers : Dict[str,DataHandler] = {
             "gene": GeneDataHandler(),
+            "gene-overview": GeneDataHandler(),
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:

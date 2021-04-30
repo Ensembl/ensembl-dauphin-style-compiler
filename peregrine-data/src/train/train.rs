@@ -9,6 +9,7 @@ use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
 use peregrine_message::{ Reporter };
+use crate::switch::trackconfiglist::TrainTrackConfigList;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct TrainId {
@@ -42,11 +43,13 @@ struct TrainData {
     position: f64,
     max: Option<u64>,
     carriages: Option<CarriageSet>,
-    messages: MessageSender
+    messages: MessageSender,
+    track_configs: TrainTrackConfigList
 }
 
 impl TrainData {
     fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> TrainData {
+        let train_track_config_list = TrainTrackConfigList::new(&id.layout,&id.scale);
         let mut out = TrainData {
             broken: false,
             data_ready: false,
@@ -55,7 +58,8 @@ impl TrainData {
             position,
             carriages: Some(CarriageSet::new()),
             max: None,
-            messages: messages.clone()
+            messages: messages.clone(),
+            track_configs: train_track_config_list
         };
         out.set_position(carriage_event,position,reporter);
         out
@@ -91,7 +95,7 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64, reporter: &Reporter<DataMessage>) {
         self.position = position;
         let carriage = self.id.scale.carriage(position);
-        let carriages = CarriageSet::new_using(&self.id,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages,reporter);
+        let carriages = CarriageSet::new_using(&self.id,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages,reporter);
         self.carriages = Some(carriages);
     }
 
