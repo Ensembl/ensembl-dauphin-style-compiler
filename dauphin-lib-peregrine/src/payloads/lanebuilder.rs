@@ -21,10 +21,10 @@ impl LaneBuilderData {
         }
     }
 
-    fn allocate(&mut self, channel: &Channel, program: &str) -> usize {
+    fn allocate(&mut self, channel: &Channel, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
         let id = self.next_id;
         let program_name = ProgramName(channel.clone(),program.to_string());
-        let track = Track::new(&program_name);
+        let track = Track::new(&program_name,min_scale,max_scale,scale_jump);
         let track_builder = TrackBuilder {
             track,
             prb: ProgramRegionBuilder::new()
@@ -47,8 +47,8 @@ impl LaneBuilder {
         LaneBuilder(Arc::new(Mutex::new(LaneBuilderData::new())))
     }
 
-    pub fn allocate(&self, channel: &Channel, program: &str) -> usize {
-        lock!(self.0).allocate(channel,program)
+    pub fn allocate(&self, channel: &Channel, program: &str, min_scale: u64, max_scale: u64, scale_jump: u64) -> usize {
+        lock!(self.0).allocate(channel,program,min_scale,max_scale,scale_jump)
     }
 
     pub(crate) fn get(&self, id: usize) -> anyhow::Result<Arc<Mutex<TrackBuilder>>> {

@@ -21,7 +21,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(4,0),0x2C05A179B75F6E13)
+    CommandSetId::new("peregrine",(5,0),0x2C048E7B2BEF6E13)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {

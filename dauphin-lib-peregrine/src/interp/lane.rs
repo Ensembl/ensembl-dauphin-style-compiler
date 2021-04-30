@@ -1,11 +1,11 @@
 use crate::simple_interp_command;
-use peregrine_data::{ ProgramName, Scale, Channel, Track };
+use peregrine_data::{ Scale, Channel, Track };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
 
-simple_interp_command!(NewLaneInterpCommand,NewLaneDeserializer,4,3,(0,1,2));
+simple_interp_command!(NewLaneInterpCommand,NewLaneDeserializer,4,6,(0,1,2,3,4,5));
 simple_interp_command!(AddTagInterpCommand,AddTagDeserializer,5,2,(0,1));
 simple_interp_command!(AddTriggerInterpCommand,AddTriggerDeserializer,6,4,(0,1,2,3));
 simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,6,4,(0,1,2,3));
@@ -19,13 +19,19 @@ impl InterpCommand for NewLaneInterpCommand {
         let registers = context.registers_mut();
         let channels = registers.get_strings(&self.1)?.to_vec();
         let programs = registers.get_strings(&self.2)?.to_vec();
+        let min_scale = registers.get_indexes(&self.3)?.to_vec();
+        let max_scale = registers.get_indexes(&self.4)?.to_vec();
+        let scale_jump = registers.get_indexes(&self.5)?.to_vec();
         drop(registers);
         let mut lane_ids = vec![];
         let values = channels.iter().cycle().zip(programs.iter());
+        let scales = min_scale.iter().cycle().zip(max_scale.iter().cycle());
+        let mut scales = scales.zip(scale_jump.iter().cycle());
         let lane_builder = get_peregrine(context)?.lane_builder();
         for (channel,program) in values {
             let channel = Channel::parse(&self_channel,channel)?;
-            lane_ids.push(lane_builder.allocate(&channel,program));
+            let ((min,max),jump) = scales.next().unwrap();
+            lane_ids.push(lane_builder.allocate(&channel,program,*min as u64,*max as u64,*jump as u64));
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(lane_ids));

@@ -22,7 +22,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(4,0),0x2C05A179B75F6E13)
+    CommandSetId::new("peregrine",(5,0),0x2C048E7B2BEF6E13)
 }
 
 pub fn make_peregrine() -> CompLibRegister {

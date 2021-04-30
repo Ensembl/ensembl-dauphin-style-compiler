@@ -30,7 +30,7 @@ func get_stick_id() becomes string;
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
 
-func lane_new(string,string) becomes laneid;
+func lane_new(string,string,number,number,number) becomes laneid;
 proc lane_add_tag(laneid,string);
 proc lane_add_trigger(laneid,vec(string));
 proc lane_add_switch(laneid,vec(string));

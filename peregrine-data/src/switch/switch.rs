@@ -155,8 +155,8 @@ mod test {
     fn switch_smoke() {
         let program_a = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"A".to_string());
         let program_b = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"B".to_string());
-        let track_a = Track::new(&program_a);
-        let track_b = Track::new(&program_b);
+        let track_a = Track::new(&program_a,10,50,5);
+        let track_b = Track::new(&program_b,10,50,5);
         let switches = Switches::new();
         switches.add_track(&["track","A"],&track_a,true);
         switches.add_track(&["general"],&track_a,false);
