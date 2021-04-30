@@ -9,11 +9,17 @@ use peregrine_data::{ PeregrineConfig };
 use peregrine_message::PeregrineMessage;
 pub use url::Url;
 use crate::standalonedom::make_dom;
-use web_sys::{HtmlElement, console };
+use web_sys::{ console };
 use lazy_static::lazy_static;
+use js_sys::Function;
 
 lazy_static! {
     static ref API : PeregeineAPI = PeregeineAPI::new();
+    
+
+    static ref JS_CALLBACK: Function =  () {
+        console::log_1("");
+    }
 }
 
 /*
@@ -35,42 +41,30 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
  * a good example of the sort of API calls you might make on receiving events from the browser chrome. The exact
  * name and arguments to this API are still up in the air, but you get the idea....
  */
-async fn test() -> anyhow::Result<()> {
-    use wasm_bindgen::JsCast;
+// async fn test() -> anyhow::Result<()> {
 
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
-    let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
+//     API.add_track(Track::new("gene-pc-fwd"));
+//     API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
+//     let mut pos = 2500000.;
+//     let mut bp_per_screen = 1000000.;
 
-    API.add_track(Track::new("gene-pc-fwd"));
-    API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
-    let mut pos = 2500000.;
-    let mut bp_per_screen = 1000000.;
-
-    for _ in 0..10_u32 {
-        pos += 50000.;
-        let mut p = API.set_x(pos);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
-        });
-        let mut p = API.set_bp_per_screen(bp_per_screen);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_bp_per_screen({}) = {:?}",pos,v).into());
-        });
-        bp_per_screen *= 0.95;
-        console::log_1(&format!("{:?}",API.bp_per_screen()).into());
-        cdr_timer(1000.).await; // Wait one second
-    }
-    /*
-    let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
-    p.add_callback(move |v| {
-        console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
-    });
-    */
-    cdr_timer(100.).await;
-    el.class_list().add_1("other2");
-    Ok(())
-}
+//     for _ in 0..10_u32 {
+//         pos += 50000.;
+//         let mut p = API.set_x(pos);
+//         p.add_callback(move |v| {
+//             console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
+//         });
+//         let mut p = API.set_bp_per_screen(bp_per_screen);
+//         p.add_callback(move |v| {
+//             console::log_1(&format!("set_bp_per_screen({}) = {:?}",pos,v).into());
+//         });
+//         bp_per_screen *= 0.95;
+//         console::log_1(&format!("{:?}",API.bp_per_screen()).into());
+//         cdr_timer(1000.).await; // Wait one second
+//     }
+//     cdr_timer(100.).await;
+//     Ok(())
+// }
 
 fn setup_genome_browser() -> Result<(),Message> {
     /*
@@ -117,7 +111,11 @@ fn setup_genome_browser() -> Result<(),Message> {
     /*
      * For now just start an async process to do some daft stuff to kick the tyres.
      */
-    commander.add("test",100,None,None,Box::pin(test()));
+    // commander.add("test",100,None,None,Box::pin(test()));
+
+    API.add_track(Track::new("gene-pc-fwd"));
+    API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
+
     Ok(())
 }
 
@@ -137,4 +135,71 @@ pub fn main() -> Result<(), JsValue> {
 #[wasm_bindgen]
 pub fn init_panic_hook() {
     console_error_panic_hook::set_once();
+}
+
+/*
+ * Set stick
+ */
+#[wasm_bindgen]
+pub fn set_stick(stick_id: &str) {
+    API.set_stick(&StickId::new(&stick_id));
+}
+
+/*
+ * Receive message
+ */
+#[wasm_bindgen]
+pub fn receive_message(message: &JsValue) {
+
+    console::log_1(&format!("{:?}",message).into());
+}
+
+/*
+ * set_bp_per_screen
+ */
+#[wasm_bindgen]
+pub fn set_bp_per_screen(bp_per_screen: f64) {
+
+    let mut p = API.set_bp_per_screen(bp_per_screen);
+    p.add_callback(move |v| {
+        console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
+    });
+
+}
+
+/*
+ * Set x
+ */
+#[wasm_bindgen]
+pub fn set_x(pos: f64) {
+    let mut p = API.set_x(pos);
+    p.add_callback(move |v| {
+        console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
+    });
+}
+
+#[wasm_bindgen]
+pub fn set_y(y: f64) {
+
+    API.set_y(y);
+}
+
+#[wasm_bindgen]
+pub fn add_track( track: String) {
+    API.add_track(Track::new(&track));
+}
+
+
+
+#[wasm_bindgen]
+ pub fn set_message_reporter( callback: dyn Fn(&JsValue) + Sync + Send) {
+    API.set_message_reporter(Box::new(|message| {
+        if !message.knock_on() && message.degraded_experience() {
+            let this = JsValue::NULL;
+
+            callback(&JsValue::from_str(&message.to_message_string().to_string()));
+
+        }
+    }));
+
 }
