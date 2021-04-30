@@ -42,6 +42,7 @@ async fn test() -> anyhow::Result<()> {
     let document = window.document().unwrap();
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
 
+    API.set_switch(&["track"]);
     API.set_switch(&["track","gene-pc-fwd"]);
     API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;

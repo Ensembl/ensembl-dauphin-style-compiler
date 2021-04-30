@@ -1,10 +1,10 @@
-use peregrine_data::{ lock, ProgramRegion, ProgramRegionBuilder, ProgramName, Channel };
+use peregrine_data::{ lock, ProgramRegion, ProgramRegionBuilder, ProgramName, Channel, Track };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 
 pub(crate) struct TrackBuilder {
-    pub program_name: ProgramName,
+    pub track: Track,
     pub prb: ProgramRegionBuilder
 }
 
@@ -24,8 +24,9 @@ impl LaneBuilderData {
     fn allocate(&mut self, channel: &Channel, program: &str) -> usize {
         let id = self.next_id;
         let program_name = ProgramName(channel.clone(),program.to_string());
+        let track = Track::new(&program_name);
         let track_builder = TrackBuilder {
-            program_name,
+            track,
             prb: ProgramRegionBuilder::new()
         };
         self.lanes.insert(id,Arc::new(Mutex::new(track_builder)));

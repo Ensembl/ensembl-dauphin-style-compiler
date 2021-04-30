@@ -122,10 +122,9 @@ async fn data_source(context: &mut InterpContext, cmd: DataSourceInterpCommand) 
     let lane_builder = peregrine.lane_builder().clone();
     for lane_id in &lane_ids {
         let track_builder = lane_builder.get(*lane_id)?;
-        let program_name = track_builder.lock().unwrap().program_name.clone();
-        let track = Track::new(&program_name);
+        let track = track_builder.lock().unwrap().track.clone();
         let program_region = track_builder.lock().unwrap().prb.build(&track,peregrine.switches());
-        lane_program_lookup.add(&program_region,&program_name);
+        lane_program_lookup.add(&program_region,track.program_name());
     }
     Ok(())
 }
