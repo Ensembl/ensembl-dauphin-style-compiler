@@ -35,7 +35,8 @@ impl Track {
     pub fn best_scale(&self, request: Scale) -> Option<Scale> {
         let request = request.get_index();
         if request < self.min_scale || request >= self.max_scale { return None; }
-        Some(Scale::new((self.max_scale-(self.max_scale-request)/self.scale_jump)*self.scale_jump))
+        let end = self.max_scale-1;
+        Some(Scale::new((end-(end-request)/self.scale_jump)*self.scale_jump))
     }
 
     pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {

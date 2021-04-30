@@ -42,3 +42,6 @@ path="../peregrine-draw"
 [dependencies.peregrine_message]
 version="*"
 path="../peregrine-message"
+
+[profile.release]
+lto=true

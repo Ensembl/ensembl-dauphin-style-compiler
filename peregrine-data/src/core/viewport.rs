@@ -24,8 +24,6 @@ impl LayoutBuilder {
     fn try_upgrade(&mut self) {
         match self {
             LayoutBuilder::Pending(Some(stick),Some(track_config_list)) => {
-                use web_sys::console;
-                console::log_1(&format!("upgrading").into());
                 *self = LayoutBuilder::Finished(Layout::new(stick,track_config_list));
             },
             _ => {}

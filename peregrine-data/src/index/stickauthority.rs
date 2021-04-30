@@ -36,8 +36,6 @@ impl StickAuthority {
             program_name: self.startup_program_name.clone(),
             payloads: None
         }).await?;
-        use web_sys::console;
-        console::log_1(&format!("stick authority program finished").into());
         base.queue.push(ApiMessage::RegeneraateTrackConfig,Instigator::new());
         Ok(())
     }

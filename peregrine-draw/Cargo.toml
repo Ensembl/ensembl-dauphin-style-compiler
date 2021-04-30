@@ -47,6 +47,7 @@ features = [
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
+  'Screen',
   'TextMetrics',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
   'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture',

@@ -5,7 +5,7 @@ import "lib:peregrine"; use "peregrine";
 /scren  scale type
 1bp      0
 10bp     3
-100pb    6
+100bp    6
 1kb     10
 10kb    13    ^
 100kb   16  exon structure

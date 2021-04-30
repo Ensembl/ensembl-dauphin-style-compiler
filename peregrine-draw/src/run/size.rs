@@ -1,18 +1,18 @@
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
-use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext};
+use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineInnerAPI;
 use crate::shape::core::redrawneeded::RedrawNeeded;
 use crate::util::monostable::Monostable;
 
-fn round_up(value: u32, sf: u32) -> u32 {
-    let x : u64 = value as u64;
-    let y = 64-x.leading_zeros()-sf;
-    let z = x+(1<<(y-1));
-    (((z >> y)+1) << y) as u32
+fn screen_size() -> (u32,u32) {
+    let window = window().unwrap();
+    let screen = window.screen().unwrap();
+    (screen.width().ok().unwrap() as u32,screen.height().ok().unwrap() as u32)
 }
+
 struct SizeManagerState {
     container_size: Option<(u32,u32)>,
     canvas_element: HtmlElement,
@@ -53,8 +53,7 @@ impl SizeManagerState {
         }
         if let Some((container_x,container_y)) = self.container_size {
             if active {
-                let min_x = round_up(container_x,2) as u32; // XXX configurable
-                let min_y = round_up(container_y,2) as u32; // XXX configurable
+                let (min_x,min_y) = screen_size();
                 let min_x = min_x.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 let min_y = min_y.min(WebGlRenderingContext::MAX_VIEWPORT_DIMS);
                 if canvas_x < min_x || canvas_y <min_y {
