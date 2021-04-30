@@ -1,6 +1,7 @@
 use identitynumber::identitynumber;
 use lazy_static::lazy_static;
 use crate::{ ProgramName };
+use crate::core::Scale;
 
 identitynumber!(IDS);
 
@@ -30,4 +31,10 @@ impl Track {
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }
     pub fn max_scale_jump(&self) -> u64 { self.scale_jump }
     pub fn tags(&self) -> &[String] { &self.tags }
+
+    pub fn best_scale(&self, request: Scale) -> Option<Scale> {
+        let request = request.get_index();
+        if request < self.min_scale || request >= self.max_scale { return None; }
+        Some(Scale::new(((request - self.min_scale)/self.scale_jump)*self.scale_jump+self.min_scale))
+    }
 }

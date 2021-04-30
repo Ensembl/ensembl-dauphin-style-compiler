@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use std::collections::HashMap;
-use super::trackconfig::{ TrackConfigList, TrackConfigNode };
-use crate::lane::ProgramName;
+use super::trackconfig::TrackConfigNode;
+use super::trackconfiglist::TrackConfigList;
 use crate::switch::track::Track;
 
 pub(crate) struct Switch {
@@ -141,6 +141,7 @@ mod test {
     use super::*;
     use crate::{ Channel, ChannelLocation };
     use url::Url;
+    use crate::ProgramName;
 
     fn urlc(idx: u32) -> Url {
         Url::parse(&(format!("http://a.com/{}",idx))).expect("b")

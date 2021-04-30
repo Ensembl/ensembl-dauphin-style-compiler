@@ -112,6 +112,7 @@ pub(crate) mod switch {
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
+    pub(crate) mod trackconfiglist;
 }
 
 mod train {

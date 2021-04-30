@@ -21,11 +21,11 @@ impl LaneProgramLookupData {
         self.store.add(varea_item,(program_name.clone(),lane_slice_range.clone()));
     }
 
-    fn get(&self, program_region_query: &ProgramRegionQuery) -> Option<(ProgramName,ProgramRegion)> {
+    fn get(&self, program_region_query: &ProgramRegionQuery) -> Option<ProgramRegion> {
         let varea_item = program_region_query.to_varea_item();
         let varea_search_term = self.store.search_item(&varea_item);
         let mut varea_matches = self.store.lookup(varea_search_term);
-        varea_matches.next().map(|(program_name,ppr)| (program_name.clone(),ppr.clone()))
+        varea_matches.next().map(|(program_name,ppr)| ppr.clone())
     }
 }
 
@@ -41,7 +41,7 @@ impl LaneProgramLookup {
         lock!(self.0).add(lane_slice_range,program_name);
     }
 
-    pub fn get(&self, program_region_query: &ProgramRegionQuery) -> Option<(ProgramName,ProgramRegion)> {
+    pub fn get(&self, program_region_query: &ProgramRegionQuery) -> Option<ProgramRegion> {
         lock!(self.0).get(program_region_query)
     }
 }

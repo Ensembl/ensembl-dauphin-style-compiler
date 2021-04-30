@@ -154,7 +154,7 @@ impl Train {
     }
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
-        Ok(data.agent_store.stick_store().await.get(&self.id().layout().stick().as_ref().unwrap()).await?.size())
+        Ok(data.agent_store.stick_store().await.get(&self.id().layout().stick()).await?.size())
     }
 
     fn set_max(&self, max: Result<u64,DataMessage>) {

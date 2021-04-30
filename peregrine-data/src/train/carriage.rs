@@ -64,16 +64,16 @@ impl Carriage {
     }
 
     fn make_lane(&self, track: &TrackConfig) -> Lane {
-        Lane::new(self.id.train.layout().stick().as_ref().unwrap().clone(),self.id.index,self.id.train.scale().clone(),track.clone())
+        Lane::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),track.clone())
     }
 
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut lanes = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
-        let track_list = track_config_list.as_ref().map(|x| x.list_tracks()).unwrap_or_else(|| vec![]);
+        let track_list = track_config_list.list_tracks();
         for track in track_list {
-            if let Some(track_config) = track_config_list.as_ref().and_then(|x| x.get_track(&track)) {
+            if let Some(track_config) = track_config_list.get_track(&track) {
                 lanes.push((track,self.make_lane(&track_config)));
             }
         }

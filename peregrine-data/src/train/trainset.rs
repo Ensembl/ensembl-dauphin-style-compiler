@@ -5,7 +5,7 @@ use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
-use blackbox::{ blackbox_time, blackbox_log };
+use blackbox::{ blackbox_log };
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use peregrine_message::{ Instigator, Reporter };
@@ -65,7 +65,7 @@ impl TrainSetData {
     }
 
     fn maybe_new_wanted(&mut self, events: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
-        let train_id = TrainId::new(viewport.layout(),&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
+        let train_id = TrainId::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent() {
             if quiescent.id() == train_id {
@@ -80,7 +80,7 @@ impl TrainSetData {
 
     fn set_train_position(&self, events: &mut CarriageEvents, train: Option<&Train>, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         if let Some(train) = train {
-            if viewport.layout().stick() == train.id().layout().stick() {
+            if viewport.layout()?.stick() == train.id().layout().stick() {
                 train.set_position(&mut events.clone(),viewport.position()?,reporter);
             }
         }
@@ -181,14 +181,13 @@ impl TrainSet {
         async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
     }
 
-    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, reporter: Instigator<DataMessage>) {
-        blackbox_time!("train","trainset-set",{
-            if viewport.layout().stick().is_some() {
-                let mut events = CarriageEvents::new();
-                self.state.lock().unwrap().set(&mut events,viewport,reporter);
-                self.run(events,objects);
-            }
-        });
+    pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, reporter: Instigator<DataMessage>) -> Result<(),DataMessage> {
+        if viewport.ready() {
+            let mut events = CarriageEvents::new();
+            self.state.lock().unwrap().set(&mut events,viewport,reporter)?;
+            self.run(events,objects);
+        }
+        Ok(())
     }
 
     pub fn transition_complete(&self, objects: &mut PeregrineCore) {

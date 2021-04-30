@@ -1,55 +1,35 @@
 use std::fmt::{ self, Display, Formatter };
 use super::stick::StickId;
-use crate::switch::trackconfig::TrackConfigList;
+use crate::switch::trackconfiglist::TrackConfigList;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct Layout {
-    stick: Option<StickId>,
-    tracks: Option<TrackConfigList>
+    stick: StickId,
+    tracks: TrackConfigList
 }
 
 impl Layout {
     pub fn new(stick: &StickId, tcl: &TrackConfigList) -> Layout {
         Layout {
-            tracks: Some(tcl.clone()),
-            stick: Some(stick.clone())
+            tracks: tcl.clone(),
+            stick: stick.clone()
         }
     }
 
-    // XXX why?
-    pub fn empty() -> Layout {
-        Layout {
-            tracks: None,
-            stick: None
-        }
+    pub fn track_config_list(&self) -> &TrackConfigList { &self.tracks }
+    pub fn stick(&self) -> &StickId { &self.stick }
+
+    pub fn set_stick(&mut self, stick: &StickId) {
+        self.stick = stick.clone();
     }
 
-    pub fn ready(&self) -> bool { self.stick.is_some() }
-
-    pub fn track_config_list(&self) -> &Option<TrackConfigList> { &self.tracks }
-    pub fn stick(&self) -> &Option<StickId> { &self.stick }
-
-    pub fn set_stick(&self, stick: &StickId) -> Layout {
-        let mut out = self.clone();
-        out.stick = Some(stick.clone());
-        out
-    }
-
-    pub fn set_track_config_list(&self, track_config_list: &TrackConfigList) -> Layout {
-        let mut out = self.clone();
-        out.tracks = Some(track_config_list.clone());
-        out
+    pub fn set_track_config_list(&mut self, track_config_list: &TrackConfigList) {
+        self.tracks = track_config_list.clone();
     }
 }
 
 impl Display for Layout {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut tracks : Vec<_> = self.tracks.iter().map(|x| format!("{:?}",x)).collect();
-        tracks.sort();
-        if let Some(stick) = &self.stick {
-            write!(f,"Layout(tracks={:?} stick={})",tracks,stick)
-        } else {
-            write!(f,"Layout(tracks={:?} *no stick*)",tracks)
-        }
+        write!(f,"Layout(tracks={:?} stick={})",self.tracks,self.stick)
     }
 }
