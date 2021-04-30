@@ -11,15 +11,9 @@ pub use url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{ console };
 use lazy_static::lazy_static;
-use js_sys::Function;
 
 lazy_static! {
     static ref API : PeregeineAPI = PeregeineAPI::new();
-    
-
-    static ref JS_CALLBACK: Function =  () {
-        console::log_1("");
-    }
 }
 
 /*
