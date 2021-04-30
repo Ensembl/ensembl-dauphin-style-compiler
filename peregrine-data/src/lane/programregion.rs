@@ -25,10 +25,10 @@ impl ProgramRegionBuilder {
     }
 
     // XXX name
-    pub fn build(&mut self, name: &str, track: &Track, switches: &Switches) -> ProgramRegion {
+    pub fn build(&mut self, track: &Track, switches: &Switches) -> ProgramRegion {
         for (path,trigger) in &self.mounts {
             let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
-            switches.add_track(&path,name,track,*trigger);
+            switches.add_track(&path,track,*trigger);
         }
         self.program_region.clone()
     }

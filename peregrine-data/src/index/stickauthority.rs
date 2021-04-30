@@ -10,6 +10,7 @@ use crate::api::{ AgentStore, ApiMessage };
 use crate::lane::programname::ProgramName;
 use peregrine_message::Instigator;
 
+
 #[derive(Clone)]
 pub struct StickAuthority {
     startup_program_name: ProgramName,
@@ -23,6 +24,9 @@ impl StickAuthority {
             lookup_program_name: ProgramName(channel.clone(),lookup_program_name.to_string())
         }
     }
+
+    pub fn startup_program(&self) -> &ProgramName { &self.startup_program_name }
+    pub fn lookup_program(&self) -> &ProgramName { &self.lookup_program_name }
 
     async fn run_startup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Result<(),DataMessage> {
         base.dauphin.run_program(&agent_store.program_loader().await.clone(),PgDauphinTaskSpec {

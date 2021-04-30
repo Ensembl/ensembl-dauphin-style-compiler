@@ -120,7 +120,7 @@ impl Switches {
         data.track_config_list = None;
     }
 
-    pub fn add_track(&self, path: &[&str], lane_name: &str, track: &Track, trigger: bool) {
+    pub fn add_track(&self, path: &[&str], track: &Track, trigger: bool) {
         let mut data = self.0.lock().unwrap();
         let target = data.root.get_target(path);
         target.tracks.push(track.clone());
@@ -158,10 +158,10 @@ mod test {
         let track_a = Track::new(&program_a);
         let track_b = Track::new(&program_b);
         let switches = Switches::new();
-        switches.add_track(&["track","A"],"A",&track_a,true);
-        switches.add_track(&["general"],"A",&track_a,false);
-        switches.add_track(&["track","B"],"B",&track_b,true);
-        switches.add_track(&["general"],"B",&track_b,false);
+        switches.add_track(&["track","A"],&track_a,true);
+        switches.add_track(&["general"],&track_a,false);
+        switches.add_track(&["track","B"],&track_b,true);
+        switches.add_track(&["general"],&track_b,false);
         switches.set_switch(&["general"]);
         switches.set_switch(&["track"]);
         switches.set_switch(&["track","B"]);
