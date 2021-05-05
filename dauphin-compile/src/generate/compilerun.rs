@@ -165,7 +165,7 @@ impl<'a,'b,'d> CompileRun<'a,'b,'d> {
             let out = self.preimage_instr(instr);
             error_locate_cb(|| {
                 let line = self.context.context().get_line_number();
-                (line.0.to_string(),line.1)
+                (line.0.to_string(),line.1,0)
             },out).with_context(|| format!("preimaging {:?}",instr))?;
         }
         self.context.finish();

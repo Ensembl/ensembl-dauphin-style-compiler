@@ -3,4 +3,10 @@ import "lib:peregrine"; use "peregrine";
 
 stick := get_stick_data("self()",get_stick_id());
 stick.tags := push(stick.tags,"extra");
+stick.allotments := append(stick.allotments,[
+    make_allotment("gene-pc-rev",-1100),
+    make_allotment("gene-nonpc-rev",-1000),
+    make_allotment("gene-pc-fwd",1000),
+    make_allotment("gene-nonpc-fwd",1100)
+]);
 add_stick(stick);

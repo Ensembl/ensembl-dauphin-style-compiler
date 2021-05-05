@@ -109,18 +109,6 @@ impl ResponsePacket {
         Ok(CommandResponse::new(msgid,payload))
     }
 
-    fn deserialize_stick(name: &str, value: &CborValue) -> anyhow::Result<Stick> {
-        let values = cbor_map(value,&["size","topology","tags"])?;
-        let size = cbor_int(&values[0],None)? as u64;
-        let topology = match cbor_int(&values[1],None)? {
-            0 => StickTopology::Linear,
-            1 => StickTopology::Circular,
-            _ => bail!("bad packet (stick topology)")
-        };
-        let tags : anyhow::Result<Vec<String>> = cbor_array(&values[2],0,true)?.iter().map(|x| cbor_string(x)).collect();
-        Ok(Stick::new(&StickId::new(name),size,topology,&tags?))
-    }
-
     fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
         let values = cbor_map(value,&["responses","programs"])?;
         let mut responses = vec![];

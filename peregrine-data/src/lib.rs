@@ -48,7 +48,7 @@ mod lane {
     mod shaperequest;
     pub(crate) mod programregion;
     mod resultstore;
-    pub(crate)mod programdata;
+    pub(crate) mod programdata;
     pub(crate) mod programname;
 
     pub use self::datastore::DataStore;
@@ -107,10 +107,13 @@ mod shape {
 }
 
 pub(crate) mod switch {
+    pub(crate) mod allotment;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
+
+    pub use self::allotment::Allotment;
 }
 
 mod train {
@@ -160,6 +163,7 @@ pub use self::shape::{
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeOutput
 };
+pub use self::switch::allotment::{ Allotment };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };

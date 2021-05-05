@@ -189,12 +189,12 @@ pub enum ParserStatement {
 
 pub fn parse_error(error: &str, lexer: &Lexer) -> anyhow::Error {
     let pos = lexer.position();
-    error_locate(DauphinError::source(error),pos.filename(),pos.line())
+    error_locate(DauphinError::source(error),pos.filename(),pos.line(),0)
 }
 
 pub fn parse_locate<T>(e: anyhow::Result<T>, lexer: &Lexer) -> anyhow::Result<T> {
     error_locate_cb(|| {
         let pos = lexer.position();
-        (pos.filename().to_string(),pos.line())
+        (pos.filename().to_string(),pos.line(),0)
     },e)
 }

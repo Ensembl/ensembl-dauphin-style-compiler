@@ -37,7 +37,8 @@ class StickHandler(Handler):
                 "id": stick_name,
                 "size": chromosome.size,
                 "topology": 0 if chromosome.topology == "linear" else 1,
-                "tags": [t for t in chromosome.tags]
+                "tags": [t for t in chromosome.tags],
+                "allotments": [["focus",-100000]] # XXX etc
             })
         else:
             return Response(1,"Unknown stick {0}".format(stick_name))

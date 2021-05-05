@@ -95,7 +95,7 @@ impl CompilerLink {
     fn serialize_command(&self, out: &mut Vec<CborValue>, opcode: u32, schema: &CommandSchema, command: &Box<dyn Command>) -> anyhow::Result<bool> {
         if let Some(mut data) = command.serialize()? {
             if data.len() != schema.values {
-                return Err(DauphinError::internal(file!(),line!())); /* wrong number of serialization values */
+                return Err(DauphinError::integration(&format!("wrong serialisation value count for {:?} ({} vs {})",schema.trigger,data.len(),schema.values)));
             }
             out.push(CborValue::Integer(opcode as i128));
             out.append(&mut data);

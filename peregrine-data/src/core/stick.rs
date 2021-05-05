@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
 use crate::util::message::DataMessage;
-
+use crate::{ Allotment };
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
 
@@ -54,15 +54,20 @@ pub struct Stick {
     id: StickId,
     size: u64,
     topology: StickTopology,
-    tags: HashSet<String>
+    tags: HashSet<String>,
+    allotments: Vec<Allotment>
 }
 
 impl Stick {
-    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String]) -> Stick {
+    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String], allotments: &[Allotment]) -> Stick {
+        use web_sys::console;
+        let a : Vec<_> = allotments.iter().map(|x| format!("{:?}",x)).collect();
+        console::log_1(&format!("allotments {:?}",a).into());
         Stick {
             id: id.clone(),
             size, topology,
-            tags: tags.iter().cloned().collect()
+            tags: tags.iter().cloned().collect(),
+            allotments: allotments.to_vec()
         }
     }
 
@@ -70,4 +75,5 @@ impl Stick {
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
+    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
 }

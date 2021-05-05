@@ -3,14 +3,14 @@ use crate::util::{ get_instance, get_peregrine };
 use peregrine_data::{ Channel };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
-use peregrine_data::{ StickId, issue_stick_request, Stick, StickTopology };
+use peregrine_data::{ StickId, issue_stick_request, Stick, StickTopology, Allotment };
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
 
 simple_interp_command!(AddStickAuthorityInterpCommand,AddStickAuthorityDeserializer,0,1,(0));
 simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
-simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
-simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4,5));
+simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,14,(0,1,2,3,4,5,6,7,8,9,10,11,12,13));
+simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,12,(0,1,2,3,4,5,6,7,8,9,10,11));
 
 // TODO booted is a mess,  is it needed?
 async fn add_stick_authority(context: &mut InterpContext, cmd: AddStickAuthorityInterpCommand) -> anyhow::Result<()> {
@@ -53,15 +53,21 @@ impl InterpCommand for GetStickIdInterpCommand {
 async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> anyhow::Result<()> {
     let self_channel = get_instance::<Channel>(context,"channel")?;
     let registers = context.registers_mut();
-    let channel_iter = registers.get_strings(&cmd.6)?;
+    let channel_iter = registers.get_strings(&cmd.12)?;
     let mut channel_iter = channel_iter.iter().cycle();
-    let id_strings = registers.get_strings(&cmd.7)?;
+    let id_strings = registers.get_strings(&cmd.13)?;
     let mut id_strings_out = vec![];
     let mut sizes = vec![];
     let mut topologies = vec![];
     let mut tags_offsets = vec![];
     let mut tags_lengths = vec![];
     let mut tags_data = vec![];
+    let mut names_offsets = vec![];
+    let mut names_lengths = vec![];
+    let mut names_data = vec![];
+    let mut prios_offsets = vec![];
+    let mut prios_lengths = vec![];
+    let mut prios_data = vec![];
     drop(registers);
     let pc = get_peregrine(context)?;
     for stick_id in id_strings.iter() {
@@ -74,6 +80,14 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
         tags_offsets.push(tags_data.len());
         tags_lengths.push(tags.len());
         tags_data.append(&mut tags);
+        let mut names = stick.allotments().iter().map(|a| a.name()).collect::<Vec<_>>();
+        names_offsets.push(names_data.len());
+        names_lengths.push(names.len());
+        names_data.append(&mut names);
+        let mut prios = stick.allotments().iter().map(|a| a.priority() as f64).collect::<Vec<_>>();
+        prios_offsets.push(prios_data.len());
+        prios_lengths.push(prios.len());
+        prios_data.append(&mut prios);
     }
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Strings(id_strings_out));
@@ -82,6 +96,12 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     registers.write(&cmd.3,InterpValue::Strings(tags_data));
     registers.write(&cmd.4,InterpValue::Indexes(tags_offsets));
     registers.write(&cmd.5,InterpValue::Indexes(tags_lengths));
+    registers.write(&cmd.6,InterpValue::Strings(names_data));
+    registers.write(&cmd.7,InterpValue::Indexes(names_offsets));
+    registers.write(&cmd.8,InterpValue::Indexes(names_lengths));
+    registers.write(&cmd.9,InterpValue::Numbers(prios_data));
+    registers.write(&cmd.10,InterpValue::Indexes(prios_offsets));
+    registers.write(&cmd.11,InterpValue::Indexes(prios_lengths));
     Ok(())
 }
 
@@ -92,6 +112,7 @@ impl InterpCommand for GetStickDataInterpCommand {
     }
 }
 
+// XXX yuk! factor!
 async fn add_stick(context: &mut InterpContext, cmd: AddStickInterpCommand) -> anyhow::Result<()> {
     let registers = context.registers_mut();
     let sizes = registers.get_numbers(&cmd.1)?;
@@ -99,19 +120,45 @@ async fn add_stick(context: &mut InterpContext, cmd: AddStickInterpCommand) -> a
     let tags_data = registers.get_strings(&cmd.3)?;
     let tags_offsets = registers.get_indexes(&cmd.4)?;
     let tags_lengths = registers.get_indexes(&cmd.5)?;
+    let allot_names_data = registers.get_strings(&cmd.6)?;
+    let allot_names_offsets = registers.get_indexes(&cmd.7)?;
+    let allot_names_lengths = registers.get_indexes(&cmd.8)?;
+    let allot_prios_data = registers.get_numbers(&cmd.9)?;
+    let allot_prios_offsets = registers.get_indexes(&cmd.10)?;
+    let allot_prios_lengths = registers.get_indexes(&cmd.11)?;
     let mut sizes = sizes.iter().cycle();
     let mut topologies = topologies.iter().cycle();
     let mut tags_offsets = tags_offsets.iter().cycle();
     let mut tags_lengths = tags_lengths.iter().cycle();
+    let mut allot_names_offsets = allot_names_offsets.iter();
+    let mut allot_names_lengths = allot_names_lengths.iter().cycle();
+    let mut allot_prios_offsets = allot_prios_offsets.iter();
+    let mut allot_prios_lengths = allot_prios_lengths.iter().cycle();
     let ids = registers.get_strings(&cmd.0)?;
     let mut sticks = vec![];
+    /* build allotments */
+    let allot_names_iter = allot_names_offsets.zip(allot_names_lengths.cycle());
+    let mut allot_names = vec![];
+    for (offset,length) in allot_names_iter {
+        allot_names.extend_from_slice(&allot_names_data[*offset..(*offset+*length)]);
+    }
+    let allot_prios_iter = allot_prios_offsets.zip(allot_prios_lengths.cycle());
+    let mut allot_prios = vec![];
+    for (offset,length) in allot_prios_iter {
+        allot_prios.extend_from_slice(&allot_prios_data[*offset..(*offset+*length)]);
+    }
+    let allot_iter = allot_names.iter().zip(allot_prios.iter().cycle());
+    let allots = allot_iter.map(|(name,prio)| {
+        Allotment::new(name,*prio as i64)
+    }).collect::<Vec<_>>();
+    /* main call */
     for id in ids.iter() {
         let size = sizes.next().unwrap();
         let topology = topologies.next().unwrap();
         let tags_offset = tags_offsets.next().unwrap();
         let tags_length = tags_lengths.next().unwrap();
         let tags = tags_data[(*tags_offset..(tags_offset+tags_length))].to_vec();
-        sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags));
+        sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags,&allots));
     }
     let pc = get_peregrine(context)?;
     let stick_store = pc.agent_store().stick_store().await;

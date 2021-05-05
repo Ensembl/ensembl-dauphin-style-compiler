@@ -1,11 +1,28 @@
 module "peregrine";
 
+/* sticks etc */
+
+struct allot {
+    name: string,
+    priority: number
+};
+
+expr make_allotment(name_val,priority_val) allot { name: name_val, priority: priority_val };
+
 struct stick {
     id: string,
     size: number,
     topology: number,
-    tags: vec(string)
+    tags: vec(string),
+    allotments: vec(allot)
 };
+
+proc add_stick_authority(string);
+func get_stick_id() becomes string;
+func get_stick_data(string,string) becomes stick;
+proc add_stick(stick);
+
+/* */
 
 struct laneid { value: number };
 struct seaendpair { value: number };
@@ -24,11 +41,6 @@ struct region {
 };
 
 struct datasource { value: number };
-
-proc add_stick_authority(string);
-func get_stick_id() becomes string;
-func get_stick_data(string,string) becomes stick;
-proc add_stick(stick);
 
 func track_new(string,string,number,number,number) becomes laneid;
 proc track_add_tag(laneid,string);
@@ -62,14 +74,14 @@ proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,string,string
 proc text(seaend,shipend,seaend,shipend,penspec,string,string,string);
 proc wiggle(number,number,plotterspec,number,boolean,string,string);
 
-stmt rectangle_on_genome(start,end,half_height,patina,allotment,track) {
+stmt rectangle_on_genome(start,end,half_height,patina,allt,track) {
     rectangle2(interval(start,end),pin_start(0),pin_end(0),
                interval(-half_height,half_height),pin_start(0),pin_end(0),
-               patina,allotment,track);
+               patina,allt,track);
 }
 
-stmt text_underneath(x,y,pen_spec,the_text,allotment,track) {
-    text(position(x),pin_start(0),position(y),pin_start(0),pen_spec,the_text,allotment,track);
+stmt text_underneath(x,y,pen_spec,the_text,allt,track) {
+    text(position(x),pin_start(0),position(y),pin_start(0),pen_spec,the_text,allt,track);
 }
 
 func get_region() becomes region;
