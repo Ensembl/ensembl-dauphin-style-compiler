@@ -15,19 +15,19 @@ import "lib:peregrine"; use "peregrine";
 */
 
 /* most zoomed out gene view: no structure, but with labels */
-p := lane_new("self()","gene",17,20,6);
-lane_add_tag(p,"local");
-lane_add_trigger(p,["track","gene-pc-fwd"]);
-lane_add_trigger(p,["track","gene-pc-rev"]);
-lane_add_trigger(p,["track","gene-none-fwd"]);
-lane_add_trigger(p,["track","gene-none-rev"]);
-lane_apply(p);
+p := track_new("self()","gene",17,20,6);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gene-pc-fwd"]);
+track_add_trigger(p,["track","gene-pc-rev"]);
+track_add_trigger(p,["track","gene-none-fwd"]);
+track_add_trigger(p,["track","gene-none-rev"]);
+track_apply(p);
 
 /* most zoomed out gene view: no structure, no labels */
-p := lane_new("self()","gene-overview",20,100,6);
-lane_add_tag(p,"local");
-lane_add_trigger(p,["track","gene-pc-fwd"]);
-lane_add_trigger(p,["track","gene-pc-rev"]);
-lane_add_trigger(p,["track","gene-none-fwd"]);
-lane_add_trigger(p,["track","gene-none-rev"]);
-lane_apply(p);
+p := track_new("self()","gene-overview",20,100,6);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gene-pc-fwd"]);
+track_add_trigger(p,["track","gene-pc-rev"]);
+track_add_trigger(p,["track","gene-none-fwd"]);
+track_add_trigger(p,["track","gene-none-rev"]);
+track_apply(p);

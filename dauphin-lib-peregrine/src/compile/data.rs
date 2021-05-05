@@ -26,7 +26,7 @@ impl CommandType for GetLaneCommandType {
     fn get_schema(&self) -> CommandSchema {
         CommandSchema {
             values: 3,
-            trigger: CommandTrigger::Command(Identifier::new("peregrine","get_lane"))
+            trigger: CommandTrigger::Command(Identifier::new("peregrine","get_region"))
         }
     }
 
@@ -36,7 +36,7 @@ impl CommandType for GetLaneCommandType {
             xs_kv.insert("stick".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![0])))));
             xs_kv.insert("index".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![1])))));
             xs_kv.insert("scale".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![2])))));
-            let xs = XStructure::Struct(Identifier::new("peregrine","lane"),xs_kv);
+            let xs = XStructure::Struct(Identifier::new("peregrine","region"),xs_kv);
             let mut pos = [0,0,0];
             map_xstructure(&mut pos,&to_xstructure(&sig[0])?,&xs)?;
             let regs : Vec<_> = pos.iter().map(|x| it.regs[*x]).collect();
@@ -47,7 +47,7 @@ impl CommandType for GetLaneCommandType {
     }
 }
 
-// func get_data(string,string,lane) becomes datasource;
+// func get_data(string,string,track) becomes datasource;
 
                      /* 0:out     1:channel 2:name  3:p/stick 4:p/index 5:p/scale */
 pub struct GetDataCommand(Register,Register,Register,Register,Register,Register);
@@ -77,7 +77,7 @@ impl CommandType for GetDataCommandType {
             xs_kv.insert("stick".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![3])))));
             xs_kv.insert("index".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![4])))));
             xs_kv.insert("scale".to_string(),Rc::new(XStructure::Simple(Rc::new(RefCell::new(vec![5])))));
-            let xs = XStructure::Struct(Identifier::new("peregrine","lane"),xs_kv);
+            let xs = XStructure::Struct(Identifier::new("peregrine","region"),xs_kv);
             let mut pos = [0,0,0,0,0,0];
             map_xstructure(&mut pos,&to_xstructure(&sig[3])?,&xs)?;
             for i in 0..3 {

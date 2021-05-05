@@ -6,7 +6,7 @@ use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
 use crate::{ 
     PgCommander, PgDauphin, ProgramLoader, RequestManager, StickStore, StickAuthorityStore, Commander,
-    CountingPromise, LaneProgramLookup, ShapeProgramRunAgent, LaneStore, DataStore, LaneScaler
+    CountingPromise, LaneProgramLookup, ShapeProgramRunAgent, LaneStore, DataStore
 };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
@@ -76,7 +76,6 @@ impl PeregrineCore {
         agent_store.set_lane_store(LaneStore::new(128,&base,&agent_store));
         agent_store.set_lane_program_lookup(LaneProgramLookup::new());
         agent_store.set_shape_program_run_agent(ShapeProgramRunAgent::new(32,&base,&agent_store));
-        agent_store.set_lane_scaler(LaneScaler::new(32,&base,&agent_store));
         let train_set = TrainSet::new(&base);
         if !agent_store.ready() {
             return Err(DataMessage::CodeInvariantFailed(format!("dependency injection failed")));

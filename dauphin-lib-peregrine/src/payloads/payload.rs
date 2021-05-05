@@ -18,7 +18,7 @@ use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
 use peregrine_data::{ RequestManager, CountingPromise, AgentStore, Switches };
-use super::lanebuilder::LaneBuilder;
+use super::trackbuilder::LaneBuilder;
 use super::geometrybuilder::GeometryBuilder;
 
 pub struct PeregrinePayload {

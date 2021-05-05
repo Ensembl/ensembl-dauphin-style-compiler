@@ -6,9 +6,6 @@ files="begs"
 startup="sa-startup"
 lookup="sa-lookup"
 
-[begs.test]
-hello="hello"
-
 [begs.stick]
 startup="sa-startup"
 lookup="sa-lookup"

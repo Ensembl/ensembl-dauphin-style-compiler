@@ -6,7 +6,7 @@ use super::decompress::{
     ClassifyDeserializer, SplitStringDeserializer
 };
 
-use super::lane::{ 
+use super::track::{ 
     NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer,
 };
 use super::geometry::{
@@ -20,7 +20,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(6,0),0xA09E51ECE5D2E012)
+    CommandSetId::new("peregrine",(8,0),0xF03A1186250F2EB5)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {

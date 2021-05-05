@@ -46,7 +46,6 @@ async fn test() -> anyhow::Result<()> {
     API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-
     for _ in 0..10_u32 {
         pos += 50000.;
         let mut p = API.set_x(pos);

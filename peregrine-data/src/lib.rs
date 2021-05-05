@@ -1,12 +1,10 @@
 mod agent {
     pub mod agent;
     pub(crate) mod laneprogramlookup;
-    pub(crate) mod lanescaler;
     pub(crate) mod shapeprogramrunagent;
 
     pub use self::shapeprogramrunagent::{ ShapeProgramRunAgent };
     pub use self::laneprogramlookup::LaneProgramLookup;
-    pub use self::lanescaler::LaneScaler;
 }
 
 mod api {
@@ -47,18 +45,18 @@ mod index {
 
 mod lane {
     mod datastore;
-    mod lane;
+    mod shaperequest;
     pub(crate) mod programregion;
-    mod lanestore;
+    mod resultstore;
     pub(crate)mod programdata;
     pub(crate) mod programname;
 
     pub use self::datastore::DataStore;
-    pub use self::lane::{ Lane, Region };
+    pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::programdata::ProgramData;
     pub use self::programname::ProgramName;
     pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
-    pub use self::lanestore::{ LaneStore };
+    pub use self::resultstore::{ LaneStore };
 }
 
 mod request {
@@ -151,11 +149,11 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::agent::{ LaneProgramLookup, LaneScaler, ShapeProgramRunAgent };
+pub use self::agent::{ LaneProgramLookup, ShapeProgramRunAgent };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::lane::{ Lane, Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder };
+pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 

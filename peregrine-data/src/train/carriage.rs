@@ -1,7 +1,7 @@
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
-use crate::lane::{ Lane };
+use crate::lane::{ ShapeRequest, Region };
 use crate::shape::{ Shape, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
@@ -24,6 +24,10 @@ impl CarriageId {
 
     pub fn left(&self) -> f64 {
         (self.train.scale().bp_in_carriage() * self.index) as f64
+    }
+
+    pub fn region(&self) -> Region {
+        Region::new(self.train.layout().stick(),self.index,self.train.scale())
     }
 }
 
@@ -66,10 +70,6 @@ impl Carriage {
         self.shapes.lock().unwrap().is_some()
     }
 
-    fn make_lane(&self, track: &TrackConfig) -> Lane {
-        Lane::new(self.id.train.layout().stick().clone(),self.id.index,self.id.train.scale().clone(),track.clone())
-    }
-
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut lanes = vec![];
@@ -79,7 +79,7 @@ impl Carriage {
             use web_sys::console;
             console::log_1(&format!("track: {} ({:?})",track.program_name().1,self.id).into());
             if let Some(track_config) = track_config_list.get_track(&track) {
-                lanes.push((track,self.make_lane(&track_config)));
+                lanes.push((track,ShapeRequest::new(&self.id.region(),&track_config)));
             }
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.

@@ -9,7 +9,7 @@ use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
     ClassifyCommandType, SplitStringCommandType
 };
-use super::lane::{ 
+use super::track::{ 
     NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType
 };
 use super::geometry:: {
@@ -21,7 +21,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(6,0),0xA09E51ECE5D2E012)
+    CommandSetId::new("peregrine",(8,0),0xF03A1186250F2EB5)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -30,11 +30,11 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
     set.push("get_stick_data",Some(2),GetStickDataCommandType());
     set.push("add_stick",Some(3),AddStickCommandType());
-    set.push("lane_new",Some(4),NewLaneCommandType());
-    set.push("lane_add_tag",Some(5),AddTagCommandType());
-    set.push("lane_add_track",Some(6),AddTrackCommandType());
+    set.push("track_new",Some(4),NewLaneCommandType());
+    set.push("ltrackadd_tag",Some(5),AddTagCommandType());
+    set.push("track_add_track",Some(6),AddTrackCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
-    set.push("lane_apply",Some(8),DataSourceCommandType());
+    set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("interval",Some(9),IntervalCommandType());
     set.push("screen_start_pair",Some(10),ScreenStartPairCommandType());
     set.push("screen_end_pair",Some(11),ScreenEndPairCommandType());
@@ -47,7 +47,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("pin_end",Some(18),PinEndCommandType());
     set.push("rectangle2",Some(19),Rectangle2CommandType());
     set.push("rectangle1",Some(20),Rectangle1CommandType());
-    set.push("get_lane",Some(21),GetLaneCommandType());
+    set.push("get_region",Some(21),GetLaneCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
     set.push("data_stream",Some(23),DataStreamCommandType());
     set.push("inflate_bytes",Some(24),InflateBytesCommandType());

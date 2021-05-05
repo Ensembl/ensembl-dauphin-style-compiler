@@ -17,7 +17,7 @@ struct zmenutmpl { value: number };
 struct penspec { value: number };
 struct plotterspec { value: number };
 
-struct lane {
+struct region {
     stick: string,
     index: number,
     scale: number
@@ -30,13 +30,13 @@ func get_stick_id() becomes string;
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
 
-func lane_new(string,string,number,number,number) becomes laneid;
-proc lane_add_tag(laneid,string);
-proc lane_add_trigger(laneid,vec(string));
-proc lane_add_switch(laneid,vec(string));
-proc lane_set_scale(laneid,number,number);
-proc lane_set_max_scale_jump(laneid,number);
-proc lane_apply(laneid);
+func track_new(string,string,number,number,number) becomes laneid;
+proc track_add_tag(laneid,string);
+proc track_add_trigger(laneid,vec(string));
+proc track_add_switch(laneid,vec(string));
+proc track_set_scale(laneid,number,number);
+proc track_set_max_scale_jump(laneid,number);
+proc track_apply(laneid);
 
 func interval(number,number) becomes seaendpair;
 func screen_start_pair(number,number) becomes seaendpair;
@@ -72,8 +72,8 @@ stmt text_underneath(x,y,pen_spec,the_text,allotment,track) {
     text(position(x),pin_start(0),position(y),pin_start(0),pen_spec,the_text,allotment,track);
 }
 
-func get_lane() becomes lane;
-func get_data(string,string,lane) becomes datasource;
+func get_region() becomes region;
+func get_data(string,string,region) becomes datasource;
 
 func data_stream(datasource,string) becomes bytes;
 func inflate_bytes(bytes) becomes bytes;

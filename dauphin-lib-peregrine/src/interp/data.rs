@@ -2,7 +2,7 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_data::{ StickId, Lane, Region, Channel, Scale, ProgramData };
+use peregrine_data::{ StickId, Region, Channel, Scale, ProgramData, ShapeRequest };
 use serde_cbor::Value as CborValue;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
@@ -11,11 +11,12 @@ simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,
 
 impl InterpCommand for GetLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let lane = get_instance::<Lane>(context,"lane")?;
+        let shape = get_instance::<ShapeRequest>(context,"request")?;
+        let region = shape.region();
         let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Strings(vec![lane.stick_id().get_id().to_string()]));
-        registers.write(&self.1,InterpValue::Numbers(vec![lane.index() as f64]));
-        registers.write(&self.2,InterpValue::Numbers(vec![lane.scale().get_index() as f64]));
+        registers.write(&self.0,InterpValue::Strings(vec![region.stick().get_id().to_string()]));
+        registers.write(&self.1,InterpValue::Numbers(vec![region.index() as f64]));
+        registers.write(&self.2,InterpValue::Numbers(vec![region.scale().get_index() as f64]));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -25,7 +26,7 @@ fn get_region(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::R
     let stick = &registers.get_strings(&cmd.3)?[0];
     let index = &registers.get_numbers(&cmd.4)?[0];
     let scale = &registers.get_numbers(&cmd.5)?[0];
-    Ok(Some(Region::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64))))
+    Ok(Some(Region::new(&StickId::new(stick),*index as u64,&Scale::new(*scale as u64))))
 }
 
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {

@@ -3,7 +3,7 @@ use crate::agent::agent::Agent;
 use crate::api::{ PeregrineCoreBase, AgentStore };
 use crate::util::memoized::{MemoizedType };
 use crate::util::message::{ DataMessage };
-use super::lane::{ Lane, Region };
+use super::shaperequest::{ Region };
 use crate::{ Channel };
 use crate::request::data::{ DataCommandRequest, DataResponse };
 

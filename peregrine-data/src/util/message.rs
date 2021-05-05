@@ -3,7 +3,7 @@ use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
 use crate::request::channel::Channel;
-use crate::lane::Lane;
+use crate::lane::ShapeRequest;
 use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
@@ -30,7 +30,7 @@ pub enum DataMessage {
     TaskUnexpectedlySuperfluous(String),
     TaskResultMissing(String),
     TaskUnexpectedlyOngoing(String),
-    NoLaneProgram(Lane),
+    NoLaneProgram(ShapeRequest),
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
     StickAuthorityUnavailable(Box<DataMessage>),

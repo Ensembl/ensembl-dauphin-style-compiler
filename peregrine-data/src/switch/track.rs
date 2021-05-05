@@ -32,11 +32,11 @@ impl Track {
     pub fn max_scale_jump(&self) -> u64 { self.scale_jump }
     pub fn tags(&self) -> &[String] { &self.tags }
 
-    pub fn best_scale(&self, request: Scale) -> Option<Scale> {
+    pub fn best_scale(&self, request: &Scale) -> Option<Scale> {
         let request = request.get_index();
         if request < self.min_scale || request >= self.max_scale { return None; }
         let end = self.max_scale-1;
-        Some(Scale::new((end-(end-request)/self.scale_jump)*self.scale_jump))
+        Some(Scale::new(end-((end-request)/self.scale_jump)*self.scale_jump))
     }
 
     pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {
