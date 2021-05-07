@@ -12,26 +12,6 @@ pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: C
     out
 }
 
-pub(super) fn track_split<T>(mut input: Vec<T>, mapping: &[usize], primary: bool) -> Vec<Vec<T>> where T: Clone {
-    let max_val = *mapping.iter().max().unwrap_or(&0);
-    let mut out : Vec<Vec<T>> = (0..(max_val+1)).map(|_| vec![]).collect();
-    if input.len() > 1 || primary {
-        for (v,p) in input.drain(..).zip(mapping.iter().cycle()) {
-            out[*p].push(v);
-        }
-    } else if input.len() == 1 {
-        for x in out.iter_mut() {
-            x.push(input[0].clone());
-        }
-    }
-    out
-}
-
-pub(super) fn track_all<T>(input: T, mapping: &[usize]) -> Vec<T> where T: Clone {
-    let max_val = *mapping.iter().max().unwrap_or(&0);
-    (0..(max_val+1)).map(|_| input.clone()).collect()
-}
-
 pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T: Clone {
     if b.len() < a_len && (b.len() > 1 || primary) {
         let mut out = b.to_vec();
@@ -57,12 +37,6 @@ impl Pen {
     pub fn filter(&self, which: &[bool], primary: bool) -> Pen {
         Pen(self.0.clone(),self.1.clone(),filter(&self.2,which,primary))
     }
-
-    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<Pen> {
-        let font = self.0;
-        let size = self.1;
-        track_split(self.2,mapping,primary).drain(..).map(move |x| Pen(font.clone(),size,x)).collect()
-    }
 }
 
 #[derive(Clone,Debug)]
@@ -79,13 +53,6 @@ impl Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(bulk(d,len,primary)),
             Colour::Spot(d) => Colour::Spot(d)
-        }
-    }
-
-    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<Colour> {
-        match self {
-            Colour::Direct(d) => track_split(d,mapping,primary).drain(..).map(|x| Colour::Direct(x)).collect(),
-            Colour::Spot(d) => track_all(d,mapping).drain(..).map(|x| Colour::Spot(x)).collect()
         }
     }
 
@@ -119,22 +86,6 @@ impl Patina {
         }
     }
 
-    pub fn split(self, mapping:&[usize], primary: bool) -> Vec<Patina> {
-        match self {
-            Patina::Filled(c) => c.split(mapping,primary).drain(..).map(|x| Patina::Filled(x)).collect(),
-            Patina::Hollow(c) => c.split(mapping,primary).drain(..).map(|x| Patina::Hollow(x)).collect(),
-            Patina::ZMenu(z,mut h) => {
-                let mut vmap2  : Vec<HashMap<String,Vec<String>>> = track_all(HashMap::new(),&mapping);
-                for (k,v) in h.drain() {
-                    for (i,v2) in track_split(v,mapping,primary).drain(..).enumerate() {
-                        vmap2[i].insert(k.to_string(),v2);
-                    }
-                }
-                vmap2.drain(..).map(|h| Patina::ZMenu(z.clone(),h)).collect()
-            }
-        }
-    }
-
     pub fn filter(&self, which: &[bool], primary: bool) -> Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.filter(which,primary)),
@@ -162,13 +113,6 @@ impl ScreenEdge {
             ScreenEdge::Max(x) => x.len()
         }
     }
-
-    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<ScreenEdge> {
-        match self {
-            ScreenEdge::Min(x) => track_split(x,&mapping,primary).drain(..).map(|x| ScreenEdge::Min(x)).collect(),
-            ScreenEdge::Max(x) => track_split(x,&mapping,primary).drain(..).map(|x| ScreenEdge::Max(x)).collect()
-        }
-    }
 }
 
 #[derive(Clone,Debug)]
@@ -180,14 +124,6 @@ impl ShipEnd {
             ShipEnd::Min(x) => ShipEnd::Min(bulk(x,len,primary)),
             ShipEnd::Centre(x) => ShipEnd::Centre(bulk(x,len,primary)),
             ShipEnd::Max(x) => ShipEnd::Max(bulk(x,len,primary))
-        }
-    }
-
-    fn split(self, mapping: &[usize], primary: bool) -> Vec<ShipEnd> {
-        match self {
-            ShipEnd::Min(x) => track_split(x,mapping,primary).drain(..).map(|x| ShipEnd::Min(x)).collect(),
-            ShipEnd::Centre(x) => track_split(x,mapping,primary).drain(..).map(|x| ShipEnd::Centre(x)).collect(),
-            ShipEnd::Max(x) => track_split(x,mapping,primary).drain(..).map(|x| ShipEnd::Max(x)).collect(),
         }
     }
 
@@ -228,13 +164,6 @@ impl SeaEnd {
             },
             SeaEnd::Screen(ScreenEdge::Min(s)) => s.iter().map(|_| true).collect(),
             SeaEnd::Screen(ScreenEdge::Max(s)) => s.iter().map(|_| true).collect(),
-        }
-    }
-
-    fn split(self, mapping: &[usize], primary: bool) -> Vec<SeaEnd> {
-        match self {
-            SeaEnd::Paper(x) => track_split(x,&mapping,primary).drain(..).map(|x| SeaEnd::Paper(x)).collect(),
-            SeaEnd::Screen(x) => x.split(mapping,primary).drain(..).map(|x| SeaEnd::Screen(x)).collect()
         }
     }
 
@@ -280,21 +209,6 @@ impl SeaEndPair {
         }
     }
 
-    fn split(self, mapping: &[usize], primary: bool) -> Vec<SeaEndPair> {
-        match self {
-            SeaEndPair::Paper(a,b) => {
-                let mut a = track_split(a,&mapping,primary);
-                let mut b = track_split(b,&mapping,false);
-                a.drain(..).zip(b.drain(..)).map(|(c,d)| SeaEndPair::Paper(c,d)).collect()
-            },
-            SeaEndPair::Screen(a,b) => {
-                let mut a = a.split(&mapping,primary);
-                let mut b = b.split(&mapping,false);
-                a.drain(..).zip(b.drain(..)).map(|(c,d)| SeaEndPair::Screen(c,d)).collect()
-            }
-        }
-    }
-
     fn filter(&self, which: &[bool], primary: bool) -> SeaEndPair {
         match self {
             SeaEndPair::Paper(a,b) => {
@@ -321,14 +235,6 @@ impl SingleAnchorAxis {
         self.0.matches(min_value,max_value)
     }
 
-    fn split(self, mapping: &[usize], primary: bool) -> Vec<SingleAnchorAxis> {
-        let (sea,ship) = (self.0,self.1);
-        let mut sea = sea.split(mapping,primary);
-        let mut ship = ship.split(mapping,false);
-        let it = sea.drain(..).zip(ship.drain(..));
-        it.map(|(sea,ship)| SingleAnchorAxis(sea,ship)).collect()
-    }
-
     fn filter(&self, which: &[bool], primary: bool) -> SingleAnchorAxis {
         let (sea,ship) = (&self.0,&self.1);
         SingleAnchorAxis(sea.filter(which,primary),ship.filter(which,false))
@@ -345,15 +251,6 @@ impl AnchorPairAxis {
     
     pub fn bulk(self, len: usize, primary: bool) -> AnchorPairAxis {
         AnchorPairAxis(self.0.bulk(len,primary),self.1.bulk(len,false),self.2.bulk(len,false))
-    }
-
-    fn split(self, mapping: &[usize], primary: bool) -> Vec<AnchorPairAxis> {
-        let (sea,ship_a,ship_b) = (self.0,self.1,self.2);
-        let mut sea = sea.split(mapping,primary);
-        let mut ship_a = ship_a.split(mapping,false);
-        let mut ship_b = ship_b.split(mapping,false);
-        let it = sea.drain(..).zip(ship_a.drain(..).zip(ship_b.drain(..)));
-        it.map(|(sea,(ship_a,ship_b))| AnchorPairAxis(sea,ship_a,ship_b)).collect()
     }
 
     fn matches(&self, min_value: f64, max_value: f64) -> Vec<bool> {
@@ -381,13 +278,6 @@ impl SingleAnchor {
         self.0.matches(min_value,max_value)
     }
 
-    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<SingleAnchor> {
-        let (a,b) = (self.0,self.1);
-        let mut a = a.split(mapping,primary);
-        let mut b = b.split(mapping,false);
-        a.drain(..).zip(b.drain(..)).map(|(x,y)| SingleAnchor(x,y)).collect()
-    }
-
     pub fn filter(&self, which: &[bool], primary: bool) -> SingleAnchor {
         SingleAnchor(self.0.filter(which,primary),self.1.filter(which,false))
     }
@@ -403,13 +293,6 @@ impl AnchorPair {
 
     pub fn bulk(self, len: usize, primary: bool) -> AnchorPair {
         AnchorPair(self.0.bulk(len,primary),self.1.bulk(len,false))
-    }
-
-    pub fn split(self, mapping: &[usize], primary: bool) -> Vec<AnchorPair> {
-        let (a,b) = (self.0,self.1);
-        let mut a = a.split(mapping,primary);
-        let mut b = b.split(mapping,false);
-        a.drain(..).zip(b.drain(..)).map(|(x,y)| AnchorPair(x,y)).collect()
     }
 
     pub fn matches(&self, min_value: f64, max_value: f64) -> Vec<bool> {

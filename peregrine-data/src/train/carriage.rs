@@ -72,27 +72,27 @@ impl Carriage {
 
     pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
-        let mut lanes = vec![];
+        let mut shape_requests = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
         let track_list = self.track_configs.list_tracks();
         for track in track_list {
             use web_sys::console;
             console::log_1(&format!("track: {} ({:?})",track.program_name().1,self.id).into());
             if let Some(track_config) = track_config_list.get_track(&track) {
-                lanes.push((track,ShapeRequest::new(&self.id.region(),&track_config)));
+                shape_requests.push(ShapeRequest::new(&self.id.region(),&track_config));
             }
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
         let lane_store = data.agent_store.lane_store().await;
-        let tracks : Vec<_> = lanes.iter().map(|(t,p)| (t,lane_store.run(p))).collect();
+        let tracks : Vec<_> = shape_requests.iter().map(|p| lane_store.run(p)).collect();
         let mut new_shapes = ShapeList::new();
-        for (track,future) in tracks {
+        for future in tracks {
             match future.await.as_ref() {
                 Ok(zoo) => {
                     use web_sys::console;
                     console::log_1(&format!("got new shapes").into());
-                    new_shapes.append(&zoo.track_shapes(track));
+                    new_shapes.append(&zoo.track_shapes());
                 },
                 Err(e) => {
                     self.messages.send(e.clone());

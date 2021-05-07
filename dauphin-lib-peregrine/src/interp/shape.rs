@@ -135,9 +135,8 @@ impl InterpCommand for WiggleInterpCommand {
         let zoo = get_instance::<ShapeOutput>(context,"out")?;
         /**/
         let lane = get_instance::<ShapeRequest>(context,"request")?;
-        let track = lane.track().track().clone();
         /**/        
-        zoo.add_wiggle(x_min,x_max,plotter,values,allotment,track);
+        zoo.add_wiggle(x_min,x_max,plotter,values,allotment);
         Ok(CommandResult::SyncResult())
     }
 }

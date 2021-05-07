@@ -10,18 +10,18 @@ use crate::lane::programdata::ProgramData;
 pub use crate::util::message::DataMessage;
 use crate::api::{ PeregrineCoreBase, AgentStore };
 
-async fn run(base: PeregrineCoreBase, agent_store: AgentStore, lane: ShapeRequest) -> Result<Arc<ShapeOutput>,DataMessage> {
+async fn run(base: PeregrineCoreBase, agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeOutput>,DataMessage> {
     base.booted.wait().await;
     let mut payloads = HashMap::new();
-    let shapes = ShapeOutput::new();
-    payloads.insert("request".to_string(),Box::new(lane.clone()) as Box<dyn Any>);
+    let shapes = ShapeOutput::new(request.track().track());
+    payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     base.dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
         prio: 1,
         slot: None,
         timeout: None,
-        program_name: lane.track().track().program_name().clone(),
+        program_name: request.track().track().program_name().clone(),
         payloads: Some(payloads)
     }).await?;
     Ok(Arc::new(shapes))
