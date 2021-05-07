@@ -42,14 +42,8 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd"]);
-
-/*
- * Which track does the data go into. Basically the same as the allotment
- * but the labels go into a "subtrack"
- */
-
-track := allotment;
+allotments := [use_allotment(["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd","focus"][])];
+allotment := index(allotment_idx,allotments);
 
 /*
  * What colour? What font? etc
@@ -82,7 +76,7 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  * draw everything!
  */
 
-rectangle_on_genome(start,end,5,patina,allotment,track);
-rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment,track);
-rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment,track);
-text_underneath(start,8,textpen,gene_name,allotment,track);
+rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+text_underneath(start,8,textpen,gene_name,allotment);

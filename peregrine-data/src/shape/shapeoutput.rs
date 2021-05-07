@@ -101,6 +101,8 @@ impl ShapeOutput {
     }
 
     pub fn add_rectangle_2(&self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>, tracks: Vec<Track>) {
+        use web_sys::console;
+        console::log_1(&format!("allotments: {:?}",allotments).into());
         let (track_map,track_names) = track_sort(&tracks);
         let track_map = bulk(track_map,anchors.len(),true);
         let count = anchors.len();

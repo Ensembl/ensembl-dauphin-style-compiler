@@ -22,6 +22,7 @@ simple_interp_command!(PinCentreInterpCommand,PinCentreDeserializer,17,2,(0,1));
 simple_interp_command!(PinEndInterpCommand,PinEndDeserializer,18,2,(0,1));
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,34,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,35,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,41,2,(0,1));
 
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,32,2,(0,1));
@@ -185,6 +186,23 @@ impl InterpCommand for DirectColourInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(colours));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for UseAllotmentInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut name = registers.get_strings(&self.1)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let ids = name.drain(..).map(|name| {
+            geometry_builder.add_allotment(name) as usize
+        }).collect::<Vec<_>>();
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(ids));
         Ok(CommandResult::SyncResult())
     }
 }
