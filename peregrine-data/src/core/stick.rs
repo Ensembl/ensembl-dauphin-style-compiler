@@ -2,8 +2,9 @@ use anyhow::bail;
 use std::collections::HashSet;
 use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
+use std::sync::Arc;
 use crate::util::message::DataMessage;
-use crate::{ Allotment };
+use crate::switch::allotment::{ Allotment, StickAllotments };
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
 
@@ -49,25 +50,20 @@ impl StickTopology {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct Stick {
     id: StickId,
     size: u64,
     topology: StickTopology,
-    tags: HashSet<String>,
-    allotments: Vec<Allotment>
+    tags: HashSet<String>
 }
 
 impl Stick {
-    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String], allotments: &[Allotment]) -> Stick {
-        use web_sys::console;
-        let a : Vec<_> = allotments.iter().map(|x| format!("{:?}",x)).collect();
-        console::log_1(&format!("allotments {:?}",a).into());
+    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String],) -> Stick {
         Stick {
             id: id.clone(),
             size, topology,
             tags: tags.iter().cloned().collect(),
-            allotments: allotments.to_vec()
         }
     }
 
@@ -75,5 +71,4 @@ impl Stick {
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
-    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
 }

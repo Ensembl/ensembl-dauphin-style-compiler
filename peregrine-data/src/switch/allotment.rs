@@ -1,8 +1,10 @@
+use std::cmp::Ordering;
 use std::sync::{ Arc, Mutex };
-use std::collections::HashSet;
+use std::collections::HashMap;
+use std::hash::{ Hash, Hasher };
 use keyed::{ keyed_handle, KeyedValues };
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 struct AllotmentData {
     name: String,
     priority: i64
@@ -22,6 +24,37 @@ pub struct Allotment {
     data: Arc<Mutex<AllotmentData>>
 }
 
+impl PartialEq for Allotment {
+    fn eq(&self, other: &Self) -> bool {
+        if Arc::ptr_eq(&self.data,&other.data) {
+            return true;
+        }
+        self.data.lock().unwrap().eq(&other.data.lock().unwrap())
+    }
+}
+impl Eq for Allotment {}
+
+impl Hash for Allotment {
+    fn hash<H>(&self, state: &mut H) where H: Hasher {
+        self.data.lock().unwrap().hash(state);
+    }
+}
+
+impl PartialOrd for Allotment {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if Arc::ptr_eq(&self.data,&other.data) {
+            return Some(Ordering::Equal);
+        }
+        self.data.lock().unwrap().partial_cmp(&other.data.lock().unwrap())
+    }
+}
+
+impl Ord for Allotment {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
 impl Allotment {
     pub fn new(name: &str, priority: i64) -> Allotment {
         Allotment {
@@ -31,6 +64,49 @@ impl Allotment {
 
     pub fn priority(&self) -> i64 { self.data.lock().unwrap().priority }
     pub fn name(&self) -> String { self.data.lock().unwrap().name.to_string() }
+}
+
+#[derive(Clone)]
+pub struct StickAllotments {
+    allotments: Arc<Vec<Allotment>>,
+    names: Arc<HashMap<String,usize>>
+}
+
+impl StickAllotments {
+    pub(crate) fn new(allotments: &[Allotment]) -> StickAllotments {
+        let mut allotments = allotments.to_vec();
+        allotments.sort_by_cached_key(|a| {
+            (a.priority(),a.name())
+        });
+        let mut names = HashMap::new();
+        for (i,allotment) in allotments.iter().enumerate() {
+            names.insert(allotment.name(),i);
+        }
+        StickAllotments {
+            allotments: Arc::new(allotments),
+            names: Arc::new(names)
+        }
+    }
+
+    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
+}
+
+#[derive(Clone)]
+pub struct AllotmentList {
+    allotments: Arc<Vec<Allotment>>
+}
+
+impl AllotmentList {
+    pub fn new(mut allotments: Vec<Allotment>) -> AllotmentList {
+        allotments.sort_by_cached_key(|a| {
+            (a.priority(),a.name())
+        });
+        AllotmentList {
+            allotments: Arc::new(allotments)
+        }
+    }
+
+    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
 }
 
 /*

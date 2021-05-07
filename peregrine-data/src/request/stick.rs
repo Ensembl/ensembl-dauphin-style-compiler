@@ -1,7 +1,5 @@
 use anyhow::bail;
 use std::any::Any;
-use std::collections::{ HashMap };
-use std::rc::Rc;
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId, StickTopology };
@@ -11,7 +9,6 @@ use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, PgDauphin };
 use crate::switch::allotment::Allotment;
 use crate::util::message::DataMessage;
 
@@ -63,7 +60,7 @@ fn get_allotment(value: &CborValue) -> anyhow::Result<Allotment> {
 
 impl ResponseBuilderType for StickResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let values = cbor_map(value,&["id","size","topology","tags","allotments"])?;
+        let values = cbor_map(value,&["id","size","topology","tags"])?;
         let size = cbor_int(&values[1],None)? as u64;
         let topology = match cbor_int(&values[2],None)? {
             0 => StickTopology::Linear,
@@ -71,10 +68,7 @@ impl ResponseBuilderType for StickResponseBuilderType {
             _ => bail!("bad packet (stick topology)")
         };
         let tags : anyhow::Result<Vec<String>> = cbor_array(&values[3],0,true)?.iter().map(|x| cbor_string(x)).collect();
-        let allotments = cbor_array(&values[4],0,true)?.iter().map(|a| {
-            get_allotment(a)
-        }).collect::<Result<Vec<_>,_>>()?;
-        Ok(Box::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?,&allotments) })) // XXX
+        Ok(Box::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?) })) // XXX
     }
 }
 

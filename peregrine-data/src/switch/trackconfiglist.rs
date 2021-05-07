@@ -3,6 +3,7 @@ use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
 use super::switch::Switch;
+use crate::switch::allotment::AllotmentList;
 use super::track::Track;
 use super::trackconfig::{ TrackConfig, TrackConfigNode, hashmap_hasher };
 use crate::core::{ Layout, Scale };
@@ -10,6 +11,7 @@ use crate::core::{ Layout, Scale };
 #[derive(Clone)]
 pub struct TrackConfigList {
     configs: Arc<HashMap<Track,Arc<TrackConfig>>>,
+    allotments: AllotmentList,
     hash: u64
 }
 
@@ -41,8 +43,10 @@ impl TrackConfigList {
         let mut triggered = vec![];
         root.get_triggered(&mut triggered);
         let mut builder = HashMap::new();
+        let mut allotments = vec![];
         for track in triggered {
             builder.insert(track.clone(),TrackConfigNode::new());
+            allotments.extend(track.allotments().iter().cloned());
         }
         let mut path = vec![];
         root.build_track_config_list(&mut builder,&mut path,&[]);
@@ -54,6 +58,7 @@ impl TrackConfigList {
         hashmap_hasher(&builder,&mut hasher);
         TrackConfigList {
             configs: Arc::new(builder),
+            allotments: AllotmentList::new(allotments),
             hash: hasher.finish()
         }
     }
@@ -75,8 +80,12 @@ impl TrackConfigList {
         }
         let mut hasher = DefaultHasher::new();
         hashmap_hasher(&builder,&mut hasher);
+        let a : Vec<_> = self.allotments.allotments().iter().map(|x| format!("{:?}",x)).collect();
+        use web_sys::console;
+        console::log_1(&format!("new allotments {:?}",a).into());
         TrackConfigList {
             configs: Arc::new(builder),
+            allotments: self.allotments.clone(),
             hash: hasher.finish()
         }
     }

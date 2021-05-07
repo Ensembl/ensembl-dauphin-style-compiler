@@ -7,7 +7,8 @@ use super::decompress::{
 };
 
 use super::track::{ 
-    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer,
+    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
+    AddAllotmentDeserializer
 };
 use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
@@ -20,7 +21,7 @@ use super::shape::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(9,0),0x3BB5BF877695D8)
+    CommandSetId::new("peregrine",(11,0),0xD9B338F132C888D7)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -64,5 +65,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
+    set.push(AddAllotmentDeserializer());
+    set.push(AddSwitchDeserializer());
     set
 }

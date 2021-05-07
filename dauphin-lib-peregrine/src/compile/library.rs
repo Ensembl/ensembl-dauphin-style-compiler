@@ -10,7 +10,8 @@ use super::decompress::{
     ClassifyCommandType, SplitStringCommandType
 };
 use super::track::{ 
-    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType
+    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType, AddAllotmentCommandType,
+    AddSwitchCommandType
 };
 use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
@@ -21,7 +22,7 @@ use super::geometry:: {
 use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(9,0),0x3BB5BF877695D8)
+    CommandSetId::new("peregrine",(11,0),0xD9B338F132C888D7)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -31,8 +32,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("get_stick_data",Some(2),GetStickDataCommandType());
     set.push("add_stick",Some(3),AddStickCommandType());
     set.push("track_new",Some(4),NewLaneCommandType());
-    set.push("ltrackadd_tag",Some(5),AddTagCommandType());
-    set.push("track_add_track",Some(6),AddTrackCommandType());
+    set.push("track_add_tag",Some(5),AddTagCommandType());
+    set.push("track_add_trigger",Some(6),AddTrackCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("interval",Some(9),IntervalCommandType());
@@ -65,6 +66,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("pen",Some(36),PenCommandType());
     set.push("text",Some(37),TextCommandType());
     set.push("plotter",Some(38),PlotterCommandType());
+    set.push("track_add_allotment",Some(39),AddAllotmentCommandType());
+    set.push("track_add_switch",Some(40),AddSwitchCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

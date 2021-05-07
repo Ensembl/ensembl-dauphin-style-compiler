@@ -21,6 +21,11 @@ track_add_trigger(p,["track","gene-pc-fwd"]);
 track_add_trigger(p,["track","gene-pc-rev"]);
 track_add_trigger(p,["track","gene-none-fwd"]);
 track_add_trigger(p,["track","gene-none-rev"]);
+track_add_allotment(p,"focus",-1000000);
+track_add_allotment(p,"gene-pc-rev",-1100);
+track_add_allotment(p,"gene-nonpc-rev",-1000);
+track_add_allotment(p,"gene-pc-fwd",1000);
+track_add_allotment(p,"gene-nonpc-fwd",1100);
 track_apply(p);
 
 /* most zoomed out gene view: no structure, no labels */
@@ -30,4 +35,9 @@ track_add_trigger(p,["track","gene-pc-fwd"]);
 track_add_trigger(p,["track","gene-pc-rev"]);
 track_add_trigger(p,["track","gene-none-fwd"]);
 track_add_trigger(p,["track","gene-none-rev"]);
+track_add_allotment(p,"focus",-1000000);
+track_add_allotment(p,"gene-pc-rev",-1100);
+track_add_allotment(p,"gene-nonpc-rev",-1000);
+track_add_allotment(p,"gene-pc-fwd",1000);
+track_add_allotment(p,"gene-nonpc-fwd",1100);
 track_apply(p);

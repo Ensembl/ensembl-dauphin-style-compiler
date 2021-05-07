@@ -2,6 +2,7 @@ use identitynumber::identitynumber;
 use lazy_static::lazy_static;
 use crate::{ ProgramName };
 use crate::core::{ Layout, Scale };
+use crate::switch::allotment::Allotment;
 
 identitynumber!(IDS);
 
@@ -12,7 +13,8 @@ pub struct Track {
     max_scale: u64,
     scale_jump: u64,
     program_name: ProgramName,
-    tags: Vec<String>
+    tags: Vec<String>,
+    allotments: Vec<Allotment>
 }
 
 impl Track {
@@ -21,10 +23,13 @@ impl Track {
             id: IDS.next(),
             min_scale, max_scale, scale_jump,
             program_name: program_name.clone(),
-            tags: vec![]
+            tags: vec![],
+            allotments: vec![]
         }
     }
 
+    pub fn add_allotment(&mut self, allotment: Allotment) { self.allotments.push(allotment); }
+    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
     pub fn program_name(&self) -> &ProgramName { &self.program_name }
     pub fn id(&self) -> u64 { self.id }
@@ -40,6 +45,7 @@ impl Track {
     }
 
     pub fn available(&self, layout: &Layout, scale: &Scale) -> bool {
+        // XXX filter on layout
         let want_scale =scale.get_index();
         if want_scale < self.min_scale || want_scale >= self.max_scale { return false; }
         true
