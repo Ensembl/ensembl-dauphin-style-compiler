@@ -1,34 +1,17 @@
-/*
-
-Memoized is a class which is used extensively in `peregrine-data` to handle results which can only be resolved
-asynchronously but which are static and so can be cached. It presents a simple async interface to the requestor
-while deduplicating pending requests and cacheing values.
-
-Cacheing can either be "complete" or an LRU-based cache. THe main reason why memoized is used over a simpler cache is
-to reduce the number of repeated pending requests.
-
-The class is polymorpih on `K`, they key and `V` the value.
-
-There are two memoized constructors, `new` and `new_cached`. BOth take a _resolver_ callback. This is the method to,
-in each case, actually populate any missing data. The resolver takes two arguments, the _key_ (of type `K`) and a
-`MemoizedDataResult`. This callback should then set in motion the resolution process, ultimately calling the `resolve`
-method on the `MemoizedDataResult`. Keys can also b added with the `add` method.
-
-Two classes from Commander are used in the implementation.
-
-* `PromiseFuture` is a simple suture which can later be resolved with a value. These are returned to each caller.
-* A `FusePromise` takes zero-or-more `PromiseFutures` and also has a method `fuse()` to set a result. From themoment
-`fuse()` is called all registered `PromiseFuture`s are satisfied with the value (which must be Clone). Any promises 
-added later are also instantly satisfied with the same value.
-
-*/
-
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::future::Future;
 use std::sync::{ Arc, Mutex };
-use crate::lock;
+use std::hash::Hash;
+use std::pin::Pin;
+use commander::{ FusePromise, PromiseFuture };
 use varea::Cache;
-use commander::{ PromiseFuture, FusePromise };
+use crate::lock;
+
+pub enum MemoizedType {
+    Store,
+    Cache(usize),
+    None
+}
 
 enum MemoizedStore<K,V> {
     Complete(HashMap<K,Arc<V>>),
@@ -37,6 +20,14 @@ enum MemoizedStore<K,V> {
 }
 
 impl<K,V> MemoizedStore<K,V> where K: Clone+Eq+Hash {
+    fn new(kind: MemoizedType) -> MemoizedStore<K,V> {
+        match kind {
+            MemoizedType::Store => MemoizedStore::Complete(HashMap::new()),
+            MemoizedType::Cache(size) => MemoizedStore::LruCache(Cache::new(size)),
+            MemoizedType::None => MemoizedStore::None
+        }
+    }
+
     fn insert(&mut self, k: K, v: Arc<V>) {
         match self {
             MemoizedStore::Complete(hm) => { hm.insert(k,v); },
@@ -52,142 +43,78 @@ impl<K,V> MemoizedStore<K,V> where K: Clone+Eq+Hash {
             MemoizedStore::None => { None }
         }
     }
-
-    fn guaranteed(&self, k: &K) -> bool {
-        match self {
-            MemoizedStore::Complete(hm) => { hm.contains_key(k) },
-            MemoizedStore::LruCache(_) => { false },
-            MemoizedStore::None => { false }
-        }
-    }
 }
 
-pub struct MemoizedData<K,V> {
+struct MemoizedState<K: Clone+Eq+Hash,V> {
     known: MemoizedStore<K,V>,
     pending: HashMap<K,FusePromise<Arc<V>>>
 }
 
-pub struct MemoizedDataResult<K,V> {
-    memoized: Memoized<K,V>,
-    key: K
-}
-
-impl<K,V> MemoizedDataResult<K,V> where K: Clone+Eq+Hash {
-    pub fn resolve(self, value: V) {
-        self.memoized.add(self.key,value)
-    }
-}
-
-pub struct Memoized<K,V> {
-    data: Arc<Mutex<MemoizedData<K,V>>>,
-    resolver: Arc<Box<dyn Fn(&K,MemoizedDataResult<K,V>)>>
-}
-
-// Rust bug means can't derive Clone on polymorphic types
-impl<K,V> Clone for Memoized<K,V> {
-    fn clone(&self) -> Self {
-        Memoized {
-            data: self.data.clone(),
-            resolver: self.resolver.clone()
-        }
-    }
-}
-
-impl<K,V> MemoizedData<K,V> where K: Clone+Eq+Hash {
-    fn new() -> MemoizedData<K,V> {
-        MemoizedData {
-            known: MemoizedStore::Complete(HashMap::new()),
-            pending: HashMap::new(),
+impl<K: Clone+Eq+Hash,V> MemoizedState<K,V> {
+    fn new(kind: MemoizedType) -> MemoizedState<K,V> {
+        MemoizedState {
+            known: MemoizedStore::new(kind),
+            pending: HashMap::new()
         }
     }
 
-    fn new_cache(size: usize) -> MemoizedData<K,V> {
-        MemoizedData {
-            known: MemoizedStore::LruCache(Cache::new(size)),
-            pending: HashMap::new(),
-        }
+    pub fn insert(&mut self, key: &K, value: Arc<V>) {
+        self.known.insert(key.clone(),value)
     }
 
-    fn add(&mut self, key: K, value: V) {
-        let v = Arc::new(value);
-        if !self.known.guaranteed(&key) { 
-            self.known.insert(key.clone(),v.clone());
-        }
-        if let Some(fuse) = self.pending.remove(&key) {
-            fuse.fuse(v);
-        }
-    }
-
-    fn promise(&mut self, key: &K) -> (PromiseFuture<Arc<V>>,bool) {
+    fn get_promise(&mut self, key: &K) -> (PromiseFuture<Arc<V>>,Option<FusePromise<Arc<V>>>) {
+        use web_sys::console;
         let p = PromiseFuture::new();
-        let request = if let Some(value) = self.known.get(key) {
+        let fuse = if let Some(value) = self.known.get(key) {
+            /* already known: satisfy immediately; don't run future */
+            console::log_1(&format!("X").into());
             p.satisfy(value.clone());
-            false
+            None
         } else if let Some(fuse) = self.pending.get_mut(key) {
+            /* already pending: add to list; don't run future */
+            console::log_1(&format!("Y").into());
             fuse.add(p.clone());
-            false
+            None
         } else {
+            /* not known: create a future and tell caller to run */
+            console::log_1(&format!("Z").into());
             let fuse = FusePromise::new();
             fuse.add(p.clone());
-            self.pending.insert(key.clone(),fuse);
-            true
+            self.pending.insert(key.clone(),fuse.clone());
+            Some(fuse)
         };
-        (p,request)
+        (p,fuse)
     }
+
 }
 
-pub enum MemoizedType {
-    Store,
-    Cache(usize)
+#[derive(Clone)]
+pub struct Memoized<K: Clone+Hash+Eq,V> {
+    resolver: Arc<Box<dyn (Fn(&Memoized<K,V>,&K) -> Pin<Box<dyn Future<Output=V>>>) + 'static>>,
+    state: Arc<Mutex<MemoizedState<K,V>>>
 }
 
-impl<K,V> Memoized<K,V> where K: Clone+Eq+Hash {
-    pub fn new_store<F>(resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
+impl<K: Clone+Hash+Eq,V> Memoized<K,V> {
+    pub fn new<F>(kind: MemoizedType, cb: F) -> Memoized<K,V> where F: Fn(&Memoized<K,V>,&K) -> Pin<Box<dyn Future<Output=V>>> + 'static {
         Memoized {
-            data: Arc::new(Mutex::new(MemoizedData::new())),
-            resolver: Arc::new(Box::new(resolver))
+            state: Arc::new(Mutex::new(MemoizedState::new(kind))),
+            resolver: Arc::new(Box::new(cb))
         }
     }
 
-    pub fn new_cache<F>(size: usize, resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
-        Memoized {
-            data: Arc::new(Mutex::new(MemoizedData::new_cache(size))),
-            resolver: Arc::new(Box::new(resolver))
-        }
-    }
-
-    pub fn new<F>(kind: MemoizedType, resolver: F) -> Memoized<K,V> where F: Fn(&K,MemoizedDataResult<K,V>) + 'static {
-        match kind {
-            MemoizedType::Store => Self::new_store(resolver),
-            MemoizedType::Cache(size) => Self::new_cache(size,resolver)
-        }
-    }
-
-    fn add(&self, key: K, value: V) {
-        lock!(self.data).add(key,value);
-    }
-
-    pub fn get_no_wait(&self, key: &K) {
-        let mut data = lock!(self.data);
-        let (_,request) = data.promise(key);
-        drop(data);
-        if request {
-            (self.resolver)(key,MemoizedDataResult {
-                memoized: self.clone(),
-                key: key.clone()
-            });
-        }
+    pub fn warm(&self, key: &K, value: V) {
+        lock!(self.state).insert(key,Arc::new(value));
     }
 
     pub async fn get(&self, key: &K) -> Arc<V> {
-        let mut data = lock!(self.data);
-        let (promise,request) = data.promise(key);
-        drop(data);
-        if request {
-            (self.resolver)(key,MemoizedDataResult {
-                memoized: self.clone(),
-                key: key.clone()
-            });
+        let mut state = lock!(self.state);
+        let (promise,fuse) = state.get_promise(key);
+        drop(state);
+        if let Some(fuse) = fuse {
+            let twin = self.clone();
+            let value = Arc::new((self.resolver)(twin,key).await);
+            lock!(self.state).insert(key,value.clone());
+            fuse.fuse(value);
         }
         promise.await
     }

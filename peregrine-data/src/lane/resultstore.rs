@@ -1,32 +1,79 @@
+use std::collections::HashMap;
+use crate::util::builder::Builder;
+use std::any::Any;
 use std::sync::{ Arc };
-use crate::{ agent::agent::Agent};
-use crate::shape::ShapeOutput;
-use crate::util::memoized::{ MemoizedType };
+use crate::shape::ShapeList;
 use super::shaperequest::ShapeRequest;
 use crate::util::message::DataMessage;
+use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::run::{ PgDauphinTaskSpec };
+use crate::lane::programdata::ProgramData;
 
-async fn run(_base: PeregrineCoreBase, agent_store: AgentStore, shape_request: ShapeRequest) -> Result<ShapeOutput,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeList>,DataMessage> {
+    base.booted.wait().await;
+    let mut payloads = HashMap::new();
+    let shapes = Builder::new(ShapeList::new());
+    payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
+    payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
+    payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
+    base.dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
+        prio: 1,
+        slot: None,
+        timeout: None,
+        program_name: request.track().track().program_name().clone(),
+        payloads: Some(payloads)
+    }).await?;
+    Ok(Arc::new(shapes.build()))
+}
+
+fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>> {
+    let base2 = base.clone();
+    let agent_store2 = agent_store.clone();
+    Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
+        let base = base2.clone();
+        let agent_store = agent_store2.clone(); 
+        let request2 = request.clone();   
+        Box::pin(async move {
+            make_unfiltered_shapes(base,agent_store,request2.clone()).await
+        })
+    })
+}
+
+async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>, shape_request: ShapeRequest) -> Result<Arc<ShapeList>,DataMessage> {
     let better_shape_request = shape_request.better_request();
-    match agent_store.shape_program_run_agent().await.get(&better_shape_request).await {
-        Ok(pro) => {
-            Ok(pro.filter(shape_request.region().min_value() as f64,shape_request.region().max_value() as f64))
-        },
-        Err(e) => {
-            Err(DataMessage::DataMissing(Box::new(e.clone())))
-        }
-    }
+    let unfiltered_shapes = unfiltered_shapes_cache.get(&better_shape_request).await;
+    let unfiltered_shapes = unfiltered_shapes.as_ref().as_ref().map_err(|e| {
+        DataMessage::DataMissing(Box::new(e.clone()))
+    })?.clone();
+    let region = shape_request.region();
+    let filtered_shapes = unfiltered_shapes.filter(region.min_value() as f64,region.max_value() as f64);
+    Ok(Arc::new(filtered_shapes))
+}
+
+fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>> {
+    let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
+    Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
+        let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
+        let request2 = request.clone();   
+        Box::pin(async move {
+            make_filtered_shapes(unfiltered_shapes_cache,request2.clone()).await
+        })
+    })
 }
 
 #[derive(Clone)]
-pub struct LaneStore(Agent<ShapeRequest,ShapeOutput>);
+pub struct LaneStore(Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>);
 
 impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> LaneStore {
-        LaneStore(Agent::new(MemoizedType::Cache(cache_size),"lane",1,base,agent_store, run))
+        // XXX both caches separate sizes
+        let unfiltered_cache = make_unfiltered_cache(cache_size,base,agent_store);
+        let filtered_cache = make_filtered_cache(32,unfiltered_cache);
+        LaneStore(filtered_cache)
     }
 
-    pub async fn run(&self, lane: &ShapeRequest) -> Arc<Result<ShapeOutput,DataMessage>> {
+    pub async fn run(&self, lane: &ShapeRequest) -> Arc<Result<Arc<ShapeList>,DataMessage>> {
         self.0.get(lane).await
     }
 }

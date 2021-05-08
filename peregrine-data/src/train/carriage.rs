@@ -92,7 +92,7 @@ impl Carriage {
                 Ok(zoo) => {
                     use web_sys::console;
                     console::log_1(&format!("got new shapes").into());
-                    new_shapes.append(&zoo.track_shapes());
+                    new_shapes.append(&zoo);
                 },
                 Err(e) => {
                     self.messages.send(e.clone());

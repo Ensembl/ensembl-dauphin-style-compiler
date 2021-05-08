@@ -2,7 +2,7 @@ use blackbox::blackbox_log;
 use crate::{AgentStore, PeregrineCoreBase, lock};
 use crate::request::{ Channel };
 use super::stickauthority::{ StickAuthority, load_stick_authority };
-use crate::core::{ StickId };
+use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };
 use crate::util::message::DataMessage;
 
@@ -53,11 +53,13 @@ impl StickAuthorityStore {
 
     }
 
-    pub async fn try_lookup(&self, stick_id: StickId) -> Result<(),DataMessage> {
+    pub async fn try_lookup(&self, stick_id: StickId) -> Result<Vec<Stick>,DataMessage> {
+        let mut sticks = vec![];
         let authorities : Vec<_> = lock!(self.data).each().cloned().collect(); // as we will be waiting and don't want the lock
         for a in &authorities {
-            a.try_lookup(self.base.dauphin.clone(),&self.agent_store,stick_id.clone()).await?; //.unwrap_or(());
+            let mut more = a.try_lookup(self.base.dauphin.clone(),&self.agent_store,stick_id.clone()).await?;
+            sticks.append(&mut more);
         }
-        Ok(())
+        Ok(sticks)
     }
 }

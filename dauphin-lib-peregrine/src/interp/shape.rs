@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use peregrine_data::{
-    AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor, ShapeOutput, ShapeRequest
+    AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor, Builder, ShapeList
 };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
@@ -37,14 +37,10 @@ impl InterpCommand for Rectangle2InterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.to_string());
         }
-        let zoo = get_instance::<ShapeOutput>(context,"out")?;
-        /**/
-        let lane = get_instance::<ShapeRequest>(context,"request")?;
-        let track = lane.track().track().clone();
-        /**/
-        zoo.add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
+        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        zoo.lock().add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
-                                        patina,allotments,vec![track]);
+                                        patina,allotments);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -72,15 +68,10 @@ impl InterpCommand for Rectangle1InterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.to_string());
         }
-        let zoo = get_instance::<ShapeOutput>(context,"out")?;
-        /**/
-        let lane = get_instance::<ShapeRequest>(context,"request")?;
-        let track = lane.track().track().clone();
-        /**/
-        zoo.add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
+        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        zoo.lock().add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
                                                      SingleAnchorAxis(sea_y,ship_y)),
-                                        size_x, size_y,
-                                        patina,allotments,vec![track]);
+                                        patina, allotments,size_x,size_y);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -107,12 +98,8 @@ impl InterpCommand for TextInterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.to_string());
         }
-        let zoo = get_instance::<ShapeOutput>(context,"out")?;
-        /**/
-        let lane = get_instance::<ShapeRequest>(context,"request")?;
-        let track = lane.track().track().clone();
-        /**/
-        zoo.add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotments,vec![track]);
+        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        zoo.lock().add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotments);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -132,11 +119,8 @@ impl InterpCommand for WiggleInterpCommand {
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
         let allotment = geometry.allotment(allotment_id as u32)?.to_string();
-        let zoo = get_instance::<ShapeOutput>(context,"out")?;
-        /**/
-        let lane = get_instance::<ShapeRequest>(context,"request")?;
-        /**/        
-        zoo.add_wiggle(x_min,x_max,plotter,values,allotment);
+        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment);
         Ok(CommandResult::SyncResult())
     }
 }

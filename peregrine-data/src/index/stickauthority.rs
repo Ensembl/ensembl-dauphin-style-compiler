@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::{PeregrineCoreBase };
-use crate::core::{ StickId };
+use crate::core::{ StickId, Stick };
 use crate::request::stickauthority::get_stick_authority;
 use crate::request::{ Channel };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
@@ -9,7 +9,7 @@ use crate::util::message::DataMessage;
 use crate::api::{ AgentStore, ApiMessage };
 use crate::lane::programname::ProgramName;
 use peregrine_message::Instigator;
-
+use crate::util::builder::Builder;
 
 #[derive(Clone)]
 pub struct StickAuthority {
@@ -42,13 +42,15 @@ impl StickAuthority {
 
     async fn preload_lookup_program(&self, base: &PeregrineCoreBase, agent_store: &AgentStore) {
         if !base.dauphin.is_present(&self.lookup_program_name) {
-            agent_store.program_loader().await.load_background(&self.lookup_program_name);
+            agent_store.program_loader().await.load_background(base,&self.lookup_program_name);
         }
     }
 
-    pub async fn try_lookup(&self, dauphin: PgDauphin, agent_store: &AgentStore, id: StickId) -> Result<(),DataMessage> {
+    pub async fn try_lookup(&self, dauphin: PgDauphin, agent_store: &AgentStore, id: StickId) -> Result<Vec<Stick>,DataMessage> {
+        let sticks = Builder::new(vec![] as Vec<Stick>);
         let mut payloads = HashMap::new();
         payloads.insert("stick_id".to_string(),Box::new(id) as Box<dyn Any>);
+        payloads.insert("sticks".to_string(),Box::new(sticks.clone()) as Box<dyn Any>);
         dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
@@ -56,7 +58,7 @@ impl StickAuthority {
             program_name: self.lookup_program_name.clone(),
             payloads: Some(payloads)
         }).await?;
-        Ok(())
+        Ok(sticks.build())
     }
 }
 

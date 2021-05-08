@@ -1,5 +1,7 @@
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
+use std::sync::{ Arc, Mutex };
+use owning_ref::MutexGuardRefMut;
 
 #[derive(Debug)]
 pub struct ShapeList {

@@ -1,9 +1,6 @@
 mod agent {
-    pub mod agent;
     pub(crate) mod laneprogramlookup;
-    pub(crate) mod shapeprogramrunagent;
 
-    pub use self::shapeprogramrunagent::{ ShapeProgramRunAgent };
     pub use self::laneprogramlookup::LaneProgramLookup;
 }
 
@@ -94,15 +91,13 @@ mod shape {
     mod shapelist;
     mod zmenu;
     mod zmenufixed;
-    mod shapeoutput;
 
     pub use self::core::{ 
         ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
     };
     pub use self::shape::Shape;
     pub use self::zmenu::ZMenu;
-    pub use self::shapelist::ShapeList;
-    pub use self::shapeoutput::ShapeOutput;
+    pub use self::shapelist::{ ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
 }
 
@@ -128,13 +123,14 @@ mod train {
 }
 
 mod util {
+    pub mod builder;
     pub mod cbor;
-    pub mod indirectanswer;
     pub mod memoized;
     pub mod message;
     pub mod miscpromises;
     pub mod unlock;
 
+    pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
     pub use self::message::DataMessage;
 }
@@ -152,7 +148,7 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::agent::{ LaneProgramLookup, ShapeProgramRunAgent };
+pub use self::agent::{ LaneProgramLookup };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
@@ -161,10 +157,10 @@ pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, Ins
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeOutput
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeList
 };
 pub use self::switch::allotment::{ Allotment };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
-pub use self::util::{ CountingPromise, DataMessage };
+pub use self::util::{ CountingPromise, DataMessage, Builder };

@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
-use peregrine_data::{ Channel };
+use peregrine_data::{ Channel, Builder };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use peregrine_data::{ StickId, issue_stick_request, Stick, StickTopology };
@@ -113,11 +113,8 @@ async fn add_stick(context: &mut InterpContext, cmd: AddStickInterpCommand) -> a
         let tags = tags_data[(*tags_offset..(tags_offset+tags_length))].to_vec();
         sticks.push(Stick::new(&StickId::new(id),*size as u64,StickTopology::from_number(*topology as u64 as u8)?,&tags));
     }
-    let pc = get_peregrine(context)?;
-    let stick_store = pc.agent_store().stick_store().await;
-    for stick in sticks.drain(..) {
-        stick_store.add(stick.get_id().clone(),stick);
-    }
+    let pg_sticks = get_instance::<Builder<Vec<Stick>>>(context,"sticks")?;
+    pg_sticks.lock().append(&mut sticks);
     Ok(())
 }
 

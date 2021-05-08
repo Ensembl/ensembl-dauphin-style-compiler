@@ -47,7 +47,7 @@ impl TestHelpers {
             booted,
             queue: PeregrineApiQueue::new()
         };
-        agent_store.set_program_loader(ProgramLoader::new(&base,&agent_store));
+        agent_store.set_program_loader(ProgramLoader::new(&base));
         agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));
         base.manager.add_receiver(Box::new(base.dauphin.clone()));
         TestHelpers {
