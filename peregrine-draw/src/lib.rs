@@ -18,7 +18,7 @@ mod run {
     mod size;
 
     pub use self::dom::PeregrineDom;
-    pub use self::api::{ PeregeineAPI };
+    pub use self::api::{ PeregrineAPI };
     pub use self::inner::{ PeregrineInnerAPI };
 }
 
@@ -156,6 +156,6 @@ mod webgl {
     mod util;
 }
 
-pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregeineAPI };
+pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI };
 pub use self::util::{ PgAjax, Message };
 pub use crate::integration::PgCommanderWeb;

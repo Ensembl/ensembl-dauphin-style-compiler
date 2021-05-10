@@ -13,6 +13,11 @@ wasm-bindgen-futures = "*"
 console_error_panic_hook="*"
 url="*"
 lazy_static="*"
+serde_json="*"
+
+[dependencies.serde]
+version="*"
+features = ['derive']
 
 [dependencies.commander]
 version="*"

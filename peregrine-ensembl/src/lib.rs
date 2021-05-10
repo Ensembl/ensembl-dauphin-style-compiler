@@ -1,19 +1,17 @@
 use std::fmt::Debug;
 mod standalonedom;
 use wasm_bindgen::prelude::*;
-use anyhow::{ self };
-use commander::{ cdr_timer };
-use peregrine_draw::{ PeregeineAPI, Message };
+use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb };
 use peregrine_data::{Channel, ChannelLocation, StickId };
 use peregrine_data::{ PeregrineConfig };
-use peregrine_message::PeregrineMessage;
 pub use url::Url;
 use crate::standalonedom::make_dom;
-use web_sys::{HtmlElement, console };
-use lazy_static::lazy_static;
+use web_sys::{ console };
+use std::sync::{ Arc, Mutex };
+use std::thread_local;
 
-lazy_static! {
-    static ref API : PeregeineAPI = PeregeineAPI::new();
+thread_local!{
+    pub static CLOSURE : Arc<Mutex<Vec<Option<js_sys::Function>>>> = Arc::new(Mutex::new(vec![]));
 }
 
 /*
@@ -30,96 +28,150 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     }
 }
 
-/*
- * This function just does some daft stuff to kick the tyres for now. Don't worry too much about it. But it is quite
- * a good example of the sort of API calls you might make on receiving events from the browser chrome. The exact
- * name and arguments to this API are still up in the air, but you get the idea....
- */
-async fn test() -> anyhow::Result<()> {
-    use wasm_bindgen::JsCast;
+#[wasm_bindgen]
+#[derive(Clone)]
+pub struct GenomeBrowser {
+    api: PeregrineAPI,
+    commander: Option<PgCommanderWeb>,
+    closure_index: Option<usize>
+}
 
-    let window = web_sys::window().unwrap();
-    let document = window.document().unwrap();
-    let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
+/* not available to javascript */
+impl GenomeBrowser {
+    pub fn real_api(&self) -> &PeregrineAPI { &self.api }
+    pub fn commander(&self) -> Option<&PgCommanderWeb> { self.commander.as_ref() }
+}
 
-    API.set_switch(&["track"]);
-    API.set_switch(&["track","gene-pc-fwd"]);
-    API.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
-    let mut pos = 2500000.;
-    let mut bp_per_screen = 1000000.;
+#[wasm_bindgen]
+impl GenomeBrowser {
 
-    for _ in 0..10_u32 {
-        pos += 50000.;
-        let mut p = API.set_x(pos);
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> GenomeBrowser {
+        GenomeBrowser  {
+            api: PeregrineAPI::new(),
+            commander: None,
+            closure_index: None
+        }
+    }
+
+    fn go_real(&mut self) -> Result<(),Message> {
+        /*
+         * Set some config options. There aren't many of these yet but there will probably be more. The idea is that
+         * things like the speed of changes and positions, colours, cache sizes, etc, can come from the surrounding app.
+         * This isn't about the data in the tracks itself but there's probably going to be a whole load of configurable
+         * oojimaflips associated with the browser in the end.
+         */
+        let mut config = PeregrineConfig::new();
+        config.set_f64("animate.fade.slow",500.);
+        config.set_f64("animate.fade.fast",100.);
+        /*
+         * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
+         * use. See that file for details.
+         */
+        let dom = make_dom()?;
+        /*
+         * Create a genome browser object.
+         */
+        self.commander = Some(self.api.run(config,dom)?);
+        /*
+         * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and
+         * performance-tweaking tool. Just don't call this if you don't care.
+         */
+        self.api.setup_blackbox("http://localhost:4040/blackbox/data");
+        /*
+         * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
+         */
+        let url = "http://localhost:3333/api/data";
+        let mut p = self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
+        p.add_callback(move |v| {
+            console::log_1(&format!("bootstrapped").into());
+        });
+        /*
+         * You have to turn on tracks _per se_, but we always want tracks.
+         */
+        self.api.set_switch(&["track"]);
+        Ok(())
+    }
+
+    pub fn go(&mut self) {
+        js_throw(self.go_real());
+    }
+
+    /*
+    * Set stick
+    */
+    pub fn set_stick(&self,stick_id: &str) {
+        self.api.set_stick(&StickId::new(&stick_id));
+    }
+
+    /*
+    * Receive message
+    */
+    pub fn receive_message(message: &JsValue) {
+        console::log_1(&format!("{:?}",message).into());
+    }
+    
+    /*
+    * set_bp_per_screen
+    */
+    pub fn set_bp_per_screen(&self,bp_per_screen: f64) {    
+        let mut p = self.api.set_bp_per_screen(bp_per_screen);
+        p.add_callback(move |v| {
+            console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
+        });    
+    }
+    
+    /*
+    * Set x
+    */
+    pub fn set_x(&self,pos: f64) {
+        let mut p = self.api.set_x(pos);
         p.add_callback(move |v| {
             console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
         });
-        let mut p = API.set_bp_per_screen(bp_per_screen);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_bp_per_screen({}) = {:?}",pos,v).into());
-        });
-        bp_per_screen *= 0.95;
-        console::log_1(&format!("{:?}",API.bp_per_screen()).into());
-        cdr_timer(1000.).await; // Wait one second
     }
-    /*
-    let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
-    p.add_callback(move |v| {
-        console::log_1(&format!("set_stick(*invalid*) = {:?}",v).into());
-    });
-    */
-    cdr_timer(100.).await;
-    el.class_list().add_1("other2");
-    Ok(())
-}
+    
+    pub fn set_y(&self,y: f64) {
+        self.api.set_y(y);
+    }
+    
+    pub fn set_switch(&self, path: &JsValue) {
+        let path : Vec<String> = path.into_serde().unwrap();
+        self.api.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+    }
 
-fn setup_genome_browser() -> Result<(),Message> {
-    /*
-     * Set some config options. There aren't many of these yet but there will probably be more. The idea is that
-     * things like the speed of changes and positions, colours, cache sizes, etc, can come from the surrounding app.
-     * This isn't about the data in the tracks itself but there's probably going to be a whole load of configurable
-     * oojimaflips associated with the browser in the end.
-     */
-    let mut config = PeregrineConfig::new();
-    config.set_f64("animate.fade.slow",500.);
-    config.set_f64("animate.fade.fast",100.);
-    /*
-     * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
-     * use. See that file for details.
-     */
-    let dom = make_dom()?;
-    /*
-     * Create a genome browser object.
-     */
-    let commander = API.run(config,dom)?;
-    /* 
-     * Configure the message reporter. This gets notifications of errors, etc. Note that this may be async to the
-     * request which caused it (eg it may be after a fair few AJAX calls that we finally realise some data we supplied
-     * was dodgy). Shortly there should be a mechanism to tie the message and originating request together.
-     */
-    API.set_message_reporter(Box::new(|message| {
-        if !message.knock_on() && message.degraded_experience() {
-            console::error_1(&format!("{}",message).into());
-        }
-    }));
-    /*
-     * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and
-     * performance-tweaking tool. Just don't call this if you don't care.
-     */
-    API.setup_blackbox("http://localhost:4040/blackbox/data");
-    /*
-     * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
-     */
-    let url = "http://localhost:3333/api/data";
-    let mut p = API.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
-    p.add_callback(move |v| {
-        console::log_1(&format!("bootstrapped").into());
-    });
-    /*
-     * For now just start an async process to do some daft stuff to kick the tyres.
-     */
-    commander.add("test",100,None,None,Box::pin(test()));
-    Ok(())
+    pub fn clear_switch(&self, path: &JsValue) {
+        let path : Vec<String> = path.into_serde().unwrap();
+        self.api.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+    }
+
+    /* called first time set_message_reporter is called for each object */
+    fn first_set_message_reporter(&mut self, closure: &Arc<Mutex<Vec<Option<js_sys::Function>>>>) {
+        let mut closure = closure.lock().unwrap();
+        let index = closure.len();
+        closure.push(None);
+        self.closure_index = Some(index);
+        let index2 = index;
+        self.api.set_message_reporter(Box::new(move |message| {
+            CLOSURE.with(|closure| {
+                if let Some(closure) = &closure.lock().unwrap()[index2] {
+                    let this = JsValue::null(); 
+                    let x = JsValue::from(message.to_string().as_str());
+                    let _ = closure.call1(&this, &x);    
+                }      
+            });
+        }));
+    }
+
+    pub fn set_message_reporter(&mut self,f: js_sys::Function) {
+        CLOSURE.with(move |closure| {
+            if self.closure_index.is_none() {
+                self.first_set_message_reporter(closure);
+            }
+            let index = self.closure_index.unwrap();
+            closure.lock().unwrap()[index].replace(f);
+        });
+    }
 }
 
 /*
@@ -128,7 +180,6 @@ fn setup_genome_browser() -> Result<(),Message> {
 #[wasm_bindgen(start)]
 pub fn main() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
-    js_throw(setup_genome_browser());
     Ok(())
 }
 

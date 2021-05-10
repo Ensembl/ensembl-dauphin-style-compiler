@@ -63,14 +63,14 @@ impl DrawMessage {
 }
 
 #[derive(Clone)]
-pub struct PeregeineAPI {
+pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
     position: Arc<Mutex<Option<Position>>>
 }
 
-impl PeregeineAPI {
-    pub fn new() -> PeregeineAPI {
-        PeregeineAPI {
+impl PeregrineAPI {
+    pub fn new() -> PeregrineAPI {
+        PeregrineAPI {
             queue: CommanderStream::new(),
             position: Arc::new(Mutex::new(None))
         }
