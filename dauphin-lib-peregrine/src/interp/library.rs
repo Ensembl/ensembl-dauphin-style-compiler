@@ -14,14 +14,14 @@ use super::geometry::{
     IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
     ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
-    PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer
+    PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer
 };
 use super::shape::{
-    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer
+    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer, RectangleDeserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(13,0),0x667E28527CDF575B)
+    CommandSetId::new("peregrine",(14,0),0xBE83C8911DEDF0F3)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -68,5 +68,7 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AddAllotmentDeserializer());
     set.push(AddSwitchDeserializer());
     set.push(UseAllotmentDeserializer());
+    set.push(SpaceBaseDeserializer());
+    set.push(RectangleDeserializer());
     set
 }

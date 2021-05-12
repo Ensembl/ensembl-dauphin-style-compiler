@@ -17,12 +17,12 @@ use super::geometry:: {
     IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
     ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
-    PlotterCommandType, UseAllotmentCommandType
+    PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType
 };
-use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType };
+use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType, RectangleCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(13,0),0x667E28527CDF575B)
+    CommandSetId::new("peregrine",(14,0),0xBE83C8911DEDF0F3)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -69,6 +69,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("track_add_allotment",Some(39),AddAllotmentCommandType());
     set.push("track_add_switch",Some(40),AddSwitchCommandType());
     set.push("use_allotment",Some(41),UseAllotmentCommandType());
+    set.push("spacebase",Some(42),SpaceBaseCommandType());
+    set.push("rectangle",Some(43),RectangleCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

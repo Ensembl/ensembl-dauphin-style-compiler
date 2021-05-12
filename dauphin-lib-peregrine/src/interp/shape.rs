@@ -11,6 +11,7 @@ simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,8,(0,1,
 simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(TextInterpCommand,TextDeserializer,37,7,(0,1,2,3,4,5,6));
 simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,7,6,(0,1,2,3,4,5));
+simple_interp_command!(RectangleInterpCommand,RectangleDeserializer,43,3,(0,1,2));
 
 impl InterpCommand for Rectangle2InterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -41,6 +42,24 @@ impl InterpCommand for Rectangle2InterpCommand {
         zoo.lock().add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
                                         patina,allotments);
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for RectangleInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let top_left_id = registers.get_indexes(&self.0)?.to_vec();
+        let bottom_right_id = registers.get_indexes(&self.1)?.to_vec();
+        let patina_id = registers.get_indexes(&self.2)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry = peregrine.geometry_builder();
+        let top_left = geometry.spacebase(top_left_id[0] as u32)?.as_ref().clone();
+        let bottom_right = geometry.spacebase(bottom_right_id[0] as u32)?.as_ref().clone();
+        let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        zoo.lock().add_rectangle(top_left,bottom_right,patina);
         Ok(CommandResult::SyncResult())
     }
 }

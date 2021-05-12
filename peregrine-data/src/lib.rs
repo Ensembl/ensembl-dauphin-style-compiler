@@ -91,11 +91,13 @@ mod shape {
     mod shapelist;
     mod zmenu;
     mod zmenufixed;
+    mod spacebase;
 
     pub use self::core::{ 
         ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
     };
     pub use self::shape::Shape;
+    pub use self::spacebase::{ SpaceBase, SpaceBaseArea };
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
@@ -157,7 +159,8 @@ pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, Ins
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
+    SpaceBase, SpaceBaseArea
 };
 pub use self::switch::allotment::{ AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment };
 pub use self::switch::switch::{ Switches };

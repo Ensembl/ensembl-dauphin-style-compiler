@@ -77,6 +77,7 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  */
 
 rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome2(start,end,5,patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_name,allotment);

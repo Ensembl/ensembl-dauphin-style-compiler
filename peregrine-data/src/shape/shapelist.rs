@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
-use super::shape::Shape;
+use crate::{ Shape, SpaceBase, SpaceBaseArea };
 use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
 #[derive(Debug)]
@@ -22,6 +22,10 @@ impl ShapeListBuilder {
 
     pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
         self.allotments.insert(allotment.clone());
+    }
+
+    pub fn add_rectangle(&mut self, top_left: SpaceBase<AllotmentHandle>, bottom_right: SpaceBase<AllotmentHandle>, patina: Patina) {
+        self.shapes.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina));
     }
 
     pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>) {

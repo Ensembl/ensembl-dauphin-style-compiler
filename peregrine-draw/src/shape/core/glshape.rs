@@ -1,4 +1,7 @@
-use peregrine_data::{Allotment, AllotmentHandle, Allotter, AnchorPair, Colour, DirectColour, Patina, Plotter, ScreenEdge, SeaEnd, SeaEndPair, Shape, SingleAnchor};
+use peregrine_data::{
+    Allotment, AllotmentHandle, Allotter, AnchorPair, Colour, DirectColour, Patina, Plotter, ScreenEdge, SeaEnd,
+    SeaEndPair, Shape, SingleAnchor, SpaceBaseArea
+};
 use web_sys::WebGlRenderingContext;
 use super::text::TextHandle;
 use super::fixgeometry::FixData;
@@ -17,7 +20,8 @@ pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<Allotment>,Vec<f64>,Vec<f64>),
     DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
     Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment)
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
+    SpaceBaseRect(SpaceBaseArea<AllotmentHandle>,Patina)
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -212,6 +216,9 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let colours_iter = pen.2.iter().cycle();
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
             PreparedShape::Text(anchor,handles,allotment)
+        },
+        Shape::SpaceBaseRect(area,patina) => {
+            PreparedShape::SpaceBaseRect(area,patina)
         }
     })
 }
@@ -287,6 +294,12 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let mut process = layer.get_process_mut(&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
+        },
+        PreparedShape::SpaceBaseRect(area,patina) => {
+            use web_sys::console;
+            for (top_left,bottom_right) in area.iter() {
+                console::log_1(&format!("spacebasearea({:?},{:?})",top_left,bottom_right).into());
+            }
         }
     }
     Ok(())
