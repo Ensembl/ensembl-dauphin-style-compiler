@@ -1,8 +1,7 @@
-use std::cmp::Ordering;
 use std::sync::{ Arc, Mutex };
-use std::collections::HashMap;
-use std::hash::{ Hash, Hasher };
-use keyed::{ keyed_handle, KeyedValues };
+use std::hash::{ Hash };
+use keyed::{ keyed_handle, KeyedValues, KeyedData };
+use crate::util::DataMessage;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub struct AllotmentRequest {
@@ -61,65 +60,82 @@ impl AllotmentPetitioner {
     pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
-/*
-pub(crate) struct ScreenBuilder {
-    allotments: HashSet<AllotmentHandle>
+pub struct Allotment {
+    offset: i64,
+    size: i64
 }
 
-impl ScreenBuilder {
-    pub(crate) fn new() -> ScreenBuilder {
-        ScreenBuilder {
-            allotments: HashSet::new()
-        }
-    }
-
-    fn set_active(&mut self, allotment: AllotmentHandle) {
-        self.allotments.insert(allotment);
-    }
-
-    fn build(&self, allotter: &Allotter) -> Screen {
-        Screen::new(self,allotter)
-    }
-}
-
-fn order_allotments(builder: &ScreenBuilder, allotter: &Allotter) -> Vec<Allotment> {
-    let mut allotments = builder.allotments.iter().map(|handle| {
-        allotter.get(handle)
-    }).collect::<Vec<_>>();
-    allotments.sort_by_cached_key(|allotment| {
-        (allotment.priority().unwrap_or(0),allotment.name())
-    });
-    allotments
-}
-
-pub(crate) struct Screen {
-    allotments: Vec<Allotment>
-}
-
-impl Screen {
-    fn new(builder: &ScreenBuilder, allotter: &Allotter) -> Screen {
-        let allotments = order_allotments(builder,allotter);
-        Screen {
-            allotments
+impl Allotment {
+    fn new(offset: i64, size: i64) -> Allotment {
+        Allotment {
+            offset, size
         }
     }
 }
 
-pub(crate) struct Allotter {
-    store: Arc<Mutex<AllotmentStore>>
+struct RequestSorter {
+    requests: Vec<(AllotmentHandle,AllotmentRequest)>
+}
+
+impl RequestSorter {
+    fn new() -> RequestSorter {
+        RequestSorter {
+            requests: vec![]
+        }
+    }
+
+    fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) {
+        let request = petitioner.get(handle);
+        self.requests.push((handle.clone(),request));
+    }
+
+    fn get(mut self) -> Vec<AllotmentHandle> {
+        self.requests.sort_by_cached_key(|(_,r)| {
+            (r.priority(),r.name().to_string())
+        });
+        self.requests.iter().map(|(h,_)| h.clone()).collect()
+    }
+}
+
+struct RunningAllotter {
+    index: i64
+}
+
+impl RunningAllotter {
+    fn new() -> RunningAllotter {
+        RunningAllotter {
+            index: 0
+        }
+    }
+
+    fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) -> Allotment {
+        let out = Allotment::new(self.index*64,64); // XXX wrong
+        self.index +=1;
+        out
+    }
+}
+
+pub struct Allotter {
+    allotments: KeyedData<AllotmentHandle,Option<Allotment>>
 }
 
 impl Allotter {
-    pub(crate) fn new() -> Allotter {
+    pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
+        let mut sorter = RequestSorter::new();
+        for handle in handles {
+            sorter.add(petitioner,handle);
+        }
+        let mut allotments = KeyedData::new();
+        let mut running_allocator = RunningAllotter::new();
+        for sorted_handle in sorter.get() {
+            allotments.insert(&sorted_handle,running_allocator.add(petitioner,&sorted_handle));
+        }
         Allotter {
-            store: Arc::new(Mutex::new(AllotmentStore::new()))
+            allotments
         }
     }
 
-    pub(crate) fn lookup(&self, name: &str) -> AllotmentHandle {
-        self.store.lock().unwrap().lookup(name)
+    pub fn get(&self, handle: &AllotmentHandle) -> Result<&Allotment,DataMessage> {
+        self.allotments.get(handle).as_ref().ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string()))
     }
-
-    fn get(&self, handle: &AllotmentHandle) -> Allotment { self.store.lock().unwrap().get(handle).clone() }
 }
-*/

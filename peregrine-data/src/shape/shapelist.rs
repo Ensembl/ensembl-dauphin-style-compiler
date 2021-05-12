@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
-use crate::switch::allotment::AllotmentHandle;
+use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
 #[derive(Debug)]
 pub struct ShapeList {
@@ -51,5 +51,9 @@ impl ShapeList {
     }
 
     pub fn shapes(&self) -> &[Shape] { &self.shapes }
-    pub fn allotments(&self) -> impl Iterator<Item=&AllotmentHandle> { self.allotments.iter() }
+
+    pub fn make_allotter(&self, petitioner: &AllotmentPetitioner) -> Allotter {
+        let handles = self.allotments.iter().cloned().collect::<Vec<_>>();
+        Allotter::new(petitioner,&handles)
+    }
 }

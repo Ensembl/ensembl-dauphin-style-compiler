@@ -7,6 +7,7 @@ use super::train::TrainId;
 use crate::util::message::DataMessage;
 use crate::switch::trackconfig::{ TrackConfig };
 use crate::switch::trackconfiglist::TrainTrackConfigList;
+use crate::switch::allotment::Allotter;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {
@@ -41,7 +42,7 @@ impl Display for CarriageId {
 pub struct Carriage {
     id: CarriageId,
     track_configs: TrainTrackConfigList,
-    shapes: Arc<Mutex<Option<ShapeList>>>,
+    shapes: Arc<Mutex<Option<(ShapeList,Allotter)>>>,
     messages: MessageSender
 }
 
@@ -60,7 +61,7 @@ impl Carriage {
     // XXX should be able to return without cloning
     pub fn shapes(&self) -> Vec<Shape> {
         let mut out = vec![];
-        for shape in self.shapes.lock().unwrap().as_ref().map(|x| x.shapes()).unwrap_or(&vec![]) {
+        for shape in self.shapes.lock().unwrap().as_ref().map(|(shapes,_)| shapes.shapes()).unwrap_or(&vec![]) {
             out.push(shape.clone());
         }
         out
@@ -100,12 +101,10 @@ impl Carriage {
                 }
             }
         }
-        let a = new_shapes.allotments().map(|x| format!("{:?}",x)).collect::<Vec<_>>();
-        use web_sys::console;
-        console::log_1(&format!("allotments: {}",a.join(", ")).into());
+        let allotments = new_shapes.make_allotter(&data.base.allotment_petitioner);
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {
-            *shapes = Some(new_shapes);
+            *shapes = Some((new_shapes,allotments));
         }
         if errors.len() == 0 {
             Ok(())
