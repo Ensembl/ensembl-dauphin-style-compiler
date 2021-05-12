@@ -115,10 +115,10 @@ impl ScreenEdge {
     }
 
 
-    pub fn transform<'t,F>(&'t self,cb: F) -> ScreenEdge where F: FnMut(&f64) -> f64 + 't {
+    pub fn transform<'t,F>(&'t self,cb: F) -> ScreenEdge where F: FnOnce(&[f64]) -> Vec<f64> + 't {
         match self {
-            ScreenEdge::Min(x) => ScreenEdge::Min(x.iter().map(cb).collect()),
-            ScreenEdge::Max(x) => ScreenEdge::Max(x.iter().map(cb).collect())
+            ScreenEdge::Min(x) => ScreenEdge::Min(cb(x)),
+            ScreenEdge::Max(x) => ScreenEdge::Max(cb(x))
         }
     }
 }

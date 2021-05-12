@@ -11,8 +11,6 @@ use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
-    use web_sys::console;
-    console::log_1(&format!("run").into());
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new());

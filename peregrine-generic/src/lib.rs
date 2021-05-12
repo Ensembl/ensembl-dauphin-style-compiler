@@ -53,10 +53,8 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
         api.set_x(pos);
         api.set_bp_per_screen(bp_per_screen);
         bp_per_screen *= 0.95;
-        //console::log_1(&format!("{:?}",api.bp_per_screen()).into());
         cdr_timer(1000.).await; // Wait one second
     }
-    //let mut p = draw_api.set_stick(&StickId::new("invalid_stick"));
     cdr_timer(100.).await;
     el.class_list().add_1("other2");
     Ok(())

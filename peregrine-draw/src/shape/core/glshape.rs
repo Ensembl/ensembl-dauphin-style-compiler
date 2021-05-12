@@ -45,18 +45,23 @@ fn rectangle_to_geometry(anchor: &SingleAnchor) -> GeometryProgramName {
 }
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
-    let mut allotment_iter = allotment.iter().cycle();
-    y.iter().map(|y| {
-        let offset = allotment_iter.next().unwrap().offset() as f64;
+    // XXX yuk!
+    let len = if y.len() != allotment.len() {
+        y.len() * allotment.len()
+    } else {
+        y.len()
+    };
+    let mut iter = allotment.iter().cycle().zip(y.iter().cycle());
+    (0..len).map(|_| {
+        let (allotment,y) = iter.next().unwrap();
+        let offset = allotment.offset() as f64;
         *y+offset
     }).collect()
 }
 
 fn apply_allotments_se(y: &ScreenEdge, allotment: &[Allotment]) -> ScreenEdge {
-    let mut allotment_iter = allotment.iter().cycle();
-    y.transform(|y| {
-        let offset = allotment_iter.next().unwrap().offset() as f64;
-        *y+offset
+    y.transform(|data| {
+        apply_allotments(data,allotment)
     })
 }
 

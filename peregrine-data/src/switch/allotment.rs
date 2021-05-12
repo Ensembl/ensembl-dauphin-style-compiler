@@ -60,7 +60,7 @@ impl AllotmentPetitioner {
     pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Allotment {
     offset: i64,
     size: i64

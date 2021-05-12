@@ -128,8 +128,8 @@ impl SizeManager {
         self.canvas_element.set_height(y);
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
         let mut stage = draw.stage.lock().unwrap();
-        use web_sys::console;
-        console::log_1(&format!("{},{}",x,y).into());
+        //use web_sys::console;
+        //console::log_1(&format!("{},{}",x,y).into());
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())
