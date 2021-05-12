@@ -2,7 +2,7 @@ use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
 use crate::lane::{ ShapeRequest, Region };
-use crate::shape::{ Shape, ShapeList };
+use crate::shape::{ Shape, ShapeListBuilder, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
 use crate::switch::trackconfig::{ TrackConfig };
@@ -40,17 +40,19 @@ impl Display for CarriageId {
 
 #[derive(Clone)]
 pub struct Carriage {
+    no_shapes: ShapeList, // useful to return ref to sometimes
     id: CarriageId,
     track_configs: TrainTrackConfigList,
-    shapes: Arc<Mutex<Option<(ShapeList,Allotter)>>>,
+    shapes: Option<ShapeList>,
     messages: MessageSender
 }
 
 impl Carriage {
     pub fn new(id: &CarriageId, configs: &TrainTrackConfigList, messages: &MessageSender) -> Carriage {
         Carriage {
+            no_shapes: ShapeList::empty(),
             id: id.clone(),
-            shapes: Arc::new(Mutex::new(None)),
+            shapes: None,
             track_configs: configs.clone(),
             messages: messages.clone()
         }
@@ -59,19 +61,13 @@ impl Carriage {
     pub fn id(&self) -> &CarriageId { &self.id }
 
     // XXX should be able to return without cloning
-    pub fn shapes(&self) -> Vec<Shape> {
-        let mut out = vec![];
-        for shape in self.shapes.lock().unwrap().as_ref().map(|(shapes,_)| shapes.shapes()).unwrap_or(&vec![]) {
-            out.push(shape.clone());
-        }
-        out
-    }
+    pub fn shapes(&self) -> &ShapeList { &self.shapes.as_ref().unwrap_or(&self.no_shapes) }
 
     pub(super) fn ready(&self) -> bool {
-        self.shapes.lock().unwrap().is_some()
+        self.shapes.is_some()
     }
 
-    pub(super) async fn load(&self, data: &PeregrineCore) -> Result<(),DataMessage> {
+    pub(super) async fn load(&mut self, data: &PeregrineCore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut shape_requests = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
@@ -87,7 +83,7 @@ impl Carriage {
         let mut errors = vec![];
         let lane_store = data.agent_store.lane_store().await;
         let tracks : Vec<_> = shape_requests.iter().map(|p| lane_store.run(p)).collect();
-        let mut new_shapes = ShapeList::new();
+        let mut new_shapes = ShapeListBuilder::new();
         for future in tracks {
             match future.await.as_ref() {
                 Ok(zoo) => {
@@ -101,11 +97,8 @@ impl Carriage {
                 }
             }
         }
-        let allotments = new_shapes.make_allotter(&data.base.allotment_petitioner);
-        let mut shapes = self.shapes.lock().unwrap();
-        if shapes.is_none() {
-            *shapes = Some((new_shapes,allotments));
-        }
+        let shapes = new_shapes.build(&data.base.allotment_petitioner);
+        self.shapes.replace(shapes);
         if errors.len() == 0 {
             Ok(())
         } else {

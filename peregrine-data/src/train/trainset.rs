@@ -137,7 +137,7 @@ impl TrainSet {
         }
     }
 
-    async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &[(Carriage,Reporter<DataMessage>)]) {
+    async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &mut [(Carriage,Reporter<DataMessage>)]) {
         let mut loads = vec![];
         for (carriage,reporter) in carriages {
             loads.push((carriage.load(&objects),reporter));
@@ -166,14 +166,14 @@ impl TrainSet {
     pub(super) fn run_load_carriages(&self, objects: &mut PeregrineCore, loads: Vec<(Carriage,Reporter<DataMessage>)>) {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
-        let loads = loads.clone();
+        let mut loads = loads.clone();
         let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("carriage loader"),
             prio: 1,
             slot: None,
             timeout: None,
             task: Box::pin(async move {
-                self2.load_carriages(&mut objects2,&loads).await;
+                self2.load_carriages(&mut objects2,&mut loads).await;
                 self2.update_trains(&mut objects2);
                 Ok(())
             })

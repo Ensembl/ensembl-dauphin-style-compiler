@@ -32,7 +32,7 @@ impl Hash for GLCarriage {
 impl GLCarriage {
     pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
         let mut drawing = DrawingBuilder::new(gl,carriage.id().left())?;
-        let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().drain(..).map(|s| drawing.prepare_shape(s)).collect();
+        let preparations : Result<Vec<PreparedShape>,_> = carriage.shapes().shapes().iter().map(|s| drawing.prepare_shape(s)).collect();
         drawing.finish_preparation(gl)?;
         for shape in preparations?.drain(..) {
             drawing.add_shape(gl,shape)?;

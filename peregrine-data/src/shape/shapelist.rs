@@ -1,17 +1,18 @@
+use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
 use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
 #[derive(Debug)]
-pub struct ShapeList {
+pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
     allotments: HashSet<AllotmentHandle>
 }
 
-impl ShapeList {
-    pub fn new() -> ShapeList {
-        ShapeList {
+impl ShapeListBuilder {
+    pub fn new() -> ShapeListBuilder {
+        ShapeListBuilder {
             shapes: vec![],
             allotments: HashSet::new()
         }
@@ -37,23 +38,46 @@ impl ShapeList {
         self.shapes.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }
 
-    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeList {
+    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
         let mut shapes = vec![];
         for shape in self.shapes.iter() {
             shapes.push(shape.filter(min_value,max_value));
         }
-        ShapeList { shapes, allotments: self.allotments.clone() }
+        ShapeListBuilder { shapes, allotments: self.allotments.clone() }
     }
 
-    pub fn append(&mut self, more: &ShapeList) {
+    pub fn append(&mut self, more: &ShapeListBuilder) {
         self.shapes.extend(more.shapes.iter().cloned());
         self.allotments = self.allotments.union(&more.allotments).cloned().collect();
     }
 
-    pub fn shapes(&self) -> &[Shape] { &self.shapes }
-
-    pub fn make_allotter(&self, petitioner: &AllotmentPetitioner) -> Allotter {
-        let handles = self.allotments.iter().cloned().collect::<Vec<_>>();
-        Allotter::new(petitioner,&handles)
+    pub fn build(self, petitioner: &AllotmentPetitioner) -> ShapeList {
+        ShapeList::new(self,petitioner)
     }
+}
+
+#[derive(Clone)]
+pub struct ShapeList {
+    shapes: Arc<Vec<Shape>>,
+    allotter: Arc<Allotter>
+}
+
+impl ShapeList {
+    pub fn empty() -> ShapeList {
+        ShapeList {
+            shapes: Arc::new(vec![]),
+            allotter: Arc::new(Allotter::empty())
+        }
+    }
+
+    fn new(builder: ShapeListBuilder, petitioner: &AllotmentPetitioner) -> ShapeList {
+        let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
+        ShapeList {
+            shapes: Arc::new(builder.shapes),
+            allotter: Arc::new(Allotter::new(petitioner,&handles))
+        }
+    }
+
+    pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
+    pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }
 }

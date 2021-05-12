@@ -1,6 +1,6 @@
 use crate::simple_interp_command;
 use peregrine_data::{
-    AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor, Builder, ShapeList
+    AnchorPair, AnchorPairAxis, SingleAnchorAxis, SingleAnchor, Builder, ShapeListBuilder
 };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
@@ -37,7 +37,7 @@ impl InterpCommand for Rectangle2InterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
-        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         zoo.lock().add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
                                                    AnchorPairAxis(sea_y,ship_y0,ship_y1)),
                                         patina,allotments);
@@ -68,7 +68,7 @@ impl InterpCommand for Rectangle1InterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
-        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         zoo.lock().add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
                                                      SingleAnchorAxis(sea_y,ship_y)),
                                         patina, allotments,size_x,size_y);
@@ -98,7 +98,7 @@ impl InterpCommand for TextInterpCommand {
         for id in &allotment_id {
             allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
-        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         zoo.lock().add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotments);
         Ok(CommandResult::SyncResult())
     }
@@ -119,7 +119,7 @@ impl InterpCommand for WiggleInterpCommand {
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
         let allotment = geometry.allotment(allotment_id as u32)?;
-        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment.as_ref().clone());
         Ok(CommandResult::SyncResult())
     }

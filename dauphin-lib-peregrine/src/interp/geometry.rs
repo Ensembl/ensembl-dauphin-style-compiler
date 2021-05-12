@@ -1,7 +1,7 @@
 use crate::simple_interp_command;
 use peregrine_data::{
     SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage, Builder,
-    ShapeList
+    ShapeListBuilder
 };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
@@ -210,7 +210,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
             geometry_builder.add_allotment(handle.clone()) as usize           
         }).collect();
         drop(peregrine);
-        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         for handle in &handles {
             zoo.lock().add_allotment(handle);
         }

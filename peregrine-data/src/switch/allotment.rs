@@ -120,6 +120,12 @@ pub struct Allotter {
 }
 
 impl Allotter {
+    pub fn empty() -> Allotter {
+        Allotter {
+            allotments: KeyedData::new()
+        }
+    }
+
     pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
         let mut sorter = RequestSorter::new();
         for handle in handles {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };
-use crate::shape::ShapeList;
+use crate::shape::ShapeListBuilder;
 use super::shaperequest::ShapeRequest;
 use crate::util::message::DataMessage;
 use crate::util::memoized::{ Memoized, MemoizedType };
@@ -10,12 +10,12 @@ use crate::api::{ PeregrineCoreBase, AgentStore };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeList>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     use web_sys::console;
     console::log_1(&format!("run").into());
     base.booted.wait().await;
     let mut payloads = HashMap::new();
-    let shapes = Builder::new(ShapeList::new());
+    let shapes = Builder::new(ShapeListBuilder::new());
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
@@ -30,7 +30,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore,
     Ok(Arc::new(shapes.build()))
 }
 
-fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>> {
+fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let base2 = base.clone();
     let agent_store2 = agent_store.clone();
     Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
@@ -43,7 +43,7 @@ fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, agent_stor
     })
 }
 
-async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>, shape_request: ShapeRequest) -> Result<Arc<ShapeList>,DataMessage> {
+async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>, shape_request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     let better_shape_request = shape_request.better_request();
     let unfiltered_shapes = unfiltered_shapes_cache.get(&better_shape_request).await;
     let unfiltered_shapes = unfiltered_shapes.as_ref().as_ref().map_err(|e| {
@@ -54,7 +54,7 @@ async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Res
     Ok(Arc::new(filtered_shapes))
 }
 
-fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>> {
+fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
     Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
         let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
@@ -66,7 +66,7 @@ fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<Shap
 }
 
 #[derive(Clone)]
-pub struct LaneStore(Memoized<ShapeRequest,Result<Arc<ShapeList>,DataMessage>>);
+pub struct LaneStore(Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>);
 
 impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> LaneStore {
@@ -76,7 +76,7 @@ impl LaneStore {
         LaneStore(filtered_cache)
     }
 
-    pub async fn run(&self, lane: &ShapeRequest) -> Arc<Result<Arc<ShapeList>,DataMessage>> {
+    pub async fn run(&self, lane: &ShapeRequest) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
         self.0.get(lane).await
     }
 }
