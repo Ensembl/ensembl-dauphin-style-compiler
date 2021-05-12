@@ -83,14 +83,9 @@ impl PinProgram {
     }
 
     pub(crate) fn add(&self, process: &mut ProcessBuilder, data: PinData) -> Result<ProcessStanzaElements,Message> {
-        //use web_sys::console;
-        //console::log_1(&format!("add = {:?}",data.x_origin).into());
         let mut elements = data.x_origin.make_elements(process)?;
-        //console::log_1(&format!("origins").into());
         elements.add(&self.origins,data.x_origin.vec2d(&data.y_origin),2)?;
-        //console::log_1(&format!("vertexes").into());
         elements.add(&self.vertexes,data.x_vertex.vec2d(&data.y_vertex),2)?;
-        //console::log_1(&format!("/").into());
         Ok(elements)
     }
 }

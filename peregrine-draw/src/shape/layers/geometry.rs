@@ -53,7 +53,7 @@ impl GeometryProgramName {
                     gl_Position = uModel * vec4(
                         (aOrigin.x -uStageHpos) * uStageZoom + 
                                     aVertexPosition.x / uSize.x,
-                        - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
+                        1.0 - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
                         0.0, 1.0)")
             ],
             GeometryProgramName::Fix => vec![
