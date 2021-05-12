@@ -21,7 +21,7 @@ pub enum PreparedShape {
     DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
     Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
-    SpaceBaseRect(SpaceBaseArea<AllotmentHandle>,Patina)
+    SpaceBaseRect(SpaceBaseArea<Allotment>,Patina)
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -218,7 +218,9 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             PreparedShape::Text(anchor,handles,allotment)
         },
         Shape::SpaceBaseRect(area,patina) => {
-            PreparedShape::SpaceBaseRect(area,patina)
+            PreparedShape::SpaceBaseRect(area.try_map_space(&mut |handle| {
+                allotter.get(handle).map(|a| a.clone())
+            }).map_err(|e| Message::DataError(e))?,patina)
         }
     })
 }

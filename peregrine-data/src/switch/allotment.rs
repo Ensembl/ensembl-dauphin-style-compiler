@@ -87,7 +87,7 @@ impl AllotmentPositionKind {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub enum AllotmentPosition {
     Paper(i64,i64),
     Top(i64,i64),
@@ -141,7 +141,7 @@ impl AllotmentPositionAllocator for LinearAllotmentPositionAllocator {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Allotment {
     position: AllotmentPosition
 }

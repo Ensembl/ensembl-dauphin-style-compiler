@@ -104,33 +104,36 @@ impl<A: PartialEq+Clone+std::fmt::Debug> SpaceBaseBuilder<A> {
 /* If any are empty, all are empty */
 
 #[derive(Debug)]
-pub struct SpaceBaseData<A> {
-    base: Vec<f64>,
-    space: Vec<A>,
-    normal: Vec<f64>,
-    tangent: Vec<f64>,
+pub struct SpaceBase<A> {
+    base: Arc<Vec<f64>>,
+    space: Arc<Vec<A>>,
+    normal: Arc<Vec<f64>>,
+    tangent: Arc<Vec<f64>>,
 
     max_len: usize
 }
 
-#[derive(Debug)]
-pub struct SpaceBase<A>(Arc<SpaceBaseData<A>>);
-
 impl<A: 'static> Clone for SpaceBase<A> {
     fn clone(&self) -> Self {
-        SpaceBase(self.0.clone())
+        SpaceBase {
+            base: self.base.clone(),
+            space: self.space.clone(),
+            normal: self.normal.clone(),
+            tangent: self.tangent.clone(),
+            max_len: self.max_len
+        }
     }
 }
 
 impl<A> SpaceBase<A> {
     pub fn empty() -> SpaceBase<A> {
-        SpaceBase(Arc::new(SpaceBaseData {
-            base: vec![],
-            space: vec![],
-            normal: vec![],
-            tangent: vec![],
+        SpaceBase {
+            base: Arc::new(vec![]),
+            space: Arc::new(vec![]),
+            normal: Arc::new(vec![]),
+            tangent: Arc::new(vec![]),
             max_len: 0
-        }))
+        }
     }
 
     pub fn new(base: Vec<f64>, space: Vec<A>, normal: Vec<f64>, tangent: Vec<f64>) -> SpaceBase<A> {
@@ -138,7 +141,13 @@ impl<A> SpaceBase<A> {
         if base.len() == 0 || space.len() == 0 || normal.len() == 0 || tangent.len() == 0 {
             SpaceBase::empty()
         } else {
-            SpaceBase(Arc::new(SpaceBaseData { base, space, normal, tangent, max_len }))
+            SpaceBase {
+                base: Arc::new(base),
+                space: Arc::new(space),
+                normal: Arc::new(normal),
+                tangent: Arc::new(tangent),
+                max_len
+            }
         }
     }
 
@@ -148,6 +157,26 @@ impl<A> SpaceBase<A> {
             index: 0,
             length
         }
+    }
+
+    pub fn map_space<F,B>(&self, cb: &mut F) -> SpaceBase<B> where F: FnMut(&A) -> B {
+        SpaceBase {
+            base: self.base.clone(),
+            space: Arc::new(self.space.iter().map(move |a| cb(a)).collect()),
+            normal: self.normal.clone(),
+            tangent: self.tangent.clone(),
+            max_len: self.max_len
+        }
+    }
+
+    pub fn try_map_space<F,B,E>(&self, cb: &mut F) -> Result<SpaceBase<B>,E> where F: FnMut(&A) -> Result<B,E> {
+        Ok(SpaceBase {
+            base: self.base.clone(),
+            space: Arc::new(self.space.iter().map(move |a| cb(a)).collect::<Result<Vec<_>,_>>()?),
+            normal: self.normal.clone(),
+            tangent: self.tangent.clone(),
+            max_len: self.max_len
+        })
     }
 }
 
@@ -163,10 +192,10 @@ impl<'a,A> Iterator for SpaceBaseIterator<'a,A> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.length { return None; }
         let out = SpaceBasePointRef {
-            base: cycle(&self.spacebase.0.base,self.index),
-            space: cycle(&self.spacebase.0.space,self.index),
-            normal: cycle(&self.spacebase.0.normal,self.index),
-            tangent: cycle(&self.spacebase.0.tangent,self.index),
+            base: cycle(&self.spacebase.base,self.index),
+            space: cycle(&self.spacebase.space,self.index),
+            normal: cycle(&self.spacebase.normal,self.index),
+            tangent: cycle(&self.spacebase.tangent,self.index),
         };
         self.index += 1;
         Some(out)
@@ -197,11 +226,21 @@ impl<A> SpaceBaseArea<A> {
     }
 
     pub fn iter(&self) -> SpaceBaseAreaIterator<A> {
-        let len = self.0.0.max_len.max(self.1.0.max_len);
+        let len = self.0.max_len.max(self.1.max_len);
         SpaceBaseAreaIterator {
             a: self.0.iter_len(len),
             b: self.1.iter_len(len),
         }
+    }
+
+    pub fn map_space<F,B>(&self, mut cb: F) -> SpaceBaseArea<B> where F: FnMut(&A) -> B {
+        let cb = &mut cb;
+        SpaceBaseArea(self.0.map_space(cb),self.1.map_space(cb))
+    }
+
+    pub fn try_map_space<F,B,E>(&self, mut cb: &mut F) -> Result<SpaceBaseArea<B>,E> where F: FnMut(&A) -> Result<B,E> {
+        let cb = &mut cb;
+        Ok(SpaceBaseArea(self.0.try_map_space(cb)?,self.1.try_map_space(cb)?))
     }
 }
 
