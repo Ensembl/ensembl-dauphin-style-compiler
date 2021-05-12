@@ -108,7 +108,7 @@ pub(crate) mod switch {
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
 
-    pub use self::allotment::Allotment;
+    pub use self::allotment::AllotmentRequest;
 }
 
 mod train {
@@ -159,7 +159,7 @@ pub use self::shape::{
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeList
 };
-pub use self::switch::allotment::{ Allotment };
+pub use self::switch::allotment::{ AllotmentRequest, AllotmentPetitioner, AllotmentHandle };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };

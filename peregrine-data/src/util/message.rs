@@ -42,6 +42,7 @@ pub enum DataMessage {
     DauphinProgramMissing(String),
     DataUnavailable(Channel,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
+    NoSuchAllotment(String),
 }
 
 impl PeregrineMessage for DataMessage {
@@ -79,6 +80,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
             DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
             DataMessage::TunnelError(_) => MessageCategory::BadInfrastructure,
+            DataMessage::NoSuchAllotment(_) => MessageCategory::BadData,
         }
     }
 
@@ -93,6 +95,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramDidNotLoad(_) => true,
             DataMessage::DauphinIntegrationError(_) => true,
             DataMessage::DauphinProgramMissing(_) => true,
+            DataMessage::NoSuchAllotment(_) => true,
             DataMessage::TunnelError(e) => e.lock().unwrap().now_unstable(),
             _ => false
         }
@@ -108,7 +111,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 27; 0, 17, 25 unused; 499 is last.
+        // Next code is 27; 17, 25 unused; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -134,6 +137,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
             DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
             DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e.code()))),
+            DataMessage::NoSuchAllotment(a) => (0,calculate_hash(a)),
             DataMessage::TunnelError(e) => e.lock().unwrap().code(),
         }
     }
@@ -175,6 +179,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
+            DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
         }
     }

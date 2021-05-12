@@ -1,4 +1,4 @@
-use peregrine_data::{ Shape, SingleAnchor, SeaEnd, Patina, Colour, AnchorPair, SeaEndPair, Plotter, DirectColour };
+use peregrine_data::{AllotmentHandle, AnchorPair, Colour, DirectColour, Patina, Plotter, SeaEnd, SeaEndPair, Shape, SingleAnchor };
 use web_sys::WebGlRenderingContext;
 use super::text::TextHandle;
 use super::fixgeometry::FixData;
@@ -14,10 +14,10 @@ use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 
 pub enum PreparedShape {
-    SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
-    DoubleAnchorRect(AnchorPair,Patina,Vec<String>),
-    Text(SingleAnchor,Vec<TextHandle>,Vec<String>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,String)
+    SingleAnchorRect(SingleAnchor,Patina,Vec<AllotmentHandle>,Vec<f64>,Vec<f64>),
+    DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
+    Text(SingleAnchor,Vec<TextHandle>,Vec<AllotmentHandle>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle)
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -44,7 +44,7 @@ fn rectangle_to_geometry(anchor: &SingleAnchor) -> GeometryProgramName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
             let pin_data = PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow);
@@ -90,7 +90,7 @@ fn stretchtangle_to_geometry(anchors: &AnchorPair) -> GeometryProgramName {
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<String>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<AllotmentHandle>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -127,7 +127,7 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     }
 }
 
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: String) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: AllotmentHandle) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
     let wiggle = layer.get_wiggle(patina)?;
     let left = layer.left();
     let process = layer.get_process_mut(&GeometryProgramName::Page,patina)?;

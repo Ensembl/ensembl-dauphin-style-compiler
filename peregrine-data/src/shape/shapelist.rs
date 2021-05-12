@@ -1,7 +1,6 @@
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
-use std::sync::{ Arc, Mutex };
-use owning_ref::MutexGuardRefMut;
+use crate::switch::allotment::AllotmentHandle;
 
 #[derive(Debug)]
 pub struct ShapeList {
@@ -15,19 +14,19 @@ impl ShapeList {
         }
     }
 
-    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
+    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>) {
         self.shapes.push(Shape::SingleAnchorRect(anchors,patina,allotments,x_size,y_size));
     }
 
-    pub fn add_rectangle_2(&mut self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>) {
+    pub fn add_rectangle_2(&mut self, anchors: AnchorPair, patina: Patina, allotments: Vec<AllotmentHandle>) {
         self.shapes.push(Shape::DoubleAnchorRect(anchors,patina,allotments));
     }
 
-    pub fn add_text(&mut self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>) {
+    pub fn add_text(&mut self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
         self.shapes.push(Shape::Text(anchors,pen,text,allotments));
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: String) {
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {
         self.shapes.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }
 

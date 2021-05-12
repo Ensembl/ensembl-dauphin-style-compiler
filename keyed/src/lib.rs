@@ -12,7 +12,7 @@ pub trait KeyedHandle {
 macro_rules! keyed_handle {
     ($name:ident) => {
 
-        #[derive(PartialEq,Eq,Hash)]
+        #[derive(PartialEq,Eq,Hash,Debug)] // XXX debug
         pub struct $name(usize);
 
         impl $crate::KeyedHandle for $name {

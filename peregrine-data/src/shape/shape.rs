@@ -1,12 +1,13 @@
 use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
+use crate::switch::allotment::AllotmentHandle;
 
 #[derive(Clone,Debug)]
 pub enum Shape {
-    SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
-    DoubleAnchorRect(AnchorPair,Patina,Vec<String>),
-    Text(SingleAnchor,Pen,Vec<String>,Vec<String>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,String)
+    SingleAnchorRect(SingleAnchor,Patina,Vec<AllotmentHandle>,Vec<f64>,Vec<f64>),
+    DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
+    Text(SingleAnchor,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {

@@ -6,6 +6,7 @@ use crate::{ PgCommander, PgCommanderTaskSpec, PgDauphin, RequestManager };
 use crate::{ ProgramLoader, StickStore, StickAuthorityStore, CountingPromise };
 use crate::api::{ AgentStore, PeregrineApiQueue };
 use crate::run::add_task;
+use crate::switch::allotment::AllotmentPetitioner;
 use crate::util::message::DataMessage;
 use commander::Agent;
 use peregrine_dauphin_queue::PgDauphinQueue;
@@ -34,7 +35,7 @@ impl TestHelpers {
         let channel = Box::new(TestChannelIntegration::new());
         let commander_inner = TestCommander::new();
         let commander = PgCommander::new(Box::new(commander_inner.clone()));
-        let mut manager = RequestManager::new(channel.clone(),&commander,&messages);
+        let manager = RequestManager::new(channel.clone(),&commander,&messages);
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).expect("d");
         let fdr = FakeDauphinReceiver::new(&commander,&dauphin_queue);
@@ -45,7 +46,8 @@ impl TestHelpers {
             commander,
             manager,
             booted,
-            queue: PeregrineApiQueue::new()
+            queue: PeregrineApiQueue::new(),
+            allotment_petitioner: AllotmentPetitioner::new()
         };
         agent_store.set_program_loader(ProgramLoader::new(&base));
         agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));

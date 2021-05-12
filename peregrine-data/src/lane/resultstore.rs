@@ -11,12 +11,15 @@ use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeList>,DataMessage> {
+    use web_sys::console;
+    console::log_1(&format!("run").into());
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeList::new());
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
+    payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
     base.dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
         prio: 1,
         slot: None,

@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu, Pen, Plotter };
+use peregrine_data::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu, Pen, Plotter, AllotmentHandle };
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
@@ -13,7 +13,7 @@ enum GeometryBuilderEntry {
     ZMenu(Arc<ZMenu>),
     Pen(Arc<Pen>),
     Plotter(Arc<Plotter>),
-    Allotment(Arc<String>)
+    Allotment(Arc<AllotmentHandle>)
 }
 
 impl GeometryBuilderEntry {
@@ -93,5 +93,5 @@ impl GeometryBuilder {
     builder_type!(zmenu,add_zmenu,ZMenu,ZMenu,"zmenu");
     builder_type!(pen,add_pen,Pen,Pen,"pen");
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
-    builder_type!(allotment,add_allotment,Allotment,String,"allotment");
+    builder_type!(allotment,add_allotment,Allotment,AllotmentHandle,"allotment");
 }

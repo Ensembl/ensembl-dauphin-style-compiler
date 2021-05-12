@@ -110,3 +110,21 @@ macro_rules! hashable {
         impl Eq for $type {}
     };
 }
+
+/// Implements `PartialEq`, `Eq`, and `Hash` for you on a field in your type.
+#[macro_export]
+macro_rules! orderable {
+    ($type: ident, $field: ident) => {
+        impl PartialOrd for $type {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                self.$field.partial_cmp(&other.$field)
+            }
+        }
+
+        impl Ord for $type {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.$field.partial_cmp(&other.$field).unwrap()
+            }
+        }
+    };
+}

@@ -15,6 +15,7 @@ use crate::core::{ Focus, StickId };
 use crate::util::message::DataMessage;
 use peregrine_message::Instigator;
 use crate::switch::switch::Switches;
+use crate::switch::allotment::AllotmentPetitioner;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -38,6 +39,7 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
+    pub allotment_petitioner: AllotmentPetitioner
 }
 
 #[derive(Clone)]
@@ -68,6 +70,7 @@ impl PeregrineCore {
             manager,
             messages,
             queue: PeregrineApiQueue::new(),
+            allotment_petitioner: AllotmentPetitioner::new()
         };
         agent_store.set_data_store(DataStore::new(32,&base,&agent_store));
         agent_store.set_program_loader(ProgramLoader::new(&base));

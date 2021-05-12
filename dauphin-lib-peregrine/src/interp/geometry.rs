@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter };
+use peregrine_data::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -196,10 +196,14 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
         let peregrine = get_peregrine(context)?;
-        let geometry_builder = peregrine.geometry_builder();    
+        let geometry_builder = peregrine.geometry_builder(); 
+        let mut allotment_petitioner = peregrine.allotments().clone();   
         let ids = name.drain(..).map(|name| {
-            geometry_builder.add_allotment(name) as usize
-        }).collect::<Vec<_>>();
+            let handle = allotment_petitioner.lookup(&name).ok_or_else(||
+                DataMessage::NoSuchAllotment(name)
+            )?;
+            Ok(geometry_builder.add_allotment(handle) as usize)
+        }).collect::<Result<Vec<_>,DataMessage>>()?;
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));

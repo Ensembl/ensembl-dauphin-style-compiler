@@ -35,7 +35,7 @@ impl InterpCommand for Rectangle2InterpCommand {
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let mut allotments = vec![];
         for id in &allotment_id {
-            allotments.push(geometry.allotment(*id as u32)?.to_string());
+            allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
         let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
         zoo.lock().add_rectangle_2(AnchorPair(AnchorPairAxis(sea_x,ship_x0,ship_x1),
@@ -66,7 +66,7 @@ impl InterpCommand for Rectangle1InterpCommand {
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let mut allotments = vec![];
         for id in &allotment_id {
-            allotments.push(geometry.allotment(*id as u32)?.to_string());
+            allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
         let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
         zoo.lock().add_rectangle_1(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),
@@ -96,7 +96,7 @@ impl InterpCommand for TextInterpCommand {
         let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
         let mut allotments = vec![];
         for id in &allotment_id {
-            allotments.push(geometry.allotment(*id as u32)?.to_string());
+            allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
         let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
         zoo.lock().add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotments);
@@ -118,9 +118,9 @@ impl InterpCommand for WiggleInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
-        let allotment = geometry.allotment(allotment_id as u32)?.to_string();
+        let allotment = geometry.allotment(allotment_id as u32)?;
         let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
-        zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment);
+        zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment.as_ref().clone());
         Ok(CommandResult::SyncResult())
     }
 }

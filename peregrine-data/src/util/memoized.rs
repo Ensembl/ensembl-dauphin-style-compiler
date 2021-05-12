@@ -63,21 +63,17 @@ impl<K: Clone+Eq+Hash,V> MemoizedState<K,V> {
     }
 
     fn get_promise(&mut self, key: &K) -> (PromiseFuture<Arc<V>>,Option<FusePromise<Arc<V>>>) {
-        use web_sys::console;
         let p = PromiseFuture::new();
         let fuse = if let Some(value) = self.known.get(key) {
             /* already known: satisfy immediately; don't run future */
-            console::log_1(&format!("X").into());
             p.satisfy(value.clone());
             None
         } else if let Some(fuse) = self.pending.get_mut(key) {
             /* already pending: add to list; don't run future */
-            console::log_1(&format!("Y").into());
             fuse.add(p.clone());
             None
         } else {
             /* not known: create a future and tell caller to run */
-            console::log_1(&format!("Z").into());
             let fuse = FusePromise::new();
             fuse.add(p.clone());
             self.pending.insert(key.clone(),fuse.clone());

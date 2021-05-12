@@ -4,137 +4,64 @@ use std::collections::HashMap;
 use std::hash::{ Hash, Hasher };
 use keyed::{ keyed_handle, KeyedValues };
 
-#[derive(Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
-struct AllotmentData {
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+pub struct AllotmentRequest {
     name: String,
     priority: i64
 }
 
-impl AllotmentData {
-    fn new(name: &str, priority: i64) -> AllotmentData {
-        AllotmentData {
+impl AllotmentRequest {
+    pub fn new(name: &str, priority: i64) -> AllotmentRequest {
+        AllotmentRequest {
             name: name.to_string(),
             priority
         }
     }
-}
 
-#[derive(Clone,Debug)]
-pub struct Allotment {
-    data: Arc<Mutex<AllotmentData>>
-}
-
-impl PartialEq for Allotment {
-    fn eq(&self, other: &Self) -> bool {
-        if Arc::ptr_eq(&self.data,&other.data) {
-            return true;
-        }
-        self.data.lock().unwrap().eq(&other.data.lock().unwrap())
-    }
-}
-impl Eq for Allotment {}
-
-impl Hash for Allotment {
-    fn hash<H>(&self, state: &mut H) where H: Hasher {
-        self.data.lock().unwrap().hash(state);
-    }
-}
-
-impl PartialOrd for Allotment {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if Arc::ptr_eq(&self.data,&other.data) {
-            return Some(Ordering::Equal);
-        }
-        self.data.lock().unwrap().partial_cmp(&other.data.lock().unwrap())
-    }
-}
-
-impl Ord for Allotment {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
-    }
-}
-
-impl Allotment {
-    pub fn new(name: &str, priority: i64) -> Allotment {
-        Allotment {
-            data: Arc::new(Mutex::new(AllotmentData::new(name,priority)))
+    pub fn merge(&mut self, other: &AllotmentRequest) {
+        if self.name != other.name { return; }
+        if other.priority < self.priority {
+            self.priority = other.priority;
         }
     }
 
-    pub fn priority(&self) -> i64 { self.data.lock().unwrap().priority }
-    pub fn name(&self) -> String { self.data.lock().unwrap().name.to_string() }
+    pub fn priority(&self) -> i64 { self.priority }
+    pub fn name(&self) -> &str { &self.name }
 }
+
+
+keyed_handle!(AllotmentHandle);
 
 #[derive(Clone)]
-pub struct StickAllotments {
-    allotments: Arc<Vec<Allotment>>,
-    names: Arc<HashMap<String,usize>>
+pub struct AllotmentPetitioner {
+    allotments: Arc<Mutex<KeyedValues<AllotmentHandle,AllotmentRequest>>>
 }
 
-impl StickAllotments {
-    pub(crate) fn new(allotments: &[Allotment]) -> StickAllotments {
-        let mut allotments = allotments.to_vec();
-        allotments.sort_by_cached_key(|a| {
-            (a.priority(),a.name())
-        });
-        let mut names = HashMap::new();
-        for (i,allotment) in allotments.iter().enumerate() {
-            names.insert(allotment.name(),i);
-        }
-        StickAllotments {
-            allotments: Arc::new(allotments),
-            names: Arc::new(names)
+impl AllotmentPetitioner {
+    pub fn new() -> AllotmentPetitioner {
+        AllotmentPetitioner {
+            allotments: Arc::new(Mutex::new(KeyedValues::new()))
         }
     }
 
-    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
-}
-
-#[derive(Clone)]
-pub struct AllotmentList {
-    allotments: Arc<Vec<Allotment>>
-}
-
-impl AllotmentList {
-    pub fn new(mut allotments: Vec<Allotment>) -> AllotmentList {
-        allotments.sort_by_cached_key(|a| {
-            (a.priority(),a.name())
-        });
-        AllotmentList {
-            allotments: Arc::new(allotments)
+    pub fn add(&mut self, request: AllotmentRequest) -> AllotmentHandle {
+        if let Some(handle) = self.lookup(request.name()) {
+            let mut data = self.allotments.lock().unwrap();
+            let existing = data.data_mut().get_mut(&handle);
+            existing.merge(&request);
+            return handle;
         }
+        self.allotments.lock().unwrap().add(request.name(),request.clone())
     }
 
-    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
+    pub fn lookup(&mut self, name: &str) -> Option<AllotmentHandle> {
+        self.allotments.lock().unwrap().get_handle(name).ok()
+    }
+
+    pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
 /*
-keyed_handle!(AllotmentHandle);
-
-struct AllotmentStore {
-    allotments: KeyedValues<AllotmentHandle,Allotment>
-}
-
-impl AllotmentStore {
-    fn new() -> AllotmentStore {
-        AllotmentStore {
-            allotments: KeyedValues::new()
-        }
-    }
-
-    fn lookup(&mut self, name: &str) -> AllotmentHandle {
-        let handle = self.allotments.get_handle(name).ok();
-        if let Some(handle) = handle {
-            handle
-        } else {
-            self.allotments.add(name,Allotment::new(name))
-        }
-    }
-
-    fn get(&self, handle: &AllotmentHandle) -> &Allotment { self.allotments.data().get(handle) }
-}
-
 pub(crate) struct ScreenBuilder {
     allotments: HashSet<AllotmentHandle>
 }

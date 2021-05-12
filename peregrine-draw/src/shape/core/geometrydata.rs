@@ -1,4 +1,4 @@
-use peregrine_data::{ ZMenuGenerator };
+use peregrine_data::{ ZMenuGenerator,AllotmentHandle };
 use super::super::util::arrayutil::{ empty_is };
 use super::super::layers::drawingzmenus::{ ZMenuResult };
 use crate::stage::stage::{ ReadStage };
@@ -12,18 +12,18 @@ pub trait GeometryData {
 pub struct ZMenuRectangle {
     zmenu: ZMenuGenerator,
     data: Box<dyn GeometryData>,
-    allotment: Vec<String>
+    allotment: Vec<AllotmentHandle>
 }
 
 impl ZMenuRectangle {
-    pub fn new(zmenu: ZMenuGenerator, data: Box<dyn GeometryData>, allotment: Vec<String>) -> ZMenuRectangle {
+    pub fn new(zmenu: ZMenuGenerator, data: Box<dyn GeometryData>, allotment: Vec<AllotmentHandle>) -> ZMenuRectangle {
         ZMenuRectangle {
             zmenu, data,
-            allotment: empty_is(allotment,"".to_string())
+            allotment
         }
     }
 
-    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<(usize,&'t str)>,Message> {
+    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<(usize,&'t AllotmentHandle)>,Message> {
         if !self.data.in_bounds(stage,mouse)? {
             return Ok(None);
         }
@@ -42,7 +42,7 @@ impl ZMenuRectangle {
 
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuResult>,Message> {
         Ok(self.intersects_test(stage,mouse)?.map(|(index,allotment)| {
-            ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment)
+            ZMenuResult::new(self.zmenu.make_proxy(index).value(),allotment.clone())
         }))
     }
 }

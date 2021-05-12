@@ -1,12 +1,12 @@
-use identitynumber::identitynumber;
+use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use crate::{ ProgramName };
 use crate::core::{ Layout, Scale };
-use crate::switch::allotment::Allotment;
+use crate::switch::allotment::AllotmentHandle;
 
 identitynumber!(IDS);
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[derive(Clone,Debug)]
 pub struct Track {
     id: u64,
     min_scale: u64,
@@ -14,8 +14,11 @@ pub struct Track {
     scale_jump: u64,
     program_name: ProgramName,
     tags: Vec<String>,
-    allotments: Vec<Allotment>
+    allotments: Vec<AllotmentHandle>
 }
+
+hashable!(Track,id);
+orderable!(Track,id);
 
 impl Track {
     pub fn new(program_name: &ProgramName, min_scale: u64, max_scale: u64, scale_jump: u64) -> Track { 
@@ -28,8 +31,8 @@ impl Track {
         }
     }
 
-    pub fn add_allotment(&mut self, allotment: Allotment) { self.allotments.push(allotment); }
-    pub fn allotments(&self) -> &[Allotment] { &self.allotments }
+    pub fn add_allotment_request(&mut self, allotment: AllotmentHandle) { self.allotments.push(allotment); }
+    pub fn allotments(&self) -> &[AllotmentHandle] { &self.allotments }
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
     pub fn program_name(&self) -> &ProgramName { &self.program_name }
     pub fn id(&self) -> u64 { self.id }
