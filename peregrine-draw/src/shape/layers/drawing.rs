@@ -1,5 +1,5 @@
 use super::layer::Layer;
-use peregrine_data::Shape;
+use peregrine_data::{ Shape, Allotter };
 use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
 use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
@@ -50,10 +50,10 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape) -> Result<PreparedShape,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape, allotter: &Allotter) -> Result<PreparedShape,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
-        prepare_shape_in_layer(layer,tools,shape)
+        prepare_shape_in_layer(layer,tools,shape,allotter)
     }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {

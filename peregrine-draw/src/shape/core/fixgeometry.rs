@@ -46,6 +46,8 @@ impl FixData {
                                     pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                     pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                                     hollow: bool) -> FixData {
+        use web_sys::console;
+        console::log_1(&format!("add_stretchtangle({:?},{:?})",ayy1,ayy2).into());                                
         let x =  GLAxis::new_from_double(&axx1,&pxx1, &axx2, &pxx2, None,hollow);
         let y = GLAxis::new_from_double(&ayy1,&pyy1, &ayy2, &pyy2, Some(&x),hollow);
         FixData { x, y }

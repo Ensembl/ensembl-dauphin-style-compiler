@@ -1,0 +1,11 @@
+--- peregrine-data/src/train/carriage.rs
++++ peregrine-data/src/train/carriage.rs
+@@ -102,7 +106,7 @@ impl Carriage {
+             }
+         }
+         let shapes = new_shapes.build(&data.base.allotment_petitioner);
+-        self.shapes.replace(shapes);
++        self.shapes.lock().unwrap().replace(shapes);
+         if errors.len() == 0 {
+             Ok(())
+         } else {

@@ -1,4 +1,4 @@
-use peregrine_data::{ ZMenuGenerator,AllotmentHandle };
+use peregrine_data::{ ZMenuGenerator,Allotment };
 use super::super::util::arrayutil::{ empty_is };
 use super::super::layers::drawingzmenus::{ ZMenuResult };
 use crate::stage::stage::{ ReadStage };
@@ -12,18 +12,18 @@ pub trait GeometryData {
 pub struct ZMenuRectangle {
     zmenu: ZMenuGenerator,
     data: Box<dyn GeometryData>,
-    allotment: Vec<AllotmentHandle>
+    allotment: Vec<Allotment>
 }
 
 impl ZMenuRectangle {
-    pub fn new(zmenu: ZMenuGenerator, data: Box<dyn GeometryData>, allotment: Vec<AllotmentHandle>) -> ZMenuRectangle {
+    pub fn new(zmenu: ZMenuGenerator, data: Box<dyn GeometryData>, allotment: Vec<Allotment>) -> ZMenuRectangle {
         ZMenuRectangle {
             zmenu, data,
             allotment
         }
     }
 
-    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<(usize,&'t AllotmentHandle)>,Message> {
+    fn intersects_test<'t>(&'t self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<(usize,&'t Allotment)>,Message> {
         if !self.data.in_bounds(stage,mouse)? {
             return Ok(None);
         }

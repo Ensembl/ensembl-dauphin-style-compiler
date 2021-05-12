@@ -34,8 +34,8 @@ impl PinData {
                                     pxx1: ShipEnd, pyy1: ShipEnd,       /* ship-end anchor1 */
                                     pxx2: ShipEnd, pyy2: ShipEnd,       /* ship-end anchor2 */
                                     hollow: bool) -> PinData {
-        //use web_sys::console;
-        //console::log_1(&format!("add_stretchtangle({:?},{:?})",axx1,axx2).into());
+        use web_sys::console;
+        console::log_1(&format!("add_stretchtangle({:?},{:?})",ayy1,ayy2).into());
         let x_origin = GLAxis::new_double_origin(&axx1, &axx2,-layer.left(), None,hollow);
         //console::log_1(&format!("x_origin = {:?}",x_origin).into());
         PinData {

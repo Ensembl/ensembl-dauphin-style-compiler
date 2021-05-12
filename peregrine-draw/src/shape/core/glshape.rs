@@ -1,4 +1,4 @@
-use peregrine_data::{AllotmentHandle, AnchorPair, Colour, DirectColour, Patina, Plotter, SeaEnd, SeaEndPair, Shape, SingleAnchor };
+use peregrine_data::{Allotment, AllotmentHandle, Allotter, AnchorPair, Colour, DirectColour, Patina, Plotter, ScreenEdge, SeaEnd, SeaEndPair, Shape, SingleAnchor};
 use web_sys::WebGlRenderingContext;
 use super::text::TextHandle;
 use super::fixgeometry::FixData;
@@ -14,10 +14,10 @@ use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 
 pub enum PreparedShape {
-    SingleAnchorRect(SingleAnchor,Patina,Vec<AllotmentHandle>,Vec<f64>,Vec<f64>),
-    DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
-    Text(SingleAnchor,Vec<TextHandle>,Vec<AllotmentHandle>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle)
+    SingleAnchorRect(SingleAnchor,Patina,Vec<Allotment>,Vec<f64>,Vec<f64>),
+    DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
+    Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment)
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -44,27 +44,48 @@ fn rectangle_to_geometry(anchor: &SingleAnchor) -> GeometryProgramName {
     }
 }
 
-fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, _allotment: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
+    let mut allotment_iter = allotment.iter().cycle();
+    y.iter().map(|y| {
+        let offset = allotment_iter.next().unwrap().offset() as f64;
+        *y+offset
+    }).collect()
+}
+
+fn apply_allotments_se(y: &ScreenEdge, allotment: &[Allotment]) -> ScreenEdge {
+    let mut allotment_iter = allotment.iter().cycle();
+    y.transform(|y| {
+        let offset = allotment_iter.next().unwrap().offset() as f64;
+        *y+offset
+    })
+}
+
+// TODO allotments to gl variables for collapsing, moving, etc.
+fn add_rectangle<'a>(layer: &'a mut Layer, anchor: SingleAnchor, skin: &PatinaProcessName, allotment: Vec<Allotment>, x_size: Vec<f64>, y_size: Vec<f64>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
+            let yy = apply_allotments(&yy,&allotment);
             let pin_data = PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,hollow);
             let pin = layer.get_pin(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Pin, skin)?;
             Ok(pin.add(process,pin_data)?)
         },
         (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
+            let sea_y = apply_allotments_se(&sea_y,&allotment);
             let fix_data = FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,hollow);
             let fix = layer.get_fix(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Fix,skin)?;
             Ok(fix.add(process,fix_data)?)
         },
         (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
+            let sea_y = apply_allotments_se(&sea_y,&allotment);
             let tape_data = TapeData::add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,hollow);
             let tape = layer.get_tape(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Tape,skin)?;
             Ok(tape.add(process,tape_data)?)         
         },
         (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
+            let yy = apply_allotments(&yy,&allotment);
             let page_data = PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,hollow);
             let page = layer.get_page(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Page,skin)?;
@@ -90,7 +111,7 @@ fn stretchtangle_to_geometry(anchors: &AnchorPair) -> GeometryProgramName {
     }
 }
 
-fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, _allotment: Vec<AllotmentHandle>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
+fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &PatinaProcessName, allotment: Vec<Allotment>, hollow: bool) -> Result<ProcessStanzaElements,Message> {
     let anchors_x = anchors.0;
     let anchors_y = anchors.1;
     let anchor_sea_x = anchors_x.0;
@@ -101,24 +122,32 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     let pyy2 = anchors_y.2;
     match (anchor_sea_x,anchor_sea_y) {
         (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+            let ayy1 = apply_allotments(&ayy1,&allotment);
+            let ayy2 = apply_allotments(&ayy2,&allotment);
             let pin_data = PinData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
             let pin = layer.get_pin(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Pin, skin)?;
             Ok(pin.add(process,pin_data)?)
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+            let ayy1 = apply_allotments_se(&ayy1,&allotment);
+            let ayy2 = apply_allotments_se(&ayy2,&allotment);
             let fix_data = FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
             let fix = layer.get_fix(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Fix,skin)?;
             Ok(fix.add(process,fix_data)?)
         },
         (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
+            let ayy1 = apply_allotments_se(&ayy1,&allotment);
+            let ayy2 = apply_allotments_se(&ayy2,&allotment);
             let tape_data = TapeData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
             let tape = layer.get_tape(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Tape,&skin)?;
             Ok(tape.add(process,tape_data)?)
         },
         (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
+            let ayy1 = apply_allotments(&ayy1,&allotment);
+            let ayy2 = apply_allotments(&ayy2,&allotment);
             let page_data = PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,hollow);
             let page = layer.get_page(skin)?;
             let process = layer.get_process_mut(&GeometryProgramName::Page,skin)?;
@@ -127,7 +156,7 @@ fn add_stretchtangle<'a>(layer: &'a mut Layer, anchors: AnchorPair, skin: &Patin
     }
 }
 
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: AllotmentHandle) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
+fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: Allotment) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
     let wiggle = layer.get_wiggle(patina)?;
     let left = layer.left();
     let process = layer.get_process_mut(&GeometryProgramName::Page,patina)?;
@@ -150,18 +179,29 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
     Ok(())
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<PreparedShape,Message> {
+// XXX not a new one for each!
+fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec<Allotment>,Message> {
+    allotments.iter().map(|handle| {
+        allotter.get(handle).map(|a| a.clone())
+    }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
+}
+
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape, allotter: &Allotter) -> Result<PreparedShape,Message> {
     Ok(match shape {
         Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
+            let allotment = allotments(allotter,&allotment)?;
             PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)
         },
         Shape::DoubleAnchorRect(anchors,patina,allotment) => {
+            let allotment = allotments(allotter,&allotment)?;
             PreparedShape::DoubleAnchorRect(anchors,patina,allotment)
         },
         Shape::Wiggle(range,y,plotter,allotment) => {
-            PreparedShape::Wiggle(range,y,plotter,allotment)
+            let allotment = allotments(allotter,&[allotment])?;
+            PreparedShape::Wiggle(range,y,plotter,allotment[0].clone())
         },
         Shape::Text(anchor,mut pen,texts,allotment) => {
+            let allotment = allotments(allotter,&allotment)?;
             let drawing_text = tools.text();
             if pen.2.len() == 0 { pen.2.push(DirectColour(0,0,0)); }
             let colours_iter = pen.2.iter().cycle();

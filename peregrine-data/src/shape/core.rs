@@ -113,6 +113,14 @@ impl ScreenEdge {
             ScreenEdge::Max(x) => x.len()
         }
     }
+
+
+    pub fn transform<'t,F>(&'t self,cb: F) -> ScreenEdge where F: FnMut(&f64) -> f64 + 't {
+        match self {
+            ScreenEdge::Min(x) => ScreenEdge::Min(x.iter().map(cb).collect()),
+            ScreenEdge::Max(x) => ScreenEdge::Max(x.iter().map(cb).collect())
+        }
+    }
 }
 
 #[derive(Clone,Debug)]

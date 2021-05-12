@@ -18,6 +18,8 @@ impl ShapeListBuilder {
         }
     }
 
+    pub fn len(&self) -> usize { self.shapes.len() }
+
     pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
         self.allotments.insert(allotment.clone());
     }

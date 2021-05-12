@@ -43,7 +43,7 @@ pub struct Carriage {
     no_shapes: ShapeList, // useful to return ref to sometimes
     id: CarriageId,
     track_configs: TrainTrackConfigList,
-    shapes: Arc<Mutex<Option<ShapeList>>>,
+    shapes: Option<ShapeList>,
     messages: MessageSender
 }
 
@@ -52,7 +52,7 @@ impl Carriage {
         Carriage {
             no_shapes: ShapeList::empty(),
             id: id.clone(),
-            shapes: Arc::new(Mutex::new(None)),
+            shapes: None,
             track_configs: configs.clone(),
             messages: messages.clone()
         }
@@ -61,14 +61,10 @@ impl Carriage {
     pub fn id(&self) -> &CarriageId { &self.id }
 
     // XXX should be able to return without cloning
-    pub fn shapes(&self) -> ShapeList {
-        let data = self.shapes.lock().unwrap();
-        let shape = data.as_ref().cloned();
-        shape.unwrap_or(ShapeList::empty())
-    }
+    pub fn shapes(&self) -> &ShapeList { &self.shapes.as_ref().unwrap_or(&self.no_shapes) }
 
     pub(super) fn ready(&self) -> bool {
-        self.shapes.lock().unwrap().is_some()
+        self.shapes.is_some()
     }
 
     pub(super) async fn load(&mut self, data: &PeregrineCore) -> Result<(),DataMessage> {
@@ -102,7 +98,7 @@ impl Carriage {
         let shapes = new_shapes.build(&data.base.allotment_petitioner);
         use web_sys::console;
         console::log_1(&format!("got new shapes {:?}",shapes.shapes()).into());
-        self.shapes.lock().unwrap().replace(shapes);
+        self.shapes.replace(shapes);
         if errors.len() == 0 {
             Ok(())
         } else {

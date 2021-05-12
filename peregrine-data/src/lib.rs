@@ -159,7 +159,7 @@ pub use self::shape::{
     ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder
 };
-pub use self::switch::allotment::{ AllotmentRequest, AllotmentPetitioner, AllotmentHandle };
+pub use self::switch::allotment::{ AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };

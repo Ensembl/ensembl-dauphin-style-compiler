@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use peregrine_data::{AllotmentHandle, AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator };
+use peregrine_data::{Allotment, AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator };
 use crate::stage::stage::{ ReadStage };
 use crate::shape::core::fixgeometry::{ FixData };
 use crate::shape::core::pagegeometry::{ PageData };
@@ -12,11 +12,11 @@ use crate::util::message::Message;
 
 pub struct ZMenuResult {
     menu: ZMenuFixed,
-    allotment: AllotmentHandle
+    allotment: Allotment
 }
 
 impl ZMenuResult {
-    pub fn new(menu: ZMenuFixed, allotment: AllotmentHandle) -> ZMenuResult {
+    pub fn new(menu: ZMenuFixed, allotment: Allotment) -> ZMenuResult {
         ZMenuResult {
             menu,
             allotment
@@ -28,7 +28,7 @@ pub struct ZMenuEvent {
     menu: ZMenuFixed,
     pixel: (u32,u32),
     bp: (f64,u32), // TODO allotment y
-    allotment: AllotmentHandle // TODO allotments
+    allotment: Allotment // TODO allotments
 }
 
 pub struct DrawingZMenusBuilder {
@@ -42,11 +42,11 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<AllotmentHandle>) {
+    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<Allotment>) {
         self.entries.push(ZMenuRectangle::new(generator,region,allotment));
     }
 
-    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>) {
+    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<Allotment>, x_size: Vec<f64>, y_size: Vec<f64>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let region : Box<dyn GeometryData> = match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
@@ -65,7 +65,7 @@ impl DrawingZMenusBuilder {
         self.add_region(generator,region,allotment);
     }
 
-    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<AllotmentHandle>) {
+    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<Allotment>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let anchors_x = anchors.0;
         let anchors_y = anchors.1;

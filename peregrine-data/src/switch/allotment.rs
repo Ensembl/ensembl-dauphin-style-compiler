@@ -60,6 +60,7 @@ impl AllotmentPetitioner {
     pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
+#[derive(Clone)]
 pub struct Allotment {
     offset: i64,
     size: i64
@@ -71,6 +72,8 @@ impl Allotment {
             offset, size
         }
     }
+
+    pub fn offset(&self) -> i64 { self.offset }
 }
 
 struct RequestSorter {
