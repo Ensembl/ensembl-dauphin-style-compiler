@@ -54,7 +54,7 @@ fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     let mut iter = allotment.iter().cycle().zip(y.iter().cycle());
     (0..len).map(|_| {
         let (allotment,y) = iter.next().unwrap();
-        let offset = allotment.offset() as f64;
+        let offset = allotment.position().offset() as f64;
         *y+offset
     }).collect()
 }

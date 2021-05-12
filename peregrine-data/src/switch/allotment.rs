@@ -1,4 +1,5 @@
-use std::sync::{ Arc, Mutex };
+use std::collections::HashMap;
+use std::{io::LineWriter, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedValues, KeyedData };
 use crate::util::DataMessage;
@@ -26,6 +27,8 @@ impl AllotmentRequest {
 
     pub fn priority(&self) -> i64 { self.priority }
     pub fn name(&self) -> &str { &self.name }
+
+    pub fn kind(&self) -> AllotmentPositionKind { AllotmentPositionKind::Paper }
 }
 
 
@@ -60,20 +63,97 @@ impl AllotmentPetitioner {
     pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
-#[derive(Clone,Debug)]
-pub struct Allotment {
-    offset: i64,
-    size: i64
+
+#[derive(Clone,PartialEq,Eq,Hash)]
+pub enum AllotmentPositionKind {
+    Paper,
+    Top,
+    Bottom
 }
 
-impl Allotment {
-    fn new(offset: i64, size: i64) -> Allotment {
-        Allotment {
-            offset, size
+impl AllotmentPositionKind {
+    fn make_allocator(&self) -> Box<dyn AllotmentPositionAllocator> {
+        Box::new(match self {
+            AllotmentPositionKind::Paper => LinearAllotmentPositionAllocator::new(64, |index,size| {
+                AllotmentPosition::Paper(index*size,size)
+            }), // XXX size
+            AllotmentPositionKind::Top => LinearAllotmentPositionAllocator::new(64, |index,size| {
+                AllotmentPosition::Top(index*size,size)
+            }), // XXX size
+            AllotmentPositionKind::Bottom => LinearAllotmentPositionAllocator::new(64, |index,size| {
+                AllotmentPosition::Bottom(index*size,size)
+            }), // XXX size
+        })
+    }
+}
+
+#[derive(Clone)]
+pub enum AllotmentPosition {
+    Paper(i64,i64),
+    Top(i64,i64),
+    Bottom(i64,i64)
+}
+
+impl AllotmentPosition {
+    fn to_kind(&self) -> AllotmentPositionKind {
+        match self {
+            AllotmentPosition::Paper(_,_) => AllotmentPositionKind::Paper,
+            AllotmentPosition::Top(_,_) => AllotmentPositionKind::Top,
+            AllotmentPosition::Bottom(_,_) => AllotmentPositionKind::Bottom,
         }
     }
 
-    pub fn offset(&self) -> i64 { self.offset }
+    pub fn offset(&self) -> i64 { // XXX shouldn't exist. SHould magic shapes instead
+        *match self {
+            AllotmentPosition::Paper(x,_) => x,
+            AllotmentPosition::Top(x,_) => x,
+            AllotmentPosition::Bottom(x,_) => x,
+        }
+    }
+}
+
+
+trait AllotmentPositionAllocator {
+    fn allocate(&mut self) -> AllotmentPosition;
+}
+
+struct LinearAllotmentPositionAllocator {
+    index: i64,
+    size: i64,
+    ctor: Box<dyn Fn(i64,i64) -> AllotmentPosition>
+}
+
+impl LinearAllotmentPositionAllocator {
+    fn new<F>(size: i64, ctor: F) -> LinearAllotmentPositionAllocator where F: Fn(i64,i64) -> AllotmentPosition + 'static {
+        LinearAllotmentPositionAllocator {
+            index: 0,
+            size,
+            ctor: Box::new(ctor)
+        }
+    }
+}
+
+impl AllotmentPositionAllocator for LinearAllotmentPositionAllocator {
+    fn allocate(&mut self) -> AllotmentPosition {
+        let out = (self.ctor)(self.index,self.size);
+        self.index += 1;
+        out
+    }
+}
+
+#[derive(Clone)]
+pub struct Allotment {
+    position: AllotmentPosition
+}
+
+impl Allotment {
+    fn new(position: AllotmentPosition) -> Allotment {
+        Allotment {
+            position
+        }
+    }
+
+    pub fn position(&self) -> &AllotmentPosition { &self.position }
 }
 
 struct RequestSorter {
@@ -101,20 +181,25 @@ impl RequestSorter {
 }
 
 struct RunningAllotter {
-    index: i64
+    allocators: HashMap<AllotmentPositionKind,Box<dyn AllotmentPositionAllocator>>
 }
 
 impl RunningAllotter {
     fn new() -> RunningAllotter {
         RunningAllotter {
-            index: 0
+            allocators: HashMap::new()
         }
     }
 
+    fn get_allocator(&mut self, kind: &AllotmentPositionKind) -> &mut Box<dyn AllotmentPositionAllocator> {
+        self.allocators.entry(kind.clone()).or_insert_with(|| {
+            kind.make_allocator()
+        })
+    }
+
     fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) -> Allotment {
-        let out = Allotment::new(self.index*64,64); // XXX wrong
-        self.index +=1;
-        out
+        let position = self.get_allocator(&petitioner.get(handle).kind()).allocate();
+        Allotment::new(position)
     }
 }
 
