@@ -1,17 +1,24 @@
+use std::collections::HashSet;
 use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
 use super::shape::Shape;
 use crate::switch::allotment::AllotmentHandle;
 
 #[derive(Debug)]
 pub struct ShapeList {
-    shapes: Vec<Shape>
+    shapes: Vec<Shape>,
+    allotments: HashSet<AllotmentHandle>
 }
 
 impl ShapeList {
     pub fn new() -> ShapeList {
         ShapeList {
-            shapes: vec![]
+            shapes: vec![],
+            allotments: HashSet::new()
         }
+    }
+
+    pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
+        self.allotments.insert(allotment.clone());
     }
 
     pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>) {
@@ -31,18 +38,18 @@ impl ShapeList {
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeList {
-        let mut new = vec![];
+        let mut shapes = vec![];
         for shape in self.shapes.iter() {
-            new.push(shape.filter(min_value,max_value));
+            shapes.push(shape.filter(min_value,max_value));
         }
-        ShapeList {
-            shapes: new
-        }
+        ShapeList { shapes, allotments: self.allotments.clone() }
     }
 
     pub fn append(&mut self, more: &ShapeList) {
         self.shapes.extend(more.shapes.iter().cloned());
+        self.allotments = self.allotments.union(&more.allotments).cloned().collect();
     }
 
-    pub fn shapes(&self) -> &Vec<Shape> { &self.shapes }
+    pub fn shapes(&self) -> &[Shape] { &self.shapes }
+    pub fn allotments(&self) -> impl Iterator<Item=&AllotmentHandle> { self.allotments.iter() }
 }

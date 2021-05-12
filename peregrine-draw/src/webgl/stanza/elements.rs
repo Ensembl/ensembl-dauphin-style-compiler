@@ -30,8 +30,6 @@ impl ProcessStanzaElementsEntry {
 
     fn add_indexes(&mut self, indexes: &[u16], count: u16) {
         let max_index = self.offset + *(if let Some(x) = indexes.iter().max() { x } else { return; });
-        //use web_sys::console;
-        //console::log_1(&format!("PSEE add_indexes [{:?}] count={}",indexes,count).into());
         for index in 0..count {
             let offset = index * (max_index+1);
             self.index.extend(indexes.iter().map(|x| *x+offset));
@@ -40,8 +38,6 @@ impl ProcessStanzaElementsEntry {
     }
 
     fn add(&mut self, handle: &AttribHandle, values: &[f64]) {
-        //use web_sys::console;
-        //console::log_1(&format!("data [{:?}]",values).into());
         self.attribs.get_mut(handle).extend_from_slice(values);
     }
 
@@ -87,8 +83,6 @@ impl ProcessStanzaElements {
     }
 
     fn add_indexes(&mut self, indexes: &[u16]) {
-        //use web_sys::console;
-        //console::log_1(&format!("PSE add_indexes({:?})",indexes).into());
         for (i,(entry,count)) in self.elements.iter().enumerate() {
             entry.borrow_mut().add_indexes(&indexes,*count as u16);
         }

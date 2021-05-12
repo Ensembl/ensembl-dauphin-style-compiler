@@ -89,8 +89,6 @@ fn add_mount(track_ids: &[usize], track_d: &[String], track_a: &[usize], track_b
         let track = peregrine.track_builder().get(*track_id)?;
         let path = &track_d[*track_a..(*track_a+*track_b)];
         let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
-        use web_sys::console;
-        console::log_1(&format!("mount trigger={:?}",trigger).into());
         track.lock().unwrap().add_mount(&path,trigger);
     }
     Ok(())

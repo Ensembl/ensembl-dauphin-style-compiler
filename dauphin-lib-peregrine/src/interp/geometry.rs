@@ -1,12 +1,15 @@
 use crate::simple_interp_command;
-use peregrine_data::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage };
+use peregrine_data::{
+    SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage, Builder,
+    ShapeList
+};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use crate::util::{ get_peregrine };
+use crate::util::{ get_peregrine, get_instance };
 
 simple_interp_command!(IntervalInterpCommand,IntervalDeserializer,9,3,(0,1,2));
 simple_interp_command!(ScreenStartPairInterpCommand,ScreenStartPairDeserializer,10,3,(0,1,2));
@@ -197,14 +200,20 @@ impl InterpCommand for UseAllotmentInterpCommand {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
-        let mut allotment_petitioner = peregrine.allotments().clone();   
-        let ids = name.drain(..).map(|name| {
-            let handle = allotment_petitioner.lookup(&name).ok_or_else(||
+        let mut allotment_petitioner = peregrine.allotments().clone();
+        let handles = name.drain(..).map(|name| {
+            Ok(allotment_petitioner.lookup(&name).ok_or_else(||
                 DataMessage::NoSuchAllotment(name)
-            )?;
-            Ok(geometry_builder.add_allotment(handle) as usize)
+            )?)
         }).collect::<Result<Vec<_>,DataMessage>>()?;
+        let ids = handles.iter().map(|handle| {
+            geometry_builder.add_allotment(handle.clone()) as usize           
+        }).collect();
         drop(peregrine);
+        let zoo = get_instance::<Builder<ShapeList>>(context,"out")?;
+        for handle in &handles {
+            zoo.lock().add_allotment(handle);
+        }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));
         Ok(CommandResult::SyncResult())

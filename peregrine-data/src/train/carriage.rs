@@ -100,6 +100,9 @@ impl Carriage {
                 }
             }
         }
+        let a = new_shapes.allotments().map(|x| format!("{:?}",x)).collect::<Vec<_>>();
+        use web_sys::console;
+        console::log_1(&format!("allotments: {}",a.join(", ")).into());
         let mut shapes = self.shapes.lock().unwrap();
         if shapes.is_none() {
             *shapes = Some(new_shapes);
