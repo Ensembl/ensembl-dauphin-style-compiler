@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use super::zmenu::ZMenu;
+use crate::shape::spacebase::DataFilter;
 
 pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
     let mut out = vec![];
@@ -62,6 +63,13 @@ impl Colour {
             Colour::Spot(d) => Colour::Spot(d.clone())
         }
     }
+
+    pub fn filter2(&self, filter: &DataFilter) -> Colour {
+        match self {
+            Colour::Direct(d) => Colour::Direct(filter.filter(d)),
+            Colour::Spot(d) => Colour::Spot(d.clone())            
+        }
+    }
 }
 
 #[derive(Clone,Debug)]
@@ -93,8 +101,15 @@ impl Patina {
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter(&v,which,primary))).collect())
         }
     }
-}
 
+    pub fn filter2(&self, filter: &DataFilter) -> Patina {
+        match self {
+            Patina::Filled(c) => Patina::Filled(c.filter2(filter)),
+            Patina::Hollow(c) => Patina::Hollow(c.filter2(filter)),
+            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter.filter(&v))).collect())
+        }
+    }
+}
 
 #[derive(Clone,Debug)]
 pub enum ScreenEdge { Min(Vec<f64>), Max(Vec<f64>) }

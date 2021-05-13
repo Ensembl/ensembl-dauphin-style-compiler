@@ -62,7 +62,7 @@ func screen_end(number) becomes seaend;
 func pin_start(number) becomes shipend;
 func pin_centre(number) becomes shipend;
 func pin_end(number) becomes shipend;
-func spacebase(number,allotment,number,number) becomes spacebaseid;
+func spacebase(number,number,number) becomes spacebaseid;
 
 func use_allotment(string) becomes allotment;
 func colour(number,number,number) becomes directcolour;
@@ -73,7 +73,7 @@ func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func pen(string,number,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
-proc rectangle(spacebaseid,spacebaseid,patina);
+proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,allotment);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,allotment);
 proc text(seaend,shipend,seaend,shipend,penspec,string,allotment);
@@ -86,9 +86,9 @@ stmt rectangle_on_genome(start,end,half_height,patina,allt) {
 }
 
 stmt rectangle_on_genome2(start,end,half_height,patina,allt) {
-    top_left := spacebase(start,allt,-half_height,0);
-    bottom_right := spacebase(end,allt,half_height,0);
-    rectangle(top_left,bottom_right,patina);
+    top_left := spacebase(start,-half_height,0);
+    bottom_right := spacebase(end,half_height,0);
+    rectangle(top_left,bottom_right,patina,allt);
 }
 
 stmt text_underneath(x,y,pen_spec,the_text,allt) {

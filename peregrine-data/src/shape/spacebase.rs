@@ -1,29 +1,27 @@
 use std::sync::Arc;
+use std::iter;
 
 fn cycle<T>(data: &[T], index: usize) -> &T {
     &data[index%data.len()]
 }
 
-pub struct SpaceBasePoint<A> {
+pub struct SpaceBasePoint {
     base: f64,
-    space: A,
     normal: f64,
     tangent: f64
 }
 
 #[derive(Debug)]
-pub struct SpaceBasePointRef<'a,A> {
+pub struct SpaceBasePointRef<'a> {
     base: &'a f64,
-    space: &'a A,
     normal: &'a f64,
     tangent: &'a f64
 }
 
-impl<'a,A: Clone> SpaceBasePointRef<'a,A> {
-    fn make(&self) -> SpaceBasePoint<A> {
+impl<'a> SpaceBasePointRef<'a> {
+    fn make(&self) -> SpaceBasePoint {
         SpaceBasePoint {
             base: *self.base,
-            space: self.space.clone(),
             normal: *self.normal,
             tangent: *self.tangent
         }
@@ -54,70 +52,80 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
         }
     }
 
-    fn get(self) -> Vec<A> {
+    fn get_compact(self) -> Vec<A> {
         match self {
             UniformData::None => vec![],
             UniformData::Uniform(current,_) => vec![current],
             UniformData::Varied(values) => values
         }
     }
+
+    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&A> + 'a> {
+        match self {
+            UniformData::None => Box::new(iter::empty()),
+            UniformData::Uniform(current,size) => Box::new(iter::repeat(current).take(*size)),
+            UniformData::Varied(values) => Box::new(values.iter())
+        }
+    }
+
+    fn len(&self) -> usize {
+        match self {
+            UniformData::None => 0,
+            UniformData::Uniform(_,size) => *size,
+            UniformData::Varied(values) => values.len()
+        }
+    }
 }
 
 #[derive(Debug)]
-pub struct SpaceBaseBuilder<A: std::fmt::Debug> {
+pub struct SpaceBaseBuilder {
     base: UniformData<f64>,
-    space: UniformData<A>,
     normal: UniformData<f64>,
     tangent: UniformData<f64>,
 
     max_len: usize
 }
 
-impl<A: PartialEq+Clone+std::fmt::Debug> SpaceBaseBuilder<A> {
-    pub fn empty() -> SpaceBaseBuilder<A> {
+impl SpaceBaseBuilder {
+    pub fn empty() -> SpaceBaseBuilder {
         SpaceBaseBuilder {
             base: UniformData::None,
-            space: UniformData::None,
             normal: UniformData::None,
             tangent: UniformData::None,
             max_len: 0
         }
     }
 
-    pub fn add(&mut self, point: SpaceBasePoint<A>) {
+    pub fn add(&mut self, point: SpaceBasePoint) {
         self.base.add(point.base);
-        self.space.add(point.space);
         self.normal.add(point.normal);
         self.tangent.add(point.tangent);
         self.max_len += 1;
     }
 
-    pub fn build(self) -> SpaceBase<A> {
+    pub fn build(self) -> SpaceBase {
         SpaceBase::new(
-            self.base.get(),
-            self.space.get(),
-            self.normal.get(),
-            self.tangent.get())
+            self.base.get_compact(),
+            self.normal.get_compact(),
+            self.tangent.get_compact())
     }
 }
 
 /* If any are empty, all are empty */
 
 #[derive(Debug)]
-pub struct SpaceBase<A> {
+pub struct SpaceBase {
     base: Arc<Vec<f64>>,
-    space: Arc<Vec<A>>,
     normal: Arc<Vec<f64>>,
     tangent: Arc<Vec<f64>>,
 
     max_len: usize
 }
 
-impl<A: 'static> Clone for SpaceBase<A> {
+impl Clone for SpaceBase {
     fn clone(&self) -> Self {
         SpaceBase {
             base: self.base.clone(),
-            space: self.space.clone(),
             normal: self.normal.clone(),
             tangent: self.tangent.clone(),
             max_len: self.max_len
@@ -125,25 +133,23 @@ impl<A: 'static> Clone for SpaceBase<A> {
     }
 }
 
-impl<A> SpaceBase<A> {
-    pub fn empty() -> SpaceBase<A> {
+impl SpaceBase {
+    pub fn empty() -> SpaceBase {
         SpaceBase {
             base: Arc::new(vec![]),
-            space: Arc::new(vec![]),
             normal: Arc::new(vec![]),
             tangent: Arc::new(vec![]),
             max_len: 0
         }
     }
 
-    pub fn new(base: Vec<f64>, space: Vec<A>, normal: Vec<f64>, tangent: Vec<f64>) -> SpaceBase<A> {
-        let max_len = base.len().max(space.len()).max(normal.len()).max(tangent.len());
-        if base.len() == 0 || space.len() == 0 || normal.len() == 0 || tangent.len() == 0 {
+    pub fn new(base: Vec<f64>, normal: Vec<f64>, tangent: Vec<f64>) -> SpaceBase {
+        let max_len = base.len().max(normal.len()).max(tangent.len());
+        if base.len() == 0 || normal.len() == 0 || tangent.len() == 0 {
             SpaceBase::empty()
         } else {
             SpaceBase {
                 base: Arc::new(base),
-                space: Arc::new(space),
                 normal: Arc::new(normal),
                 tangent: Arc::new(tangent),
                 max_len
@@ -151,7 +157,7 @@ impl<A> SpaceBase<A> {
         }
     }
 
-    pub fn iter_len<'a>(&'a self, length: usize) -> SpaceBaseIterator<'a,A> {
+    pub fn iter_len<'a>(&'a self, length: usize) -> SpaceBaseIterator<'a> {
         SpaceBaseIterator {
             spacebase: self,
             index: 0,
@@ -159,41 +165,29 @@ impl<A> SpaceBase<A> {
         }
     }
 
-    pub fn map_space<F,B>(&self, cb: &mut F) -> SpaceBase<B> where F: FnMut(&A) -> B {
+    pub fn filter(&self, filter: &DataFilter) -> SpaceBase {
         SpaceBase {
-            base: self.base.clone(),
-            space: Arc::new(self.space.iter().map(move |a| cb(a)).collect()),
-            normal: self.normal.clone(),
-            tangent: self.tangent.clone(),
-            max_len: self.max_len
+            base: Arc::new(filter.filter(&self.base)),
+            normal: Arc::new(filter.filter(&self.normal)),
+            tangent: Arc::new(filter.filter(&self.tangent)),
+            max_len: filter.len()
         }
-    }
-
-    pub fn try_map_space<F,B,E>(&self, cb: &mut F) -> Result<SpaceBase<B>,E> where F: FnMut(&A) -> Result<B,E> {
-        Ok(SpaceBase {
-            base: self.base.clone(),
-            space: Arc::new(self.space.iter().map(move |a| cb(a)).collect::<Result<Vec<_>,_>>()?),
-            normal: self.normal.clone(),
-            tangent: self.tangent.clone(),
-            max_len: self.max_len
-        })
     }
 }
 
-pub struct SpaceBaseIterator<'a,A> {
-    spacebase: &'a SpaceBase<A>,
+pub struct SpaceBaseIterator<'a> {
+    spacebase: &'a SpaceBase,
     index: usize,
     length: usize
 }
 
-impl<'a,A> Iterator for SpaceBaseIterator<'a,A> {
-    type Item = SpaceBasePointRef<'a,A>;
+impl<'a> Iterator for SpaceBaseIterator<'a> {
+    type Item = SpaceBasePointRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.length { return None; }
         let out = SpaceBasePointRef {
             base: cycle(&self.spacebase.base,self.index),
-            space: cycle(&self.spacebase.space,self.index),
             normal: cycle(&self.spacebase.normal,self.index),
             tangent: cycle(&self.spacebase.tangent,self.index),
         };
@@ -202,13 +196,13 @@ impl<'a,A> Iterator for SpaceBaseIterator<'a,A> {
     }
 }
 
-pub struct SpaceBaseAreaIterator<'a,A> {
-    a: SpaceBaseIterator<'a,A>,
-    b: SpaceBaseIterator<'a,A>
+pub struct SpaceBaseAreaIterator<'a> {
+    a: SpaceBaseIterator<'a>,
+    b: SpaceBaseIterator<'a>,
 }
 
-impl<'a,A> Iterator for SpaceBaseAreaIterator<'a,A> {
-    type Item = (SpaceBasePointRef<'a,A>,SpaceBasePointRef<'a,A>);
+impl<'a> Iterator for SpaceBaseAreaIterator<'a> {
+    type Item = (SpaceBasePointRef<'a>,SpaceBasePointRef<'a>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (x,y) = (self.a.next(),self.b.next());
@@ -217,47 +211,66 @@ impl<'a,A> Iterator for SpaceBaseAreaIterator<'a,A> {
     }
 }
 
-#[derive(Debug)]
-pub struct SpaceBaseArea<A>(SpaceBase<A>,SpaceBase<A>);
 
-impl<A> SpaceBaseArea<A> {
-    pub fn new(top_left: SpaceBase<A>, bottom_right: SpaceBase<A>) -> SpaceBaseArea<A> {
+pub struct DataFilter(UniformData<bool>);
+
+impl DataFilter {
+    pub fn filter<X: Clone>(&self, other: &[X]) -> Vec<X> {
+        if other.len() == 0 { return vec![] }
+        match &self.0 {
+            UniformData::None => { return vec![]; },
+            UniformData::Uniform(false,_) => { return vec![]; },
+            UniformData::Uniform(true,_) => {
+                if other.len() == 1 {
+                    return vec![other[0].clone()];
+                }
+            },
+            _ => {}
+        }
+        let mut values = other.iter().cycle();
+        let mut out = vec![];
+        for (pass,value) in self.0.iter().zip(values) {
+           if *pass { out.push(value.clone()) };
+        }
+        out
+    }
+
+    pub fn len(&self) -> usize { self.0.len() }
+}
+
+#[derive(Debug)]
+pub struct SpaceBaseArea(SpaceBase,SpaceBase);
+
+impl SpaceBaseArea {
+    pub fn new(top_left: SpaceBase, bottom_right: SpaceBase) -> SpaceBaseArea {
         SpaceBaseArea(top_left,bottom_right)
     }
 
-    pub fn iter(&self) -> SpaceBaseAreaIterator<A> {
+    pub fn iter(&self) -> SpaceBaseAreaIterator {
         let len = self.0.max_len.max(self.1.max_len);
         SpaceBaseAreaIterator {
             a: self.0.iter_len(len),
             b: self.1.iter_len(len),
         }
     }
-
-    pub fn map_space<F,B>(&self, mut cb: F) -> SpaceBaseArea<B> where F: FnMut(&A) -> B {
-        let cb = &mut cb;
-        SpaceBaseArea(self.0.map_space(cb),self.1.map_space(cb))
-    }
-
-    pub fn try_map_space<F,B,E>(&self, mut cb: &mut F) -> Result<SpaceBaseArea<B>,E> where F: FnMut(&A) -> Result<B,E> {
-        let cb = &mut cb;
-        Ok(SpaceBaseArea(self.0.try_map_space(cb)?,self.1.try_map_space(cb)?))
-    }
 }
 
-impl<A: Clone+PartialEq+std::fmt::Debug> SpaceBaseArea<A> {
-    pub fn filter_base(&self, min_value: f64, max_value: f64) -> SpaceBaseArea<A> {
-        let mut top_left_builder = SpaceBaseBuilder::empty();
-        let mut bottom_right_builder = SpaceBaseBuilder::empty();
+impl SpaceBaseArea {
+    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+        let mut uniform = UniformData::None;
         for (top_left,bottom_right) in self.iter() {
-            if *top_left.base >= max_value || *bottom_right.base < min_value { continue; }
-            top_left_builder.add(top_left.make());
-            bottom_right_builder.add(bottom_right.make());
+            let exclude = *top_left.base >= max_value || *bottom_right.base < min_value;
+            uniform.add(!exclude);
         }
-        SpaceBaseArea(top_left_builder.build(),bottom_right_builder.build())
+        DataFilter(uniform)
+    }
+
+    pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea {
+        SpaceBaseArea(self.0.filter(filter),self.1.filter(filter))
     }
 }
 
-impl<A: 'static> Clone for SpaceBaseArea<A> {
+impl Clone for SpaceBaseArea {
     fn clone(&self) -> Self {
         SpaceBaseArea(self.0.clone(),self.1.clone())
     }

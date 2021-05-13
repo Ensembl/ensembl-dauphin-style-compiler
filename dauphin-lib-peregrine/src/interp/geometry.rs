@@ -32,7 +32,7 @@ simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,32,2,(
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,33,4,(0,1,2,3));
 simple_interp_command!(PenInterpCommand,PenDeserializer,36,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,38,3,(0,1,2));
-simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,42,5,(0,1,2,3,4));
+simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,42,4,(0,1,2,3));
 
 fn seaendpair<F>(context: &mut InterpContext, out: &Register, starts: &Register, ends: &Register, cb: F) -> anyhow::Result<()>
                 where F: FnOnce(Vec<f64>,Vec<f64>) -> SeaEndPair {
@@ -75,16 +75,12 @@ impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let base = registers.get_numbers(&self.1)?.to_vec();
-        let space = registers.get_indexes(&self.2)?.to_vec();
-        let normal = registers.get_numbers(&self.3)?.to_vec();
-        let tangent = registers.get_numbers(&self.4)?.to_vec();
+        let normal = registers.get_numbers(&self.2)?.to_vec();
+        let tangent = registers.get_numbers(&self.3)?.to_vec();
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let handles = space.iter().map(|v| {
-            geometry_builder.allotment(*v as u32).map(|x| x.as_ref().clone())
-        }).collect::<Result<Vec<_>,_>>()?;
-        let spacebase = SpaceBase::new(base,handles,normal,tangent);
+        let spacebase = SpaceBase::new(base,normal,tangent);
         let id = geometry_builder.add_spacebase(spacebase);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    

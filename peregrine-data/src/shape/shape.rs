@@ -9,7 +9,7 @@ pub enum Shape {
     DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
     Text(SingleAnchor,Pen,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
-    SpaceBaseRect(SpaceBaseArea<AllotmentHandle>,Patina)
+    SpaceBaseRect(SpaceBaseArea,Patina,Vec<AllotmentHandle>)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -27,8 +27,9 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 impl Shape {
     pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
         match self {
-            Shape::SpaceBaseRect(area,patina) => {
-                Shape::SpaceBaseRect(area.filter_base(min_value,max_value),patina.clone())
+            Shape::SpaceBaseRect(area,patina,allotments) => {
+                let filter = area.make_base_filter(min_value,max_value);
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter2(&filter),filter.filter(allotments))
             },
             Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
                 let count = anchor.len();

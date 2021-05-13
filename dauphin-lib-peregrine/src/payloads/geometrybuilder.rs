@@ -14,7 +14,7 @@ enum GeometryBuilderEntry {
     Pen(Arc<Pen>),
     Plotter(Arc<Plotter>),
     Allotment(Arc<AllotmentHandle>),
-    SpaceBase(Arc<SpaceBase<AllotmentHandle>>),
+    SpaceBase(Arc<SpaceBase>),
 }
 
 impl GeometryBuilderEntry {
@@ -96,5 +96,5 @@ impl GeometryBuilder {
     builder_type!(pen,add_pen,Pen,Pen,"pen");
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
     builder_type!(allotment,add_allotment,Allotment,AllotmentHandle,"allotment");
-    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<AllotmentHandle>,"spacebase");
+    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase,"spacebase");
 }

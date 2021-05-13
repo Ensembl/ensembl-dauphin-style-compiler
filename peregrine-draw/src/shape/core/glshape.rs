@@ -11,7 +11,7 @@ use super::tapegeometry::TapeData;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use super::super::layers::geometry::GeometryProgramName;
-use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, TextureBindery, GPUSpec};
+use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
@@ -21,7 +21,7 @@ pub enum PreparedShape {
     DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
     Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
-    SpaceBaseRect(SpaceBaseArea<Allotment>,Patina)
+    SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>)
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -217,10 +217,9 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
             PreparedShape::Text(anchor,handles,allotment)
         },
-        Shape::SpaceBaseRect(area,patina) => {
-            PreparedShape::SpaceBaseRect(area.try_map_space(&mut |handle| {
-                allotter.get(handle).map(|a| a.clone())
-            }).map_err(|e| Message::DataError(e))?,patina)
+        Shape::SpaceBaseRect(area,patina,allotment) => {
+            let allotment = allotments(allotter,&allotment)?;
+            PreparedShape::SpaceBaseRect(area,patina,allotment)
         }
     })
 }
@@ -297,10 +296,10 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
         },
-        PreparedShape::SpaceBaseRect(area,patina) => {
+        PreparedShape::SpaceBaseRect(area,patina,allotment) => {
             use web_sys::console;
-            for (top_left,bottom_right) in area.iter() {
-                console::log_1(&format!("spacebasearea({:?},{:?})",top_left,bottom_right).into());
+            for ((top_left,bottom_right),allotment) in area.iter().zip(allotment.iter().cycle()) {
+                console::log_1(&format!("spacebasearea({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
             }
         }
     }
