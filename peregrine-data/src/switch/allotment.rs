@@ -28,7 +28,7 @@ impl AllotmentRequest {
     pub fn priority(&self) -> i64 { self.priority }
     pub fn name(&self) -> &str { &self.name }
 
-    pub fn kind(&self) -> AllotmentPositionKind { AllotmentPositionKind::Paper }
+    pub fn kind(&self) -> AllotmentPositionKind { AllotmentPositionKind::Track }
 }
 
 
@@ -63,51 +63,65 @@ impl AllotmentPetitioner {
     pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest { self.allotments.lock().unwrap().data().get(handle).clone() }
 }
 
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub enum PositionVariant {
+    HighPriority,
+    LowPriority
+}
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentPositionKind {
-    Paper,
-    Top,
-    Bottom
+    Track,
+    BaseLabel(PositionVariant),
+    SpaceLabel(PositionVariant)
 }
 
 impl AllotmentPositionKind {
     fn make_allocator(&self) -> Box<dyn AllotmentPositionAllocator> {
         Box::new(match self {
-            AllotmentPositionKind::Paper => LinearAllotmentPositionAllocator::new(64, |index,size| {
-                AllotmentPosition::Paper(index*size,size)
+            AllotmentPositionKind::Track => LinearAllotmentPositionAllocator::new(64, |index,size| {
+                AllotmentPosition::Track(OffsetSize(index*size,size))
             }), // XXX size
-            AllotmentPositionKind::Top => LinearAllotmentPositionAllocator::new(64, |index,size| {
-                AllotmentPosition::Top(index*size,size)
-            }), // XXX size
-            AllotmentPositionKind::Bottom => LinearAllotmentPositionAllocator::new(64, |index,size| {
-                AllotmentPosition::Bottom(index*size,size)
-            }), // XXX size
+            AllotmentPositionKind::BaseLabel(priority) => {
+                let priority = priority.clone();
+                LinearAllotmentPositionAllocator::new(64, move |index,size| {
+                    AllotmentPosition::BaseLabel(priority.clone(),OffsetSize(index*size,size))
+                })
+            }, // XXX size
+            AllotmentPositionKind::SpaceLabel(priority) => {
+                let priority = priority.clone();
+                LinearAllotmentPositionAllocator::new(64, move |index,size| {
+                    AllotmentPosition::SpaceLabel(priority.clone(),OffsetSize(index*size,size))
+                })
+            }, // XXX size
         })
     }
 }
 
 #[derive(Clone,Debug)]
+pub struct OffsetSize(pub i64,i64);
+
+#[derive(Clone,Debug)]
 pub enum AllotmentPosition {
-    Paper(i64,i64),
-    Top(i64,i64),
-    Bottom(i64,i64)
+    Track(OffsetSize),
+    BaseLabel(PositionVariant,OffsetSize),
+    SpaceLabel(PositionVariant,OffsetSize)
 }
 
 impl AllotmentPosition {
-    fn to_kind(&self) -> AllotmentPositionKind {
+    pub fn kind(&self) -> AllotmentPositionKind {
         match self {
-            AllotmentPosition::Paper(_,_) => AllotmentPositionKind::Paper,
-            AllotmentPosition::Top(_,_) => AllotmentPositionKind::Top,
-            AllotmentPosition::Bottom(_,_) => AllotmentPositionKind::Bottom,
+            AllotmentPosition::Track(_) => AllotmentPositionKind::Track,
+            AllotmentPosition::BaseLabel(p,_) => AllotmentPositionKind::BaseLabel(p.clone()),
+            AllotmentPosition::SpaceLabel(p,_) => AllotmentPositionKind::SpaceLabel(p.clone()),
         }
     }
 
     pub fn offset(&self) -> i64 { // XXX shouldn't exist. SHould magic shapes instead
-        *match self {
-            AllotmentPosition::Paper(x,_) => x,
-            AllotmentPosition::Top(x,_) => x,
-            AllotmentPosition::Bottom(x,_) => x,
+        match self {
+            AllotmentPosition::Track(x) => x.0,
+            AllotmentPosition::BaseLabel(_,x) => x.0,
+            AllotmentPosition::SpaceLabel(_,x) => x.0,
         }
     }
 }

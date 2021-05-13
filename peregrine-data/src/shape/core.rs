@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use super::zmenu::ZMenu;
-use crate::shape::spacebase::DataFilter;
+use crate::util::ringarray::{ UniformData, DataFilter };
 
 pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
     let mut out = vec![];

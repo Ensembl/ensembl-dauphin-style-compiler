@@ -1,8 +1,7 @@
 use peregrine_data::{
     Allotment, AllotmentHandle, Allotter, AnchorPair, Colour, DirectColour, Patina, Plotter, ScreenEdge, SeaEnd,
-    SeaEndPair, Shape, SingleAnchor, SpaceBaseArea
+    SeaEndPair, Shape, SingleAnchor, SpaceBaseArea, OffsetSize, AllotmentPositionKind, PositionVariant, DataFilter
 };
-use web_sys::WebGlRenderingContext;
 use super::text::TextHandle;
 use super::fixgeometry::FixData;
 use super::pagegeometry::PageData;
@@ -16,12 +15,45 @@ use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 
+#[derive(Clone,PartialEq,Eq,Hash)]
+pub enum AllotmentProgramKind {
+    Track,
+    BaseLabel,
+    SpaceLabel
+}
+
+pub enum AllotmentProgram {
+    Track,
+    BaseLabel(PositionVariant),
+    SpaceLabel(PositionVariant)
+}
+
+impl AllotmentProgram {
+    fn kind(&self) -> AllotmentProgramKind {
+        match self {
+            AllotmentProgram::Track => AllotmentProgramKind::Track,
+            AllotmentProgram::SpaceLabel(_) => AllotmentProgramKind::SpaceLabel,
+            AllotmentProgram::BaseLabel(_) => AllotmentProgramKind::BaseLabel
+        }        
+    }
+}
+
+impl AllotmentProgram {
+    fn new(allotment: &AllotmentPositionKind) -> AllotmentProgram {
+        match allotment {
+            AllotmentPositionKind::Track => AllotmentProgram::Track,
+            AllotmentPositionKind::SpaceLabel(x) => AllotmentProgram::SpaceLabel(x.clone()),
+            AllotmentPositionKind::BaseLabel(x) => AllotmentProgram::BaseLabel(x.clone())
+        }
+    }
+}
+
 pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<Allotment>,Vec<f64>,Vec<f64>),
     DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
     Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
-    SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>)
+    SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>,AllotmentProgramKind),
 }
 
 fn colour_to_patina(colour: Colour) -> PatinaProcessName {
@@ -195,19 +227,19 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape, allotter: &Allotter) -> Result<PreparedShape,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape, allotter: &Allotter) -> Result<Vec<PreparedShape>,Message> {
     Ok(match shape {
         Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
             let allotment = allotments(allotter,&allotment)?;
-            PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)
+            vec![PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size)]
         },
         Shape::DoubleAnchorRect(anchors,patina,allotment) => {
             let allotment = allotments(allotter,&allotment)?;
-            PreparedShape::DoubleAnchorRect(anchors,patina,allotment)
+            vec![PreparedShape::DoubleAnchorRect(anchors,patina,allotment)]
         },
         Shape::Wiggle(range,y,plotter,allotment) => {
             let allotment = allotments(allotter,&[allotment])?;
-            PreparedShape::Wiggle(range,y,plotter,allotment[0].clone())
+            vec![PreparedShape::Wiggle(range,y,plotter,allotment[0].clone())]
         },
         Shape::Text(anchor,mut pen,texts,allotment) => {
             let allotment = allotments(allotter,&allotment)?;
@@ -215,11 +247,18 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             if pen.2.len() == 0 { pen.2.push(DirectColour(0,0,0)); }
             let colours_iter = pen.2.iter().cycle();
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
-            PreparedShape::Text(anchor,handles,allotment)
+            vec![PreparedShape::Text(anchor,handles,allotment)]
         },
         Shape::SpaceBaseRect(area,patina,allotment) => {
             let allotment = allotments(allotter,&allotment)?;
-            PreparedShape::SpaceBaseRect(area,patina,allotment)
+            let demerge = DataFilter::demerge(&allotment,|allotment| {
+                AllotmentProgram::new(&allotment.position().kind()).kind()
+            });
+            let mut out = vec![];
+            for (kind,filter) in &demerge {
+                out.push(PreparedShape::SpaceBaseRect(area.filter(filter),patina.filter2(filter),filter.filter(&allotment),kind.clone()));
+            }
+            out
         }
     })
 }
@@ -296,10 +335,22 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
         },
-        PreparedShape::SpaceBaseRect(area,patina,allotment) => {
+        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::Track) => {
             use web_sys::console;
-            for ((top_left,bottom_right),allotment) in area.iter().zip(allotment.iter().cycle()) {
-                console::log_1(&format!("spacebasearea({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
+            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+                console::log_1(&format!("track({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
+            }
+        },
+        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::BaseLabel) => {
+            use web_sys::console;
+            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+                console::log_1(&format!("baselabel({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
+            }
+        },
+        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::SpaceLabel) => {
+            use web_sys::console;
+            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+                console::log_1(&format!("spacelabel({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
             }
         }
     }

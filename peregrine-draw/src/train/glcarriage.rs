@@ -35,8 +35,10 @@ impl GLCarriage {
         let allotter = carriage.shapes().allotter();
         let mut preparations = carriage.shapes().shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
         drawing.finish_preparation(gl)?;
-        for shape in preparations.drain(..) {
-            drawing.add_shape(gl,shape)?;
+        for mut shapes in preparations.drain(..) {
+            for shape in shapes.drain(..) {
+                drawing.add_shape(gl,shape)?;
+            }
         }
         let drawing = drawing.build(gl)?;
         Ok(GLCarriage {

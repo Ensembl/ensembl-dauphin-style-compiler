@@ -45,7 +45,7 @@ use anyhow::{ bail };
 use std::collections::{ HashSet };
 use std::iter::Peekable;
 use std::str::Chars;
-use crate::shape::spacebase::DataFilter;
+use crate::util::ringarray::{ UniformData, DataFilter };
 
 #[derive(Clone,Debug)]
 pub enum ZMenuText {

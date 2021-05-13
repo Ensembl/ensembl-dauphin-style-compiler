@@ -50,7 +50,7 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape, allotter: &Allotter) -> Result<PreparedShape,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape, allotter: &Allotter) -> Result<Vec<PreparedShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape,allotter)

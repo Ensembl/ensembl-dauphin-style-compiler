@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::iter;
+use crate::util::ringarray::{ UniformData, DataFilter };
 
 fn cycle<T>(data: &[T], index: usize) -> &T {
     &data[index%data.len()]
@@ -24,55 +24,6 @@ impl<'a> SpaceBasePointRef<'a> {
             base: *self.base,
             normal: *self.normal,
             tangent: *self.tangent
-        }
-    }
-}
-
-#[derive(Debug)]
-enum UniformData<A: std::fmt::Debug> {
-    None,
-    Uniform(A,usize),
-    Varied(Vec<A>)
-}
-
-impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
-    fn add(&mut self, more: A) {
-        match self {
-            UniformData::None => { *self = UniformData::Uniform(more,1); },
-            UniformData::Uniform(current,count) => {
-                if *current == more {
-                    *count += 1;
-                } else {
-                    let mut many = vec![current.clone();*count];
-                    many.push(more);
-                    *self = UniformData::Varied(many);
-                }
-            },
-            UniformData::Varied(values) => { values.push(more); }
-        }
-    }
-
-    fn get_compact(self) -> Vec<A> {
-        match self {
-            UniformData::None => vec![],
-            UniformData::Uniform(current,_) => vec![current],
-            UniformData::Varied(values) => values
-        }
-    }
-
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&A> + 'a> {
-        match self {
-            UniformData::None => Box::new(iter::empty()),
-            UniformData::Uniform(current,size) => Box::new(iter::repeat(current).take(*size)),
-            UniformData::Varied(values) => Box::new(values.iter())
-        }
-    }
-
-    fn len(&self) -> usize {
-        match self {
-            UniformData::None => 0,
-            UniformData::Uniform(_,size) => *size,
-            UniformData::Varied(values) => values.len()
         }
     }
 }
@@ -211,33 +162,6 @@ impl<'a> Iterator for SpaceBaseAreaIterator<'a> {
     }
 }
 
-
-pub struct DataFilter(UniformData<bool>);
-
-impl DataFilter {
-    pub fn filter<X: Clone>(&self, other: &[X]) -> Vec<X> {
-        if other.len() == 0 { return vec![] }
-        match &self.0 {
-            UniformData::None => { return vec![]; },
-            UniformData::Uniform(false,_) => { return vec![]; },
-            UniformData::Uniform(true,_) => {
-                if other.len() == 1 {
-                    return vec![other[0].clone()];
-                }
-            },
-            _ => {}
-        }
-        let mut values = other.iter().cycle();
-        let mut out = vec![];
-        for (pass,value) in self.0.iter().zip(values) {
-           if *pass { out.push(value.clone()) };
-        }
-        out
-    }
-
-    pub fn len(&self) -> usize { self.0.len() }
-}
-
 #[derive(Debug)]
 pub struct SpaceBaseArea(SpaceBase,SpaceBase);
 
@@ -253,6 +177,11 @@ impl SpaceBaseArea {
             b: self.1.iter_len(len),
         }
     }
+
+    pub fn iter_other<'a,X>(&self, other: &'a [X]) -> impl Iterator<Item=&'a X> {
+        let len = self.0.max_len.max(self.1.max_len);
+        other.iter().cycle().take(len)
+    }
 }
 
 impl SpaceBaseArea {
@@ -262,7 +191,7 @@ impl SpaceBaseArea {
             let exclude = *top_left.base >= max_value || *bottom_right.base < min_value;
             uniform.add(!exclude);
         }
-        DataFilter(uniform)
+        DataFilter::new(uniform)
     }
 
     pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea {

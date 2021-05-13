@@ -130,6 +130,7 @@ mod util {
     pub mod memoized;
     pub mod message;
     pub mod miscpromises;
+    pub mod ringarray;
     pub mod unlock;
 
     pub use self::builder::Builder;
@@ -162,8 +163,12 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     SpaceBase, SpaceBaseArea
 };
-pub use self::switch::allotment::{ AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment };
+pub use self::switch::allotment::{ 
+    AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,
+    PositionVariant
+};
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
+pub use self::util::ringarray::DataFilter;
