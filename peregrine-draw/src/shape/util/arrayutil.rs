@@ -7,6 +7,46 @@ use crate::util::message::Message;
 use web_sys::WebGlRenderingContext;
 use crate::webgl::GPUSpec;
 
+pub fn plain_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64) {
+    data.push(left);
+    data.push(top);
+    data.push(left);
+    data.push(bottom);
+    data.push(right);
+    data.push(top);
+    data.push(right);
+    data.push(bottom);
+}
+
+pub fn hollow_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64, w: f64) {
+    data.push(left+w);
+    data.push(top+w);
+    data.push(left);
+    data.push(top);
+
+    data.push(left+w);
+    data.push(bottom-w);
+    data.push(left);
+    data.push(bottom);
+
+    data.push(right-w);
+    data.push(bottom-w);
+    data.push(right);
+    data.push(bottom);    
+
+    data.push(right-w);
+    data.push(top+w);
+    data.push(right);
+    data.push(top);
+}
+
+pub fn rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64, w: Option<f64>){
+    match w {
+        Some(w) => hollow_rectangle(data,left,top,right,bottom,w),
+        None => plain_rectangle(data,left,top,right,bottom)
+    }
+}
+
 /* convert 0-255 colour indices to 0.0-1.0 */
 pub(crate) fn scale_colour(value: u8) -> f64 {
     (value as f64)/255.

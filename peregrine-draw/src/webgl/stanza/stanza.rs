@@ -33,8 +33,8 @@ pub(crate) struct ProcessStanza {
 impl ProcessStanza {
     pub(super) fn new_elements(context: &WebGlRenderingContext, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f64>>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
-            //use web_sys::console;
-            //console::log_1(&format!("new_elements index={:?}",index).into());
+            use web_sys::console;
+            console::log_1(&format!("new_elements index={:?}",index).into());
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
                 len: index.len(),

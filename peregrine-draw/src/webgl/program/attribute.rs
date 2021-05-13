@@ -86,6 +86,8 @@ pub(crate) struct AttributeValues {
 
 impl AttributeValues {
     pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> Result<AttributeValues,Message> {
+        use web_sys::console;
+        //console::log_1(&format!("our_value {:?}",&our_value).into());
         Ok(AttributeValues {
             gl_value: create_buffer(context,&our_value)?,
             arity: object.proto.arity.to_num() as i32,

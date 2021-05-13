@@ -13,9 +13,9 @@ pub struct SpaceBasePoint {
 
 #[derive(Debug)]
 pub struct SpaceBasePointRef<'a> {
-    base: &'a f64,
-    normal: &'a f64,
-    tangent: &'a f64
+    pub base: &'a f64,
+    pub normal: &'a f64,
+    pub tangent: &'a f64
 }
 
 impl<'a> SpaceBasePointRef<'a> {
@@ -170,6 +170,8 @@ impl SpaceBaseArea {
         SpaceBaseArea(top_left,bottom_right)
     }
 
+    pub fn len(&self) -> usize {  self.0.max_len.max(self.1.max_len) }
+
     pub fn iter(&self) -> SpaceBaseAreaIterator {
         let len = self.0.max_len.max(self.1.max_len);
         SpaceBaseAreaIterator {
@@ -179,7 +181,7 @@ impl SpaceBaseArea {
     }
 
     pub fn iter_other<'a,X>(&self, other: &'a [X]) -> impl Iterator<Item=&'a X> {
-        let len = self.0.max_len.max(self.1.max_len);
+        let len = self.len();
         other.iter().cycle().take(len)
     }
 }

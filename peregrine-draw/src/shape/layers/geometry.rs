@@ -3,6 +3,7 @@ use super::super::core::fixgeometry::{ FixProgram };
 use super::super::core::tapegeometry::{TapeProgram };
 use super::super::core::pagegeometry::{ PageProgram };
 use super::super::core::wigglegeometry::{WiggleProgram };
+use super::super::core::tracktriangles::{ TrackTrianglesProgram };
 use crate::webgl::{ SourceInstrs, GLArity, Header, Statement, AttributeProto, ProgramBuilder };
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
@@ -14,14 +15,17 @@ pub(crate) enum GeometryProgram {
     Fix(FixProgram),
     Tape(TapeProgram),
     Page(PageProgram),
-    Wiggle(WiggleProgram)
+    Wiggle(WiggleProgram),
+    TrackTriangles(TrackTrianglesProgram),
+    BaseLabelTriangles(TrackTrianglesProgram),
+    SpaceLabelTriangles(TrackTrianglesProgram),
 }
 
 #[derive(Clone)]
-pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page, Wiggle }
+pub(crate) enum GeometryProgramName { Pin, Fix, Tape, Page, Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles }
 
 impl GeometryProgramName {
-    pub const COUNT : usize = 5;
+    pub const COUNT : usize = 8;
 
     pub fn get_index(&self) -> usize {
         match self {
@@ -30,6 +34,9 @@ impl GeometryProgramName {
             GeometryProgramName::Tape => 2,
             GeometryProgramName::Page => 3,
             GeometryProgramName::Wiggle => 4,
+            GeometryProgramName::TrackTriangles => 5,
+            GeometryProgramName::BaseLabelTriangles => 6,
+            GeometryProgramName::SpaceLabelTriangles => 7,
         }
     }
 
@@ -39,7 +46,10 @@ impl GeometryProgramName {
             GeometryProgramName::Pin => GeometryProgram::Pin(PinProgram::new(builder)?),
             GeometryProgramName::Tape => GeometryProgram::Tape(TapeProgram::new(builder)?),
             GeometryProgramName::Fix => GeometryProgram::Fix(FixProgram::new(builder)?),
-            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(builder)?)
+            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(builder)?),
+            GeometryProgramName::TrackTriangles => GeometryProgram::TrackTriangles(TrackTrianglesProgram::new(builder)?),
+            GeometryProgramName::BaseLabelTriangles => GeometryProgram::BaseLabelTriangles(TrackTrianglesProgram::new(builder)?),
+            GeometryProgramName::SpaceLabelTriangles => GeometryProgram::SpaceLabelTriangles(TrackTrianglesProgram::new(builder)?),
         })
     }
 
@@ -54,6 +64,38 @@ impl GeometryProgramName {
                         (aOrigin.x -uStageHpos) * uStageZoom + 
                                     aVertexPosition.x / uSize.x,
                         1.0 - (aOrigin.y - uStageVpos + aVertexPosition.y) / uSize.y, 
+                        0.0, 1.0)")
+            ],
+            GeometryProgramName::TrackTriangles => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Statement::new_vertex("
+                    gl_Position = uModel * vec4(
+                        (aBase.x -uStageHpos) * uStageZoom + 
+                                    aDelta.x / uSize.x,
+                        1.0 - (aBase.y - uStageVpos + aDelta.y) / uSize.y, 
+                        0.0, 1.0)")
+            ],
+            GeometryProgramName::BaseLabelTriangles => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Statement::new_vertex("
+                    gl_Position = uModel * vec4(
+                        (aBase.x -uStageHpos) * uStageZoom + 
+                                    aDelta.x / uSize.x,
+                        (1.0 - aDelta.y / uSize.y) * aBase.y, 
+                        0.0, 1.0)")
+            ],
+            GeometryProgramName::SpaceLabelTriangles => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Statement::new_vertex("
+                    gl_Position = uModel * vec4(
+                        (aDelta.x / uSize.x - 1.0) * aBase.x, 
+                        1.0 - (aBase.y - uStageVpos + aDelta.y) / uSize.y, 
                         0.0, 1.0)")
             ],
             GeometryProgramName::Fix => vec![

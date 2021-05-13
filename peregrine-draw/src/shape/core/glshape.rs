@@ -14,6 +14,7 @@ use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArra
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
+use super::tracktriangles::TrianglesKind;
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentProgramKind {
@@ -56,10 +57,10 @@ pub enum PreparedShape {
     SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>,AllotmentProgramKind),
 }
 
-fn colour_to_patina(colour: Colour) -> PatinaProcessName {
+fn colour_to_patina(colour: &Colour) -> PatinaProcessName {
     match colour {
         Colour::Direct(_) => PatinaProcessName::Direct,
-        Colour::Spot(c) => PatinaProcessName::Spot(c)
+        Colour::Spot(c) => PatinaProcessName::Spot(c.clone())
     }
 }
 
@@ -205,16 +206,25 @@ fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>
     Ok((stanza_builder,GeometryProgramName::Pin))
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, colour: &Colour, vertexes: usize) -> Result<(),Message> {
-    match colour {
-        Colour::Direct(d) => {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, patina: &Patina) -> Result<(),Message> {
+    let vertexes = match patina {
+        Patina::Filled(_) => 4,
+        Patina::Hollow(_) => 8,
+        _ => 0
+    };
+    match patina {
+        Patina::Filled(Colour::Direct(d)) | Patina::Hollow(Colour::Direct(d)) => {
             let direct = layer.get_direct(geometry)?;
             direct.direct(addable,d,vertexes)?;
         },
-        Colour::Spot(colour) => {
-            let spot = layer.get_spot(geometry,colour)?;
-            let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(colour.clone()))?;
+        Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
+            let spot = layer.get_spot(geometry,d)?;
+            let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(d.clone()))?;
             spot.spot(&mut process)?;
+        }
+        Patina::ZMenu(template,values) => {
+            // XXX ZMenu
+            // tools.zmenus().add_rectangle(layer,zmenu,values,anchor,allotment,x_size,y_size);
         }
     }
     Ok(())
@@ -266,19 +276,20 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, shape: PreparedShape) -> Result<(),Message> {
     match shape {
         PreparedShape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
+            let patina2 = patina.clone();
             match patina {
                 Patina::Filled(colour) => {
                     let geometry = rectangle_to_geometry(&anchor);
-                    let patina = colour_to_patina(colour.clone());
-                    let mut campaign = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,false)?;
-                    add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    let patina_name = colour_to_patina(&colour);
+                    let mut campaign = add_rectangle(layer,anchor,&patina_name,allotment,x_size,y_size,false)?;
+                    add_colour(&mut campaign,layer,&geometry,&patina2)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
                     let geometry = rectangle_to_geometry(&anchor);
-                    let patina = colour_to_patina(colour.clone());
-                    let mut campaign = add_rectangle(layer,anchor,&patina,allotment,x_size,y_size,true)?;
-                    add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    let patina_name = colour_to_patina(&colour);
+                    let mut campaign = add_rectangle(layer,anchor,&patina_name,allotment,x_size,y_size,true)?;
+                    add_colour(&mut campaign,layer,&geometry,&patina2)?;
                     campaign.close();
                 },
                 Patina::ZMenu(zmenu,values) =>{
@@ -287,19 +298,20 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             }
         },
         PreparedShape::DoubleAnchorRect(anchors,patina,allotment) => {
+            let patina2 = patina.clone();
             match patina {
                 Patina::Filled(colour) => {
                     let geometry = stretchtangle_to_geometry(&anchors);
-                    let patina = colour_to_patina(colour.clone());
-                    let mut campaign = add_stretchtangle(layer,anchors,&patina,allotment,false)?;
-                    add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    let patina_name = colour_to_patina(&colour);
+                    let mut campaign = add_stretchtangle(layer,anchors,&patina_name,allotment,false)?;
+                    add_colour(&mut campaign,layer,&geometry,&patina2)?;
                     campaign.close();
                 },
                 Patina::Hollow(colour) => {
                     let geometry = stretchtangle_to_geometry(&anchors);
-                    let patina = colour_to_patina(colour.clone());
-                    let mut campaign = add_stretchtangle(layer,anchors,&patina,allotment,true)?;
-                    add_colour(&mut campaign,layer,&geometry,&colour,4)?;
+                    let patina_name = colour_to_patina(&colour);
+                    let mut campaign = add_stretchtangle(layer,anchors,&patina_name,allotment,true)?;
+                    add_colour(&mut campaign,layer,&geometry,&patina2)?;
                     campaign.close();
                 },
                 Patina::ZMenu(zmenu,values) =>{
@@ -307,7 +319,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 }            }
         },
         PreparedShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
-            let patina = colour_to_patina(Colour::Spot(colour.clone()));
+            let patina = colour_to_patina(&Colour::Spot(colour.clone()));
             let (mut array,geometry) = add_wiggle(layer,start,end,y,height,&patina,allotment)?;
             let spot = layer.get_spot(&geometry,&colour)?;
             let mut process = layer.get_process_mut(&geometry,&patina)?;
@@ -335,23 +347,24 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
         },
-        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::Track) => {
-            use web_sys::console;
-            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                console::log_1(&format!("track({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
+        PreparedShape::SpaceBaseRect(area,patina,allotments,program_kind) => {
+            let kind = match program_kind {
+                AllotmentProgramKind::Track => TrianglesKind::Track,
+                AllotmentProgramKind::BaseLabel => TrianglesKind::Base,
+                AllotmentProgramKind::SpaceLabel => TrianglesKind::Space
+            };
+            let left = layer.left();
+            let patina_name = PatinaProcessName::from_patina(&patina);
+            if let Some(patina_name) = patina_name {
+                let track_triangles = layer.get_track_triangles(&patina_name)?;
+                let builder = layer.get_process_mut(&GeometryProgramName::TrackTriangles,&patina_name)?;
+                let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,&patina,kind)?;
+                if let Some(mut campaign) = campaign {
+                    add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
+                    campaign.close();
+                }    
             }
-        },
-        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::BaseLabel) => {
-            use web_sys::console;
-            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                console::log_1(&format!("baselabel({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
-            }
-        },
-        PreparedShape::SpaceBaseRect(area,patina,allotments,AllotmentProgramKind::SpaceLabel) => {
-            use web_sys::console;
-            for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                console::log_1(&format!("spacelabel({:?},{:?},{:?})",top_left,bottom_right,allotment).into());
-            }
+            // XXX ZMenus
         }
     }
     Ok(())

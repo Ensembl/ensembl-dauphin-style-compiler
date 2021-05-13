@@ -6,8 +6,9 @@ use super::super::core::pingeometry::PinProgram;
 use super::super::core::wigglegeometry::WiggleProgram;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
+use super::super::core::tracktriangles::TrackTrianglesProgram;
 use super::super::core::texture::TextureDraw;
-use crate::webgl::FlatId;
+use crate::{ webgl::FlatId};
 use crate::webgl::{ ProcessBuilder, Process, DrawingFlats };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::programstore::ProgramStore;
@@ -111,6 +112,9 @@ pub(crate) struct Layer {
     tape: GeometrySubLayer,
     page: GeometrySubLayer,
     wiggle: GeometrySubLayer,
+    track_triangles: GeometrySubLayer,
+    base_label_triangles: GeometrySubLayer,
+    space_label_triangles: GeometrySubLayer,
     left: f64
 }
 
@@ -141,6 +145,9 @@ impl Layer {
             tape: GeometrySubLayer::new(&GeometryProgramName::Tape,left)?,
             page: GeometrySubLayer::new(&GeometryProgramName::Page,left)?,
             wiggle: GeometrySubLayer::new(&GeometryProgramName::Wiggle,left)?,
+            track_triangles: GeometrySubLayer::new(&GeometryProgramName::TrackTriangles,left)?,
+            base_label_triangles: GeometrySubLayer::new(&GeometryProgramName::BaseLabelTriangles,left)?,
+            space_label_triangles: GeometrySubLayer::new(&GeometryProgramName::SpaceLabelTriangles,left)?,
             left
         })
     }
@@ -153,7 +160,10 @@ impl Layer {
             GeometryProgramName::Fix => (&mut self.fix,&self.programs),
             GeometryProgramName::Tape => (&mut self.tape,&self.programs),
             GeometryProgramName::Page => (&mut self.page,&self.programs),
-            GeometryProgramName::Wiggle => (&mut self.wiggle,&self.programs)
+            GeometryProgramName::Wiggle => (&mut self.wiggle,&self.programs),
+            GeometryProgramName::TrackTriangles => (&mut self.track_triangles,&self.programs),
+            GeometryProgramName::BaseLabelTriangles => (&mut self.base_label_triangles,&self.programs),
+            GeometryProgramName::SpaceLabelTriangles => (&mut self.space_label_triangles,&self.programs),
         })
     }
 
@@ -177,6 +187,9 @@ impl Layer {
     layer_geometry_accessor!(get_page,PageProgram,Page);
     layer_geometry_accessor!(get_tape,TapeProgram,Tape);
     layer_geometry_accessor!(get_wiggle,WiggleProgram,Wiggle);
+    layer_geometry_accessor!(get_track_triangles,TrackTrianglesProgram,TrackTriangles);
+    layer_geometry_accessor!(get_base_label_triangles,TrackTrianglesProgram,BaseLabelTriangles);
+    layer_geometry_accessor!(get_space_label_triangles,TrackTrianglesProgram,SpaceLabelTriangles);
 
     layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
 
@@ -195,6 +208,8 @@ impl Layer {
         self.tape.build(gl,process,canvases)?;
         self.page.build(gl,process,canvases)?;
         self.fix.build(gl,process,canvases)?;
+        self.track_triangles.build(gl,process,canvases)?;
+        self.base_label_triangles.build(gl,process,canvases)?;
         Ok(())
     }
 }

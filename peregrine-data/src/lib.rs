@@ -165,7 +165,7 @@ pub use self::shape::{
 };
 pub use self::switch::allotment::{ 
     AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,
-    PositionVariant
+    PositionVariant, AllotmentPosition
 };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;

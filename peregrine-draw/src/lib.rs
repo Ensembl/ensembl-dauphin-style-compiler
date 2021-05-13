@@ -33,6 +33,7 @@ mod shape {
         pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
         pub(super) mod tapegeometry;
+        pub(super) mod tracktriangles;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
