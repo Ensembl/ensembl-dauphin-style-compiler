@@ -74,7 +74,7 @@ enabled_labels := get_switch([
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 
 text_allotment := allotment;
-text_allotment#[enabled_gene_labels] := use_allotment("");
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
 
 gene_labels := gene_name;
 
@@ -88,7 +88,12 @@ non_pc_colour := colour(200,200,200);
 pc_colour := colour(128,128,128);
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
-textpen := pen("Lato",12,colour(111,129,144));
+text_colour := [colour(111,129,144),colour(111,129,255)][(@==1)==get_switch(["settings","bluer"])];
+text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
+
+notice(format(text_size));
+
+textpen := pen("Lato",text_size,text_colour);
 
 /*
  * prepare the zmenus
