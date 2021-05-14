@@ -93,8 +93,6 @@ text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
 
 textpen := pen("Lato sans-serif",text_size,text_colour);
 
-notice(format(get_switch(["settings","bluer"])));
-
 /*
  * prepare the zmenus
  */
