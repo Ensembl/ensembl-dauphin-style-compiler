@@ -94,7 +94,7 @@ mod shape {
     mod spacebase;
 
     pub use self::core::{ 
-        ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
+        Patina, Pen, Colour, DirectColour, Plotter 
     };
     pub use self::shape::Shape;
     pub use self::spacebase::{ SpaceBase, SpaceBaseArea };
@@ -159,7 +159,7 @@ pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, 
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
-    ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
+    Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     SpaceBase, SpaceBaseArea
 };

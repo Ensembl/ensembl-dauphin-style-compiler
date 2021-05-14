@@ -1,13 +1,10 @@
-use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
+use super::core::{ Patina, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::switch::allotment::AllotmentHandle;
 use crate::shape::spacebase::{ SpaceBase, SpaceBaseArea };
 
 #[derive(Clone,Debug)]
 pub enum Shape {
-    SingleAnchorRect(SingleAnchor,Patina,Vec<AllotmentHandle>,Vec<f64>,Vec<f64>),
-    DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
-    Text(SingleAnchor,Pen,Vec<String>,Vec<AllotmentHandle>),
     Text2(SpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
     SpaceBaseRect(SpaceBaseArea,Patina,Vec<AllotmentHandle>)
@@ -36,47 +33,6 @@ impl Shape {
                 let filter = position.make_base_filter(min_value,max_value);
                 Shape::Text2(position.filter(&filter),pen.filter2(&filter),filter.filter(text),filter.filter(allotments))
             },
-            Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let patina = patina.clone().bulk(count,false);
-                let x_size = bulk(x_size.clone(),count,false);
-                let y_size = bulk(y_size.clone(),count,false);
-                let allotment = bulk(allotment.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::SingleAnchorRect(anchor.filter(&which,true),
-                                        patina.filter(&which,false),
-                                        filter(&allotment,&which,false),
-                                        filter(&x_size,&which,false),
-                                        filter(&y_size,&which,false))
-
-            },
-            Shape::DoubleAnchorRect(anchor,patina,allotment) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let patina = patina.clone().bulk(count,false);
-                let allotment = bulk(allotment.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::DoubleAnchorRect(anchor.filter(&which,true),
-                                        patina.filter(&which,false),
-                                        filter(&allotment,&which,false))
-            },
-
-            Shape::Text(anchor,pen,text,allotment) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let pen = pen.clone().bulk(count,false);                
-                let allotment = bulk(allotment.clone(),count,false);
-                let text = bulk(text.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::Text(anchor.filter(&which,true),
-                            pen.filter(&which,false),
-                            filter(&text,&which,false),
-                            filter(&allotment,&which,false))
-            },
-
-
-
             Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
                 Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone())

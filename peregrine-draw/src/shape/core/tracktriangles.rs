@@ -1,9 +1,8 @@
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{AttribHandle, GPUSpec, Process, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaElements, Program, ProgramBuilder};
-use peregrine_data::{ ShipEnd, SpaceBaseArea, Allotment, Patina, AllotmentPosition, PositionVariant };
+use peregrine_data::{ SpaceBaseArea, Allotment, Patina, AllotmentPosition, PositionVariant };
 use super::super::util::arrayutil::{ plain_rectangle, hollow_rectangle, rectangle };
-use super::super::util::glaxis::GLAxis;
 use crate::stage::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
 use crate::shape::layers::geometry::GeometryProgramName;

@@ -27,12 +27,8 @@ mod shape {
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;
-        pub(super) mod fixgeometry;
-        pub(super) mod pagegeometry;
-        pub(super) mod pingeometry;
         pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
-        pub(super) mod tapegeometry;
         pub(super) mod tracktriangles;
         pub(crate) mod text;
         pub(crate) mod texture;
@@ -52,8 +48,6 @@ mod shape {
 
     pub(crate) mod util {
         pub(super) mod iterators;
-        pub(crate) mod glaxis;
-        pub(super) mod quickvec;
         pub(crate) mod arrayutil;
     }
 }

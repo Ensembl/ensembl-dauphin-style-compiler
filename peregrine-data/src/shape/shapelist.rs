@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::core::{ AnchorPair, Patina, SingleAnchor, Pen, Plotter };
+use super::core::{ Patina, Pen, Plotter };
 use crate::{ Shape, SpaceBase, SpaceBaseArea };
 use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
@@ -26,18 +26,6 @@ impl ShapeListBuilder {
 
     pub fn add_rectangle(&mut self, top_left: SpaceBase, bottom_right: SpaceBase, patina: Patina, allotments: Vec<AllotmentHandle>) {
         self.shapes.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina,allotments));
-    }
-
-    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<AllotmentHandle>, x_size: Vec<f64>, y_size: Vec<f64>) {
-        self.shapes.push(Shape::SingleAnchorRect(anchors,patina,allotments,x_size,y_size));
-    }
-
-    pub fn add_rectangle_2(&mut self, anchors: AnchorPair, patina: Patina, allotments: Vec<AllotmentHandle>) {
-        self.shapes.push(Shape::DoubleAnchorRect(anchors,patina,allotments));
-    }
-
-    pub fn add_text(&mut self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
-        self.shapes.push(Shape::Text(anchors,pen,text,allotments));
     }
 
     pub fn add_text2(&mut self, position: SpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {

@@ -1,10 +1,6 @@
 use std::collections::HashMap;
-use peregrine_data::{Allotment, AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator };
+use peregrine_data::{Allotment, ZMenu, ZMenuGenerator };
 use crate::stage::stage::{ ReadStage };
-use crate::shape::core::fixgeometry::{ FixData };
-use crate::shape::core::pagegeometry::{ PageData };
-use crate::shape::core::pingeometry::{ PinData };
-use crate::shape::core::tapegeometry::{ TapeData };
 use peregrine_data::ZMenuFixed;
 use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
@@ -46,6 +42,7 @@ impl DrawingZMenusBuilder {
         self.entries.push(ZMenuRectangle::new(generator,region,allotment));
     }
 
+    /*/
     pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<Allotment>, x_size: Vec<f64>, y_size: Vec<f64>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let region : Box<dyn GeometryData> = match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
@@ -91,6 +88,7 @@ impl DrawingZMenusBuilder {
         };
         self.add_region(generator,region,allotment);
     }
+    */
 
     pub(crate) fn build(mut self) -> DrawingZMenus {
         self.entries.reverse(); // we match top-down!

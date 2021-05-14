@@ -1,8 +1,4 @@
-use std::collections::HashMap;
-use super::super::core::fixgeometry::FixProgram;
-use super::super::core::tapegeometry::TapeProgram;
-use super::super::core::pagegeometry::PageProgram;
-use super::super::core::pingeometry::PinProgram;
+use std::{borrow::Borrow, collections::HashMap};
 use super::super::core::wigglegeometry::WiggleProgram;
 use super::super::core::directcolourdraw::DirectColourDraw;
 use super::super::core::spotcolourdraw::SpotColourDraw;
@@ -107,10 +103,6 @@ impl GeometrySubLayer {
 
 pub(crate) struct Layer {
     programs: ProgramStore,
-    pin: GeometrySubLayer,
-    fix: GeometrySubLayer,
-    tape: GeometrySubLayer,
-    page: GeometrySubLayer,
     wiggle: GeometrySubLayer,
     track_triangles: GeometrySubLayer,
     base_label_triangles: GeometrySubLayer,
@@ -140,10 +132,6 @@ impl Layer {
     pub fn new(programs: &ProgramStore, left: f64) -> Result<Layer,Message> {
         Ok(Layer {
             programs: programs.clone(),
-            pin: GeometrySubLayer::new(&GeometryProgramName::Pin,left)?,
-            fix: GeometrySubLayer::new(&GeometryProgramName::Fix,left)?,
-            tape: GeometrySubLayer::new(&GeometryProgramName::Tape,left)?,
-            page: GeometrySubLayer::new(&GeometryProgramName::Page,left)?,
             wiggle: GeometrySubLayer::new(&GeometryProgramName::Wiggle,left)?,
             track_triangles: GeometrySubLayer::new(&GeometryProgramName::TrackTriangles,left)?,
             base_label_triangles: GeometrySubLayer::new(&GeometryProgramName::BaseLabelTriangles,left)?,
@@ -156,10 +144,6 @@ impl Layer {
 
     fn holder(&mut self, geometry: &GeometryProgramName) -> Result<(&mut GeometrySubLayer,&ProgramStore),Message> {
         Ok(match geometry {
-            GeometryProgramName::Pin => (&mut self.pin,&self.programs),
-            GeometryProgramName::Fix => (&mut self.fix,&self.programs),
-            GeometryProgramName::Tape => (&mut self.tape,&self.programs),
-            GeometryProgramName::Page => (&mut self.page,&self.programs),
             GeometryProgramName::Wiggle => (&mut self.wiggle,&self.programs),
             GeometryProgramName::TrackTriangles => (&mut self.track_triangles,&self.programs),
             GeometryProgramName::BaseLabelTriangles => (&mut self.base_label_triangles,&self.programs),
@@ -182,10 +166,6 @@ impl Layer {
         sub.get_patina(compiler,patina)
     }
 
-    layer_geometry_accessor!(get_pin,PinProgram,Pin);
-    layer_geometry_accessor!(get_fix,FixProgram,Fix);
-    layer_geometry_accessor!(get_page,PageProgram,Page);
-    layer_geometry_accessor!(get_tape,TapeProgram,Tape);
     layer_geometry_accessor!(get_wiggle,WiggleProgram,Wiggle);
     layer_geometry_accessor!(get_track_triangles,TrackTrianglesProgram,TrackTriangles);
     layer_geometry_accessor!(get_base_label_triangles,TrackTrianglesProgram,BaseLabelTriangles);
@@ -204,12 +184,10 @@ impl Layer {
     }
 
     pub(super) fn build(self, gl: &mut WebGlGlobal, process: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
-        self.pin.build(gl,process,canvases)?;
-        self.tape.build(gl,process,canvases)?;
-        self.page.build(gl,process,canvases)?;
-        self.fix.build(gl,process,canvases)?;
+        self.wiggle.build(gl,process,canvases)?;
         self.track_triangles.build(gl,process,canvases)?;
         self.base_label_triangles.build(gl,process,canvases)?;
+        self.space_label_triangles.build(gl,process,canvases)?;
         Ok(())
     }
 }
