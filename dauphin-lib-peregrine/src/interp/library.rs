@@ -11,18 +11,15 @@ use super::track::{
     AddAllotmentDeserializer
 };
 use super::geometry::{
-    IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
-    ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer
 };
 use super::shape::{
-    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer, RectangleDeserializer,
-    Text2Deserializer
+    WiggleDeserializer, RectangleDeserializer, Text2Deserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(16,0),0x4B4F80532850237A)
+    CommandSetId::new("peregrine",(20,0),0xC5A8F6011ED81ABF)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -35,18 +32,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AddTagDeserializer());
     set.push(AddTriggerDeserializer());
     set.push(DataSourceDeserializer());
-    set.push(IntervalDeserializer());
-    set.push(ScreenStartPairDeserializer());
-    set.push(ScreenEndPairDeserializer());
-    set.push(ScreenSpanPairDeserializer());
-    set.push(PositionDeserializer());
-    set.push(ScreenStartDeserializer());
-    set.push(ScreenEndDeserializer());
-    set.push(PinStartDeserializer());
-    set.push(PinCentreDeserializer());
-    set.push(PinEndDeserializer());
-    set.push(Rectangle2Deserializer());
-    set.push(Rectangle1Deserializer());
     set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());
@@ -63,7 +48,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(ZMenuDeserializer());
     set.push(PatinaZMenuDeserializer());
     set.push(PenDeserializer());
-    set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
     set.push(AddAllotmentDeserializer());

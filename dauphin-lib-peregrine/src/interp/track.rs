@@ -8,8 +8,8 @@ use crate::util::{ get_instance, get_peregrine };
 simple_interp_command!(NewLaneInterpCommand,NewLaneDeserializer,4,6,(0,1,2,3,4,5));
 simple_interp_command!(AddTagInterpCommand,AddTagDeserializer,5,2,(0,1));
 simple_interp_command!(AddTriggerInterpCommand,AddTriggerDeserializer,6,4,(0,1,2,3));
-simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,40,4,(0,1,2,3));
-simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,39,3,(0,1,2));
+simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,11,4,(0,1,2,3));
+simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,3,(0,1,2));
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,1,(0));
 
 impl InterpCommand for NewLaneInterpCommand {

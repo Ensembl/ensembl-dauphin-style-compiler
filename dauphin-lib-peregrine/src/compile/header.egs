@@ -24,9 +24,6 @@ proc add_stick(stick);
 /* */
 
 struct laneid { value: number };
-struct seaendpair { value: number };
-struct seaend { value: number };
-struct shipend { value: number };
 struct directcolour { value: number };
 struct patina { value: number };
 struct zmenutmpl { value: number };
@@ -52,16 +49,6 @@ proc track_set_scale(laneid,number,number);
 proc track_set_max_scale_jump(laneid,number);
 proc track_apply(laneid);
 
-func interval(number,number) becomes seaendpair;
-func screen_start_pair(number,number) becomes seaendpair;
-func screen_end_pair(number,number) becomes seaendpair;
-func screen_span_pair(number,number) becomes seaendpair;
-func position(number) becomes seaend;
-func screen_start(number) becomes seaend;
-func screen_end(number) becomes seaend;
-func pin_start(number) becomes shipend;
-func pin_centre(number) becomes shipend;
-func pin_end(number) becomes shipend;
 func spacebase(number,number,number) becomes spacebaseid;
 
 func use_allotment(string) becomes allotment;
@@ -74,13 +61,10 @@ func pen(string,number,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
 proc rectangle(spacebaseid,spacebaseid,patina,allotment);
-proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,allotment);
-proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,allotment);
-proc text(seaend,shipend,seaend,shipend,penspec,string,allotment);
 proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
 
-stmt text_underneath2(x,y,penspec,writing,allt) {
+stmt text_underneath(x,y,penspec,writing,allt) {
     x := spacebase(x,y,0);
     text2(x,penspec,writing,allt);
 }
@@ -89,10 +73,6 @@ stmt rectangle_on_genome(start,end,half_height,patina,allt) {
     top_left := spacebase(start,-half_height,0);
     bottom_right := spacebase(end,half_height,0);
     rectangle(top_left,bottom_right,patina,allt);
-}
-
-stmt text_underneath(x,y,pen_spec,the_text,allt) {
-    text(position(x),pin_start(0),position(y),pin_start(0),pen_spec,the_text,allt);
 }
 
 func get_region() becomes region;

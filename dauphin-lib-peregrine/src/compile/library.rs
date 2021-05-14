@@ -14,15 +14,13 @@ use super::track::{
     AddSwitchCommandType
 };
 use super::geometry:: {
-    IntervalCommandType, ScreenStartPairCommandType, ScreenEndPairCommandType, ScreenSpanPairCommandType, PositionCommandType,
-    ScreenStartCommandType, ScreenEndCommandType, PinStartCommandType, PinCentreCommandType, PinEndCommandType,
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType
 };
-use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType, RectangleCommandType, Text2CommandType };
+use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(16,0),0x4B4F80532850237A)
+    CommandSetId::new("peregrine",(20,0),0xC5A8F6011ED81ABF)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -36,18 +34,18 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("track_add_trigger",Some(6),AddTrackCommandType());
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("track_apply",Some(8),DataSourceCommandType());
-    set.push("interval",Some(9),IntervalCommandType());
-    set.push("screen_start_pair",Some(10),ScreenStartPairCommandType());
-    set.push("screen_end_pair",Some(11),ScreenEndPairCommandType());
-    set.push("screen_span_pair",Some(12),ScreenSpanPairCommandType());
-    set.push("position",Some(13),PositionCommandType());
-    set.push("screen_start",Some(14),ScreenStartCommandType());
-    set.push("screen_end",Some(15),ScreenEndCommandType());
-    set.push("pin_start",Some(16),PinStartCommandType());
-    set.push("pin_centre",Some(17),PinCentreCommandType());
-    set.push("pin_end",Some(18),PinEndCommandType());
-    set.push("rectangle2",Some(19),Rectangle2CommandType());
-    set.push("rectangle1",Some(20),Rectangle1CommandType());
+    set.push("patina_hollow",Some(9),PatinaHollowCommandType());
+    set.push("track_add_allotment",Some(10),AddAllotmentCommandType());
+    set.push("track_add_switch",Some(11),AddSwitchCommandType());
+    set.push("use_allotment",Some(12),UseAllotmentCommandType());
+    set.push("colour",Some(13),DirectColourCommandType());
+    set.push("zmenu",Some(14),ZMenuCommandType());
+    set.push("patina_zmenu",Some(15),PatinaZMenuCommandType());
+    set.push("pen",Some(16),PenCommandType());
+    set.push("spacebase",Some(17),SpaceBaseCommandType());
+    set.push("plotter",Some(18),PlotterCommandType());
+    set.push("text2",Some(19),Text2CommandType());
+    set.push("rectangle",Some(20),RectangleCommandType());
     set.push("get_region",Some(21),GetLaneCommandType());
     set.push("get_data",Some(22),GetDataCommandType());
     set.push("data_stream",Some(23),DataStreamCommandType());
@@ -59,19 +57,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
-    set.push("patina_hollow",Some(32),PatinaHollowCommandType());
-    set.push("colour",Some(33),DirectColourCommandType());
-    set.push("zmenu",Some(34),ZMenuCommandType());
-    set.push("patina_zmenu",Some(35),PatinaZMenuCommandType());
-    set.push("pen",Some(36),PenCommandType());
-    set.push("text",Some(37),TextCommandType());
-    set.push("plotter",Some(38),PlotterCommandType());
-    set.push("track_add_allotment",Some(39),AddAllotmentCommandType());
-    set.push("track_add_switch",Some(40),AddSwitchCommandType());
-    set.push("use_allotment",Some(41),UseAllotmentCommandType());
-    set.push("spacebase",Some(42),SpaceBaseCommandType());
-    set.push("rectangle",Some(43),RectangleCommandType());
-    set.push("text2",Some(44),Text2CommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

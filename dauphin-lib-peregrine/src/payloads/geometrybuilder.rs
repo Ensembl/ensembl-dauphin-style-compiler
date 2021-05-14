@@ -1,13 +1,10 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu, Pen, Plotter, AllotmentHandle, SpaceBase };
+use peregrine_data::{ lock, Patina, DirectColour, ZMenu, Pen, Plotter, AllotmentHandle, SpaceBase };
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
 enum GeometryBuilderEntry {
-    SeaEndPair(Arc<SeaEndPair>),
-    SeaEnd(Arc<SeaEnd>),
-    ShipEnd(Arc<ShipEnd>),
     DirectColour(Arc<DirectColour>),
     Patina(Arc<Patina>),
     ZMenu(Arc<ZMenu>),
@@ -20,9 +17,6 @@ enum GeometryBuilderEntry {
 impl GeometryBuilderEntry {
     fn type_string(&self) -> &str {
         match self {
-            GeometryBuilderEntry::SeaEndPair(_) => "seaendpair",
-            GeometryBuilderEntry::SeaEnd(_) => "seaend",
-            GeometryBuilderEntry::ShipEnd(_) => "shipend",
             GeometryBuilderEntry::DirectColour(_) => "directcolour",
             GeometryBuilderEntry::Patina(_) => "patina",
             GeometryBuilderEntry::ZMenu(_) => "zmenu",
@@ -87,9 +81,6 @@ impl GeometryBuilder {
         GeometryBuilder(Arc::new(Mutex::new(GeometryBuilderData::new())))
     }
 
-    builder_type!(seaendpair,add_seaendpair,SeaEndPair,SeaEndPair,"seaendpair");
-    builder_type!(seaend,add_seaend,SeaEnd,SeaEnd,"seaend");
-    builder_type!(shipend,add_shipend,ShipEnd,ShipEnd,"shipend");
     builder_type!(patina,add_patina,Patina,Patina,"patina");
     builder_type!(direct_colour,add_direct_colour,DirectColour,DirectColour,"directcolour");
     builder_type!(zmenu,add_zmenu,ZMenu,ZMenu,"zmenu");
