@@ -1,9 +1,15 @@
-from core.config import BEGS_CONFIG
+from core.config import BEGS_FILES, BEGS_CONFIG
 from typing import Any;
 import logging
 import toml
+import time
 import cbor2
 import os.path
+from os import stat
+
+class BegsFilesMonitor(object):
+    def __init__(self):
+        pass
 
 class BegsFiles(object):
     def __init__(self):
@@ -22,8 +28,7 @@ class BegsFiles(object):
         self.program = {}
         for (name_of_bundle,mapping) in toml_file["begs"].items():
             program_path = os.path.join(
-                os.path.dirname(BEGS_CONFIG),
-                toml_file["core"]["files"],
+                BEGS_FILES,
                 "{}.begs".format(name_of_bundle)
             )
             self.program[name_of_bundle] = self.load_program(program_path)
@@ -31,6 +36,7 @@ class BegsFiles(object):
             for (name_in_bundle,name_in_channel) in mapping.items():
                 self.program_map[name_in_channel] = (name_of_bundle,name_in_bundle)
                 self.bundle_contents[name_of_bundle][name_in_channel] = name_in_bundle
+        self._monitor = BegsFilesMonitor()
 
     def find_bundle(self, name: str) -> str:
         v = self.program_map[name]

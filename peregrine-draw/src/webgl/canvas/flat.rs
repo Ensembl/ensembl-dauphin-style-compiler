@@ -28,7 +28,7 @@ impl Flat {
         let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
         canvas_el.set_width(size.0);
         canvas_el.set_height(size.1);
-        document.body().unwrap().append_child(&canvas_el);
+        //document.body().unwrap().append_child(&canvas_el);
         let context = canvas_el
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()
@@ -47,6 +47,8 @@ impl Flat {
     pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let new_font = pen_to_font(pen);
+        use web_sys::console;
+        console::log_1(&format!("pen {}",new_font).into());
         if let Some(old_font) = &self.font {
             if *old_font == new_font { return Ok(()); }
         }
@@ -67,6 +69,7 @@ impl Flat {
     pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?;
+//        context.set_font("100px 'Lato'");
         context.set_fill_style(&colour_to_css(&DirectColour(255,255,255)).into()); // TODO background colours for pen
         context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
         context.set_text_baseline("top");
@@ -91,6 +94,7 @@ impl Flat {
         if self.discarded { return Ok(()); }
         self.element = None;
         self.context = None;
+        self.font = None;
         self.discarded = true;
         Ok(())
     }
