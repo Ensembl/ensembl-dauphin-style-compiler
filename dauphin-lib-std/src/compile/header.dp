@@ -51,3 +51,5 @@ func in(string,vec(string)) becomes boolean;
 func index(number,vec(_A)) becomes _A;
 
 expr find_key(k,src) index(lookup(k,[src[].key],0),src);
+
+expr if(p,a,b) [b,a][(@==1)==p];

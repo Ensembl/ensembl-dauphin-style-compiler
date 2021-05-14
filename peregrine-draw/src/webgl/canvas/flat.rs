@@ -5,7 +5,7 @@ use super::weave::CanvasWeave;
 use crate::util::message::Message;
 
 fn pen_to_font(pen: &Pen) -> String {
-    format!("{} {}px",pen.0,pen.1)
+    format!("{}px {}",pen.1,pen.0)
 }
 
 fn colour_to_css(c: &DirectColour) -> String {
@@ -28,6 +28,7 @@ impl Flat {
         let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
         canvas_el.set_width(size.0);
         canvas_el.set_height(size.1);
+        document.body().unwrap().append_child(&canvas_el);
         let context = canvas_el
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()

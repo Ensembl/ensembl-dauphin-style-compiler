@@ -76,7 +76,7 @@ enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 text_allotment := allotment;
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
 
-gene_labels := gene_name;
+gene_labels := [gene_name,gene_id][(@==1)==get_switch(["track","gene-pc-fwd","label","id"])];
 
 /*
  * What colour? What font? etc
@@ -91,7 +91,7 @@ patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colo
 text_colour := [colour(111,129,144),colour(111,129,255)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
 
-textpen := pen("Lato",text_size,text_colour);
+textpen := pen("Lato sans-serif",text_size,text_colour);
 
 notice(format(get_switch(["settings","bluer"])));
 

@@ -125,66 +125,32 @@ impl Bin {
 
 // TODO test this algorithm
 
-fn filter_areas(sizes: &[(u32,u32)], max_area: u64) -> Vec<(u32,u32)> {
-    let mut out = vec![];
-    let mut sorted = sizes.to_vec();
-    sorted.sort_by_key(|(w,h)| ((*w as u64)*(*h as u64)));
-    let mut area = 0;
-    for (w,h) in sorted {
-        let this_area = (w as u64)*(h as u64);
-        if area+this_area < max_area {
-            out.push((w,h));
-            area += this_area;
-        } else {
-            out.push((0,0));
-        }
-    }
-    out
-}
-
-fn try_allocate_areas(sizes: &[(u32,u32)], max_size: u64, max_area: Option<u64>) -> Option<(Vec<(u32,u32)>,u32,u32)> {
-    let mut sorted = if let Some(max_area) = max_area {
-        filter_areas(sizes,max_area)
-    } else {
-        sizes.to_vec()
-    };
-    sorted.sort_by_key(|(w,h)| (*h,*w));
+pub(crate) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
+    let max_size = gpu_spec.max_texture_size() as u64;
+    let max_width = sizes.iter().map(|(w,_)| *w as u64).max();
+    let square_dim : u64 = sizes.iter().map(|(w,h)| (w*h) as f64).sum::<f64>().sqrt() as u64;
+    let mut sorted = sizes.iter().enumerate().collect::<Vec<_>>();
+    sorted.sort_by_key(|(i,(w,h))| (*h,*w));
     sorted.reverse();
-    let max_width = sorted.iter().map(|(w,_)| *w as u64).max();
-    let square_dim : u64 = sorted.iter().map(|(w,h)| (w*h) as f64).sum::<f64>().sqrt() as u64;
     if let Some(max_width) = max_width {
         let mut texture_width = max_width.max(square_dim).next_power_of_two();
         if texture_width > max_size {
-            return None;
+            return Err(Message::CannotPackRectangles(format!("all attempts failed")));
         }
         loop {
-            let mut out = vec![];
+            let mut out = vec![(0,0);sorted.len()];
             let mut bin = Bin::new(texture_width as u32);
-            for (width,height) in &sorted {
-                out.push(bin.allocate(*width,*height));
+            for (index,_) in &sorted {
+                let area = &sizes[*index];
+                out[*index] = bin.allocate(area.0,area.1);
             }
             let texture_height = bin.height().next_power_of_two() as u64;
             if texture_height <= max_size {
-                return Some((out,texture_width as u32,texture_height as u32));
+                return Ok((out,texture_width as u32,texture_height as u32));
             }
             texture_width *= 2;
         }
     } else {
-        Some((vec![],1,1))
+        Ok((vec![],1,1))
     }
-}
-
-pub(super) fn allocate_areas(sizes: &[(u32,u32)], gpu_spec: &GPUSpec) -> Result<(Vec<(u32,u32)>,u32,u32),Message> {
-    let max_size = gpu_spec.max_texture_size() as u64;
-    if let Some(result) = try_allocate_areas(sizes,max_size,None) {
-        return Ok(result);
-    }
-    let mut max_area : u64 = max_size*max_size / 16;
-    while max_area > 1 {
-        if let Some(result) = try_allocate_areas(sizes,max_size,None) {
-            return Ok(result);
-        }    
-        max_area /= 2;
-    }
-    Err(Message::CannotPackRectangles(format!("all attempts failed")))
 }

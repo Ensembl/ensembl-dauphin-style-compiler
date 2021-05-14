@@ -47,6 +47,10 @@ impl FlatStore {
         self.main_canvases.get(id).map_err(|_| Message::CodeInvariantFailed(format!("missing key B")))
     }
 
+    pub(crate) fn get_mut(&mut self, id: &FlatId) -> Result<&mut Flat,Message> {
+        self.main_canvases.get_mut(id).map_err(|_| Message::CodeInvariantFailed(format!("missing key B")))
+    }
+
     pub(crate) fn discard(&mut self, id: &FlatId) -> Result<(),Message> {
         self.main_canvases.get_mut(id).map_err(|_| Message::CodeInvariantFailed(format!("missing key A")))?.discard()?;
         self.main_canvases.remove(id);

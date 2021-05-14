@@ -29,7 +29,7 @@ impl DrawingTools {
         Ok(())
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
         self.text.finish_preparation(canvas_store,builder)?;
         Ok(())
     }

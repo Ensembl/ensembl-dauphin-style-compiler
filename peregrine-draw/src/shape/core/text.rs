@@ -27,16 +27,17 @@ impl Text {
 
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let document = gl.document().clone();
-        let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(16,16))?;
+        let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         canvas.set_font(&self.pen)?;
         self.size = Some(canvas.measure(&self.text)?);
         Ok(())
     }
 
-    fn build(&mut self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> Result<(),Message> {
         let size = self.size.unwrap();
         self.text_origin = Some(text_origin);
         self.mask_origin = Some(mask_origin);
+        canvas.set_font(&self.pen)?;
         canvas.text(&self.text,text_origin,size,&self.colour)?;
         canvas.text(&self.text,mask_origin,size,&DirectColour(0,0,0))?;
         Ok(())
@@ -95,11 +96,11 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn finish_preparation(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+    pub(crate) fn finish_preparation(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
         let mut origins = builder.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
         let canvas_id = builder.canvas(self.request.as_ref().unwrap());
-        let canvas = store.get(&canvas_id)?;
+        let canvas = store.get_mut(&canvas_id)?;
         for text in self.texts.values_mut() {
             let mask_origin = origins_iter.next().unwrap();
             let text_origin = origins_iter.next().unwrap();

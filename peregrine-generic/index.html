@@ -16,8 +16,9 @@
         <div>shy track <input id="track" type="checkbox" checked/></div>
         <div>labels bold <input id="labels-bold" type="checkbox" checked/></div>
         <div>labels shy <input id="labels-shy" type="checkbox" checked/></div>
-        <div>bluer text <input id="bluer" type="checkbox" checked/></div>
-        <div>bigger text <input id="bigger" type="checkbox" checked/></div>
+        <div>bluer text <input id="bluer" type="checkbox" /></div>
+        <div>bigger text <input id="bigger" type="checkbox"/></div>
+        <div>id labels <input id="id-labels" type="checkbox"/></div>
       </div>
     </div>
     <script type="module">
@@ -34,7 +35,7 @@
       genome_browser.set_bp_per_screen(1000000);
       genome_browser.set_switch(["settings"]);
 
-      function flipper(path) {
+      function flipper(path,go) {
           let flip = false;
           let out = function() {
               if(flip) {
@@ -44,15 +45,15 @@
               }
               flip=!flip;
           };
-          out(); // onby default is better
+          if(go) { out(); }
           return out;
       }
-
-      document.getElementById("track").onclick = flipper(["track","gene-pc-rev"]);
-      document.getElementById("labels-bold").onclick = flipper(["track","gene-pc-fwd","label"]);
-      document.getElementById("labels-shy").onclick = flipper(["track","gene-pc-rev","label"]);
-      document.getElementById("bluer").onclick = flipper(["settings","bluer"]);
-      document.getElementById("bigger").onclick = flipper(["settings","bigger"]);
+      document.getElementById("track").onclick = flipper(["track","gene-pc-rev"],true);
+      document.getElementById("labels-bold").onclick = flipper(["track","gene-pc-fwd","label"],true);
+      document.getElementById("labels-shy").onclick = flipper(["track","gene-pc-rev","label"],true);
+      document.getElementById("bluer").onclick = flipper(["settings","bluer"],false);
+      document.getElementById("bigger").onclick = flipper(["settings","bigger"],false);
+      document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
       document.getElementById("crazy").onclick = function() {
         test(genome_browser.copy());
       };
