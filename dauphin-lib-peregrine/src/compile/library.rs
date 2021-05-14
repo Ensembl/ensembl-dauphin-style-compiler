@@ -19,10 +19,10 @@ use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType
 };
-use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType, RectangleCommandType };
+use super::shape::{ Rectangle2CommandType, Rectangle1CommandType, TextCommandType, WiggleCommandType, RectangleCommandType, Text2CommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(15,0),0xBA93C8911DEDF1B6)
+    CommandSetId::new("peregrine",(16,0),0x4B4F80532850237A)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -71,6 +71,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("use_allotment",Some(41),UseAllotmentCommandType());
     set.push("spacebase",Some(42),SpaceBaseCommandType());
     set.push("rectangle",Some(43),RectangleCommandType());
+    set.push("text2",Some(44),Text2CommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

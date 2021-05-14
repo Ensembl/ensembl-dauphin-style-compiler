@@ -40,6 +40,10 @@ impl ShapeListBuilder {
         self.shapes.push(Shape::Text(anchors,pen,text,allotments));
     }
 
+    pub fn add_text2(&mut self, position: SpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+        self.shapes.push(Shape::Text2(position,pen,text,allotments));
+    }
+
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {
         self.shapes.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }

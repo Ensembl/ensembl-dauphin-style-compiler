@@ -10,6 +10,7 @@ use crate::util::{ get_instance, get_peregrine };
 simple_interp_command!(Rectangle2InterpCommand,Rectangle2Deserializer,19,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(Rectangle1InterpCommand,Rectangle1Deserializer,20,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(TextInterpCommand,TextDeserializer,37,7,(0,1,2,3,4,5,6));
+simple_interp_command!(Text2InterpCommand,Text2Deserializer,44,4,(0,1,2,3));
 simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,7,6,(0,1,2,3,4,5));
 simple_interp_command!(RectangleInterpCommand,RectangleDeserializer,43,4,(0,1,2,3));
 
@@ -123,6 +124,28 @@ impl InterpCommand for TextInterpCommand {
         }
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         zoo.lock().add_text(SingleAnchor(SingleAnchorAxis(sea_x,ship_x),SingleAnchorAxis(sea_y,ship_y)),pen,text,allotments);
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for Text2InterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let spacebase_id = registers.get_indexes(&self.0)?.to_vec();
+        let pen_id = registers.get_indexes(&self.1)?.to_vec();
+        let text = registers.get_strings(&self.2)?.to_vec();
+        let allotment_id = registers.get_indexes(&self.3)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry = peregrine.geometry_builder();
+        let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
+        let pen = geometry.pen(pen_id[0] as u32)?.as_ref().clone();
+        let mut allotments = vec![];
+        for id in &allotment_id {
+            allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
+        }
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        zoo.lock().add_text2(spacebase,pen,text,allotments);
         Ok(CommandResult::SyncResult())
     }
 }

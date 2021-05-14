@@ -77,15 +77,15 @@ proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc rectangle2(seaendpair,shipend,shipend,seaendpair,shipend,shipend,patina,allotment);
 proc rectangle1(seaend,shipend,number,seaend,shipend,number,patina,allotment);
 proc text(seaend,shipend,seaend,shipend,penspec,string,allotment);
+proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
 
-stmt rectangle_on_genome(start,end,half_height,patina,allt) {
-    rectangle2(interval(start,end),pin_start(0),pin_end(0),
-               interval(-half_height,half_height),pin_start(0),pin_end(0),
-               patina,allt);
+stmt text_underneath2(x,y,penspec,writing,allt) {
+    x := spacebase(x,y,0);
+    text2(x,penspec,writing,allt);
 }
 
-stmt rectangle_on_genome2(start,end,half_height,patina,allt) {
+stmt rectangle_on_genome(start,end,half_height,patina,allt) {
     top_left := spacebase(start,-half_height,0);
     bottom_right := spacebase(end,half_height,0);
     rectangle(top_left,bottom_right,patina,allt);

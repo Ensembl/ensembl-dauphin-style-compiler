@@ -6,6 +6,7 @@ use super::super::util::arrayutil::{ plain_rectangle, hollow_rectangle, rectangl
 use super::super::util::glaxis::GLAxis;
 use crate::stage::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
+use crate::shape::layers::geometry::GeometryProgramName;
 use crate::util::message::Message;
 
 fn flip(allotment: &Allotment) -> f64 {
@@ -52,6 +53,22 @@ impl TrianglesKind {
             }
         }
     }
+
+    pub(crate) fn get_process(&self, layer: &mut Layer, patina: &PatinaProcessName) -> Result<TrackTrianglesProgram,Message> {
+        Ok(match self {
+            TrianglesKind::Track => layer.get_track_triangles(patina)?,
+            TrianglesKind::Base => layer.get_base_label_triangles(patina)?,
+            TrianglesKind::Space => layer.get_space_label_triangles(patina)?,
+        })
+    }
+
+    pub(crate) fn geometry_program_name(&self) -> GeometryProgramName {
+        match self {
+            TrianglesKind::Track => GeometryProgramName::TrackTriangles,
+            TrianglesKind::Base => GeometryProgramName::BaseLabelTriangles,
+            TrianglesKind::Space => GeometryProgramName::SpaceLabelTriangles
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -83,11 +100,10 @@ impl TrackTrianglesProgram {
         Ok(elements)
     }
 
-    pub(crate) fn add_rectangles(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, patina: &Patina, kind: TrianglesKind)-> Result<Option<ProcessStanzaElements>,Message> {
-        Ok(match patina {
-            Patina::Hollow(_) => Some(self.add_rectangles_real(builder,area,allotments,left,Some(1.),kind)?),
-            Patina::Filled(_) => Some(self.add_rectangles_real(builder,area,allotments,left,None,kind)?),
-            _ => None
+    pub(crate) fn add_rectangles(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: TrianglesKind)-> Result<Option<ProcessStanzaElements>,Message> {
+        Ok(match hollow {
+            true => Some(self.add_rectangles_real(builder,area,allotments,left,Some(1.),kind)?),
+            false => Some(self.add_rectangles_real(builder,area,allotments,left,None,kind)?),
         })
     }
 }

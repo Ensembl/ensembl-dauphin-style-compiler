@@ -1,6 +1,6 @@
 use peregrine_data::{
     Allotment, AllotmentHandle, Allotter, AnchorPair, Colour, DirectColour, Patina, Plotter, ScreenEdge, SeaEnd,
-    SeaEndPair, Shape, SingleAnchor, SpaceBaseArea, OffsetSize, AllotmentPositionKind, PositionVariant, DataFilter
+    SeaEndPair, Shape, SingleAnchor, SpaceBaseArea, SpaceBase, AllotmentPositionKind, PositionVariant, DataFilter
 };
 use super::text::TextHandle;
 use super::fixgeometry::FixData;
@@ -8,7 +8,7 @@ use super::pagegeometry::PageData;
 use super::pingeometry::PinData;
 use super::tapegeometry::TapeData;
 use super::super::layers::layer::{ Layer };
-use super::super::layers::patina::PatinaProcessName;
+use super::super::layers::patina::{ PatinaProgramName, PatinaProcessName };
 use super::super::layers::geometry::GeometryProgramName;
 use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements };
 use crate::webgl::global::WebGlGlobal;
@@ -53,6 +53,7 @@ pub enum PreparedShape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<Allotment>,Vec<f64>,Vec<f64>),
     DoubleAnchorRect(AnchorPair,Patina,Vec<Allotment>),
     Text(SingleAnchor,Vec<TextHandle>,Vec<Allotment>),
+    Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>,AllotmentProgramKind),
 }
@@ -259,6 +260,20 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
             vec![PreparedShape::Text(anchor,handles,allotment)]
         },
+        Shape::Text2(spacebase,mut pen,texts,allotment) => {
+            let allotment = allotments(allotter,&allotment)?;
+            let demerge = DataFilter::demerge(&allotment,|allotment| {
+                AllotmentProgram::new(&allotment.position().kind()).kind()
+            });
+            let drawing_text = tools.text();
+            let colours_iter = pen.2.iter().cycle();
+            let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
+            let mut out = vec![];
+            for (kind,filter) in &demerge {
+                out.push(PreparedShape::Text2(spacebase.filter(filter),filter.filter(&handles),filter.filter(&allotment),kind.clone()));
+            }
+            out
+        },
         Shape::SpaceBaseRect(area,patina,allotment) => {
             let allotment = allotments(allotter,&allotment)?;
             let demerge = DataFilter::demerge(&allotment,|allotment| {
@@ -328,6 +343,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
         },
         PreparedShape::Text(anchor,handles,allotments) => {
             // TODO factor
+            /* 
             let text = tools.text();
             let mut dims = vec![];
             let mut x_sizes = vec![];
@@ -346,6 +362,38 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let mut process = layer.get_process_mut(&geometry,&PatinaProcessName::Texture(canvas.clone()))?;
             patina.add_rectangle(&mut process,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
             campaign.close();
+            */
+        },
+        PreparedShape::Text2(position,handles,allotments,program_kind) => {
+            // TODO factor
+            let kind = match program_kind {
+                AllotmentProgramKind::Track => TrianglesKind::Track,
+                AllotmentProgramKind::BaseLabel => TrianglesKind::Base,
+                AllotmentProgramKind::SpaceLabel => TrianglesKind::Space
+            };
+            let text = tools.text();
+            let mut dims = vec![];
+            let mut x_sizes = vec![];
+            let mut y_sizes = vec![];
+            let canvas = text.canvas_id(canvas_builder)?;
+            for handle in &handles {
+                let texture_areas = text.get_texture_areas(handle)?;
+                let size = texture_areas.size();
+                x_sizes.push(size.0 as f64);
+                y_sizes.push(size.1 as f64);
+                dims.push(texture_areas);
+            }
+            let left = layer.left();
+            let geometry = kind.geometry_program_name();
+            let patina = layer.get_texture(&geometry,&canvas)?;
+            let area = SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes);
+            let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
+            let builder = layer.get_process_mut(&kind.geometry_program_name(), &PatinaProcessName::Texture(canvas.clone()))?;
+            let campaign = track_triangles.add_rectangles(builder,&area,&allotments,left,false,kind)?;
+            if let Some(mut campaign) = campaign {
+                patina.add_rectangle(builder,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
+                campaign.close();
+            }
         },
         PreparedShape::SpaceBaseRect(area,patina,allotments,program_kind) => {
             let kind = match program_kind {
@@ -356,13 +404,17 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let left = layer.left();
             let patina_name = PatinaProcessName::from_patina(&patina);
             if let Some(patina_name) = patina_name {
-                let track_triangles = layer.get_track_triangles(&patina_name)?;
-                let builder = layer.get_process_mut(&GeometryProgramName::TrackTriangles,&patina_name)?;
-                let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,&patina,kind)?;
+                let track_triangles = kind.get_process(layer,&patina_name)?;
+                let builder = layer.get_process_mut(&kind.geometry_program_name(),&patina_name)?;
+                let hollow = match patina {
+                    Patina::Hollow(_) => true,
+                    _ => false
+                };
+                let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
                 if let Some(mut campaign) = campaign {
                     add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
                     campaign.close();
-                }    
+                }
             }
             // XXX ZMenus
         }

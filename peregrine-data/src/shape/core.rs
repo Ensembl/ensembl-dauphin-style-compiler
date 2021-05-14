@@ -38,6 +38,10 @@ impl Pen {
     pub fn filter(&self, which: &[bool], primary: bool) -> Pen {
         Pen(self.0.clone(),self.1.clone(),filter(&self.2,which,primary))
     }
+
+    pub fn filter2(&self, filter: &DataFilter) -> Pen {
+        Pen(self.0.clone(),self.1,filter.filter(&self.2))
+    }
 }
 
 #[derive(Clone,Debug)]

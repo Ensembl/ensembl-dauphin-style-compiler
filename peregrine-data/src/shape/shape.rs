@@ -1,13 +1,14 @@
 use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::switch::allotment::AllotmentHandle;
-use crate::shape::spacebase::SpaceBaseArea;
+use crate::shape::spacebase::{ SpaceBase, SpaceBaseArea };
 
 #[derive(Clone,Debug)]
 pub enum Shape {
     SingleAnchorRect(SingleAnchor,Patina,Vec<AllotmentHandle>,Vec<f64>,Vec<f64>),
     DoubleAnchorRect(AnchorPair,Patina,Vec<AllotmentHandle>),
     Text(SingleAnchor,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Text2(SpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
     SpaceBaseRect(SpaceBaseArea,Patina,Vec<AllotmentHandle>)
 }
@@ -30,6 +31,10 @@ impl Shape {
             Shape::SpaceBaseRect(area,patina,allotments) => {
                 let filter = area.make_base_filter(min_value,max_value);
                 Shape::SpaceBaseRect(area.filter(&filter),patina.filter2(&filter),filter.filter(allotments))
+            },
+            Shape::Text2(position,pen,text,allotments) => {
+                let filter = position.make_base_filter(min_value,max_value);
+                Shape::Text2(position.filter(&filter),pen.filter2(&filter),filter.filter(text),filter.filter(allotments))
             },
             Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
                 let count = anchor.len();
@@ -69,6 +74,8 @@ impl Shape {
                             filter(&text,&which,false),
                             filter(&allotment,&which,false))
             },
+
+
 
             Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);

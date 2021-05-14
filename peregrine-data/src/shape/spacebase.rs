@@ -124,6 +124,29 @@ impl SpaceBase {
             max_len: filter.len()
         }
     }
+
+    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+        let mut uniform = UniformData::None;
+        for point in self.iter_len(self.max_len) {
+            let exclude = *point.base >= max_value || *point.base < min_value;
+            uniform.add(!exclude);
+        }
+        DataFilter::new(uniform)
+    }
+
+    pub fn delta(&self, x_size: &[f64], y_size: &[f64]) -> SpaceBase {
+        if x_size.len() == 0 || y_size.len() == 0 {
+            return SpaceBase::empty()
+        }
+        let mut x_iter = x_size.iter().cycle();
+        let mut y_iter = y_size.iter().cycle();
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: Arc::new(self.tangent.iter().map(|x| *x+x_iter.next().unwrap()).collect()),
+            normal: Arc::new(self.normal.iter().map(|y| *y+y_iter.next().unwrap()).collect()),
+            max_len: self.max_len
+        }
+    }
 }
 
 pub struct SpaceBaseIterator<'a> {
@@ -168,6 +191,10 @@ pub struct SpaceBaseArea(SpaceBase,SpaceBase);
 impl SpaceBaseArea {
     pub fn new(top_left: SpaceBase, bottom_right: SpaceBase) -> SpaceBaseArea {
         SpaceBaseArea(top_left,bottom_right)
+    }
+
+    pub fn new_from_sizes(points: &SpaceBase, x_size: &[f64], y_size: &[f64]) -> SpaceBaseArea {
+        SpaceBaseArea(points.clone(),points.delta(x_size,y_size))
     }
 
     pub fn len(&self) -> usize {  self.0.max_len.max(self.1.max_len) }

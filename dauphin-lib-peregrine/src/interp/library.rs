@@ -17,11 +17,12 @@ use super::geometry::{
     PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer
 };
 use super::shape::{
-    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer, RectangleDeserializer
+    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer, RectangleDeserializer,
+    Text2Deserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(15,0),0xBA93C8911DEDF1B6)
+    CommandSetId::new("peregrine",(16,0),0x4B4F80532850237A)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -70,5 +71,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(UseAllotmentDeserializer());
     set.push(SpaceBaseDeserializer());
     set.push(RectangleDeserializer());
+    set.push(Text2Deserializer());
     set
 }
