@@ -123,7 +123,7 @@ impl SpaceBase {
             base: Arc::new(filter.filter(&self.base)),
             normal: Arc::new(filter.filter(&self.normal)),
             tangent: Arc::new(filter.filter(&self.tangent)),
-            max_len: filter.len()
+            max_len: filter.count()
         }
     }
 

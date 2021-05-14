@@ -61,6 +61,24 @@ allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);
 
 /*
+ * Filter labels by which tracks are configured to have labels
+ */
+
+enabled_labels := get_switch([
+    ["track","gene-nonpc-rev","label"],
+    ["track","gene-pc-rev","label"],
+    ["track","gene-nonpc-fwd","label"],
+    ["track","gene-pc-fwd","label"],
+][]);
+
+enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+
+text_allotment := allotment;
+text_allotment#[enabled_gene_labels] := use_allotment("");
+
+gene_labels := gene_name;
+
+/*
  * What colour? What font? etc
  *
  * (driven by allotment for gene)
@@ -95,4 +113,4 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
 rectangle_on_genome(start,end,5,patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
-text_underneath(start,8,textpen,gene_name,allotment);
+text_underneath(start,8,textpen,gene_labels,text_allotment);

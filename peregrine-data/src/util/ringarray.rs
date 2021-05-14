@@ -97,8 +97,19 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
             UniformData::Varied(values) => values.len()
         }
     }
+
+    fn count<F>(&self,mut cb: F) -> usize where F: FnMut(&A) -> bool {
+        match self {
+            UniformData::None => 0,
+            UniformData::Uniform(value,size) => if cb(value) { *size } else { 0 },
+            UniformData::Varied(values) => {
+                values.iter().map(|v| if cb(v) {1} else {0}).reduce(|a,b| a+b).unwrap_or(0)
+            }
+        }
+    }
 }
 
+#[derive(Debug)]
 pub struct DataFilter(UniformData<bool>);
 
 impl DataFilter {
@@ -160,4 +171,5 @@ impl DataFilter {
     }
 
     pub fn len(&self) -> usize { self.0.len() }
+    pub fn count(&self) -> usize { self.0.count(|f| *f) }
 }

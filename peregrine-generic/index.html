@@ -14,6 +14,7 @@
       <div class="other" id="other">
         <div>go crazy <input id="crazy" type="checkbox"/></div>
         <div>track <input id="track" type="checkbox"/></div>
+        <div>labels <input id="labels" type="checkbox"/></div>
       </div>
     </div>
     <script type="module">
@@ -28,15 +29,21 @@
       genome_browser.set_switch(["track","gene-pc-fwd"]);
       genome_browser.set_x(2500000);
       genome_browser.set_bp_per_screen(1000000);
-      let flip = false;
-      document.getElementById("track").onclick = function() {
-        if(flip) {
-          genome_browser.clear_switch(["track","gene-pc-rev"]);
-        } else {
-          genome_browser.set_switch(["track","gene-pc-rev"]);
-        }
-        flip=!flip;
-      };
+
+      function flipper(path) {
+          let flip = false;
+          return function() {
+              if(flip) {
+                  genome_browser.clear_switch(path);
+              } else {
+                  genome_browser.set_switch(path);
+              }
+              flip=!flip;
+          };
+      }
+
+      document.getElementById("track").onclick = flipper(["track","gene-pc-rev"]);
+      document.getElementById("labels").onclick = flipper(["track","gene-pc-fwd","label"]);
       document.getElementById("crazy").onclick = function() {
         test(genome_browser.copy());
       };
