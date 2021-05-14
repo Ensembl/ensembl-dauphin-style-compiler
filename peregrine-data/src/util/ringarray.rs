@@ -2,6 +2,37 @@ use std::collections::HashMap;
 use std::iter;
 use std::hash::Hash;
 
+pub struct UniformDataIterator<'a,A: std::fmt::Debug> {
+    uniform: &'a UniformData<A>,
+    index: usize,
+}
+
+impl<'a,A: std::fmt::Debug> Iterator for UniformDataIterator<'a,A> {
+    type Item = &'a A;
+
+    fn next(&mut self) -> Option<&'a A> {
+        self.index += 1;
+        match self.uniform {
+            UniformData::None => None,
+            UniformData::Uniform(value,size) => {
+                if self.index <= *size { Some(value) } else { None }
+            }
+            UniformData::Varied(values) => {
+                if self.index <= values.len() { Some(&values[self.index-1]) } else { None }
+            }
+        }
+    }
+}
+
+impl<'a,A: std::fmt::Debug> Clone for UniformDataIterator<'a,A> {
+    fn clone(&self) -> UniformDataIterator<'a,A> {
+        UniformDataIterator {
+            uniform: self.uniform,
+            index: 0
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum UniformData<A: std::fmt::Debug> {
     None,
@@ -34,11 +65,28 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> Box<dyn Iterator<Item=&A> + 'a> {
+    pub fn iter<'a>(&'a self) -> UniformDataIterator<'a,A> {
+        UniformDataIterator {
+            uniform: &self,
+            index: 0
+        }
+    }
+
+    fn set_size(&mut self, len: usize) {
         match self {
-            UniformData::None => Box::new(iter::empty()),
-            UniformData::Uniform(current,size) => Box::new(iter::repeat(current).take(*size)),
-            UniformData::Varied(values) => Box::new(values.iter())
+            UniformData::None => {},
+            UniformData::Uniform(_,size) => { *size = len },
+            UniformData::Varied(values) => {
+                if len > values.len() {
+                    let orig = values.clone();
+                    while len > values.len() {
+                        values.append(&mut orig.clone());
+                    }
+                }
+                if len < values.len() {
+                    values.truncate(len);
+                }
+            }
         }
     }
 
@@ -55,6 +103,18 @@ pub struct DataFilter(UniformData<bool>);
 
 impl DataFilter {
     pub fn new(uniform: UniformData<bool>) -> DataFilter {
+        DataFilter(uniform)
+    }
+
+    pub fn set_size(&mut self, len: usize) {
+        self.0.set_size(len)
+    }
+
+    pub fn new_filter<F,X>(data: &[X], cb: F) -> DataFilter where F: Fn(&X) -> bool {
+        let mut uniform = UniformData::None;
+        for value in data {
+            uniform.add(cb(value));
+        }
         DataFilter(uniform)
     }
 

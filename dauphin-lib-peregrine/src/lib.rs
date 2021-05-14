@@ -23,6 +23,7 @@ mod interp {
     mod decompress;
     mod geometry;
     mod track;
+    mod switch;
     mod shape;
     pub mod library;
 }
@@ -46,6 +47,7 @@ mod compile {
     mod geometry;
     mod track;
     mod shape;
+    mod switch;
     pub mod library;
 }
 

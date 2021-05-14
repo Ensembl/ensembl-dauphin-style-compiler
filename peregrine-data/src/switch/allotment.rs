@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::{io::LineWriter, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
-use keyed::{ keyed_handle, KeyedValues, KeyedData };
+use keyed::{ keyed_handle, KeyedValues, KeyedData, KeyedHandle };
 use crate::util::DataMessage;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -34,6 +34,10 @@ impl AllotmentRequest {
 
 keyed_handle!(AllotmentHandle);
 
+impl AllotmentHandle {
+    pub fn is_null(&self) -> bool { self.get() == 0 }
+}
+
 #[derive(Clone)]
 pub struct AllotmentPetitioner {
     allotments: Arc<Mutex<KeyedValues<AllotmentHandle,AllotmentRequest>>>
@@ -41,12 +45,16 @@ pub struct AllotmentPetitioner {
 
 impl AllotmentPetitioner {
     pub fn new() -> AllotmentPetitioner {
-        AllotmentPetitioner {
+        let mut out = AllotmentPetitioner {
             allotments: Arc::new(Mutex::new(KeyedValues::new()))
-        }
+        };
+        out.add(AllotmentRequest::new("",0)); // null gets slot 0
+        out
     }
 
     pub fn add(&mut self, request: AllotmentRequest) -> AllotmentHandle {
+        use web_sys::console;
+        console::log_1(&format!("add {:?}",request).into());
         if let Some(handle) = self.lookup(request.name()) {
             let mut data = self.allotments.lock().unwrap();
             let existing = data.data_mut().get_mut(&handle);
@@ -183,6 +191,7 @@ impl RequestSorter {
 
     fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) {
         let request = petitioner.get(handle);
+        if request.name() == "" { return; }
         self.requests.push((handle.clone(),request));
     }
 

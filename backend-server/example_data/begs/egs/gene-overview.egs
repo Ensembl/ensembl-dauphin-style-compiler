@@ -26,6 +26,21 @@ designated_transcript_designation := classified_seq(data,"designated_transcript_
 strand_string := len([strand]) (*) "negative strand";
 strand_string#[strand>0] := "positive strand";
 
+/* 
+ * What are the current track settings?
+ */
+
+potential_tracks := ["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd","focus"];
+enabled_tracks := get_switch([
+    ["track","gene-nonpc-rev"],
+    ["track","gene-pc-rev"],
+    ["track","gene-nonpc-fwd"],
+    ["track","gene-pc-fwd"],
+][]);
+
+tracks_used := ["","","","","focus"];
+tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+
 /*
  * Which allotment and track does data go into?
  *
@@ -42,7 +57,7 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-allotments := [use_allotment(["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd","focus"][])];
+allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);
 
 /*

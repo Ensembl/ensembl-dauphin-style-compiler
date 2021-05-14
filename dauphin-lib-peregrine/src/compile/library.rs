@@ -18,9 +18,10 @@ use super::geometry:: {
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
+use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(20,0),0xC5A8F6011ED81ABF)
+    CommandSetId::new("peregrine",(21,0),0xA0BF2A98C6FCF3B3)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -57,6 +58,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("patina_filled",Some(29),PatinaFilledCommandType());
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
+    set.push("get_switch",Some(32),GetSwitchCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

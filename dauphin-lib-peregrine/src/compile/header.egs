@@ -60,6 +60,8 @@ func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func pen(string,number,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
+func get_switch(vec(string)) becomes boolean;
+
 proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);

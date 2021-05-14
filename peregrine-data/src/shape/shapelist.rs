@@ -18,22 +18,31 @@ impl ShapeListBuilder {
         }
     }
 
+    fn push(&mut self, shape: Shape) {
+        let shape =shape.remove_nulls();
+        if !shape.is_empty() {
+            self.shapes.push(shape);
+        }
+    }
+
     pub fn len(&self) -> usize { self.shapes.len() }
 
     pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
-        self.allotments.insert(allotment.clone());
+        if !allotment.is_null() {
+            self.allotments.insert(allotment.clone());
+        }
     }
 
     pub fn add_rectangle(&mut self, top_left: SpaceBase, bottom_right: SpaceBase, patina: Patina, allotments: Vec<AllotmentHandle>) {
-        self.shapes.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina,allotments));
+        self.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina,allotments));
     }
 
     pub fn add_text2(&mut self, position: SpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
-        self.shapes.push(Shape::Text2(position,pen,text,allotments));
+        self.push(Shape::Text2(position,pen,text,allotments));
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {
-        self.shapes.push(Shape::Wiggle((min,max),values,plotter,allotment))
+        self.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
@@ -50,6 +59,8 @@ impl ShapeListBuilder {
     }
 
     pub fn build(self, petitioner: &AllotmentPetitioner) -> ShapeList {
+        use web_sys::console;
+        console::log_1(&format!("shape list allotments {:?}",self.allotments).into());
         ShapeList::new(self,petitioner)
     }
 }

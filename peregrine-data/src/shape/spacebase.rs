@@ -94,6 +94,8 @@ impl SpaceBase {
         }
     }
 
+    pub fn len(&self) -> usize { self.max_len }
+
     pub fn new(base: Vec<f64>, normal: Vec<f64>, tangent: Vec<f64>) -> SpaceBase {
         let max_len = base.len().max(normal.len()).max(tangent.len());
         if base.len() == 0 || normal.len() == 0 || tangent.len() == 0 {
