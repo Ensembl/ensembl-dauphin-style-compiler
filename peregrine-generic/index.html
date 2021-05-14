@@ -4,13 +4,17 @@
     <link rel="stylesheet" href="style.css"/>
   </head>
   <body>
+  </script>
     <div class="grid" id="grid">
       <div>
 
       </div>
       <div class="viewport" id="browser">
       </div>
-      <div class="other" id="other"></div>
+      <div class="other" id="other">
+        <div>go crazy <input id="crazy" type="checkbox"/></div>
+        <div>track <input id="track" type="checkbox"/></div>
+      </div>
     </div>
     <script type="module">
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
@@ -18,11 +22,24 @@
       let genome_browser = new GenomeBrowser();
       genome_browser.go();
       genome_browser.set_message_reporter(function(x) {
-        console.error("this is my message receiver: "+x);
+        console.error(x);
       });
       genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
       genome_browser.set_switch(["track","gene-pc-fwd"]);
-      test(genome_browser);
+      genome_browser.set_x(2500000);
+      genome_browser.set_bp_per_screen(1000000);
+      let flip = false;
+      document.getElementById("track").onclick = function() {
+        if(flip) {
+          genome_browser.clear_switch(["track","gene-pc-rev"]);
+        } else {
+          genome_browser.set_switch(["track","gene-pc-rev"]);
+        }
+        flip=!flip;
+      };
+      document.getElementById("crazy").onclick = function() {
+        test(genome_browser.copy());
+      };
     </script>
   </body>
 </html>

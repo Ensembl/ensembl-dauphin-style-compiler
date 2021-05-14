@@ -59,8 +59,6 @@ impl ShapeListBuilder {
     }
 
     pub fn build(self, petitioner: &AllotmentPetitioner) -> ShapeList {
-        use web_sys::console;
-        console::log_1(&format!("shape list allotments {:?}",self.allotments).into());
         ShapeList::new(self,petitioner)
     }
 }

@@ -77,8 +77,6 @@ impl Carriage {
         let track_config_list = self.id.train.layout().track_config_list();
         let track_list = self.track_configs.list_tracks();
         for track in track_list {
-            use web_sys::console;
-            console::log_1(&format!("track: {} ({:?})",track.program_name().1,self.id).into());
             if let Some(track_config) = track_config_list.get_track(&track) {
                 shape_requests.push(ShapeRequest::new(&self.id.region(),&track_config));
             }

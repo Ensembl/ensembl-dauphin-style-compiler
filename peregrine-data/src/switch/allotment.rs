@@ -53,8 +53,6 @@ impl AllotmentPetitioner {
     }
 
     pub fn add(&mut self, request: AllotmentRequest) -> AllotmentHandle {
-        use web_sys::console;
-        console::log_1(&format!("add {:?}",request).into());
         if let Some(handle) = self.lookup(request.name()) {
             let mut data = self.allotments.lock().unwrap();
             let existing = data.data_mut().get_mut(&handle);

@@ -48,12 +48,19 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
-    for _ in 0..10_u32 {
-        pos += 50000.;
-        api.set_x(pos);
-        api.set_bp_per_screen(bp_per_screen);
-        bp_per_screen *= 0.95;
-        cdr_timer(1000.).await; // Wait one second
+    api.set_bp_per_screen(bp_per_screen);
+    let mut i = 0_f64;
+    loop {
+            i += 1.;
+            use std::f64::consts::PI;
+
+            pos = 2500000. + 400000. * (i/50.).sin();
+            bp_per_screen = 1000000. * (2.+0.2*(i/15.).cos());
+
+            api.set_x(pos);
+            api.set_bp_per_screen(bp_per_screen);
+            bp_per_screen *= 0.95;
+            cdr_timer(1.).await; // Wait one second
     }
     cdr_timer(100.).await;
     el.class_list().add_1("other2");
@@ -133,6 +140,10 @@ impl GenomeBrowser {
 
     pub fn go(&mut self) {
         js_throw(self.go_real());
+    }
+
+    pub fn copy(&self) -> GenomeBrowser {
+        self.clone()
     }
 
     /*

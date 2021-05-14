@@ -20,12 +20,8 @@ impl InterpCommand for GetSwitchInterpCommand {
         for (offset,length) in path_offset.iter().zip(path_length.iter().cycle()) {
             let path = &path_data[*offset..(*offset+*length)].iter().map(|x| x.as_str()).collect::<Vec<_>>();
             out.push(config.get(path).is_some());
-            use web_sys::console;
-            console::log_1(&format!("path={:?}",path.join(".")).into());
         }
         let registers = context.registers_mut();
-        use web_sys::console;
-        console::log_1(&format!("out={:?}",out).into());
         registers.write(&self.0,InterpValue::Boolean(out));
         Ok(CommandResult::SyncResult())
     }
