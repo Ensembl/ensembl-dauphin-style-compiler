@@ -64,7 +64,6 @@ impl TextureValues {
 
     pub fn set_value(&mut self, flat: &FlatId) -> Result<(),Message> {
         self.flat_id = Some(flat.clone());
-        self.bound = true;
         Ok(())
     }
 

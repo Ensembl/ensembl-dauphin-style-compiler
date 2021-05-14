@@ -64,13 +64,7 @@ impl Shape {
             },
             Shape::Text2(position,pen,text,allotments) => {
                 let mut filter = DataFilter::new_filter(&allotments, |a| !a.is_null());
-                use web_sys::console;
-                console::log_1(&format!("null bug A {:?}",filter).into());
                 filter.set_size(position.len());
-                console::log_1(&format!("null bug B {:?}",filter).into());
-                console::log_1(&format!("null bug C position={:?} pen={:?} filter={:?} allotments={:?}",
-                    position.filter(&filter),pen.filter2(&filter),filter.filter(&text),filter.filter(&allotments)
-                ).into());            
                 Shape::Text2(position.filter(&filter),pen.filter2(&filter),filter.filter(&text),filter.filter(&allotments))
             },
             Shape::Wiggle(x,mut y,plotter,allotment) => {
