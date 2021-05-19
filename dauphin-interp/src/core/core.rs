@@ -191,7 +191,8 @@ impl InterpCommand for NumEqInterpCommand {
     }
 }
 
-fn filter_typed<T>(dst: &mut Vec<T>, src: &[T], filter: &[bool]) where T: Clone {
+fn filter_typed<T>(dst: &mut Vec<T>, src: &[T], mut filter: &[bool]) where T: Clone {
+    if filter.len() == 0 { filter = &[false]; }
     let filter_len = filter.len();
     for (i,value) in src.iter().enumerate() {
         if filter[i%filter_len] {
