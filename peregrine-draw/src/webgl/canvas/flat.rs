@@ -1,8 +1,9 @@
 use wasm_bindgen::JsCast;
 use web_sys::{ Document, HtmlCanvasElement, CanvasRenderingContext2d };
 use peregrine_data::{ Pen, DirectColour };
-use super::weave::CanvasWeave;
+use super::{canvasstore::HtmlFlatCanvas, weave::CanvasWeave};
 use crate::util::message::Message;
+use super::canvasstore::CanvasStore;
 
 fn pen_to_font(pen: &Pen) -> String {
     format!("{}px {}",pen.1,pen.0)
@@ -13,7 +14,7 @@ fn colour_to_css(c: &DirectColour) -> String {
 }
 
 pub(crate) struct Flat {
-    element: Option<HtmlCanvasElement>,
+    element: Option<HtmlFlatCanvas>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
     font: Option<String>,
@@ -23,21 +24,17 @@ pub(crate) struct Flat {
 }
 
 impl Flat {
-    pub(super) fn new(document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
-        let el = document.create_element("canvas").map_err(|e| Message::ConfusedWebBrowser(format!("cannot create canvas")))?;
-        let canvas_el = el.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
-        canvas_el.set_width(size.0);
-        canvas_el.set_height(size.1);
-        //document.body().unwrap().append_child(&canvas_el);
-        let context = canvas_el
+    pub(super) fn new(canvas_store: &mut CanvasStore, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
+        let el = canvas_store.allocate(document, size.0, size.1)?;
+        let context = el.element()
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?;
         Ok(Flat {
-            element: Some(canvas_el),
+            size: el.size(),
+            element: Some(el),
             context: Some(context),
             weave: weave.clone(),
-            size,
             font: None,
             font_height: None,
             discarded: false
@@ -67,7 +64,6 @@ impl Flat {
     pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?;
-//        context.set_font("100px 'Lato'");
         context.set_fill_style(&colour_to_css(&DirectColour(255,255,255)).into()); // TODO background colours for pen
         context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
         context.set_text_baseline("top");
@@ -80,7 +76,7 @@ impl Flat {
     pub(crate) fn weave(&self) -> &CanvasWeave { &self.weave }
     pub(crate) fn element(&self) -> Result<&HtmlCanvasElement,Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        Ok(&self.element.as_ref().unwrap())
+        Ok(&self.element.as_ref().unwrap().element())
     }
 
     pub(super) fn context(&self) -> Result<&CanvasRenderingContext2d,Message> {
@@ -88,8 +84,9 @@ impl Flat {
         Ok(&self.context.as_ref().unwrap())
     }
 
-    pub(super) fn discard(&mut self) -> Result<(),Message> {
+    pub(super) fn discard(&mut self, canvas_store: &mut CanvasStore) -> Result<(),Message> {
         if self.discarded { return Ok(()); }
+        canvas_store.free(self.element.take().unwrap());
         self.element = None;
         self.context = None;
         self.font = None;
