@@ -36,7 +36,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PullAccelleration, name: "pull.accelleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAccelleration, name: "zoom.accelleration", default: &PgConfigValue::Float(1./30000.) }, // reach 2 factors/second in 10s, ie in 600 frames
-            ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.9) },
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.1) },
         ]};
 }
 

@@ -72,7 +72,7 @@ impl GlTrainSetData {
         let ramp_length = (1.+self.fade_overlap_prop)/2.;
         let front_porch = (1.-self.fade_overlap_prop)/2.;
         if out {
-            if prop > front_porch { (prop - front_porch)/ramp_length } else { 1. }
+            1.-(if prop > front_porch { (prop - front_porch)/ramp_length } else { 0. })
         } else {
             prop/ramp_length
         }.min(1.).max(0.)
