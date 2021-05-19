@@ -2,14 +2,19 @@ use std::num::ParseFloatError;
 use peregrine_data::{ DataMessage };
 use crate::util::message::Message;
 use lazy_static::lazy_static;
-use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue };
+use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;
+
+// XXX factor with similar in peregrine-data
+// XXX chromosome ned-stops
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
     PullAccelleration, // screenfulls/frame/frame
+    ZoomMaxSpeed, // factors-of-2/second,
+    ZoomAccelleration, // factors-of-2/second/second
 }
 
 #[derive(Clone)]
@@ -24,8 +29,12 @@ lazy_static! {
         vec![
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a A") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d D") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w W") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s S") },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./60.) }, // 1 screen/second
             ConfigKeyInfo { key: PgConfigKey::PullAccelleration, name: "pull.accelleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
+            ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(2.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomAccelleration, name: "zoom.accelleration", default: &PgConfigValue::Float(1./30000.) }, // reach 2 factors/second in 10s, ie in 600 frames
         ]};
 }
 
@@ -60,6 +69,10 @@ impl ConfigValue for PgConfigValue {
     }
 }
 
+
+fn map_error<R>(e: Result<R,ConfigError>) -> Result<R,Message> {
+    e.map_err(|e| Message::DataError(DataMessage::ConfigError(e)))
+}
 pub struct PgPeregrineConfig<'a>(Config<'a,PgConfigKey,PgConfigValue>);
 
 impl<'a> PgPeregrineConfig<'a> {
@@ -67,12 +80,12 @@ impl<'a> PgPeregrineConfig<'a> {
         PgPeregrineConfig(Config::new(&CONFIG_CONFIG))
     }
 
-    pub fn set(&mut self, key_str: &str, value: &str) -> Result<(),DataMessage> {
-        self.0.set(key_str,value).map_err(|e| DataMessage::ConfigError(e))
+    pub fn set(&mut self, key_str: &str, value: &str) -> Result<(),Message> {
+        map_error(self.0.set(key_str,value))
     }
 
-    fn get(&self, key: &PgConfigKey) -> &PgConfigValue { self.0.get(key) }
+    fn get(&self, key: &PgConfigKey) -> Result<&PgConfigValue,Message> { map_error(self.0.get(key)) }
 
-    pub fn get_f64(&self, key: &PgConfigKey) -> Result<f64,Message> { self.get(key).as_f64() }
-    pub fn get_str(&self, key: &PgConfigKey) -> Result<&str,Message> { self.get(key).as_str() }
+    pub fn get_f64(&self, key: &PgConfigKey) -> Result<f64,Message> { self.get(key)?.as_f64() }
+    pub fn get_str(&self, key: &PgConfigKey) -> Result<&str,Message> { self.get(key)?.as_str() }
 }

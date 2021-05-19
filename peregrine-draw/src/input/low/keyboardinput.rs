@@ -11,8 +11,6 @@ use crate::run::{ PgConfigKey };
 use super::lowlevel::{ Key, Modifiers };
 use js_sys::Date;
 
-// XXX multiple down
-
 /* Keyboard mappings are space separated alternatives for an action. Each alternative is a hyphen-separated
  * list. The last element must be the generated mapped unicode codepoint, if any, or from the standard special
  * values (with " " replaced by Space). These can be modified by the initial values which are one of shift,

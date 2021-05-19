@@ -28,14 +28,18 @@ impl<T> Distributor<T> {
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum InputEventKind {
     PullLeft,
-    PullRight
+    PullRight,
+    PullIn,
+    PullOut
 }
 
 impl InputEventKind {
     pub fn each() -> Vec<InputEventKind> {
         vec![
             InputEventKind::PullLeft,
-            InputEventKind::PullRight
+            InputEventKind::PullRight,
+            InputEventKind::PullIn,
+            InputEventKind::PullOut
         ]
     }
 }

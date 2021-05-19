@@ -9,51 +9,97 @@ use crate::util::Message;
 use crate::PgCommanderWeb;
 
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub enum PullState {
+pub enum PullDirection {
     None,
-    Left,
-    Right
+    Decrease,
+    Increase
+}
+
+pub struct PullSpeed {
+    state: PullDirection,
+    speed: f64,
+    max_speed: f64,
+    accelleration: f64,
+}
+
+impl PullSpeed {
+    fn new(max_speed: f64, accelleration: f64) ->PullSpeed {
+        PullSpeed {
+            state: PullDirection::None,
+            speed: 0.,
+            max_speed,
+            accelleration
+        }
+    }
+
+    fn set_direction(&mut self, direction: PullDirection, start: bool) {
+        if start && self.state == PullDirection::None {
+            self.state = direction;
+        } else if !start && self.state == direction {
+            self.state = PullDirection::None;
+        }
+    }
+
+    fn step(&mut self) -> bool {
+        /* update pull speed */
+        let direction = match self.state {
+            PullDirection::Decrease => -1.,
+            PullDirection::Increase => 1.,
+            PullDirection::None => { self.speed = 0.; return false; }
+        };
+        self.speed += direction * self.accelleration;
+        if self.speed > self.max_speed { self.speed = self.max_speed; }
+        if self.speed < -self.max_speed { self.speed = -self.max_speed; }
+        true
+    }
+
+    fn speed(&self) -> f64 { self.speed }
 }
 
 pub struct PhysicsState {
-    pull_state: PullState,
-    pull_speed: f64,
-    pull_max_speed: f64,
-    pull_accelleration: f64,
-    pull_to: Option<f64>
+    pull_x_speed: PullSpeed,
+    pull_x_to: Option<f64>,
+    pull_z_speed: PullSpeed,
+    pull_z_to: Option<f64>
 }
 
 impl PhysicsState {
     fn new(config: &PgPeregrineConfig) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
-            pull_state: PullState::None,
-            pull_speed: 0.,
-            pull_max_speed: config.get_f64(&PgConfigKey::PullMaxSpeed)?,
-            pull_accelleration: config.get_f64(&PgConfigKey::PullAccelleration)?,
-            pull_to: None
+            pull_x_speed: PullSpeed::new(config.get_f64(&PgConfigKey::PullMaxSpeed)?,config.get_f64(&PgConfigKey::PullAccelleration)?),
+            pull_x_to: None,
+            pull_z_speed: PullSpeed::new(config.get_f64(&PgConfigKey::ZoomMaxSpeed)?,config.get_f64(&PgConfigKey::ZoomAccelleration)?),
+            pull_z_to: None,
         })
     }
 
-    fn update_pull(&mut self, api: &PeregrineAPI) {
-        /* update pull speed */
-        let direction = match self.pull_state {
-            PullState::Left => -1.,
-            PullState::Right => 1.,
-            PullState::None => { self.pull_speed = 0.; self.pull_to = None; return; }
-        };
-        self.pull_speed += direction * self.pull_accelleration;
-        if self.pull_speed > self.pull_max_speed { self.pull_speed = self.pull_max_speed; }
-        if self.pull_speed < -self.pull_max_speed { self.pull_speed = -self.pull_max_speed; }
-        /* do the pulling */
-        if self.pull_to.is_none() { self.pull_to = api.x(); }
-        if let (Some(pull_to),Some(bp_per_screen)) = (&mut self.pull_to,api.bp_per_screen()) { 
-            *pull_to += self.pull_speed * bp_per_screen;
-            api.set_x(*pull_to);
+    fn update_x_pull(&mut self, api: &PeregrineAPI) {
+        if self.pull_x_speed.step() {
+            if self.pull_x_to.is_none() { self.pull_x_to = api.x(); }
+            if let (Some(pull_to),Some(bp_per_screen)) = (&mut self.pull_x_to,api.bp_per_screen()) { 
+                *pull_to += self.pull_x_speed.speed() * bp_per_screen;
+                api.set_x(*pull_to);
+            }
+        } else {
+            self.pull_x_to = None;
+        }
+    }
+
+    fn update_z_pull(&mut self, api: &PeregrineAPI) {
+        if self.pull_z_speed.step() {
+            if self.pull_z_to.is_none() { self.pull_z_to = api.bp_per_screen(); }
+            if let Some(pull_to) = &mut self.pull_z_to {
+                *pull_to *= (2_f64).powf(self.pull_z_speed.speed());
+                api.set_bp_per_screen(*pull_to);
+            }
+        } else {
+            self.pull_z_to = None;
         }
     }
 
     fn physics_step(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        self.update_pull(api);
+        self.update_x_pull(api);
+        self.update_z_pull(api);
         Ok(())
     }
 }
@@ -67,19 +113,15 @@ pub struct Physics {
 
 impl Physics {
     fn incoming_pull_event(&self, event: &InputEvent) {
-        let new_direction = match event.details {
-            InputEventKind::PullLeft => PullState::Left,
-            InputEventKind::PullRight => PullState::Right,
+        let mut state = self.state.lock().unwrap();
+        let (new_direction,target) = match event.details {
+            InputEventKind::PullLeft => (PullDirection::Decrease,&mut state.pull_x_speed),
+            InputEventKind::PullRight=> (PullDirection::Increase,&mut state.pull_x_speed),
+            InputEventKind::PullIn => (PullDirection::Decrease,&mut state.pull_z_speed),
+            InputEventKind::PullOut=> (PullDirection::Increase,&mut state.pull_z_speed),
             _ => { return; }
         };
-        let mut state = self.state.lock().unwrap();
-        if event.start && state.pull_state == PullState::None {
-            state.pull_state = new_direction;
-        } else if !event.start && state.pull_state == new_direction {
-            state.pull_state = PullState::None;
-        }
-        use web_sys::console;
-        console::log_1(&format!("event: {:?}",state.pull_state).into());
+        target.set_direction(new_direction,event.start);
     }
 
     fn incoming_event(&self, event: &InputEvent) {

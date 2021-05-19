@@ -1,9 +1,9 @@
 use std::num::ParseFloatError;
 use crate::util::message::DataMessage;
 use lazy_static::lazy_static;
-use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue };
+use peregrine_config::{Config, ConfigError, ConfigKeyInfo, ConfigValue};
 
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum ConfigKey {
     AnimationFadeRate(bool),
 }
@@ -41,6 +41,10 @@ impl ConfigValue for PgdConfigValue {
     }
 }
 
+fn map_error<R>(e: Result<R,ConfigError>) -> Result<R,DataMessage> {
+    e.map_err(|e| DataMessage::ConfigError(e))
+}
+
 pub struct PgdPeregrineConfig<'a>(Config<'a,ConfigKey,PgdConfigValue>);
 
 impl<'a> PgdPeregrineConfig<'a> {
@@ -49,12 +53,12 @@ impl<'a> PgdPeregrineConfig<'a> {
     }
 
     pub fn set(&mut self, key_str: &str, value: &str) -> Result<(),DataMessage> {
-        self.0.set(key_str,value).map_err(|e| DataMessage::ConfigError(e))
+        map_error(self.0.set(key_str,value))
     }
 
-    fn get(&self, key: &ConfigKey) -> &PgdConfigValue {
-        self.0.get(key)
+    fn get(&self, key: &ConfigKey) -> Result<&PgdConfigValue,DataMessage> {
+        map_error(self.0.get(key))
     }
 
-    pub fn get_f64(&self, key: &ConfigKey) -> Result<f64,DataMessage> { self.get(key).as_f64() }
+    pub fn get_f64(&self, key: &ConfigKey) -> Result<f64,DataMessage> { self.get(key)?.as_f64() }
 }

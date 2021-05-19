@@ -2,7 +2,7 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::request::channel::Channel;
+use crate::{ConfigKey, request::channel::Channel};
 use crate::lane::ShapeRequest;
 use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
@@ -188,7 +188,8 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
-                ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),    
+                ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),
+                ConfigError::UninitialisedKey(k) => format!("uninitialised config key {}",k),    
             }
         }
     }
