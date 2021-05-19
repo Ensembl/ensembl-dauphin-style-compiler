@@ -38,8 +38,6 @@ impl Text {
         self.text_origin = Some(text_origin);
         self.mask_origin = Some(mask_origin);
         canvas.set_font(&self.pen)?;
-        use web_sys::console;
-        console::log_1(&format!("at render {:?}",&self.pen).into());
         canvas.text(&self.text,text_origin,size,&self.colour)?;
         canvas.text(&self.text,mask_origin,size,&DirectColour(0,0,0))?;
         Ok(())

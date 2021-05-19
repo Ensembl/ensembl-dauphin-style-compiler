@@ -4,15 +4,16 @@ use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
+use crate::input::Input;
 
 use peregrine_data::{ 
     Commander,
     PeregrineCore,
-    PeregrineConfig
+    PgdPeregrineConfig
 };
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::Instigator;
-use super::frame::run_animations;
+use super::{frame::run_animations, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
@@ -49,7 +50,8 @@ pub struct PeregrineInnerAPI {
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     position: Option<Position>,
-    dom: PeregrineDom
+    dom: PeregrineDom,
+    input: Input
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -104,7 +106,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: PeregrineConfig, dom: PeregrineDom) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom) -> Result<PeregrineInnerAPI,Message> {
         // XXX change commander init to allow message init to move to head
         let commander = PgCommanderWeb::new(&dom)?;
         commander.start();
@@ -118,12 +120,13 @@ impl PeregrineInnerAPI {
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
-        let trainset = GlTrainSet::new(&config,&stage.lock().unwrap())?;
+        let trainset = GlTrainSet::new(&config.data,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
+        let input = Input::new(&dom,&config.draw)?;
         let dom2 = dom.clone();
         core.application_ready();
         let mut out = PeregrineInnerAPI {
@@ -132,6 +135,7 @@ impl PeregrineInnerAPI {
             position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
             position: None,
+            input,
             dom
         };
         out.setup(&dom2)?;

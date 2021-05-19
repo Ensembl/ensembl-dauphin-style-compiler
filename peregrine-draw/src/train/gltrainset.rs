@@ -1,8 +1,7 @@
-use anyhow::{ bail };
 use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
+use peregrine_data::{ Carriage, CarriageSpeed, PgdPeregrineConfig, PeregrineCore, ConfigKey };
 use super::gltrain::GLTrain;
 use crate::stage::stage::{ Stage, ReadStage };
 use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
@@ -26,10 +25,10 @@ struct GlTrainSetData {
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
+    fn new(config: &PgdPeregrineConfig, redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
-            slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
-            fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
+            slow_fade_time: config.get_f64(&ConfigKey::AnimationFadeRate(false)).map_err(|e| Message::DataError(e))?,
+            fast_fade_time: config.get_f64(&ConfigKey::AnimationFadeRate(true)).map_err(|e| Message::DataError(e))?,
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
@@ -161,7 +160,7 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
+    pub fn new(config: &PgdPeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
         Ok(GlTrainSet {
             data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
         })

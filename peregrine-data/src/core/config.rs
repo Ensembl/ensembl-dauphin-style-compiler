@@ -1,42 +1,60 @@
-use std::collections::HashMap;
+use std::num::ParseFloatError;
+use crate::util::message::DataMessage;
+use lazy_static::lazy_static;
+use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue };
 
-pub enum ConfigValue {
+#[derive(Clone,PartialEq,Eq,Hash)]
+pub enum ConfigKey {
+    AnimationFadeRate(bool),
+}
+
+#[derive(Clone)]
+pub enum PgdConfigValue {
     Float(f64)
 }
 
-impl ConfigValue {
-    fn get_f64(&self) -> Option<f64> {
+lazy_static! {
+    static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,ConfigKey,PgdConfigValue>> = vec![
+        ConfigKeyInfo { key: ConfigKey::AnimationFadeRate(true), name: "animate.fade.fast", default: &PgdConfigValue::Float(100.) },
+        ConfigKeyInfo { key: ConfigKey::AnimationFadeRate(false), name: "animate.fade.slow", default: &PgdConfigValue::Float(500.) },
+    ];
+}
+
+fn string_to_float(value_str: &str) -> Result<f64,String> {
+    value_str.parse().map_err(|e: ParseFloatError| e.to_string())
+}
+
+impl PgdConfigValue {
+    fn as_f64(&self) -> Result<f64,DataMessage> {
         match self {
-            ConfigValue::Float(x) => Some(*x)
+            PgdConfigValue::Float(x) => Ok(*x),
+            _ => Err(DataMessage::CodeInvariantFailed(format!("cannot get value as f64")))
         }
     }
 }
 
-pub struct PeregrineConfig {
-    values: HashMap<String,ConfigValue>
+impl ConfigValue for PgdConfigValue {
+    fn parse(&self, value_str: &str) -> Result<PgdConfigValue,String> {
+        Ok(match self {
+            PgdConfigValue::Float(_) => PgdConfigValue::Float(string_to_float(value_str)?)
+        })
+    }
 }
 
-impl PeregrineConfig {
-    pub fn new() -> PeregrineConfig {
-        PeregrineConfig {
-            values: HashMap::new()
-        }
+pub struct PgdPeregrineConfig<'a>(Config<'a,ConfigKey,PgdConfigValue>);
+
+impl<'a> PgdPeregrineConfig<'a> {
+    pub fn new() -> PgdPeregrineConfig<'a> {
+        PgdPeregrineConfig(Config::new(&CONFIG_CONFIG))
     }
 
-
-    pub fn set(&mut self, key: &str, value: ConfigValue) {
-        self.values.insert(key.to_string(),value);
+    pub fn set(&mut self, key_str: &str, value: &str) -> Result<(),DataMessage> {
+        self.0.set(key_str,value).map_err(|e| DataMessage::ConfigError(e))
     }
 
-    pub fn set_f64(&mut self, key: &str, value: f64) {
-        self.values.insert(key.to_string(),ConfigValue::Float(value));
+    fn get(&self, key: &ConfigKey) -> &PgdConfigValue {
+        self.0.get(key)
     }
 
-    pub fn get(&self, key: &str) -> Option<&ConfigValue> {
-        self.values.get(key)
-    }
-
-    pub fn get_f64(&self, key: &str) -> Option<f64> {
-        self.values.get(key).and_then(|x| x.get_f64())
-    }
+    pub fn get_f64(&self, key: &ConfigKey) -> Result<f64,DataMessage> { self.get(key).as_f64() }
 }

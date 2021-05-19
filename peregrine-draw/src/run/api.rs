@@ -1,7 +1,7 @@
 use crate::util::message::{ Message };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use peregrine_data::{Channel, PeregrineConfig, PgCommanderTaskSpec, StickId };
+use peregrine_data::{Channel,StickId };
 use super::progress::Progress;
 use commander::CommanderStream;
 use peregrine_message::Instigator;
@@ -9,6 +9,7 @@ use super::inner::PeregrineInnerAPI;
 use crate::stage::stage::Position;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
+use crate::run::globalconfig::PeregrineConfig;
 
 use std::sync::{ Arc, Mutex };
 
@@ -142,7 +143,8 @@ impl PeregrineAPI {
     }
 
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
-        let inner = PeregrineInnerAPI::new(config,dom)?;
+        let configs = config.build();
+        let inner = PeregrineInnerAPI::new(configs,dom)?;
         let commander = inner.commander();
         let self2 = self.clone();
         inner.xxx_set_callbacks(move |p| {

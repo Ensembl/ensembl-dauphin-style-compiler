@@ -8,6 +8,7 @@ use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
 use peregrine_message::{ MessageLevel, MessageCategory, PeregrineMessage };
+use peregrine_config::ConfigError;
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -43,6 +44,7 @@ pub enum DataMessage {
     DataUnavailable(Channel,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
     NoSuchAllotment(String),
+    ConfigError(ConfigError)
 }
 
 impl PeregrineMessage for DataMessage {
@@ -81,6 +83,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
             DataMessage::TunnelError(_) => MessageCategory::BadInfrastructure,
             DataMessage::NoSuchAllotment(_) => MessageCategory::BadData,
+            DataMessage::ConfigError(_) => MessageCategory::BadFrontend,
         }
     }
 
@@ -97,6 +100,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramMissing(_) => true,
             DataMessage::NoSuchAllotment(_) => true,
             DataMessage::TunnelError(e) => e.lock().unwrap().now_unstable(),
+            DataMessage::ConfigError(_) => true,
             _ => false
         }
     }
@@ -111,7 +115,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 27; 17, 25 unused; 499 is last.
+        // Next code is 27; 25 is unused; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -139,6 +143,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e.code()))),
             DataMessage::NoSuchAllotment(a) => (0,calculate_hash(a)),
             DataMessage::TunnelError(e) => e.lock().unwrap().code(),
+            DataMessage::ConfigError(e) => (17,calculate_hash(e)),
         }
     }
 
@@ -181,6 +186,10 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
+            DataMessage::ConfigError(e) => match e {
+                ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
+                ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),    
+            }
         }
     }
 

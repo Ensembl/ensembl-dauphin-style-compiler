@@ -24,7 +24,7 @@ mod core {
     pub mod stick;
     mod viewport;
 
-    pub use self::config::{ PeregrineConfig, ConfigValue };
+    pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::focus::Focus;
     pub use self::layout::Layout;
     pub use self::scale::Scale;
@@ -153,7 +153,7 @@ mod test {
 
 pub use self::agent::{ LaneProgramLookup };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
-pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Scale, Focus };
+pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Focus };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };

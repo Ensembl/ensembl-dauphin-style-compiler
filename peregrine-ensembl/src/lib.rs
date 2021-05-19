@@ -1,9 +1,8 @@
 use std::fmt::Debug;
 mod standalonedom;
 use wasm_bindgen::prelude::*;
-use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb };
+use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
 use peregrine_data::{Channel, ChannelLocation, StickId };
-use peregrine_data::{ PeregrineConfig };
 pub use url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{ console };
@@ -62,8 +61,8 @@ impl GenomeBrowser {
          * oojimaflips associated with the browser in the end.
          */
         let mut config = PeregrineConfig::new();
-        config.set_f64("animate.fade.slow",500.);
-        config.set_f64("animate.fade.fast",100.);
+        config.set("animate.fade.slow","500");
+        config.set("animate.fade.fast","100");
         /*
          * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
          * use. See that file for details.

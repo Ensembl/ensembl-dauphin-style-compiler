@@ -45,6 +45,7 @@ features = [
   'Document', 'DomRect',
   'Element',
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
+  'KeyboardEvent',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'Screen',
@@ -76,3 +77,7 @@ path="../peregrine-dauphin-queue"
 [dependencies.peregrine_dauphin]
 version="*"
 path="../peregrine-dauphin"
+
+[dependencies.peregrine_config]
+version="*"
+path="../peregrine-config"

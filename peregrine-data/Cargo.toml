@@ -38,8 +38,12 @@ version="*"
 path="../peregrine-dauphin-queue"
 
 [dependencies.peregrine_message]
-versio="*"
+version="*"
 path="../peregrine-message"
+
+[dependencies.peregrine_config]
+version="*"
+path="../peregrine-config"
 
 [dependencies.dauphin_interp]
 version="*"

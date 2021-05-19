@@ -1,15 +1,6 @@
-use std::fmt;
-use anyhow::{ self, anyhow as err };
-use wasm_bindgen::JsValue;
-use web_sys::console;
-use serde_json::Value as JsonValue;
 use crate::util::message::Message;
+use wasm_bindgen::JsValue;
 
-fn error_to_string(v: JsValue) -> String {
-    let x : JsonValue = v.into_serde().unwrap();
-    format!("{} {}",x.to_string(),v.as_string().unwrap_or("mystery error".to_string()))
-}
-
-pub(crate) fn console_error(s: &str) {
-    console::log_1(&s.into());
+pub(crate) fn confused_browser<R,>(result: Result<R,JsValue>) -> Result<R,Message> {
+    result.map_err(|e| Message::ConfusedWebBrowser(e.as_string().unwrap_or_else(|| format!("anonymous object"))))
 }

@@ -1,3 +1,22 @@
+mod input {
+    mod core {
+        pub mod input;
+    }
+
+    mod low {
+        mod event;
+        pub(crate) mod keyboardinput;
+        pub(crate) mod lowlevel;    
+    }
+
+    mod physics {
+        pub(crate) mod physics;
+        pub use self::physics::Physics;
+    }
+
+    pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
+}
+
 mod integration {
     mod bell;
     pub(crate) mod pgcommander;
@@ -11,12 +30,16 @@ mod integration {
 
 mod run {
     pub mod api;
+    mod config;
     mod dom;
+    mod globalconfig;
     pub mod inner;
     mod frame;
     pub(crate) mod progress;
     mod size;
 
+    pub use self::config::{ PgPeregrineConfig, PgConfigKey };
+    pub use self::globalconfig::PeregrineConfig;
     pub use self::dom::PeregrineDom;
     pub use self::api::{ PeregrineAPI };
     pub use self::inner::{ PeregrineInnerAPI };
@@ -67,6 +90,7 @@ mod train {
 
 mod util {
     pub(crate) mod ajax;
+    pub(crate) mod error;
     pub(crate) mod evictlist;
     pub(crate) mod message;
     pub(crate) mod monostable;
@@ -151,6 +175,6 @@ mod webgl {
     mod util;
 }
 
-pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI };
+pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI, PeregrineConfig };
 pub use self::util::{ PgAjax, Message };
 pub use crate::integration::PgCommanderWeb;
