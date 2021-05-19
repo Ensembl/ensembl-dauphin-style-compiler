@@ -12,9 +12,9 @@ use crate::input::InputEventKind;
 pub enum PgConfigKey {
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
-    PullAccelleration, // screenfulls/frame/frame
+    PullAcceleration, // screenfulls/frame/frame
     ZoomMaxSpeed, // factors-of-2/second,
-    ZoomAccelleration, // factors-of-2/second/second,
+    ZoomAcceleration, // factors-of-2/second/second,
     FadeOverlapProp,
 }
 
@@ -33,9 +33,9 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w W") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s S") },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./60.) }, // 1 screen/second
-            ConfigKeyInfo { key: PgConfigKey::PullAccelleration, name: "pull.accelleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
-            ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(2.) },
-            ConfigKeyInfo { key: PgConfigKey::ZoomAccelleration, name: "zoom.accelleration", default: &PgConfigValue::Float(1./30000.) }, // reach 2 factors/second in 10s, ie in 600 frames
+            ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
+            ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./15.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./20000.) }, // reach 2 factors/second in 10s, ie in 600 frames
             ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.1) },
         ]};
 }

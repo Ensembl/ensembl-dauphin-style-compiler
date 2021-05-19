@@ -10,44 +10,44 @@ use crate::PgCommanderWeb;
 
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub enum PullDirection {
-    None,
     Decrease,
     Increase
 }
 
 pub struct PullSpeed {
-    state: PullDirection,
+    current_dec: bool,
+    current_inc: bool,
     speed: f64,
     max_speed: f64,
-    accelleration: f64,
+    acceleration: f64,
 }
 
 impl PullSpeed {
-    fn new(max_speed: f64, accelleration: f64) ->PullSpeed {
+    fn new(max_speed: f64, acceleration: f64) ->PullSpeed {
         PullSpeed {
-            state: PullDirection::None,
+            current_dec: false,
+            current_inc: false,
             speed: 0.,
             max_speed,
-            accelleration
+            acceleration
         }
     }
 
     fn set_direction(&mut self, direction: PullDirection, start: bool) {
-        if start && self.state == PullDirection::None {
-            self.state = direction;
-        } else if !start && self.state == direction {
-            self.state = PullDirection::None;
-        }
+        *match direction {
+            PullDirection::Decrease => &mut self.current_dec,
+            PullDirection::Increase => &mut self.current_inc
+        }=start;
     }
 
     fn step(&mut self) -> bool {
         /* update pull speed */
-        let direction = match self.state {
-            PullDirection::Decrease => -1.,
-            PullDirection::Increase => 1.,
-            PullDirection::None => { self.speed = 0.; return false; }
+        let direction = match (self.current_dec,self.current_inc) {
+            (true,false) => -1.,
+            (false,true) => 1.,
+            _ => { self.speed = 0.; return false; }
         };
-        self.speed += direction * self.accelleration;
+        self.speed += direction * self.acceleration;
         if self.speed > self.max_speed { self.speed = self.max_speed; }
         if self.speed < -self.max_speed { self.speed = -self.max_speed; }
         true
@@ -66,9 +66,9 @@ pub struct PhysicsState {
 impl PhysicsState {
     fn new(config: &PgPeregrineConfig) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
-            pull_x_speed: PullSpeed::new(config.get_f64(&PgConfigKey::PullMaxSpeed)?,config.get_f64(&PgConfigKey::PullAccelleration)?),
+            pull_x_speed: PullSpeed::new(config.get_f64(&PgConfigKey::PullMaxSpeed)?,config.get_f64(&PgConfigKey::PullAcceleration)?),
             pull_x_to: None,
-            pull_z_speed: PullSpeed::new(config.get_f64(&PgConfigKey::ZoomMaxSpeed)?,config.get_f64(&PgConfigKey::ZoomAccelleration)?),
+            pull_z_speed: PullSpeed::new(config.get_f64(&PgConfigKey::ZoomMaxSpeed)?,config.get_f64(&PgConfigKey::ZoomAcceleration)?),
             pull_z_to: None,
         })
     }

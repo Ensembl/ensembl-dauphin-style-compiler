@@ -76,7 +76,7 @@ enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 text_allotment := allotment;
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
 
-gene_labels := [gene_name,gene_id][(@==1)==get_switch(["track","gene-pc-fwd","label","id"])];
+gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
 
 /*
  * What colour? What font? etc

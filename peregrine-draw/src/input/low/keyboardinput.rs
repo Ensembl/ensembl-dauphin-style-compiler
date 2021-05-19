@@ -70,9 +70,7 @@ impl KeyboardMapBuilder {
     }
 
     pub(super) fn add_mapping(&mut self, keys: &str, kind: InputEventKind) {
-        use web_sys::console;
         for key in parse_keyspec(keys) {
-            console::log_1(&format!("mapping {:?} {:?}",key,kind).into());
             self.mapping.insert(key,kind.clone());
         }
     }
