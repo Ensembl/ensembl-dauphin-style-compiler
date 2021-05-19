@@ -1,3 +1,34 @@
+/*
+
+These calls /manage/ the size of a CANVAS. They do this by /observing/ the size of its CONATINER. They are called in
+three circumstances:
+
+1. on each frame to:
+   a. do any necessary resizing of the CANVAS.
+   b. tell the drawing code how big the CONTAINER currently is.
+2. on observing a resize of CONTAINER to:
+   a. resize the CANVAS if needed.
+   b. set the monostable.
+3. on the monostable expiring to:
+   a. reset the CANVAS size to a sensible value.
+
+1. On each frame tick() is called. 
+
+1a. The assessment of the correct canvas size is performed by test_update_canvas_size().
+If this returns Some(x,y) then the canvas needs to be resized. This is performed by update_canvas_size.
+
+1b. take_pending_drawable_size retrieves any updates to the drawable area noted in paths 2 and 3 and applies the update.
+
+2. On a resize of the container being obeserved check_contaier_size() is called. This updates the container_size
+internally and also sets the pending_container_size. This will allow the drawable to be updated on the next tick. If
+this method confirms that the container was resized, container_was_resized is called which sets the monostable (2b) and
+sets the redraw_needed flag (to ensure that we get a tick).
+
+3. On the monostable expiring, redraw_needed is fired again which will cause a tick. The expiry of themomostable will
+be noted in the test_update_canvas_size call.
+
+*/
+
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
 use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext, window };
@@ -45,10 +76,12 @@ impl SizeManagerState {
         (size.width() as u32,size.height() as u32)
     }
 
+    fn booted(&self) -> bool { self.booted }
+    fn set_booted(&mut self) { self.booted = true; }
+
     fn test_update_canvas_size(&mut self, active: bool) -> Option<(u32,u32)> {
         let (canvas_x,canvas_y) = self.canvas_size();
         if !self.booted {
-            self.booted = true;
             return Some((canvas_x,canvas_y));
         }
         if let Some((container_x,container_y)) = self.container_size {
@@ -66,7 +99,7 @@ impl SizeManagerState {
         None
     }
 
-    fn get_pending_drawable_size(&mut self) -> Option<(u32,u32)> {
+    fn take_pending_drawable_size(&mut self) -> Option<(u32,u32)> {
         self.pending_container_size.take()
     }
 }
@@ -119,7 +152,9 @@ impl SizeManager {
     }
 
     fn container_was_resized(&self) {
-        self.activity_monostable.set();
+        if self.state.lock().unwrap().booted() {
+            self.activity_monostable.set();
+        }
         self.redraw_needed.set();
     }
 
@@ -129,22 +164,24 @@ impl SizeManager {
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
         let mut stage = draw.stage.lock().unwrap();
         //use web_sys::console;
-        //console::log_1(&format!("{},{}",x,y).into());
+        //console::log_1(&format!("{}x{}",x,y).into());        
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())
     }
 
-    pub(crate) fn maybe_update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI) -> Result<(),Message> {
+    pub(crate) fn tick(&self, draw: &mut LockedPeregrineInnerAPI) -> Result<(),Message> {
         let active = self.activity_monostable.get();
         let resize = self.state.lock().unwrap().test_update_canvas_size(active); // to drop lock immediately
         if let Some((resize_x,resize_y)) = resize {
             self.update_canvas_size(draw,resize_x,resize_y)?;
         }
-        if let Some(drawable) = self.state.lock().unwrap().get_pending_drawable_size() {
+        let mut state = self.state.lock().unwrap();
+        if let Some(drawable) = state.take_pending_drawable_size() {
             let mut stage = draw.stage.lock().unwrap();
             stage.x_mut().set_drawable_size(drawable.0 as f64);
             stage.y_mut().set_drawable_size(drawable.1 as f64);
+            state.set_booted();
         }
         Ok(())
     }

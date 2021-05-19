@@ -6,7 +6,7 @@ use crate::util::message::Message;
 use super::dom::PeregrineDom;
 
 fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, elapsed: f64) -> Result<(),Message> {
-    size_manager.maybe_update_canvas_size(web)?;
+    size_manager.tick(web)?;
     let read_stage = &web.stage.lock().unwrap().read_stage();
     web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
     if read_stage.ready() {
