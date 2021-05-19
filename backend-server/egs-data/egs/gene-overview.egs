@@ -61,24 +61,6 @@ allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);
 
 /*
- * Filter labels by which tracks are configured to have labels
- */
-
-enabled_labels := get_switch([
-    ["track","gene-nonpc-rev","label"],
-    ["track","gene-pc-rev","label"],
-    ["track","gene-nonpc-fwd","label"],
-    ["track","gene-pc-fwd","label"],
-][]);
-
-enabled_gene_labels := index(allotment_idx,[enabled_labels]);
-
-text_allotment := allotment;
-text_allotment#[enabled_gene_labels==false] := use_allotment("");
-
-gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
-
-/*
  * What colour? What font? etc
  *
  * (driven by allotment for gene)
@@ -87,11 +69,6 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
 non_pc_colour := colour(200,200,200);
 pc_colour := colour(128,128,128);
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
-
-text_colour := if(get_switch(["settings","bluer"]),colour(111,129,255),colour(111,129,144));
-text_size := if(get_switch(["settings","bigger"]),24,12);
-
-textpen := pen("'Lato', sans-serif",text_size,text_colour);
 
 /*
  * prepare the zmenus
@@ -116,4 +93,3 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
 rectangle_on_genome(start,end,5,patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
-text_underneath(start,8,textpen,gene_labels,text_allotment);
