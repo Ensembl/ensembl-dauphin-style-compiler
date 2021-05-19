@@ -103,7 +103,7 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
             UniformData::None => 0,
             UniformData::Uniform(value,size) => if cb(value) { *size } else { 0 },
             UniformData::Varied(values) => {
-                values.iter().map(|v| if cb(v) {1} else {0}).reduce(|a,b| a+b).unwrap_or(0)
+                values.iter().map(|v| if cb(v) {1} else {0}).fold(0,|a,b| a+b)
             }
         }
     }
