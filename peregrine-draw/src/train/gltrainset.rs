@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PgdPeregrineConfig, PeregrineCore, ConfigKey };
 use super::gltrain::GLTrain;
-use crate::stage::stage::{ Stage, ReadStage };
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }};
 use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -19,16 +19,18 @@ enum FadeState {
 struct GlTrainSetData {
     slow_fade_time: f64,
     fast_fade_time: f64,
+    fade_overlap_prop: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
     redraw_needed: RedrawNeeded
 }
 
 impl GlTrainSetData {
-    fn new(config: &PgdPeregrineConfig, redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
+    fn new(draw_config: &PgPeregrineConfig, data_config: &PgdPeregrineConfig, redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
-            slow_fade_time: config.get_f64(&ConfigKey::AnimationFadeRate(false)).map_err(|e| Message::DataError(e))?,
-            fast_fade_time: config.get_f64(&ConfigKey::AnimationFadeRate(true)).map_err(|e| Message::DataError(e))?,
+            slow_fade_time: data_config.get_f64(&ConfigKey::AnimationFadeRate(false)).map_err(|e| Message::DataError(e))?,
+            fast_fade_time: data_config.get_f64(&ConfigKey::AnimationFadeRate(true)).map_err(|e| Message::DataError(e))?,
+            fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlapProp)?,
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
@@ -61,12 +63,19 @@ impl GlTrainSetData {
         Ok(())
     }
 
-    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64) -> f64 {
+    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64, out: bool) -> f64 {
         let fade_time = match speed {
             CarriageSpeed::Quick => self.fast_fade_time,
             CarriageSpeed::Slow => self.slow_fade_time
         };
-        (elapsed/fade_time).min(1.).max(0.)
+        let prop = (elapsed/fade_time).min(1.).max(0.);
+        let ramp_length = (1.+self.fade_overlap_prop)/2.;
+        let front_porch = (1.-self.fade_overlap_prop)/2.;
+        if out {
+            if prop > front_porch { (prop - front_porch)/ramp_length } else { 1. }
+        } else {
+            prop/ramp_length
+        }.min(1.).max(0.)
     }
 
     fn notify_fade_state(&mut self,gl: &WebGlGlobal) {
@@ -76,10 +85,11 @@ impl GlTrainSetData {
                 self.get_train(gl,index).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,elapsed,_) => {
-                let prop = self.fade_time(&speed,elapsed);
-                self.get_train(gl,to).set_opacity(prop);
+                let prop_out = self.fade_time(&speed,elapsed,true);
+                let prop_in = self.fade_time(&speed,elapsed,false);
+                self.get_train(gl,to).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_train(gl,from).set_opacity(1.-prop);
+                    self.get_train(gl,from).set_opacity(prop_out);
                 }
             }
         }
@@ -91,8 +101,8 @@ impl GlTrainSetData {
             FadeState::Constant(_) => {}
             FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
                 elapsed += newly_elapsed;
-                let prop = self.fade_time(&speed,elapsed);
-                if prop >= 1. {
+                let prop = self.fade_time(&speed,elapsed,true);
+                if prop <= 0. {
                     if let Some(from) = from {
                         self.get_train(gl,from).discard(gl)?;
                         self.trains.remove(&from);
@@ -160,9 +170,9 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PgdPeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
+    pub fn new(draw_config: &PgPeregrineConfig, data_config: &PgdPeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
         Ok(GlTrainSet {
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
+            data: Arc::new(Mutex::new(GlTrainSetData::new(draw_config,data_config,&stage.redraw_needed())?))
         })
     }
 
