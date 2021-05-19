@@ -68,6 +68,7 @@ impl DrawMessage {
 pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
     input: Arc<Mutex<Option<Input>>>,
+    stick: Arc<Mutex<Option<String>>>,
     position: Arc<Mutex<Option<Position>>>
 }
 
@@ -76,6 +77,7 @@ impl PeregrineAPI {
         PeregrineAPI {
             queue: CommanderStream::new(),
             position: Arc::new(Mutex::new(None)),
+            stick: Arc::new(Mutex::new(None)),
             input: Arc::new(Mutex::new(None))
         }
     }
@@ -118,6 +120,7 @@ impl PeregrineAPI {
 
     pub fn set_stick(&self, stick: &StickId) -> Progress {
         let (progress,insitgator) = Progress::new();
+        *self.stick.lock().unwrap() = Some(stick.get_id().to_string()); // XXX not really true yet: have proper ro status via data
         self.queue.add((DrawMessage::SetStick(stick.clone()),insitgator.clone()));
         progress
     }
@@ -136,6 +139,7 @@ impl PeregrineAPI {
 
     pub fn x(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.x) }
     pub fn y(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.y) }
+    pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
     pub fn bp_per_screen(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.bp_per_screen) }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {

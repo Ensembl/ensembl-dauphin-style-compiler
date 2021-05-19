@@ -2,7 +2,8 @@ use std::sync::{ Arc, Mutex };
 use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
-use crate::input::physics::Physics;
+use crate::input::translate::Physics;
+use crate::input::translate::debug::debug_register;
 
 // XXX to  util
 #[derive(Clone)]
@@ -30,7 +31,8 @@ pub enum InputEventKind {
     PullLeft,
     PullRight,
     PullIn,
-    PullOut
+    PullOut,
+    PositionReport
 }
 
 impl InputEventKind {
@@ -39,7 +41,8 @@ impl InputEventKind {
             InputEventKind::PullLeft,
             InputEventKind::PullRight,
             InputEventKind::PullIn,
-            InputEventKind::PullOut
+            InputEventKind::PullOut,
+            InputEventKind::PositionReport
         ]
     }
 }
@@ -60,6 +63,7 @@ impl Input {
     pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
         let mut low_level = LowLevelInput::new(dom,config)?;
         Physics::new(config,&mut low_level,api,commander)?;
+        debug_register(config,&mut low_level,api)?;
         Ok(Input {
             low_level
         })

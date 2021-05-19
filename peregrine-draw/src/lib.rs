@@ -9,8 +9,10 @@ mod input {
         pub(crate) mod lowlevel;    
     }
 
-    mod physics {
+    mod translate {
         pub(crate) mod physics;
+        pub(crate) mod debug;
+
         pub use self::physics::Physics;
     }
 
