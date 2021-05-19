@@ -7,7 +7,9 @@ use crate::input::InputEventKind;
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
-    KeyBindings(InputEventKind)
+    KeyBindings(InputEventKind),
+    PullMaxSpeed, // screenfulls/frame
+    PullAccelleration, // screenfulls/frame/frame
 }
 
 #[derive(Clone)]
@@ -22,6 +24,8 @@ lazy_static! {
         vec![
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a A") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d D") },
+            ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./60.) }, // 1 screen/second
+            ConfigKeyInfo { key: PgConfigKey::PullAccelleration, name: "pull.accelleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
         ]};
 }
 

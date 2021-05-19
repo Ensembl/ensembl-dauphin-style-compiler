@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::{PeregrineDom, run::PgPeregrineConfig};
+use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::physics::Physics;
@@ -53,9 +53,9 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<Input,Message> {
+    pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
         let mut low_level = LowLevelInput::new(dom,config)?;
-        Physics::new(&mut low_level);
+        Physics::new(config,&mut low_level,api,commander)?;
         Ok(Input {
             low_level
         })

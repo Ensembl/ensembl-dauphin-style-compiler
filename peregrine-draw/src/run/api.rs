@@ -1,7 +1,7 @@
 use crate::util::message::{ Message };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use peregrine_data::{Channel,StickId };
+use peregrine_data::{ Channel, StickId, Commander };
 use super::progress::Progress;
 use commander::CommanderStream;
 use peregrine_message::Instigator;
@@ -10,6 +10,7 @@ use crate::stage::stage::Position;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
+use crate::input::Input;
 
 use std::sync::{ Arc, Mutex };
 
@@ -66,6 +67,7 @@ impl DrawMessage {
 #[derive(Clone)]
 pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
+    input: Arc<Mutex<Option<Input>>>,
     position: Arc<Mutex<Option<Position>>>
 }
 
@@ -73,7 +75,8 @@ impl PeregrineAPI {
     pub fn new() -> PeregrineAPI {
         PeregrineAPI {
             queue: CommanderStream::new(),
-            position: Arc::new(Mutex::new(None))
+            position: Arc::new(Mutex::new(None)),
+            input: Arc::new(Mutex::new(None))
         }
     }
 
@@ -143,9 +146,11 @@ impl PeregrineAPI {
     }
 
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
+        let commander = PgCommanderWeb::new(&dom)?;
+        commander.start();
         let configs = config.build();
-        let inner = PeregrineInnerAPI::new(configs,dom)?;
-        let commander = inner.commander();
+        *self.input.lock().unwrap() = Some(Input::new(&dom,&configs.draw,&self,&commander)?);
+        let inner = PeregrineInnerAPI::new(configs,dom,&commander)?;
         let self2 = self.clone();
         inner.xxx_set_callbacks(move |p| {
             *self2.position.lock().unwrap() = p;

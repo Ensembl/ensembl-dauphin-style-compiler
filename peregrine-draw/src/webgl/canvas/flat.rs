@@ -47,8 +47,6 @@ impl Flat {
     pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let new_font = pen_to_font(pen);
-        use web_sys::console;
-        console::log_1(&format!("pen {}",new_font).into());
         if let Some(old_font) = &self.font {
             if *old_font == new_font { return Ok(()); }
         }

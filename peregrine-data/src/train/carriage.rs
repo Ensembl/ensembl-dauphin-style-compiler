@@ -99,7 +99,7 @@ impl Carriage {
         }
         let shapes = new_shapes.build(&data.base.allotment_petitioner);
         use web_sys::console;
-        console::log_1(&format!("got new shapes").into());
+        //console::log_1(&format!("got new shapes").into());
         self.shapes.lock().unwrap().replace(shapes);
         if errors.len() == 0 {
             Ok(())

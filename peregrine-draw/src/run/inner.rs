@@ -50,8 +50,7 @@ pub struct PeregrineInnerAPI {
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     position: Option<Position>,
-    dom: PeregrineDom,
-    input: Input
+    dom: PeregrineDom
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -106,10 +105,9 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom, commander: &PgCommanderWeb) -> Result<PeregrineInnerAPI,Message> {
+        let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
-        let commander = PgCommanderWeb::new(&dom)?;
-        commander.start();
         let messages = Arc::new(Mutex::new(None));
         let message_sender = setup_message_sending_task(&commander, messages.clone());
         let commander_id = commander.identity();
@@ -126,7 +124,6 @@ impl PeregrineInnerAPI {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
-        let input = Input::new(&dom,&config.draw)?;
         let dom2 = dom.clone();
         core.application_ready();
         let mut out = PeregrineInnerAPI {
@@ -135,7 +132,6 @@ impl PeregrineInnerAPI {
             position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
             position: None,
-            input,
             dom
         };
         out.setup(&dom2)?;
