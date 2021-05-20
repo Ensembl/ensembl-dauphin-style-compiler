@@ -107,8 +107,8 @@ impl GenomeBrowser {
          * oojimaflips associated with the browser in the end.
          */
         let mut config = PeregrineConfig::new();
-        config.set("animate.fade.slow","500");
-        config.set("animate.fade.fast","100");
+        //config.set("animate.fade.slow","500");
+        //config.set("animate.fade.fast","100");
         /*
          * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
          * use. See that file for details.

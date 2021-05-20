@@ -10,12 +10,13 @@ use crate::input::InputEventKind;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
+    FadeOverlap(bool),
+    AnimationFadeRate(bool),
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
     PullAcceleration, // screenfulls/frame/frame
     ZoomMaxSpeed, // factors-of-2/second,
     ZoomAcceleration, // factors-of-2/second/second,
-    FadeOverlapProp,
 }
 
 #[derive(Clone)]
@@ -28,6 +29,10 @@ pub enum PgConfigValue {
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,PgConfigKey,PgConfigValue>> = {
         vec![
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(true), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(false), name: "animate.fade.slow", default: &PgConfigValue::Float(1000.) },    
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(true), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(false), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },    
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("Shift-D[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a ArrowLeft") },
@@ -35,11 +40,10 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PositionReport), name: "keys.pull-out", default: &PgConfigValue::StaticStr("Alt-p Alt-P") },
-            ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./60.) }, // 1 screen/second
-            ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
-            ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./15.) },
-            ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./20000.) }, // reach 2 factors/second in 10s, ie in 600 frames
-            ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.9) },
+            ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
+            ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./10000.) },
         ]};
 }
 

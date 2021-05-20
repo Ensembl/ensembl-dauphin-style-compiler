@@ -5,7 +5,6 @@ use peregrine_config::{Config, ConfigError, ConfigKeyInfo, ConfigValue};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum ConfigKey {
-    AnimationFadeRate(bool),
 }
 
 #[derive(Clone)]
@@ -16,8 +15,6 @@ pub enum PgdConfigValue {
 // XXX move
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,ConfigKey,PgdConfigValue>> = vec![
-        ConfigKeyInfo { key: ConfigKey::AnimationFadeRate(true), name: "animate.fade.fast", default: &PgdConfigValue::Float(100.) },
-        ConfigKeyInfo { key: ConfigKey::AnimationFadeRate(false), name: "animate.fade.slow", default: &PgdConfigValue::Float(500.) },
     ];
 }
 
