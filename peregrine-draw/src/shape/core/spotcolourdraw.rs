@@ -29,7 +29,7 @@ impl SpotColourDraw {
 
     pub(crate) fn spot(&self, process: &mut ProcessBuilder) -> Result<(),Message> {
         process.set_uniform(&self.variety.uniform,vec![
-            scale_colour(self.colour.0),scale_colour(self.colour.1),scale_colour(self.colour.2)])?;
+            scale_colour(self.colour.0) as f32,scale_colour(self.colour.1) as f32,scale_colour(self.colour.2) as f32])?;
         Ok(())
     }
 }

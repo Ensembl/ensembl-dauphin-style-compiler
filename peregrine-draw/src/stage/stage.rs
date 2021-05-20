@@ -28,7 +28,7 @@ impl ProgramStage {
         })
     }
 
-    fn model_matrix(&self, stage: &ReadStage) -> Result<Vec<f64>,Message> {
+    fn model_matrix(&self, stage: &ReadStage) -> Result<Vec<f32>,Message> {
         let x = stage.x.scale_shift()?;
         let y = stage.y.scale_shift()?;
         Ok(vec![
@@ -53,14 +53,14 @@ impl ProgramStage {
         vec![opacity],
         self.model_matrix(stage)).into());  
         */
-        process.set_uniform(&self.hpos,vec![stage.x.position()?-left])?;
-        process.set_uniform(&self.vpos,vec![stage.y.position()?])?;
-        process.set_uniform(&self.bp_per_screen,vec![2./stage.x.bp_per_screen()?])?;
+        process.set_uniform(&self.hpos,&[(stage.x.position()?-left) as f32])?;
+        process.set_uniform(&self.vpos,&[stage.y.position()? as f32])?;
+        process.set_uniform(&self.bp_per_screen,&[2./stage.x.bp_per_screen()? as f32])?;
         /* uSize gets drawable_size because it's later scaled by size/drawable_size */
         let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
-        process.set_uniform(&self.size,vec![size.0/2.,size.1/2.])?;
-        process.set_uniform(&self.opacity,vec![opacity])?;
-        process.set_uniform(&self.model, self.model_matrix(stage)?)?;
+        process.set_uniform(&self.size,&[(size.0/2.) as f32,(size.1/2.) as f32])?;
+        process.set_uniform(&self.opacity,&[opacity as f32])?;
+        process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
         Ok(())
     }
 }

@@ -64,41 +64,42 @@ impl Uniform {
 }
 
 pub(crate) struct UniformValues {
-    gl_value: Option<Vec<f64>>,
+    valid: bool,
+    gl_value: Vec<f32>,
     object: Uniform
 }
 
 impl UniformValues {
     pub(super) fn new(object: Uniform) -> UniformValues {
         UniformValues {
-            gl_value: None,
+            valid: false,
+            gl_value: vec![0.;object.proto.arity.to_num() as usize],
             object
         }
     }
 
     pub(super) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
-        if let Some(gl_value) = &self.gl_value {
-            let gl_value : Vec<_> = gl_value.iter().map(|x| *x as f32).collect();
-            if gl_value.len() != self.object.proto.arity.to_num() as usize {
-                return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.proto.name,self.object.proto.arity.to_num(),gl_value.len())));
+        if !self.valid { return Ok(()); }
+        if let Some(location) = &self.object.location {
+            match self.object.proto.arity {
+                GLArity::Scalar => context.uniform1f(Some(location),self.gl_value[0]),
+                GLArity::Vec2 => context.uniform2f(Some(location),self.gl_value[0],self.gl_value[1]),
+                GLArity::Vec3 => context.uniform3f(Some(location),self.gl_value[0],self.gl_value[1],self.gl_value[2]),
+                GLArity::Vec4  => context.uniform4f(Some(location),self.gl_value[0],self.gl_value[1],self.gl_value[2],self.gl_value[3]),
+                GLArity::Matrix4 => context.uniform_matrix4fv_with_f32_array(Some(location),false,&self.gl_value),
+                GLArity::Sampler2D  => context.uniform1i(Some(location),self.gl_value[0] as i32)
             }
-            if let Some(location) = &self.object.location {
-                match self.object.proto.arity {
-                    GLArity::Scalar => context.uniform1f(Some(location),gl_value[0]),
-                    GLArity::Vec2 => context.uniform2f(Some(location),gl_value[0],gl_value[1]),
-                    GLArity::Vec3 => context.uniform3f(Some(location),gl_value[0],gl_value[1],gl_value[2]),
-                    GLArity::Vec4  => context.uniform4f(Some(location),gl_value[0],gl_value[1],gl_value[2],gl_value[3]),
-                    GLArity::Matrix4 => context.uniform_matrix4fv_with_f32_array(Some(location),false,&gl_value),
-                    GLArity::Sampler2D  => context.uniform1i(Some(location),gl_value[0] as i32)
-                }
-                handle_context_errors(context)?;
-            }
+            handle_context_errors(context)?;
         }
         Ok(())
     }
 
-    pub fn set_value(&mut self, our_value: Vec<f64>) -> Result<(),Message> {
-        self.gl_value = Some(our_value);
+    pub fn set_value(&mut self, our_value: &[f32]) -> Result<(),Message> {
+        if self.gl_value.len() != our_value.len() {
+            return Err(Message::CodeInvariantFailed(format!("uniform size mismatch {} type={} value={}",self.object.proto.name,self.object.proto.arity.to_num(),our_value.len())));
+        }
+        self.gl_value.copy_from_slice(&our_value);
+        self.valid = true;
         Ok(())
     }
 

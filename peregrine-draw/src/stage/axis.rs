@@ -45,7 +45,7 @@ pub trait ReadStageAxis {
     fn position(&self) -> Result<f64,Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
     fn size(&self) -> Result<f64,Message>;
-    fn scale_shift(&self) -> Result<(f64,f64),Message>;
+    fn scale_shift(&self) -> Result<(f32,f32),Message>;
     fn drawable_size(&self) -> Result<f64,Message>;   
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
@@ -57,7 +57,7 @@ pub struct StageAxis {
     bp_per_screen: Option<f64>,
     size: Option<f64>,
     draw_size: Option<f64>,
-    scale_shift: Option<(f64,f64)>,
+    scale_shift: Option<(f32,f32)>,
     redraw_needed: RedrawNeeded,
     boot: Boot,
     boot_lock: BootLock,
@@ -87,7 +87,7 @@ impl StageAxis {
             return;
         }
         /* we need -1 to stay stationary. our scaling sets it to -scale so we need to add scale-1 */
-        let scale = self.draw_size.unwrap() / self.size.unwrap();
+        let scale = self.draw_size.unwrap() as f32 / self.size.unwrap() as f32;
         self.scale_shift = Some((
             scale,
             scale-1.
@@ -121,7 +121,7 @@ impl ReadStageAxis for StageAxis {
     fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
     fn size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
     fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
-    fn scale_shift(&self) -> Result<(f64,f64),Message> { stage_ok(&self.scale_shift) }
+    fn scale_shift(&self) -> Result<(f32,f32),Message> { stage_ok(&self.scale_shift) }
 
     // secret clone only accessible via read-only subsets
     fn copy(&self) -> StageAxis {

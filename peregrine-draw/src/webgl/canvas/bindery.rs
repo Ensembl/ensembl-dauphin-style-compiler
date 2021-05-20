@@ -10,6 +10,35 @@ use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 use crate::util::evictlist::EvictList;
 
+/* We don't want to recreate textures if we don't have to. The main reason for this is repeated draws of multiple
+ * programs (likely from adjacent carriages).
+ *
+ * Textures are in one of three states: ACTIVE, AVAILABLE, or SLEEPING. Textures which are ACTIVE or AVAILABLE have
+ * been created in WebGL, SLEEPING have not. ACTIVE are needed for this render but AVAILABLE are not (yet!). Should
+ * insufficent texture slots be available, we can first take an AVAILABLE texture and unbind it to free the space.
+ * On the other hand, if we wish use an AVAILABLE texture, we can do so without rebinding.
+ *
+ *
+ * There are three operations during draw.
+ * allocate(): a texture needs to be bound, ie transferred from SLEEPING or AVAILABLE to ACTIVE.
+ * free(): a flat is no longer required, it should be moved from AVAILABLE or ACTIVE into SLEEPING.
+ * clear(): the drawing is done. All ACTIVE flats should be made AVAILABLE.
+ *
+ * There are four WebGL operations which can take place during an attempted rebinding:
+ * noop: do nothing
+ * activate: use this texture (SLEEPING,AVAILABLE->ACTIVE).
+ * remove: during free(), webgl is told to forget about this texture. (AVAILABLE,ACTIVE->SLEEPING).
+ * remove_activate: both of these ops on two textures (AVAILABLE,ACTIVE->SLEEPING; SLEEPING,AVAILABLE->ACTIVE).
+ *
+ * An LRU called .lru contains AVAILABLE textures.
+ * A Vec called .active contains ACTIVE textures.
+ * A HashSet called .available contains AVAILABLE and ACTIVE TEXTURES.
+ *
+ * To activate a flat, first we remove it from .lru and add it to the .active, marking it as ACTIVE.
+ * If the flat is in .available then it is AVAILABLE. In this case it's removed and activate called.
+ * 
+ */
+
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Message> {
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Crisp =>
@@ -77,11 +106,11 @@ pub struct Rebind {
 }
 
 impl Rebind {
-    fn new(old_texture: Option<FlatId>, new_texture: FlatId, new_index: u32) -> Rebind {
+    fn remove_activate(old_texture: Option<FlatId>, new_texture: FlatId, new_index: u32) -> Rebind {
         Rebind { old_texture, new_texture: Some(new_texture), new_index }
     }
 
-    fn cached(flat_id: &FlatId, index: u32) -> Rebind {
+    fn activate(flat_id: &FlatId, index: u32) -> Rebind {
         Rebind { old_texture: None, new_texture: Some(flat_id.clone()), new_index: index }
     }
 
@@ -146,7 +175,7 @@ impl TextureBindery {
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
         if self.available.contains(flat) {
-            return Ok(Rebind::cached(flat,our_gl_index));
+            return Ok(Rebind::activate(flat,our_gl_index));
         }
         self.available.insert(flat.clone());
         self.current_textures += 1;
@@ -160,12 +189,13 @@ impl TextureBindery {
                 return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
             }
         }
-        Ok(Rebind::new(old,flat.clone(),our_gl_index))
+        Ok(Rebind::remove_activate(old,flat.clone(),our_gl_index))
     }
 
     pub(crate) fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
         if self.lru.remove_item(flat) { 
             self.available.remove(flat);
+            self.current_textures -= 1;
             Ok(Rebind::remove(flat.clone()))
         } else {
             Ok(Rebind::noop())

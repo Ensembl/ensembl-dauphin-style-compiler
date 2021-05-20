@@ -13,7 +13,7 @@ use crate::util::message::Message;
 pub(crate) struct ProcessBuilder {
     builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
-    uniforms: Vec<(UniformHandle,Vec<f64>)>,
+    uniforms: Vec<(UniformHandle,Vec<f32>)>,
     textures: Vec<(String,FlatId)>
 }
 
@@ -28,7 +28,7 @@ impl ProcessBuilder {
         }
     }
 
-    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
+    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> Result<(),Message> {
         self.uniforms.push((handle.clone(),values));
         Ok(())
     }
@@ -46,7 +46,7 @@ impl ProcessBuilder {
         let program = self.builder.make(gl.context(),gl.gpuspec())?;
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
-            uniforms.get_mut(&name).set_value(value)?;
+            uniforms.get_mut(&name).set_value(&value)?;
         }
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
@@ -84,7 +84,7 @@ impl Process {
         })
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> Result<(),Message> {
+    pub fn set_uniform(&mut self, handle: &UniformHandle, values: &[f32]) -> Result<(),Message> {
         self.uniforms.get_mut(handle).set_value(values)
     }
 
