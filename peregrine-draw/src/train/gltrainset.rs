@@ -13,7 +13,7 @@ use crate::util::message::Message;
 #[derive(Clone)]
 enum FadeState {
     Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,f64,RedrawNeededLock)
+    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,RedrawNeededLock)
 }
 
 struct GlTrainSetData {
@@ -59,7 +59,7 @@ impl GlTrainSetData {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from,index,speed,0.,self.redraw_needed.clone().lock());
+        self.fade_state = FadeState::Fading(from,index,speed,None,self.redraw_needed.clone().lock());
         Ok(())
     }
 
@@ -84,14 +84,15 @@ impl GlTrainSetData {
             FadeState::Constant(Some(index)) => {
                 self.get_train(gl,index).set_opacity(1.);
             },
-            FadeState::Fading(from,to,speed,elapsed,_) => {
+            FadeState::Fading(from,to,speed,Some(elapsed),_) => {
                 let prop_out = self.fade_time(&speed,elapsed,true);
                 let prop_in = self.fade_time(&speed,elapsed,false);
                 self.get_train(gl,to).set_opacity(prop_in);
                 if let Some(from) = from {
                     self.get_train(gl,from).set_opacity(prop_out);
                 }
-            }
+            },
+            FadeState::Fading(from,to,speed,None,_) => {}
         }
     }
 
@@ -100,8 +101,8 @@ impl GlTrainSetData {
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
             FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
-                elapsed += newly_elapsed;
-                let prop = self.fade_time(&speed,elapsed,true);
+                elapsed = Some(elapsed.map(|e| e+newly_elapsed).unwrap_or(0.));
+                let prop = self.fade_time(&speed,elapsed.unwrap(),true);
                 if prop <= 0. {
                     if let Some(from) = from {
                         self.get_train(gl,from).discard(gl)?;

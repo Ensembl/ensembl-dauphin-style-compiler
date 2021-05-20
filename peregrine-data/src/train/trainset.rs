@@ -42,13 +42,15 @@ impl TrainSetData {
                 wanted.set_active(events,self.next_activation,quick,&wanted_reporter);
                 self.next_activation += 1;
                 self.future = Some(wanted);
+                self.notify_viewport(events);
             }
         }
     }
 
-    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, position: f64, reporter: &Reporter<DataMessage>) {
+    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         blackbox_log!("uiapi","TrainSet.new_wanted()");
-        self.wanted = Some((Train::new(train_id,events,position,&self.messages,reporter),reporter.clone()));
+        self.wanted = Some((Train::new(train_id,events,viewport,&self.messages,reporter)?,reporter.clone()));
+        Ok(())
     }
 
     fn quiescent(&self) -> Option<&Train> {
@@ -64,6 +66,12 @@ impl TrainSetData {
         }
     }
 
+    fn notify_viewport(&self, events: &mut CarriageEvents) {
+        if let Some(train) = self.future.as_ref().or_else(|| self.current.as_ref()) {
+            events.notify_viewport(&train.viewport(),false);
+        }
+    }
+
     fn maybe_new_wanted(&mut self, events: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         let train_id = TrainId::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
@@ -73,7 +81,7 @@ impl TrainSetData {
             }
         }
         if new_target_needed {
-            self.new_wanted(events,&train_id,viewport.position()?,reporter);
+            self.new_wanted(events,&train_id,viewport,reporter)?;
         }
         Ok(())
     }
@@ -81,7 +89,7 @@ impl TrainSetData {
     fn set_train_position(&self, events: &mut CarriageEvents, train: Option<&Train>, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
         if let Some(train) = train {
             if viewport.layout()?.stick() == train.id().layout().stick() {
-                train.set_position(&mut events.clone(),viewport.position()?,reporter);
+                train.set_position(&mut events.clone(),viewport,reporter)?;
             }
         }
         Ok(())
@@ -95,6 +103,7 @@ impl TrainSetData {
         self.set_train_position(events,self.future.as_ref(),viewport,&reporter)?;
         self.set_train_position(events,self.current.as_ref(),viewport,&reporter)?;
         self.promote(events);
+        self.notify_viewport(events);
         Ok(())
     }
 
@@ -182,11 +191,12 @@ impl TrainSet {
     }
 
     pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport, reporter: Instigator<DataMessage>) -> Result<(),DataMessage> {
+        let mut events = CarriageEvents::new();
         if viewport.ready() {
-            let mut events = CarriageEvents::new();
             self.state.lock().unwrap().set(&mut events,viewport,reporter)?;
-            self.run(events,objects);
         }
+        events.notify_viewport(viewport,true);
+        self.run(events,objects);
         Ok(())
     }
 

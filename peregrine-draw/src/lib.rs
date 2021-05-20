@@ -6,6 +6,7 @@ mod input {
     mod low {
         mod event;
         pub(crate) mod keyboardinput;
+        pub(crate) mod mouseinput;
         pub(crate) mod lowlevel;    
     }
 

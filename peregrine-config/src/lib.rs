@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::fmt::Debug;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum ConfigError {
@@ -18,14 +19,14 @@ pub struct ConfigKeyInfo<'a,K,V> {
     pub default: &'a V
 }
 
-pub struct Config<'a,K,V> where K: PartialEq+Eq+Hash, V: ConfigValue + Clone {
+pub struct Config<'a,K,V> where K: Debug+PartialEq+Eq+Hash, V: ConfigValue + Clone {
     str_to_key: HashMap<String,K>,
     key_to_str: HashMap<K,String>,
     defaults: HashMap<K,&'a V>,
     values: HashMap<K,V>
 }
 
-impl<'a,K: Clone+PartialEq+Eq+Hash, V: ConfigValue+Clone> Config<'a,K,V> {
+impl<'a,K: Debug+Clone+PartialEq+Eq+Hash, V: ConfigValue+Clone> Config<'a,K,V> {
     pub fn new(info: &[ConfigKeyInfo<'a,K,V>]) -> Config<'a,K,V> {
         let mut str_to_key = HashMap::new();
         let mut key_to_str = HashMap::new();
@@ -53,10 +54,15 @@ impl<'a,K: Clone+PartialEq+Eq+Hash, V: ConfigValue+Clone> Config<'a,K,V> {
         Ok(())
     }
 
+    pub fn try_get(&self, key: &K) -> Option<&V> {
+        if let Some(v) = self.values.get(key) { return Some(v); }
+        if let Some(v) = self.defaults.get(key) { return Some(v); }
+        None
+    }
+
     pub fn get(&self, key: &K) -> Result<&V,ConfigError> {
-        if let Some(v) = self.values.get(key) { return Ok(v); }
-        if let Some(v) = self.defaults.get(key) { return Ok(v); }
-        let name = self.key_to_str.get(key).map(|x| x.as_str()).unwrap_or("anonymous");
-        Err(ConfigError::UninitialisedKey(name.to_string()))
+        if let Some(v) = self.try_get(key) { return Ok(v); }
+        panic!("A");
+        Err(ConfigError::UninitialisedKey(format!("{:?}",key)))
     }
 }

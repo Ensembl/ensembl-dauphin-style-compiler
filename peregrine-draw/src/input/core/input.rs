@@ -32,7 +32,10 @@ pub enum InputEventKind {
     PullRight,
     PullIn,
     PullOut,
-    PositionReport
+    PositionReport,
+    PixelsLeft, // [pixels]
+    PixelsRight, // [pixels]
+    PixelsScale // [multiplier,screen-prop]
 }
 
 impl InputEventKind {
@@ -42,15 +45,20 @@ impl InputEventKind {
             InputEventKind::PullRight,
             InputEventKind::PullIn,
             InputEventKind::PullOut,
-            InputEventKind::PositionReport
+            InputEventKind::PositionReport,
+            InputEventKind::PixelsLeft,
+            InputEventKind::PixelsRight,
+            InputEventKind::PixelsScale,
         ]
     }
+
 }
 
 #[derive(Debug,Clone)]
 pub struct InputEvent {
     pub details: InputEventKind,
     pub start: bool,
+    pub amount: Vec<f64>,
     pub timestamp_ms: f64
 }
 

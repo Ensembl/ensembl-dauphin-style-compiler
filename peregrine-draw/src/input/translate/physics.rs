@@ -72,6 +72,17 @@ impl PhysicsState {
         })
     }
 
+    fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) {
+        self.pull_x_to = None;
+        let x = api.x();
+        let bp_per_screen = api.bp_per_screen();
+        let px_per_screen = api.size().map(|x| x.0 as f64);
+        if let (Some(x),Some(bp_per_screen),Some(px_per_screen)) = (x,bp_per_screen,px_per_screen) {
+            let bp_per_px = bp_per_screen/px_per_screen;
+            api.set_x(x + amount_px*bp_per_px);
+        }
+    }
+
     fn update_x_pull(&mut self, api: &PeregrineAPI) {
         if self.pull_x_speed.step() {
             if self.pull_x_to.is_none() { self.pull_x_to = api.x(); }
@@ -123,8 +134,20 @@ impl Physics {
         target.set_direction(new_direction,event.start);
     }
 
-    fn incoming_event(&self, event: &InputEvent) {
+    fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) {
+        if !event.start { return; }
+        let mut state = self.state.lock().unwrap();
+        let distance = *event.amount.get(0).unwrap_or(&0.);
+        match event.details {
+            InputEventKind::PixelsLeft => state.jump(api,-distance),
+            InputEventKind::PixelsRight => state.jump(api,distance),
+            _ => {}
+        }
+    }
+
+    fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) {
         self.incoming_pull_event(event);
+        self.incoming_jump_request(api,event);
     }
 
     async fn physics_loop(&self, api: &PeregrineAPI) -> Result<(),Message> {
@@ -139,7 +162,8 @@ impl Physics {
             state: Arc::new(Mutex::new(PhysicsState::new(config)?))
         };
         let out2 = out.clone();
-        low_level.distributor_mut().add(move |e| out2.incoming_event(e));
+        let api2 = api.clone();
+        low_level.distributor_mut().add(move |e| out2.incoming_event(&api2,e));
         let out2 = out.clone();
         let api2 = api.clone();
         commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&api2).await }));

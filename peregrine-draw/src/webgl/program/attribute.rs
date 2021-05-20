@@ -86,8 +86,6 @@ pub(crate) struct AttributeValues {
 
 impl AttributeValues {
     pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> Result<AttributeValues,Message> {
-        use web_sys::console;
-        //console::log_1(&format!("our_value {:?}",&our_value).into());
         Ok(AttributeValues {
             gl_value: create_buffer(context,&our_value)?,
             arity: object.proto.arity.to_num() as i32,
@@ -96,8 +94,6 @@ impl AttributeValues {
     }
 
     pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
-        //use web_sys::console;
-        //console::log_1(&format!("bind/enable attribute").into());
         let location = self.location;
         context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&self.gl_value));
         handle_context_errors(context)?;

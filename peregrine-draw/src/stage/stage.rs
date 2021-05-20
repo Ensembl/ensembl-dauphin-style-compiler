@@ -1,3 +1,5 @@
+use peregrine_data::Viewport;
+
 use crate::webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process };
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::core::redrawneeded::RedrawNeeded;
@@ -130,6 +132,13 @@ impl Stage {
     pub fn y(&self) -> &StageAxis { &self.y }
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
+
+    pub fn notify_current(&mut self, viewport: &Viewport) {
+        let position = viewport.position().unwrap();
+        let bp_per_pixel = viewport.bp_per_screen().unwrap();        
+        self.x_mut().set_position(position);
+        self.x_mut().set_bp_per_screen(bp_per_pixel);
+    }
 
     pub fn read_stage(&self) -> ReadStage {
         ReadStage {

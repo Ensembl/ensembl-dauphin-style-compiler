@@ -13,6 +13,7 @@ pub enum PgdConfigValue {
     Float(f64)
 }
 
+// XXX move
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,ConfigKey,PgdConfigValue>> = vec![
         ConfigKeyInfo { key: ConfigKey::AnimationFadeRate(true), name: "animate.fade.fast", default: &PgdConfigValue::Float(100.) },

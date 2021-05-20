@@ -1,15 +1,19 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration };
+use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration, Viewport };
 use super::pgchannel::PgChannel;
 use blackbox::blackbox_log;
-use crate::train::GlTrainSet;
+use crate::{run::inner::TargetManager, train::GlTrainSet};
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
+use crate::stage::stage::Stage;
+use crate::run::inner::Target;
 
 pub struct PgIntegration {
     channel: PgChannel,
     trainset: GlTrainSet,
-    webgl: Arc<Mutex<WebGlGlobal>>
+    webgl: Arc<Mutex<WebGlGlobal>>,
+    stage: Arc<Mutex<Stage>>,
+    target_manager: Arc<Mutex<TargetManager>>
 }
 
 impl PeregrineIntegration for PgIntegration {
@@ -34,14 +38,24 @@ impl PeregrineIntegration for PgIntegration {
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
     }
+
+    fn notify_viewport(&mut self, viewport: &Viewport, future: bool) {
+        if !future {
+            self.stage.lock().unwrap().notify_current(viewport);
+        } else {
+            self.target_manager.lock().unwrap().update_viewport(viewport);
+        }
+    }
 }
 
 impl PgIntegration {
-    pub fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>) -> PgIntegration {
+    pub fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, target_manager: &Arc<Mutex<TargetManager>>) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,
-            webgl
+            webgl,
+            stage: stage.clone(),
+            target_manager: target_manager.clone()
         }
     }
 }

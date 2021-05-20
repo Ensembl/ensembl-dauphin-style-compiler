@@ -181,6 +181,7 @@ impl SizeManager {
             let mut stage = draw.stage.lock().unwrap();
             stage.x_mut().set_drawable_size(drawable.0 as f64);
             stage.y_mut().set_drawable_size(drawable.1 as f64);
+            draw.target_manager.lock().unwrap().update_size((drawable.0,drawable.1));
             state.set_booted();
         }
         Ok(())

@@ -6,7 +6,7 @@ fn unwrap<T>(x: Option<T>) -> Result<T,DataMessage> {
     x.ok_or_else(|| DataMessage::CodeInvariantFailed("unready viewport queried".to_string()))
 }
 
-#[derive(Clone,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 enum LayoutBuilder {
     Pending(Option<StickId>,Option<TrackConfigList>),
     Finished(Layout)
@@ -54,7 +54,7 @@ impl LayoutBuilder {
     }
 }
 
-#[derive(Clone,PartialEq)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct Viewport {
     layout: LayoutBuilder,
     position: Option<f64>,

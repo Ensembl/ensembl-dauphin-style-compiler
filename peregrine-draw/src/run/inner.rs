@@ -21,7 +21,7 @@ use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage, Position };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, StickId, DataMessage };
+use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
 
 #[cfg(blackbox)]
 pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
@@ -39,6 +39,57 @@ fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>)
 }
 
 #[derive(Clone)]
+pub struct Target {
+    viewport: Viewport,
+    size: Option<(u32,u32)>
+}
+
+impl Target {
+    pub fn new() -> Target {
+        Target {
+            viewport: Viewport::empty(),
+            size: None
+        }
+    }
+
+    pub fn size(&self) -> Option<&(u32,u32)> { self.size.as_ref() }
+}
+
+pub struct TargetManager {
+    target_callbacks: Arc<Mutex<Vec<Box<dyn FnMut(&Target)>>>>,
+    target: Target
+}
+
+impl TargetManager {
+    pub fn new() -> TargetManager {
+        TargetManager {
+            target: Target::new(),
+            target_callbacks: Arc::new(Mutex::new(vec![]))
+        }
+    }
+
+    fn run_callbacks(&self) {
+        for cb in self.target_callbacks.lock().unwrap().iter_mut() {
+            cb(&self.target);
+        }
+    }
+
+    pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
+        self.target_callbacks.lock().unwrap().push(Box::new(cb));
+    }
+
+    pub fn update_size(&mut self, size: (u32,u32)) {
+        self.target.size = Some(size);
+        self.run_callbacks();
+    }
+
+    pub fn update_viewport(&mut self, viewport: &Viewport) {
+        self.target.viewport = viewport.clone();
+        self.run_callbacks();
+    }
+}
+
+#[derive(Clone)]
 pub struct PeregrineInnerAPI {
     messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
     message_sender: CommanderStream<Message>,
@@ -49,7 +100,8 @@ pub struct PeregrineInnerAPI {
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    position: Option<Position>,
+    position: Option<Position>, // XXX die
+    target_manager: Arc<Mutex<TargetManager>>,
     dom: PeregrineDom
 }
 
@@ -60,6 +112,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Message>,
+    pub target_manager: &'t mut Arc<Mutex<TargetManager>>,
     pub dom: &'t mut PeregrineDom,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
@@ -98,6 +151,7 @@ impl PeregrineInnerAPI {
             webgl: &mut self.webgl,
             stage: &mut self.stage,
             message_sender: &mut self.message_sender,
+            target_manager: &mut self.target_manager,
             dom: &mut self.dom,
             guard
         }
@@ -116,10 +170,11 @@ impl PeregrineInnerAPI {
         message_register_callback(Some(commander_id),move |message| {
             message_sender2.add(message);            
         });
+        let target_manager = Arc::new(Mutex::new(TargetManager::new()));
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&config.data,&stage.lock().unwrap())?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone()));
+        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone(),&stage,&target_manager));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
@@ -132,12 +187,17 @@ impl PeregrineInnerAPI {
             position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
             position: None,
+            target_manager,
             dom
         };
         out.setup(&dom2)?;
         Ok(out)
     }
-    
+
+    pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
+        self.target_manager.lock().unwrap().add_target_callback(cb);
+    }
+
     pub(super) fn xxx_set_callbacks<F>(&self, cb: F) where F: FnMut(Option<Position>) + 'static {
         *self.position_callbacks.lock().unwrap() = Some(Box::new(cb));
     }
@@ -178,7 +238,6 @@ impl PeregrineInnerAPI {
     
     pub(super) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.set_position(x));
-        self.stage.lock().unwrap().x_mut().set_position(x);
         instigator.done();
     }
 
@@ -188,7 +247,6 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.set_bp_per_screen(z));
-        self.stage.lock().unwrap().x_mut().set_bp_per_screen(z);
         instigator.done();
     }
 

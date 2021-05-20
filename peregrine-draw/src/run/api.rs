@@ -11,6 +11,7 @@ use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
 use crate::input::Input;
+use crate::run::inner::Target;
 
 use std::sync::{ Arc, Mutex };
 
@@ -69,7 +70,8 @@ pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
     input: Arc<Mutex<Option<Input>>>,
     stick: Arc<Mutex<Option<String>>>,
-    position: Arc<Mutex<Option<Position>>>
+    position: Arc<Mutex<Option<Position>>>,
+    target: Arc<Mutex<Target>>
 }
 
 impl PeregrineAPI {
@@ -78,7 +80,8 @@ impl PeregrineAPI {
             queue: CommanderStream::new(),
             position: Arc::new(Mutex::new(None)),
             stick: Arc::new(Mutex::new(None)),
-            input: Arc::new(Mutex::new(None))
+            input: Arc::new(Mutex::new(None)),
+            target: Arc::new(Mutex::new(Target::new()))
         }
     }
 
@@ -141,6 +144,7 @@ impl PeregrineAPI {
     pub fn y(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.y) }
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
     pub fn bp_per_screen(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.bp_per_screen) }
+    pub fn size(&self) -> Option<(u32,u32)> { self.target.lock().unwrap().size().cloned() }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {
         loop {
@@ -158,6 +162,10 @@ impl PeregrineAPI {
         let self2 = self.clone();
         inner.xxx_set_callbacks(move |p| {
             *self2.position.lock().unwrap() = p;
+        });
+        let self2 = self.clone();
+        inner.add_target_callback(move |p| {
+            *self2.target.lock().unwrap() = p.clone();
         });
         let self2 = self.clone();
         commander.add("draw-api",15,None,None,Box::pin(async move { self2.step(inner).await }));

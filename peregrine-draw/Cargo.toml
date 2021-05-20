@@ -46,6 +46,7 @@ features = [
   'Element',
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
   'KeyboardEvent',
+  'MouseEvent',
   'Node',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'Screen',

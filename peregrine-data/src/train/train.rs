@@ -10,6 +10,7 @@ use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
 use peregrine_message::{ Reporter };
 use crate::switch::trackconfiglist::TrainTrackConfigList;
+use crate::core::Viewport;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct TrainId {
@@ -40,7 +41,7 @@ struct TrainData {
     data_ready: bool,
     active: Option<u32>,
     id: TrainId,
-    position: f64,
+    viewport: Viewport,
     max: Option<u64>,
     carriages: Option<CarriageSet>,
     messages: MessageSender,
@@ -48,21 +49,21 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> TrainData {
+    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&id.layout,&id.scale);
         let mut out = TrainData {
             broken: false,
             data_ready: false,
             active: None,
             id: id.clone(),
-            position,
+            viewport: viewport.clone(),
             carriages: Some(CarriageSet::new()),
             max: None,
             messages: messages.clone(),
             track_configs: train_track_config_list
         };
-        out.set_position(carriage_event,position,reporter);
-        out
+        out.set_position(carriage_event,viewport,reporter)?;
+        Ok(out)
     }
 
     fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
@@ -77,6 +78,7 @@ impl TrainData {
         self.active = None;
     }
 
+    fn viewport(&self) -> &Viewport { &self.viewport }
     fn id(&self) -> &TrainId { &self.id }
     fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
     fn is_broken(&self) -> bool { self.broken }
@@ -92,11 +94,12 @@ impl TrainData {
     }
 
     // TODO don't always update CarriageSet
-    fn set_position(&mut self, carriage_event: &mut CarriageEvents, position: f64, reporter: &Reporter<DataMessage>) {
-        self.position = position;
-        let carriage = self.id.scale.carriage(position);
+    fn set_position(&mut self, carriage_event: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
+        self.viewport = viewport.clone();
+        let carriage = self.id.scale.carriage(viewport.position()?);
         let carriages = CarriageSet::new_using(&self.id,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages,reporter);
         self.carriages = Some(carriages);
+        Ok(())
     }
 
     fn maybe_ready(&mut self) {
@@ -127,13 +130,14 @@ impl TrainData {
 pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
 
 impl Train {
-    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, position: f64, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Train {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,position,&messages,reporter))),messages.clone());
+    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Result<Train,DataMessage> {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages,reporter)?)),messages.clone());
         carriage_event.train(&out,reporter);
-        out
+        Ok(out)
     }
 
     pub fn id(&self) -> TrainId { self.0.lock().unwrap().id().clone() }
+    pub fn viewport(&self) -> Viewport { self.0.lock().unwrap().viewport().clone() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
 
@@ -145,8 +149,9 @@ impl Train {
         self.0.lock().unwrap().set_inactive();
     }
 
-    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, position: f64, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().set_position(carriage_event,position,reporter);
+    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
+        self.0.lock().unwrap().set_position(carriage_event,viewport,reporter)?;
+        Ok(())
     }
 
     pub(super) fn compatible_with(&self, other: &Train) -> bool {

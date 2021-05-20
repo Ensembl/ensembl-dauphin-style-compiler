@@ -8,7 +8,7 @@ use crate::input::InputEventKind;
 // XXX factor with similar in peregrine-data
 // XXX chromosome ned-stops
 
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
@@ -28,16 +28,18 @@ pub enum PgConfigValue {
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,PgConfigKey,PgConfigValue>> = {
         vec![
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a A ArrowLeft") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d D ArrowRight") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w W ArrowUp") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s S ArrowDown") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("Shift-D[100]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a ArrowLeft") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d ArrowRight") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PositionReport), name: "keys.pull-out", default: &PgConfigValue::StaticStr("Alt-p Alt-P") },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./60.) }, // 1 screen/second
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./72000.) }, // reach 1 screen/second^2 in 20s 1200frames ie 1/60 screen/frame in 1200 frames
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./15.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./20000.) }, // reach 2 factors/second in 10s, ie in 600 frames
-            ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.1) },
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlapProp, name: "transition.fade-overlap", default: &PgConfigValue::Float(0.9) },
         ]};
 }
 
@@ -45,6 +47,7 @@ fn string_to_float(value_str: &str) -> Result<f64,String> {
     value_str.parse().map_err(|e: ParseFloatError| e.to_string())
 }
 
+// XXX macroise
 impl PgConfigValue {
     fn as_f64(&self) -> Result<f64,Message> {
         match self {
@@ -53,12 +56,17 @@ impl PgConfigValue {
         }
     }
 
-    fn as_str(&self) -> Result<&str,Message> {
+    fn try_as_str(&self) -> Option<&str> {
         match self {
-            PgConfigValue::String(x) => Ok(x),
-            PgConfigValue::StaticStr(x) => Ok(x),
-            _ => Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as str"))))
+            PgConfigValue::String(x) => Some(x),
+            PgConfigValue::StaticStr(x) => Some(x),
+            _ => None
         }
+    }
+
+    fn as_str(&self) -> Result<&str,Message> {
+        if let Some(v) = self.try_as_str() { return Ok(v); }
+        Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as str"))))
     }
 }
 
@@ -90,5 +98,6 @@ impl<'a> PgPeregrineConfig<'a> {
     fn get(&self, key: &PgConfigKey) -> Result<&PgConfigValue,Message> { map_error(self.0.get(key)) }
 
     pub fn get_f64(&self, key: &PgConfigKey) -> Result<f64,Message> { self.get(key)?.as_f64() }
+    pub fn try_get_str(&self, key: &PgConfigKey) -> Option<&str> { self.0.try_get(key).and_then(|x| x.try_as_str()) }
     pub fn get_str(&self, key: &PgConfigKey) -> Result<&str,Message> { self.get(key)?.as_str() }
 }

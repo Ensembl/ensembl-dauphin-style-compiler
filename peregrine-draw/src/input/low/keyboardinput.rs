@@ -1,6 +1,7 @@
-use std::collections::{ HashMap, HashSet };
+use std::{collections::{ HashMap, HashSet }, num::ParseFloatError};
 use std::sync::{ Arc, Mutex };
 use crate::PeregrineDom;
+use peregrine_config::ConfigError;
 use wasm_bindgen::prelude::*;
 use web_sys::{ KeyboardEvent, HtmlElement };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
@@ -10,6 +11,7 @@ use crate::run::PgPeregrineConfig;
 use crate::run::{ PgConfigKey };
 use super::lowlevel::{ Key, Modifiers };
 use js_sys::Date;
+use peregrine_data::DataMessage;
 
 /* Keyboard mappings are space separated alternatives for an action. Each alternative is a hyphen-separated
  * list. The last element must be the generated mapped unicode codepoint, if any, or from the standard special
@@ -17,7 +19,31 @@ use js_sys::Date;
  * control (synonym ctrl), alt. Modifiers are case-insensitive. Examples Ctrl-W, ArrowDown, Ctrl-Alt-Shift--
  */
 
-fn parse_one(spec: &str) -> Option<Key> {
+fn handle_err(v: &str,e: Result<f64,ParseFloatError>) -> Result<f64,Message> {
+    e.map_err(|e| Message::DataError(DataMessage::ConfigError(
+        ConfigError::BadConfigValue(format!("mapping parsing: {}",v),e.to_string())
+    )))
+}
+
+fn parse_args(args: &str) -> Result<Vec<f64>,Message> {
+    args.split(",").map(|x| handle_err(x,x.trim().parse::<f64>())).collect()
+}
+
+fn parse_final_part(text: &str) -> Result<(Vec<f64>,String),Message> {
+    let mut args = vec![];
+    let mut text = text.to_string();
+    if text.ends_with("]") {
+        if let Some(start) = text.rfind("[") {
+            if start > 0 {
+                args = parse_args(&text[(start+1)..(text.len()-1)])?;
+                text = text[0..start].to_string();
+            }
+        }
+    }
+    Ok((args,text))
+}
+
+fn parse_one(spec: &str) -> Result<Option<(Key,Vec<f64>)>,Message> {
     let mut spec = spec.to_string();
     let mut trailing_minus = false;
     if spec.ends_with('-') {
@@ -39,24 +65,24 @@ fn parse_one(spec: &str) -> Option<Key> {
         if modifier == "ctrl" || modifier == "control" { control = true; }
         if modifier == "alt" { alt = true; }
     }
-    if let Some(text) = text {
-        Some(Key {
+    if let Some((args,text)) = text.map(|t| parse_final_part(t)).transpose()? {
+        Ok(Some((Key {
             text: text.to_string(),
             modifiers: Modifiers { shift, control, alt }
-        })
+        },args)))
     } else {
-        None
+        Ok(None)
     }
 }
 
-fn parse_keyspec(spec: &str) -> Vec<Key> {
+fn parse_keyspec(spec: &str) -> Result<Vec<(Key,Vec<f64>)>,Message> {
     spec.split_whitespace().filter_map(|spec| {
-        parse_one(spec)
-    }).collect()
+        parse_one(spec).transpose()
+    }).collect::<Result<Vec<_>,_>>()
 }
 
 pub struct KeyboardMapBuilder {
-    mapping: HashMap<Key,InputEventKind>
+    mapping: HashMap<Key,(InputEventKind,Vec<f64>)>
 }
 
 #[derive(Clone)]
@@ -69,15 +95,18 @@ impl KeyboardMapBuilder {
         }
     }
 
-    pub(super) fn add_mapping(&mut self, keys: &str, kind: InputEventKind) {
-        for key in parse_keyspec(keys) {
-            self.mapping.insert(key,kind.clone());
+    pub(super) fn add_mapping(&mut self, keys: &str, kind: InputEventKind) -> Result<(),Message> {
+        for (key,args) in parse_keyspec(keys)? {
+            self.mapping.insert(key,(kind.clone(),args));
         }
+        Ok(())
     }
 
     pub(super) fn add_config(&mut self, config: &PgPeregrineConfig) -> Result<(),Message> {
         for kind in InputEventKind::each() {
-            self.add_mapping(config.get_str(&PgConfigKey::KeyBindings(kind.clone()))?,kind);
+            if let Some(spec) = config.try_get_str(&PgConfigKey::KeyBindings(kind.clone())) {
+                self.add_mapping(spec,kind)?;
+            }
         }
         Ok(())
     }
@@ -86,7 +115,7 @@ impl KeyboardMapBuilder {
 }
 
 impl KeyboardMap {
-    fn map(&self, key: &Key) -> Option<InputEventKind> {
+    fn map(&self, key: &Key) -> Option<(InputEventKind,Vec<f64>)> {
         self.0.mapping.get(&key).cloned()
     }
 }
@@ -115,12 +144,13 @@ impl KeyboardEventHandler {
                 alt: event.alt_key()
             }
         };
-        if let Some(kind) = self.mapping.map(&key) {
+        if let Some((kind,args)) = self.mapping.map(&key) {
             if self.current.contains(&kind) != down { // ie not a repeat
                 if down { self.current.insert(kind.clone()); } else { self.current.remove(&kind); }
                 self.distributor.send(InputEvent {
                     details: kind,
                     start: down,
+                    amount: args,
                     timestamp_ms: Date::now()
                 })    
             }

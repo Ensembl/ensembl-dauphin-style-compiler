@@ -44,6 +44,7 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
     api.set_switch(&["track"]);
     api.set_switch(&["track","gene-pc-fwd"]);
+    api.set_switch(&["track","gene-nonpc-fwd"]);
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut pos = 2500000.;
     let mut bp_per_screen = 1000000.;
@@ -165,7 +166,7 @@ impl GenomeBrowser {
     pub fn set_bp_per_screen(&self,bp_per_screen: f64) {    
         let mut p = self.api.set_bp_per_screen(bp_per_screen);
         p.add_callback(move |v| {
-            console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
+//            console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
         });    
     }
     

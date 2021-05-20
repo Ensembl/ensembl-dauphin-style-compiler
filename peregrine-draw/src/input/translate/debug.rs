@@ -1,5 +1,5 @@
 use crate::{PeregrineAPI, input::InputEvent};
-use crate::run::{ PgPeregrineConfig,  PgConfigKey };
+use crate::run::{ PgPeregrineConfig };
 use crate::input::{ InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
@@ -17,7 +17,7 @@ fn check_debug(e: &InputEvent, api: &PeregrineAPI) {
     }
 }
 
-pub fn debug_register(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI) -> Result<(),Message> {
+pub fn debug_register(_config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI) -> Result<(),Message> {
     let api = api.clone();
     low_level.distributor_mut().add(move |e| check_debug(e,&api));
     Ok(())
