@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use commander::cdr_tick;
-use crate::{ PeregrineAPI };
+use crate::{PeregrineAPI, util::needed::{Needed, NeededLock}};
 use crate::run::{ PgPeregrineConfig,  PgConfigKey };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
@@ -19,6 +19,7 @@ pub struct PullSpeed {
     speed: f64,
     max_speed: f64,
     acceleration: f64,
+    physics_lock: Option<NeededLock>
 }
 
 impl PullSpeed {
@@ -28,15 +29,17 @@ impl PullSpeed {
             current_inc: false,
             speed: 0.,
             max_speed,
-            acceleration
+            acceleration,
+            physics_lock: None
         }
     }
 
-    fn set_direction(&mut self, direction: PullDirection, start: bool) {
+    fn set_direction(&mut self, physics_needed: &Needed, direction: PullDirection, start: bool) {
         *match direction {
             PullDirection::Decrease => &mut self.current_dec,
             PullDirection::Increase => &mut self.current_inc
         }=start;
+        self.physics_lock = Some(physics_needed.lock());
     }
 
     fn step(&mut self) -> bool {
@@ -44,7 +47,11 @@ impl PullSpeed {
         let direction = match (self.current_dec,self.current_inc) {
             (true,false) => -1.,
             (false,true) => 1.,
-            _ => { self.speed = 0.; return false; }
+            _ => { 
+                self.speed = 0.;
+                self.physics_lock.take();
+                return false;
+            }
         };
         if self.speed * direction < 0. { self.speed = 0.; } // direction change, so halt immediately
         self.speed += direction * self.acceleration;
@@ -139,7 +146,8 @@ impl PhysicsState {
 
 #[derive(Clone)]
 pub struct Physics {
-    state: Arc<Mutex<PhysicsState>>
+    state: Arc<Mutex<PhysicsState>>,
+    physics_needed: Needed
 }
 
 // XXX blur halt
@@ -154,7 +162,7 @@ impl Physics {
             InputEventKind::PullOut=> (PullDirection::Increase,&mut state.pull_z_speed),
             _ => { return; }
         };
-        target.set_direction(new_direction,event.start);
+        target.set_direction(&self.physics_needed,new_direction,event.start);
     }
 
     fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
@@ -184,12 +192,14 @@ impl Physics {
         loop {
             self.state.lock().unwrap().physics_step(api)?;
             cdr_tick(1).await;
+            self.physics_needed.wait_until_needed().await;
         }
     }
 
     pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Physics,Message> {
         let out = Physics {
-            state: Arc::new(Mutex::new(PhysicsState::new(config)?))
+            state: Arc::new(Mutex::new(PhysicsState::new(config)?)),
+            physics_needed: Needed::new()
         };
         let out2 = out.clone();
         let api2 = api.clone();
