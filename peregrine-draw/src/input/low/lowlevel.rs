@@ -1,9 +1,11 @@
 use std::sync::{ Arc, Mutex };
+use web_sys::MouseEvent;
+
 use crate::{PeregrineDom, run::PgPeregrineConfig};
 use crate::util::Message;
-use super::keyboardinput::{ KeyboardInput };
+use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
-use super::mouseinput::{ MouseInput };
+use super::mouseinput::{ MouseEventHandler };
 use crate::input::{ InputEvent, Distributor };
 #[derive(Debug,Clone,Hash,PartialEq,Eq)]
 pub struct Modifiers {
@@ -14,8 +16,8 @@ pub struct Modifiers {
 
 #[derive(Clone)]
 pub struct LowLevelInput {
-    keyboard: KeyboardInput,
-    mouse: MouseInput,
+    keyboard: EventSystem<KeyboardEventHandler>,
+    mouse: EventSystem<MouseEventHandler>,
     distributor: Distributor<InputEvent>
 }
 
@@ -30,8 +32,8 @@ impl LowLevelInput {
         }));
         let distributor = Distributor::new();
         let mapping = mapping.build();
-        let keyboard = KeyboardInput::new(&distributor,dom,&mapping,&modifiers)?;
-        let mouse = MouseInput::new(&distributor,dom,&mapping,&modifiers)?;
+        let keyboard = keyboard_events(&distributor,dom,&mapping,&modifiers)?;
+        let mouse = mouse_events(&distributor,dom,&mapping,&modifiers)?;
         Ok(LowLevelInput { keyboard, mouse, distributor })
     }
 

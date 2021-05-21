@@ -1,16 +1,20 @@
+use crate::util::error::{ confused_browser, confused_browser_option };
 use std::collections::{ HashMap, HashSet };
 use std::sync::{ Arc, Mutex };
 use crate::PeregrineDom;
 use wasm_bindgen::prelude::*;
-use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent };
+use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent, window, Window };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
-use super::event::{ add_event, remove_event, window_add_event, window_remove_event };
+use super::event::{ EventSystem };
 use super::mapping::InputMap;
 use crate::run::PgPeregrineConfig;
 use crate::run::{ PgConfigKey };
 use super::lowlevel::Modifiers;
 use js_sys::Date;
+use wasm_bindgen::JsValue;
+use std::convert::{ TryInto, TryFrom };
+use wasm_bindgen::JsCast;
 
 #[derive(Clone,Debug)]
 enum MouseEventKind {
@@ -82,7 +86,7 @@ impl StateMachine {
     }
 }
 
-struct MouseEventHandler {
+pub(super) struct MouseEventHandler {
     state: StateMachine,
     canvas: HtmlElement,
     position: (f64,f64),
@@ -103,7 +107,7 @@ impl MouseEventHandler {
         }
     }
 
-    fn abandon(&mut self, event: &Event) {
+    fn abandon(&mut self, _event: &Event) {
         self.state.process_event(&self.position,&MouseEventKind::Up,&self.modifiers);
     }
 
@@ -148,78 +152,23 @@ impl MouseEventHandler {
     }
 }
 
-fn make_event(handler: &Arc<Mutex<MouseEventHandler>>) -> Closure<dyn Fn(Event)> {
-    let handler = handler.clone();
-    Closure::wrap(Box::new(move |event: Event| {
-        let handler = handler.clone();
-        handler.lock().unwrap().abandon(&event);
-    }) as Box<dyn Fn(Event)>)
-}
-
-// XXX factor with keyboard
-fn make_mouse_event(kind: MouseEventKind, handler: &Arc<Mutex<MouseEventHandler>>) -> Closure<dyn Fn(MouseEvent)> {
-    let handler = handler.clone();
-    let kind = kind.clone();
-    Closure::wrap(Box::new(move |event: MouseEvent| {
-        let handler = handler.clone();
-        handler.lock().unwrap().mouse_event(&kind,&event);
-    }) as Box<dyn Fn(MouseEvent)>)
-}
-
-fn make_wheel_event(handler: &Arc<Mutex<MouseEventHandler>>) -> Closure<dyn Fn(WheelEvent)> {
-    let handler = handler.clone();
-    Closure::wrap(Box::new(move |event: WheelEvent| {
-        let handler = handler.clone();
-        handler.lock().unwrap().wheel_event(&event);
-    }) as Box<dyn Fn(WheelEvent)>)
-}
-
-#[derive(Clone)]
-pub struct MouseInput {
-    down_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
-    up_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
-    move_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
-    blur_closure: Arc<Closure<dyn Fn(Event) + 'static>>,
-    wheel_closure: Arc<Closure<dyn Fn(WheelEvent) + 'static>>,
-    el: HtmlElement
-}
-
-impl MouseInput {
-    pub fn new(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<MouseInput,Message> {
-        let body = dom.body();
-        let handler = Arc::new(Mutex::new(MouseEventHandler::new(distributor,mapping,dom.canvas(),modifiers)));
-        let up_closure = make_mouse_event(MouseEventKind::Up,&handler);
-        let down_closure = make_mouse_event(MouseEventKind::Down,&handler);
-        let move_closure = make_mouse_event(MouseEventKind::Move,&handler);
-        let blur_closure = make_event(&handler);
-        let wheel_closure = make_wheel_event(&handler);
-        add_event(body,"mousedown",&down_closure)?;
-        add_event(body,"mouseup",&up_closure)?;
-        add_event(body,"mousemove",&move_closure)?;
-        add_event(body,"mouseleave",&blur_closure)?;
-        add_event(body,"wheel",&wheel_closure)?;
-        Ok(MouseInput {
-            up_closure: Arc::new(up_closure),
-            down_closure: Arc::new(down_closure),
-            move_closure: Arc::new(move_closure),
-            blur_closure: Arc::new(blur_closure),
-            wheel_closure: Arc::new(wheel_closure),
-            el: body.clone()
-        })
-    }
-
-    pub fn finish(&self) -> Result<(),Message> { // XXX pub
-        remove_event(&self.el,"mousedown",&self.down_closure.as_ref())?;
-        remove_event(&self.el,"mouseup",&self.up_closure.as_ref())?;
-        remove_event(&self.el,"mousemove",&self.move_closure.as_ref())?;
-        remove_event(&self.el,"mouseleave",&self.blur_closure.as_ref())?;
-        remove_event(&self.el,"wheel",&self.wheel_closure.as_ref())?;
-        Ok(())
-    }
-}
-
-impl Drop for MouseInput {
-    fn drop(&mut self) {
-        self.finish().ok();
-    }
+pub(super) fn mouse_events(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<EventSystem<MouseEventHandler>,Message> {
+    let body = dom.body();
+    let mut events = EventSystem::new(MouseEventHandler::new(distributor,mapping,dom.canvas(),modifiers));
+    events.add(body,"mousedown", |handler,event| {
+        handler.mouse_event(&MouseEventKind::Down,event)
+    })?;
+    events.add(body,"mouseup", |handler,event| {
+        handler.mouse_event(&MouseEventKind::Up,event)
+    })?;
+    events.add(body,"mousemove", |handler,event| {
+        handler.mouse_event(&MouseEventKind::Move,event)
+    })?;
+    events.add(body,"wheel", |handler,event| {
+        handler.wheel_event(event)
+    })?;
+    events.add(body,"mouseleave",|handler,event| {
+        handler.abandon(&event)
+    })?;
+    Ok(events)
 }
