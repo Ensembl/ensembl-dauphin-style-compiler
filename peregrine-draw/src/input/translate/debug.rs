@@ -5,15 +5,14 @@ use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use web_sys::console;
 
-fn debug(api: &PeregrineAPI) {
-    console::log_1(&format!("position report. stick={:?} x={:?} bp_per_screen={:?}",
-        api.stick(), api.x(), api.bp_per_screen()
-    ).into());
+fn debug(api: &PeregrineAPI, index: u8) {
+    console::log_1(&format!("sending debug action {}",index).into());
+    api.debug_action(index);
 }
 
 fn check_debug(e: &InputEvent, api: &PeregrineAPI) {
-    if e.details == InputEventKind::PositionReport && e.start {
-        debug(api);
+    if e.details == InputEventKind::DebugAction && e.start {
+        debug(api,*e.amount.get(0).unwrap_or(&0.) as u8);
     }
 }
 

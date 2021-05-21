@@ -69,9 +69,10 @@ impl TrainData {
     fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
         if self.active != Some(index) {
             let speed = if quick { CarriageSpeed::Quick } else { CarriageSpeed::Slow };
+            self.active = Some(index);
+            self.set_carriages(carriage_event);
             carriage_event.transition(index,self.max.unwrap(),speed,reporter);
         }
-        self.active = Some(index);
     }
 
     fn set_inactive(&mut self) {
@@ -116,10 +117,9 @@ impl TrainData {
 
     fn set_carriages(&mut self, events: &mut CarriageEvents) {
         if let Some(carriages) = &mut self.carriages {
-            if let Some(reporter) = carriages.depend() {
-                if let Some(index) = self.active {
-                    events.set_carriages(&self.carriages(),index,&reporter);
-                }
+            let reporter = carriages.depend();
+            if let Some(index) = self.active {
+                events.set_carriages(&self.carriages(),index,reporter.as_ref());
             }
         }
     }

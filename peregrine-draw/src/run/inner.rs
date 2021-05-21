@@ -254,5 +254,10 @@ impl PeregrineInnerAPI {
         data_inst(instigator,self.data_api.set_stick(stick));
         instigator.done();
     }
+
+    pub(super) fn debug_action(&self, index: u8) {
+        use web_sys::console;
+        console::log_1(&format!("received debug action {}",index).into());
+    }
 }
 // TODO redraw on track change etc.

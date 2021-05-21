@@ -32,10 +32,10 @@ pub enum InputEventKind {
     PullRight,
     PullIn,
     PullOut,
-    PositionReport,
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
-    PixelsScale // [multiplier,screen-prop]
+    PixelsScale, // [multiplier,screen-prop]
+    DebugAction
 }
 
 impl InputEventKind {
@@ -45,10 +45,10 @@ impl InputEventKind {
             InputEventKind::PullRight,
             InputEventKind::PullIn,
             InputEventKind::PullOut,
-            InputEventKind::PositionReport,
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
             InputEventKind::PixelsScale,
+            InputEventKind::DebugAction
         ]
     }
 

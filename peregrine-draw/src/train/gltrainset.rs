@@ -55,7 +55,7 @@ impl GlTrainSetData {
     }
 
     fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> Result<(),Message> {
-        let from = match self.fade_state {
+        let from = match self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
@@ -65,20 +65,26 @@ impl GlTrainSetData {
         Ok(())
     }
 
-    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64, out: bool) -> f64 {
-        let (fade_time,factor) = match speed {
-            CarriageSpeed::Quick => (self.fast_fade_time,self.fast_fade_overlap_prop),
-            CarriageSpeed::Slow => (self.slow_fade_time,self.slow_fade_overlap_prop)
+    fn prop(&self, speed: &CarriageSpeed, elapsed: f64) -> f64 {
+        let fade_time = match speed {
+            CarriageSpeed::Quick => self.fast_fade_time,
+            CarriageSpeed::Slow => self.slow_fade_time
         };
-        use web_sys::console;
-        let prop = (elapsed/fade_time).min(1.).max(0.)*(1.+factor.abs());
+        elapsed/fade_time
+    }
+
+    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64, out: bool) -> f64 {
+        let factor = match speed {
+            CarriageSpeed::Quick => self.fast_fade_overlap_prop,
+            CarriageSpeed::Slow => self.slow_fade_overlap_prop
+        };
+        let prop = self.prop(speed,elapsed).min(1.).max(0.)*(1.+factor.abs());
         let val = match (factor>0.,out) {
             (true,true) => { 1.-prop }, /* out before in; out */
             (true,false) => { prop-factor }, /* out before in; in */
             (false,true) => { 1.-(prop+factor) }, /* in before out; out */
             (false,false) => { prop } /* in before out; in */
         }.min(1.).max(0.);
-        //console::log_1(&format!("{} {} {} {}",(elapsed/fade_time).min(1.).max(0.),prop,out,val).into());
         val
     }
 
@@ -106,9 +112,8 @@ impl GlTrainSetData {
             FadeState::Constant(_) => {}
             FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
                 elapsed = Some(elapsed.map(|e| e+newly_elapsed).unwrap_or(0.));
-                let prop_out = self.fade_time(&speed,elapsed.unwrap(),true);
-                let prop_in = self.fade_time(&speed,elapsed.unwrap(),false);
-                if prop_out <= 0. && prop_in >= 1. {
+                let prop = self.prop(&speed,elapsed.unwrap());
+                if prop >= 1.{
                     if let Some(from) = from {
                         self.get_train(gl,from).discard(gl)?;
                         self.trains.remove(&from);

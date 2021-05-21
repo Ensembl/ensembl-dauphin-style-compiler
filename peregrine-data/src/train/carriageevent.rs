@@ -9,7 +9,7 @@ use crate::core::Viewport;
 enum CarriageEvent {
     Train(Train,Reporter<DataMessage>),
     Carriage(Carriage,Reporter<DataMessage>),
-    Set(Vec<Carriage>,u32,Reporter<DataMessage>),
+    Set(Vec<Carriage>,u32,Option<Reporter<DataMessage>>),
     Transition(u32,u64,CarriageSpeed,Reporter<DataMessage>),
     NotifyViewport(Viewport,bool)
 }
@@ -30,8 +30,8 @@ impl CarriageEvents {
         self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone(),reporter.clone()));
     }
 
-    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index,reporter.clone()));
+    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32, reporter: Option<&Reporter<DataMessage>>) {
+        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index,reporter.cloned()));
     }
 
     pub(super) fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed, reporter: &Reporter<DataMessage>) {
@@ -71,7 +71,7 @@ impl CarriageEvents {
         if let Some((index,max,speed,reporter)) = transition {
             let r = objects.integration.lock().unwrap().start_transition(index,max,speed);
             if let Err(r) = r {
-                errors.push((r,reporter));
+                errors.push((r,Some(reporter)));
                 objects.transition_complete();
             }
         }
@@ -80,7 +80,9 @@ impl CarriageEvents {
             integration.notify_viewport(&viewport,future);
         }
         for (error,reporter) in errors.drain(..) {
-            reporter.error(error.clone());
+            if let Some(reporter) = reporter {
+                reporter.error(error.clone());
+            }
             objects.base.messages.send(error);
         }
         loads

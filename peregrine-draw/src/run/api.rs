@@ -24,7 +24,8 @@ enum DrawMessage {
     ClearSwitch(Vec<String>),
     Bootstrap(Channel),
     SetupBlackbox(String),
-    SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>)
+    SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>),
+    DebugAction(u8)
 }
 
 impl DrawMessage {
@@ -59,6 +60,10 @@ impl DrawMessage {
             },
             DrawMessage::SetMessageReporter(cb) => {
                 draw.set_message_reporter(cb);
+                instigator.done();
+            },
+            DrawMessage::DebugAction(index) => {
+                draw.debug_action(index);
                 instigator.done();
             }
         }
@@ -134,10 +139,15 @@ impl PeregrineAPI {
         progress
     }
 
-    pub fn set_message_reporter(&self,callback: Box<dyn FnMut(Message) + 'static + Send>) -> Progress {
+    pub fn set_message_reporter(&self, callback: Box<dyn FnMut(Message) + 'static + Send>) -> Progress {
         let (progress,insitgator) = Progress::new();
         self.queue.add((DrawMessage::SetMessageReporter(callback),insitgator.clone()));
         progress
+    }
+
+    pub fn debug_action(&self, index:u8) {
+        let (_,instigator) = Progress::new();
+        self.queue.add((DrawMessage::DebugAction(index),instigator.clone()));
     }
 
     pub fn x(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.x) }
