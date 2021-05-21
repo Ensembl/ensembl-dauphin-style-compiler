@@ -126,6 +126,10 @@ impl MouseEventHandler {
                 }); 
             }
         }
+        match kind {
+            MouseEventKind::Move => {},
+            _ => { event.stop_propagation(); event.prevent_default(); }
+        }
     }
 
     fn wheel_amount(&self, event: &WheelEvent) -> f64 {
@@ -149,26 +153,31 @@ impl MouseEventHandler {
                 timestamp_ms: Date::now()
             }); 
         }
+        event.stop_propagation();
+        event.prevent_default();
     }
 }
 
 pub(super) fn mouse_events(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<EventSystem<MouseEventHandler>,Message> {
     let body = dom.body();
+    let canvas = dom.canvas();
     let mut events = EventSystem::new(MouseEventHandler::new(distributor,mapping,dom.canvas(),modifiers));
-    events.add(body,"mousedown", |handler,event| {
+    events.add(canvas,"mousedown", |handler,event| {
         handler.mouse_event(&MouseEventKind::Down,event)
     })?;
-    events.add(body,"mouseup", |handler,event| {
+    events.add(canvas,"mouseup", |handler,event| {
         handler.mouse_event(&MouseEventKind::Up,event)
     })?;
     events.add(body,"mousemove", |handler,event| {
         handler.mouse_event(&MouseEventKind::Move,event)
     })?;
-    events.add(body,"wheel", |handler,event| {
+    events.add(canvas,"wheel", |handler,event| {
         handler.wheel_event(event)
     })?;
     events.add(body,"mouseleave",|handler,event| {
         handler.abandon(&event)
+    })?;
+    events.add(dom.canvas_frame(),"scroll",|handler,event: &Event| {
     })?;
     Ok(events)
 }

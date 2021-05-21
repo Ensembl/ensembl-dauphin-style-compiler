@@ -27,8 +27,28 @@ enum DrawMessage {
     DebugAction(u8)
 }
 
+// XXX conditional
+impl std::fmt::Debug for DrawMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            DrawMessage::SetX(x) => write!(f,"SetX({:?})",x),
+            DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
+            DrawMessage::SetBpPerScreen(bp)  => write!(f,"SetBpPerScreen({:?})",bp),
+            DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
+            DrawMessage::SetSwitch(path) => write!(f,"SetSwitch({:?})",path),
+            DrawMessage::ClearSwitch(path)  => write!(f,"ClearSwitch({:?})",path),
+            DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
+            DrawMessage::SetupBlackbox(_)  => write!(f,"SetupBlackbox(...)"),
+            DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
+            DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
+        }
+    }
+}
+
 impl DrawMessage {
     fn run(self, draw: &mut PeregrineInnerAPI, mut instigator: Instigator<Message>) {
+        //use web_sys::console;
+        //console::log_1(&format!("message {:?}",self).into());
         match self {
             DrawMessage::SetBpPerScreen(bp) => {
                 draw.set_bp_per_screen(bp,&mut instigator);

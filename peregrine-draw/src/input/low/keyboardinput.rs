@@ -62,8 +62,10 @@ impl KeyboardEventHandler {
                     start: down,
                     amount: args,
                     timestamp_ms: Date::now()
-                })    
+                })
             }
+            event.stop_propagation();
+            event.prevent_default();
         }
     }
 }
