@@ -5,7 +5,7 @@ use crate::input::{ InputEventKind };
 use crate::util::{ Message };
 use crate::run::PgPeregrineConfig;
 use crate::run::{ PgConfigKey };
-use super::lowlevel::{ Key, Modifiers };
+use super::lowlevel::{ Modifiers };
 use peregrine_data::DataMessage;
 
 /* Mappings are space separated alternatives for an action. Each alternative is a hyphen-separated
@@ -38,7 +38,7 @@ fn parse_final_part(text: &str) -> Result<(Vec<f64>,String),Message> {
     Ok((args,text))
 }
 
-fn parse_one(spec: &str) -> Result<Option<(Key,Vec<f64>)>,Message> {
+fn parse_one(spec: &str) -> Result<Option<(LowLevelEvent,Vec<f64>)>,Message> {
     let mut spec = spec.to_string();
     let mut trailing_minus = false;
     if spec.ends_with('-') {
@@ -61,7 +61,7 @@ fn parse_one(spec: &str) -> Result<Option<(Key,Vec<f64>)>,Message> {
         if modifier == "alt" { alt = true; }
     }
     if let Some((args,text)) = text.map(|t| parse_final_part(t)).transpose()? {
-        Ok(Some((Key {
+        Ok(Some((LowLevelEvent {
             text: text.to_string(),
             modifiers: Modifiers { shift, control, alt }
         },args)))
@@ -70,14 +70,20 @@ fn parse_one(spec: &str) -> Result<Option<(Key,Vec<f64>)>,Message> {
     }
 }
 
-fn parse_keyspec(spec: &str) -> Result<Vec<(Key,Vec<f64>)>,Message> {
+fn parse_keyspec(spec: &str) -> Result<Vec<(LowLevelEvent,Vec<f64>)>,Message> {
     spec.split_whitespace().filter_map(|spec| {
         parse_one(spec).transpose()
     }).collect::<Result<Vec<_>,_>>()
 }
 
+#[derive(Debug,Clone,Hash,PartialEq,Eq)]
+pub struct LowLevelEvent {
+    pub text: String,
+    pub modifiers: Modifiers
+}
+
 pub struct InputMapBuilder {
-    mapping: HashMap<Key,(InputEventKind,Vec<f64>)>
+    mapping: HashMap<LowLevelEvent,(InputEventKind,Vec<f64>)>
 }
 
 #[derive(Clone)]
@@ -110,7 +116,11 @@ impl InputMapBuilder {
 }
 
 impl InputMap {
-    pub fn map(&self, key: &Key) -> Option<(InputEventKind,Vec<f64>)> {
-        self.0.mapping.get(&key).cloned()
+    pub fn map(&self, key: &str, modifiers: &Modifiers) -> Option<(InputEventKind,Vec<f64>)> {
+        let event = LowLevelEvent {
+            text: key.to_string(),
+            modifiers: modifiers.clone()
+        };
+        self.0.mapping.get(&event).cloned()
     }
 }

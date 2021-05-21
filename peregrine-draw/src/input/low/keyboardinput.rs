@@ -6,7 +6,7 @@ use web_sys::{ KeyboardEvent, HtmlElement, Event };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
 use super::event::{ add_event, remove_event, window_add_event, window_remove_event };
-use super::lowlevel::{ Key, Modifiers };
+use super::lowlevel::Modifiers;
 use js_sys::Date;
 use super::mapping::InputMap;
 
@@ -18,15 +18,17 @@ enum KeyboardEventKind {
 struct KeyboardEventHandler {
     distributor: Distributor<InputEvent>,
     mapping: InputMap,
-    current: HashSet<InputEventKind>
+    current: HashSet<InputEventKind>,
+    modifiers: Arc<Mutex<Modifiers>>
 }
 
 impl KeyboardEventHandler {
-    fn new(distributor: &Distributor<InputEvent>, mapping: &InputMap) -> KeyboardEventHandler {
+    fn new(distributor: &Distributor<InputEvent>, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> KeyboardEventHandler {
         KeyboardEventHandler {
             distributor: distributor.clone(),
             mapping: mapping.clone(),
-            current: HashSet::new()
+            current: HashSet::new(),
+            modifiers: modifiers.clone()
         }
     }
 
@@ -42,15 +44,13 @@ impl KeyboardEventHandler {
     }
 
     fn keyboard_event(&mut self, event_kind: &KeyboardEventKind, event: &KeyboardEvent) {
-        let key = Key {
-            text: event.key().to_string(),
-            modifiers: Modifiers {
-                shift: event.shift_key(),
-                control: event.ctrl_key() || event.meta_key(),
-                alt: event.alt_key()
-            }
+        let modifiers = Modifiers {
+            shift: event.shift_key(),
+            control: event.ctrl_key() || event.meta_key(),
+            alt: event.alt_key()
         };
-        if let Some((kind,args)) = self.mapping.map(&key) {
+        *self.modifiers.lock().unwrap() = modifiers.clone();
+        if let Some((kind,args)) = self.mapping.map(&event.key(),&modifiers) {
             let down = match event_kind {
                 KeyboardEventKind::Down => true,
                 KeyboardEventKind::Up => false
@@ -93,9 +93,9 @@ fn make_event(handler: &Arc<Mutex<KeyboardEventHandler>>) -> Closure<dyn Fn(Even
 }
 
 impl KeyboardInput {
-    pub fn new(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap) -> Result<KeyboardInput,Message> {
+    pub fn new(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<KeyboardInput,Message> {
         let body = dom.body();
-        let handler = Arc::new(Mutex::new(KeyboardEventHandler::new(distributor,mapping)));
+        let handler = Arc::new(Mutex::new(KeyboardEventHandler::new(distributor,mapping,modifiers)));
         let up_closure = make_keyboard_event(KeyboardEventKind::Up,&handler);
         let down_closure = make_keyboard_event(KeyboardEventKind::Down,&handler);
         let blur_closure = make_event(&handler);

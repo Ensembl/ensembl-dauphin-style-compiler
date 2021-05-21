@@ -2,21 +2,14 @@ use std::sync::{ Arc, Mutex };
 use crate::{PeregrineDom, run::PgPeregrineConfig};
 use crate::util::Message;
 use super::keyboardinput::{ KeyboardInput };
-use super::mapping::{ InputMap, InputMapBuilder };
-use super::mouseinput::{ MouseInput, MouseMapBuilder };
+use super::mapping::{ InputMapBuilder };
+use super::mouseinput::{ MouseInput };
 use crate::input::{ InputEvent, Distributor };
-
 #[derive(Debug,Clone,Hash,PartialEq,Eq)]
 pub struct Modifiers {
     pub shift: bool,
     pub control: bool,
     pub alt: bool
-}
-
-#[derive(Debug,Clone,Hash,PartialEq,Eq)]
-pub struct Key {
-    pub text: String,
-    pub modifiers: Modifiers
 }
 
 #[derive(Clone)]
@@ -28,13 +21,17 @@ pub struct LowLevelInput {
 
 impl LowLevelInput {
     pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
-        let mut key_mapping = InputMapBuilder::new();
-        key_mapping.add_config(config)?;
-        let mut mouse_mapping = MouseMapBuilder::new();
-        //mouse_mapping.add_config(config)?;
+        let mut mapping = InputMapBuilder::new();
+        mapping.add_config(config)?;
+        let modifiers = Arc::new(Mutex::new(Modifiers {
+            shift: false,
+            control: false,
+            alt: false
+        }));
         let distributor = Distributor::new();
-        let keyboard = KeyboardInput::new(&distributor,dom,&key_mapping.build())?;
-        let mouse = MouseInput::new(&distributor,dom,&mouse_mapping.build())?;
+        let mapping = mapping.build();
+        let keyboard = KeyboardInput::new(&distributor,dom,&mapping,&modifiers)?;
+        let mouse = MouseInput::new(&distributor,dom,&mapping,&modifiers)?;
         Ok(LowLevelInput { keyboard, mouse, distributor })
     }
 
