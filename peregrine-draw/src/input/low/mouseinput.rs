@@ -29,7 +29,7 @@ pub enum StateMachine {
 pub enum MouseAction {
     RunningDrag(Modifiers,(f64,f64)),
     TotalDrag(Modifiers,(f64,f64)),
-    Wheel(Modifiers,f64)
+    Wheel(Modifiers,f64,(f64,f64))
 }
 
 impl MouseAction {
@@ -38,7 +38,7 @@ impl MouseAction {
         let (kinds,modifiers) = match self {
             MouseAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
             MouseAction::TotalDrag(modifiers,amount) => (vec![("TotalDrag",vec![amount.0,amount.1])],modifiers),
-            MouseAction::Wheel(modifiers,amount) => (vec![("Wheel",vec![*amount])],modifiers)
+            MouseAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1])],modifiers)
         };
         for (name,args) in kinds {
             if let Some((action,map_args)) = map.map(&name,&modifiers) {
@@ -136,7 +136,8 @@ impl MouseEventHandler {
 
     fn wheel_event(&mut self, event: &WheelEvent) {
         let amount = self.wheel_amount(event);
-        for (kind,args) in MouseAction::Wheel(self.modifiers.lock().unwrap().clone(),amount).map(&self.mapping) {
+        let pos = self.position;
+        for (kind,args) in MouseAction::Wheel(self.modifiers.lock().unwrap().clone(),amount,pos).map(&self.mapping) {
             self.distributor.send(InputEvent {
                 details: kind,
                 start: true,

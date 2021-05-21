@@ -87,10 +87,19 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
-        let factor = 2_f64.powf(amount_px/self.zoom_px_speed);
-        if let Some(bp_per_screen) = api.bp_per_screen()? {
-            api.set_bp_per_screen(bp_per_screen*factor);
+    fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64, position: Option<(f64,f64)>) -> Result<(),Message> {
+        let px_per_screen = api.size().map(|x| x.0 as f64);
+        let bp_per_screen = api.bp_per_screen()?;
+        let x = api.x()?;
+        if let (Some(x),Some(px_per_screen),Some(bp_per_screen)) = (x,px_per_screen,bp_per_screen) {
+            let x_screen = if let Some(position) = position { position.0/px_per_screen } else { 0.5 };
+            let x_bp = x + (x_screen - 0.5) * bp_per_screen;
+            let factor = 2_f64.powf(amount_px/self.zoom_px_speed);
+            let new_bp_per_screen = bp_per_screen*factor;
+            let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
+            let new_middle = x_bp - new_bp_from_middle;
+            api.set_bp_per_screen(new_bp_per_screen);
+            api.set_x(new_middle);
         }
         Ok(())
     }
@@ -152,11 +161,14 @@ impl Physics {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let distance = *event.amount.get(0).unwrap_or(&0.);
+        let pos_x = event.amount.get(1);
+        let pos_y = event.amount.get(2);
+        let pos = if let (Some(x),Some(y)) = (pos_x,pos_y) { Some((*x,*y)) } else { None };
         match event.details {
             InputEventKind::PixelsLeft => { state.jump(api,-distance)?; },
             InputEventKind::PixelsRight => { state.jump(api,distance)?; },
-            InputEventKind::PixelsIn => { state.zoom(api,-distance)?; },
-            InputEventKind::PixelsOut => { state.zoom(api,distance)?; },
+            InputEventKind::PixelsIn => { state.zoom(api,-distance,pos)?; },
+            InputEventKind::PixelsOut => { state.zoom(api,distance,pos)?; },
             _ => {}
         }
         Ok(())
