@@ -30,12 +30,11 @@ be noted in the test_update_canvas_size call.
 */
 
 use std::sync::{ Arc, Mutex };
-use crate::util::message::Message;
+use crate::util::{message::Message, needed::Needed};
 use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineInnerAPI;
-use crate::shape::core::redrawneeded::RedrawNeeded;
 use crate::util::monostable::Monostable;
 
 fn screen_size() -> (u32,u32) {
@@ -108,12 +107,12 @@ impl SizeManagerState {
 pub(crate) struct SizeManager {
     state: Arc<Mutex<SizeManagerState>>,
     activity_monostable: Monostable,
-    redraw_needed: RedrawNeeded,
+    redraw_needed: Needed,
     canvas_element: HtmlCanvasElement
 }
 
 impl SizeManager {
-    async fn redraw_needed(web: &mut PeregrineInnerAPI) -> RedrawNeeded {
+    async fn redraw_needed(web: &mut PeregrineInnerAPI) -> Needed {
         web.lock().await.stage.lock().unwrap().redraw_needed().clone()
     }
 

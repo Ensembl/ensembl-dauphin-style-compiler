@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::shape::core::redrawneeded::RedrawNeeded;
+use crate::util::needed::Needed;
 use crate::util::message::Message;
 
 #[derive(Clone)]
@@ -58,14 +58,14 @@ pub struct StageAxis {
     size: Option<f64>,
     draw_size: Option<f64>,
     scale_shift: Option<(f32,f32)>,
-    redraw_needed: RedrawNeeded,
+    redraw_needed: Needed,
     boot: Boot,
     boot_lock: BootLock,
     version: u64
 }
 
 impl StageAxis {
-    pub(super) fn new(redraw_needed: &RedrawNeeded) -> StageAxis {
+    pub(super) fn new(redraw_needed: &Needed) -> StageAxis {
         let boot = Boot::new();
         let boot_lock = boot.lock();
         StageAxis {

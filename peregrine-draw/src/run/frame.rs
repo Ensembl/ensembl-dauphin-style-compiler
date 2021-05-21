@@ -29,7 +29,7 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManag
         }
         drop(lweb);
         cdr_tick(1).await;
-        redraw.wait_until_redraw_needed().await;
+        redraw.wait_until_needed().await;
         start = next;
     }
 }

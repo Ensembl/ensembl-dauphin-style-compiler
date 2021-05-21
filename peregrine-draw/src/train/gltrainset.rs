@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PgdPeregrineConfig, PeregrineCore, ConfigKey };
 use super::gltrain::GLTrain;
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }};
-use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }, util::needed::{Needed, NeededLock}};
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
@@ -13,7 +12,7 @@ use crate::util::message::Message;
 #[derive(Clone)]
 enum FadeState {
     Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,RedrawNeededLock)
+    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,NeededLock)
 }
 
 struct GlTrainSetData {
@@ -23,11 +22,11 @@ struct GlTrainSetData {
     fast_fade_overlap_prop: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
-    redraw_needed: RedrawNeeded
+    redraw_needed: Needed
 }
 
 impl GlTrainSetData {
-    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &RedrawNeeded) -> Result<GlTrainSetData,Message> {
+    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
             slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(false))?,
             fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(true))?,

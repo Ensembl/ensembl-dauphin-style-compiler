@@ -54,7 +54,6 @@ mod shape {
         pub(crate) mod glshape;
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;
-        pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
         pub(super) mod tracktriangles;
         pub(crate) mod text;
@@ -100,6 +99,7 @@ mod util {
     pub(crate) mod monostable;
     pub(crate) mod resizeobserver;
     pub(crate) mod safeelement;
+    pub(crate) mod needed;
 
     #[cfg(blackbox)]
     pub(crate) mod pgblackbox;

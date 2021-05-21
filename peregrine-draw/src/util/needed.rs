@@ -2,15 +2,15 @@ use std::rc::Rc;
 use std::sync::Mutex;
 use commander::PromiseFuture;
 
-struct RedrawNeededData {
+struct NeededData {
     edge: bool,
     locks: i32,
     promises: Vec<PromiseFuture<()>>
 }
 
-impl RedrawNeededData {
-    fn new() -> RedrawNeededData {
-        RedrawNeededData {
+impl NeededData {
+    fn new() -> NeededData {
+        NeededData {
             edge: false,
             locks: 0,
             promises: vec![]
@@ -45,36 +45,36 @@ impl RedrawNeededData {
 }
 
 #[derive(Clone)]
-pub struct RedrawNeeded(Rc<Mutex<RedrawNeededData>>);
+pub struct Needed(Rc<Mutex<NeededData>>);
 
 #[derive(Clone)]
-pub struct RedrawNeededLock(RedrawNeeded);
+pub struct NeededLock(Needed);
 
-impl<'t> Drop for RedrawNeededLock {
+impl<'t> Drop for NeededLock {
     fn drop(&mut self) {
         self.0.delta(-1);
     }
 }
 
-impl RedrawNeeded {
-    pub fn new() -> RedrawNeeded {
-        RedrawNeeded(Rc::new(Mutex::new(RedrawNeededData::new())))
+impl Needed {
+    pub fn new() -> Needed {
+        Needed(Rc::new(Mutex::new(NeededData::new())))
     }
 
     fn delta(&self, d: i32) {
         self.0.lock().unwrap().delta(d);
     }
     
-    pub fn lock(&self) -> RedrawNeededLock {
+    pub fn lock(&self) -> NeededLock {
         self.delta(1);
-        RedrawNeededLock(self.clone())
+        NeededLock(self.clone())
     }
 
     pub fn set(&self) {
         self.0.lock().unwrap().set();
     }
 
-    pub async fn wait_until_redraw_needed(&self) {
+    pub async fn wait_until_needed(&self) {
         loop {
             let mut r = self.0.lock().unwrap();
             let promise = r.maybe_needed();

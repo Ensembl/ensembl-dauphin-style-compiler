@@ -1,9 +1,8 @@
 use peregrine_data::{ Carriage, CarriageId };
 use std::collections::{ HashMap, HashSet };
-use crate::shape::layers::programstore::ProgramStore;
+use crate::{shape::layers::programstore::ProgramStore, util::needed::Needed};
 use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
-use crate::shape::core::redrawneeded::{ RedrawNeeded };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
@@ -15,11 +14,11 @@ pub struct GLTrain {
     carriages: HashMap<CarriageId,GLCarriage>,
     opacity: f64,
     max: Option<u64>,
-    redraw_needed: RedrawNeeded
+    redraw_needed: Needed
 }
 
 impl GLTrain {
-    pub fn new(programs: &ProgramStore, redraw_needed: &RedrawNeeded) -> GLTrain {
+    pub fn new(programs: &ProgramStore, redraw_needed: &Needed) -> GLTrain {
         GLTrain {
             carriages: HashMap::new(),
             opacity: 0.,

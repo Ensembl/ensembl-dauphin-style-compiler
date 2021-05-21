@@ -1,8 +1,7 @@
 use peregrine_data::Viewport;
 
-use crate::webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process };
+use crate::{util::needed::Needed, webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
-use crate::shape::core::redrawneeded::RedrawNeeded;
 use crate::util::message::Message;
 use super::axis::{ StageAxis, ReadStageAxis };
 
@@ -69,7 +68,7 @@ impl ProgramStage {
 pub struct Stage {
     x: StageAxis,
     y: StageAxis,
-    redraw_needed: RedrawNeeded,
+    redraw_needed: Needed,
 }
 
 pub struct ReadStage {
@@ -94,7 +93,7 @@ impl Clone for ReadStage {
 
 impl Stage {
     pub fn new() -> Stage {
-        let redraw_needed = RedrawNeeded::new();
+        let redraw_needed = Needed::new();
         let mut out = Stage {
             x: StageAxis::new(&redraw_needed),
             y: StageAxis::new(&redraw_needed),
@@ -107,7 +106,7 @@ impl Stage {
 
     pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
 
-    pub fn redraw_needed(&self) -> RedrawNeeded { self.redraw_needed.clone() }
+    pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
     pub fn x(&self) -> &StageAxis { &self.x }
     pub fn y(&self) -> &StageAxis { &self.y }
