@@ -1,7 +1,8 @@
 use std::sync::{ Arc, Mutex };
 use crate::{PeregrineDom, run::PgPeregrineConfig};
 use crate::util::Message;
-use super::keyboardinput::{ KeyboardInput, KeyboardMap, KeyboardMapBuilder };
+use super::keyboardinput::{ KeyboardInput };
+use super::mapping::{ InputMap, InputMapBuilder };
 use super::mouseinput::{ MouseInput, MouseMapBuilder };
 use crate::input::{ InputEvent, Distributor };
 
@@ -27,7 +28,7 @@ pub struct LowLevelInput {
 
 impl LowLevelInput {
     pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
-        let mut key_mapping = KeyboardMapBuilder::new();
+        let mut key_mapping = InputMapBuilder::new();
         key_mapping.add_config(config)?;
         let mut mouse_mapping = MouseMapBuilder::new();
         //mouse_mapping.add_config(config)?;

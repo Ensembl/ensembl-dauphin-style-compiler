@@ -7,7 +7,8 @@ mod input {
         mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
-        pub(crate) mod lowlevel;    
+        pub(crate) mod lowlevel; 
+        pub mod mapping;   
     }
 
     mod translate {
