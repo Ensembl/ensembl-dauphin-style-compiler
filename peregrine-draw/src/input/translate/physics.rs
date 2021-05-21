@@ -46,6 +46,7 @@ impl PullSpeed {
             (false,true) => 1.,
             _ => { self.speed = 0.; return false; }
         };
+        if self.speed * direction < 0. { self.speed = 0.; } // direction change, so halt immediately
         self.speed += direction * self.acceleration;
         if self.speed > self.max_speed { self.speed = self.max_speed; }
         if self.speed < -self.max_speed { self.speed = -self.max_speed; }
