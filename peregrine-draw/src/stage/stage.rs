@@ -72,13 +72,6 @@ pub struct Stage {
     redraw_needed: RedrawNeeded,
 }
 
-#[derive(Clone)]
-pub struct Position {
-    pub x: f64,
-    pub y: f64,
-    pub bp_per_screen: f64
-}
-
 pub struct ReadStage {
     x: Box<dyn ReadStageAxis>,
     y: Box<dyn ReadStageAxis>    
@@ -88,18 +81,6 @@ impl ReadStage {
     pub fn x(&self) -> &dyn ReadStageAxis { self.x.as_ref() }
     pub fn y(&self) -> &dyn ReadStageAxis { self.y.as_ref() }
     pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
-
-    pub fn position(&self) -> Result<Option<Position>,Message> {
-        Ok(if self.ready() {
-            Some(Position {
-                x: self.x.position()?,
-                y: self.y.position()?,
-                bp_per_screen: self.x.bp_per_screen()?
-            })
-        } else {
-            None
-        })
-    }
 }
 
 impl Clone for ReadStage {

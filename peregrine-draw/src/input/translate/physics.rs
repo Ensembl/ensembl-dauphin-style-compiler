@@ -72,32 +72,34 @@ impl PhysicsState {
         })
     }
 
-    fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) {
+    fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         self.pull_x_to = None;
-        let x = api.x();
-        let bp_per_screen = api.bp_per_screen();
+        let x = api.x()?;
+        let bp_per_screen = api.bp_per_screen()?;
         let px_per_screen = api.size().map(|x| x.0 as f64);
         if let (Some(x),Some(bp_per_screen),Some(px_per_screen)) = (x,bp_per_screen,px_per_screen) {
             let bp_per_px = bp_per_screen/px_per_screen;
             api.set_x(x + amount_px*bp_per_px);
         }
+        Ok(())
     }
 
-    fn update_x_pull(&mut self, api: &PeregrineAPI) {
+    fn update_x_pull(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
         if self.pull_x_speed.step() {
-            if self.pull_x_to.is_none() { self.pull_x_to = api.x(); }
-            if let (Some(pull_to),Some(bp_per_screen)) = (&mut self.pull_x_to,api.bp_per_screen()) { 
+            if self.pull_x_to.is_none() { self.pull_x_to = api.x()?; }
+            if let (Some(pull_to),Some(bp_per_screen)) = (&mut self.pull_x_to,api.bp_per_screen()?) { 
                 *pull_to += self.pull_x_speed.speed() * bp_per_screen;
                 api.set_x(*pull_to);
             }
         } else {
             self.pull_x_to = None;
         }
+        Ok(())
     }
 
-    fn update_z_pull(&mut self, api: &PeregrineAPI) {
+    fn update_z_pull(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
         if self.pull_z_speed.step() {
-            if self.pull_z_to.is_none() { self.pull_z_to = api.bp_per_screen(); }
+            if self.pull_z_to.is_none() { self.pull_z_to = api.bp_per_screen()?; }
             if let Some(pull_to) = &mut self.pull_z_to {
                 *pull_to *= (2_f64).powf(self.pull_z_speed.speed());
                 api.set_bp_per_screen(*pull_to);
@@ -105,11 +107,12 @@ impl PhysicsState {
         } else {
             self.pull_z_to = None;
         }
+        Ok(())
     }
 
     fn physics_step(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        self.update_x_pull(api);
-        self.update_z_pull(api);
+        self.update_x_pull(api)?;
+        self.update_z_pull(api)?;
         Ok(())
     }
 }
@@ -134,20 +137,22 @@ impl Physics {
         target.set_direction(new_direction,event.start);
     }
 
-    fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) {
-        if !event.start { return; }
+    fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+        if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let distance = *event.amount.get(0).unwrap_or(&0.);
         match event.details {
-            InputEventKind::PixelsLeft => state.jump(api,-distance),
-            InputEventKind::PixelsRight => state.jump(api,distance),
+            InputEventKind::PixelsLeft => { state.jump(api,-distance)?; },
+            InputEventKind::PixelsRight => { state.jump(api,distance)?; },
             _ => {}
         }
+        Ok(())
     }
 
-    fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) {
+    fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event);
-        self.incoming_jump_request(api,event);
+        self.incoming_jump_request(api,event)?;
+        Ok(())
     }
 
     async fn physics_loop(&self, api: &PeregrineAPI) -> Result<(),Message> {
@@ -163,7 +168,7 @@ impl Physics {
         };
         let out2 = out.clone();
         let api2 = api.clone();
-        low_level.distributor_mut().add(move |e| out2.incoming_event(&api2,e));
+        low_level.distributor_mut().add(move |e| { out2.incoming_event(&api2,e).ok(); }); // XXX error distribution
         let out2 = out.clone();
         let api2 = api.clone();
         commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&api2).await }));

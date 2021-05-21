@@ -6,7 +6,6 @@ use super::progress::Progress;
 use commander::CommanderStream;
 use peregrine_message::Instigator;
 use super::inner::PeregrineInnerAPI;
-use crate::stage::stage::Position;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
@@ -75,7 +74,6 @@ pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
     input: Arc<Mutex<Option<Input>>>,
     stick: Arc<Mutex<Option<String>>>,
-    position: Arc<Mutex<Option<Position>>>,
     target: Arc<Mutex<Target>>
 }
 
@@ -83,7 +81,6 @@ impl PeregrineAPI {
     pub fn new() -> PeregrineAPI {
         PeregrineAPI {
             queue: CommanderStream::new(),
-            position: Arc::new(Mutex::new(None)),
             stick: Arc::new(Mutex::new(None)),
             input: Arc::new(Mutex::new(None)),
             target: Arc::new(Mutex::new(Target::new()))
@@ -150,10 +147,10 @@ impl PeregrineAPI {
         self.queue.add((DrawMessage::DebugAction(index),instigator.clone()));
     }
 
-    pub fn x(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.x) }
-    pub fn y(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.y) }
+    pub fn x(&self) -> Result<Option<f64>,Message> { self.target.lock().unwrap().x() }
+    pub fn y(&self) -> f64 { self.target.lock().unwrap().y() }
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
-    pub fn bp_per_screen(&self) -> Option<f64> { self.position.lock().unwrap().as_ref().map(|p| p.bp_per_screen) }
+    pub fn bp_per_screen(&self) -> Result<Option<f64>,Message> { self.target.lock().unwrap().bp_per_screen() }
     pub fn size(&self) -> Option<(u32,u32)> { self.target.lock().unwrap().size().cloned() }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {
@@ -170,9 +167,6 @@ impl PeregrineAPI {
         *self.input.lock().unwrap() = Some(Input::new(&dom,&configs.draw,&self,&commander)?);
         let inner = PeregrineInnerAPI::new(configs,dom,&commander)?;
         let self2 = self.clone();
-        inner.xxx_set_callbacks(move |p| {
-            *self2.position.lock().unwrap() = p;
-        });
         let self2 = self.clone();
         inner.add_target_callback(move |p| {
             *self2.target.lock().unwrap() = p.clone();

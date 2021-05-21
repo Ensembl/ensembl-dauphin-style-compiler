@@ -27,11 +27,7 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManag
         if let Err(e) = r { 
             lweb.message_sender.add(e);
         }
-        let position =  lweb.stage.lock().unwrap().read_stage().position();
         drop(lweb);
-        if let Ok(position) = position {
-            web.set_position(position);
-        }
         cdr_tick(1).await;
         redraw.wait_until_redraw_needed().await;
         start = next;

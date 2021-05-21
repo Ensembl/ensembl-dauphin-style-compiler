@@ -4,12 +4,10 @@ use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
-use crate::input::Input;
 
 use peregrine_data::{ 
     Commander,
-    PeregrineCore,
-    PgdPeregrineConfig
+    PeregrineCore
 };
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::Instigator;
@@ -18,7 +16,7 @@ pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
 use super::dom::PeregrineDom;
-use crate::stage::stage::{ Stage, Position };
+use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
@@ -41,18 +39,31 @@ fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>)
 #[derive(Clone)]
 pub struct Target {
     viewport: Viewport,
-    size: Option<(u32,u32)>
+    size: Option<(u32,u32)>,
+    y: f64
 }
 
 impl Target {
     pub fn new() -> Target {
         Target {
             viewport: Viewport::empty(),
-            size: None
+            size: None,
+            y: 0.
         }
     }
 
+    pub fn x(&self) -> Result<Option<f64>,Message> {
+        if !self.viewport.ready() { return Ok(None); }
+        Ok(Some(self.viewport.position().map_err(|e| Message::DataError(e))?))
+    }
+
+    pub fn bp_per_screen(&self) -> Result<Option<f64>,Message> {
+        if !self.viewport.ready() { return Ok(None); }
+        Ok(Some(self.viewport.bp_per_screen().map_err(|e| Message::DataError(e))?))
+    }
+
     pub fn size(&self) -> Option<&(u32,u32)> { self.size.as_ref() }
+    pub fn y(&self) -> f64 { self.y }
 }
 
 pub struct TargetManager {
@@ -87,20 +98,22 @@ impl TargetManager {
         self.target.viewport = viewport.clone();
         self.run_callbacks();
     }
+
+    pub fn set_y(&mut self, y: f64) {
+        self.target.y = y;
+    }
 }
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
     messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
     message_sender: CommanderStream<Message>,
-    position_callbacks: Arc<Mutex<Option<Box<dyn FnMut(Option<Position>)>>>>,
     lock: Lock,
     commander: PgCommanderWeb,
     data_api: PeregrineCore,
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    position: Option<Position>, // XXX die
     target_manager: Arc<Mutex<TargetManager>>,
     dom: PeregrineDom
 }
@@ -184,9 +197,7 @@ impl PeregrineInnerAPI {
         let mut out = PeregrineInnerAPI {
             lock: commander.make_lock(),
             messages, message_sender,
-            position_callbacks: Arc::new(Mutex::new(None)),
             data_api: core.clone(), commander, trainset, stage,  webgl,
-            position: None,
             target_manager,
             dom
         };
@@ -196,16 +207,6 @@ impl PeregrineInnerAPI {
 
     pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
         self.target_manager.lock().unwrap().add_target_callback(cb);
-    }
-
-    pub(super) fn xxx_set_callbacks<F>(&self, cb: F) where F: FnMut(Option<Position>) + 'static {
-        *self.position_callbacks.lock().unwrap() = Some(Box::new(cb));
-    }
-
-    pub fn set_position(&self, position: Option<Position>) {
-        if let Some(cb) = self.position_callbacks.lock().unwrap().as_mut() {
-            cb(position);
-        }
     }
 
     pub(crate) fn set_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
@@ -243,6 +244,7 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_y(&mut self, y: f64) {
         self.stage.lock().unwrap().y_mut().set_position(y);
+        self.target_manager.lock().unwrap().set_y(y);
     }
 
     pub(super) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
