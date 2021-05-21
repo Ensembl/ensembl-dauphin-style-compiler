@@ -60,7 +60,8 @@ pub struct PhysicsState {
     pull_x_speed: PullSpeed,
     pull_x_to: Option<f64>,
     pull_z_speed: PullSpeed,
-    pull_z_to: Option<f64>
+    pull_z_to: Option<f64>,
+    zoom_px_speed: f64,
 }
 
 impl PhysicsState {
@@ -70,6 +71,7 @@ impl PhysicsState {
             pull_x_to: None,
             pull_z_speed: PullSpeed::new(config.get_f64(&PgConfigKey::ZoomMaxSpeed)?,config.get_f64(&PgConfigKey::ZoomAcceleration)?),
             pull_z_to: None,
+            zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?
         })
     }
 
@@ -81,6 +83,14 @@ impl PhysicsState {
         if let (Some(x),Some(bp_per_screen),Some(px_per_screen)) = (x,bp_per_screen,px_per_screen) {
             let bp_per_px = bp_per_screen/px_per_screen;
             api.set_x(x + amount_px*bp_per_px);
+        }
+        Ok(())
+    }
+
+    fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
+        let factor = 2_f64.powf(amount_px/self.zoom_px_speed);
+        if let Some(bp_per_screen) = api.bp_per_screen()? {
+            api.set_bp_per_screen(bp_per_screen*factor);
         }
         Ok(())
     }
@@ -145,6 +155,8 @@ impl Physics {
         match event.details {
             InputEventKind::PixelsLeft => { state.jump(api,-distance)?; },
             InputEventKind::PixelsRight => { state.jump(api,distance)?; },
+            InputEventKind::PixelsIn => { state.zoom(api,-distance)?; },
+            InputEventKind::PixelsOut => { state.zoom(api,distance)?; },
             _ => {}
         }
         Ok(())

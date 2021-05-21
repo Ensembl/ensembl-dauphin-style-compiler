@@ -2,7 +2,7 @@ use std::collections::{ HashMap, HashSet };
 use std::sync::{ Arc, Mutex };
 use crate::PeregrineDom;
 use wasm_bindgen::prelude::*;
-use web_sys::{ MouseEvent, HtmlElement, Event };
+use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
 use super::event::{ add_event, remove_event, window_add_event, window_remove_event };
@@ -29,6 +29,7 @@ pub enum StateMachine {
 pub enum MouseAction {
     RunningDrag(Modifiers,(f64,f64)),
     TotalDrag(Modifiers,(f64,f64)),
+    Wheel(Modifiers,f64)
 }
 
 impl MouseAction {
@@ -36,7 +37,8 @@ impl MouseAction {
         let mut out = vec![];
         let (kinds,modifiers) = match self {
             MouseAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
-            MouseAction::TotalDrag(modifiers,amount) => (vec![("TotalDrag",vec![amount.0,amount.1])],modifiers)
+            MouseAction::TotalDrag(modifiers,amount) => (vec![("TotalDrag",vec![amount.0,amount.1])],modifiers),
+            MouseAction::Wheel(modifiers,amount) => (vec![("Wheel",vec![*amount])],modifiers)
         };
         for (name,args) in kinds {
             if let Some((action,map_args)) = map.map(&name,&modifiers) {
@@ -102,8 +104,6 @@ impl MouseEventHandler {
     }
 
     fn abandon(&mut self, event: &Event) {
-        use web_sys::console;
-        console::log_1(&format!("abandon").into());
         self.state.process_event(&self.position,&MouseEventKind::Up,&self.modifiers);
     }
 
@@ -121,6 +121,28 @@ impl MouseEventHandler {
                     timestamp_ms: Date::now()
                 }); 
             }
+        }
+    }
+
+    fn wheel_amount(&self, event: &WheelEvent) -> f64 {
+        let mode = event.delta_mode();
+        let y = event.delta_y();
+        match mode {
+            0 => y,
+            1 => y*40.,
+            _ => y*800.
+        }
+    }
+
+    fn wheel_event(&mut self, event: &WheelEvent) {
+        let amount = self.wheel_amount(event);
+        for (kind,args) in MouseAction::Wheel(self.modifiers.lock().unwrap().clone(),amount).map(&self.mapping) {
+            self.distributor.send(InputEvent {
+                details: kind,
+                start: true,
+                amount: args,
+                timestamp_ms: Date::now()
+            }); 
         }
     }
 }
@@ -143,12 +165,21 @@ fn make_mouse_event(kind: MouseEventKind, handler: &Arc<Mutex<MouseEventHandler>
     }) as Box<dyn Fn(MouseEvent)>)
 }
 
+fn make_wheel_event(handler: &Arc<Mutex<MouseEventHandler>>) -> Closure<dyn Fn(WheelEvent)> {
+    let handler = handler.clone();
+    Closure::wrap(Box::new(move |event: WheelEvent| {
+        let handler = handler.clone();
+        handler.lock().unwrap().wheel_event(&event);
+    }) as Box<dyn Fn(WheelEvent)>)
+}
+
 #[derive(Clone)]
 pub struct MouseInput {
     down_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
     up_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
     move_closure: Arc<Closure<dyn Fn(MouseEvent) + 'static>>,
     blur_closure: Arc<Closure<dyn Fn(Event) + 'static>>,
+    wheel_closure: Arc<Closure<dyn Fn(WheelEvent) + 'static>>,
     el: HtmlElement
 }
 
@@ -160,15 +191,18 @@ impl MouseInput {
         let down_closure = make_mouse_event(MouseEventKind::Down,&handler);
         let move_closure = make_mouse_event(MouseEventKind::Move,&handler);
         let blur_closure = make_event(&handler);
+        let wheel_closure = make_wheel_event(&handler);
         add_event(body,"mousedown",&down_closure)?;
         add_event(body,"mouseup",&up_closure)?;
         add_event(body,"mousemove",&move_closure)?;
         add_event(body,"mouseleave",&blur_closure)?;
+        add_event(body,"wheel",&wheel_closure)?;
         Ok(MouseInput {
             up_closure: Arc::new(up_closure),
             down_closure: Arc::new(down_closure),
             move_closure: Arc::new(move_closure),
             blur_closure: Arc::new(blur_closure),
+            wheel_closure: Arc::new(wheel_closure),
             el: body.clone()
         })
     }
@@ -178,6 +212,7 @@ impl MouseInput {
         remove_event(&self.el,"mouseup",&self.up_closure.as_ref())?;
         remove_event(&self.el,"mousemove",&self.move_closure.as_ref())?;
         remove_event(&self.el,"mouseleave",&self.blur_closure.as_ref())?;
+        remove_event(&self.el,"wheel",&self.wheel_closure.as_ref())?;
         Ok(())
     }
 }

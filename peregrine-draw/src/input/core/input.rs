@@ -35,6 +35,8 @@ pub enum InputEventKind {
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
     PixelsScale, // [multiplier,screen-prop]
+    PixelsIn,
+    PixelsOut,
     DebugAction
 }
 
@@ -48,6 +50,8 @@ impl InputEventKind {
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
             InputEventKind::PixelsScale,
+            InputEventKind::PixelsIn,
+            InputEventKind::PixelsOut,
             InputEventKind::DebugAction
         ]
     }

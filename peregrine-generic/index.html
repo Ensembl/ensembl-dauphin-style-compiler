@@ -25,8 +25,8 @@
     </div>
     <script type="module">
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
-      await init();
-      let genome_browser = new GenomeBrowser();
+      init().then(function() {
+        let genome_browser = new GenomeBrowser();
       genome_browser.go();
       genome_browser.set_message_reporter(function(x) {
         console.error(x);
@@ -68,6 +68,8 @@
         genome_browser.set_stick(flip?"homo_sapiens_GCA_000001405_27:1":"homo_sapiens_GCA_000001405_27:2");
         flip = !flip;
       };
+
+      });
     </script>
   </body>
 </html>

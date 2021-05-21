@@ -52,7 +52,7 @@ features = [
   'Screen',
   'TextMetrics',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
-  'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture',
+  'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture', 'WheelEvent',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 

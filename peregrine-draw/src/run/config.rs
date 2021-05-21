@@ -17,6 +17,7 @@ pub enum PgConfigKey {
     PullAcceleration, // screenfulls/frame/frame
     ZoomMaxSpeed, // factors-of-2/second,
     ZoomAcceleration, // factors-of-2/second/second,
+    ZoomPixelSpeed, // how many pixels is a doubling?
 }
 
 #[derive(Clone)]
@@ -33,9 +34,12 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(false), name: "animate.fade.slow", default: &PgConfigValue::Float(1000.) },    
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(true), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(false), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("Shift-MirrorRunningDrag Shift-D[100]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Shift-W[500]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsOut), name: "keys.pixels-out", default: &PgConfigValue::StaticStr("Shift-S[500] Wheel") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a ArrowLeft") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d ArrowRight") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
