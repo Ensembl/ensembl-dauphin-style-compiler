@@ -1,12 +1,6 @@
-use commander::cdr_timer;
 use std::sync::{ Arc, Mutex };
-use crate::{PeregrineDom, PgCommanderWeb, run::{PgPeregrineConfig, PgConfigKey}};
-use peregrine_data::PgCommander;
-use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent };
-use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
-use super::{event::{ EventSystem }, lowlevel::LowLevelState};
-use super::mapping::InputMap;
+use super::{ lowlevel::LowLevelState};
 use super::lowlevel::Modifiers;
 use js_sys::Date;
 use super::mouseinput::{  MouseConfig, MouseAction };
@@ -36,12 +30,27 @@ impl DragStateData {
         }
     }
 
-    fn hold_timer_expired(&mut self) -> Option<MouseAction> {
+    fn hold_timer_expired(&mut self) {
         if self.alive && !self.dragged {
             self.hold = true;
-            return Some(MouseAction::Hold(self.lowlevel.modifiers(),self.start_pos));
+            for (kind,args) in MouseAction::SwitchToHold(self.modifiers.clone(),self.start_pos).map(&self.lowlevel) {
+                self.lowlevel.send(kind,true,&args);
+            }
+        }
+    }
+
+    fn emit(&mut self, action: &MouseAction, start: bool) {
+        for (kind,args) in action.map(&self.lowlevel) {
+            self.lowlevel.send(kind,true,&args);
+        }    
+    }
+
+    fn send_drag(&mut self, delta: (f64,f64), start: bool) {
+          // XXX yuck, clones on critical path
+        if self.hold {
+            self.emit(&MouseAction::RunningHold(self.modifiers.clone(),delta),start);
         } else {
-            return None;
+            self.emit(&MouseAction::RunningDrag(self.modifiers.clone(),delta),start);
         }
     }
 
@@ -54,22 +63,27 @@ impl DragStateData {
         }
     }
 
-    fn drag_continue(&mut self, emit: &mut Vec<MouseAction>, config: &MouseConfig, current: &(f64,f64)) {
+    fn drag_continue(&mut self, config: &MouseConfig, current: &(f64,f64)) {
         self.check_dragged(config,current);
         let delta = (current.0-self.prev_pos.0,current.1-self.prev_pos.1);
-        emit.push(MouseAction::RunningDrag(self.modifiers.clone(),delta));  // XXX yuck, clone on critical path
+        self.send_drag(delta,true);
         self.prev_pos = *current;
     }
 
-    fn drag_finished(&mut self, emit: &mut Vec<MouseAction>, config: &MouseConfig, current: &(f64,f64)) {
+    fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) {
         self.check_dragged(config,current);
         let delta = (current.0-self.prev_pos.0,current.1-self.prev_pos.1);
-        emit.push(MouseAction::RunningDrag(self.modifiers.clone(),delta));
+        self.send_drag(delta,true);
         self.alive = false;
         if self.dragged {
-            emit.push(MouseAction::Drag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)));
+            self.send_drag((0.,0.),false);
+            if self.hold {
+                self.emit(&MouseAction::HoldDrag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
+            } else {
+                self.emit(&MouseAction::Drag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
+            }
         } else {
-            emit.push(MouseAction::Click(self.modifiers.clone(),self.start_pos.clone()));
+            self.emit(&MouseAction::Click(self.modifiers.clone(),self.start_pos.clone()),true);
         }  
     }
 }
@@ -81,20 +95,17 @@ impl DragState {
         let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,current)));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
-        let lowlevel2 = lowlevel.clone();
         lowlevel.timer(hold_time, move || {
-            if let Some(action) = inner2.lock().unwrap().hold_timer_expired() {
-                // TODO send it
-            }
+            inner2.lock().unwrap().hold_timer_expired();
         });
         DragState(inner)
     }
 
-    pub(super) fn drag_continue(&mut self, emit: &mut Vec<MouseAction>, config: &MouseConfig, current: &(f64,f64)) {
-        self.0.lock().unwrap().drag_continue(emit,config,current);
+    pub(super) fn drag_continue(&mut self, config: &MouseConfig, current: &(f64,f64)) {
+        self.0.lock().unwrap().drag_continue(config,current);
     }
 
-    pub(super) fn drag_finished(&mut self, emit: &mut Vec<MouseAction>, config: &MouseConfig, current: &(f64,f64)) {
-        self.0.lock().unwrap().drag_finished(emit,config,current);
+    pub(super) fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) {
+        self.0.lock().unwrap().drag_finished(config,current);
     }
 }

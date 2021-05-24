@@ -40,11 +40,12 @@ pub struct StateMachine {
 #[derive(Debug)]
 pub enum MouseAction {
     RunningDrag(Modifiers,(f64,f64)),
+    RunningHold(Modifiers,(f64,f64)),
     Drag(Modifiers,(f64,f64)),
     Wheel(Modifiers,f64,(f64,f64)),
     Click(Modifiers,(f64,f64)),
     DoubleClick(Modifiers,(f64,f64)),
-    Hold(Modifiers,(f64,f64)),
+    SwitchToHold(Modifiers,(f64,f64)),
     HoldDrag(Modifiers,(f64,f64)),
 }
 
@@ -53,11 +54,12 @@ impl MouseAction {
         let mut out = vec![];
         let (kinds,modifiers) = match self {
             MouseAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
+            MouseAction::RunningHold(modifiers,amount) => (vec![("RunningHold",vec![amount.0,amount.1]),("MirrorRunningHold",vec![-amount.0,-amount.1])],modifiers),
             MouseAction::Drag(modifiers,amount) => (vec![("Drag",vec![amount.0,amount.1])],modifiers),
             MouseAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1]),("MirrorWheel",vec![-*amount,pos.0,pos.1])],modifiers),
             MouseAction::Click(modifiers,pos) => (vec![("Click",vec![pos.0,pos.1])],modifiers),
             MouseAction::DoubleClick(modifiers,pos) => (vec![("DoubleClick",vec![pos.0,pos.1])],modifiers),
-            MouseAction::Hold(modifiers,pos) => (vec![("Hold",vec![pos.0,pos.1])],modifiers),
+            MouseAction::SwitchToHold(modifiers,pos) => (vec![("SwitchToHold",vec![pos.0,pos.1])],modifiers),
             MouseAction::HoldDrag(modifiers,amount) => (vec![("Hold",vec![amount.0,amount.1])],modifiers),
         };
         for (name,args) in kinds {
@@ -80,22 +82,20 @@ impl StateMachine {
         }
     }
 
-    fn process_event(&mut self, config: &MouseConfig, lowlevel: &LowLevelState, current: &(f64,f64), kind: &MouseEventKind) -> Vec<MouseAction> {
-        let mut emit = vec![];
+    fn process_event(&mut self, config: &MouseConfig, lowlevel: &LowLevelState, current: &(f64,f64), kind: &MouseEventKind) {
         match (&mut self.drag,kind) {
             (None,MouseEventKind::Down) => {
                 self.drag = Some(DragState::new(config,lowlevel,current));
             },
             (Some(drag_state),MouseEventKind::Move) => {
-                drag_state.drag_continue(&mut emit,config,current);
+                drag_state.drag_continue(config,current);
             },
             (Some(drag_state),MouseEventKind::Up) => {
-                drag_state.drag_finished(&mut emit,config,current);
+                drag_state.drag_finished(config,current);
                 self.drag = None;
             },
             _ => {}
         }
-        emit
     }
 }
 
@@ -125,11 +125,7 @@ impl MouseEventHandler {
         let x = (event.client_x() as f64) - rect.left();
         let y = (event.client_y() as f64) - rect.top();
         self.position = (x,y);
-        for action in self.state.process_event(&self.config,&self.lowlevel,&self.position,kind) {
-            for (kind,args) in action.map(&self.lowlevel).drain(..) {
-                self.lowlevel.send(kind,true,&args);
-            }
-        }
+        self.state.process_event(&self.config,&self.lowlevel,&self.position,kind);
         match kind {
             MouseEventKind::Move => {},
             _ => { event.stop_propagation(); event.prevent_default(); }
