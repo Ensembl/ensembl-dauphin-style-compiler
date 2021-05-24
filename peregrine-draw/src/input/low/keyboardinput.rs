@@ -1,22 +1,15 @@
-use std::collections::{ HashSet };
-use std::sync::{ Arc, Mutex };
-use crate::PeregrineDom;
-use wasm_bindgen::prelude::*;
-use web_sys::{ KeyboardEvent, HtmlElement, Event };
-use crate::input::{ InputEvent, InputEventKind, Distributor };
+use std::collections::{ HashSet, HashMap };
+use web_sys::{ KeyboardEvent, Event };
+use crate::input::{ InputEventKind };
 use crate::util::{ Message };
 use super::event::{ EventSystem };
 use super::lowlevel::{ Modifiers, LowLevelState };
-use js_sys::Date;
-use super::mapping::InputMap;
 
-enum KeyboardEventKind {
-    Down,
-    Up
-}
+enum KeyboardEventKind { Down, Up }
 
 pub(super) struct KeyboardEventHandler {
     state: LowLevelState,
+    down_character: HashMap<String,(String,Modifiers)>,
     current: HashSet<InputEventKind>
 }
 
@@ -24,6 +17,7 @@ impl KeyboardEventHandler {
     fn new(state: &LowLevelState) -> KeyboardEventHandler {
         KeyboardEventHandler {
             state: state.clone(),
+            down_character: HashMap::new(),
             current: HashSet::new(),
         }
     }
@@ -35,17 +29,32 @@ impl KeyboardEventHandler {
     }
 
     fn keyboard_event(&mut self, event_kind: &KeyboardEventKind, event: &KeyboardEvent) {
-        let modifiers = Modifiers {
+        let mut modifiers = Modifiers {
             shift: event.shift_key(),
             control: event.ctrl_key() || event.meta_key(),
             alt: event.alt_key()
         };
+        let mut key = event.key();
         self.state.update_modifiers(modifiers.clone());
         let down = match event_kind {
-            KeyboardEventKind::Down => true,
-            KeyboardEventKind::Up => false
+            KeyboardEventKind::Down => {
+                if let Some((down_key,down_modifiers)) = self.down_character.get(&event.code()) {
+                    modifiers = down_modifiers.clone();
+                    key = down_key.to_string();
+                } else {
+                    self.down_character.insert(event.code(),(event.key(),modifiers.clone()));
+                }
+                true
+            }
+            KeyboardEventKind::Up => {
+                if let Some((down_key,down_modifiers)) = self.down_character.remove(&event.code()) {
+                    modifiers = down_modifiers.clone();
+                    key = down_key.to_string();
+                }
+                false
+            }
         };
-        if let Some((kind,args)) = self.state.map(&event.key(),&modifiers) {
+        if let Some((kind,args)) = self.state.map(&key,&modifiers) {
             if self.current.contains(&kind) != down { // ie not a repeat
                 if down { self.current.insert(kind.clone()); } else { self.current.remove(&kind); }
                 self.state.send(kind,down,&args);
