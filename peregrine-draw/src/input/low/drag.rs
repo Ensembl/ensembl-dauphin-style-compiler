@@ -70,7 +70,7 @@ impl DragStateData {
         self.prev_pos = *current;
     }
 
-    fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) {
+    fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) -> bool {
         self.check_dragged(config,current);
         let delta = (current.0-self.prev_pos.0,current.1-self.prev_pos.1);
         self.send_drag(delta,true);
@@ -82,9 +82,8 @@ impl DragStateData {
             } else {
                 self.emit(&MouseAction::Drag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
             }
-        } else {
-            self.emit(&MouseAction::Click(self.modifiers.clone(),self.start_pos.clone()),true);
         }  
+        self.dragged
     }
 }
 
@@ -105,7 +104,7 @@ impl DragState {
         self.0.lock().unwrap().drag_continue(config,current);
     }
 
-    pub(super) fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) {
-        self.0.lock().unwrap().drag_finished(config,current);
+    pub(super) fn drag_finished(&mut self, config: &MouseConfig, current: &(f64,f64)) -> bool {
+        self.0.lock().unwrap().drag_finished(config,current)
     }
 }

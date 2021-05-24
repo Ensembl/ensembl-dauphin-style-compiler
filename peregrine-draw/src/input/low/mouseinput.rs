@@ -13,14 +13,16 @@ use super::drag::DragState;
 
 pub(super) struct MouseConfig {
     pub click_radius: f64, // px
-    pub hold_delay: f64 // ms
+    pub hold_delay: f64, // ms
+    pub multiclick_time: f64
 }
 
 impl MouseConfig {
     fn new(config: &PgPeregrineConfig) -> Result<MouseConfig,Message> {
         Ok(MouseConfig {
             click_radius: config.get_f64(&PgConfigKey::MouseClickRadius)?,
-            hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?
+            hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?,
+            multiclick_time: config.get_f64(&PgConfigKey::DoubleClickTime)?
         })
     }
 }
@@ -32,7 +34,15 @@ enum MouseEventKind {
     Move
 }
 
+struct RecentClick {
+    position: (f64,f64),
+    time: f64
+}
+
 pub struct StateMachine {
+    previous_click: Option<RecentClick>,
+    start: (f64,f64),
+    modifiers: Modifiers,
     drag: Option<DragState>
 }
 
@@ -78,7 +88,44 @@ impl MouseAction {
 impl StateMachine {
     fn new() -> StateMachine {
         StateMachine {
-            drag: None
+            drag: None,
+            previous_click: None,
+            start: (0.,0.),
+            modifiers: Modifiers { // XXX constructor
+                shift: false,
+                control: false,
+                alt: false
+            }
+        }
+    }
+
+    fn send(&self, action: &MouseAction, lowlevel: &LowLevelState) {
+        for (kind,args) in action.map(lowlevel) {
+            lowlevel.send(kind,true,&args);
+        }
+    }
+
+    fn check_double(&mut self, config: &MouseConfig) -> bool {
+        let click = RecentClick {
+            position: self.start.clone(),
+            time: Date::now()
+        };
+        let mut double_click = false;
+        if let Some(old_click) = self.previous_click.take() {
+            let ago = click.time - old_click.time;
+            let distance = (click.position.0-old_click.position.0).abs() + (click.position.1-old_click.position.1).abs();
+            if ago < config.multiclick_time && distance < config.click_radius {
+                double_click = true;
+            }
+        }
+        self.previous_click = Some(click);
+        double_click
+    }
+
+    fn click(&mut self, config: &MouseConfig, lowlevel: &LowLevelState) {
+        self.send(&MouseAction::Click(self.modifiers.clone(),self.start),lowlevel);
+        if self.check_double(config) {
+            self.send(&MouseAction::DoubleClick(self.modifiers.clone(),self.start),lowlevel);
         }
     }
 
@@ -86,12 +133,16 @@ impl StateMachine {
         match (&mut self.drag,kind) {
             (None,MouseEventKind::Down) => {
                 self.drag = Some(DragState::new(config,lowlevel,current));
+                self.start = *current;
+                self.modifiers = lowlevel.modifiers();
             },
             (Some(drag_state),MouseEventKind::Move) => {
                 drag_state.drag_continue(config,current);
             },
             (Some(drag_state),MouseEventKind::Up) => {
-                drag_state.drag_finished(config,current);
+                if !drag_state.drag_finished(config,current) {
+                    self.click(config,lowlevel);
+                }
                 self.drag = None;
             },
             _ => {}
