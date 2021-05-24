@@ -1,6 +1,5 @@
 use crate::util::{ Message };
-use super::{ lowlevel::LowLevelState};
-use super::lowlevel::Modifiers;
+use crate::input::low::lowlevel::{ LowLevelState, Modifiers };
 use js_sys::Date;
 use super::drag::DragState;
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
@@ -9,7 +8,7 @@ use crate::input::InputEventKind;
 pub(crate) struct PointerConfig {
     pub click_radius: f64, // px
     pub hold_delay: f64, // ms
-    pub multiclick_time: f64
+    pub multiclick_time: f64 // ms
 }
 
 impl PointerConfig {
@@ -23,7 +22,7 @@ impl PointerConfig {
 }
 
 #[derive(Debug)]
-pub enum PointerAction {
+pub(super) enum PointerAction {
     RunningDrag(Modifiers,(f64,f64)),
     RunningHold(Modifiers,(f64,f64)),
     Drag(Modifiers,(f64,f64)),
@@ -140,6 +139,12 @@ impl Pointer {
                 self.drag = None;
             },
             _ => {}
+        }
+    }
+
+    pub(crate) fn wheel_event(&mut self, lowlevel: &LowLevelState, position: &(f64,f64), amount: f64) {
+        for (kind,args) in PointerAction::Wheel(lowlevel.modifiers(),amount,*position).map(lowlevel) {
+            lowlevel.send(kind,true,&args);
         }
     }
 }

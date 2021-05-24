@@ -3,7 +3,7 @@ use crate::run::PgPeregrineConfig;
 use web_sys::{ MouseEvent, Event, WheelEvent };
 use crate::util::{ Message };
 use super::{event::{ EventSystem }, lowlevel::LowLevelState};
-use super::pointer::{ Pointer, PointerEventKind, PointerConfig, PointerAction };
+use crate::input::low::pointer::pointer::{ Pointer, PointerEventKind, PointerConfig };
 
 pub(super) struct MouseEventHandler {
     pointer: Pointer,
@@ -49,11 +49,7 @@ impl MouseEventHandler {
     }
 
     fn wheel_event(&mut self, event: &WheelEvent) {
-        let amount = self.wheel_amount(event);
-        let pos = self.position;
-        for (kind,args) in PointerAction::Wheel(self.lowlevel.modifiers(),amount,pos).map(&self.lowlevel) {
-            self.lowlevel.send(kind,true,&args);
-        }
+        self.pointer.wheel_event(&self.lowlevel,&self.position,self.wheel_amount(event));
         event.stop_propagation();
         event.prevent_default();
     }

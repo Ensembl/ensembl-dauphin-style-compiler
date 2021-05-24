@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
-use super::{ lowlevel::LowLevelState};
-use super::lowlevel::Modifiers;
+use crate::input::low::lowlevel::LowLevelState;
+use crate::input::low::lowlevel::Modifiers;
 use super::pointer::{ PointerConfig, PointerAction };
 
 pub struct DragStateData {
