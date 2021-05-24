@@ -73,7 +73,7 @@ pub struct Input {
 
 impl Input {
     pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
-        let mut low_level = LowLevelInput::new(dom,config)?;
+        let mut low_level = LowLevelInput::new(dom,commander,config)?;
         Physics::new(config,&mut low_level,api,commander)?;
         debug_register(config,&mut low_level,api)?;
         Ok(Input {

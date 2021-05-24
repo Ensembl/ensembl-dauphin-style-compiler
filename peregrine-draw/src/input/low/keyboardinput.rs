@@ -6,7 +6,7 @@ use web_sys::{ KeyboardEvent, HtmlElement, Event };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
 use super::event::{ EventSystem };
-use super::lowlevel::Modifiers;
+use super::lowlevel::{ Modifiers, LowLevelState };
 use js_sys::Date;
 use super::mapping::InputMap;
 
@@ -16,30 +16,21 @@ enum KeyboardEventKind {
 }
 
 pub(super) struct KeyboardEventHandler {
-    distributor: Distributor<InputEvent>,
-    mapping: InputMap,
-    current: HashSet<InputEventKind>,
-    modifiers: Arc<Mutex<Modifiers>>
+    state: LowLevelState,
+    current: HashSet<InputEventKind>
 }
 
 impl KeyboardEventHandler {
-    fn new(distributor: &Distributor<InputEvent>, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> KeyboardEventHandler {
+    fn new(state: &LowLevelState) -> KeyboardEventHandler {
         KeyboardEventHandler {
-            distributor: distributor.clone(),
-            mapping: mapping.clone(),
+            state: state.clone(),
             current: HashSet::new(),
-            modifiers: modifiers.clone()
         }
     }
 
     fn abandon(&mut self, _event: &Event) {
         for kind in self.current.drain() {
-            self.distributor.send(InputEvent {
-                details: kind,
-                start: false,
-                amount: vec![],
-                timestamp_ms: Date::now()
-            })
+            self.state.send(kind,false,&[]);
         }
     }
 
@@ -49,20 +40,15 @@ impl KeyboardEventHandler {
             control: event.ctrl_key() || event.meta_key(),
             alt: event.alt_key()
         };
-        *self.modifiers.lock().unwrap() = modifiers.clone();
-        if let Some((kind,args)) = self.mapping.map(&event.key(),&modifiers) {
-            let down = match event_kind {
-                KeyboardEventKind::Down => true,
-                KeyboardEventKind::Up => false
-            };
+        self.state.update_modifiers(modifiers.clone());
+        let down = match event_kind {
+            KeyboardEventKind::Down => true,
+            KeyboardEventKind::Up => false
+        };
+        if let Some((kind,args)) = self.state.map(&event.key(),&modifiers) {
             if self.current.contains(&kind) != down { // ie not a repeat
                 if down { self.current.insert(kind.clone()); } else { self.current.remove(&kind); }
-                self.distributor.send(InputEvent {
-                    details: kind,
-                    start: down,
-                    amount: args,
-                    timestamp_ms: Date::now()
-                })
+                self.state.send(kind,down,&args);
             }
             event.stop_propagation();
             event.prevent_default();
@@ -70,9 +56,9 @@ impl KeyboardEventHandler {
     }
 }
 
-pub(super) fn keyboard_events(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<EventSystem<KeyboardEventHandler>,Message> {
-    let body = dom.body();
-    let mut events = EventSystem::new(KeyboardEventHandler::new(distributor,mapping,modifiers));
+pub(super) fn keyboard_events(state: &LowLevelState) -> Result<EventSystem<KeyboardEventHandler>,Message> {
+    let body = state.dom().body();
+    let mut events = EventSystem::new(KeyboardEventHandler::new(state));
     events.add(body,"keyup",|handler,event| {
         handler.keyboard_event(&KeyboardEventKind::Up,event);
     })?;

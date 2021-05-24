@@ -1,20 +1,29 @@
-use crate::util::error::{ confused_browser, confused_browser_option };
-use std::collections::{ HashMap, HashSet };
+use commander::cdr_timer;
 use std::sync::{ Arc, Mutex };
-use crate::PeregrineDom;
-use wasm_bindgen::prelude::*;
-use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent, window, Window };
+use crate::{PeregrineDom, PgCommanderWeb, run::{PgPeregrineConfig, PgConfigKey}};
+use peregrine_data::PgCommander;
+use web_sys::{ MouseEvent, HtmlElement, Event, WheelEvent };
 use crate::input::{ InputEvent, InputEventKind, Distributor };
 use crate::util::{ Message };
-use super::event::{ EventSystem };
+use super::{event::{ EventSystem }, lowlevel::LowLevelState};
 use super::mapping::InputMap;
-use crate::run::PgPeregrineConfig;
-use crate::run::{ PgConfigKey };
 use super::lowlevel::Modifiers;
 use js_sys::Date;
-use wasm_bindgen::JsValue;
-use std::convert::{ TryInto, TryFrom };
-use wasm_bindgen::JsCast;
+use super::drag::DragState;
+
+pub(super) struct MouseConfig {
+    pub click_radius: f64, // px
+    pub hold_delay: f64 // ms
+}
+
+impl MouseConfig {
+    fn new(config: &PgPeregrineConfig) -> Result<MouseConfig,Message> {
+        Ok(MouseConfig {
+            click_radius: config.get_f64(&PgConfigKey::MouseClickRadius)?,
+            hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?
+        })
+    }
+}
 
 #[derive(Clone,Debug)]
 enum MouseEventKind {
@@ -23,29 +32,36 @@ enum MouseEventKind {
     Move
 }
 
-pub enum StateMachine {
-    MouseUp,
-    DragInProgress(Modifiers,(f64,f64),(f64,f64))
+pub struct StateMachine {
+    drag: Option<DragState>
 }
 
 
 #[derive(Debug)]
 pub enum MouseAction {
     RunningDrag(Modifiers,(f64,f64)),
-    TotalDrag(Modifiers,(f64,f64)),
-    Wheel(Modifiers,f64,(f64,f64))
+    Drag(Modifiers,(f64,f64)),
+    Wheel(Modifiers,f64,(f64,f64)),
+    Click(Modifiers,(f64,f64)),
+    DoubleClick(Modifiers,(f64,f64)),
+    Hold(Modifiers,(f64,f64)),
+    HoldDrag(Modifiers,(f64,f64)),
 }
 
 impl MouseAction {
-    pub fn map(&self, map: &InputMap) -> Vec<(InputEventKind,Vec<f64>)> {
+    pub fn map(&self, state: &LowLevelState) -> Vec<(InputEventKind,Vec<f64>)> {
         let mut out = vec![];
         let (kinds,modifiers) = match self {
             MouseAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
-            MouseAction::TotalDrag(modifiers,amount) => (vec![("TotalDrag",vec![amount.0,amount.1])],modifiers),
-            MouseAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1])],modifiers)
+            MouseAction::Drag(modifiers,amount) => (vec![("Drag",vec![amount.0,amount.1])],modifiers),
+            MouseAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1]),("MirrorWheel",vec![-*amount,pos.0,pos.1])],modifiers),
+            MouseAction::Click(modifiers,pos) => (vec![("Click",vec![pos.0,pos.1])],modifiers),
+            MouseAction::DoubleClick(modifiers,pos) => (vec![("DoubleClick",vec![pos.0,pos.1])],modifiers),
+            MouseAction::Hold(modifiers,pos) => (vec![("Hold",vec![pos.0,pos.1])],modifiers),
+            MouseAction::HoldDrag(modifiers,amount) => (vec![("Hold",vec![amount.0,amount.1])],modifiers),
         };
         for (name,args) in kinds {
-            if let Some((action,map_args)) = map.map(&name,&modifiers) {
+            if let Some((action,map_args)) = state.map(&name,&modifiers) {
                 let mut out_args = args.to_vec();
                 for (i,arg) in map_args.iter().enumerate() {
                     if i < args.len() { out_args[i] = *arg; }
@@ -58,29 +74,26 @@ impl MouseAction {
 }
 
 impl StateMachine {
-    fn process_event(&mut self, current: &(f64,f64), kind: &MouseEventKind, modifiers: &Arc<Mutex<Modifiers>>) -> Vec<MouseAction> {
-        let mut new_state = None;
+    fn new() -> StateMachine {
+        StateMachine {
+            drag: None
+        }
+    }
+
+    fn process_event(&mut self, config: &MouseConfig, lowlevel: &LowLevelState, current: &(f64,f64), kind: &MouseEventKind) -> Vec<MouseAction> {
         let mut emit = vec![];
-        match (&self,kind) {
-            (StateMachine::MouseUp,MouseEventKind::Down) => {
-                new_state = Some(StateMachine::DragInProgress(modifiers.lock().unwrap().clone(),*current,*current));
+        match (&mut self.drag,kind) {
+            (None,MouseEventKind::Down) => {
+                self.drag = Some(DragState::new(config,lowlevel,current));
             },
-            (StateMachine::DragInProgress(modifiers,start,prev),MouseEventKind::Move) => {
-                let delta = (current.0-prev.0,current.1-prev.1);
-                emit.push(MouseAction::RunningDrag(modifiers.clone(),delta));
-                new_state = Some(StateMachine::DragInProgress(modifiers.clone(),*start,*current)); // XXX yuck, clone on critical path
+            (Some(drag_state),MouseEventKind::Move) => {
+                drag_state.drag_continue(&mut emit,config,current);
             },
-            (StateMachine::DragInProgress(modifiers,start,prev),MouseEventKind::Up) => {
-                let delta = (current.0-prev.0,current.1-prev.1);
-                let total = (current.0-start.0,current.1-start.1);
-                emit.push(MouseAction::RunningDrag(modifiers.clone(),delta));
-                emit.push(MouseAction::TotalDrag(modifiers.clone(),total));
-                new_state = Some(StateMachine::MouseUp);
+            (Some(drag_state),MouseEventKind::Up) => {
+                drag_state.drag_finished(&mut emit,config,current);
+                self.drag = None;
             },
             _ => {}
-        }
-        if let Some(state) = new_state.take() {
-            *self = state;
         }
         emit
     }
@@ -88,42 +101,33 @@ impl StateMachine {
 
 pub(super) struct MouseEventHandler {
     state: StateMachine,
-    canvas: HtmlElement,
+    lowlevel: LowLevelState,
     position: (f64,f64),
-    distributor: Distributor<InputEvent>,
-    mapping: InputMap,
-    modifiers: Arc<Mutex<Modifiers>>
+    config: Arc<MouseConfig>,
 }
 
 impl MouseEventHandler {
-    fn new(distributor: &Distributor<InputEvent>, mapping: &InputMap, canvas: &HtmlElement, modifiers: &Arc<Mutex<Modifiers>>) -> MouseEventHandler {
+    fn new(config: Arc<MouseConfig>, lowlevel: &LowLevelState) -> MouseEventHandler {
         MouseEventHandler {
-            state: StateMachine::MouseUp,
-            canvas: canvas.clone(),
+            state: StateMachine::new(),
+            lowlevel: lowlevel.clone(),
             position: (0.,0.),
-            distributor: distributor.clone(),
-            mapping: mapping.clone(),
-            modifiers: modifiers.clone()
+            config
         }
     }
 
     fn abandon(&mut self, _event: &Event) {
-        self.state.process_event(&self.position,&MouseEventKind::Up,&self.modifiers);
+        self.state.process_event(&self.config,&self.lowlevel,&self.position,&MouseEventKind::Up);
     }
 
     fn mouse_event(&mut self, kind: &MouseEventKind, event: &MouseEvent) {
-        let rect = self.canvas.get_bounding_client_rect();
+        let rect = self.lowlevel.dom().canvas_frame().get_bounding_client_rect();
         let x = (event.client_x() as f64) - rect.left();
         let y = (event.client_y() as f64) - rect.top();
         self.position = (x,y);
-        for action in self.state.process_event(&self.position,kind,&self.modifiers) {
-            for (kind,args) in action.map(&self.mapping).drain(..) {
-                self.distributor.send(InputEvent {
-                    details: kind,
-                    start: true,
-                    amount: args,
-                    timestamp_ms: Date::now()
-                }); 
+        for action in self.state.process_event(&self.config,&self.lowlevel,&self.position,kind) {
+            for (kind,args) in action.map(&self.lowlevel).drain(..) {
+                self.lowlevel.send(kind,true,&args);
             }
         }
         match kind {
@@ -145,23 +149,20 @@ impl MouseEventHandler {
     fn wheel_event(&mut self, event: &WheelEvent) {
         let amount = self.wheel_amount(event);
         let pos = self.position;
-        for (kind,args) in MouseAction::Wheel(self.modifiers.lock().unwrap().clone(),amount,pos).map(&self.mapping) {
-            self.distributor.send(InputEvent {
-                details: kind,
-                start: true,
-                amount: args,
-                timestamp_ms: Date::now()
-            }); 
+        for (kind,args) in MouseAction::Wheel(self.lowlevel.modifiers(),amount,pos).map(&self.lowlevel) {
+            self.lowlevel.send(kind,true,&args);
         }
         event.stop_propagation();
         event.prevent_default();
     }
 }
 
-pub(super) fn mouse_events(distributor: &Distributor<InputEvent>, dom: &PeregrineDom, mapping: &InputMap, modifiers: &Arc<Mutex<Modifiers>>) -> Result<EventSystem<MouseEventHandler>,Message> {
+pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState) -> Result<EventSystem<MouseEventHandler>,Message> {
+    let mouse_config = Arc::new(MouseConfig::new(config)?);
+    let dom = state.dom();
     let body = dom.body();
     let canvas = dom.canvas();
-    let mut events = EventSystem::new(MouseEventHandler::new(distributor,mapping,dom.canvas(),modifiers));
+    let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state));
     events.add(canvas,"mousedown", |handler,event| {
         handler.mouse_event(&MouseEventKind::Down,event)
     })?;
@@ -177,7 +178,7 @@ pub(super) fn mouse_events(distributor: &Distributor<InputEvent>, dom: &Peregrin
     events.add(body,"mouseleave",|handler,event| {
         handler.abandon(&event)
     })?;
-    events.add(dom.canvas_frame(),"scroll",|handler,event: &Event| {
+    events.add(dom.canvas_frame(),"scroll",|_,_: &Event| {
     })?;
     Ok(events)
 }

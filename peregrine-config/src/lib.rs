@@ -62,7 +62,6 @@ impl<'a,K: Debug+Clone+PartialEq+Eq+Hash, V: ConfigValue+Clone> Config<'a,K,V> {
 
     pub fn get(&self, key: &K) -> Result<&V,ConfigError> {
         if let Some(v) = self.try_get(key) { return Ok(v); }
-        panic!("A");
         Err(ConfigError::UninitialisedKey(format!("{:?}",key)))
     }
 }

@@ -4,6 +4,7 @@ mod input {
     }
 
     mod low {
+        mod drag;
         mod event;
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
