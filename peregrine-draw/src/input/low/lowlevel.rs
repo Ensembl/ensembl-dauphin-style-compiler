@@ -9,6 +9,8 @@ use crate::input::{ InputEvent, Distributor };
 use super::mapping::InputMap;
 use js_sys::Date;
 use commander::cdr_timer;
+use super::pointer::cursor::{ Cursor, CursorHandle };
+use crate::run::CursorCircumstance;
 
 #[derive(Debug,Clone,Hash,PartialEq,Eq)]
 
@@ -25,7 +27,8 @@ pub struct LowLevelState {
     distributor: Distributor<InputEvent>,
     dom: PeregrineDom,
     mapping: InputMap,
-    modifiers: Arc<Mutex<Modifiers>>
+    modifiers: Arc<Mutex<Modifiers>>,
+    cursor: Cursor
 }
 
 impl LowLevelState {
@@ -39,11 +42,12 @@ impl LowLevelState {
         }));
         let distributor = Distributor::new();
         Ok((LowLevelState {
+            cursor: Cursor::new(dom,config)?,
             dom: dom.clone(),
             commander: commander.clone(),
             distributor: distributor.clone(),
             mapping: mapping.build(),
-            modifiers
+            modifiers,
         },distributor))
     }
 
@@ -74,6 +78,10 @@ impl LowLevelState {
             Ok(())
         }));
     }
+
+    pub fn set_cursor(&self, circ: &CursorCircumstance) -> CursorHandle {
+        self.cursor.set(circ)
+    }
 }
 
 #[derive(Clone)]
@@ -88,6 +96,7 @@ impl LowLevelInput {
         let (state,distributor) = LowLevelState::new(dom,commander,config)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state)?;
+        let cursor = Cursor::new(dom,config)?;
         Ok(LowLevelInput { keyboard, mouse, distributor })
     }
 

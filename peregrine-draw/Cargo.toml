@@ -41,7 +41,7 @@ path="../peregrine-message"
 version = "*"
 features = [
   'AbortController', 'AbortSignal',
-  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d',
+  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration',
   'Document', 'DomRect',
   'Element',
   'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',

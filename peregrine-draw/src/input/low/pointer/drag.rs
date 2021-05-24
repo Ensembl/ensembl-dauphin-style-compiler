@@ -2,6 +2,8 @@ use std::sync::{ Arc, Mutex };
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
 use super::pointer::{ PointerConfig, PointerAction };
+use super::cursor::CursorHandle;
+use crate::run::CursorCircumstance;
 
 pub struct DragStateData {
     lowlevel: LowLevelState,
@@ -10,7 +12,9 @@ pub struct DragStateData {
     prev_pos: (f64,f64),
     dragged: bool,
     hold: bool,
-    alive: bool
+    alive: bool,
+    #[allow(unused)] // keep as guard
+    cursor: Option<CursorHandle>
 }
 
 impl DragStateData {
@@ -22,13 +26,21 @@ impl DragStateData {
             prev_pos: *current,
             dragged: false,
             hold: false,
-            alive: true
+            alive: true,
+            cursor: None
+        }
+    }
+
+    fn click_timer_expired(&mut self) {
+        if self.alive && !self.hold {
+            self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Drag));
         }
     }
 
     fn hold_timer_expired(&mut self) {
         if self.alive && !self.dragged {
             self.hold = true;
+            self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Hold));
             for (kind,args) in PointerAction::SwitchToHold(self.modifiers.clone(),self.start_pos).map(&self.lowlevel) {
                 self.lowlevel.send(kind,true,&args);
             }
@@ -55,6 +67,9 @@ impl DragStateData {
             let total_distance = (current.0-self.start_pos.0,current.1-self.start_pos.1);
             if total_distance.0.abs() + total_distance.1.abs() > config.click_radius {
                 self.dragged = true;
+                if !self.hold {
+                    self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Drag));
+                }
             }
         }
     }
@@ -79,6 +94,7 @@ impl DragStateData {
                 self.emit(&PointerAction::Drag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
             }
         }  
+        self.cursor = None;
         self.dragged
     }
 }
@@ -90,8 +106,13 @@ impl DragState {
         let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,current)));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
+        let drag_cursor_delay = config.drag_cursor_delay;
         lowlevel.timer(hold_time, move || {
             inner2.lock().unwrap().hold_timer_expired();
+        });
+        let inner2 = inner.clone();
+        lowlevel.timer(drag_cursor_delay, move || {
+            inner2.lock().unwrap().click_timer_expired();
         });
         DragState(inner)
     }

@@ -5,6 +5,7 @@ mod input {
 
     mod low {
         mod pointer {
+            pub(crate) mod cursor;
             mod drag;
             pub(super) mod pointer;    
         }
@@ -47,7 +48,7 @@ mod run {
     pub(crate) mod progress;
     mod size;
 
-    pub use self::config::{ PgPeregrineConfig, PgConfigKey };
+    pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };
     pub use self::globalconfig::PeregrineConfig;
     pub use self::dom::PeregrineDom;
     pub use self::api::{ PeregrineAPI };

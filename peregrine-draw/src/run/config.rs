@@ -9,6 +9,23 @@ use crate::input::InputEventKind;
 // XXX chromosome ned-stops
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub enum CursorCircumstance {
+    Default,
+    Drag,
+    Hold
+}
+
+impl CursorCircumstance {
+    pub(crate) fn each() -> Vec<CursorCircumstance> {
+        vec![
+            CursorCircumstance::Default,
+            CursorCircumstance::Drag,
+            CursorCircumstance::Hold
+        ]
+    }
+}
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
     FadeOverlap(bool),
     AnimationFadeRate(bool),
@@ -21,6 +38,8 @@ pub enum PgConfigKey {
     MouseClickRadius, // px (click vs drag)
     MouseHoldDwell, // ms (click vs hold)
     DoubleClickTime, // ms, how long a gap to not be part of double click
+    Cursor(CursorCircumstance), // string, default mouse cursor
+    DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
 }
 
 #[derive(Clone)]
@@ -49,7 +68,11 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
-            ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1250.) },
+            ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1500.) },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Default), name: "mouse.cursor.default", default: &PgConfigValue::StaticStr("default") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Drag), name: "mouse.cursor.hold", default: &PgConfigValue::StaticStr("grabbing") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("ew-resize") },
+            ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },

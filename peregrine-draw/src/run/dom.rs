@@ -89,7 +89,7 @@ impl PeregrineDom {
     pub fn new(el: &Element, html: &str, css: &str) -> Result<PeregrineDom,Message> {
         let dollar = DollarReplace::new();
         let canvas = setup_dom(&dollar,el,html,css)?;
-        let canvas_frame = match find_class(&dollar,&canvas,"$-browser-vanvas-frame")? {
+        let canvas_frame = match find_class(&dollar,&canvas,"$-browser-canvas-frame")? {
             Some(e) => e,
             None => parent(&canvas)?
         };

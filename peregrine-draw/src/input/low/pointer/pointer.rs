@@ -6,6 +6,7 @@ use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
 
 pub(crate) struct PointerConfig {
+    pub drag_cursor_delay: f64, // ms
     pub click_radius: f64, // px
     pub hold_delay: f64, // ms
     pub multiclick_time: f64 // ms
@@ -14,6 +15,7 @@ pub(crate) struct PointerConfig {
 impl PointerConfig {
     pub fn new(config: &PgPeregrineConfig) -> Result<PointerConfig,Message> {
         Ok(PointerConfig {
+            drag_cursor_delay: config.get_f64(&PgConfigKey::DragCursorDelay)?,
             click_radius: config.get_f64(&PgConfigKey::MouseClickRadius)?,
             hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?,
             multiclick_time: config.get_f64(&PgConfigKey::DoubleClickTime)?
