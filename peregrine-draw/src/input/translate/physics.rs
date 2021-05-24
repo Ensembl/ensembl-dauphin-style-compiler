@@ -192,7 +192,7 @@ impl Physics {
         loop {
             self.state.lock().unwrap().physics_step(api)?;
             cdr_tick(1).await;
-            self.physics_needed.wait_until_needed().await;
+            //self.physics_needed.wait_until_needed().await;
         }
     }
 

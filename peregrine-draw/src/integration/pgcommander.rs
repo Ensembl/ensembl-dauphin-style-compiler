@@ -49,15 +49,17 @@ pub fn js_panic(e: Result<(),Message>) {
 }
 
 struct CommanderSleepState {
-    raf_pending: Option<Closure<dyn Fn()>>,
+    raf_pending: bool,
+    raf_closure: Option<Closure<dyn Fn()>>,
+    timer_closure: Option<Closure<dyn Fn()>>,
     quantity: Arc<Mutex<SleepQuantity>>,
-    timeout: Option<(Closure<dyn Fn()>,i32)>
+    timeout: Option<i32>
 }
 
 #[derive(Clone)]
 struct CommanderState {
     sleep_state: Arc<Mutex<CommanderSleepState>>,
-    executor: Arc<Mutex<Executor>>
+    executor: Arc<Mutex<Executor>>,
 }
 
 impl CommanderState {
@@ -66,15 +68,12 @@ impl CommanderState {
     }
 
     fn raf_tick(&self) {
-        self.sleep_state.lock().unwrap().raf_pending = None;
+        self.sleep_state.lock().unwrap().raf_pending = false;
         self.tick();
         js_panic(self.schedule());
     }
 
     fn timer_tick(&self) {
-        if let Some((closure,_handle)) = self.sleep_state.lock().unwrap().timeout.take() {
-            drop(closure);
-        }
         self.sleep_state.lock().unwrap().timeout.take();
         self.tick();
         js_panic(self.schedule());
@@ -86,36 +85,28 @@ impl CommanderState {
     fn schedule(&self) -> Result<(),Message> {
         let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
         let mut state = self.sleep_state.lock().unwrap();
-        if let Some((_,handle)) = state.timeout.take() {
+        if let Some(handle) = state.timeout.take() {
             window.clear_timeout_with_handle(handle);
         }
         let quantity = state.quantity.lock().unwrap().clone();
         match quantity {
             SleepQuantity::Yesterday => {
                 let handle = self.clone();
-                let closure = Closure::wrap(Box::new(move || {
-                    handle.timer_tick();
-                }) as Box<dyn Fn()>);
-                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),0).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout A: {:?}",e)))?;
-                state.timeout = Some((closure,handle));
+                let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
+                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),0).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout A: {:?}",e)))?;
+                state.timeout = Some(handle);
             },
             SleepQuantity::Forever => {},
             SleepQuantity::None => {
-                let handle = self.clone();
-                if state.raf_pending.is_none() {
-                    state.raf_pending = Some(Closure::wrap(Box::new(move || {
-                        handle.raf_tick()
-                    })));
-                    window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback: {:?}",e.as_string())))?;
+                if !state.raf_pending {
+                    state.raf_pending = true;
+                    window.request_animation_frame(state.raf_closure.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback: {:?}",e.as_string())))?;
                 }
             },
             SleepQuantity::Time(t) => {
-                let handle = self.clone();
-                let closure = Closure::wrap(Box::new(move || {
-                    handle.timer_tick()
-                }) as Box<dyn Fn()>);
-                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
-                state.timeout = Some((closure,handle));
+                let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
+                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
+                state.timeout = Some(handle);
             }
         }
         Ok(())
@@ -132,9 +123,11 @@ impl PgCommanderWeb {
     pub fn new(dom: &PeregrineDom) -> Result<PgCommanderWeb,Message> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
-            raf_pending: None,
+            raf_pending: false,
             quantity: quantity.clone(),
-            timeout: None
+            timeout: None,
+            raf_closure: None,
+            timer_closure: None,
         }));
         let (bell_sender, bell_receiver) = make_bell(dom.body())?;
         let integration = PgIntegration {
@@ -145,6 +138,14 @@ impl PgCommanderWeb {
             sleep_state,
             executor: Arc::new(Mutex::new(Executor::new(integration)))
         };
+        let state2 = state.clone();
+        state.sleep_state.lock().unwrap().raf_closure = Some(Closure::wrap(Box::new(move || {
+            state2.raf_tick()
+        })));
+        let state2 = state.clone();
+        state.sleep_state.lock().unwrap().timer_closure = Some(Closure::wrap(Box::new(move || {
+            state2.timer_tick()
+        })));
         let mut out = PgCommanderWeb {
             state: state.clone(),
             bell_receiver
