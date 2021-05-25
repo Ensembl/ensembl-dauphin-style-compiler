@@ -104,7 +104,6 @@ mod util {
     pub(crate) mod message;
     pub(crate) mod monostable;
     pub(crate) mod resizeobserver;
-    pub(crate) mod safeelement;
     pub(crate) mod needed;
 
     #[cfg(blackbox)]
