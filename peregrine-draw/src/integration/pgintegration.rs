@@ -6,7 +6,6 @@ use crate::{run::inner::TargetManager, train::GlTrainSet};
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
-use crate::run::inner::Target;
 
 pub struct PgIntegration {
     channel: PgChannel,

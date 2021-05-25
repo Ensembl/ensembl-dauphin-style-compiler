@@ -9,7 +9,6 @@ use js_sys::Date;
 use super::bell::{ BellReceiver, make_bell, BellSender };
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
-use crate::PeregrineDom;
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -63,18 +62,33 @@ struct CommanderState {
 }
 
 impl CommanderState {
+    fn yesterday(&self) {
+        let window = web_sys::window().unwrap(); // XXX errors
+        let mut state = self.sleep_state.lock().unwrap();
+        if let Some(handle) = state.timeout.take() {
+            window.clear_timeout_with_handle(handle);
+        }
+        let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
+        let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),0).ok(); // XXX errors
+        state.timeout = handle;
+    }
+
     fn tick(&self) {
         self.executor.lock().unwrap().tick(MS_PER_TICK);
     }
 
     fn raf_tick(&self) {
-        self.sleep_state.lock().unwrap().raf_pending = false;
+        let mut state = self.sleep_state.lock().unwrap();
+        state.raf_pending = false;
+        drop(state);
         self.tick();
         js_panic(self.schedule());
     }
 
     fn timer_tick(&self) {
-        self.sleep_state.lock().unwrap().timeout.take();
+        let mut state = self.sleep_state.lock().unwrap();
+        state.timeout.take();
+        drop(state);
         self.tick();
         js_panic(self.schedule());
     }
@@ -85,16 +99,11 @@ impl CommanderState {
     fn schedule(&self) -> Result<(),Message> {
         let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
         let mut state = self.sleep_state.lock().unwrap();
-        if let Some(handle) = state.timeout.take() {
-            window.clear_timeout_with_handle(handle);
-        }
         let quantity = state.quantity.lock().unwrap().clone();
         match quantity {
             SleepQuantity::Yesterday => {
-                let handle = self.clone();
-                let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
-                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),0).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout A: {:?}",e)))?;
-                state.timeout = Some(handle);
+                drop(state);
+                self.yesterday();
             },
             SleepQuantity::Forever => {},
             SleepQuantity::None => {
@@ -106,6 +115,9 @@ impl CommanderState {
             SleepQuantity::Time(t) => {
                 let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
                 let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
+                if let Some(handle) = state.timeout.take() {
+                    window.clear_timeout_with_handle(handle);
+                }        
                 state.timeout = Some(handle);
             }
         }
@@ -120,7 +132,7 @@ pub struct PgCommanderWeb {
 }
 
 impl PgCommanderWeb {
-    pub fn new(dom: &PeregrineDom) -> Result<PgCommanderWeb,Message> {
+    pub fn new() -> Result<PgCommanderWeb,Message> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             raf_pending: false,
@@ -129,7 +141,7 @@ impl PgCommanderWeb {
             raf_closure: None,
             timer_closure: None,
         }));
-        let (bell_sender, bell_receiver) = make_bell(dom.body())?;
+        let (bell_sender, bell_receiver) = make_bell()?;
         let integration = PgIntegration {
             quantity,
             bell_sender

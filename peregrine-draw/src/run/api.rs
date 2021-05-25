@@ -181,7 +181,7 @@ impl PeregrineAPI {
     }
 
     pub fn run(&self, config: PeregrineConfig, dom: PeregrineDom) -> Result<PgCommanderWeb,Message> {
-        let commander = PgCommanderWeb::new(&dom)?;
+        let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
         *self.input.lock().unwrap() = Some(Input::new(&dom,&configs.draw,&self,&commander)?);
