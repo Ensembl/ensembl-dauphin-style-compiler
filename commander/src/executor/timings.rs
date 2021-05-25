@@ -21,17 +21,17 @@ impl ExecutorTimings {
         }
     }
     
-    pub(crate) fn check_timers(&self, tasks: &TaskContainer) {
+    pub(crate) fn run_timers(&self, tasks: &TaskContainer) {
         let now = self.integration.current_time();
         let (timers,ticks) = (&self.timers,&self.ticks);
         timers.tidy_handles(|h| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true) );
         ticks.tidy_handles(|h| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true) );
-        self.timers.check(OrderedFloat(now));
-        self.ticks.check(self.tick_index);
+        self.timers.run(OrderedFloat(now));
+        self.ticks.run(self.tick_index);
     }
 
-    pub(crate) fn check_ticks(&self, delta: u64) {
-        self.ticks.check(self.tick_index+delta);
+    pub(crate) fn run_ticks(&self) {
+        self.ticks.run(self.tick_index);
     }
 
     pub(crate) fn advance_tick(&mut self) {
@@ -81,10 +81,10 @@ mod test {
         tc.get_agent().add_timer(1.,move || { *shared2.lock().unwrap() = true; });
         x.service();
         integration.set_time(0.5);
-        x.get_tasks().check_timers(x.get_timings());
+        x.get_tasks().run_timers(x.get_timings());
         assert!(!*shared.lock().unwrap());
         integration.set_time(1.5);
-        x.get_tasks().check_timers(x.get_timings());
+        x.get_tasks().run_timers(x.get_timings());
         assert!(*shared.lock().unwrap());
     } 
 }

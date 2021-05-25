@@ -116,8 +116,8 @@ impl ExecutorTasks {
         container_handle
     }
 
-    pub(crate) fn check_timers(&self, timings: &ExecutorTimings) {
-        timings.check_timers(&self.tasks);
+    pub(crate) fn run_timers(&self, timings: &ExecutorTimings) {
+        timings.run_timers(&self.tasks);
     }
 
     pub fn summarize_all(&self) -> Vec<TaskSummary> {

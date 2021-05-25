@@ -63,7 +63,7 @@ impl<T,S> TimersState<T,S> where T: Ord+Clone {
         }
     }
 
-    fn check(&mut self, now: T) {
+    fn run(&mut self, now: T) {
         while let Some(min) = self.min() {
             if min > now { break; }
             if let Some(mut timeouts) = self.timeouts.remove(&min) {
@@ -103,8 +103,8 @@ impl<T,S> TimerSet<T,S> where T: Ord + Clone {
         self.0.lock().unwrap().len()
     }
 
-    pub(super) fn check(&self, now: T) {
-        self.0.lock().unwrap().check(now);
+    pub(super) fn run(&self, now: T) {
+        self.0.lock().unwrap().run(now);
     }
 
     pub(super) fn tidy_handles<F>(&self, tidy_fn: F) where F: Fn(&S) -> bool {
@@ -124,7 +124,7 @@ mod test {
     pub fn test_timer() {
         let mut timers : TimerSet<OrderedFloat<f64>,Option<TaskContainerHandle>> = TimerSet::new();
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
-        timers.check(OrderedFloat(0.));
+        timers.run(OrderedFloat(0.));
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
         let shared = Arc::new(Mutex::new(false));
         let shared2 = shared.clone();
@@ -137,14 +137,14 @@ mod test {
         assert_eq!(Some(OrderedFloat(0.1)),timers.min());
         assert!(!*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
-        timers.check(OrderedFloat(0.5));
+        timers.run(OrderedFloat(0.5));
         assert!(!*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
-        timers.check(OrderedFloat(1.));
+        timers.run(OrderedFloat(1.));
         assert!(*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
         assert_eq!(Some(OrderedFloat(1.1)),timers.min());
-        timers.check(OrderedFloat(1.5));
+        timers.run(OrderedFloat(1.5));
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
         assert_eq!(None,timers.min());
     }
@@ -175,7 +175,7 @@ mod test {
         assert!(timers.0.lock().unwrap().timeouts.len()==3);
         timers.tidy_handles(|h| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true) );
         assert_eq!(1,timers.0.lock().unwrap().timeouts.len());
-        timers.check(OrderedFloat(4.));
+        timers.run(OrderedFloat(4.));
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
     }
 }

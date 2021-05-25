@@ -173,7 +173,7 @@ impl Executor {
     }
 
     fn main_step(&mut self) -> bool {
-        self.get_tasks().check_timers(self.get_timings());
+        self.get_tasks().run_timers(self.get_timings());
         self.service();
         let tick = self.get_timings().get_tick_index();
         let out = self.get_tasks_mut().execute(tick);
@@ -184,7 +184,9 @@ impl Executor {
     fn run_one_tick(&mut self, slice: f64) -> f64 {
         let mut now = self.integration.current_time();
         let expiry = now+slice;
+        self.get_timings().run_ticks();
         loop {
+            self.integration.reentering();
             if !self.main_step() { break; }
             now = self.integration.current_time();
             if now >= expiry { break; }
@@ -193,17 +195,7 @@ impl Executor {
     }
 
     fn calculate_sleep(&self, now: f64) -> SleepQuantity {
-        if self.get_tasks().any_runnable() {
-            SleepQuantity::None
-        } else {
-            self.get_timings().calculate_sleep(now)
-        }
-    }
-
-    fn make_next_tick_runnable(&mut self) {
-        /* advance to next tick and service, to make sure runnable are marked as such */
-        self.get_timings().check_ticks(1);
-        self.service();
+        self.get_timings().calculate_sleep(now)
     }
 
     /// Callback for executing tasks in future, called each periodic tick.
@@ -211,12 +203,9 @@ impl Executor {
     /// `slice` is a time which, when exceeded, causes no more tasks to run in this tick. Note that because our
     /// environment is non-preemptive, this relies on co-operation from the tasks (yielding regularly).
     pub fn tick(&mut self, slice: f64) {
-        self.integration.reentering();
         self.get_timings_mut().advance_tick();
-        self.get_timings().check_ticks(0);
         let now = self.run_one_tick(slice);
         blackbox_value!("commander","num-running",self.tasks.len() as f64);
-        self.make_next_tick_runnable();
         self.integration.sleep(self.calculate_sleep(now));
     }
 }
@@ -341,6 +330,9 @@ mod test {
         assert_eq!(SleepQuantity::Yesterday,integration.get_sleeps().remove(0));
         x.tick(2.);
         assert_eq!(tc.task_state(),TaskResult::Ongoing);
+        assert_eq!(SleepQuantity::None,integration.get_sleeps().remove(0));
+        assert_eq!(SleepQuantity::Yesterday,integration.get_sleeps().remove(0));
+        x.tick(2.);
         assert_eq!(SleepQuantity::Forever,integration.get_sleeps().remove(0));
     }
 
@@ -401,7 +393,6 @@ mod test {
         x.tick(10.);
         integration.set_time(5.);
         x.tick(10.);
-        x.tick(10.);
         integration.set_time(10.);
         x.tick(10.);
         x.tick(10.);
@@ -438,16 +429,9 @@ mod test {
         assert_eq!(vec![
             SleepQuantity::Yesterday,
             SleepQuantity::Time(10.),
-            SleepQuantity::Yesterday
-        ],*integration.get_sleeps());
-        x.tick(10.); /* (Done) => Expiry => Forever */
-        assert_eq!(vec![
-            SleepQuantity::Yesterday,
-            SleepQuantity::Time(10.),
             SleepQuantity::Yesterday,
             SleepQuantity::Forever
-        ],*integration.get_sleeps());
-
+            ],*integration.get_sleeps());
     }
 
     #[test]
