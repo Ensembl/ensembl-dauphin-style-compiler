@@ -187,7 +187,6 @@ impl PeregrineAPI {
         *self.input.lock().unwrap() = Some(Input::new(&dom,&configs.draw,&self,&commander)?);
         let inner = PeregrineInnerAPI::new(configs,dom,&commander)?;
         let self2 = self.clone();
-        let self2 = self.clone();
         inner.add_target_callback(move |p| {
             *self2.target.lock().unwrap() = p.clone();
         });

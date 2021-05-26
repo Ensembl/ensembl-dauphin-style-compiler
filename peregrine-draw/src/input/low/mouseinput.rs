@@ -1,8 +1,8 @@
 use std::sync::Arc;
-use crate::run::PgPeregrineConfig;
+use crate::{run::PgPeregrineConfig };
 use web_sys::{ MouseEvent, Event, WheelEvent };
 use crate::util::{ Message };
-use super::{event::{ EventSystem }, lowlevel::LowLevelState};
+use super::{event::{ EventSystem }, lowlevel::LowLevelState };
 use crate::input::low::pointer::pointer::{ Pointer, PointerEventKind, PointerConfig };
 
 pub(super) struct MouseEventHandler {
@@ -15,7 +15,7 @@ pub(super) struct MouseEventHandler {
 impl MouseEventHandler {
     fn new(config: Arc<PointerConfig>, lowlevel: &LowLevelState) -> MouseEventHandler {
         MouseEventHandler {
-            pointer: Pointer::new(),
+            pointer: Pointer::new(lowlevel,&config),
             lowlevel: lowlevel.clone(),
             position: (0.,0.),
             config

@@ -12,7 +12,9 @@ use crate::input::InputEventKind;
 pub enum CursorCircumstance {
     Default,
     Drag,
-    Hold
+    Hold,
+    WheelNegative,
+    WheelPositive
 }
 
 impl CursorCircumstance {
@@ -20,7 +22,9 @@ impl CursorCircumstance {
         vec![
             CursorCircumstance::Default,
             CursorCircumstance::Drag,
-            CursorCircumstance::Hold
+            CursorCircumstance::Hold,
+            CursorCircumstance::WheelNegative,
+            CursorCircumstance::WheelPositive
         ]
     }
 }
@@ -40,6 +44,7 @@ pub enum PgConfigKey {
     DoubleClickTime, // ms, how long a gap to not be part of double click
     Cursor(CursorCircumstance), // string, default mouse cursor
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
+    WheelTimeout, // ms, how long between wheel events to assume not a wheel
 }
 
 #[derive(Clone)]
@@ -61,7 +66,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Shift-W[500]") },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsOut), name: "keys.pixels-out", default: &PgConfigValue::StaticStr("Shift-S[500] Wheel") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsOut), name: "keys.pixels-out", default: &PgConfigValue::StaticStr("Shift-S[500] MirrorWheel") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullLeft), name: "keys.pull-left", default: &PgConfigValue::StaticStr("a ArrowLeft") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d ArrowRight") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
@@ -69,9 +74,12 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1500.) },
+            ConfigKeyInfo { key: PgConfigKey::WheelTimeout, name: "mouse.wheel-timeout", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Default), name: "mouse.cursor.default", default: &PgConfigValue::StaticStr("default") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::WheelPositive), name: "mouse.cursor.wheel.positive", default: &PgConfigValue::StaticStr("zoom-in col-resize") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::WheelNegative), name: "mouse.cursor.wheel.negative", default: &PgConfigValue::StaticStr("zoom-in col-resize") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Drag), name: "mouse.cursor.hold", default: &PgConfigValue::StaticStr("grabbing") },
-            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("ew-resize") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("pointer") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },

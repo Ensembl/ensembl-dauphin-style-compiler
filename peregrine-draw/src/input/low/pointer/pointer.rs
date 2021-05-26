@@ -1,15 +1,19 @@
-use crate::util::{ Message };
+use std::sync::{ Arc, Mutex };
+use crate::{input::low, run::CursorCircumstance, util::{ Message }};
+use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState, Modifiers };
 use js_sys::Date;
 use super::drag::DragState;
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
+use super::cursor::CursorHandle;
 
 pub(crate) struct PointerConfig {
     pub drag_cursor_delay: f64, // ms
     pub click_radius: f64, // px
     pub hold_delay: f64, // ms
-    pub multiclick_time: f64 // ms
+    pub multiclick_time: f64, // ms
+    pub wheel_timeout: f64, // ms
 }
 
 impl PointerConfig {
@@ -18,7 +22,8 @@ impl PointerConfig {
             drag_cursor_delay: config.get_f64(&PgConfigKey::DragCursorDelay)?,
             click_radius: config.get_f64(&PgConfigKey::MouseClickRadius)?,
             hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?,
-            multiclick_time: config.get_f64(&PgConfigKey::DoubleClickTime)?
+            multiclick_time: config.get_f64(&PgConfigKey::DoubleClickTime)?,
+            wheel_timeout: config.get_f64(&PgConfigKey::WheelTimeout)?
         })
     }
 }
@@ -77,11 +82,15 @@ pub struct Pointer {
     previous_click: Option<RecentClick>,
     start: (f64,f64),
     modifiers: Modifiers,
-    drag: Option<DragState>
+    drag: Option<DragState>,
+    wheel_monostable: Monostable,
+    wheel_cursor: Arc<Mutex<Option<(CursorHandle,CursorCircumstance)>>>
 }
 
 impl Pointer {
-    pub(crate) fn new() -> Pointer {
+    pub(crate) fn new(lowlevel: &LowLevelState, config: &PointerConfig) -> Pointer {
+        let wheel_cursor = Arc::new(Mutex::new(None));
+        let wheel_cursor2 = wheel_cursor.clone();
         Pointer {
             drag: None,
             previous_click: None,
@@ -90,7 +99,11 @@ impl Pointer {
                 shift: false,
                 control: false,
                 alt: false
-            }
+            },
+            wheel_cursor,
+            wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout, move || {
+                wheel_cursor2.lock().unwrap().take();
+            }),
         }
     }
 
@@ -145,6 +158,13 @@ impl Pointer {
     }
 
     pub(crate) fn wheel_event(&mut self, lowlevel: &LowLevelState, position: &(f64,f64), amount: f64) {
+        let circ = if amount > 0. { CursorCircumstance::WheelPositive } else { CursorCircumstance::WheelNegative };
+        let mut cursor = self.wheel_cursor.lock().unwrap();
+        match cursor.as_ref() {
+            Some((_,x)) if x == &circ => {},
+            _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)) }
+        };
+        self.wheel_monostable.set();
         for (kind,args) in PointerAction::Wheel(lowlevel.modifiers(),amount,*position).map(lowlevel) {
             lowlevel.send(kind,true,&args);
         }

@@ -71,6 +71,8 @@ impl LowLevelState {
         })
     }
 
+    pub(super) fn commander(&self) -> &PgCommanderWeb { &self.commander }
+
     pub(super) fn timer<F>(&self, timeout: f64, cb: F) where F: FnOnce() + 'static {
         self.commander.add::<()>("hold-timer", 50, None, None, Box::pin(async move {
             cdr_timer(timeout).await;
@@ -96,7 +98,6 @@ impl LowLevelInput {
         let (state,distributor) = LowLevelState::new(dom,commander,config)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state)?;
-        let cursor = Cursor::new(dom,config)?;
         Ok(LowLevelInput { keyboard, mouse, distributor })
     }
 

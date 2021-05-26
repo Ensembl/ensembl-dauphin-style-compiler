@@ -7,7 +7,7 @@ use crate::run::{ CursorCircumstance, PgConfigKey };
 use crate::util::error::confused_browser;
 
 /* handles help avoid nested stuff causing chaos */
-pub struct CursorHandle(Arc<Mutex<CursorState>>,usize);
+pub struct CursorHandle(Arc<Mutex<CursorState>>,pub usize);
 
 impl Drop for CursorHandle {
     fn drop(&mut self) {
@@ -64,13 +64,16 @@ impl Cursor {
                 .unwrap_or_else(|| {
                     config.get_str(&PgConfigKey::Cursor(CursorCircumstance::Default))
                 })?;
-            configs.insert(circ,value.to_string());
+            let values = value.split_whitespace().map(|x| x.to_string()).collect::<Vec<_>>();
+            configs.insert(circ,values);
         }
-        let el = dom.canvas_frame().clone();
+        let el = dom.canvas_frame().clone();        
         Ok(Cursor {
             state: Arc::new(Mutex::new(CursorState::new(move |circ| {
-                let value = configs.get(&circ).unwrap(); // XXX report error
-                confused_browser(el.style().set_property("cursor",value)).ok(); // XXX report error
+                let values = configs.get(&circ).unwrap(); // XXX report error
+                for value in values {
+                    confused_browser(el.style().set_property("cursor",value)).ok(); // XXX report error
+                }
             }, CursorCircumstance::Default))),
         })
     }
