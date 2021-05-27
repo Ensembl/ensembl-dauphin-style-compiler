@@ -182,11 +182,12 @@ impl Executor {
     }
 
     fn run_one_tick(&mut self, slice: f64) -> f64 {
+        self.integration.reentering();
         let mut now = self.integration.current_time();
         let expiry = now+slice;
         self.get_timings().run_ticks();
         loop {
-            self.integration.reentering();
+            //self.integration.reentering();
             if !self.main_step() { break; }
             now = self.integration.current_time();
             if now >= expiry { break; }
