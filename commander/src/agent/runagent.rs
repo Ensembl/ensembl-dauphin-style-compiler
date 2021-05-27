@@ -18,7 +18,11 @@ pub(crate) struct RunAgent {
     integration: ReenteringIntegration,
     task_action_link: TaskLink<Action>,
     task_request_link: TaskLink<Request>,
-    id: Option<(u64,u64)>
+    id: Option<(u64,u64)>,
+    start_time: Option<f64>,
+    elapsed: f64,
+    run: f64,
+    stats: bool
 }
 
 impl RunAgent {
@@ -30,8 +34,16 @@ impl RunAgent {
             integration: integration.clone(),
             task_action_link: task_action_link.clone(),
             task_request_link: task_request_link.clone(),
-            id: None
+            id: None,
+            start_time: None,
+            elapsed: 0.,
+            run: 0.,
+            stats: false
         }
+    }
+
+    pub(super) fn enable_stats(&mut self) {
+        self.stats = true;
     }
 
     pub(super) fn set_tick_index(&mut self, tick: u64) {
@@ -39,11 +51,8 @@ impl RunAgent {
     }
 
     pub(super) fn get_id(&self) -> Option<(u64,u64)> { self.id }
-
     pub(super) fn get_tick_index(&self) -> u64 { self.tick_index }
-
     pub(super) fn get_current_time(&self) -> f64 { self.integration.current_time() }
-
     pub(super) fn get_config(&self) -> &RunConfig { &self.config }
 
     pub(super) fn new_agent(&self, name: &str, rc: Option<RunConfig>) -> Agent {
@@ -89,6 +98,22 @@ impl RunAgent {
         })));
         promise
     }
+
+    pub(super) fn stats_time(&self) -> Option<f64> {
+        if self.stats { Some(self.get_current_time()) } else { None }
+    }
+
+    pub(super) fn timing(&mut self, start: Option<f64>, end: Option<f64>) {
+        if let (Some(start),Some(end)) = (start,end) {
+            self.run += end-start;
+            if self.start_time.is_none() { self.start_time = Some(start); }
+            self.elapsed = end-self.start_time.unwrap();
+        }
+    }
+
+    pub(super) fn clock_time(&self) -> f64 { self.elapsed }
+    pub(super) fn run_time(&self) -> f64 { self.run }
+    pub(super) fn state_enabled(&self) -> bool { self.stats }
 }
 
 #[cfg(test)]

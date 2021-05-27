@@ -188,7 +188,8 @@ impl Train {
                 self2.set_max(max);
                 objects2.train_set.clone().update_trains(&mut objects2);
                 Ok(())
-            })
+            }),
+            stats: false
         });
         async_complete_task(&objects.base.commander,&objects.base.messages,handle, |e| (e,false));
     }

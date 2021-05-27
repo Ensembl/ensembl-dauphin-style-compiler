@@ -198,6 +198,18 @@ impl Agent {
         self.run_agent().lock(lock)
     }
 
+    // Enable statistics collection. (For times)
+    pub fn enable_stats(&self) { self.run_agent().enable_stats(); }
+
+    // Return clock time since task start (only valid if stats enabled)
+    pub fn clock_time(&self) -> f64 { self.run_agent().clock_time() }
+ 
+    // Return total time spent running (only valid if stats enabled)
+    pub fn run_time(&self) -> f64 { self.run_agent().run_time() }
+
+    // Are stats enabled?
+    pub fn stats_enabled(&self) -> bool { self.run_agent().state_enabled() }
+
     /* overall run task */
 
     fn run_one_destructor(&self, context: &mut Context) {
@@ -237,11 +249,14 @@ impl Agent {
         let waker = self.block_agent().root_block().make_waker();
         let wr = &*waker_ref(&waker);
         let context = &mut Context::from_waker(wr);
+        let slice_start = self.run_agent().stats_time();
         if self.finish_agent().finishing() {
             self.run_one_destructor(context);
         } else {
             self.run_one_main(context,future,result);
         }
+        let slice_end = self.run_agent().stats_time();
+        self.run_agent().timing(slice_start,slice_end);
         self.finish_agent().check_tidiers();
         let out = self.finish_agent().finished();
         cdr_set_agent(None);

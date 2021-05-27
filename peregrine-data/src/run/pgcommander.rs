@@ -2,20 +2,33 @@ use std::sync::MutexGuard;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
-use commander::{ Executor, RunSlot, Lock, RunConfig, TaskHandle, cdr_in_agent, cdr_add, cdr_new_agent, TaskResult, KillReason };
+use commander::{ Agent, Executor, RunSlot, Lock, RunConfig, TaskHandle, cdr_in_agent, cdr_add, cdr_new_agent, TaskResult, KillReason };
 use crate::api::MessageSender;
 use crate::util::message::DataMessage;
+use web_sys::console;
+
+async fn then_print_stats<T>(agent: Agent, f: Pin<Box<Future<Output=T>>>) -> T  {
+    let out = f.await;
+    if agent.stats_enabled() {
+        // XXX not web_sys
+        console::log_1(&format!("task timings took={}ms clock={}ms",agent.run_time(),agent.clock_time()).into());
+    }
+    out
+}
 
 pub fn add_task<R>(commander: &PgCommander, t: PgCommanderTaskSpec<R>) -> TaskHandle<Result<R,DataMessage>> {
     let rc = RunConfig::new(t.slot,t.prio,t.timeout);
+    let mut task = t.task;
     if cdr_in_agent() {
         let agent = cdr_new_agent(Some(rc),&t.name);
-         cdr_add(Box::pin(t.task),agent)
+        if t.stats { agent.enable_stats(); task = Box::pin(then_print_stats(agent.clone(),task)); }
+         cdr_add(Box::pin(task),agent)
     } else {
         let commander = commander.0.lock().unwrap();
         let mut exe = commander.executor();
         let agent = exe.new_agent(&rc,&t.name);
-        exe.add_pin(Box::pin(t.task),agent)
+        if t.stats { agent.enable_stats(); task = Box::pin(then_print_stats(agent.clone(),task)); }
+        exe.add_pin(Box::pin(task),agent)
     }
 }
 
@@ -60,7 +73,8 @@ pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender,
                 messages.send(r.0);
             }
             Ok(())
-        })
+        }),
+        stats: false
     });
 }
 
@@ -77,7 +91,8 @@ pub struct PgCommanderTaskSpec<T> {
     pub prio: i8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
-    pub task: Pin<Box<dyn Future<Output=Result<T,DataMessage>>>>
+    pub task: Pin<Box<dyn Future<Output=Result<T,DataMessage>>>>,
+    pub stats: bool
 }
 
 #[derive(Clone)]

@@ -102,7 +102,8 @@ impl PeregrineApiQueue {
                     let (message,instigator) = self2.queue.get().await;
                     self2.run_message(&mut data2,message,instigator);
                 }
-            })
+            }),
+            stats: false
         });
     }
 

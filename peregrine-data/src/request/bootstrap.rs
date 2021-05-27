@@ -110,7 +110,8 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
             let r = r.unwrap_or(());
             base2.booted.unlock();
             Ok(())
-        })
+        }),
+        stats: false
     });
 }
 

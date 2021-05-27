@@ -137,7 +137,8 @@ impl ProgramLoader {
             task: Box::pin(async move {
                 cache.get(&program_name).await;
                 Ok(())
-            })
+            }),
+            stats: false
         });
     }
 }

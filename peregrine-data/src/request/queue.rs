@@ -114,7 +114,8 @@ impl RequestQueue {
             prio: 4,
             timeout: None,
             slot: None,
-            task: Box::pin(self2.main_loop())
+            task: Box::pin(self2.main_loop()),
+            stats: false
         });
         Ok(())
     }

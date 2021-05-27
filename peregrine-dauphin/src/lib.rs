@@ -65,7 +65,8 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
                 task: Box::pin(async move {
                     stream.add(process.run().await);
                     Ok(())
-                })
+                }),
+                stats: true
             };
             add_task(&commander,task);
         },
@@ -95,6 +96,7 @@ pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &Pere
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,core.clone()))
+        task: Box::pin(main_loop(integration,core.clone())),
+        stats: false
     });
 }

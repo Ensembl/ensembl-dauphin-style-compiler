@@ -185,7 +185,8 @@ impl TrainSet {
                 self2.load_carriages(&mut objects2,&mut loads).await;
                 self2.update_trains(&mut objects2);
                 Ok(())
-            })
+            }),
+            stats: false
         });
         async_complete_task(&objects.base.commander, &objects.base.messages,handle,|e| (e,false));
     }

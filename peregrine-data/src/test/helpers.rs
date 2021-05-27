@@ -71,7 +71,8 @@ impl TestHelpers {
             prio: 4,
             slot: None,
             timeout: None,
-            task: Box::pin(prog)
+            task: Box::pin(prog),
+            stats: false
         });
     }
 }
