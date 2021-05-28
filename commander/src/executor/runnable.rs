@@ -10,6 +10,7 @@ use super::runqueue::RunQueue;
  */
 
 pub(super) struct Runnable {
+    num_used: usize,
     first_used: Option<usize>,
     queues: Vec<Option<RunQueue>>
 }
@@ -17,6 +18,7 @@ pub(super) struct Runnable {
 impl Runnable {
     pub(super) fn new() -> Runnable {
         Runnable {
+            num_used: 0,
             first_used: None,
             queues: vec![]
         }
@@ -28,6 +30,7 @@ impl Runnable {
         }
         if self.queues[index].is_none() {
             self.queues[index] = Some(RunQueue::new());
+            self.num_used += 1;
         }
     }
 
@@ -50,15 +53,27 @@ impl Runnable {
             queue.remove(handle);
             if queue.empty() {
                 self.queues[index] = None;
+                self.num_used -= 1;
                 self.first_used = None;
                 for i in index..self.queues.len() {
                     if self.queues[i].is_some() {
                         self.first_used = Some(i);
+                        break;
                     }
                 }
             }
         }
     }
+
+    fn first_queue(&mut self) -> Option<&mut RunQueue> {
+        if let Some(index) = self.first_used {
+            Some(self.queues[index].as_mut().unwrap())
+        } else {
+            None
+        }
+    }
+
+    pub(super) fn empty(&self) -> bool { self.num_used == 0 }
 
     pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) -> bool {
         if let Some(index) = self.first_used {
