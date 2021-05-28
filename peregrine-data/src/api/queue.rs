@@ -22,6 +22,58 @@ pub enum ApiMessage {
     RegeneraateTrackConfig
 }
 
+struct ApiQueueCampaign {
+    viewport: Viewport
+}
+
+impl ApiQueueCampaign {
+    fn new(viewport: &Viewport) -> ApiQueueCampaign {
+        ApiQueueCampaign {
+            viewport: viewport.clone()
+        }
+    }
+
+    fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage, instigator: Instigator<DataMessage>) {
+        match message {
+            ApiMessage::Ready => {
+                data.dauphin_ready();
+            },
+            ApiMessage::TransitionComplete => {
+                let train_set = data.train_set.clone();
+                train_set.transition_complete(data);
+            },
+            ApiMessage::SetPosition(pos) =>{
+                self.viewport = self.viewport.set_position(pos);
+            },
+            ApiMessage::SetBpPerScreen(scale) => {
+                self.viewport = self.viewport.set_bp_per_screen(scale);
+            },
+            ApiMessage::SetFocus(focus) => {
+                // XXX currently unimplemented
+            },
+            ApiMessage::SetStick(stick) => {
+                self.viewport = self.viewport.set_stick(&stick);
+            },
+            ApiMessage::Bootstrap(channel) => {
+                bootstrap(&data.base,&data.agent_store,channel,instigator);
+            },
+            ApiMessage::SetSwitch(path) => {
+                data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            },
+            ApiMessage::ClearSwitch(path) => {
+                data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            },
+            ApiMessage::RegeneraateTrackConfig => {
+                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            }
+        }
+    }
+
+    fn viewport(&self) -> &Viewport { &self.viewport }
+}
+
 #[derive(Clone)]
 pub struct PeregrineApiQueue {
     queue: CommanderStream<(ApiMessage,Instigator<DataMessage>)>
@@ -99,8 +151,12 @@ impl PeregrineApiQueue {
             timeout: None,
             task: Box::pin(async move {
                 loop {
-                    let (message,instigator) = self2.queue.get().await;
-                    self2.run_message(&mut data2,message,instigator);
+                    let mut messages = self2.queue.get_multi().await;
+                    let mut campagin = ApiQueueCampaign::new(&data2.viewport);
+                    for (message,instigator) in messages.drain(..) {
+                        campagin.run_message(&mut data2,message,instigator);
+                    }
+                    self2.update_viewport(&mut data2,campagin.viewport().clone(),Instigator::new());
                 }
             }),
             stats: false
