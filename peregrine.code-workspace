@@ -2,6 +2,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../genome-browser-service"
+		},
+		{
+			"path": "../ensembl-client"
 		}
 	],
 	"settings": {}
