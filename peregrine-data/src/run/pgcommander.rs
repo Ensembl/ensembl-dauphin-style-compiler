@@ -80,7 +80,7 @@ pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender,
 
 pub trait Commander {
     fn start(&self);
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>>;
+    fn add_task(&self, name: &str, prio: u8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>>;
     fn make_lock(&self) -> Lock;
     fn identity(&self) -> u64;
     fn executor(&self) -> MutexGuard<Executor>;
@@ -88,7 +88,7 @@ pub trait Commander {
 
 pub struct PgCommanderTaskSpec<T> {
     pub name: String,
-    pub prio: i8, 
+    pub prio: u8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
     pub task: Pin<Box<dyn Future<Output=Result<T,DataMessage>>>>,

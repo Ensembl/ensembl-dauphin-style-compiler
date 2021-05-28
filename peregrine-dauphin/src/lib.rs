@@ -66,7 +66,7 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
                     stream.add(process.run().await);
                     Ok(())
                 }),
-                stats: false
+                stats: true
             };
             add_task(&commander,task);
         },

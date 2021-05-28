@@ -131,7 +131,7 @@ impl ProgramLoader {
         let program_name = program_name.clone();
         add_task(&base.commander,PgCommanderTaskSpec {
             name: format!("program background loader"),
-            prio: 100,
+            prio: 20,
             slot: None,
             timeout: None,
             task: Box::pin(async move {

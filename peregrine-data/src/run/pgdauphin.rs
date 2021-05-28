@@ -19,7 +19,7 @@ use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinR
 use crate::lane::programname::ProgramName;
 
 pub struct PgDauphinTaskSpec {
-    pub prio: i8, 
+    pub prio: u8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
     pub program_name: ProgramName,

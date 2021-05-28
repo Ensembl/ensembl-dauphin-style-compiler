@@ -2,55 +2,67 @@ use std::collections::BTreeMap;
 use crate::executor::taskcontainer::{ TaskContainer, TaskContainerHandle };
 use super::runqueue::RunQueue;
 
+/* VERY HOT CODE PATH: BEEFFICIENT NOT PRETTY */
+
 /* A Runnable contains a group of RunQueues. Each RunQueue has a different priority.
  * When asked to run a task, Runnable diverts the call to the RunQueue with the
  * highest priority.
  */
 
 pub(super) struct Runnable {
-    queues: BTreeMap<i8,RunQueue>
+    first_used: Option<usize>,
+    queues: Vec<Option<RunQueue>>
 }
 
 impl Runnable {
     pub(super) fn new() -> Runnable {
         Runnable {
-            queues: BTreeMap::new()
+            first_used: None,
+            queues: vec![]
+        }
+    }
+
+    fn ensure(&mut self, index: usize) {
+        while self.queues.len() <= index {
+            self.queues.push(None);
+        }
+        if self.queues[index].is_none() {
+            self.queues[index] = Some(RunQueue::new());
         }
     }
 
     pub(super) fn add(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
         if let Some(task) = tasks.get(handle) {
-            let queue = self.queues.entry(task.get_priority()).or_insert_with(||
-                RunQueue::new()
-            );
-            queue.add(handle);
+            let index = task.get_priority() as usize;
+            self.ensure(index);
+            self.queues[index].as_mut().unwrap().add(handle);
+            if self.first_used.is_none() || self.first_used.unwrap() > index {
+                self.first_used = Some(index);
+            }
         }
     }
 
     pub(super) fn remove(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
         if let Some(task) = tasks.get(handle) {
-            let mut doomed = false;
-            if let Some(queue) = self.queues.get_mut(&task.get_priority()) {
-                queue.remove(handle);
-                if queue.empty() {
-                    doomed = true;
+            let index = task.get_priority() as usize;
+            self.ensure(index);
+            let queue = self.queues[index].as_mut().unwrap();
+            queue.remove(handle);
+            if queue.empty() {
+                self.queues[index] = None;
+                self.first_used = None;
+                for i in index..self.queues.len() {
+                    if self.queues[i].is_some() {
+                        self.first_used = Some(i);
+                    }
                 }
-            }
-            if doomed {
-                self.queues.remove(&task.get_priority());
             }
         }
     }
 
-    fn first_queue(&mut self) -> Option<&mut RunQueue> {
-        self.queues.iter_mut().next().map(|x| x.1)
-    }
-
-    pub(super) fn empty(&self) -> bool { self.queues.len() == 0 }
-
     pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) -> bool {
-        if let Some(queue) = self.first_queue() {
-            queue.run(tasks,tick_index);
+        if let Some(index) = self.first_used {
+            self.queues[index].as_mut().unwrap().run(tasks,tick_index);
             true
         } else {
             false

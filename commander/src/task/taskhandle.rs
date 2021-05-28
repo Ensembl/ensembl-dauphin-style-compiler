@@ -25,7 +25,7 @@ use owning_ref::MutexGuardRefMut;
 pub(crate) trait ExecutorTaskHandle {
     fn run(&mut self, tick_index: u64);
     fn evict(&self);
-    fn get_priority(&self) -> i8;
+    fn get_priority(&self) -> u8;
     fn summarize(&self) -> Option<TaskSummary>;
     fn kill(&self, reason: KillReason);
     fn set_identity(&self, identity: u64);
@@ -154,7 +154,7 @@ impl<R> TaskHandle<R> where R: 'static {
 }
 
 impl<R> ExecutorTaskHandle for TaskHandle<R> where R: 'static {
-    fn get_priority(&self) -> i8 { self.get_agent().get_config().get_priority() }
+    fn get_priority(&self) -> u8 { self.get_agent().get_config().get_priority() }
 
     fn run(&mut self, tick_index: u64) {
         blackbox_start!("commander",&self.task_key(),"");

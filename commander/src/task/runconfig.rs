@@ -12,7 +12,7 @@ use super::slot::RunSlot;
 #[derive(Clone)]
 pub struct RunConfig {
     slot: Arc<Option<RunSlot>>,
-    priority: i8,
+    priority: u8,
     timeout: Option<f64>
 }
 
@@ -24,7 +24,7 @@ impl RunConfig {
     /// for fine tuning of execution speeds. Don't go overboard with the number of priorities. `timeout`, if given, is a
     /// timeout in time units suppied by the integration, after which the executor will send a kill signal to the
     /// future. Note that, given the non-preemptability of our environment this still requires a "well-behaved" task.
-    pub fn new(slot: Option<RunSlot>, priority: i8, timeout: Option<f64>) -> RunConfig {
+    pub fn new(slot: Option<RunSlot>, priority: u8, timeout: Option<f64>) -> RunConfig {
         RunConfig {
             slot: Arc::new(slot),
             priority,
@@ -36,7 +36,7 @@ impl RunConfig {
     pub fn get_slot(&self) -> &Option<RunSlot> { &self.slot }
 
     /// Return priority passed at creation.
-    pub fn get_priority(&self) -> i8 { self.priority }
+    pub fn get_priority(&self) -> u8 { self.priority }
 
     /// Return timeout passed at creation.
     pub fn get_timeout(&self) -> Option<f64> { self.timeout }
@@ -48,9 +48,9 @@ mod test {
 
     #[test]
     pub fn test_runconfig() {
-        let rc = RunConfig::new(None,-2,Some(10.));
+        let rc = RunConfig::new(None,3,Some(10.));
         assert!(rc.get_slot().is_none());
-        assert_eq!(-2,rc.get_priority());
+        assert_eq!(3,rc.get_priority());
         assert_eq!(Some(10.),rc.get_timeout());
     }
 }
