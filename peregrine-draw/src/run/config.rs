@@ -30,6 +30,11 @@ impl CursorCircumstance {
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub enum DebugFlag {
+    ShowIncomingMessages
+}
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum PgConfigKey {
     FadeOverlap(bool),
     AnimationFadeRate(bool),
@@ -45,13 +50,15 @@ pub enum PgConfigKey {
     Cursor(CursorCircumstance), // string, default mouse cursor
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
+    DebugFlag(DebugFlag)
 }
 
 #[derive(Clone)]
 pub enum PgConfigValue {
     Float(f64),
     String(String),
-    StaticStr(&'static str)
+    StaticStr(&'static str),
+    Boolean(bool)
 }
 
 lazy_static! {
@@ -85,6 +92,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./10000.) },
+            ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) }
         ]};
 }
 
@@ -97,6 +105,8 @@ impl PgConfigValue {
     fn as_f64(&self) -> Result<f64,Message> {
         match self {
             PgConfigValue::Float(x) => Ok(*x),
+            PgConfigValue::Boolean(true) => Ok(1.),
+            PgConfigValue::Boolean(false) => Ok(0.),
             _ => Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as f64"))))
         }
     }
@@ -105,6 +115,8 @@ impl PgConfigValue {
         match self {
             PgConfigValue::String(x) => Some(x),
             PgConfigValue::StaticStr(x) => Some(x),
+            PgConfigValue::Boolean(true) => Some("true"),
+            PgConfigValue::Boolean(false) => Some("false"),
             _ => None
         }
     }
@@ -113,6 +125,25 @@ impl PgConfigValue {
         if let Some(v) = self.try_as_str() { return Ok(v); }
         Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as str"))))
     }
+
+    fn try_as_bool(&self) -> Option<bool> {
+        match self {
+            PgConfigValue::String(x) => Some(truthy(x)),
+            PgConfigValue::StaticStr(x) => Some(truthy(x)),
+            PgConfigValue::Boolean(x) => Some(*x),
+            _ => None
+        }
+    }
+
+    fn as_bool(&self) -> Result<bool,Message> {
+        if let Some(v) = self.try_as_bool() { return Ok(v); }
+        Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as bool"))))
+    }
+}
+
+fn truthy(value: &str) -> bool {
+    let value = value.to_lowercase();
+    value == "1" || value == "true" || value == "yes"
 }
 
 impl ConfigValue for PgConfigValue {
@@ -120,7 +151,8 @@ impl ConfigValue for PgConfigValue {
         Ok(match self {
             PgConfigValue::Float(_) => PgConfigValue::Float(string_to_float(value_str)?),
             PgConfigValue::String(_) => PgConfigValue::String(value_str.to_string()),
-            PgConfigValue::StaticStr(_) => PgConfigValue::String(value_str.to_string())
+            PgConfigValue::StaticStr(_) => PgConfigValue::String(value_str.to_string()),
+            PgConfigValue::Boolean(_) => PgConfigValue::Boolean(truthy(value_str)),
         })
     }
 }
@@ -129,10 +161,10 @@ impl ConfigValue for PgConfigValue {
 fn map_error<R>(e: Result<R,ConfigError>) -> Result<R,Message> {
     e.map_err(|e| Message::DataError(DataMessage::ConfigError(e)))
 }
-pub struct PgPeregrineConfig<'a>(Config<'a,PgConfigKey,PgConfigValue>);
+pub struct PgPeregrineConfig(Config<'static,PgConfigKey,PgConfigValue>);
 
-impl<'a> PgPeregrineConfig<'a> {
-    pub fn new() -> PgPeregrineConfig<'a> {
+impl PgPeregrineConfig {
+    pub fn new() -> PgPeregrineConfig {
         PgPeregrineConfig(Config::new(&CONFIG_CONFIG))
     }
 
@@ -141,8 +173,9 @@ impl<'a> PgPeregrineConfig<'a> {
     }
 
     fn get(&self, key: &PgConfigKey) -> Result<&PgConfigValue,Message> { map_error(self.0.get(key)) }
-
     pub fn get_f64(&self, key: &PgConfigKey) -> Result<f64,Message> { self.get(key)?.as_f64() }
     pub fn try_get_str(&self, key: &PgConfigKey) -> Option<&str> { self.0.try_get(key).and_then(|x| x.try_as_str()) }
     pub fn get_str(&self, key: &PgConfigKey) -> Result<&str,Message> { self.get(key)?.as_str() }
+    pub fn try_get_bool(&self, key: &PgConfigKey) -> Option<bool> { self.0.try_get(key).and_then(|x| x.try_as_bool()) }
+    pub fn get_bool(&self, key: &PgConfigKey) -> Result<bool,Message> { self.get(key)?.as_bool() }
 }

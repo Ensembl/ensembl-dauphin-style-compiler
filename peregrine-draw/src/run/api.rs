@@ -2,13 +2,14 @@ use crate::util::message::{ Message };
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
-use super::progress::Progress;
+use super::{config::DebugFlag, progress::Progress};
 use commander::CommanderStream;
 use peregrine_message::Instigator;
 use super::inner::PeregrineInnerAPI;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
+use crate::run::config::{PgPeregrineConfig, PgConfigKey };
 use crate::input::Input;
 use crate::run::inner::Target;
 
@@ -46,9 +47,11 @@ impl std::fmt::Debug for DrawMessage {
 }
 
 impl DrawMessage {
-    fn run(self, draw: &mut PeregrineInnerAPI, mut instigator: Instigator<Message>) {
-        //use web_sys::console;
-        //console::log_1(&format!("message {:?}",self).into());
+    fn run(self, draw: &mut PeregrineInnerAPI, mut instigator: Instigator<Message>) -> Result<(),Message> {
+        if draw.config().get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages))? {
+            use web_sys::console;
+            console::log_1(&format!("message {:?}",self).into());
+        }
         match self {
             DrawMessage::SetBpPerScreen(bp) => {
                 draw.set_bp_per_screen(bp,&mut instigator);
@@ -86,6 +89,7 @@ impl DrawMessage {
                 instigator.done();
             }
         }
+        Ok(())
     }
 }
 

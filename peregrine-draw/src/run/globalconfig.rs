@@ -4,7 +4,7 @@ use crate::util::Message;
 
 pub(crate) struct CreatedPeregrineConfigs<'a> {
     pub data: PgdPeregrineConfig<'a>,
-    pub(crate) draw: PgPeregrineConfig<'a>
+    pub(crate) draw: PgPeregrineConfig
 }
 
 pub struct PeregrineConfig<'a>(CreatedPeregrineConfigs<'a>);

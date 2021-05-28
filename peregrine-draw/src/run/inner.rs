@@ -11,7 +11,7 @@ use peregrine_data::{
 };
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::Instigator;
-use super::{frame::run_animations, globalconfig::CreatedPeregrineConfigs};
+use super::{PgPeregrineConfig, frame::run_animations, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
@@ -106,6 +106,7 @@ impl TargetManager {
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
+    config: Arc<PgPeregrineConfig>,
     messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
     message_sender: CommanderStream<Message>,
     lock: Lock,
@@ -195,6 +196,7 @@ impl PeregrineInnerAPI {
         let dom2 = dom.clone();
         core.application_ready();
         let mut out = PeregrineInnerAPI {
+            config: Arc::new(config.draw),
             lock: commander.make_lock(),
             messages, message_sender,
             data_api: core.clone(), commander, trainset, stage,  webgl,
@@ -222,6 +224,8 @@ impl PeregrineInnerAPI {
         run_animations(self,dom)?;
         Ok(())
     }
+
+    pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
     pub(super) fn bootstrap(&self, channel: Channel, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.bootstrap(channel));
