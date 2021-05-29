@@ -23,15 +23,14 @@ impl ExecutorTimings {
     
     pub(crate) fn run_timers(&self, tasks: &TaskContainer) {
         let now = self.integration.current_time();
-        let (timers,ticks) = (&self.timers,&self.ticks);
-        timers.tidy_handles(|h| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true) );
-        ticks.tidy_handles(|h| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true) );
-        self.timers.run(OrderedFloat(now));
-        self.ticks.run(self.tick_index);
+        let tidier = |h: &Option<TaskContainerHandle>| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true);
+        self.timers.run(OrderedFloat(now),tidier);
+        self.ticks.run(self.tick_index,tidier);
     }
 
-    pub(crate) fn run_ticks(&self) {
-        self.ticks.run(self.tick_index);
+    pub(crate) fn run_ticks(&self, tasks: &TaskContainer) {
+        let tidier = |h: &Option<TaskContainerHandle>| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true);
+        self.ticks.run(self.tick_index,tidier);
     }
 
     pub(crate) fn advance_tick(&mut self) {

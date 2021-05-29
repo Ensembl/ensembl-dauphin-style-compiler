@@ -120,6 +120,10 @@ impl ExecutorTasks {
         timings.run_timers(&self.tasks);
     }
 
+    pub(crate) fn run_ticks(&self, timings: &ExecutorTimings) {
+        timings.run_ticks(&self.tasks);
+    }
+
     pub fn summarize_all(&self) -> Vec<TaskSummary> {
         let mut out = vec![];
         for th in self.tasks.all_handles().to_vec().iter() {

@@ -4,7 +4,7 @@ use super::taskhandle::ExecutorTaskHandle;
 
 struct FakeTaskState {
     runs: u32,
-    priority:ui8
+    priority: u8
 }
 
 #[derive(Clone)]

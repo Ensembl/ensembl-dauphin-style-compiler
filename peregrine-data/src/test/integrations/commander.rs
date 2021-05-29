@@ -64,7 +64,7 @@ impl Commander for TestCommander {
 
     fn identity(&self) -> u64 { 0 }
 
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
+    fn add_task(&self, name: &str, prio: u8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
         let rc = RunConfig::new(slot,prio,timeout);
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);

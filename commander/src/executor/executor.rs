@@ -185,7 +185,7 @@ impl Executor {
         self.integration.reentering();
         let mut now = self.integration.current_time();
         let expiry = now+slice;
-        self.get_timings().run_ticks();
+        self.get_tasks().run_ticks(self.get_timings());
         loop {
             //self.integration.reentering();
             if !self.main_step() { break; }
@@ -404,11 +404,10 @@ mod test {
             SleepQuantity::Yesterday,
             SleepQuantity::Time(5.),
             SleepQuantity::Yesterday,
-            SleepQuantity::Time(7.),
             SleepQuantity::Time(2.),
             SleepQuantity::Time(2.),
             SleepQuantity::Yesterday,
-            SleepQuantity::Forever,
+            SleepQuantity::Time(9.),
         ],*integration.get_sleeps());
     }
 
@@ -426,6 +425,7 @@ mod test {
         x.add(step,ctx);
         x.tick(10.); /* (Block) time_at_end = 1 => sleep 9 */
         integration.set_time(11.);
+        x.tick(10.);
         x.tick(10.);
         assert_eq!(vec![
             SleepQuantity::Yesterday,
