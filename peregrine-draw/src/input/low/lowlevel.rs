@@ -8,12 +8,11 @@ use super::mouseinput::{ MouseEventHandler };
 use crate::input::{ InputEvent, Distributor };
 use super::mapping::InputMap;
 use js_sys::Date;
-use commander::cdr_timer;
+use peregrine_data::Commander;
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
 #[derive(Debug,Clone,Hash,PartialEq,Eq)]
-
 pub struct Modifiers {
     pub shift: bool,
     pub control: bool,
@@ -74,11 +73,7 @@ impl LowLevelState {
     pub(super) fn commander(&self) -> &PgCommanderWeb { &self.commander }
 
     pub(super) fn timer<F>(&self, timeout: f64, cb: F) where F: FnOnce() + 'static {
-        self.commander.add::<()>("hold-timer", 50, None, None, Box::pin(async move {
-            cdr_timer(timeout).await;
-            cb();
-            Ok(())
-        }));
+        self.commander.executor().add_timer(timeout,Box::new(cb));
     }
 
     pub fn set_cursor(&self, circ: &CursorCircumstance) -> CursorHandle {

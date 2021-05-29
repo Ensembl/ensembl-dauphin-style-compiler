@@ -2,7 +2,6 @@ use std::any::Any;
 use anyhow::{ self, };
 use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_string };
 use crate::run::pgcommander::{ PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
 use super::channel::{ Channel, PacketPriority };
@@ -125,6 +124,7 @@ mod test {
     use crate::test::helpers::{ TestHelpers, urlc };
     use crate::util::miscpromises::CountingPromise;
     use crate::api::MessageSender;
+    use crate::util::cbor::{ cbor_array, cbor_string };
 
     #[test]
     fn test_bootstrap() {

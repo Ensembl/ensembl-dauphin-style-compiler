@@ -7,7 +7,7 @@ use crate::api::MessageSender;
 use crate::util::message::DataMessage;
 use web_sys::console;
 
-async fn then_print_stats<T>(agent: Agent, f: Pin<Box<Future<Output=T>>>) -> T  {
+async fn then_print_stats<T>(agent: Agent, f: Pin<Box<dyn Future<Output=T>>>) -> T  {
     let out = f.await;
     if agent.stats_enabled() {
         // XXX not web_sys

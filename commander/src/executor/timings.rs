@@ -5,10 +5,25 @@ use super::taskcontainer::TaskContainer;
 use super::taskcontainerhandle::TaskContainerHandle;
 use super::timerset::TimerSet;
 
+enum TimerType {
+    Task(TaskContainerHandle),
+    Standalone
+}
+
+
+fn gate_fn<'a>(tasks: &'a TaskContainer) -> Box<dyn Fn(&TimerType) -> bool + 'a> {
+    Box::new(move |kind: &TimerType| { 
+        match kind {
+            TimerType::Task(handle) => tasks.get(handle).is_some(),
+            TimerType::Standalone => true
+        }
+    })
+}
+
 pub(crate) struct ExecutorTimings {
     integration: ReenteringIntegration,
-    timers: TimerSet<OrderedFloat<f64>,Option<TaskContainerHandle>>,
-    ticks: TimerSet<u64,Option<TaskContainerHandle>>,
+    timers: TimerSet<OrderedFloat<f64>,TimerType>,
+    ticks: TimerSet<u64,TimerType>,
     tick_index: u64
 }
 
@@ -21,17 +36,17 @@ impl ExecutorTimings {
             tick_index: 0,
         }
     }
-    
+
     pub(crate) fn run_timers(&self, tasks: &TaskContainer) {
         let now = self.integration.current_time();
-        let tidier = |h: &Option<TaskContainerHandle>| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true);
-        self.timers.run(OrderedFloat(now),tidier);
-        self.ticks.run(self.tick_index,tidier);
+        let gate = gate_fn(tasks);
+        self.timers.run(OrderedFloat(now),&gate);
+        self.ticks.run(self.tick_index,&gate);
     }
 
     pub(crate) fn run_ticks(&self, tasks: &TaskContainer) {
-        let tidier = |h: &Option<TaskContainerHandle>| h.as_ref().map(|j| tasks.get(&j).is_some()).unwrap_or(true);
-        self.ticks.run(self.tick_index,tidier);
+        let gate = gate_fn(tasks);
+        self.ticks.run(self.tick_index,&gate);
     }
 
     pub(crate) fn advance_tick(&mut self) {
@@ -42,11 +57,16 @@ impl ExecutorTimings {
 
     pub(crate) fn add_timer(&mut self, handle: &TaskContainerHandle, timeout: f64, callback: Box<dyn FnOnce() + 'static>) {
         let now = self.integration.current_time();
-        self.timers.add(Some(handle.clone()),OrderedFloat(now+timeout),callback);
+        self.timers.add(TimerType::Task(handle.clone()),OrderedFloat(now+timeout),callback);
+    }
+
+    pub(crate) fn add_standalone_timer(&mut self, timeout: f64, callback: Box<dyn FnOnce() + 'static>) {
+        let now = self.integration.current_time();
+        self.timers.add(TimerType::Standalone,OrderedFloat(now+timeout),callback);
     }
 
     pub(crate) fn add_tick(&mut self, handle: &TaskContainerHandle, tick: u64, callback: Box<dyn FnOnce() + 'static>) {
-        self.ticks.add(Some(handle.clone()),tick,callback);
+        self.ticks.add(TimerType::Task(handle.clone()),tick,callback);
     }
 
     pub(crate) fn calculate_sleep(&self, now: f64) -> SleepQuantity {

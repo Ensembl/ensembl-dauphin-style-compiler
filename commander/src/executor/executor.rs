@@ -92,6 +92,10 @@ impl Executor {
         self.try_add_task(Box::new(handle.clone()),agent);
         handle
     }
+    
+    pub fn add_timer(&mut self, timeout: f64, callback: Box<dyn FnOnce() + 'static>) {
+        self.get_timings_mut().add_standalone_timer(timeout,callback);
+    }
 
     fn try_add_task(&mut self, task: Box<dyn ExecutorTaskHandle>, agent: Agent) {
         blackbox_log!("commander","Adding task '{}' to executor",agent.get_name());

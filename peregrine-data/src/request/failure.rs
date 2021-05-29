@@ -1,8 +1,8 @@
 use std::any::Any;
 use anyhow::{ self, };
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_string };
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use crate::util::cbor::{ cbor_string };
+use super::request::{ ResponseType, ResponseBuilderType };
 
 pub struct GeneralFailure {
     message: String

@@ -38,7 +38,7 @@ impl<T,S> TimersState<T,S> where T: Ord+Clone {
         });
     }
 
-    fn run<F>(&mut self, now: T, gate_fn: F) where F: Fn(&S) -> bool {
+    fn run<F>(&mut self, now: T, gate_fn: &F) where F: Fn(&S) -> bool {
         while let Some(min) = self.min() {
             if min > now { break; }
             if let Some(mut timeouts) = self.timeouts.remove(&min) {
@@ -80,7 +80,7 @@ impl<T,S> TimerSet<T,S> where T: Ord + Clone {
         self.0.lock().unwrap().len()
     }
 
-    pub(super) fn run<F>(&self, now: T, gate_fn: F) where F: Fn(&S) -> bool {
+    pub(super) fn run<F>(&self, now: T, gate_fn: &F) where F: Fn(&S) -> bool {
         self.0.lock().unwrap().run(now,gate_fn);
     }
 }

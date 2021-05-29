@@ -1,4 +1,3 @@
-use hashbrown::HashSet;
 use crate::executor::taskcontainer::TaskContainer;
 use crate::executor::taskcontainerhandle::{ TaskContainerHandle, TaskContainerHandleData };
 
@@ -9,7 +8,6 @@ use crate::executor::taskcontainerhandle::{ TaskContainerHandle, TaskContainerHa
  */
 
 struct RunQueueMember {
-    index: usize,
     blocked: bool
 }
 
@@ -53,7 +51,6 @@ impl RunQueue {
     pub(super) fn add(&mut self, handle: &TaskContainerHandle) {
         if self.present.get(handle).is_none() {
             let member = RunQueueMember {
-                index: self.tasks.len(),
                 blocked: false
             };
             self.present.insert(handle,member);
