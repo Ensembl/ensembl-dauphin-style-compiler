@@ -1,5 +1,4 @@
 use binary_heap_plus::{ BinaryHeap, MinComparator };
-use hashbrown::HashSet;
 use crate::task::taskhandle::ExecutorTaskHandle;
 
 /* A TaskContainer is a place to store ExecutorTasks and give them a convenient
@@ -10,7 +9,7 @@ use crate::task::taskhandle::ExecutorTaskHandle;
  */
 
 #[derive(Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]
-pub(crate) struct TaskContainerHandle(usize,u64);
+pub(crate) struct TaskContainerHandle(usize,u64); /* (slot,identity) */
 
 impl TaskContainerHandle {
     pub(crate) fn identity(&self) -> u64 { self.1 }
@@ -18,8 +17,7 @@ impl TaskContainerHandle {
 
 pub(crate) struct TaskContainer {
     free_slots: BinaryHeap<usize,MinComparator>,
-    tasks: Vec<Option<Box<dyn ExecutorTaskHandle>>>,
-    current: HashSet<TaskContainerHandle>,
+    tasks: Vec<Option<(Box<dyn ExecutorTaskHandle>,u64)>>,
     identity: u64
 }
 
@@ -28,7 +26,6 @@ impl TaskContainer {
         TaskContainer {
             free_slots: BinaryHeap::new_min(),
             tasks: Vec::new(),
-            current: HashSet::new(),
             identity: 2
         }
     }
@@ -40,40 +37,42 @@ impl TaskContainer {
         });
         self.tasks[slot] = None;
         let out = TaskContainerHandle(slot,self.identity);
-        self.current.insert(out.clone());
         self.identity += 1;
         out
     }
 
     pub(super) fn all_handles(&self) -> Vec<TaskContainerHandle> {
-        self.current.iter().cloned().collect()
+        self.tasks.iter().enumerate()
+            .filter(|x| x.1.is_some())
+            .map(|(i,x)| TaskContainerHandle(i,x.as_ref().unwrap().1))
+            .collect()
     }
 
     pub(crate) fn set(&mut self, handle: &TaskContainerHandle, task: Box<dyn ExecutorTaskHandle>) {
-        self.tasks[handle.0] = Some(task);
+        self.tasks[handle.0] = Some((task,handle.1));
     }
 
     pub(crate) fn remove(&mut self, handle: &TaskContainerHandle) {
-        if self.current.contains(&handle) {
-            self.current.remove(&handle);
-            self.tasks[handle.0] = None;
-            self.free_slots.push(handle.0);
-        }
+        if self.get(handle).is_none() { return; }
+        self.tasks[handle.0] = None;
+        self.free_slots.push(handle.0);
     }
 
     pub(crate) fn get(&self, handle: &TaskContainerHandle) -> Option<&Box<dyn ExecutorTaskHandle>> { 
-        if self.current.contains(&handle) {
-            self.tasks[handle.0].as_ref()
-        } else {
-            None
+        match self.tasks.get(handle.0) {
+            Some(Some((task,identity))) if handle.1 == *identity => {
+                Some(task)
+            },
+            _ => None
         }
     }
 
     pub(crate) fn get_mut(&mut self, handle: &TaskContainerHandle) -> Option<&mut Box<dyn ExecutorTaskHandle>> {
-        if self.current.contains(&handle) {
-           self.tasks[handle.0].as_mut()
-        } else {
-            None
+        match self.tasks.get_mut(handle.0) {
+            Some(Some((task,identity))) if handle.1 == *identity => {
+                Some(task)
+            },
+            _ => None
         }
     }
 
