@@ -228,6 +228,7 @@ mod executor {
   pub(crate) mod executor;
   pub(crate) mod link;
   pub(crate) mod taskcontainer;
+  pub(crate) mod taskcontainerhandle;
   pub(crate) mod request;
   pub(crate) mod lock;
   mod exetasks;

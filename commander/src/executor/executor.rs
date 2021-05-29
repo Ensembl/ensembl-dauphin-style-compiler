@@ -13,7 +13,7 @@ use super::link::Link;
 use super::lock::{ Lock, LockManager };
 use super::request::Request;
 use super::exetasks::ExecutorTasks;
-use super::taskcontainer::TaskContainerHandle;
+use super::taskcontainerhandle::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
 lazy_static! {

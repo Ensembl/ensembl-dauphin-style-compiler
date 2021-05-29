@@ -1,7 +1,8 @@
 use ordered_float::OrderedFloat;
 use crate::integration::integration::SleepQuantity;
 use crate::integration::reentering::ReenteringIntegration;
-use super::taskcontainer::{ TaskContainer, TaskContainerHandle };
+use super::taskcontainer::TaskContainer;
+use super::taskcontainerhandle::TaskContainerHandle;
 use super::timerset::TimerSet;
 
 pub(crate) struct ExecutorTimings {

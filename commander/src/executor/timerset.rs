@@ -89,7 +89,8 @@ impl<T,S> TimerSet<T,S> where T: Ord + Clone {
 mod test {
     use ordered_float::OrderedFloat;
     use std::sync::{ Arc, Mutex };
-    use crate::executor::taskcontainer::{ TaskContainer, TaskContainerHandle };
+    use crate::executor::taskcontainer::TaskContainer;
+    use crate::executor::taskcontainerhandle::TaskContainerHandle;
     use crate::task::faketask::FakeTask;
     use super::*;
 

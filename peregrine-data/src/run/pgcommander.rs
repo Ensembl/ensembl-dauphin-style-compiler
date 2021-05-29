@@ -60,7 +60,7 @@ pub fn async_complete_task<F>(commander: &PgCommander, messages: &MessageSender,
     let messages = messages.clone();
     add_task(commander,PgCommanderTaskSpec {
         name: format!("catcher"),
-        prio: 10,
+        prio: 8,
         slot: None,
         timeout: None,
         task: Box::pin(async move {

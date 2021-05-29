@@ -4,7 +4,8 @@ use crate::task::slot::RunSlot;
 use crate::task::task::TaskSummary;
 use crate::task::taskhandle::ExecutorTaskHandle;
 use super::runnable::Runnable;
-use super::taskcontainer::{ TaskContainer, TaskContainerHandle };
+use super::taskcontainer::TaskContainer;
+use super::taskcontainerhandle::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
 pub(crate) struct ExecutorTasks {
@@ -48,7 +49,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn block_task(&mut self, handle: &TaskContainerHandle) {
-        self.runnable.remove(&self.tasks,handle);
+        self.runnable.block(&self.tasks,handle);
     }
 
     fn other_using_slot(&self, slot: &RunSlot, handle: &TaskContainerHandle) -> bool {
@@ -73,7 +74,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn unblock_task(&mut self, handle: &TaskContainerHandle) {
-        self.runnable.add(&self.tasks,&handle);
+        self.runnable.unblock(&self.tasks,&handle);
     }
 
     fn remove_from_slot_queue(&mut self, handle: &TaskContainerHandle) {
@@ -98,10 +99,6 @@ impl ExecutorTasks {
 
     pub(crate) fn execute(&mut self, tick: u64) -> bool {
         self.runnable.run(&mut self.tasks,tick)
-    }
-
-    pub(crate) fn any_runnable(&self) -> bool {
-        !self.runnable.empty()
     }
 
     pub(crate) fn summarize(&self, handle: &TaskContainerHandle) -> Option<TaskSummary> {

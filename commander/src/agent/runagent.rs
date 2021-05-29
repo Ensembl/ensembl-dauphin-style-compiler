@@ -4,7 +4,7 @@ use crate::executor::lock::{ Lock, LockGuard };
 use crate::executor::action::Action;
 use crate::executor::link::TaskLink;
 use crate::executor::request::Request;
-use crate::executor::taskcontainer::TaskContainerHandle;
+use crate::executor::taskcontainerhandle::TaskContainerHandle;
 use crate::integration::reentering::ReenteringIntegration;
 use crate::task::runconfig::RunConfig;
 use crate::task::taskhandle::TaskHandle;
