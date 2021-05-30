@@ -61,19 +61,19 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState) ->
     let body = dom.body();
     let canvas = dom.canvas();
     let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state));
-    events.add(canvas,"mousedown", |handler,event| {
+    events.add(canvas,"pointerdown", |handler,event| {
         handler.mouse_event(&PointerEventKind::Down,event)
     })?;
-    events.add(canvas,"mouseup", |handler,event| {
+    events.add(canvas,"pointerup", |handler,event| {
         handler.mouse_event(&PointerEventKind::Up,event)
     })?;
-    events.add(body,"mousemove", |handler,event| {
+    events.add(body,"pointermove", |handler,event| {
         handler.mouse_event(&PointerEventKind::Move,event)
     })?;
     events.add(canvas,"wheel", |handler,event| {
         handler.wheel_event(event)
     })?;
-    events.add(body,"mouseleave",|handler,event| {
+    events.add(body,"pointerleave",|handler,event| {
         handler.abandon(&event)
     })?;
     events.add(dom.canvas_frame(),"scroll",|_,_: &Event| {

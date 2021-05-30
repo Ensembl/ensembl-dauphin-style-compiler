@@ -35,11 +35,7 @@ impl Pen {
         Pen(self.0,self.1,bulk(self.2,len,primary))
     }
 
-    pub fn filter(&self, which: &[bool], primary: bool) -> Pen {
-        Pen(self.0.clone(),self.1.clone(),filter(&self.2,which,primary))
-    }
-
-    pub fn filter2(&self, filter: &DataFilter) -> Pen {
+    pub fn filter(&self, filter: &DataFilter) -> Pen {
         Pen(self.0.clone(),self.1,filter.filter(&self.2))
     }
 }
@@ -61,14 +57,7 @@ impl Colour {
         }
     }
 
-    fn filter(&self, which: &[bool], primary: bool) -> Colour {
-        match self {
-            Colour::Direct(d) => Colour::Direct(filter(&d,which,primary)),
-            Colour::Spot(d) => Colour::Spot(d.clone())
-        }
-    }
-
-    pub fn filter2(&self, filter: &DataFilter) -> Colour {
+    pub fn filter(&self, filter: &DataFilter) -> Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(filter.filter(d)),
             Colour::Spot(d) => Colour::Spot(d.clone())            
@@ -98,18 +87,10 @@ impl Patina {
         }
     }
 
-    pub fn filter(&self, which: &[bool], primary: bool) -> Patina {
+    pub fn filter(&self, filter: &DataFilter) -> Patina {
         match self {
-            Patina::Filled(c) => Patina::Filled(c.filter(which,primary)),
-            Patina::Hollow(c) => Patina::Hollow(c.filter(which,primary)),
-            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter(&v,which,primary))).collect())
-        }
-    }
-
-    pub fn filter2(&self, filter: &DataFilter) -> Patina {
-        match self {
-            Patina::Filled(c) => Patina::Filled(c.filter2(filter)),
-            Patina::Hollow(c) => Patina::Hollow(c.filter2(filter)),
+            Patina::Filled(c) => Patina::Filled(c.filter(filter)),
+            Patina::Hollow(c) => Patina::Hollow(c.filter(filter)),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter.filter(&v))).collect())
         }
     }

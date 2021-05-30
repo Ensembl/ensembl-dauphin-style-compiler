@@ -141,7 +141,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             });
             let mut out = vec![];
             for (kind,filter) in &demerge {
-                out.push(PreparedShape::SpaceBaseRect(area.filter(filter),patina.filter2(filter),filter.filter(&allotment),kind.clone()));
+                out.push(PreparedShape::SpaceBaseRect(area.filter(filter),patina.filter(filter),filter.filter(&allotment),kind.clone()));
             }
             out
         }
