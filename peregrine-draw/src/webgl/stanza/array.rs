@@ -1,4 +1,5 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
+use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::ProcessStanza;
 use super::builder::ProcessStanzaAddable;
@@ -9,13 +10,13 @@ use crate::util::message::Message;
 
 #[derive(Clone)]
 pub(crate) struct ProcessStanzaArray {
-    attribs: Rc<RefCell<KeyedData<AttribHandle,Vec<f64>>>>,
+    attribs: Rc<RefCell<KeyedData<AttribHandle,Vec<f32>>>>,
     len: usize,
     active: Rc<RefCell<bool>>
 }
 
 impl ProcessStanzaArray {
-    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,Vec<f64>>, len: usize) -> ProcessStanzaArray {
+    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,Vec<f32>>, len: usize) -> ProcessStanzaArray {
         ProcessStanzaArray {
             attribs: Rc::new(RefCell::new(maker.make())),
             active: active.clone(),
@@ -23,8 +24,8 @@ impl ProcessStanzaArray {
         }
     }
 
-    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> Result<Option<ProcessStanza>,Message> {
-        ProcessStanza::new_array(context,self.len,values,&self.attribs)
+    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
+        ProcessStanza::new_array(context,aux_array,self.len,values,&self.attribs)
     }
 
     pub(crate) fn close(&mut self) {
@@ -33,13 +34,13 @@ impl ProcessStanzaArray {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaArray {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, _dims: usize) -> Result<(),Message> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, _dims: usize) -> Result<(),Message> {
         // TODO check size
         self.attribs.borrow_mut().get_mut(handle).extend_from_slice(&values);
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
         let mut remaining = self.len * dims;

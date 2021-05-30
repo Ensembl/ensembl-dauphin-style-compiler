@@ -1,4 +1,4 @@
-use std::num::ParseFloatError;
+use std::num::{ParseFloatError, ParseIntError};
 use peregrine_data::{ DataMessage };
 use crate::util::message::Message;
 use lazy_static::lazy_static;
@@ -50,7 +50,8 @@ pub enum PgConfigKey {
     Cursor(CursorCircumstance), // string, default mouse cursor
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
-    DebugFlag(DebugFlag)
+    DebugFlag(DebugFlag),
+    AuxBufferSize, // 4-byte units
 }
 
 #[derive(Clone)]
@@ -58,7 +59,8 @@ pub enum PgConfigValue {
     Float(f64),
     String(String),
     StaticStr(&'static str),
-    Boolean(bool)
+    Boolean(bool),
+    Size(usize)
 }
 
 lazy_static! {
@@ -92,12 +94,17 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./10000.) },
-            ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) }
+            ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
+            ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) }
         ]};
 }
 
 fn string_to_float(value_str: &str) -> Result<f64,String> {
     value_str.parse().map_err(|e: ParseFloatError| e.to_string())
+}
+
+fn string_to_usize(value_str: &str) -> Result<usize,String> {
+    value_str.parse().map_err(|e: ParseIntError| e.to_string())
 }
 
 // XXX macroise
@@ -139,6 +146,18 @@ impl PgConfigValue {
         if let Some(v) = self.try_as_bool() { return Ok(v); }
         Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as bool"))))
     }
+
+    fn try_as_size(&self) -> Option<usize> {
+        match self {
+            PgConfigValue::Size(x) => Some(*x),
+            _ => None
+        }
+    }
+
+    fn as_size(&self) -> Result<usize,Message> {
+        if let Some(v) = self.try_as_size() { return Ok(v); }
+        Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as size"))))
+    }
 }
 
 fn truthy(value: &str) -> bool {
@@ -153,6 +172,7 @@ impl ConfigValue for PgConfigValue {
             PgConfigValue::String(_) => PgConfigValue::String(value_str.to_string()),
             PgConfigValue::StaticStr(_) => PgConfigValue::String(value_str.to_string()),
             PgConfigValue::Boolean(_) => PgConfigValue::Boolean(truthy(value_str)),
+            PgConfigValue::Size(_) => PgConfigValue::Size(string_to_usize(value_str)?)
         })
     }
 }
@@ -178,4 +198,6 @@ impl PgPeregrineConfig {
     pub fn get_str(&self, key: &PgConfigKey) -> Result<&str,Message> { self.get(key)?.as_str() }
     pub fn try_get_bool(&self, key: &PgConfigKey) -> Option<bool> { self.0.try_get(key).and_then(|x| x.try_as_bool()) }
     pub fn get_bool(&self, key: &PgConfigKey) -> Result<bool,Message> { self.get(key)?.as_bool() }
+    pub fn try_get_size(&self, key: &PgConfigKey) -> Option<usize> { self.0.try_get(key).and_then(|x| x.try_as_size()) }
+    pub fn get_size(&self, key: &PgConfigKey) -> Result<usize,Message> { self.get(key)?.as_size() }
 }

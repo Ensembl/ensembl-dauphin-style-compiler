@@ -41,8 +41,8 @@ pub struct TextureDraw(TextureProgram);
 // TODO structify
 // TODO to array utils
 
-fn push(data: &mut Vec<f64>,x: u32, y: u32, size: &(u32,u32)) {
-    data.push((x as f64)/(size.0 as f64)); data.push((y as f64)/(size.1 as f64));
+fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
+    data.push((x as f32)/(size.0 as f32)); data.push((y as f32)/(size.1 as f32));
 }
 
 impl TextureDraw {

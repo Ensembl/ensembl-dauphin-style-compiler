@@ -1,4 +1,5 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
+use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
 use super::stanza::ProcessStanza;
 use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
@@ -10,13 +11,13 @@ use crate::util::message::Message;
 const LIMIT : usize = 16384;
 
 pub(super) struct ProcessStanzaElementsEntry {
-    attribs: KeyedData<AttribHandle,Vec<f64>>,
+    attribs: KeyedData<AttribHandle,Vec<f32>>,
     index: Vec<u16>,
     offset: u16
 }
 
 impl ProcessStanzaElementsEntry {
-    pub(super) fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f64>>) -> ProcessStanzaElementsEntry {
+    pub(super) fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f32>>) -> ProcessStanzaElementsEntry {
         ProcessStanzaElementsEntry {
             attribs: maker.make(),
             index: vec![],
@@ -37,12 +38,12 @@ impl ProcessStanzaElementsEntry {
         self.offset += count * (max_index+1);
     }
 
-    fn add(&mut self, handle: &AttribHandle, values: &[f64]) {
+    fn add(&mut self, handle: &AttribHandle, values: &[f32]) {
         self.attribs.get_mut(handle).extend_from_slice(values);
     }
 
-    pub(super) fn make_stanza(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> Result<Option<ProcessStanza>,Message> {
-        ProcessStanza::new_elements(context,&self.index,values,self.attribs)
+    pub(super) fn make_stanza(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
+        ProcessStanza::new_elements(context,aux_array,&self.index,values,self.attribs)
     }
 }
 
@@ -94,7 +95,7 @@ impl ProcessStanzaElements {
 }
 
 impl ProcessStanzaAddable for ProcessStanzaElements {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let array_size = self.points_per_shape * self.shape_count * dims;
         if values.len() != array_size {
             return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} got {}",array_size,values.len())));
@@ -108,7 +109,7 @@ impl ProcessStanzaAddable for ProcessStanzaElements {
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
         for (entry,shape_count) in &mut self.elements {

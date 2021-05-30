@@ -2,7 +2,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{AttribHandle, GPUSpec, Process, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaElements, Program, ProgramBuilder};
 use peregrine_data::{ SpaceBaseArea, Allotment, Patina, AllotmentPosition, PositionVariant };
-use super::super::util::arrayutil::{ plain_rectangle, hollow_rectangle, rectangle };
+use super::super::util::arrayutil::{ plain_rectangle, hollow_rectangle, rectangle, rectangle64 };
 use crate::stage::stage::{ ReadStage };
 use super::geometrydata::GeometryData;
 use crate::shape::layers::geometry::GeometryProgramName;
@@ -26,28 +26,28 @@ pub enum TrianglesKind {
 }
 
 impl TrianglesKind {
-    fn add(&self, base:&mut Vec<f64>, delta: &mut Vec<f64>, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, width: Option<f64>) {
+    fn add(&self, base:&mut Vec<f32>, delta: &mut Vec<f32>, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, width: Option<f64>) {
         match self {
             TrianglesKind::Track => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let base_y = allotment.position().offset() as f64;
-                    rectangle(base, *top_left.base-left, base_y, *bottom_right.base-left,base_y,width);
-                    rectangle(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    rectangle64(base, *top_left.base-left, base_y, *bottom_right.base-left,base_y,width);
+                    rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }
             },
             TrianglesKind::Base => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_y = flip(allotment);
-                    rectangle(base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,width);
-                    rectangle(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    rectangle64(base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,width);
+                    rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }        
             },
             TrianglesKind::Space => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_x = flip(allotment);
                     let base_y = allotment.position().offset() as f64;
-                    rectangle(base, flip_x, base_y, flip_x,base_y,width);
-                    rectangle(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    rectangle64(base, flip_x, base_y, flip_x,base_y,width);
+                    rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }        
             }
         }

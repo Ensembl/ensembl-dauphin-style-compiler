@@ -1,3 +1,4 @@
+use js_sys::Float32Array;
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
 use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle, AttributeProto };
@@ -115,8 +116,8 @@ impl Program {
         self.textures.data().map::<_,_,()>(|_,t| Ok(TextureValues::new(t.clone()))).unwrap()
     }
 
-    pub(super) fn make_stanzas(&self, context: &WebGlRenderingContext, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
-        stanza_builder.make_stanzas(context,&self.attribs)
+    pub(super) fn make_stanzas(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
+        stanza_builder.make_stanzas(context,aux_array,&self.attribs)
     }
 
     pub(crate) fn select_program(&self, context: &WebGlRenderingContext) -> Result<(),Message> {

@@ -5,6 +5,7 @@ use web_sys::{ WebGlRenderingContext, WebGlBuffer, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;
+use js_sys::Float32Array;
 
 keyed_handle!(AttribHandle);
 
@@ -59,21 +60,23 @@ impl Attribute {
     }
 }
 
-fn create_buffer(context: &WebGlRenderingContext, values: &[f64]) -> Result<WebGlBuffer,Message> {
-    // TODO less big-big to avoid f32 issue
-    let values: Vec<f32> = values.iter().map(|x| (*x) as f32).collect(); let values = &values;
+// TODO less big-big to avoid f32 issue
+fn create_buffer(context: &WebGlRenderingContext, aux_array: &Float32Array, values: &[f32]) -> Result<WebGlBuffer,Message> {
+    let mut local_buffer = None;
+    let values_js = if values.len() <= aux_array.length() as usize {
+        aux_array
+    } else {
+        local_buffer = Some(Float32Array::new_with_length(values.len() as u32));
+        local_buffer.as_ref().unwrap()
+    };
+    unsafe { values_js.set(&Float32Array::view(&values),0) }
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&buffer));
-    // After `Float32Array::view` be very careful not to do any memory allocations before it's dropped.
-    unsafe {
-        let value_array = js_sys::Float32Array::view(values);
-        context.buffer_data_with_array_buffer_view(
-            WebGlRenderingContext::ARRAY_BUFFER,
-            &value_array,
-            WebGlRenderingContext::STATIC_DRAW
-        );
-        drop(value_array);
-    }
+    context.buffer_data_with_opt_array_buffer(
+        WebGlRenderingContext::ARRAY_BUFFER,
+        Some(&values_js.subarray(0,values.len() as u32).buffer()),
+        WebGlRenderingContext::STATIC_DRAW
+    );
     handle_context_errors(context)?;
     Ok(buffer)
 }
@@ -85,9 +88,9 @@ pub(crate) struct AttributeValues {
 }
 
 impl AttributeValues {
-    pub(crate) fn new(object: &Attribute, our_value: Vec<f64>, context: &WebGlRenderingContext) -> Result<AttributeValues,Message> {
+    pub(crate) fn new(object: &Attribute, our_value: &[f32], context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<AttributeValues,Message> {
         Ok(AttributeValues {
-            gl_value: create_buffer(context,&our_value)?,
+            gl_value: create_buffer(context,aux_array,our_value)?,
             arity: object.proto.arity.to_num() as i32,
             location: object.location.unwrap()
         })

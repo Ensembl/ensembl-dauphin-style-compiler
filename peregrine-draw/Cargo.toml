@@ -57,7 +57,7 @@ features = [
 ]
 
 [dependencies.js-sys]
-version = "*"
+version = "^0.3.51"
 
 [dependencies.dauphin_interp]
 version="*"

@@ -6,7 +6,7 @@ use crate::util::message::Message;
 use web_sys::WebGlRenderingContext;
 use crate::webgl::GPUSpec;
 
-pub fn plain_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64) {
+pub fn plain_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32) {
     data.push(left);
     data.push(top);
     data.push(left);
@@ -17,7 +17,7 @@ pub fn plain_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bot
     data.push(bottom);
 }
 
-pub fn hollow_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64, w: f64) {
+pub fn hollow_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32, w: f32) {
     data.push(left+w);
     data.push(top+w);
     data.push(left);
@@ -39,16 +39,20 @@ pub fn hollow_rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bo
     data.push(top);
 }
 
-pub fn rectangle(data: &mut Vec<f64>, left: f64, top: f64, right: f64, bottom: f64, w: Option<f64>){
+pub fn rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32, w: Option<f32>){
     match w {
         Some(w) => hollow_rectangle(data,left,top,right,bottom,w),
         None => plain_rectangle(data,left,top,right,bottom)
     }
 }
 
+pub fn rectangle64(data: &mut Vec<f32>, left: f64, top: f64, right: f64, bottom: f64, w: Option<f64>) {
+    rectangle(data,left as f32,top as f32,right as f32,bottom as f32,w.map(|x| x as f32))
+}
+
 /* convert 0-255 colour indices to 0.0-1.0 */
-pub(crate) fn scale_colour(value: u8) -> f64 {
-    (value as f64)/255.
+pub(crate) fn scale_colour(value: u8) -> f32 {
+    (value as f32)/255.
 }
 
 pub(crate) fn make_rect_elements(process: &mut ProcessBuilder, len: usize, hollow: bool) -> Result<ProcessStanzaElements,Message> {
@@ -60,7 +64,7 @@ pub(crate) fn make_rect_elements(process: &mut ProcessBuilder, len: usize, hollo
 }
 
 /* interleaves pairs (eg interleaving x and y when drawing wiggles) */
-pub(crate) fn interleave_pair(xx: &[f64], yy: &[f64]) -> Vec<f64> {
+pub(crate) fn interleave_pair(xx: &[f32], yy: &[f32]) -> Vec<f32> {
     let mut out = vec![];
     let mut yy_iter = if yy.len()!=0 { yy.iter() } else { [0.].iter() }.cycle();
     for x in xx {

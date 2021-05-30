@@ -185,7 +185,7 @@ impl PeregrineInnerAPI {
             message_sender2.add(message);            
         });
         let target_manager = Arc::new(Mutex::new(TargetManager::new()));
-        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom)?));
+        let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone(),&stage,&target_manager));

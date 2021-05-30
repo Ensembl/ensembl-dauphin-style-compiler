@@ -72,7 +72,7 @@ pub struct Process {
 
 impl Process {
     fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<UniformHandle,TextureValues>, left: f64) -> Result<Process,Message> {
-        let stanzas = program.make_stanzas(gl.context(),&stanza_builder)?;
+        let stanzas = program.make_stanzas(gl.context(),gl.aux_array(),&stanza_builder)?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
             program,

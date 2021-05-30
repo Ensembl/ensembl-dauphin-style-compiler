@@ -1,4 +1,5 @@
 use super::super::program::attribute::{ Attribute, AttributeProto, AttribHandle };
+use js_sys::Float32Array;
 use keyed::{ KeyedValues, KeyedDataMaker };
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
@@ -9,14 +10,14 @@ use std::cell::RefCell;
 use crate::util::message::Message;
 
 pub trait ProcessStanzaAddable {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) -> Result<(),Message>;
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>, dims: usize) ->Result<(),Message>;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message>;
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) ->Result<(),Message>;
 }
 
 pub struct ProcessStanzaBuilder {
     elements: Vec<Rc<RefCell<ProcessStanzaElementsEntry>>>,
     arrays: Vec<ProcessStanzaArray>,
-    maker: KeyedDataMaker<'static,AttribHandle,Vec<f64>>,
+    maker: KeyedDataMaker<'static,AttribHandle,Vec<f32>>,
     active: Rc<RefCell<bool>>
 
 }
@@ -63,12 +64,12 @@ impl ProcessStanzaBuilder {
         Ok(out)
     }
 
-    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
+    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
         if *self.active.borrow() {
             return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
         }
-        let mut out = self.elements.iter().map(|x| x.replace(ProcessStanzaElementsEntry::new(&self.maker)).make_stanza(attribs.data(),context)).collect::<Result<Vec<_>,_>>()?;
-        out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context)).collect::<Result<_,_>>()?);
+        let mut out = self.elements.iter().map(|x| x.replace(ProcessStanzaElementsEntry::new(&self.maker)).make_stanza(attribs.data(),context,aux_array)).collect::<Result<Vec<_>,_>>()?;
+        out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context,aux_array)).collect::<Result<_,_>>()?);
         Ok(out.drain(..).filter(|x| x.is_some()).map(|x| x.unwrap()).collect())
     }
 }

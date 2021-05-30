@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
+use js_sys::Float32Array;
 use keyed::{ KeyedData };
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
@@ -31,24 +32,24 @@ pub(crate) struct ProcessStanza {
 }
 
 impl ProcessStanza {
-    pub(super) fn new_elements(context: &WebGlRenderingContext, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f64>>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) fn new_elements(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f32>>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
                 len: index.len(),
-                attribs: attribs.map_into(|k,v| AttributeValues::new(values.get(&k),v,context))?
+                attribs: attribs.map_into(|k,v| AttributeValues::new(values.get(&k),&v,context,aux_array))?
             }))
         } else {
             Ok(None)
         }
     }
 
-    pub(super) fn new_array(context: &WebGlRenderingContext, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &Rc<RefCell<KeyedData<AttribHandle,Vec<f64>>>>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) fn new_array(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &Rc<RefCell<KeyedData<AttribHandle,Vec<f32>>>>) -> Result<Option<ProcessStanza>,Message> {
         if len > 0 {
             Ok(Some(ProcessStanza {
                 index: None,
                 len,
-                attribs: attribs.replace(KeyedData::new()).map_into(|k,v| AttributeValues::new(values.get(&k),v,context))?
+                attribs: attribs.replace(KeyedData::new()).map_into(|k,v| AttributeValues::new(values.get(&k),&v,context,aux_array))?
             }))
         } else {
             Ok(None)

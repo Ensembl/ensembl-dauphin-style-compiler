@@ -40,7 +40,10 @@ impl WiggleProgram {
             }
             let mut array = process.get_stanza_builder().make_array(pusher.x.len())?;
             apply_left(&mut pusher.x,left);
-            array.add(&self.data,interleave_pair(&pusher.x,&pusher.y),2)?;
+            // XXX apply left earlier to avoid clone
+            let x = pusher.x.iter().map(|x| *x as f32).collect::<Vec<_>>();
+            let y = pusher.x.iter().map(|x| *x as f32).collect::<Vec<_>>();
+            array.add(&self.data,interleave_pair(&x,&y),2)?;
             Ok(array)
         } else {
             Ok(process.get_stanza_builder().make_array(0)?)
