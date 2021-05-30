@@ -128,12 +128,10 @@ impl SpaceBase {
     }
 
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
-        let mut uniform = UniformData::None;
-        for point in self.iter_len(self.max_len) {
-            let exclude = *point.base >= max_value || *point.base < min_value;
-            uniform.add(!exclude);
-        }
-        DataFilter::new(uniform)
+        DataFilter::new(&mut self.iter_len(self.max_len),|point| {
+            let exclude =  *point.base >= max_value || *point.base < min_value;
+            !exclude
+        })
     }
 
     pub fn delta(&self, x_size: &[f64], y_size: &[f64]) -> SpaceBase {
@@ -217,12 +215,10 @@ impl SpaceBaseArea {
 
 impl SpaceBaseArea {
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
-        let mut uniform = UniformData::None;
-        for (top_left,bottom_right) in self.iter() {
+        DataFilter::new(&mut self.iter(),|(top_left,bottom_right)| {
             let exclude = *top_left.base >= max_value || *bottom_right.base < min_value;
-            uniform.add(!exclude);
-        }
-        DataFilter::new(uniform)
+            !exclude
+        })
     }
 
     pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea {

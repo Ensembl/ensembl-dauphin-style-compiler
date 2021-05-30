@@ -151,13 +151,13 @@ impl InterpCommand for ZMenuInterpCommand {
     }
 }
 
-fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<HashMap<String,Vec<String>>> {
-    let mut out = HashMap::new();
+fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<Vec<(String,Vec<String>)>> {
+    let mut out = vec![];
     let value_pos = value_a.iter().zip(value_b.iter().cycle());
     let kv = keys.iter().zip(value_pos.cycle());
     for (key,(value_start,value_length)) in kv {
         let values = &value_d[*value_start..(*value_start+*value_length)];
-        out.insert(key.to_string(),values.to_vec());
+        out.push((key.to_string(),values.to_vec()));
     }
     Ok(out)
 }

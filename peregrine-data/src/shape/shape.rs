@@ -58,12 +58,14 @@ impl Shape {
     pub fn remove_nulls(self) -> Shape {
         match self {
             Shape::SpaceBaseRect(area,patina,allotments) => {
-                let mut filter = DataFilter::new_filter(&allotments, |a| !a.is_null());
+                let mut allotment_iter = allotments.iter();
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
                 filter.set_size(area.len());
                 Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments))
             },
             Shape::Text2(position,pen,text,allotments) => {
-                let mut filter = DataFilter::new_filter(&allotments, |a| !a.is_null());
+                let mut allotment_iter = allotments.iter();
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
                 filter.set_size(position.len());
                 Shape::Text2(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments))
             },

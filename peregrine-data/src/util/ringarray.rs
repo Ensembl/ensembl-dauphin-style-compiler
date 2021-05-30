@@ -109,19 +109,25 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
     }
 }
 
+enum DataFilterType {
+    All,
+    None,
+    Indexes(Vec<usize>)
+}
+
+pub struct DataFilter2 {
+
+}
+
 #[derive(Debug)]
 pub struct DataFilter(UniformData<bool>);
 
 impl DataFilter {
-    pub fn new(uniform: UniformData<bool>) -> DataFilter {
-        DataFilter(uniform)
-    }
-
     pub fn set_size(&mut self, len: usize) {
         self.0.set_size(len)
     }
 
-    pub fn new_filter<F,X>(data: &[X], cb: F) -> DataFilter where F: Fn(&X) -> bool {
+    pub fn new<F,X>(data: &mut dyn Iterator<Item=X>, cb: F) -> DataFilter where F: Fn(X) -> bool {
         let mut uniform = UniformData::None;
         for value in data {
             uniform.add(cb(value));
@@ -150,6 +156,7 @@ impl DataFilter {
         filters.drain(..).map(|(k,u)| (k,DataFilter(u))).collect::<Vec<(K,DataFilter)>>()
     }
 
+    /* VERY HOT CODE PATH: PREFER SPEED OVER ELEGANCE */
     pub fn filter<X: Clone>(&self, other: &[X]) -> Vec<X> {
         if other.len() == 0 { return vec![] }
         match &self.0 {

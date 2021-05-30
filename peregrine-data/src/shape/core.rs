@@ -69,7 +69,15 @@ impl Colour {
 pub enum Patina {
     Filled(Colour),
     Hollow(Colour),
-    ZMenu(ZMenu,HashMap<String,Vec<String>>)
+    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
+}
+
+fn filter_zmenu(h : &Vec<(String,Vec<String>)>, filter: &DataFilter) -> Vec<(String,Vec<String>)> {
+    let mut out = Vec::with_capacity(h.len());
+    for (k,v) in h {
+        out.push((k.to_string(),filter.filter(&v)));
+    }
+    out
 }
 
 impl Patina {
@@ -78,9 +86,9 @@ impl Patina {
             Patina::Filled(c) => Patina::Filled(c.bulk(len,primary)),
             Patina::Hollow(c) => Patina::Hollow(c.bulk(len,primary)),
             Patina::ZMenu(z,mut h) => {
-                let mut new_h  : HashMap<String,Vec<String>> = h.clone();
-                for (k,v) in h.drain() {
-                    new_h.insert(k,if v.len() > 1 { bulk(v,len,primary) } else { v });
+                let mut new_h  = h.clone();
+                for (k,v) in h.drain(..) {
+                    new_h.push((k,if v.len() > 1 { bulk(v,len,primary) } else { v }));
                 }
                 Patina::ZMenu(z,new_h)
             }
@@ -91,7 +99,7 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.filter(filter)),
             Patina::Hollow(c) => Patina::Hollow(c.filter(filter)),
-            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),h.iter().map(|(k,v)| (k.to_string(),filter.filter(&v))).collect())
+            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }
 }
