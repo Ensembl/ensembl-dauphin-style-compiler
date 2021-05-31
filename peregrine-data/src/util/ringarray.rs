@@ -109,74 +109,132 @@ impl<A: Clone+PartialEq+std::fmt::Debug> UniformData<A> {
     }
 }
 
-enum DataFilterType {
-    All,
-    None,
-    Indexes(Vec<usize>)
+pub struct DataFilterBuilder {
+    out: DataFilter,
+    run_start: Option<usize>,
+    most_recent_true: usize
 }
 
-pub struct DataFilter2 {
-
-}
-
-#[derive(Debug)]
-pub struct DataFilter(UniformData<bool>);
-
-impl DataFilter {
-    pub fn set_size(&mut self, len: usize) {
-        self.0.set_size(len)
+impl DataFilterBuilder {
+    pub fn new() -> DataFilterBuilder {
+        DataFilterBuilder {
+            out: DataFilter {
+                ranges: vec![],
+                size: 0,
+                num_set: 0
+            },
+            run_start: None,
+            most_recent_true: 0
+        }
     }
 
-    pub fn new<F,X>(data: &mut dyn Iterator<Item=X>, cb: F) -> DataFilter where F: Fn(X) -> bool {
-        let mut uniform = UniformData::None;
-        for value in data {
-            uniform.add(cb(value));
+    pub fn at(&mut self, index: usize) {
+        self.out.num_set += 1;
+        if let Some(run_start_at) = self.run_start {
+            if index != self.most_recent_true+1 { // prev run ended at self.index
+                self.out.ranges.push((run_start_at,self.most_recent_true-run_start_at+1));
+                self.run_start = Some(index);
+            }
+        } else { // first run
+            self.run_start = Some(index);
         }
-        DataFilter(uniform)
+        self.most_recent_true = index;
+    }
+
+    pub fn finish(mut self, size: usize) -> DataFilter {
+        if let Some(start_at) = self.run_start {
+            self.out.ranges.push((start_at,self.most_recent_true-start_at+1));
+        }
+        self.out.size = size;
+        self.out
+    }
+}
+
+pub struct DataFilter {
+    ranges: Vec<(usize,usize)>,
+    size: usize,
+    num_set: usize
+}
+
+impl DataFilter {
+    pub fn new<F,X>(data: &mut dyn Iterator<Item=X>, cb: F) -> DataFilter where F: Fn(X) -> bool {
+        let mut builder = DataFilterBuilder::new();
+        let mut count = 0;
+        for (i,item) in data.enumerate() {
+            if cb(item) {
+                builder.at(i);
+            }
+            count += 1;
+        }
+        builder.finish(count)
+    }
+
+    fn double_to(&mut self, size: usize) {
+        let orig_range_len = self.ranges.len();
+        for i in 0..orig_range_len {
+            let mut range = (self.ranges[i].0 + self.size, self.ranges[i].1);
+            if range.0 >= size { break; }
+            if range.0 + range.1 > size { range.1 = size - range.0; }
+            self.num_set += range.1;
+            self.ranges.push(range);
+        }
+    }
+
+    fn chop_down(&mut self, size: usize) {
+        self.num_set = 0;
+        let mut new_range_len = 0;
+        for (start,length) in &mut self.ranges {
+            if *start >= size { break; }
+            new_range_len += 1;
+            if *start+*length > size {
+                *length = size-*start;
+                self.num_set += *length;
+                break;
+            } else {
+                self.num_set += *length;
+            }
+        }
+        self.ranges.truncate(new_range_len);
+    }
+
+    pub fn set_size(&mut self, size: usize) {
+        while self.size < size {
+            self.double_to(size);
+        }
+        if self.size > size {
+            self.chop_down(size);
+        }
+        self.size = size;
     }
 
     pub fn demerge<F,X,K: Hash+PartialEq+Eq>(data: &[X],cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
-        let mut position = HashMap::new();
-        let mut filters = vec![];
-        for value in data.iter() {
+        let mut builders = HashMap::new();
+        let mut size = 0;
+        for (i,value) in data.iter().enumerate() {
+            size += 1;
             let kind = cb(value);
-            if position.get(&kind).is_none() {
-                position.insert(kind,filters.len());
-                let kind = cb(value);
-                filters.push((kind,UniformData::None));
-            }
+            builders.entry(kind).or_insert_with(|| DataFilterBuilder::new()).at(i);
         }
-        for value in data.iter() {
-            let kind = cb(value);
-            let index = *position.get(&kind).unwrap();
-            for (i,(_,filter)) in filters.iter_mut().enumerate() {
-                filter.add(index==i);
-            }
-        }
-        filters.drain(..).map(|(k,u)| (k,DataFilter(u))).collect::<Vec<(K,DataFilter)>>()
+        builders.drain().map(|(k,v)| (k,v.finish(size))).collect()
     }
 
     /* VERY HOT CODE PATH: PREFER SPEED OVER ELEGANCE */
     pub fn filter<X: Clone>(&self, other: &[X]) -> Vec<X> {
-        if other.len() == 0 { return vec![] }
-        match &self.0 {
-            UniformData::None => { return vec![]; },
-            UniformData::Uniform(false,_) => { return vec![]; },
-            UniformData::Uniform(true,_) => {
-                if other.len() == 1 {
-                    return vec![other[0].clone()];
-                }
-            },
-            _ => {}
-        }
-        let values = other.iter().cycle();
-        let mut out = vec![];
-        for (pass,value) in self.0.iter().zip(values) {
-           if *pass { out.push(value.clone()) };
+        let other_full_len = other.len();
+        let mut out = Vec::with_capacity(self.num_set);
+        for (start,len) in &self.ranges {
+            let mut other_start = *start % other_full_len;
+            let mut other_len = *len;
+            while other_start + other_len >= other_full_len {
+                out.extend_from_slice(&other[other_start..]);
+                other_len -= other_full_len - other_start;
+                other_start = 0;
+            }
+            out.extend_from_slice(&other[other_start..(other_start+other_len)]);
         }
         out
     }
 
-    pub fn len(&self) -> usize { self.0.len() }
-    pub fn count(&self) -> usize { self.0.count(|f| *f) }
+    pub fn len(&self) -> usize { self.size }
+    pub fn count(&self) -> usize { self.num_set }
 }
