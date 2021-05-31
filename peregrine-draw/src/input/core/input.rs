@@ -55,7 +55,6 @@ impl InputEventKind {
             InputEventKind::DebugAction
         ]
     }
-
 }
 
 #[derive(Debug,Clone)]

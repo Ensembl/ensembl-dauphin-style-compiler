@@ -263,7 +263,11 @@ impl PeregrineInnerAPI {
 
     pub(super) fn debug_action(&self, index: u8) {
         use web_sys::console;
+        use crate::stage::axis::ReadStageAxis;
         console::log_1(&format!("received debug action {}",index).into());
+        if index == 9 {
+            console::log_1(&format!("bp_per_screen {:?}",self.stage.lock().unwrap().x().bp_per_screen()).into());
+        }
     }
 }
 // TODO redraw on track change etc.

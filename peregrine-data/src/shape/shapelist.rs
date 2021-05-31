@@ -26,6 +26,13 @@ impl ShapeListBuilder {
     }
 
     pub fn len(&self) -> usize { self.shapes.len() }
+    pub fn vec_len(&self) -> usize {
+        let mut out = 0;
+        for shape in &self.shapes {
+            out += shape.len();
+        }
+        out
+    }
 
     pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
         if !allotment.is_null() {

@@ -41,19 +41,15 @@ impl Shape {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
+    pub fn len(&self) -> usize {
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments) => {
-                area.len() == 0
-            },
-            Shape::Text2(position,pen,text,allotments) => {
-                position.len() == 0
-            },
-            Shape::Wiggle(x,y,plotter,allotment) => {
-                y.len() == 0
-            }
+            Shape::SpaceBaseRect(area,_,_) => area.len(),
+            Shape::Text2(position,_,_,_) => position.len(),
+            Shape::Wiggle(_,y,_,_) => y.len()
         }
     }
+
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
 
     pub fn remove_nulls(self) -> Shape {
         match self {
