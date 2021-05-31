@@ -28,40 +28,6 @@ impl<'a> SpaceBasePointRef<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct SpaceBaseBuilder {
-    base: UniformData<f64>,
-    normal: UniformData<f64>,
-    tangent: UniformData<f64>,
-
-    max_len: usize
-}
-
-impl SpaceBaseBuilder {
-    pub fn empty() -> SpaceBaseBuilder {
-        SpaceBaseBuilder {
-            base: UniformData::None,
-            normal: UniformData::None,
-            tangent: UniformData::None,
-            max_len: 0
-        }
-    }
-
-    pub fn add(&mut self, point: SpaceBasePoint) {
-        self.base.add(point.base);
-        self.normal.add(point.normal);
-        self.tangent.add(point.tangent);
-        self.max_len += 1;
-    }
-
-    pub fn build(self) -> SpaceBase {
-        SpaceBase::new(
-            self.base.get_compact(),
-            self.normal.get_compact(),
-            self.tangent.get_compact())
-    }
-}
-
 /* If any are empty, all are empty */
 
 #[derive(Debug)]
@@ -128,10 +94,12 @@ impl SpaceBase {
     }
 
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
-        DataFilter::new(&mut self.iter_len(self.max_len),|point| {
-            let exclude =  *point.base >= max_value || *point.base < min_value;
+        let mut filter = DataFilter::new(&mut self.base.iter(),|base| {
+            let exclude =  *base >= max_value || *base < min_value;
             !exclude
-        })
+        });
+        filter.set_size(self.max_len);
+        filter
     }
 
     pub fn delta(&self, x_size: &[f64], y_size: &[f64]) -> SpaceBase {
@@ -215,10 +183,13 @@ impl SpaceBaseArea {
 
 impl SpaceBaseArea {
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
-        DataFilter::new(&mut self.iter(),|(top_left,bottom_right)| {
-            let exclude = *top_left.base >= max_value || *bottom_right.base < min_value;
-            !exclude
-        })
+        let top_left = DataFilter::new(&mut self.0.base.iter(),|base| {
+            *base < max_value
+        });
+        let bottom_right = DataFilter::new(&mut self.1.base.iter(),|base| {
+            *base > min_value
+        });
+        top_left.and(&bottom_right)
     }
 
     pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea {

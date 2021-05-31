@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::iter;
+use std::cmp::max;
 use std::hash::Hash;
 
 pub struct UniformDataIterator<'a,A: std::fmt::Debug> {
@@ -150,6 +150,69 @@ impl DataFilterBuilder {
     }
 }
 
+pub struct DataFilterIterator<'a> {
+    filter: &'a DataFilter,
+    range_index: usize,
+    pos: usize
+}
+
+impl<'a> DataFilterIterator<'a> {
+    fn peek(&mut self) -> Option<usize> {
+        loop {
+            if self.range_index >= self.filter.ranges.len() { return None; }
+            if self.pos < self.filter.ranges[self.range_index].1 { break; }
+            self.pos = 0;
+            self.range_index += 1;
+        }
+        Some(self.filter.ranges[self.range_index].0 + self.pos)
+    }
+
+    fn advance(&mut self, index: usize) {
+        loop {
+            if self.range_index >= self.filter.ranges.len() { return; }
+            let range = &self.filter.ranges[self.range_index];
+            if index >= range.0 && index < range.0 + range.1 {
+                self.pos = index - range.0;
+                return;
+            }
+            self.pos = 0;
+            self.range_index += 1;
+        }
+    }
+}
+
+pub struct LoopingDataFilterIterator<'a> {
+    filter: &'a DataFilter,
+    inner: DataFilterIterator<'a>,
+    base: usize,
+    limit: usize
+}
+
+impl<'a> LoopingDataFilterIterator<'a> {
+    fn peek(&mut self) -> Option<usize> {
+        if self.filter.size == 0 { return None; }
+        loop {
+            if let Some(value) = self.inner.peek() {
+                if self.base + value >= self.limit { return None; }
+                return Some(self.base+value);
+            } else {
+                if self.base >= self.limit { return None; }
+                self.base += self.filter.size;
+                self.inner = self.filter.iter();
+            }
+        }
+    }
+
+    fn advance(&mut self, index: usize) {
+        if index - self.base >= self.filter.size {
+            self.inner = self.filter.iter();
+            self.base = index / self.filter.size;
+        }
+        self.inner.advance(index - self.base);
+    }
+}
+
+#[derive(Clone)]
 pub struct DataFilter {
     ranges: Vec<(usize,usize)>,
     size: usize,
@@ -167,6 +230,23 @@ impl DataFilter {
             count += 1;
         }
         builder.finish(count)
+    }
+
+    pub fn iter<'a>(&'a self) -> DataFilterIterator<'a> {
+        DataFilterIterator {
+            filter: &self,
+            range_index: 0,
+            pos: 0
+        }
+    }
+
+    pub fn iter_num<'a>(&'a self, len: usize) -> LoopingDataFilterIterator<'a> {
+        LoopingDataFilterIterator {
+            filter: &self,
+            inner: self.iter(),
+            base: 0,
+            limit: len
+        }
     }
 
     fn double_to(&mut self, size: usize) {
@@ -205,6 +285,24 @@ impl DataFilter {
             self.chop_down(size);
         }
         self.size = size;
+    }
+
+    pub fn and(&self, other: &DataFilter) -> DataFilter {
+        let len = max(self.len(),other.len());
+        let mut a_iter = self.iter_num(len);
+        let mut b_iter = other.iter_num(len);
+        let mut out = DataFilterBuilder::new();
+        loop {
+            match (a_iter.peek(),b_iter.peek()) {
+                (Some(a),Some(b)) => {
+                    if a == b { out.at(a); }
+                    if a <= b { a_iter.advance(b+1); }
+                    if a >= b { b_iter.advance(a+1); }
+                },
+                _ => { break; }
+            }
+        }
+        out.finish(len)
     }
 
     pub fn demerge<F,X,K: Hash+PartialEq+Eq>(data: &[X],cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
