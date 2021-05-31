@@ -184,10 +184,10 @@ impl SpaceBaseArea {
 impl SpaceBaseArea {
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
         let top_left = DataFilter::new(&mut self.0.base.iter(),|base| {
-            *base < max_value
+            *base <= max_value
         });
         let bottom_right = DataFilter::new(&mut self.1.base.iter(),|base| {
-            *base > min_value
+            *base >= min_value
         });
         top_left.and(&bottom_right)
     }

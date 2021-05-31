@@ -171,8 +171,8 @@ impl<'a> DataFilterIterator<'a> {
         loop {
             if self.range_index >= self.filter.ranges.len() { return; }
             let range = &self.filter.ranges[self.range_index];
-            if index >= range.0 && index < range.0 + range.1 {
-                self.pos = index - range.0;
+            if index < range.0 + range.1 {
+                self.pos = if index > range.0 { index - range.0 } else { 0 };
                 return;
             }
             self.pos = 0;
@@ -206,7 +206,7 @@ impl<'a> LoopingDataFilterIterator<'a> {
     fn advance(&mut self, index: usize) {
         if index - self.base >= self.filter.size {
             self.inner = self.filter.iter();
-            self.base = index / self.filter.size;
+            self.base = (index / self.filter.size) * self.filter.size;
         }
         self.inner.advance(index - self.base);
     }
@@ -288,6 +288,7 @@ impl DataFilter {
     }
 
     pub fn and(&self, other: &DataFilter) -> DataFilter {
+        use web_sys::console;
         let len = max(self.len(),other.len());
         let mut a_iter = self.iter_num(len);
         let mut b_iter = other.iter_num(len);
@@ -295,9 +296,15 @@ impl DataFilter {
         loop {
             match (a_iter.peek(),b_iter.peek()) {
                 (Some(a),Some(b)) => {
-                    if a == b { out.at(a); }
-                    if a <= b { a_iter.advance(b+1); }
-                    if a >= b { b_iter.advance(a+1); }
+                    if a == b { 
+                        out.at(a);
+                        a_iter.advance(b+1); 
+                        b_iter.advance(a+1);
+                    } else if a < b { 
+                        a_iter.advance(b);
+                    } else if a > b {
+                        b_iter.advance(a);
+                    }
                 },
                 _ => { break; }
             }
