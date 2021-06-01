@@ -1,8 +1,10 @@
+use std::sync::{ Arc, Mutex, MutexGuard };
 use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
 use crate::{ ProgramName };
 use crate::core::{ Layout, Scale };
 use crate::switch::allotment::AllotmentHandle;
+use super::switch::SwitchOverlay;
 
 identitynumber!(IDS);
 
@@ -14,7 +16,8 @@ pub struct Track {
     scale_jump: u64,
     program_name: ProgramName,
     tags: Vec<String>,
-    allotments: Vec<AllotmentHandle>
+    allotments: Vec<AllotmentHandle>,
+    switch_overlay: Arc<Mutex<SwitchOverlay>>
 }
 
 hashable!(Track,id);
@@ -27,13 +30,21 @@ impl Track {
             min_scale, max_scale, scale_jump,
             program_name: program_name.clone(),
             tags: vec![],
-            allotments: vec![]
+            allotments: vec![],
+            switch_overlay: Arc::new(Mutex::new(SwitchOverlay::new()))
         }
     }
 
     pub fn add_allotment_request(&mut self, allotment: AllotmentHandle) { self.allotments.push(allotment); }
     pub fn allotments(&self) -> &[AllotmentHandle] { &self.allotments }
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
+
+    pub fn add_switch(&mut self, path: &[&str], yn: bool) {
+        let mut switches = self.switch_overlay.lock().unwrap();
+        if yn { switches.set(path); } else { switches.clear(path); }
+    }
+
+    pub(crate) fn overlay(&self) -> MutexGuard<SwitchOverlay> { self.switch_overlay.lock().unwrap() }
     pub fn program_name(&self) -> &ProgramName { &self.program_name }
     pub fn id(&self) -> u64 { self.id }
     pub fn scale(&self) -> (u64,u64) { (self.min_scale,self.max_scale) }

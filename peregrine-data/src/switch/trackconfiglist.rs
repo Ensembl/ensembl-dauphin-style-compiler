@@ -2,9 +2,9 @@ use std::{collections::hash_map::DefaultHasher, hash::{ Hash, Hasher }};
 use std::fmt;
 use std::sync::{ Arc };
 use std::collections::HashMap;
-use super::switch::Switch;
+use super::switch::SwitchesData;
 use super::track::Track;
-use super::trackconfig::{ TrackConfig, TrackConfigNode, hashmap_hasher };
+use super::trackconfig::{ TrackConfig, hashmap_hasher };
 use crate::core::{ Layout, Scale };
 
 #[derive(Clone)]
@@ -37,19 +37,12 @@ impl fmt::Debug for TrackConfigList {
 }
 
 impl TrackConfigList {
-    pub(crate) fn new(root: &Switch) -> TrackConfigList {
-        let mut triggered = vec![];
-        root.get_triggered(&mut triggered);
+    pub(super) fn new(switches_data: &SwitchesData) -> TrackConfigList {
         let mut builder = HashMap::new();
-        for track in triggered {
-            builder.insert(track.clone(),TrackConfigNode::new());
+        for track in &switches_data.get_triggered() {
+            let config = switches_data.build_track_config_list(&track);
+            builder.insert(track.clone(),Arc::new(TrackConfig::new(&track,config)));
         }
-        let mut path = vec![];
-        root.build_track_config_list(&mut builder,&mut path,&[]);
-        let builder = builder.drain().map(|(track,v)| { 
-            (track.clone(),TrackConfig::new(&track,v))
-        });
-        let builder = builder.map(|(k,v)| (k,Arc::new(v))).collect();
         let mut hasher = DefaultHasher::new();
         hashmap_hasher(&builder,&mut hasher);
         TrackConfigList {

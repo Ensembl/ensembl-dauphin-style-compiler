@@ -45,6 +45,8 @@ proc track_add_tag(laneid,string);
 proc track_add_trigger(laneid,vec(string));
 proc track_add_allotment(laneid,string,number);
 proc track_add_switch(laneid,vec(string));
+proc track_set_switch(laneid,vec(string));
+proc track_clear_switch(laneid,vec(string));
 proc track_set_scale(laneid,number,number);
 proc track_set_max_scale_jump(laneid,number);
 proc track_apply(laneid);

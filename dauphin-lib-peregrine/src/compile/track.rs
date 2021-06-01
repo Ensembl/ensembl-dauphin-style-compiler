@@ -12,3 +12,5 @@ simple_command!(AddTrackCommand,AddTrackCommandType,"peregrine","track_add_trigg
 simple_command!(AddSwitchCommand,AddSwitchCommandType,"peregrine","track_add_switch",4,(0,1,2,3));
 simple_command!(AddAllotmentCommand,AddAllotmentCommandType,"peregrine","track_add_allotment",3,(0,1,2));
 simple_command!(DataSourceCommand,DataSourceCommandType,"peregrine","track_apply",1,(0));
+simple_command!(SetSwitchCommand,SetSwitchCommandType,"peregrine","track_set_switch",4,(0,1,2,3));
+simple_command!(ClearSwitchCommand,ClearSwitchCommandType,"peregrine","track_clear_switch",4,(0,1,2,3));

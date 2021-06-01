@@ -11,7 +11,7 @@ use super::decompress::{
 };
 use super::track::{ 
     NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType, AddAllotmentCommandType,
-    AddSwitchCommandType
+    AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType
 };
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
@@ -21,7 +21,7 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(21,0),0xA0BF2A98C6FCF3B3)
+    CommandSetId::new("peregrine",(22,0),0xA21EC15B8C79F9F0)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -59,6 +59,8 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("classify",Some(30),ClassifyCommandType());
     set.push("split_string",Some(31),SplitStringCommandType());
     set.push("get_switch",Some(32),GetSwitchCommandType());
+    set.push("track_set_switch",Some(33),SetSwitchCommandType());
+    set.push("track_clear_switch",Some(34),ClearSwitchCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

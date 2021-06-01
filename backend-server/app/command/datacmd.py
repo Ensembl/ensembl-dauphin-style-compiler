@@ -2,13 +2,13 @@ from typing import Any
 import logging
 from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
-from data.genedata import GeneDataHandler
+from data.genedata import GeneDataHandler, GeneOverviewDataHandler
 
 class DataHandler(Handler):
     def __init__(self):
         self.handlers : Dict[str,DataHandler] = {
             "gene": GeneDataHandler(),
-            "gene-overview": GeneDataHandler(),
+            "gene-overview": GeneOverviewDataHandler(),
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
@@ -18,4 +18,3 @@ class DataHandler(Handler):
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
         return handler.process_data(data_accessor, panel)
-

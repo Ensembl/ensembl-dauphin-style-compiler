@@ -4,7 +4,7 @@ use std::sync::{ Arc };
 use std::collections::HashMap;
 use super::track::Track;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub(super) struct TrackConfigNode {
     kids: HashMap<String,Box<TrackConfigNode>>
 }
@@ -16,9 +16,9 @@ impl TrackConfigNode {
         }
     }
 
-    pub(super) fn merge(&mut self, path: &[String]) {
+    pub(super) fn add_path(&mut self, path: &[&str]) {
         if path.len() > 0 {
-            self.kids.entry(path[0].to_string()).or_insert_with(|| Box::new(TrackConfigNode::new())).merge(&path[1..]);
+            self.kids.entry(path[0].to_string()).or_insert_with(|| Box::new(TrackConfigNode::new())).add_path(&path[1..]);
         }
     }
 

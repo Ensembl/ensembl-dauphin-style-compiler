@@ -8,14 +8,15 @@ import "lib:peregrine"; use "peregrine";
 100bp    6
 1kb     10
 10kb    13    ^
-100kb   16  exon structure
-1Mb     20  labels
-10Mb    23  no labels
+100kb   16    exon structure
+2Mb     21    labels
+4Mb-8Mb 22-23 zmenus, no labels
+16Mb    24    no labels, no zmenus
 100Mb   26
 */
 
-/* most zoomed out gene view: no structure, but with labels */
-p := track_new("self()","gene",17,22,6);
+/* no exon-structure; labels; zmenus */
+p := track_new("self()","gene",17,21,4);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gene-pc-fwd"]);
 track_add_trigger(p,["track","gene-pc-rev"]);
@@ -29,8 +30,24 @@ track_add_allotment(p,"gene-pc-fwd",1000);
 track_add_allotment(p,"gene-nonpc-fwd",1100);
 track_apply(p);
 
-/* most zoomed out gene view: no structure, no labels */
-p := track_new("self()","gene-overview",22,100,6);
+/* no exon-structure; no labels; zmenus */
+p := track_new("self()","gene",21,23,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gene-pc-fwd"]);
+track_add_trigger(p,["track","gene-pc-rev"]);
+track_add_trigger(p,["track","gene-nonpc-fwd"]);
+track_add_trigger(p,["track","gene-nonpc-rev"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"focus",-1000000);
+track_add_allotment(p,"gene-pc-rev",-1100);
+track_add_allotment(p,"gene-nonpc-rev",-1000);
+track_add_allotment(p,"gene-pc-fwd",1000);
+track_add_allotment(p,"gene-nonpc-fwd",1100);
+track_set_switch(p,["scale","no-labels"]);
+track_apply(p);
+
+/* no exon-struxcture; no labels ; no-zmenus */
+p := track_new("self()","gene-overview",23,100,6);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gene-pc-fwd"]);
 track_add_trigger(p,["track","gene-pc-rev"]);

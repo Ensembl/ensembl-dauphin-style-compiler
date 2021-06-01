@@ -11,6 +11,8 @@ simple_interp_command!(AddTriggerInterpCommand,AddTriggerDeserializer,6,4,(0,1,2
 simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,11,4,(0,1,2,3));
 simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,3,(0,1,2));
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,1,(0));
+simple_interp_command!(SetSwitchInterpCommand,SetSwitchDeserializer,33,4,(0,1,2,3));
+simple_interp_command!(ClearSwitchInterpCommand,ClearSwitchDeserializer,34,4,(0,1,2,3));
 
 impl InterpCommand for NewLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -94,6 +96,19 @@ fn add_mount(track_ids: &[usize], track_d: &[String], track_a: &[usize], track_b
     Ok(())
 }
 
+fn track_switch(track_ids: &[usize], track_d: &[String], track_a: &[usize], track_b: &[usize], context: &mut InterpContext, yn: bool) -> anyhow::Result<()> {
+    let peregrine = get_peregrine(context)?;
+    let track_pos = track_a.iter().cycle().zip(track_b.iter().cycle());
+    let data = track_ids.iter().zip(track_pos);
+    for (track_id,(track_a,track_b)) in data {
+        let track = peregrine.track_builder().get(*track_id)?;
+        let path = &track_d[*track_a..(*track_a+*track_b)];
+        let path : Vec<_> = path.iter().map(|x| x.as_str()).collect();
+        track.lock().unwrap().add_switch(&path,yn);
+    }
+    Ok(())
+}
+
 impl InterpCommand for AddTriggerInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
@@ -116,6 +131,32 @@ impl InterpCommand for AddSwitchInterpCommand {
         let track_b = registers.get_indexes(&self.3)?.to_vec();
         drop(registers);
         add_mount(&track_ids,&track_d,&track_a,&track_b,context,false)?;
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SetSwitchInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let track_ids = registers.get_indexes(&self.0)?.to_vec();
+        let track_d = registers.get_strings(&self.1)?.to_vec();
+        let track_a = registers.get_indexes(&self.2)?.to_vec();
+        let track_b = registers.get_indexes(&self.3)?.to_vec();
+        drop(registers);
+        track_switch(&track_ids,&track_d,&track_a,&track_b,context,true)?;
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for ClearSwitchInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let track_ids = registers.get_indexes(&self.0)?.to_vec();
+        let track_d = registers.get_strings(&self.1)?.to_vec();
+        let track_a = registers.get_indexes(&self.2)?.to_vec();
+        let track_b = registers.get_indexes(&self.3)?.to_vec();
+        drop(registers);
+        track_switch(&track_ids,&track_d,&track_a,&track_b,context,false)?;
         Ok(CommandResult::SyncResult())
     }
 }

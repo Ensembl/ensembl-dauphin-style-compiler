@@ -1,8 +1,57 @@
+use std::hash::{ Hash, Hasher };
+use std::collections::hash_map::DefaultHasher;
 use std::sync::{ Arc, Mutex };
-use std::collections::HashMap;
+use std::collections::{ HashMap, HashSet };
 use super::trackconfig::TrackConfigNode;
 use super::trackconfiglist::TrackConfigList;
 use crate::switch::track::Track;
+
+fn hash_path(data: &[&str]) -> u64 {
+    let mut h = DefaultHasher::new();
+    data.hash(&mut h);
+    h.finish()
+}
+
+#[derive(Debug)]
+pub(crate) struct SwitchOverlay {
+    full_set: Vec<Vec<String>>,
+    set: HashSet<u64>,
+    clear: HashSet<u64>
+}
+
+impl SwitchOverlay {
+    pub(crate) fn new() -> SwitchOverlay {
+        SwitchOverlay {
+            full_set: vec![],
+            set: HashSet::new(),
+            clear: HashSet::new()
+        }
+    }
+
+    pub(crate) fn set(&mut self, path: &[&str]) {
+        for i in 0..path.len() {
+            self.set.insert(hash_path(&path[0..i]));
+        }
+        self.full_set.push(path.iter().map(|x| x.to_string()).collect());
+    }
+
+    pub(crate) fn clear(&mut self, path: &[&str]) {
+        self.clear.insert(hash_path(path));
+    }
+
+    pub fn apply(&self, path: &[&str]) -> Option<bool> {
+        let h = hash_path(path);
+        if self.set.contains(&h) { return Some(true); }
+        if self.clear.contains(&h) { return Some(false); }
+        None
+    }
+
+    pub(super) fn add_set(&self, node: &mut TrackConfigNode) {
+        for path in &self.full_set {
+            node.add_path(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+        }
+    }
+}
 
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
@@ -43,45 +92,21 @@ impl Switch {
         }
     }
 
-    fn new_active<'a>(&self, new_active: &'a mut Vec<Track>, active: &'a [Track]) -> &'a [Track] {
-        let mut active = active;
-        if self.tracks.len() > 0 {
-            *new_active = active.to_vec();
-            for track in &self.tracks {
-                if !new_active.contains(track) {
-                    new_active.push(track.clone());
-                }
+    pub(super) fn build_track_config_list<'a>(&'a self, want_track: &Track, out: &mut TrackConfigNode, path: &mut Vec<&'a str>,mut active: bool, overlay: &SwitchOverlay) {
+        if self.tracks.contains(want_track) { active = true; }
+        if active { out.add_path(path); }
+        let mut kids = self.kids.iter();
+        for (kid_name,kid) in kids {
+            path.push(kid_name);
+            if overlay.apply(path).unwrap_or(kid.set) {
+                kid.build_track_config_list(want_track,out,path,active,overlay);
             }
-            active = new_active;
-        }
-        active
-    }
-
-    fn add_nodes(&self, out: &mut HashMap<Track,TrackConfigNode>, path: &[String], active: &[Track]) {
-        if active.len() > 0 {
-            for track in active {
-                if let Some(node) = out.get_mut(track) {
-                    node.merge(path);
-                }
-            }
-        }
-    }
-
-    pub(super) fn build_track_config_list(&self, out: &mut HashMap<Track,TrackConfigNode>, path: &mut Vec<String>, active: &[Track]) {
-        let mut new_active = vec![];
-        let new_active = self.new_active(&mut new_active,active);
-        self.add_nodes(out,path,new_active);
-        for (kid_name,kid) in &self.kids {
-            if kid.set {
-                path.push(kid_name.to_string());
-                kid.build_track_config_list(out, path, new_active);
-                path.pop();
-            }
+            path.pop();
         }
     }
 }
 
-struct SwitchesData {
+pub(super) struct SwitchesData {
     root: Switch,
     track_config_list: Option<TrackConfigList>
 }
@@ -89,9 +114,23 @@ struct SwitchesData {
 impl SwitchesData {
     fn get_track_config_list(&mut self) -> &TrackConfigList {
         if self.track_config_list.is_none() {
-            self.track_config_list = Some(TrackConfigList::new(&self.root));
+            self.track_config_list = Some(TrackConfigList::new(&self));
         }
         self.track_config_list.as_ref().unwrap()
+    }
+
+    pub(super) fn get_triggered(&self) -> Vec<Track> {
+        let mut triggered = vec![];
+        self.root.get_triggered(&mut triggered);
+        triggered
+    }
+
+    pub(super) fn build_track_config_list(&self, track: &Track) -> TrackConfigNode {
+        let mut out = TrackConfigNode::new();
+        let overlay = track.overlay();
+        self.root.build_track_config_list(track, &mut out, &mut vec![], false,&overlay);
+        overlay.add_set(&mut out);
+        out
     }
 }
 
