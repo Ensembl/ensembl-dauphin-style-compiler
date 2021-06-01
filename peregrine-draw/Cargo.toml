@@ -48,6 +48,7 @@ features = [
   'KeyboardEvent',
   'MouseEvent',
   'Node',
+  'PointerEvent',
   'Request', 'RequestInit', 'RequestMode', 'Response',
   'Screen',
   'TextMetrics',
