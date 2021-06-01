@@ -1,8 +1,6 @@
-use varea::{ VareaItem, Discrete, RTreeRange };
 use crate::core::{ Scale };
 use std::cmp::max;
 use crate::{ Switches, Track };
-use crate::lane::ProgramName;
 
 pub struct ProgramRegionBuilder {
     program_region: ProgramRegion,
@@ -42,30 +40,6 @@ impl ProgramRegionBuilder {
         self.program_region.set_stick_tags(track.tags());
         self.program_region.set_switches(&self.switches);
         self.program_region.clone()
-    }
-}
-
-pub struct ProgramRegionQuery {
-    stick_tags: Vec<String>,
-    scale: Scale,
-    track: String
-}
-
-impl ProgramRegionQuery {
-    pub fn new(stick_tags: &[String], scale: &Scale, track: &ProgramName) -> ProgramRegionQuery {
-        ProgramRegionQuery {
-            stick_tags: stick_tags.to_vec(),
-            scale: scale.clone(),
-            track: track.to_string()
-        }
-    }
-
-    pub fn to_varea_item(&self) -> VareaItem {
-        let mut item = VareaItem::new();
-        item.add("stick",Discrete::new(&self.stick_tags));
-        item.add("scale",RTreeRange::new(self.scale.get_index(),self.scale.next_scale().get_index()));
-        item.add("track",Discrete::new(&vec![self.track.to_string()]));
-        item
     }
 }
 
@@ -116,20 +90,5 @@ impl ProgramRegion {
         } else {
             Scale::new(100)
         }
-    }
-    
-    pub fn to_varea_item(&self) -> VareaItem {
-        let mut item = VareaItem::new();
-        if let Some(stick_tags) = &self.stick_tags {
-            item.add("stick",Discrete::new(stick_tags));
-        }
-        if let Some(scale) = &self.scale {
-            item.add("scale",RTreeRange::new(scale.0.get_index(),scale.1.get_index()));
-        }
-        if let Some(track) = &self.track {
-            let tracks = track.iter().cloned().collect::<Vec<_>>();
-            item.add("track",Discrete::new(&tracks));
-        }
-        item
-    }
+    }    
 }

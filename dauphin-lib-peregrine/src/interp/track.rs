@@ -166,14 +166,12 @@ async fn data_source(context: &mut InterpContext, cmd: DataSourceInterpCommand) 
     let track_ids = registers.get_indexes(&cmd.0)?.to_vec();
     drop(registers);
     let peregrine = get_peregrine(context)?;
-    let track_program_lookup = peregrine.agent_store().lane_program_lookup().await.clone();
     let track_builder = peregrine.track_builder().clone();
     for track_id in &track_ids {
         let track_builder = track_builder.get(*track_id)?;
         let mut track_builder = track_builder.lock().unwrap();
         let track = track_builder.track().clone();
-        let program_region = track_builder.build(peregrine.switches());
-        track_program_lookup.add(&program_region,track.program_name());
+        track_builder.build(peregrine.switches());
     }
     Ok(())
 }

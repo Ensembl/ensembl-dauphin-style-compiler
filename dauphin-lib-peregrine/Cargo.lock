@@ -506,7 +506,6 @@ dependencies = [
  "serde_cbor",
  "serde_json",
  "url",
- "varea",
  "web-sys",
 ]
 
@@ -767,10 +766,6 @@ dependencies = [
  "libc",
  "log",
 ]
-
-[[package]]
-name = "varea"
-version = "0.1.0"
 
 [[package]]
 name = "vec_map"

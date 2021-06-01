@@ -4,7 +4,7 @@ use std::sync::{ Arc, Mutex };
 use std::hash::Hash;
 use std::pin::Pin;
 use commander::{ FusePromise, PromiseFuture };
-use varea::Cache;
+use super::lrucache::Cache;
 use crate::lock;
 
 pub enum MemoizedType {

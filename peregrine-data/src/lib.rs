@@ -1,9 +1,3 @@
-mod agent {
-    pub(crate) mod laneprogramlookup;
-
-    pub use self::laneprogramlookup::LaneProgramLookup;
-}
-
 mod api {
     mod api;
     mod agentstore;
@@ -127,6 +121,7 @@ mod train {
 mod util {
     pub mod builder;
     pub mod cbor;
+    pub mod lrucache;
     pub mod memoized;
     pub mod message;
     pub mod miscpromises;
@@ -151,7 +146,6 @@ mod test {
     pub(crate) mod helpers;
 }
 
-pub use self::agent::{ LaneProgramLookup };
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Focus, Viewport };
 pub use self::index::{ StickStore, StickAuthorityStore };

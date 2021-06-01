@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use commander::PromiseFuture;
 use commander::FusePromise;
-use crate::{ ProgramLoader, StickAuthorityStore, StickStore, LaneProgramLookup, LaneStore, DataStore };
+use crate::{ ProgramLoader, StickAuthorityStore, StickStore, LaneStore, DataStore };
 
 #[derive(Clone)]
 struct DelayedLoader<T> where T: Clone {
@@ -38,7 +38,6 @@ pub struct AgentStore {
     stick_authority_store: DelayedLoader<StickAuthorityStore>,
     stick_store: DelayedLoader<StickStore>,
     lane_store: DelayedLoader<LaneStore>,
-    lane_program_lookup: DelayedLoader<LaneProgramLookup>,
     data_store: DelayedLoader<DataStore>
 }
 
@@ -48,7 +47,6 @@ impl AgentStore {
             program_loader: DelayedLoader::new(),
             stick_authority_store: DelayedLoader::new(),
             lane_store: DelayedLoader::new(),
-            lane_program_lookup: DelayedLoader::new(),
             stick_store: DelayedLoader::new(),
             data_store: DelayedLoader::new()
         }
@@ -63,9 +61,6 @@ impl AgentStore {
     pub fn set_lane_store(&mut self, agent: LaneStore) { self.lane_store.set(agent); }
     pub async fn lane_store(&self) -> LaneStore { self.lane_store.get().await }
 
-    pub fn set_lane_program_lookup(&mut self, agent: LaneProgramLookup) { self.lane_program_lookup.set(agent); }
-    pub async fn lane_program_lookup(&self) -> LaneProgramLookup { self.lane_program_lookup.get().await }
-
     pub fn set_stick_store(&mut self, agent: StickStore) { self.stick_store.set(agent); }
     pub async fn stick_store(&self) -> StickStore { self.stick_store.get().await }
 
@@ -74,7 +69,6 @@ impl AgentStore {
 
     pub fn ready(&self) -> bool {
         self.program_loader.ready() && self.stick_authority_store.ready() &&
-        self.lane_store.ready() && self.stick_store.ready() && self.lane_program_lookup.ready() &&
-        self.data_store.ready()
+        self.lane_store.ready() && self.stick_store.ready() && self.data_store.ready()
     }
 }

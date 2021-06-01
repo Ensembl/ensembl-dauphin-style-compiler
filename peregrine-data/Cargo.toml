@@ -22,10 +22,6 @@ lazy_static="*"
 version="*"
 path="../blackbox"
 
-[dependencies.varea]
-version="*"
-path="../varea"
-
 [dependencies.keyed]
 version="*"
 path="../keyed"

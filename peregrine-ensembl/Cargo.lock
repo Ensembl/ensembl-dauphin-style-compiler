@@ -441,7 +441,6 @@ dependencies = [
  "serde_cbor",
  "serde_json",
  "url",
- "varea",
  "web-sys",
 ]
 
@@ -716,10 +715,6 @@ dependencies = [
  "matches",
  "percent-encoding",
 ]
-
-[[package]]
-name = "varea"
-version = "0.1.0"
 
 [[package]]
 name = "wasm-bindgen"
