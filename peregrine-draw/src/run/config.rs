@@ -13,6 +13,7 @@ pub enum CursorCircumstance {
     Default,
     Drag,
     Hold,
+    Pinch,
     WheelNegative,
     WheelPositive
 }
@@ -23,6 +24,7 @@ impl CursorCircumstance {
             CursorCircumstance::Default,
             CursorCircumstance::Drag,
             CursorCircumstance::Hold,
+            CursorCircumstance::Pinch,
             CursorCircumstance::WheelNegative,
             CursorCircumstance::WheelPositive
         ]
@@ -71,7 +73,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(true), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(false), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Drag[2] Hold[3] HoldDrag[4] RunningHold[5] SwitchToHold[6] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Drag[2] Hold[3] HoldDrag[4] RunningHold[5] SwitchToHold[6] DoubleClick[7] Pinch[10] SwitchToPinch[11] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Shift-W[500]") },
@@ -88,7 +90,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::WheelPositive), name: "mouse.cursor.wheel.positive", default: &PgConfigValue::StaticStr("zoom-in col-resize") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::WheelNegative), name: "mouse.cursor.wheel.negative", default: &PgConfigValue::StaticStr("zoom-in col-resize") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Drag), name: "mouse.cursor.hold", default: &PgConfigValue::StaticStr("grabbing") },
-            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("pointer") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("crosshair") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Pinch), name: "mouse.cursor.pinch", default: &PgConfigValue::StaticStr("nsew-resize") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },

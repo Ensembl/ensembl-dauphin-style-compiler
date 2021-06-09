@@ -5,46 +5,95 @@ use super::pointer::{ PointerConfig, PointerAction };
 use super::cursor::CursorHandle;
 use crate::run::CursorCircumstance;
 
+struct FingerDrag {
+    start_pos: (f64,f64),
+    prev_pos: (f64,f64),
+}
+
+impl FingerDrag {
+    fn new(pos: (f64,f64)) -> FingerDrag {
+        FingerDrag {
+            start_pos: pos,
+            prev_pos: pos
+        }
+    }
+
+    fn start(&self) -> (f64,f64) { self.start_pos }
+
+    fn total_delta(&self, position: (f64,f64)) -> (f64,f64) {
+        (position.0-self.start_pos.0,position.1-self.start_pos.1)
+    }
+
+    fn total_distance(&self, position: (f64,f64)) -> f64 {
+        let total_delta = self.total_delta(position);
+        total_delta.0.abs() + total_delta.1.abs()
+    }
+
+    fn delta(&mut self, position: (f64,f64)) -> (f64,f64) {
+        let delta = (position.0-self.prev_pos.0,position.1-self.prev_pos.1);
+        self.prev_pos = position;
+        delta
+    }
+}
+
+#[derive(Clone,PartialEq,Eq)]
+enum DragMode {
+    Unknown,
+    Drag,
+    Hold,
+    Pinch
+}
+
+impl DragMode {
+    fn cursor(&self) -> CursorCircumstance {
+        match self {
+            DragMode::Unknown => CursorCircumstance::Drag,
+            DragMode::Drag => CursorCircumstance::Drag,
+            DragMode::Hold => CursorCircumstance::Hold,
+            DragMode::Pinch => CursorCircumstance::Pinch,
+        }
+    }
+}
+
 pub struct DragStateData {
     lowlevel: LowLevelState,
     modifiers: Modifiers,
-    start_pos: (f64,f64),
-    prev_pos: (f64,f64),
-    dragged: bool,
-    hold: bool,
+    primary: FingerDrag,
+    secondary: Option<FingerDrag>,
+    mode: DragMode,
     alive: bool,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>
 }
 
 impl DragStateData {
-    fn new(lowlevel: &LowLevelState, current: &(f64,f64)) -> DragStateData {
-        DragStateData {
+    fn new(lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> DragStateData {
+        let mut out = DragStateData {
             lowlevel: lowlevel.clone(),
             modifiers: lowlevel.modifiers(),
-            start_pos: *current,
-            prev_pos: *current,
-            dragged: false,
-            hold: false,
+            primary: FingerDrag::new(primary),
+            secondary: None,
+            mode: DragMode::Unknown,
             alive: true,
             cursor: None
-        }
+        };
+        out.check_secondary(secondary);
+        out
     }
 
-    fn click_timer_expired(&mut self) {
-        if self.alive && !self.hold {
-            self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Drag));
-        }
-    }
-
-    fn hold_timer_expired(&mut self) {
-        if self.alive && !self.dragged {
-            self.hold = true;
-            self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Hold));
-            for (kind,args) in PointerAction::SwitchToHold(self.modifiers.clone(),self.start_pos).map(&self.lowlevel) {
-                self.lowlevel.send(kind,true,&args);
+    fn check_secondary(&mut self, secondary: Option<(f64,f64)>) {
+        if let Some(secondary) = secondary {
+            if self.secondary.is_none() {
+                self.set_mode(DragMode::Pinch);
+                self.secondary = Some(FingerDrag::new(secondary));
+                self.emit(&PointerAction::SwitchToPinch(self.modifiers.clone(),self.primary.start()),true);
             }
         }
+    }
+
+    fn set_mode(&mut self, mode: DragMode) {
+        self.mode = mode;
+        self.cursor = Some(self.lowlevel.set_cursor(&self.mode.cursor()));
     }
 
     fn emit(&mut self, action: &PointerAction, start: bool) {
@@ -53,57 +102,83 @@ impl DragStateData {
         }    
     }
 
-    fn send_drag(&mut self, delta: (f64,f64), start: bool) {
-          // XXX yuck, clones on critical path
-        if self.hold {
-            self.emit(&PointerAction::RunningHold(self.modifiers.clone(),delta),start);
-        } else {
-            self.emit(&PointerAction::RunningDrag(self.modifiers.clone(),delta),start);
+    fn click_timer_expired(&mut self) {
+        if !self.alive { return; }
+        self.set_mode(self.mode.clone()); // Force cursor to be correct
+    }
+
+    fn hold_timer_expired(&mut self) {
+        if !self.alive { return; }
+        if self.mode == DragMode::Unknown {
+            self.set_mode(DragMode::Hold);
+            self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
     }
 
-    fn check_dragged(&mut self, config: &PointerConfig, current: &(f64,f64)) {
-        if !self.dragged {
-            let total_distance = (current.0-self.start_pos.0,current.1-self.start_pos.1);
-            if total_distance.0.abs() + total_distance.1.abs() > config.click_radius {
-                self.dragged = true;
-                if !self.hold {
-                    self.cursor = Some(self.lowlevel.set_cursor(&CursorCircumstance::Drag));
-                }
+    fn send_drag(&mut self, delta: (f64,f64), start: bool) {
+        // XXX yuck, clones on critical path
+        match self.mode {
+            DragMode::Drag | DragMode::Unknown => {
+                self.emit(&PointerAction::RunningDrag(self.modifiers.clone(),delta),start);
+            },
+            DragMode::Hold => {
+                self.emit(&PointerAction::RunningHold(self.modifiers.clone(),delta),start);
+            },
+            DragMode::Pinch => {
+                self.emit(&PointerAction::RunningPinch(self.modifiers.clone(),delta),start);
             }
         }
     }
 
-    fn drag_continue(&mut self, config: &PointerConfig, current: &(f64,f64)) {
-        self.check_dragged(config,current);
-        let delta = (current.0-self.prev_pos.0,current.1-self.prev_pos.1);
-        self.send_drag(delta,true);
-        self.prev_pos = *current;
+    fn check_dragged(&mut self, config: &PointerConfig, primary: (f64,f64)) {
+        if self.mode == DragMode::Unknown {
+            if self.primary.total_distance(primary) > config.click_radius {
+                self.set_mode(DragMode::Drag);
+            }
+        }
     }
 
-    fn drag_finished(&mut self, config: &PointerConfig, current: &(f64,f64)) -> bool {
-        self.check_dragged(config,current);
-        let delta = (current.0-self.prev_pos.0,current.1-self.prev_pos.1);
+    fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) {
+        self.check_secondary(secondary);
+        self.check_dragged(config,primary);
+        let delta = self.primary.delta(primary);
+        self.send_drag(delta,true);
+    }
+
+    fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> bool {
+        self.check_secondary(secondary);
+        self.check_dragged(config,primary);
+        let delta = self.primary.delta(primary);
         self.send_drag(delta,true);
         self.alive = false;
-        if self.dragged {
-            self.send_drag((0.,0.),false);
-            if self.hold {
-                self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
-            } else {
-                self.emit(&PointerAction::Drag(self.modifiers.clone(),(current.0-self.start_pos.0,current.1-self.start_pos.1)),true);
-            }
-        }  
         self.cursor = None;
-        self.dragged
+        let total_delta = self.primary.total_delta(primary);
+        match self.mode {
+            DragMode::Unknown => { false },
+            DragMode::Drag => {
+                self.send_drag((0.,0.),false);
+                self.emit(&PointerAction::Drag(self.modifiers.clone(),total_delta),true);
+                true
+            },
+            DragMode::Hold => {
+                self.send_drag((0.,0.),false);
+                self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),total_delta),true);
+                true
+            },
+            DragMode::Pinch => {
+                self.send_drag((0.,0.),false);
+                self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),total_delta),true);
+                true
+            },
+        }
     }
 }
 
 pub struct DragState(Arc<Mutex<DragStateData>>);
 
 impl DragState {
-    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, current: &(f64,f64)) -> DragState {
-        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,current)));
+    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> DragState {
+        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,primary,secondary)));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
         let drag_cursor_delay = config.drag_cursor_delay;
@@ -117,11 +192,11 @@ impl DragState {
         DragState(inner)
     }
 
-    pub(super) fn drag_continue(&mut self, config: &PointerConfig, current: &(f64,f64)) {
-        self.0.lock().unwrap().drag_continue(config,current);
+    pub(super) fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) {
+        self.0.lock().unwrap().drag_continue(config,primary,secondary);
     }
 
-    pub(super) fn drag_finished(&mut self, config: &PointerConfig, current: &(f64,f64)) -> bool {
-        self.0.lock().unwrap().drag_finished(config,current)
+    pub(super) fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> bool {
+        self.0.lock().unwrap().drag_finished(config,primary,secondary)
     }
 }
