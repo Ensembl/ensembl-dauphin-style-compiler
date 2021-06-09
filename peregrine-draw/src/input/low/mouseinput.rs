@@ -10,6 +10,7 @@ pub(super) struct MouseEventHandler {
     pointer: Pointer,
     lowlevel: LowLevelState,
     position: (f64,f64),
+    down_pointer_id: Option<i32>,
     config: Arc<PointerConfig>,
 }
 
@@ -19,21 +20,58 @@ impl MouseEventHandler {
             pointer: Pointer::new(lowlevel,&config),
             lowlevel: lowlevel.clone(),
             position: (0.,0.),
+            down_pointer_id: None,
             config
         }
     }
 
-    fn abandon(&mut self, _event: &Event) {
-        self.pointer.process_event(&self.config,&self.lowlevel,&self.position,&PointerEventKind::Up);
+    fn abandon(&mut self, event: &PointerEvent) {
+        let id = event.pointer_id();
+        if let Some(down_pointer_id) = self.down_pointer_id {
+            if down_pointer_id == id {
+                self.pointer.process_event(&self.config,&self.lowlevel,&self.position,&PointerEventKind::Up);
+                self.down_pointer_id = None;
+            }
+        }
     }
 
     fn mouse_event(&mut self, kind: &PointerEventKind, event: &PointerEvent) {
-        let rect = self.lowlevel.dom().canvas_frame().get_bounding_client_rect();
-        let x = (event.client_x() as f64) - rect.left();
-        let y = (event.client_y() as f64) - rect.top();
         let id = event.pointer_id();
-        self.position = (x,y);
-        self.pointer.process_event(&self.config,&self.lowlevel,&self.position,kind);
+        let mut relevant = false;
+        match kind {
+            PointerEventKind::Down => {
+                if self.down_pointer_id.is_none() {
+                    self.down_pointer_id = Some(id);
+                    relevant = true;
+                }
+            },
+            PointerEventKind::Up => {
+                let mut take = false;
+                if let Some(down_pointer_id) = self.down_pointer_id {
+                    if down_pointer_id == id {
+                        take = true;
+                        relevant = true;
+                    }
+                }
+                if take {
+                    self.down_pointer_id = None;
+                }
+            },
+            PointerEventKind::Move => {
+                if let Some(down_pointer_id) = self.down_pointer_id {
+                    if down_pointer_id == id {
+                        relevant = true;
+                    }
+                }
+            }
+        }
+        if relevant {
+            let rect = self.lowlevel.dom().canvas_frame().get_bounding_client_rect();
+            let x = (event.client_x() as f64) - rect.left();
+            let y = (event.client_y() as f64) - rect.top();
+            self.position = (x,y);
+            self.pointer.process_event(&self.config,&self.lowlevel,&self.position,kind);
+        }
         event.stop_propagation();
         event.prevent_default();
     }
@@ -77,6 +115,9 @@ pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState) ->
         handler.abandon(&event)
     })?;
     events.add(dom.canvas_frame(),"scroll",|_,_: &Event| {
+    })?;
+    events.add(dom.canvas_frame(),"contextmenu",|_,e: &Event| {
+        e.prevent_default();
     })?;
     Ok(events)
 }
