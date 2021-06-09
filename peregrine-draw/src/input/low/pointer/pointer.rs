@@ -32,15 +32,15 @@ impl PointerConfig {
 pub(super) enum PointerAction {
     RunningDrag(Modifiers,(f64,f64)),
     RunningHold(Modifiers,(f64,f64)),
-    RunningPinch(Modifiers,(f64,f64)),
+    RunningPinch(Modifiers,(f64,f64),(f64,f64)),
     Drag(Modifiers,(f64,f64)),
     Wheel(Modifiers,f64,(f64,f64)),
     Click(Modifiers,(f64,f64)),
     DoubleClick(Modifiers,(f64,f64)),
-    SwitchToPinch(Modifiers,(f64,f64)),
+    SwitchToPinch(Modifiers,(f64,f64),(f64,f64)),
     SwitchToHold(Modifiers,(f64,f64)),
     HoldDrag(Modifiers,(f64,f64)),
-    PinchDrag(Modifiers,(f64,f64)),
+    PinchDrag(Modifiers,(f64,f64),(f64,f64)),
 }
 
 impl PointerAction {
@@ -49,15 +49,22 @@ impl PointerAction {
         let (kinds,modifiers) = match self {
             PointerAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
             PointerAction::RunningHold(modifiers,amount) => (vec![("RunningHold",vec![amount.0,amount.1]),("MirrorRunningHold",vec![-amount.0,-amount.1])],modifiers),
-            PointerAction::RunningPinch(modifiers,amount) => (vec![("RunningPinch",vec![amount.0,amount.1]),("MirrorRunningPinch",vec![-amount.0,-amount.1])],modifiers),
+            PointerAction::RunningPinch(modifiers,primary,secondary) => (
+                vec![("RunningPinch",vec![primary.0,primary.1,secondary.0,secondary.1]),
+                     ("MirrorRunningPinch",vec![-primary.0,-primary.1,-secondary.0,-secondary.1])],modifiers
+            ),
             PointerAction::Drag(modifiers,amount) => (vec![("Drag",vec![amount.0,amount.1])],modifiers),
             PointerAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1]),("MirrorWheel",vec![-*amount,pos.0,pos.1])],modifiers),
             PointerAction::Click(modifiers,pos) => (vec![("Click",vec![pos.0,pos.1])],modifiers),
             PointerAction::DoubleClick(modifiers,pos) => (vec![("DoubleClick",vec![pos.0,pos.1])],modifiers),
-            PointerAction::SwitchToPinch(modifiers,pos) => (vec![("SwitchToPinch",vec![pos.0,pos.1])],modifiers),
+            PointerAction::SwitchToPinch(modifiers,primary,secondary) => (
+                vec![("SwitchToPinch",vec![primary.0,primary.1,secondary.0,secondary.1])],modifiers
+            ),
             PointerAction::SwitchToHold(modifiers,pos) => (vec![("SwitchToHold",vec![pos.0,pos.1])],modifiers),
             PointerAction::HoldDrag(modifiers,amount) => (vec![("Hold",vec![amount.0,amount.1])],modifiers),
-            PointerAction::PinchDrag(modifiers,amount) => (vec![("Pinch",vec![amount.0,amount.1])],modifiers),
+            PointerAction::PinchDrag(modifiers,primary,secondary) => (
+                vec![("Pinch",vec![primary.0,primary.1,secondary.0,secondary.1])],modifiers
+            ),
         };
         for (name,args) in kinds {
             if let Some((action,map_args)) = state.map(&name,&modifiers) {

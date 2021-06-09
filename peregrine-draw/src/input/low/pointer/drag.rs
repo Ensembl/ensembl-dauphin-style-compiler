@@ -86,8 +86,26 @@ impl DragStateData {
             if self.secondary.is_none() {
                 self.set_mode(DragMode::Pinch);
                 self.secondary = Some(FingerDrag::new(secondary));
-                self.emit(&PointerAction::SwitchToPinch(self.modifiers.clone(),self.primary.start()),true);
+                self.emit(&PointerAction::SwitchToPinch(self.modifiers.clone(),self.primary.start(),secondary),true);
             }
+        }
+    }
+
+    fn delta_secondary(&mut self, secondary: Option<(f64,f64)>) -> Option<(f64,f64)> {
+        match (secondary,&mut self.secondary) {
+            (Some(new),Some(finger)) => {
+                Some(finger.delta(new))
+            },
+            _ => { None }
+        }
+    }
+
+    fn total_delta_secondary(&mut self, secondary: Option<(f64,f64)>) -> Option<(f64,f64)> {
+        match (secondary,&mut self.secondary) {
+            (Some(new),Some(finger)) => {
+                Some(finger.total_delta(new))
+            },
+            _ => { None }
         }
     }
 
@@ -115,7 +133,7 @@ impl DragStateData {
         }
     }
 
-    fn send_drag(&mut self, delta: (f64,f64), start: bool) {
+    fn send_drag(&mut self, delta: (f64,f64), secondary: Option<(f64,f64)>, start: bool) {
         // XXX yuck, clones on critical path
         match self.mode {
             DragMode::Drag | DragMode::Unknown => {
@@ -125,7 +143,9 @@ impl DragStateData {
                 self.emit(&PointerAction::RunningHold(self.modifiers.clone(),delta),start);
             },
             DragMode::Pinch => {
-                self.emit(&PointerAction::RunningPinch(self.modifiers.clone(),delta),start);
+                if let Some(secondary) = secondary {
+                    self.emit(&PointerAction::RunningPinch(self.modifiers.clone(),delta,secondary),start);
+                }
             }
         }
     }
@@ -141,33 +161,37 @@ impl DragStateData {
     fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) {
         self.check_secondary(secondary);
         self.check_dragged(config,primary);
-        let delta = self.primary.delta(primary);
-        self.send_drag(delta,true);
+        let delta_p = self.primary.delta(primary);
+        let delta_s = self.delta_secondary(secondary);
+        self.send_drag(delta_p,delta_s,true);
     }
 
     fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> bool {
         self.check_secondary(secondary);
         self.check_dragged(config,primary);
         let delta = self.primary.delta(primary);
-        self.send_drag(delta,true);
+        self.send_drag(delta,secondary,true);
         self.alive = false;
         self.cursor = None;
         let total_delta = self.primary.total_delta(primary);
+        let total_delta_secondary = self.total_delta_secondary(secondary);
         match self.mode {
             DragMode::Unknown => { false },
             DragMode::Drag => {
-                self.send_drag((0.,0.),false);
+                self.send_drag((0.,0.),None,false);
                 self.emit(&PointerAction::Drag(self.modifiers.clone(),total_delta),true);
                 true
             },
             DragMode::Hold => {
-                self.send_drag((0.,0.),false);
+                self.send_drag((0.,0.),None,false);
                 self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),total_delta),true);
                 true
             },
             DragMode::Pinch => {
-                self.send_drag((0.,0.),false);
-                self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),total_delta),true);
+                self.send_drag((0.,0.),None,false);
+                if let Some(total_delta_secondary) = total_delta_secondary {
+                    self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),total_delta,total_delta_secondary),true);
+                }
                 true
             },
         }

@@ -48,12 +48,18 @@ impl Finger {
         self.position = position(lowlevel,event);
         if *kind == PointerEventKind::Up {
             self.id = None;
-            self.downstream = false;
         }
     }
 
     fn position(&self) -> (f64,f64) { self.position }
-    fn downstream(&self) -> bool { self.downstream }
+    
+    fn downstream(&mut self, kind: &PointerEventKind) -> bool { 
+        let out = self.downstream;
+        if *kind == PointerEventKind::Up {
+            self.downstream = false;
+        }
+        out
+    }
 }
 
 pub(super) struct MouseEventHandler {
@@ -76,7 +82,7 @@ impl MouseEventHandler {
     }
 
     fn report(&mut self, kind: &PointerEventKind) {
-        let secondary = if self.primary.downstream() {
+        let secondary = if self.primary.downstream(kind) {
             Some(self.secondary.position())
         } else {
             None
