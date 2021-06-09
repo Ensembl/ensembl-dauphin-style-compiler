@@ -66,7 +66,7 @@ impl PointerAction {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq,Eq)]
 pub(crate) enum PointerEventKind {
     Up,
     Down,
@@ -137,18 +137,22 @@ impl Pointer {
         }
     }
 
-    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, current: &(f64,f64), kind: &PointerEventKind) {
+    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) {
+        if let Some(secondary) = secondary {
+            use web_sys::console;
+            //console::log_1(&format!("primary={:?} secondary {:?}",primary,secondary).into());
+        }
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
-                self.drag = Some(DragState::new(config,lowlevel,current));
-                self.start = *current;
+                self.drag = Some(DragState::new(config,lowlevel,&primary));
+                self.start = primary;
                 self.modifiers = lowlevel.modifiers();
             },
             (Some(drag_state),PointerEventKind::Move) => {
-                drag_state.drag_continue(config,current);
+                drag_state.drag_continue(config,&primary);
             },
             (Some(drag_state),PointerEventKind::Up) => {
-                if !drag_state.drag_finished(config,current) {
+                if !drag_state.drag_finished(config,&primary) {
                     self.click(config,lowlevel);
                 }
                 self.drag = None;
