@@ -47,7 +47,6 @@ impl NeededData {
 #[derive(Clone)]
 pub struct Needed(Rc<Mutex<NeededData>>);
 
-#[derive(Clone)]
 pub struct NeededLock(Needed);
 
 impl<'t> Drop for NeededLock {

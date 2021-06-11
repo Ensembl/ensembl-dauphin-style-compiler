@@ -1,10 +1,12 @@
 use std::sync::{ Arc, Mutex };
+use crate::PeregrineInnerAPI;
 use crate::stage::stage::ReadStage;
 use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::translate::Physics;
 use crate::input::translate::debug::debug_register;
+use crate::input::low::spectre::Spectre;
 
 // XXX to  util
 #[derive(Clone)]
@@ -72,8 +74,9 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
-        let mut low_level = LowLevelInput::new(dom,commander,config)?;
+    pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
+        let redraw_needed = inner_api.stage().lock().unwrap().redraw_needed();
+        let mut low_level = LowLevelInput::new(dom,commander,config,&redraw_needed)?;
         Physics::new(config,&mut low_level,api,commander)?;
         debug_register(config,&mut low_level,api)?;
         Ok(Input {
@@ -82,4 +85,5 @@ impl Input {
     }
 
     pub fn update_stage(&self, stage: &ReadStage) { self.low_level.update_stage(stage); }
+    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.low_level.get_spectres() }
 }

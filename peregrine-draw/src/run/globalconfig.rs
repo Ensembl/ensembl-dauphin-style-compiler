@@ -1,19 +1,26 @@
-use peregrine_data::{ DataMessage, PgdPeregrineConfig };
+use std::sync::Arc;
+use peregrine_data::PgdPeregrineConfig;
 use super::config::PgPeregrineConfig;
 use crate::util::Message;
 
-pub(crate) struct CreatedPeregrineConfigs<'a> {
+pub(crate) struct CreatingPeregrineConfigs<'a> {
     pub data: PgdPeregrineConfig<'a>,
     pub(crate) draw: PgPeregrineConfig
 }
 
-pub struct PeregrineConfig<'a>(CreatedPeregrineConfigs<'a>);
+#[derive(Clone)]
+pub(crate) struct CreatedPeregrineConfigs<'a> {
+    pub data: Arc<PgdPeregrineConfig<'a>>,
+    pub(crate) draw: Arc<PgPeregrineConfig>
+}
+
+pub struct PeregrineConfig<'a>(CreatingPeregrineConfigs<'a>);
 
 impl<'a> PeregrineConfig<'a> {
     pub fn new() -> PeregrineConfig<'a> {
         let pg_config = PgPeregrineConfig::new();
         let pgd_config = PgdPeregrineConfig::new();
-        PeregrineConfig(CreatedPeregrineConfigs {
+        PeregrineConfig(CreatingPeregrineConfigs {
             draw: pg_config,
             data: pgd_config
         })
@@ -25,5 +32,10 @@ impl<'a> PeregrineConfig<'a> {
         Ok(())
     }
 
-    pub(crate) fn build(self) -> CreatedPeregrineConfigs<'a> { self.0 }
+    pub(crate) fn build(self) -> CreatedPeregrineConfigs<'a> {
+        CreatedPeregrineConfigs {
+            data: Arc::new(self.0.data),
+            draw: Arc::new(self.0.draw)
+        }
+    }
 }

@@ -1,8 +1,12 @@
 use std::sync::{ Arc, Mutex };
 use crate::input::InputEventKind;
 use crate::stage::stage::ReadStage;
+use crate::util::needed::Needed;
 use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
+use super::spectre::Spectre;
+use super::spectre::SpectreHandle;
+use super::spectre::SpectreManager;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
 use super::mouseinput::{ MouseEventHandler };
@@ -29,11 +33,12 @@ pub struct LowLevelState {
     mapping: InputMap,
     modifiers: Arc<Mutex<Modifiers>>,
     stage: Arc<Mutex<Option<ReadStage>>>,
-    cursor: Cursor
+    cursor: Cursor,
+    spectres: SpectreManager
 }
 
 impl LowLevelState {
-    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
+    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig, redraw_needed: &Needed) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
         let mut mapping = InputMapBuilder::new();
         mapping.add_config(config)?;
         let modifiers = Arc::new(Mutex::new(Modifiers {
@@ -49,7 +54,8 @@ impl LowLevelState {
             distributor: distributor.clone(),
             mapping: mapping.build(),
             modifiers,
-            stage: Arc::new(Mutex::new(None))
+            stage: Arc::new(Mutex::new(None)),
+            spectres: SpectreManager::new(redraw_needed)
         },distributor))
     }
 
@@ -85,6 +91,12 @@ impl LowLevelState {
     pub fn set_cursor(&self, circ: &CursorCircumstance) -> CursorHandle {
         self.cursor.set(circ)
     }
+
+    pub(crate) fn add_spectre(&self, spectre: Spectre) -> SpectreHandle {
+        self.spectres.add(spectre)
+    }
+
+    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.spectres.get_spectres() }
 }
 
 #[derive(Clone)]
@@ -96,8 +108,8 @@ pub struct LowLevelInput {
 }
 
 impl LowLevelInput {
-    pub fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
-        let (state,distributor) = LowLevelState::new(dom,commander,config)?;
+    pub fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig, redraw_needed: &Needed) -> Result<LowLevelInput,Message> {
+        let (state,distributor) = LowLevelState::new(dom,commander,config,redraw_needed)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state)?;
         Ok(LowLevelInput { keyboard, mouse, distributor, state })
@@ -106,4 +118,5 @@ impl LowLevelInput {
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
 
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
+    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.get_spectres() }
 }

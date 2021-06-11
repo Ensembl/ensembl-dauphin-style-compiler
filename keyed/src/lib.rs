@@ -105,7 +105,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
 pub struct OptionalKeys<'k,K: KeyedHandle,T> {
     keyed_data: &'k KeyedData<K,Option<T>>,
-    index: usize
+    index: Option<usize>
 }
 
 impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
@@ -113,8 +113,8 @@ impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
 
     fn next(&mut self) -> Option<K> {
         loop {
-            let index = self.index;
-            self.index += 1;
+            let index = self.index.unwrap_or(0);
+            self.index = Some(index+1);
             if index >= self.keyed_data.0.len() {
                 return None;
             }
@@ -147,26 +147,29 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
     pub fn keys<'k>(&'k self) -> OptionalKeys<'k,K,T> {
         OptionalKeys {
             keyed_data: self,
-            index: 0
+            index: None
         }
     }
 }
 
 pub struct KeyedOptionalValues<K: KeyedHandle,T> {
     available: BTreeSet<usize>,
-    entries: KeyedData<K,Option<T>>
+    entries: KeyedData<K,Option<T>>,
+    size: usize
 }
 
 impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
     pub fn new() -> KeyedOptionalValues<K,T> {
         KeyedOptionalValues {
             available: BTreeSet::new(),
-            entries: KeyedData::new()
+            entries: KeyedData::new(),
+            size: 0
         }
 
     }
 
     pub fn add(&mut self, value: T) -> K {
+        self.size += 1;
         if let Some(id) = self.available.range(..).next().cloned() {
             self.available.remove(&id);
             let id = K::new(id);
@@ -175,6 +178,10 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
         } else {
             self.entries.add(Some(value))
         }
+    }
+
+    pub fn try_get(&self, key: &K) -> Option<&T> {
+        self.entries.get(key).as_ref()
     }
 
     pub fn get(&self, key: &K) -> anyhow::Result<&T> {
@@ -196,9 +203,16 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
     }
 
     pub fn remove(&mut self, key: &K) {
+        self.size -= 1;
         self.entries.remove(key);
         self.available.insert(key.get());
     }
+
+    pub fn keys(&self) -> OptionalKeys<K,T> {
+        self.entries.keys()
+    }
+
+    pub fn size(&self) -> usize { self.size }
 }
 
 pub struct KeyedValues<K: KeyedHandle,T> {

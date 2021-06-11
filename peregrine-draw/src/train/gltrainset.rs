@@ -1,18 +1,19 @@
 use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ Carriage, CarriageSpeed, PgdPeregrineConfig, PeregrineCore, ConfigKey };
+use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore, ConfigKey };
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }, util::needed::{Needed, NeededLock}};
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
+use crate::input::Spectre;
 use crate::util::message::Message;
 
 #[derive(Clone)]
 enum FadeState {
     Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,NeededLock)
+    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlTrainSetData {
@@ -60,7 +61,7 @@ impl GlTrainSetData {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from,index,speed,None,self.redraw_needed.clone().lock());
+        self.fade_state = FadeState::Fading(from,index,speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
 
@@ -129,7 +130,15 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    fn draw_spectres(&self, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
+        if spectres.len() > 0 {
+            use web_sys::console;
+            //console::log_1(&format!("spectres!").into());
+        }
+        Ok(())
+    }
+
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
         let mut session = DrawingSession::new();
         session.begin(gl)?;
         match self.fade_state.clone() {
@@ -144,6 +153,7 @@ impl GlTrainSetData {
                 self.get_train(gl,to).draw(gl,stage,&session)?;
             },
         }
+        self.draw_spectres(gl,spectres)?;
         session.finish()?;
         Ok(())
     }
@@ -194,8 +204,8 @@ impl GlTrainSet {
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        self.data.lock().unwrap().draw_animate_tick(stage,gl)
+    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
+        self.data.lock().unwrap().draw_animate_tick(stage,gl,spectres)
     }
 
     pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {

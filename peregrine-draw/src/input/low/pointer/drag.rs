@@ -6,6 +6,8 @@ use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
 use super::pointer::{ PointerConfig, PointerAction };
 use super::cursor::CursorHandle;
+use super::super::spectre::Spectre;
+use super::super::spectre::SpectreHandle;
 use crate::run::CursorCircumstance;
 use super::pinch::FingerAxis;
 
@@ -86,7 +88,9 @@ pub struct DragStateData {
     mode: DragMode,
     alive: bool,
     #[allow(unused)] // keep as guard
-    cursor: Option<CursorHandle>
+    cursor: Option<CursorHandle>,
+    #[allow(unused)] // keep as guard
+    spectre: Option<SpectreHandle>
 }
 
 impl DragStateData {
@@ -99,7 +103,8 @@ impl DragStateData {
             pinch: None,
             mode: DragMode::Unknown,
             alive: true,
-            cursor: None
+            cursor: None,
+            spectre: None
         };
         out.check_secondary(primary,secondary)?;
         Ok(out)
@@ -144,6 +149,7 @@ impl DragStateData {
         if !self.alive { return; }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
+            self.spectre = Some(self.lowlevel.add_spectre(Spectre::MarchingAnts));
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
     }

@@ -12,9 +12,13 @@ fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager,
     size_manager.tick(web)?;
     let read_stage = &web.stage.lock().unwrap().read_stage();
     input.update_stage(read_stage);
+    let spectres = input.get_spectres();
+    if spectres.len() > 0 {
+        web.stage.lock().unwrap().redraw_needed().set();
+    }
     web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
     if read_stage.ready() {
-        web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap())?;
+        web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap(),&spectres)?;
     }
     Ok(())
 }

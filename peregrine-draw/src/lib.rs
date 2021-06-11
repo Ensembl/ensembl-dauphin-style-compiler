@@ -8,7 +8,7 @@ mod input {
             pub(crate) mod cursor;
             mod drag;
             pub(super) mod pinch;
-            pub(super) mod pointer;    
+            pub(super) mod pointer;   
         }
 
         mod event;
@@ -16,6 +16,7 @@ mod input {
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 
         pub mod mapping;   
+        pub(super) mod spectre; 
     }
 
     mod translate {
@@ -26,6 +27,7 @@ mod input {
     }
 
     pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
+    pub(crate) use self::low::spectre::Spectre;
 }
 
 mod integration {

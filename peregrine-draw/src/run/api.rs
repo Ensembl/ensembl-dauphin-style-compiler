@@ -9,9 +9,10 @@ use super::inner::PeregrineInnerAPI;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
-use crate::run::config::{PgPeregrineConfig, PgConfigKey };
+use crate::run::config::{ PgConfigKey };
 use crate::input::Input;
 use crate::run::inner::Target;
+use super::frame::run_animations;
 
 use std::sync::{ Arc, Mutex };
 
@@ -188,8 +189,9 @@ impl PeregrineAPI {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
-        let input = Input::new(&dom,&configs.draw,&self,&commander)?;
-        let inner = PeregrineInnerAPI::new(configs,dom,&commander,&input)?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander)?;
+        let input = Input::new(&dom,&configs.draw,&self,&inner,&commander)?;
+        run_animations(&mut inner,&dom,&input)?;
         *self.input.lock().unwrap() = Some(input);
         let self2 = self.clone();
         inner.add_target_callback(move |p| {

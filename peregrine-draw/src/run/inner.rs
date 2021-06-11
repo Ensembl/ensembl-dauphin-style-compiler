@@ -174,7 +174,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom, commander: &PgCommanderWeb, input: &Input) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let messages = Arc::new(Mutex::new(None));
@@ -196,17 +196,17 @@ impl PeregrineInnerAPI {
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let dom2 = dom.clone();
         core.application_ready();
-        let mut out = PeregrineInnerAPI {
-            config: Arc::new(config.draw),
+        Ok(PeregrineInnerAPI {
+            config: config.draw.clone(),
             lock: commander.make_lock(),
             messages, message_sender,
             data_api: core.clone(), commander, trainset, stage,  webgl,
             target_manager,
-            dom
-        };
-        out.setup(&dom2,input)?;
-        Ok(out)
+            dom: dom.clone()
+        })
     }
+
+    pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
 
     pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
         self.target_manager.lock().unwrap().add_target_callback(cb);
@@ -219,11 +219,6 @@ impl PeregrineInnerAPI {
     pub(crate) fn clear_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.clear_switch(path));
 
-    }
-
-    fn setup(&mut self, dom: &PeregrineDom, input: &Input) -> Result<(),Message> {
-        run_animations(self,dom,input)?;
-        Ok(())
     }
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
