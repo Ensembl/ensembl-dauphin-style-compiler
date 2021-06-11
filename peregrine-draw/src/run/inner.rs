@@ -1,3 +1,4 @@
+use crate::input::Input;
 use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
@@ -173,7 +174,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom, commander: &PgCommanderWeb) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: CreatedPeregrineConfigs, dom: PeregrineDom, commander: &PgCommanderWeb, input: &Input) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let messages = Arc::new(Mutex::new(None));
@@ -203,7 +204,7 @@ impl PeregrineInnerAPI {
             target_manager,
             dom
         };
-        out.setup(&dom2)?;
+        out.setup(&dom2,input)?;
         Ok(out)
     }
 
@@ -220,8 +221,8 @@ impl PeregrineInnerAPI {
 
     }
 
-    fn setup(&mut self, dom: &PeregrineDom) -> Result<(),Message> {
-        run_animations(self,dom)?;
+    fn setup(&mut self, dom: &PeregrineDom, input: &Input) -> Result<(),Message> {
+        run_animations(self,dom,input)?;
         Ok(())
     }
 

@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use crate::stage::stage::ReadStage;
 use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
@@ -34,7 +35,7 @@ pub enum InputEventKind {
     PullOut,
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
-    PixelsScale, // [multiplier,screen-prop]
+    SetPosition, // [scale, centre, y]
     PixelsIn,
     PixelsOut,
     DebugAction
@@ -49,7 +50,7 @@ impl InputEventKind {
             InputEventKind::PullOut,
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
-            InputEventKind::PixelsScale,
+            InputEventKind::SetPosition,
             InputEventKind::PixelsIn,
             InputEventKind::PixelsOut,
             InputEventKind::DebugAction
@@ -79,4 +80,6 @@ impl Input {
             low_level
         })
     }
+
+    pub fn update_stage(&self, stage: &ReadStage) { self.low_level.update_stage(stage); }
 }

@@ -1,37 +1,59 @@
 use std::sync::{ Arc, Mutex };
+use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
+use super::pinch::PinchManager;
+use super::pinch::PinchManagerFactory;
 use super::pointer::{ PointerConfig, PointerAction };
 use super::cursor::CursorHandle;
 use crate::run::CursorCircumstance;
+use super::pinch::FingerAxis;
+
+struct FingerDelta(FingerAxis,FingerAxis);
+
+impl FingerDelta {
+    fn new(position: (f64,f64)) -> FingerDelta {
+        FingerDelta(FingerAxis::new(position.0),FingerAxis::new(position.1))
+    }
+
+    fn start(&self) -> (f64,f64) { (self.0.start(),self.1.start()) }
+    fn set(&mut self, position: (f64,f64)) { self.0.set(position.0); self.1.set(position.1); }
+    fn reset(&mut self) { self.0.reset(); self.1.reset(); }
+    fn delta(&self) -> (f64,f64) { (self.0.delta(),self.1.delta()) }
+}
 
 struct FingerDrag {
-    start_pos: (f64,f64),
-    prev_pos: (f64,f64),
+    overall: FingerDelta,
+    incremental: FingerDelta
 }
 
 impl FingerDrag {
     fn new(pos: (f64,f64)) -> FingerDrag {
         FingerDrag {
-            start_pos: pos,
-            prev_pos: pos
+            overall: FingerDelta::new(pos),
+            incremental: FingerDelta::new(pos)
         }
     }
 
-    fn start(&self) -> (f64,f64) { self.start_pos }
+    fn start(&self) -> (f64,f64) { self.overall.start() }
 
-    fn total_delta(&self, position: (f64,f64)) -> (f64,f64) {
-        (position.0-self.start_pos.0,position.1-self.start_pos.1)
+    fn total_delta(&self) -> (f64,f64) {
+        self.overall.delta()
     }
 
-    fn total_distance(&self, position: (f64,f64)) -> f64 {
-        let total_delta = self.total_delta(position);
+    fn set(&mut self, position: (f64,f64)) {
+        self.overall.set(position);
+        self.incremental.set(position);
+    }
+
+    fn total_distance(&self) -> f64 {
+        let total_delta = self.total_delta();
         total_delta.0.abs() + total_delta.1.abs()
     }
 
-    fn delta(&mut self, position: (f64,f64)) -> (f64,f64) {
-        let delta = (position.0-self.prev_pos.0,position.1-self.prev_pos.1);
-        self.prev_pos = position;
+    fn delta(&mut self) -> (f64,f64) {
+        let delta = self.incremental.delta();
+        self.incremental.reset();
         delta
     }
 }
@@ -59,7 +81,8 @@ pub struct DragStateData {
     lowlevel: LowLevelState,
     modifiers: Modifiers,
     primary: FingerDrag,
-    secondary: Option<FingerDrag>,
+    pinch_manager_factory: PinchManagerFactory,
+    pinch: Option<PinchManager>,
     mode: DragMode,
     alive: bool,
     #[allow(unused)] // keep as guard
@@ -67,46 +90,38 @@ pub struct DragStateData {
 }
 
 impl DragStateData {
-    fn new(lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> DragStateData {
+    fn new(lowlevel: &LowLevelState, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<DragStateData,Message> {
         let mut out = DragStateData {
             lowlevel: lowlevel.clone(),
             modifiers: lowlevel.modifiers(),
             primary: FingerDrag::new(primary),
-            secondary: None,
+            pinch_manager_factory: PinchManagerFactory::new(config),
+            pinch: None,
             mode: DragMode::Unknown,
             alive: true,
             cursor: None
         };
-        out.check_secondary(secondary);
-        out
+        out.check_secondary(primary,secondary)?;
+        Ok(out)
     }
 
-    fn check_secondary(&mut self, secondary: Option<(f64,f64)>) {
+    fn check_secondary(&mut self, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<(),Message> {
         if let Some(secondary) = secondary {
-            if self.secondary.is_none() {
-                self.set_mode(DragMode::Pinch);
-                self.secondary = Some(FingerDrag::new(secondary));
-                self.emit(&PointerAction::SwitchToPinch(self.modifiers.clone(),self.primary.start(),secondary),true);
+            if self.pinch.is_none() {
+                if let Some(stage) = self.lowlevel.stage() {
+                    if let Some(pinch_manager) = self.pinch_manager_factory.create(&stage,primary,secondary)? {
+                        self.set_mode(DragMode::Pinch);
+                        let position = pinch_manager.position();
+                        self.pinch = Some(pinch_manager);
+                        self.emit(&PointerAction::SwitchToPinch(self.modifiers.clone(),position),true);
+                    }
+                }
+            }
+            if let Some(pinch) = &mut self.pinch {
+                pinch.set_position(primary,secondary);
             }
         }
-    }
-
-    fn delta_secondary(&mut self, secondary: Option<(f64,f64)>) -> Option<(f64,f64)> {
-        match (secondary,&mut self.secondary) {
-            (Some(new),Some(finger)) => {
-                Some(finger.delta(new))
-            },
-            _ => { None }
-        }
-    }
-
-    fn total_delta_secondary(&mut self, secondary: Option<(f64,f64)>) -> Option<(f64,f64)> {
-        match (secondary,&mut self.secondary) {
-            (Some(new),Some(finger)) => {
-                Some(finger.total_delta(new))
-            },
-            _ => { None }
-        }
+        Ok(())
     }
 
     fn set_mode(&mut self, mode: DragMode) {
@@ -133,7 +148,7 @@ impl DragStateData {
         }
     }
 
-    fn send_drag(&mut self, delta: (f64,f64), secondary: Option<(f64,f64)>, start: bool) {
+    fn send_drag(&mut self, delta: (f64,f64), start: bool) {
         // XXX yuck, clones on critical path
         match self.mode {
             DragMode::Drag | DragMode::Unknown => {
@@ -143,66 +158,67 @@ impl DragStateData {
                 self.emit(&PointerAction::RunningHold(self.modifiers.clone(),delta),start);
             },
             DragMode::Pinch => {
-                if let Some(secondary) = secondary {
-                    self.emit(&PointerAction::RunningPinch(self.modifiers.clone(),delta,secondary),start);
+                if let Some(pinch) = &self.pinch {
+                    self.emit(&PointerAction::RunningPinch(self.modifiers.clone(),pinch.position()),start);
                 }
             }
         }
     }
 
-    fn check_dragged(&mut self, config: &PointerConfig, primary: (f64,f64)) {
+    fn check_dragged(&mut self, config: &PointerConfig) {
         if self.mode == DragMode::Unknown {
-            if self.primary.total_distance(primary) > config.click_radius {
+            if self.primary.total_distance() > config.click_radius {
                 self.set_mode(DragMode::Drag);
             }
         }
     }
 
-    fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) {
-        self.check_secondary(secondary);
-        self.check_dragged(config,primary);
-        let delta_p = self.primary.delta(primary);
-        let delta_s = self.delta_secondary(secondary);
-        self.send_drag(delta_p,delta_s,true);
+    fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<(),Message> {
+        self.primary.set(primary);
+        self.check_secondary(primary,secondary)?;
+        self.check_dragged(config);
+        let delta_p = self.primary.delta();
+        self.send_drag(delta_p,true);
+        Ok(())
     }
 
-    fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> bool {
-        self.check_secondary(secondary);
-        self.check_dragged(config,primary);
-        let delta = self.primary.delta(primary);
-        self.send_drag(delta,secondary,true);
+    fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<bool,Message> {
+        self.primary.set(primary);
+        self.check_secondary(primary,secondary)?;
+        self.check_dragged(config);
+        let delta = self.primary.delta();
+        self.send_drag(delta,true);
         self.alive = false;
         self.cursor = None;
-        let total_delta = self.primary.total_delta(primary);
-        let total_delta_secondary = self.total_delta_secondary(secondary);
-        match self.mode {
+        let total_delta = self.primary.total_delta();
+        Ok(match self.mode {
             DragMode::Unknown => { false },
             DragMode::Drag => {
-                self.send_drag((0.,0.),None,false);
+                self.send_drag((0.,0.),false);
                 self.emit(&PointerAction::Drag(self.modifiers.clone(),total_delta),true);
                 true
             },
             DragMode::Hold => {
-                self.send_drag((0.,0.),None,false);
+                self.send_drag((0.,0.),false);
                 self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),total_delta),true);
                 true
             },
             DragMode::Pinch => {
-                self.send_drag((0.,0.),None,false);
-                if let Some(total_delta_secondary) = total_delta_secondary {
-                    self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),total_delta,total_delta_secondary),true);
+                self.send_drag((0.,0.),false);
+                if let Some(pinch) = &self.pinch {
+                    self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),pinch.position()),true);
                 }
                 true
             },
-        }
+        })
     }
 }
 
 pub struct DragState(Arc<Mutex<DragStateData>>);
 
 impl DragState {
-    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> DragState {
-        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,primary,secondary)));
+    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<DragState,Message> {
+        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,config,primary,secondary)?));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
         let drag_cursor_delay = config.drag_cursor_delay;
@@ -213,14 +229,14 @@ impl DragState {
         lowlevel.timer(drag_cursor_delay, move || {
             inner2.lock().unwrap().click_timer_expired();
         });
-        DragState(inner)
+        Ok(DragState(inner))
     }
 
-    pub(super) fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) {
-        self.0.lock().unwrap().drag_continue(config,primary,secondary);
+    pub(super) fn drag_continue(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<(),Message> {
+        self.0.lock().unwrap().drag_continue(config,primary,secondary)
     }
 
-    pub(super) fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> bool {
+    pub(super) fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<bool,Message> {
         self.0.lock().unwrap().drag_finished(config,primary,secondary)
     }
 }

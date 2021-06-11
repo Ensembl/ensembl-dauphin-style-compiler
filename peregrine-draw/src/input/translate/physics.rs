@@ -111,6 +111,12 @@ impl PhysicsState {
         Ok(())
     }
 
+    fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre: f64, y: f64) {
+        api.set_bp_per_screen(scale);
+        api.set_x(centre);
+        api.set_y(y);
+    }
+
     fn update_x_pull(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
         if self.pull_x_speed.step() {
             if self.pull_x_to.is_none() { self.pull_x_to = api.x()?; }
@@ -182,9 +188,25 @@ impl Physics {
         Ok(())
     }
 
+    fn incoming_scale_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+        if !event.start { return Ok(()); }
+        let mut state = self.state.lock().unwrap();
+        let scale = *event.amount.get(0).unwrap_or(&1.);
+        let centre = *event.amount.get(1).unwrap_or(&0.);
+        let y = *event.amount.get(2).unwrap_or(&0.);
+        match event.details {
+            InputEventKind::SetPosition => {
+                state.scale(api,scale,centre,0.);
+            },
+            _ => {}
+        }
+        Ok(())
+    }
+
     fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event);
         self.incoming_jump_request(api,event)?;
+        self.incoming_scale_event(api,event)?;
         Ok(())
     }
 

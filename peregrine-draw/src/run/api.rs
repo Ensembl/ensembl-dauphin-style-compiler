@@ -188,8 +188,9 @@ impl PeregrineAPI {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
-        *self.input.lock().unwrap() = Some(Input::new(&dom,&configs.draw,&self,&commander)?);
-        let inner = PeregrineInnerAPI::new(configs,dom,&commander)?;
+        let input = Input::new(&dom,&configs.draw,&self,&commander)?;
+        let inner = PeregrineInnerAPI::new(configs,dom,&commander,&input)?;
+        *self.input.lock().unwrap() = Some(input);
         let self2 = self.clone();
         inner.add_target_callback(move |p| {
             *self2.target.lock().unwrap() = p.clone();

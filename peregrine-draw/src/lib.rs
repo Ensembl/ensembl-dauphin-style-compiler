@@ -7,6 +7,7 @@ mod input {
         mod pointer {
             pub(crate) mod cursor;
             mod drag;
+            pub(super) mod pinch;
             pub(super) mod pointer;    
         }
 

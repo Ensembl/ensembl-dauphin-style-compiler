@@ -54,6 +54,10 @@ pub enum PgConfigKey {
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
     DebugFlag(DebugFlag),
     AuxBufferSize, // 4-byte units
+    PinchMinSep, // px min num pix to try to scale with super zoom-out
+    // min factor where we try to calculate centre-of-zoom rather htan default, to avoid divide-by-zero.
+    // smaller than 1/(px-of-a-giant-screen), but much bigger than precision of floats
+    PinchMinScale,
 }
 
 #[derive(Clone)]
@@ -82,6 +86,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullRight), name: "keys.pull-right", default: &PgConfigValue::StaticStr("d ArrowRight") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::SetPosition), name: "keys.pixels-scale", default: &PgConfigValue::StaticStr("RunningPinch") },
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1500.) },
@@ -97,6 +102,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./10000.) },
+            ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
+            ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) }
         ]};

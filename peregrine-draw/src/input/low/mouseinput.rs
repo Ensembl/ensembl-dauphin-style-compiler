@@ -87,6 +87,7 @@ impl MouseEventHandler {
         } else {
             None
         };
+        // XXX handle errors
         self.pointer.process_event(&self.config,&self.lowlevel,self.primary.position(),secondary,&kind);
     }
 

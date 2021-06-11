@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use crate::input::InputEventKind;
+use crate::stage::stage::ReadStage;
 use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
@@ -27,6 +28,7 @@ pub struct LowLevelState {
     dom: PeregrineDom,
     mapping: InputMap,
     modifiers: Arc<Mutex<Modifiers>>,
+    stage: Arc<Mutex<Option<ReadStage>>>,
     cursor: Cursor
 }
 
@@ -47,8 +49,12 @@ impl LowLevelState {
             distributor: distributor.clone(),
             mapping: mapping.build(),
             modifiers,
+            stage: Arc::new(Mutex::new(None))
         },distributor))
     }
+
+    fn update_stage(&self, stage: &ReadStage) { *self.stage.lock().unwrap() = Some(stage.clone()); }
+    pub(super) fn stage(&self) -> Option<ReadStage> { self.stage.lock().unwrap().as_ref().cloned() }
 
     pub(super) fn update_modifiers(&self, modifiers: Modifiers) {
         *self.modifiers.lock().unwrap() = modifiers;
@@ -85,7 +91,8 @@ impl LowLevelState {
 pub struct LowLevelInput {
     keyboard: EventSystem<KeyboardEventHandler>,
     mouse: EventSystem<MouseEventHandler>,
-    distributor: Distributor<InputEvent>
+    distributor: Distributor<InputEvent>,
+    state: LowLevelState
 }
 
 impl LowLevelInput {
@@ -93,8 +100,10 @@ impl LowLevelInput {
         let (state,distributor) = LowLevelState::new(dom,commander,config)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state)?;
-        Ok(LowLevelInput { keyboard, mouse, distributor })
+        Ok(LowLevelInput { keyboard, mouse, distributor, state })
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
+
+    pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
 }

@@ -3,10 +3,11 @@ use crate::{ run::CursorCircumstance, util::{ Message }};
 use crate::util::monostable::Monostable;
 use crate::input::low::lowlevel::{ LowLevelState, Modifiers };
 use js_sys::Date;
-use super::drag::DragState;
+use super::{drag::DragState, pinch::PixelPinchAction};
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
 use super::cursor::CursorHandle;
+use super::pinch::ScreenPosition;
 
 pub(crate) struct PointerConfig {
     pub drag_cursor_delay: f64, // ms
@@ -14,6 +15,8 @@ pub(crate) struct PointerConfig {
     pub hold_delay: f64, // ms
     pub multiclick_time: f64, // ms
     pub wheel_timeout: f64, // ms
+    pub pinch_min_sep: f64, // px
+    pub pinch_min_scale: f64, // factor
 }
 
 impl PointerConfig {
@@ -23,24 +26,25 @@ impl PointerConfig {
             click_radius: config.get_f64(&PgConfigKey::MouseClickRadius)?,
             hold_delay: config.get_f64(&PgConfigKey::MouseHoldDwell)?,
             multiclick_time: config.get_f64(&PgConfigKey::DoubleClickTime)?,
-            wheel_timeout: config.get_f64(&PgConfigKey::WheelTimeout)?
+            wheel_timeout: config.get_f64(&PgConfigKey::WheelTimeout)?,
+            pinch_min_sep: config.get_f64(&PgConfigKey::PinchMinSep)?,
+            pinch_min_scale: config.get_f64(&PgConfigKey::PinchMinScale)?,
         })
     }
 }
 
-#[derive(Debug)]
 pub(super) enum PointerAction {
     RunningDrag(Modifiers,(f64,f64)),
     RunningHold(Modifiers,(f64,f64)),
-    RunningPinch(Modifiers,(f64,f64),(f64,f64)),
+    RunningPinch(Modifiers,ScreenPosition),
     Drag(Modifiers,(f64,f64)),
     Wheel(Modifiers,f64,(f64,f64)),
     Click(Modifiers,(f64,f64)),
     DoubleClick(Modifiers,(f64,f64)),
-    SwitchToPinch(Modifiers,(f64,f64),(f64,f64)),
+    SwitchToPinch(Modifiers,ScreenPosition),
     SwitchToHold(Modifiers,(f64,f64)),
     HoldDrag(Modifiers,(f64,f64)),
-    PinchDrag(Modifiers,(f64,f64),(f64,f64)),
+    PinchDrag(Modifiers,ScreenPosition),
 }
 
 impl PointerAction {
@@ -49,21 +53,20 @@ impl PointerAction {
         let (kinds,modifiers) = match self {
             PointerAction::RunningDrag(modifiers,amount) => (vec![("RunningDrag",vec![amount.0,amount.1]),("MirrorRunningDrag",vec![-amount.0,-amount.1])],modifiers),
             PointerAction::RunningHold(modifiers,amount) => (vec![("RunningHold",vec![amount.0,amount.1]),("MirrorRunningHold",vec![-amount.0,-amount.1])],modifiers),
-            PointerAction::RunningPinch(modifiers,primary,secondary) => (
-                vec![("RunningPinch",vec![primary.0,primary.1,secondary.0,secondary.1]),
-                     ("MirrorRunningPinch",vec![-primary.0,-primary.1,-secondary.0,-secondary.1])],modifiers
+            PointerAction::RunningPinch(modifiers,pinch) => (
+                vec![("RunningPinch",pinch.parameters())],modifiers
             ),
             PointerAction::Drag(modifiers,amount) => (vec![("Drag",vec![amount.0,amount.1])],modifiers),
             PointerAction::Wheel(modifiers,amount,pos) => (vec![("Wheel",vec![*amount,pos.0,pos.1]),("MirrorWheel",vec![-*amount,pos.0,pos.1])],modifiers),
             PointerAction::Click(modifiers,pos) => (vec![("Click",vec![pos.0,pos.1])],modifiers),
             PointerAction::DoubleClick(modifiers,pos) => (vec![("DoubleClick",vec![pos.0,pos.1])],modifiers),
-            PointerAction::SwitchToPinch(modifiers,primary,secondary) => (
-                vec![("SwitchToPinch",vec![primary.0,primary.1,secondary.0,secondary.1])],modifiers
+            PointerAction::SwitchToPinch(modifiers,pinch) => (
+                vec![("SwitchToPinch",pinch.parameters())],modifiers
             ),
             PointerAction::SwitchToHold(modifiers,pos) => (vec![("SwitchToHold",vec![pos.0,pos.1])],modifiers),
             PointerAction::HoldDrag(modifiers,amount) => (vec![("Hold",vec![amount.0,amount.1])],modifiers),
-            PointerAction::PinchDrag(modifiers,primary,secondary) => (
-                vec![("Pinch",vec![primary.0,primary.1,secondary.0,secondary.1])],modifiers
+            PointerAction::PinchDrag(modifiers,pinch) => (
+                vec![("Pinch",pinch.parameters())],modifiers
             ),
         };
         for (name,args) in kinds {
@@ -150,28 +153,25 @@ impl Pointer {
         }
     }
 
-    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) {
-        if let Some(secondary) = secondary {
-            use web_sys::console;
-            //console::log_1(&format!("primary={:?} secondary {:?}",primary,secondary).into());
-        }
+    pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
-                self.drag = Some(DragState::new(config,lowlevel,primary,secondary));
+                self.drag = Some(DragState::new(config,lowlevel,primary,secondary)?);
                 self.start = primary;
                 self.modifiers = lowlevel.modifiers();
             },
             (Some(drag_state),PointerEventKind::Move) => {
-                drag_state.drag_continue(config,primary,secondary);
+                drag_state.drag_continue(config,primary,secondary)?;
             },
             (Some(drag_state),PointerEventKind::Up) => {
-                if !drag_state.drag_finished(config,primary,secondary) {
+                if !drag_state.drag_finished(config,primary,secondary)? {
                     self.click(config,lowlevel);
                 }
                 self.drag = None;
             },
             _ => {}
         }
+        Ok(())
     }
 
     pub(crate) fn wheel_event(&mut self, lowlevel: &LowLevelState, position: &(f64,f64), amount: f64) {
