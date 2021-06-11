@@ -9,6 +9,7 @@ use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::input::Spectre;
 use crate::util::message::Message;
+use crate::webgl::glspectre::draw_spectre;
 
 #[derive(Clone)]
 enum FadeState {
@@ -131,9 +132,8 @@ impl GlTrainSetData {
     }
 
     fn draw_spectres(&self, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
-        if spectres.len() > 0 {
-            use web_sys::console;
-            //console::log_1(&format!("spectres!").into());
+        for spectre in spectres {
+            draw_spectre(gl,spectre)?;
         }
         Ok(())
     }

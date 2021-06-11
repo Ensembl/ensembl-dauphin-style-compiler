@@ -16,7 +16,8 @@ mod input {
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 
         pub mod mapping;   
-        pub(super) mod spectre; 
+        pub(super) mod spectre;
+        pub(super) mod spectremanager;
     }
 
     mod translate {
@@ -185,6 +186,7 @@ mod webgl {
     pub(crate) use program::texture::{ Texture, TextureProto };
 
     pub(crate) mod global;
+    pub(crate) mod glspectre;
     mod util;
 }
 

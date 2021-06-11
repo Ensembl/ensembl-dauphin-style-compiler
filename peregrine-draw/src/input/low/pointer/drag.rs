@@ -2,12 +2,13 @@ use std::sync::{ Arc, Mutex };
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
+use crate::input::low::spectre::MarchingAnts;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
 use super::pointer::{ PointerConfig, PointerAction };
 use super::cursor::CursorHandle;
 use super::super::spectre::Spectre;
-use super::super::spectre::SpectreHandle;
+use super::super::spectremanager::SpectreHandle;
 use crate::run::CursorCircumstance;
 use super::pinch::FingerAxis;
 
@@ -19,6 +20,7 @@ impl FingerDelta {
     }
 
     fn start(&self) -> (f64,f64) { (self.0.start(),self.1.start()) }
+    fn current(&self) -> (f64,f64) { (self.0.current(),self.1.current()) }
     fn set(&mut self, position: (f64,f64)) { self.0.set(position.0); self.1.set(position.1); }
     fn reset(&mut self) { self.0.reset(); self.1.reset(); }
     fn delta(&self) -> (f64,f64) { (self.0.delta(),self.1.delta()) }
@@ -38,6 +40,7 @@ impl FingerDrag {
     }
 
     fn start(&self) -> (f64,f64) { self.overall.start() }
+    fn current(&self) -> (f64,f64) { self.overall.current() }
 
     fn total_delta(&self) -> (f64,f64) {
         self.overall.delta()
@@ -110,6 +113,12 @@ impl DragStateData {
         Ok(out)
     }
 
+    fn update_spectre(&self) {
+        if let Some(spectre) = &self.spectre {
+            spectre.update(Spectre::MarchingAnts(self.make_ants()));
+        }
+    }
+
     fn check_secondary(&mut self, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<(),Message> {
         if let Some(secondary) = secondary {
             if self.pinch.is_none() {
@@ -145,11 +154,20 @@ impl DragStateData {
         self.set_mode(self.mode.clone()); // Force cursor to be correct
     }
 
+    fn make_ants(&self) -> MarchingAnts {
+        MarchingAnts::new((
+            self.primary.start().1,
+            self.primary.start().0,
+            self.primary.current().1,
+            self.primary.current().0
+        ))
+    }
+
     fn hold_timer_expired(&mut self) {
         if !self.alive { return; }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
-            self.spectre = Some(self.lowlevel.add_spectre(Spectre::MarchingAnts));
+            self.spectre = Some(self.lowlevel.add_spectre(Spectre::MarchingAnts(self.make_ants())));
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
     }
@@ -183,6 +201,7 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
+        self.update_spectre();
         let delta_p = self.primary.delta();
         self.send_drag(delta_p,true);
         Ok(())
@@ -192,6 +211,7 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
+        self.update_spectre();
         let delta = self.primary.delta();
         self.send_drag(delta,true);
         self.alive = false;

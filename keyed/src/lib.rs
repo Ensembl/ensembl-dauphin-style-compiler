@@ -189,6 +189,10 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
         out.ok_or_else(|| err!("invalid id"))
     }
 
+    pub fn replace(&mut self, key: &K, value: T) -> anyhow::Result<Option<T>> {
+        Ok(self.entries.get_mut(key).replace(value))
+    }
+
     pub fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
         let out : Option<&mut T> = self.entries.get_mut(key).into();
         out.ok_or_else(|| err!("invalid id"))
