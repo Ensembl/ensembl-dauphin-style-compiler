@@ -28,7 +28,7 @@ mod input {
     }
 
     pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
-    pub(crate) use self::low::spectre::Spectre;
+    pub(crate) use self::low::spectre::{ Spectre, MarchingAnts };
 }
 
 mod integration {

@@ -155,7 +155,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    SpaceBase, SpaceBaseArea
+    SpaceBase, SpaceBaseArea, ShapeList
 };
 pub use self::switch::allotment::{ 
     AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,

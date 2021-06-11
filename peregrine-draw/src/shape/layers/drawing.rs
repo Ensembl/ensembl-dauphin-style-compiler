@@ -1,5 +1,5 @@
 use super::layer::Layer;
-use peregrine_data::{ Shape, Allotter };
+use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
 use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
@@ -75,7 +75,7 @@ impl DrawingBuilder {
         let flats = flats_builder.built();
         let mut processes = vec![];
         self.main_layer.build(gl,&mut processes,&flats)?;
-        Ok(Drawing::new(processes,flats,self.tools.zmenus.build())?)
+        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build())?)
     }
 }
 
@@ -86,7 +86,20 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
-    fn new(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
+    pub(crate) fn new(shapes: ShapeList, gl: &mut WebGlGlobal, left: f64) -> Result<Drawing,Message> {
+        let mut drawing = DrawingBuilder::new(gl,left)?;
+        let allotter = shapes.allotter();
+        let mut preparations =shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
+        drawing.finish_preparation(gl)?;
+        for mut shapes in preparations.drain(..) {
+            for shape in shapes.drain(..) {
+                drawing.add_shape(gl,shape)?;
+            }
+        }
+        drawing.build(gl)    
+    }
+
+    fn new_real(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
         Ok(Drawing {
             processes,
             canvases,

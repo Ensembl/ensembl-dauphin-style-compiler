@@ -1,6 +1,5 @@
 use peregrine_data::{ Carriage, CarriageId };
-use crate::shape::layers::drawing::{ DrawingBuilder, Drawing };
-use crate::shape::core::glshape::PreparedShape;
+use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
@@ -31,20 +30,10 @@ impl Hash for GLCarriage {
 
 impl GLCarriage {
     pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
-        let mut drawing = DrawingBuilder::new(gl,carriage.id().left())?;
-        let allotter = carriage.shapes().allotter();
-        let mut preparations = carriage.shapes().shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
-        drawing.finish_preparation(gl)?;
-        for mut shapes in preparations.drain(..) {
-            for shape in shapes.drain(..) {
-                drawing.add_shape(gl,shape)?;
-            }
-        }
-        let drawing = drawing.build(gl)?;
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
-            drawing
+            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left())?
         })
     }
 

@@ -1,8 +1,13 @@
-use crate::{Message, input::Spectre};
+use crate::{Message, input::{MarchingAnts, Spectre}};
 use super::global::WebGlGlobal;
 
-pub(crate) fn draw_spectre( gl: &mut WebGlGlobal, spectre: &Spectre) -> Result<(),Message> {
-    use web_sys::console;
-    console::log_1(&format!("spectre {:?}",spectre).into());
+fn draw_ants(gl: &mut WebGlGlobal, ants: &MarchingAnts) -> Result<(),Message> {
+    Ok(())
+}
+
+pub(crate) fn draw_spectre(gl: &mut WebGlGlobal, spectre: &Spectre) -> Result<(),Message> {
+    match spectre {
+        Spectre::MarchingAnts(ants) => { draw_ants(gl,ants)?; }
+    }
     Ok(())
 }
