@@ -2,6 +2,7 @@ use crate::{Message, stage::stage::ReadStage};
 
 use super::pointer::PointerConfig;
 
+#[derive(Copy,Clone)]
 pub(super) struct FingerAxis { // XX not pub
     start: f64,
     current: f64
@@ -29,7 +30,18 @@ impl FingerPairAxis {
         FingerPairAxis(FingerAxis::new(primary),FingerAxis::new(secondary))
     }
 
-    fn set_position(&mut self, primary: f64, secondary: f64) { self.0.set(primary); self.1.set(secondary); }
+    fn set_position(&mut self, primary: f64, secondary: f64) {
+        let order_before = self.0.current() > self.1.current();
+        let order_after = primary > secondary;
+        if order_before != order_after {
+            let t = self.0;
+            self.0 = self.1;
+            self.1 = t;
+        }
+        self.0.set(primary);
+        self.1.set(secondary);
+    }
+
     fn reset(&mut self) { self.0.reset(); self.1.reset(); }
     fn current_separation(&self) -> f64 { self.1.current() - self.0.current() }
     fn start_separation(&self) -> f64 { self.1.start() - self.0.start() }
@@ -39,22 +51,29 @@ impl FingerPairAxis {
     /* our x co-ordinates are measued in px. When we zoom out they reduce, ie zoom out has scale < 1.
      * this is the RECIPROCAL of the change in bp-per-screen used elsewhere.
      */
-    fn scale(&self, min_sep: f64) -> Option<f64> {
+    fn pixel_scale(&self, min_sep: f64) -> Option<f64> {
         let start_separation = self.start_separation().abs();
         let current_separation = self.current_separation().abs();
         if current_separation < min_sep { return None; }
         Some(current_separation/start_separation)
     }
 
+    /* regular px_per_screen type scale, ie reciprocal of pixel_scale. Needs separate function
+     * because different asymptote
+     */
+    fn bp_scale(&self, min_sep: f64) -> Option<f64> {
+        let start_separation = self.start_separation().abs();
+        let current_separation = self.current_separation().abs();
+        if current_separation < min_sep { return None; }
+        Some(start_separation/current_separation)
+    }
+
     fn eigenpoint(&self, min_sep: f64, min_scale: f64) -> Option<f64> {
-        let scale = self.scale(min_sep);
+        let scale = self.pixel_scale(min_sep);
         if scale.is_none() { return None; }
         let scale = scale.unwrap();
         if (scale-1.).abs() < min_scale { return None; }
-        use web_sys::console;
         let offset = self.0.current() - self.0.start() * scale;
-        console::log_1(&format!("scale {}",scale).into());
-        console::log_1(&format!("offset {}",offset).into());
         Some(offset/(1.-scale))
     }
 }
@@ -86,7 +105,7 @@ impl FingerPair {
     }
 
     fn make_pinch_action(&self, min_sep: f64, min_scale: f64) -> Option<PixelPinchAction> {
-        let scale = self.0.scale(min_sep);
+        let scale = self.0.bp_scale(min_sep);
         let eigenpoint = self.0.eigenpoint(min_sep,min_scale);
         let delta_y = self.1.start_mean() - self.1.current_mean();
         if let (Some(scale),Some(eigenpoint)) = (scale,eigenpoint) {
@@ -117,7 +136,7 @@ impl ScreenPosition {
     }
 
     pub(crate) fn transform(start: &ScreenPosition, action: &PixelPinchAction) -> ScreenPosition {
-        let bp_per_screen = start.bp_per_screen / action.scale;
+        let bp_per_screen = start.bp_per_screen * action.scale;
         let eigenpoint_in_screenfuls = (action.eigenpoint / start.screen_x)-0.5; // -0.5=left, +0.5=right
         use web_sys::console;
         //console::log_1(&format!("eigenpoint {}",action.eigenpoint).into());
