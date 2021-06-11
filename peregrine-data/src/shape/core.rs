@@ -69,6 +69,7 @@ impl Colour {
 pub enum Patina {
     Filled(Colour),
     Hollow(Colour),
+    Stripe(Colour,Colour),
     ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
@@ -85,6 +86,7 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.bulk(len,primary)),
             Patina::Hollow(c) => Patina::Hollow(c.bulk(len,primary)),
+            Patina::Stripe(a,b) => Patina::Stripe(a.bulk(len,primary),b.bulk(len,primary)),
             Patina::ZMenu(z,mut h) => {
                 let mut new_h  = h.clone();
                 for (k,v) in h.drain(..) {
@@ -99,6 +101,7 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.filter(filter)),
             Patina::Hollow(c) => Patina::Hollow(c.filter(filter)),
+            Patina::Stripe(a,b) => Patina::Stripe(a.filter(filter),b.filter(filter)),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }

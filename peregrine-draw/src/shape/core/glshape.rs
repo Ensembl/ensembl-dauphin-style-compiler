@@ -94,6 +94,14 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
             let direct = layer.get_direct(geometry)?;
             direct.direct(addable,d,vertexes)?;
         },
+        Patina::Stripe(Colour::Direct(d),_) => {
+            let direct = layer.get_direct(geometry)?;
+            direct.direct(addable,d,vertexes)?;
+        },
+        Patina::Stripe(Colour::Spot(c),_) => {
+            let direct = layer.get_direct(geometry)?;
+            direct.direct(addable,&[c.clone()],vertexes)?;
+        },
         Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
             let spot = layer.get_spot(geometry,d)?;
             let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(d.clone()))?;
