@@ -51,12 +51,15 @@ pub enum PreparedShape {
     SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>,AllotmentProgramKind),
 }
 
+/*
 fn colour_to_patina(colour: &Colour) -> PatinaProcessName {
     match colour {
         Colour::Direct(_) => PatinaProcessName::Direct,
-        Colour::Spot(c) => PatinaProcessName::Spot(c.clone())
+        Colour::Spot(c) => PatinaProcessName::Spot(c.clone()),
+        //Colour::Stripe(_,_) => PatinaProcessName::Texture(FlatId::)
     }
 }
+*/
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     // XXX yuk!
@@ -94,13 +97,10 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
             let direct = layer.get_direct(geometry)?;
             direct.direct(addable,d,vertexes)?;
         },
-        Patina::Stripe(Colour::Direct(d),_) => {
+        Patina::Filled(Colour::Stripe(d)) | Patina::Hollow(Colour::Stripe(d)) => {
             let direct = layer.get_direct(geometry)?;
-            direct.direct(addable,d,vertexes)?;
-        },
-        Patina::Stripe(Colour::Spot(c),_) => {
-            let direct = layer.get_direct(geometry)?;
-            direct.direct(addable,&[c.clone()],vertexes)?;
+            let d = d.iter().map(|x| x.0.clone()).collect::<Vec<_>>(); // XXX wrong
+            direct.direct(addable,&d,vertexes)?;
         },
         Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
             let spot = layer.get_spot(geometry,d)?;

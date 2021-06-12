@@ -46,21 +46,24 @@ pub struct Plotter(pub f64, pub DirectColour);
 #[derive(Clone,Debug)]
 pub enum Colour {
     Direct(Vec<DirectColour>),
-    Spot(DirectColour)
+    Spot(DirectColour),
+    Stripe(Vec<(DirectColour,DirectColour)>)
 }
 
 impl Colour {
     pub fn bulk(self, len: usize, primary: bool) -> Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(bulk(d,len,primary)),
-            Colour::Spot(d) => Colour::Spot(d)
+            Colour::Spot(d) => Colour::Spot(d),
+            Colour::Stripe(d) => Colour::Stripe(bulk(d,len,primary))
         }
     }
 
     pub fn filter(&self, filter: &DataFilter) -> Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(filter.filter(d)),
-            Colour::Spot(d) => Colour::Spot(d.clone())            
+            Colour::Spot(d) => Colour::Spot(d.clone()),
+            Colour::Stripe(d) => Colour::Stripe(filter.filter(d))          
         }
     }
 }
@@ -69,7 +72,6 @@ impl Colour {
 pub enum Patina {
     Filled(Colour),
     Hollow(Colour),
-    Stripe(Colour,Colour),
     ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
@@ -86,7 +88,6 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.bulk(len,primary)),
             Patina::Hollow(c) => Patina::Hollow(c.bulk(len,primary)),
-            Patina::Stripe(a,b) => Patina::Stripe(a.bulk(len,primary),b.bulk(len,primary)),
             Patina::ZMenu(z,mut h) => {
                 let mut new_h  = h.clone();
                 for (k,v) in h.drain(..) {
@@ -101,7 +102,6 @@ impl Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(c.filter(filter)),
             Patina::Hollow(c) => Patina::Hollow(c.filter(filter)),
-            Patina::Stripe(a,b) => Patina::Stripe(a.filter(filter),b.filter(filter)),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }
