@@ -87,32 +87,26 @@ impl FlatPlotAllocator {
         })
     }
 
-    fn all_weaves(&self) -> Vec<(CanvasWeave,String)> {
-        let mut out = HashSet::new();
-        for request in self.requests.values() {
-            out.insert((request.weave.clone(),request.uniform_name.clone()));
+    fn make_weave(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable, weave: CanvasWeave, uniform_name: &str) -> Result<(),Message> {
+        let mut allocator = WeaveAllocator::new(&weave,uniform_name);
+        for (id,request) in self.requests.items() {
+            if request.weave == weave {
+                allocator.add(id,&request.sizes);
+            }
         }
-        out.iter().cloned().collect()
+        allocator.allocate(gl,drawable)?;
+        for (id,request) in self.requests.items() {
+            if request.weave == weave {
+                let origins = allocator.origins(&id);
+                drawable.add(id,allocator.canvas.as_ref().unwrap(),origins,&request.uniform_name);    
+            }
+        }
+        Ok(())
     }
 
-    pub(crate) fn make(self, gl: &mut WebGlGlobal) -> Result<DrawingFlatsDrawable,Message> {
-        let mut weave_allocators = HashMap::new();
-        let all_weaves = self.all_weaves();
-        for (weave,uniform_name) in all_weaves.iter() {
-            weave_allocators.insert(weave,WeaveAllocator::new(weave,&uniform_name));
-        } 
-        for (id,request) in self.requests.items() {
-            weave_allocators.get_mut(&request.weave).unwrap().add(id,&request.sizes);
-        }
+    pub(crate) fn make(mut self, gl: &mut WebGlGlobal) -> Result<DrawingFlatsDrawable,Message> {
         let mut drawable = DrawingFlatsDrawable::new();
-        for weave_allocator in weave_allocators.values_mut() {
-            weave_allocator.allocate(gl,&mut drawable)?;
-        }
-        for (id,request) in self.requests.items() {
-            let weave_allocator = weave_allocators.get(&request.weave).unwrap();
-            let origins = weave_allocator.origins(&id);
-            drawable.add(id,weave_allocator.canvas.as_ref().unwrap(),origins,&request.uniform_name);
-        }
+        self.make_weave(gl,&mut drawable, CanvasWeave::Crisp,"uSampler")?;
         Ok(drawable)
     }
 }
