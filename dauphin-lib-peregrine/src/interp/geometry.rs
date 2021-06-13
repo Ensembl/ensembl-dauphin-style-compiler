@@ -19,6 +19,7 @@ simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
+simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,3,(0,1,2));
 
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -94,6 +95,34 @@ impl InterpCommand for SimpleColourInterpCommand {
             DirectColour(255,255,255)
         };
         let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for StripedInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids_a = registers.get_indexes(&self.1)?.to_vec();
+        let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let direct_colour_a = if let Some(direct_id) = direct_ids_a.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255)
+        };
+        let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b));
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
