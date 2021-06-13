@@ -46,7 +46,6 @@ pub struct Plotter(pub f64, pub DirectColour);
 #[derive(Clone,Debug)]
 pub enum Colour {
     Direct(Vec<DirectColour>),
-    Spot(DirectColour),
     Stripe(Vec<(DirectColour,DirectColour)>)
 }
 
@@ -54,7 +53,6 @@ impl Colour {
     pub fn bulk(self, len: usize, primary: bool) -> Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(bulk(d,len,primary)),
-            Colour::Spot(d) => Colour::Spot(d),
             Colour::Stripe(d) => Colour::Stripe(bulk(d,len,primary))
         }
     }
@@ -62,7 +60,6 @@ impl Colour {
     pub fn filter(&self, filter: &DataFilter) -> Colour {
         match self {
             Colour::Direct(d) => Colour::Direct(filter.filter(d)),
-            Colour::Spot(d) => Colour::Spot(d.clone()),
             Colour::Stripe(d) => Colour::Stripe(filter.filter(d))          
         }
     }

@@ -102,11 +102,13 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
             let d = d.iter().map(|x| x.0.clone()).collect::<Vec<_>>(); // XXX wrong
             direct.direct(addable,&d,vertexes)?;
         },
+        /*
         Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
             let spot = layer.get_spot(geometry,d)?;
             let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(d.clone()))?;
             spot.spot(&mut process)?;
         }
+        */
         Patina::ZMenu(template,values) => {
             // XXX ZMenu
             // tools.zmenus().add_rectangle(layer,zmenu,values,anchor,allotment,x_size,y_size);

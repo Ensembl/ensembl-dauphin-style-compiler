@@ -104,7 +104,8 @@ impl PatinaProcessName {
             _ => None
         }.and_then(|colour| match colour {
             Colour::Direct(_) => Some(PatinaProcessName::Direct),
-            Colour::Spot(c) => Some(PatinaProcessName::Spot(c.clone())),
+            // XXX reinstate spot colours as hints
+            //Colour::Spot(c) => Some(PatinaProcessName::Spot(c.clone())),
             _ => None
         })
     }
