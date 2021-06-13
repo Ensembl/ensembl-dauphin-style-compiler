@@ -2,7 +2,6 @@ use crate::webgl::CanvasWeave;
 use keyed::KeyedData;
 use crate::webgl::ProcessBuilder;
 use super::flatstore::{ FlatId, FlatStore };
-use crate::webgl::Texture;
 use super::flatplotallocator::FlatPlotRequestHandle;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
@@ -41,7 +40,6 @@ impl DrawingFlats {
 }
 
 struct FlatPlotResponse {
-    uniform_name: String,
     canvas: FlatId,
     origin: Vec<(u32,u32)>
 }
@@ -52,16 +50,15 @@ pub(crate) struct DrawingFlatsDrawable {
 }
 
 impl DrawingFlatsDrawable {
-    pub(super) fn new() -> DrawingFlatsDrawable {
+    pub(crate) fn new() -> DrawingFlatsDrawable {
         DrawingFlatsDrawable {
             responses: KeyedData::new(),
             drawing_flats: DrawingFlats::new()
         }
     }
 
-    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId, origin: Vec<(u32,u32)>, uniform_name: &str) {
+    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId, origin: Vec<(u32,u32)>) {
         self.responses.insert(&id,FlatPlotResponse {
-            uniform_name: uniform_name.to_string(),
             canvas: canvas.clone(),
             origin
         });

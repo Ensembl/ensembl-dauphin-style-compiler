@@ -1,7 +1,8 @@
 use keyed::KeyedData;
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;
-use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotAllocator, FlatPlotRequestHandle };
+use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
+use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotRequestHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
@@ -83,7 +84,7 @@ impl DrawingText {
         Ok(())
     }
 
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator,uniform_name: &str) -> Result<(),Message> {
+    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, weave_allocator: &mut FlatPositionAllocator, uniform_name: &str) -> Result<(),Message> {
         self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for text in self.texts.values_mut() {
@@ -92,7 +93,7 @@ impl DrawingText {
             sizes.push(size);
             sizes.push(size);
         }
-        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes,uniform_name));
+        self.request = Some(weave_allocator.insert(&sizes));
         Ok(())
     }
 

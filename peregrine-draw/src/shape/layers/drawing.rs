@@ -2,17 +2,35 @@ use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
-use crate::shape::core::heraldry::DrawingHeraldry;
-use crate::webgl::{CanvasWeave, DrawingFlats, DrawingFlatsDrawable, DrawingSession, FlatPlotAllocator, FlatStore, Process};
+use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
+//use crate::shape::core::heraldry::DrawingHeraldry;
+use crate::webgl::{CanvasWeave, DrawingFlats, DrawingFlatsDrawable, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
+pub(crate) struct ToolPreparations {
+    crisp: FlatPositionAllocator
+}
+
+impl ToolPreparations {
+    fn new() -> ToolPreparations {
+        ToolPreparations {
+            crisp: FlatPositionAllocator::new(&CanvasWeave::Crisp,"uSampler")
+        }
+    }
+
+    fn draw(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+        self.crisp.make(gl,drawable)?;
+        Ok(())
+    }
+}
+
 pub(crate) struct DrawingTools {
     text: DrawingText,
-    heraldry: DrawingHeraldry,
+    //heraldry: DrawingHeraldry,
     zmenus: DrawingZMenusBuilder
 }
 
@@ -20,21 +38,22 @@ impl DrawingTools {
     fn new() -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
-            heraldry: DrawingHeraldry::new(),
+            //heraldry: DrawingHeraldry::new(),
             zmenus: DrawingZMenusBuilder::new()
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
-    pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
+    //pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
-        self.text.start_preparation(gl,allocator,"uSampler")?;
-        Ok(())
+    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
+        let mut preparations = ToolPreparations::new();
+        self.text.start_preparation(gl,&mut preparations.crisp,"uSampler")?;
+        Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, preparations: ToolPreparations) -> Result<(),Message> {
         self.text.finish_preparation(canvas_store,builder)?;
         Ok(())
     }
@@ -62,10 +81,10 @@ impl DrawingBuilder {
     }
 
     pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut canvas_allocator = FlatPlotAllocator::new();
-        self.tools.start_preparation(gl,&mut canvas_allocator)?;
-        let drawable = canvas_allocator.make(gl)?;
-        self.tools.finish_preparation(gl.canvas_store_mut(),&drawable)?;
+        let mut prep = self.tools.start_preparation(gl)?;
+        let mut drawable = DrawingFlatsDrawable::new();
+        prep.draw(gl,&mut drawable)?;
+        self.tools.finish_preparation(gl.canvas_store_mut(),&drawable,prep)?;
         self.flats = Some(drawable);
         Ok(())
     }

@@ -1,7 +1,7 @@
 use keyed::KeyedData;
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
-use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotAllocator, FlatPlotRequestHandle };
+use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotRequestHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use crate::util::message::Message;
@@ -57,6 +57,7 @@ impl Heraldry {
     }
 }
 
+/*
 pub struct DrawingHeraldry {
     pics: KeyedData<HeraldryHandle,Heraldry>,
     request: Option<FlatPlotRequestHandle>
@@ -116,3 +117,4 @@ impl DrawingHeraldry {
         self.pics.get(handle).get_texture_areas()
     }
 }
+*/

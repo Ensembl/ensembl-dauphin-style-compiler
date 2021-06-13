@@ -136,7 +136,7 @@ mod webgl {
     pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
     pub(crate) use canvas::bindery::{ TextureBindery, TextureStore };
     pub(crate) use canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
-    pub(crate) use canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
+    pub(crate) use canvas::flatplotallocator::{ FlatPlotRequestHandle };
 
 
     pub(super) mod gpuspec {

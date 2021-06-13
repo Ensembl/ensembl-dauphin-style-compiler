@@ -10,21 +10,21 @@ use crate::util::message::Message;
 
 keyed_handle!(FlatPlotRequestHandle);
 
-struct WeaveAllocatorData {
+struct FlatPositionAllocatorData {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-struct WeaveAllocator {
+pub(crate) struct FlatPositionAllocator {
     uniform_name: String,
-    requests: KeyedData<FlatPlotRequestHandle,Option<WeaveAllocatorData>>,
+    requests: KeyedData<FlatPlotRequestHandle,Option<FlatPositionAllocatorData>>,
     weave: CanvasWeave,
     canvas: Option<FlatId>
 }
 
-impl WeaveAllocator {
-    fn new(weave: &CanvasWeave, uniform_name: &str) -> WeaveAllocator {
-        WeaveAllocator {
+impl FlatPositionAllocator {
+    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> FlatPositionAllocator {
+        FlatPositionAllocator {
             uniform_name: uniform_name.to_string(),
             weave: weave.clone(),
             requests: KeyedData::new(),
@@ -32,10 +32,10 @@ impl WeaveAllocator {
         }
     }
 
-    fn add(&mut self, id: FlatPlotRequestHandle, sizes: &[(u32,u32)]) {
-        self.requests.insert(&id,WeaveAllocatorData {
+    pub(crate) fn insert(&mut self, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
+        self.requests.add(Some(FlatPositionAllocatorData {
             sizes: sizes.to_vec(), origin: vec![]
-        });
+        }))
     }
 
     fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> Result<(),Message> {
@@ -60,53 +60,13 @@ impl WeaveAllocator {
     fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).as_ref().unwrap().origin.clone()
     }
-}
 
-struct FlatPlotRequest {
-    uniform_name: String,
-    weave: CanvasWeave,
-    sizes: Vec<(u32,u32)>
-}
-
-pub(crate) struct FlatPlotAllocator {
-    requests: KeyedData<FlatPlotRequestHandle,FlatPlotRequest>
-}
-
-impl FlatPlotAllocator {
-    pub(crate) fn new() -> FlatPlotAllocator {
-        FlatPlotAllocator {
-            requests: KeyedData::new()
-        }
-    }
-
-    pub(crate) fn allocate(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)], uniform_name: &str) -> FlatPlotRequestHandle {
-        self.requests.add(FlatPlotRequest {
-            uniform_name: uniform_name.to_string(),
-            weave: weave.clone(),
-            sizes: sizes.to_vec()
-        })
-    }
-
-    fn make_weave(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable, weave: CanvasWeave, uniform_name: &str) -> Result<(),Message> {
-        let mut allocator = WeaveAllocator::new(&weave,uniform_name);
+    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+        self.allocate(gl,drawable)?;
         for (id,request) in self.requests.items() {
-            if request.weave == weave {
-                allocator.add(id,&request.sizes);
-            }
-        }
-        allocator.allocate(gl,drawable)?;
-        for (id,request) in self.requests.items() {
-            if request.weave == weave {
-                let origins = allocator.origins(&id);
-                drawable.add(id,allocator.canvas.as_ref().unwrap(),origins,&request.uniform_name);    
-            }
+            let origins = self.origins(&id);
+            drawable.add(id,self.canvas.as_ref().unwrap(),origins);
         }
         Ok(())
-    }
-
-    pub(crate) fn make(mut self, gl: &mut WebGlGlobal) -> Result<DrawingFlatsDrawable,Message> {
-        let mut drawable = DrawingFlatsDrawable::new();
-        self.make_weave(gl,&mut drawable, CanvasWeave::Crisp,"uSampler")?;
-        Ok(drawable)
     }
 }
