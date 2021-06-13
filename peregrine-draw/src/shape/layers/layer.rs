@@ -183,11 +183,12 @@ impl Layer {
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
     }
 
-    pub(super) fn build(self, gl: &mut WebGlGlobal, process: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
-        self.wiggle.build(gl,process,canvases)?;
-        self.track_triangles.build(gl,process,canvases)?;
-        self.base_label_triangles.build(gl,process,canvases)?;
-        self.space_label_triangles.build(gl,process,canvases)?;
-        Ok(())
+    pub(super) fn build(self, gl: &mut WebGlGlobal, canvases: &DrawingFlats) -> Result<Vec<Process>,Message> {
+        let mut processes = vec![];
+        self.wiggle.build(gl,&mut processes,canvases)?;
+        self.track_triangles.build(gl,&mut processes,canvases)?;
+        self.base_label_triangles.build(gl,&mut processes,canvases)?;
+        self.space_label_triangles.build(gl,&mut processes,canvases)?;
+        Ok(processes)
     }
 }

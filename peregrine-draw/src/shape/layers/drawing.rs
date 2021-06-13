@@ -22,7 +22,7 @@ impl ToolPreparations {
         }
     }
 
-    fn draw(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
         self.crisp.make(gl,drawable)?;
         Ok(())
     }
@@ -49,12 +49,12 @@ impl DrawingTools {
 
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
-        self.text.start_preparation(gl,&mut preparations.crisp,"uSampler")?;
+        self.text.calculate_requirements(gl,&mut preparations.crisp)?;
         Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, preparations: ToolPreparations) -> Result<(),Message> {
-        self.text.finish_preparation(canvas_store,builder)?;
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, _preparations: ToolPreparations) -> Result<(),Message> {
+        self.text.register_locations(canvas_store,builder)?;
         Ok(())
     }
 }
@@ -80,10 +80,10 @@ impl DrawingBuilder {
         prepare_shape_in_layer(layer,tools,shape,allotter)
     }
 
-    pub(crate) fn finish_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    pub(crate) fn prepare_tools(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut prep = self.tools.start_preparation(gl)?;
         let mut drawable = DrawingFlatsDrawable::new();
-        prep.draw(gl,&mut drawable)?;
+        prep.allocate(gl,&mut drawable)?;
         self.tools.finish_preparation(gl.canvas_store_mut(),&drawable,prep)?;
         self.flats = Some(drawable);
         Ok(())
@@ -95,10 +95,8 @@ impl DrawingBuilder {
     }
 
     pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
-        let (_tools, mut flats_builder) = (&mut self.tools, self.flats.take().unwrap());
-        let flats = flats_builder.built();
-        let mut processes = vec![];
-        self.main_layer.build(gl,&mut processes,&flats)?;
+        let flats = self.flats.take().unwrap().built();
+        let processes = self.main_layer.build(gl,&flats)?;
         Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build())?)
     }
 }
@@ -111,16 +109,20 @@ pub(crate) struct Drawing {
 
 impl Drawing {
     pub(crate) fn new(shapes: ShapeList, gl: &mut WebGlGlobal, left: f64) -> Result<Drawing,Message> {
+        /* convert core shape data model into gl shapes */
         let mut drawing = DrawingBuilder::new(gl,left)?;
         let allotter = shapes.allotter();
-        let mut preparations =shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
-        drawing.finish_preparation(gl)?;
-        for mut shapes in preparations.drain(..) {
+        let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
+        /* gather and allocate aux requirements (2d canvas space etc) */
+        drawing.prepare_tools(gl)?;
+        /* draw shapes (including any 2d work) */
+        for mut shapes in prepared_shapes.drain(..) {
             for shape in shapes.drain(..) {
                 drawing.add_shape(gl,shape)?;
             }
         }
-        drawing.build(gl)    
+        /* convert stuff to WebGL processes */
+        drawing.build(gl)
     }
 
     fn new_real(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
