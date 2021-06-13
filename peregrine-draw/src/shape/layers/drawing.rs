@@ -1,6 +1,7 @@
 use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
-use super::super::core::glshape::{ prepare_shape_in_layer, add_shape_to_layer, PreparedShape };
+use super::super::core::prepareshape::{ prepare_shape_in_layer };
+use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
@@ -50,7 +51,7 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape, allotter: &Allotter) -> Result<Vec<PreparedShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape, allotter: &Allotter) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape,allotter)
@@ -65,7 +66,7 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: PreparedShape) -> Result<(),Message> {
+    pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Message> {
         let (layer, tools, canvas_builder) = (&mut self.main_layer,&mut self.tools,&self.flats.as_ref().unwrap());
         add_shape_to_layer(layer,gl,tools,canvas_builder,shape)
     }

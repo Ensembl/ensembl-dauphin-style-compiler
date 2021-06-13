@@ -30,12 +30,12 @@ impl ProcessStanzaElementsEntry {
     }
 
     fn add_indexes(&mut self, indexes: &[u16], count: u16) {
-        let max_index = self.offset + *(if let Some(x) = indexes.iter().max() { x } else { return; });
+        let max_new_index = *(if let Some(x) = indexes.iter().max() { x } else { return; });
         for index in 0..count {
-            let offset = index * (max_index+1);
+            let offset = index * (max_new_index+1) + self.offset;
             self.index.extend(indexes.iter().map(|x| *x+offset));
         }
-        self.offset += count * (max_index+1);
+        self.offset += count * (max_new_index+1);
     }
 
     fn add(&mut self, handle: &AttribHandle, values: &[f32]) {

@@ -61,7 +61,8 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
-        pub(crate) mod glshape;
+        pub(crate) mod prepareshape;
+        pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;
         pub(super) mod spotcolourdraw;

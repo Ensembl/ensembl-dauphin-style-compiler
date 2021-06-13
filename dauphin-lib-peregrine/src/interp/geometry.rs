@@ -11,7 +11,6 @@ use crate::util::{ get_peregrine, get_instance };
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(0,1));
-
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,2,(0,1));
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,4,(0,1,2,3));

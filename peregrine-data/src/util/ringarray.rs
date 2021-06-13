@@ -288,7 +288,6 @@ impl DataFilter {
     }
 
     pub fn and(&self, other: &DataFilter) -> DataFilter {
-        use web_sys::console;
         let len = max(self.len(),other.len());
         let mut a_iter = self.iter_num(len);
         let mut b_iter = other.iter_num(len);
