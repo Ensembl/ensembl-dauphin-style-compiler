@@ -67,6 +67,7 @@ mod shape {
         pub(super) mod geometrydata;
         pub(super) mod spotcolourdraw;
         pub(super) mod tracktriangles;
+        pub(crate) mod heraldry;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;

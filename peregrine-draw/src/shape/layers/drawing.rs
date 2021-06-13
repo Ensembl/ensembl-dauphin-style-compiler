@@ -2,7 +2,8 @@ use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
-use crate::webgl::{ Process, DrawingFlatsDrawable, DrawingSession, FlatStore, FlatPlotAllocator, DrawingFlats };
+use crate::shape::core::heraldry::DrawingHeraldry;
+use crate::webgl::{CanvasWeave, DrawingFlats, DrawingFlatsDrawable, DrawingSession, FlatPlotAllocator, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
@@ -11,6 +12,7 @@ use crate::util::message::Message;
 
 pub(crate) struct DrawingTools {
     text: DrawingText,
+    heraldry: DrawingHeraldry,
     zmenus: DrawingZMenusBuilder
 }
 
@@ -18,11 +20,13 @@ impl DrawingTools {
     fn new() -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
+            heraldry: DrawingHeraldry::new(),
             zmenus: DrawingZMenusBuilder::new()
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
+    pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> Result<(),Message> {
