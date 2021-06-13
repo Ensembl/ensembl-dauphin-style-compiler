@@ -102,12 +102,17 @@ impl PatinaProcessName {
             Patina::Filled(c) => Some(c),
             Patina::Hollow(c) => Some(c),
             _ => None
+         }.and_then(|colour| {
+            Some(PatinaProcessName::Direct) // XXX
+         })
+        /* 
         }.and_then(|colour| match colour {
             Colour::Direct(_) => Some(PatinaProcessName::Direct),
             // XXX reinstate spot colours as hints
             //Colour::Spot(c) => Some(PatinaProcessName::Spot(c.clone())),
             _ => None
         })
+        */
     }
 
     pub(super) fn get_program_name(&self) -> PatinaProgramName {

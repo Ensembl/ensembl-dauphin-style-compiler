@@ -38,19 +38,18 @@ impl InterpCommand for SpaceBaseInterpCommand {
 }
 
 fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Colour) -> Patina {
+        where F: FnOnce(Vec<Colour>) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
     drop(registers);
     let peregrine = get_peregrine(context)?;
     let geometry_builder = peregrine.geometry_builder();
-    let colour = if let Some(colour_id) = colour_ids.get(0) {
-        geometry_builder.colour(*colour_id as u32)?.as_ref().clone()
-    } else {
-        Colour::Direct(vec![DirectColour(255,255,255)])
-    };
+    let mut colours = vec![];
+    for colour_id in &colour_ids {
+        colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
+    }
     drop(peregrine);
-    let patina = cb(colour);
+    let patina = cb(colours);
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -88,12 +87,13 @@ impl InterpCommand for SimpleColourInterpCommand {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();    
-        let mut colours = vec![];
-        for direct_id in &direct_ids {
+        let direct_colour = if let Some(direct_id) = direct_ids.get(0) {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
-            colours.push(dc.as_ref().clone());
-        }
-        let colour_id = geometry_builder.add_colour(Colour::Direct(colours));
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));

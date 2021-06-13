@@ -86,6 +86,13 @@ fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>
 }
 */
 
+fn xxx_destripe(c: &[Colour]) -> Vec<DirectColour> {
+    c.iter().map(|colour| match colour {
+        Colour::Direct(d) => d,
+        Colour::Stripe(a,b) => a
+    }).cloned().collect()
+}
+
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, patina: &Patina) -> Result<(),Message> {
     let vertexes = match patina {
         Patina::Filled(_) => 4,
@@ -93,13 +100,9 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
         _ => 0
     };
     match patina {
-        Patina::Filled(Colour::Direct(d)) | Patina::Hollow(Colour::Direct(d)) => {
+        Patina::Filled(colours) | Patina::Hollow(colours) => {
+            let d = xxx_destripe(colours);
             let direct = layer.get_direct(geometry)?;
-            direct.direct(addable,d,vertexes)?;
-        },
-        Patina::Filled(Colour::Stripe(d)) | Patina::Hollow(Colour::Stripe(d)) => {
-            let direct = layer.get_direct(geometry)?;
-            let d = d.iter().map(|x| x.0.clone()).collect::<Vec<_>>(); // XXX wrong
             direct.direct(addable,&d,vertexes)?;
         },
         /*
