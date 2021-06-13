@@ -6,8 +6,6 @@ use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use crate::util::{ get_peregrine, get_instance };
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
@@ -20,6 +18,7 @@ simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,4,(
 simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
+simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
 
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -39,28 +38,19 @@ impl InterpCommand for SpaceBaseInterpCommand {
 }
 
 fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Vec<DirectColour>) -> Patina {
+        where F: FnOnce(Colour) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
     drop(registers);
     let peregrine = get_peregrine(context)?;
     let geometry_builder = peregrine.geometry_builder();
-    let mut map : HashMap<usize,DirectColour> = HashMap::new();
-    let mut colours = vec![];
-    // XXX too much cloning
-    for colour_id in &colour_ids {
-        let colour = match map.entry(*colour_id) {
-            Entry::Occupied(v) => v.get().clone(),
-            Entry::Vacant(v) => {
-                let colour = geometry_builder.direct_colour(*colour_id as u32)?;
-                v.insert(colour.as_ref().clone());
-                colour.as_ref().clone()
-            }
-        };
-        colours.push(colour);
-    }
+    let colour = if let Some(colour_id) = colour_ids.get(0) {
+        geometry_builder.colour(*colour_id as u32)?.as_ref().clone()
+    } else {
+        Colour::Direct(vec![DirectColour(255,255,255)])
+    };
     drop(peregrine);
-    let patina = cb(colours);
+    let patina = cb(colour);
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -87,6 +77,26 @@ impl InterpCommand for DirectColourInterpCommand {
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(colours));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for SimpleColourInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids = registers.get_indexes(&self.1)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let mut colours = vec![];
+        for direct_id in &direct_ids {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            colours.push(dc.as_ref().clone());
+        }
+        let colour_id = geometry_builder.add_colour(Colour::Direct(colours));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -120,14 +130,14 @@ impl InterpCommand for UseAllotmentInterpCommand {
 
 impl InterpCommand for PatinaFilledInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, |dc| Patina::Filled(Colour::Direct(dc)))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Filled(c))?;
         Ok(CommandResult::SyncResult())
     }
 }
 
 impl InterpCommand for PatinaHollowInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, |dc| Patina::Hollow(Colour::Direct(dc)))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Hollow(c))?;
         Ok(CommandResult::SyncResult())
     }
 }

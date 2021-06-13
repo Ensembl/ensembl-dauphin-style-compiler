@@ -15,13 +15,13 @@ use super::track::{
 };
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
-    PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType
+    PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(22,0),0xA21EC15B8C79F9F0)
+    CommandSetId::new("peregrine",(23,0),0x39AD075CDDEA574A)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -39,7 +39,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("track_add_allotment",Some(10),AddAllotmentCommandType());
     set.push("track_add_switch",Some(11),AddSwitchCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
-    set.push("colour",Some(13),DirectColourCommandType());
+    set.push("direct_colour",Some(13),DirectColourCommandType());
     set.push("zmenu",Some(14),ZMenuCommandType());
     set.push("patina_zmenu",Some(15),PatinaZMenuCommandType());
     set.push("pen",Some(16),PenCommandType());
@@ -61,6 +61,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("get_switch",Some(32),GetSwitchCommandType());
     set.push("track_set_switch",Some(33),SetSwitchCommandType());
     set.push("track_clear_switch",Some(34),ClearSwitchCommandType());
+    set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

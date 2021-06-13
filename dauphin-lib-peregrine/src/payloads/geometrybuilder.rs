@@ -1,11 +1,12 @@
 use anyhow::{ anyhow as err, bail };
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ lock, Patina, DirectColour, ZMenu, Pen, Plotter, AllotmentHandle, SpaceBase };
+use peregrine_data::{AllotmentHandle, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu, lock};
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
 enum GeometryBuilderEntry {
     DirectColour(Arc<DirectColour>),
+    Colour(Arc<Colour>),
     Patina(Arc<Patina>),
     ZMenu(Arc<ZMenu>),
     Pen(Arc<Pen>),
@@ -18,6 +19,7 @@ impl GeometryBuilderEntry {
     fn type_string(&self) -> &str {
         match self {
             GeometryBuilderEntry::DirectColour(_) => "directcolour",
+            GeometryBuilderEntry::Colour(_) => "colour",
             GeometryBuilderEntry::Patina(_) => "patina",
             GeometryBuilderEntry::ZMenu(_) => "zmenu",
             GeometryBuilderEntry::Pen(_) => "pen",
@@ -83,6 +85,7 @@ impl GeometryBuilder {
 
     builder_type!(patina,add_patina,Patina,Patina,"patina");
     builder_type!(direct_colour,add_direct_colour,DirectColour,DirectColour,"directcolour");
+    builder_type!(colour,add_colour,Colour,Colour,"colour");
     builder_type!(zmenu,add_zmenu,ZMenu,ZMenu,"zmenu");
     builder_type!(pen,add_pen,Pen,Pen,"pen");
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");

@@ -25,6 +25,7 @@ proc add_stick(stick);
 
 struct laneid { value: number };
 struct directcolour { value: number };
+struct colour { value: number };
 struct patina { value: number };
 struct zmenutmpl { value: number };
 struct penspec { value: number };
@@ -54,10 +55,11 @@ proc track_apply(laneid);
 func spacebase(number,number,number) becomes spacebaseid;
 
 func use_allotment(string) becomes allotment;
-func colour(number,number,number) becomes directcolour;
+func direct_colour(number,number,number) becomes directcolour;
+func simple_colour(directcolour) becomes colour;
 func zmenu(string) becomes zmenutmpl;
-func patina_filled(directcolour) becomes patina;
-func patina_hollow(directcolour) becomes patina;
+func patina_filled(colour) becomes patina;
+func patina_hollow(colour) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func pen(string,number,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
