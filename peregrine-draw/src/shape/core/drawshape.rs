@@ -1,13 +1,13 @@
 use peregrine_data::{
-    Allotment, AllotmentHandle, Allotter, Colour, DirectColour, Patina, Plotter,
-    Shape, SpaceBaseArea, SpaceBase, AllotmentPositionKind, PositionVariant, DataFilter
+    Allotment, Colour, DirectColour, Patina, Plotter,
+    SpaceBaseArea, SpaceBase, AllotmentPositionKind, PositionVariant
 };
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
-use super::super::layers::patina::{ PatinaProgramName, PatinaProcessName };
+use super::super::layers::patina::{ PatinaProcessName };
 use super::super::layers::geometry::GeometryProgramName;
 use super::texture::CanvasTextureAreas;
-use crate::webgl::{DrawingAllFlatsBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements };
+use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
@@ -128,7 +128,7 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureAreas]) -> 
     SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes)
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, canvas_builder: &DrawingAllFlatsBuilder, shape: GLShape) -> Result<(),Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, shape: GLShape) -> Result<(),Message> {
     match shape {
         GLShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             //let patina = colour_to_patina(&Colour::Spot(colour.clone()));
@@ -154,7 +154,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let builder = layer.get_process_mut(&geometry, &PatinaProcessName::Texture(canvas.clone()))?;
             let campaign = track_triangles.add_rectangles(builder,&area,&allotments,left,false,kind)?;
             if let Some(mut campaign) = campaign {
-                patina.add_rectangle(builder,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
                 campaign.close();
             }
         },
@@ -172,7 +172,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
             let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,false,kind)?;
             if let Some(mut campaign) = campaign {
-                patina.add_rectangle(builder,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
                 campaign.close();
             }
         },

@@ -25,18 +25,19 @@ pub enum TrianglesKind {
 
 impl TrianglesKind {
     fn add(&self, base:&mut Vec<f32>, delta: &mut Vec<f32>, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, width: Option<f64>) {
+        let base_width = if width.is_some() { Some(0.) } else { None };
         match self {
             TrianglesKind::Track => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let base_y = allotment.position().offset() as f64;
-                    rectangle64(base, *top_left.base-left, base_y, *bottom_right.base-left,base_y,width);
+                    rectangle64(base, *top_left.base-left, base_y, *bottom_right.base-left,base_y,base_width);
                     rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }
             },
             TrianglesKind::Base => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_y = flip(allotment);
-                    rectangle64(base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,width);
+                    rectangle64(base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,base_width);
                     rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }        
             },
@@ -44,7 +45,7 @@ impl TrianglesKind {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_x = flip(allotment);
                     let base_y = allotment.position().offset() as f64;
-                    rectangle64(base, flip_x, base_y, flip_x,base_y,width);
+                    rectangle64(base, flip_x, base_y, flip_x,base_y,base_width);
                     rectangle64(delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }        
             }

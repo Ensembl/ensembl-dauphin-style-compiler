@@ -1,7 +1,7 @@
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ CanvasWeave, DrawingAllFlatsBuilder, FlatId, FlatStore, Flat };
+use crate::webgl::{ CanvasWeave, FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use super::texture::CanvasTextureAreas;

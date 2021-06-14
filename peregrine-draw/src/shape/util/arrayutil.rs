@@ -1,10 +1,6 @@
-use super::super::layers::layer::Layer;
 use crate::{shape::layers::patina::PatinaProcessName, webgl::ProcessBuilder};
-use crate::shape::layers::geometry::GeometryProgramName;
 use crate::webgl::ProcessStanzaElements;
 use crate::util::message::Message;
-use web_sys::WebGlRenderingContext;
-use crate::webgl::GPUSpec;
 
 pub fn plain_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32) {
     data.push(left);
