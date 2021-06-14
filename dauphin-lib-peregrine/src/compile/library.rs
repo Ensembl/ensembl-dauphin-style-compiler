@@ -15,13 +15,14 @@ use super::track::{
 };
 use super::geometry:: {
     PatinaFilledCommandType, PatinaHollowCommandType, DirectColourCommandType, ZMenuCommandType, PatinaZMenuCommandType, PenCommandType,
-    PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType
+    PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
+    BarCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(26,0),0xAD8453E40D434D10)
+    CommandSetId::new("peregrine",(27,0),0x4D73796521BF8E08)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -63,6 +64,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("track_clear_switch",Some(34),ClearSwitchCommandType());
     set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.push("striped",Some(36),StripedCommandType());
+    set.push("barred",Some(37),BarCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

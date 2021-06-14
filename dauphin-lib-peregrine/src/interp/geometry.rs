@@ -19,6 +19,7 @@ simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
 simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,5,(0,1,2,3,4));
+simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,5,(0,1,2,3,4));
 
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -125,6 +126,37 @@ impl InterpCommand for StripedInterpCommand {
             DirectColour(255,255,255)
         };
         let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b,stripes));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for BarredInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids_a = registers.get_indexes(&self.1)?.to_vec();
+        let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
+        let stripe_x = *registers.get_numbers(&self.3)?.to_vec().get(0).unwrap_or(&2.);
+        let stripe_y = *registers.get_numbers(&self.4)?.to_vec().get(0).unwrap_or(&2.);
+        let stripes = (stripe_x as u32,stripe_y as u32);
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let direct_colour_a = if let Some(direct_id) = direct_ids_a.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255)
+        };
+        let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Bar(direct_colour_a,direct_colour_b,stripes));
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));

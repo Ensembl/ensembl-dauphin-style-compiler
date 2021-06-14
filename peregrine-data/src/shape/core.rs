@@ -46,7 +46,8 @@ pub struct Plotter(pub f64, pub DirectColour);
 #[derive(Clone,Debug)]
 pub enum Colour {
     Direct(DirectColour),
-    Stripe(DirectColour,DirectColour,(u32,u32))
+    Stripe(DirectColour,DirectColour,(u32,u32)),
+    Bar(DirectColour,DirectColour,(u32,u32))
 }
 
 #[derive(Clone,Debug)]

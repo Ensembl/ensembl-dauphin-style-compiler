@@ -30,7 +30,7 @@ fn simplify_colours(mut colours: Vec<Colour>) -> Result<Vec<DirectColour>,Messag
     colours.drain(..).map(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d),
-            Colour::Stripe(_,_,_) => Err(Message::CodeInvariantFailed(format!("attempt to simplify stripe to colour")))
+            _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify pattern to colour")))
         }
     }).collect::<Result<Vec<_>,_>>()
 }

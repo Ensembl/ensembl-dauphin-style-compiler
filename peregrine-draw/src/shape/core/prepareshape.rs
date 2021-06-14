@@ -44,7 +44,7 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub enum ShapeCategory {
     Solid,
-    Striped
+    Heraldry
 }
 
 fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
@@ -69,7 +69,8 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
         let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
             match colour {
                 Colour::Direct(_) => ShapeCategory::Solid,
-                Colour::Stripe(_,_,_) => ShapeCategory::Striped
+                Colour::Stripe(_,_,_) => ShapeCategory::Heraldry,
+                Colour::Bar(_,_,_) => ShapeCategory::Heraldry
             }
         });
         for (pkind,filter) in &mut demerge_colour {
@@ -78,7 +79,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                 ShapeCategory::Solid => {
                     out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
                 },
-                ShapeCategory::Striped => {
+                ShapeCategory::Heraldry => {
                     let (handles_h,handles_v) = make_heraldry(tools,patina.filter(filter))?;
                     out.push(GLShape::Heraldry(area.filter(filter),handles_h,handles_v,filter.filter(&allotment),kind.clone(),hollow));
                 }
@@ -100,6 +101,9 @@ fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<(Vec<Herald
     for colour in &colours {
         let spec_h = match colour {
             Colour::Stripe(a,b,c) => {
+                Heraldry::Stripe(a.clone(),b.clone(),50,*c)
+            },
+            Colour::Bar(a,b,c) => {
                 Heraldry::Bar(a.clone(),b.clone(),50,*c,false)
             },
             _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))?

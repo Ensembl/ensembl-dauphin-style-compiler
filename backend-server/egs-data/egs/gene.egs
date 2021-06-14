@@ -92,7 +92,7 @@ pc_colour := simple_colour(direct_colour(128,128,128));
 patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 */
 
-non_pc_colour := striped(direct_colour(255,0,0),direct_colour(255,255,255),4,1);
+non_pc_colour := barred(direct_colour(255,0,0),direct_colour(255,255,255),4,1);
 pc_colour := simple_colour(direct_colour(128,128,128));
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
