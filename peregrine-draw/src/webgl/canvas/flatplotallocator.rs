@@ -15,6 +15,7 @@ struct FlatPositionAllocatorData {
     sizes: Vec<(u32,u32)>
 }
 
+/* Can be multiple per FLAT, orresponds to one entry in DrawingFlatsDrawable */
 pub(crate) struct FlatPositionAllocator {
     uniform_name: String,
     requests: KeyedData<FlatPlotRequestHandle,Option<FlatPositionAllocatorData>>,
@@ -57,15 +58,18 @@ impl FlatPositionAllocator {
         Ok(())
     }
 
-    fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
+    pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).as_ref().unwrap().origin.clone()
+    }
+
+    pub(crate) fn canvas(&self) -> Result<FlatId,Message> {
+        self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no canvas set")))
     }
 
     pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
         self.allocate(gl,drawable)?;
-        for (id,request) in self.requests.items() {
-            let origins = self.origins(&id);
-            drawable.add(id,self.canvas.as_ref().unwrap(),origins);
+        for (id,_) in self.requests.items() {
+            drawable.add(id,self.canvas.as_ref().unwrap());
         }
         Ok(())
     }

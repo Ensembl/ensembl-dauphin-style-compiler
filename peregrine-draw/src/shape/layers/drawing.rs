@@ -13,18 +13,21 @@ use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 pub(crate) struct ToolPreparations {
-    crisp: FlatPositionAllocator
+    crisp: FlatPositionAllocator,
+    heraldry: FlatPositionAllocator
 }
 
 impl ToolPreparations {
     fn new() -> ToolPreparations {
         ToolPreparations {
-            crisp: FlatPositionAllocator::new(&CanvasWeave::Crisp,"uSampler")
+            crisp: FlatPositionAllocator::new(&CanvasWeave::Crisp,"uSampler"),
+            heraldry: FlatPositionAllocator::new(&CanvasWeave::Heraldry,"uSampler")
         }
     }
 
     fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
         self.crisp.make(gl,drawable)?;
+        self.heraldry.make(gl,drawable)?;
         Ok(())
     }
 }
@@ -51,13 +54,13 @@ impl DrawingTools {
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp)?;
-        self.heraldry.calculate_requirements(gl,&mut preparations.crisp)?;
+        self.heraldry.calculate_requirements(gl,&mut preparations.heraldry)?;
         Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, _preparations: ToolPreparations) -> Result<(),Message> {
-        self.text.register_locations(canvas_store,builder)?;
-        self.heraldry.register_locations(canvas_store,builder)?;
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, mut preparations: ToolPreparations) -> Result<(),Message> {
+        self.text.draw_at_locations(canvas_store,builder,&mut preparations.crisp)?;
+        self.heraldry.draw_at_locations(canvas_store,builder,&mut preparations.heraldry)?;
         Ok(())
     }
 }

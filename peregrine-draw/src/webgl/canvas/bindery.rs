@@ -46,7 +46,10 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
                 WebGlRenderingContext::CLAMP_TO_EDGE,WebGlRenderingContext::CLAMP_TO_EDGE),
         CanvasWeave::Fuzzy =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
-                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT)
+                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
+        &CanvasWeave::Heraldry => 
+            (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
+                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
     };
     context.tex_parameteri(WebGlRenderingContext::TEXTURE_2D,
                         WebGlRenderingContext::TEXTURE_MIN_FILTER,

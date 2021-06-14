@@ -64,8 +64,8 @@ impl DrawingText {
         })
     }
 
-    pub(crate) fn register_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
-        self.0.register_locations(store,builder)
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable,  allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+        self.0.draw_at_locations(store,builder,allocator)
     }
 
     pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {

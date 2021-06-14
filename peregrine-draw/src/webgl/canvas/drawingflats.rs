@@ -39,13 +39,9 @@ impl DrawingFlats {
     }
 }
 
-struct FlatPlotResponse {
-    canvas: FlatId,
-    origin: Vec<(u32,u32)>
-}
-
+/* One overall, differentiates FLATS */
 pub(crate) struct DrawingFlatsDrawable {
-    responses: KeyedData<FlatPlotRequestHandle,Option<FlatPlotResponse>>,
+    responses: KeyedData<FlatPlotRequestHandle,Option<FlatId>>,
     drawing_flats: DrawingFlats
 }
 
@@ -57,23 +53,12 @@ impl DrawingFlatsDrawable {
         }
     }
 
-    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId, origin: Vec<(u32,u32)>) {
-        self.responses.insert(&id,FlatPlotResponse {
-            canvas: canvas.clone(),
-            origin
-        });
+    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId) {
+        self.responses.insert(&id,canvas.clone());
     }
 
     pub(super) fn make_canvas(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
         self.drawing_flats.allocate(gl,weave,size,uniform_name)
-    }
-
-    pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
-        self.responses.get(id).as_ref().map(|a| &a.origin).unwrap().to_vec()
-    }
-
-    pub(crate) fn canvas(&self, id: &FlatPlotRequestHandle) -> FlatId {
-        self.responses.get(id).as_ref().map(|a| a.canvas.clone()).unwrap()
     }
 
     pub(crate) fn built(self) -> DrawingFlats { self.drawing_flats }

@@ -26,8 +26,8 @@ impl FlatDrawingItem for Heraldry {
             Heraldry::Stripe(a,b) => {
                 canvas.rectangle(mask_origin,size,&DirectColour(0,0,0))?;
                 canvas.rectangle(text_origin,size,a)?;
-                canvas.path(text_origin,&[(0,0),(8,0),(15,8),(15,15)],b)?;
-                canvas.path(text_origin,&[(0,8),(8,15),(0,15)],b)?;
+                canvas.path(text_origin,&[(0,0),(8,0),(16,8),(16,16)],b)?;
+                canvas.path(text_origin,&[(0,8),(8,16),(0,16)],b)?;
             }
         }
         Ok(())
@@ -39,7 +39,7 @@ pub struct DrawingHeraldry(FlatDrawingManager<HeraldryHandle,Heraldry>);
 impl DrawingHeraldry {
     pub fn new() -> DrawingHeraldry { DrawingHeraldry(FlatDrawingManager::new()) }
 
-    pub(crate) fn add(&mut self, heraldry:Heraldry) -> HeraldryHandle {
+    pub(crate) fn add(&mut self, heraldry: Heraldry) -> HeraldryHandle {
         self.0.add(heraldry)
     }
 
@@ -47,8 +47,8 @@ impl DrawingHeraldry {
         self.0.calculate_requirements(gl,allocator,|_| {})
     }
 
-    pub(crate) fn register_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
-        self.0.register_locations(store,builder)
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable, allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+        self.0.draw_at_locations(store,builder,allocator)
     }
 
     pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {

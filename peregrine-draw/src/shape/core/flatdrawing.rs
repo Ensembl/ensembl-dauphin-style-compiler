@@ -45,14 +45,16 @@ impl FlatBoundary {
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
     texts: KeyedData<H,(T,FlatBoundary)>,
-    request: Option<FlatPlotRequestHandle>
+    request: Option<FlatPlotRequestHandle>,
+    canvas: Option<FlatId>
 }
 
 impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     pub fn new() -> FlatDrawingManager<H,T> {
         FlatDrawingManager {
             texts: KeyedData::new(),
-            request: None
+            request: None,
+            canvas: None
         }
     }
 
@@ -85,10 +87,11 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn register_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
-        let mut origins = builder.origins(self.request.as_ref().unwrap());
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable, allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+        self.canvas = Some(allocator.canvas()?);
+        let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
-        let canvas_id = builder.canvas(self.request.as_ref().unwrap());
+        let canvas_id = allocator.canvas()?;
         let canvas = store.get_mut(&canvas_id)?;
         for (text,boundary) in self.texts.values_mut() {
             let mask_origin = origins_iter.next().unwrap();
@@ -101,8 +104,7 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     }
 
     pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
-        let request = self.request.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("missing canvas id")))?;
-        Ok(builder.canvas(&request))
+        self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no associated canvas")))
     }
 
     pub(crate) fn get_texture_areas(&self, handle: &H) -> Result<CanvasTextureAreas,Message> {
