@@ -93,8 +93,8 @@ impl GeometrySubLayer {
         for (_,sub) in self.spot.drain() {
             processes.push(sub.into_process().build(gl,self.left)?);
         }
-        for (_,mut sub) in self.texture.drain() {
-            canvases.add_process(sub.get_process_mut())?;
+        for (flat_id,mut sub) in self.texture.drain() {
+            canvases.add_process(&flat_id,sub.get_process_mut())?;
             processes.push(sub.into_process().build(gl,self.left)?);
         }
         Ok(())
