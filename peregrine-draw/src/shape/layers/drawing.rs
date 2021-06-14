@@ -2,6 +2,7 @@ use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
+use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
 //use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::{CanvasWeave, DrawingFlats, DrawingFlatsDrawable, DrawingSession, FlatStore, Process};
@@ -30,7 +31,7 @@ impl ToolPreparations {
 
 pub(crate) struct DrawingTools {
     text: DrawingText,
-    //heraldry: DrawingHeraldry,
+    heraldry: DrawingHeraldry,
     zmenus: DrawingZMenusBuilder
 }
 
@@ -38,23 +39,25 @@ impl DrawingTools {
     fn new() -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
-            //heraldry: DrawingHeraldry::new(),
+            heraldry: DrawingHeraldry::new(),
             zmenus: DrawingZMenusBuilder::new()
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
-    //pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
+    pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp)?;
+        self.heraldry.calculate_requirements(gl,&mut preparations.crisp)?;
         Ok(preparations)
     }
 
     pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, _preparations: ToolPreparations) -> Result<(),Message> {
         self.text.register_locations(canvas_store,builder)?;
+        self.heraldry.register_locations(canvas_store,builder)?;
         Ok(())
     }
 }

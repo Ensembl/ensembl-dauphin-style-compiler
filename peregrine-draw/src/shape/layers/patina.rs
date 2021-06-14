@@ -4,6 +4,7 @@ use super::super::core::texture::{ TextureDraw, TextureProgram };
 use crate::webgl::FlatId;
 use crate::webgl::{ ProcessBuilder, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use peregrine_data::{ DirectColour, Patina, Colour };
+use super::super::core::drawshape::SimpleShapePatina;
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
 
@@ -97,24 +98,6 @@ pub(super) enum PatinaProcess {
 pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(FlatId) }
 
 impl PatinaProcessName {
-    pub(crate) fn from_patina(patina: &Patina) -> Option<PatinaProcessName> {
-         match patina {
-            Patina::Filled(c) => Some(c),
-            Patina::Hollow(c) => Some(c),
-            _ => None
-         }.and_then(|colour| {
-            Some(PatinaProcessName::Direct) // XXX
-         })
-        /* 
-        }.and_then(|colour| match colour {
-            Colour::Direct(_) => Some(PatinaProcessName::Direct),
-            // XXX reinstate spot colours as hints
-            //Colour::Spot(c) => Some(PatinaProcessName::Spot(c.clone())),
-            _ => None
-        })
-        */
-    }
-
     pub(super) fn get_program_name(&self) -> PatinaProgramName {
         match self {
             PatinaProcessName::Direct => PatinaProgramName::Direct,

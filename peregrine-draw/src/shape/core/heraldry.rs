@@ -1,120 +1,61 @@
 use keyed::KeyedData;
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
+use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
 use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotRequestHandle };
 use crate::webgl::global::WebGlGlobal;
+use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use super::texture::CanvasTextureAreas;
 use crate::util::message::Message;
 
 
 keyed_handle!(HeraldryHandle);
 
-pub(crate) enum HeraldrySpec {
+pub(crate) enum Heraldry {
     Stripe(DirectColour,DirectColour)
 }
 
-struct Heraldry {
-    spec: HeraldrySpec,
-    pic_origin: Option<(u32,u32)>,
-    mask_origin: Option<(u32,u32)>,
-    size: Option<(u32,u32)>
-}
 
-impl Heraldry {
-    fn new(spec: HeraldrySpec) -> Heraldry {
-        Heraldry {
-            spec,
-            pic_origin: None,
-            mask_origin: None,
-            size: None
+impl FlatDrawingItem for Heraldry {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+        Ok((16,16))
+    }
+
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+        match self {
+            Heraldry::Stripe(a,b) => {
+                canvas.rectangle(mask_origin,size,&DirectColour(0,0,0))?;
+                canvas.rectangle(text_origin,size,a)?;
+                canvas.path(text_origin,&[(0,0),(8,0),(15,8),(15,15)],b)?;
+                canvas.path(text_origin,&[(0,8),(8,15),(0,15)],b)?;
+            }
         }
-    }
-
-    fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(),Message> {
-        self.size = Some((32,32));
         Ok(())
-    }
-
-    fn build(&mut self, canvas: &Flat, pic_origin: (u32,u32), mask_origin: (u32,u32)) -> Result<(),Message> {
-        let size = self.size.unwrap();
-        self.pic_origin = Some(pic_origin);
-        self.mask_origin = Some(mask_origin);
-        // XXX draw it
-        /*
-        canvas.set_font(&self.pen)?;
-        canvas.text(&self.text,text_origin,size,&self.colour)?;
-        canvas.text(&self.text,mask_origin,size,&DirectColour(0,0,0))?;
-        */
-        Ok(())
-    }
-
-    fn get_texture_areas(&self) -> Result<CanvasTextureAreas,Message> {
-        Ok(CanvasTextureAreas::new(
-            self.pic_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure, t origin".to_string()))?,
-            self.mask_origin.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. m origin".to_string()))?,
-            self.size.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed("texture packing failure. size A".to_string()))?
-        ))
     }
 }
 
-/*
-pub struct DrawingHeraldry {
-    pics: KeyedData<HeraldryHandle,Heraldry>,
-    request: Option<FlatPlotRequestHandle>
-}
+pub struct DrawingHeraldry(FlatDrawingManager<HeraldryHandle,Heraldry>);
 
 impl DrawingHeraldry {
-    pub fn new() -> DrawingHeraldry {
-        DrawingHeraldry {
-            pics: KeyedData::new(),
-            request: None
-        }
+    pub fn new() -> DrawingHeraldry { DrawingHeraldry(FlatDrawingManager::new()) }
+
+    pub(crate) fn add(&mut self, heraldry:Heraldry) -> HeraldryHandle {
+        self.0.add(heraldry)
     }
 
-    pub(crate) fn add(&mut self, spec: HeraldrySpec) -> HeraldryHandle {
-        self.pics.add(Heraldry::new(spec))
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+        self.0.calculate_requirements(gl,allocator,|_| {})
     }
 
-    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for pic in self.pics.values_mut() {
-            pic.calc_size(gl)?;
-        }
-        Ok(())
-    }
-
-    pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator,uniform_name: &str) -> Result<(),Message> {
-        self.calc_sizes(gl)?;
-        let mut sizes = vec![];
-        for pic in self.pics.values_mut() {
-            let size = pic.size.as_mut().unwrap().clone();
-            /* mask and text */
-            sizes.push(size);
-            sizes.push(size);
-        }
-        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes,uniform_name));
-        Ok(())
-    }
-
-    pub(crate) fn finish_preparation(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
-        let mut origins = builder.origins(self.request.as_ref().unwrap());
-        let mut origins_iter = origins.drain(..);
-        let canvas_id = builder.canvas(self.request.as_ref().unwrap());
-        let canvas = store.get_mut(&canvas_id)?;
-        for text in self.pics.values_mut() {
-            let mask_origin = origins_iter.next().unwrap();
-            let text_origin = origins_iter.next().unwrap();
-            text.build(canvas,text_origin,mask_origin)?;
-        }
-        Ok(())
+    pub(crate) fn register_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable) -> Result<(),Message> {
+        self.0.register_locations(store,builder)
     }
 
     pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
-        let request = self.request.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("missing canvas id")))?;
-        Ok(builder.canvas(&request))
+        self.0.canvas_id(builder)
     }
 
     pub(crate) fn get_texture_areas(&self, handle: &HeraldryHandle) -> Result<CanvasTextureAreas,Message> {
-        self.pics.get(handle).get_texture_areas()
+        self.0.get_texture_areas(handle)
     }
 }
-*/

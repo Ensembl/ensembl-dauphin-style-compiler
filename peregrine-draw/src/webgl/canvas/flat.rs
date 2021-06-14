@@ -60,12 +60,38 @@ impl Flat {
         Ok((width as u32,height as u32))
     }
 
+    pub(crate) fn rectangle(&self, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
+        if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
+        let context = self.context()?;
+        context.set_fill_style(&colour_to_css(colour).into()); // TODO background colours for pen
+        context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
+        Ok(())
+    }
+
+    pub(crate) fn path(&self, origin: (u32,u32), path: &[(u32,u32)], colour: &DirectColour) -> Result<(),Message> {
+        if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
+        let context = self.context()?;
+        context.set_fill_style(&colour_to_css(colour).into()); // TODO background colours for pen
+        let mut first = true;
+        for point in path {
+            let (x,y) = ((point.0+origin.0) as f64, (point.1+origin.1) as f64);
+            if first {
+                context.move_to(x,y);
+            } else {
+                context.line_to(x,y);
+            }
+            first = false;
+        }
+        context.close_path();
+        context.fill();
+        Ok(())
+    }
+
     // TODO white-bgd canvas
     pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
+        self.rectangle(origin,size,&DirectColour(255,255,255))?;
         let context = self.context()?;
-        context.set_fill_style(&colour_to_css(&DirectColour(255,255,255)).into()); // TODO background colours for pen
-        context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
         context.set_text_baseline("top");
         context.set_fill_style(&colour_to_css(&colour).into());
         context.fill_text(text,origin.0 as f64,origin.1 as f64).map_err(|e| Message::Canvas2DFailure(format!("fill_text failed: {:?}",e)))?;

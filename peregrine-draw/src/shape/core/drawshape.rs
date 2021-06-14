@@ -12,6 +12,7 @@ use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
+use super::heraldry::HeraldryHandle;
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentProgramKind {
@@ -26,10 +27,35 @@ pub enum PatinaProgram {
     Striped
 }
 
-pub enum GLShape {
+pub(crate) enum SimpleShapePatina {
+    Solid(Vec<DirectColour>),
+    Hollow(Vec<DirectColour>)
+}
+
+fn simplify_colours(mut colours: Vec<Colour>) -> Result<Vec<DirectColour>,Message> {
+    colours.drain(..).map(|colour| {
+        match colour {
+            Colour::Direct(d) => Ok(d),
+            Colour::Stripe(_,_) => Err(Message::CodeInvariantFailed(format!("attempt to simplify stripe to colour")))
+        }
+    }).collect::<Result<Vec<_>,_>>()
+}
+
+impl SimpleShapePatina {
+    pub(crate) fn from_patina(patina: Patina) -> Result<SimpleShapePatina,Message> {
+        Ok(match patina {
+            Patina::Filled(colours) => { SimpleShapePatina::Solid(simplify_colours(colours)?) },
+            Patina::Hollow(colours) => { SimpleShapePatina::Hollow(simplify_colours(colours)?) },
+            _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify nonfill.hollow to colour")))?
+        })
+    }
+}
+
+pub(crate) enum GLShape {
     Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
+    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
-    SpaceBaseRect(SpaceBaseArea,Patina,Vec<Allotment>,AllotmentProgramKind,PatinaProgram),
+    SpaceBaseRect(SpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
 }
 pub enum AllotmentProgram {
     Track,
@@ -57,25 +83,16 @@ impl AllotmentProgram {
     }
 }
 
-
-fn xxx_destripe(c: &[Colour]) -> Vec<DirectColour> {
-    c.iter().map(|colour| match colour {
-        Colour::Direct(d) => d,
-        Colour::Stripe(a,b) => a
-    }).cloned().collect()
-}
-
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, patina: &Patina) -> Result<(),Message> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometry: &GeometryProgramName, patina: &SimpleShapePatina) -> Result<(),Message> {
     let vertexes = match patina {
-        Patina::Filled(_) => 4,
-        Patina::Hollow(_) => 8,
+        SimpleShapePatina::Solid(_) => 4,
+        SimpleShapePatina::Hollow(_) => 8,
         _ => 0
     };
     match patina {
-        Patina::Filled(colours) | Patina::Hollow(colours) => {
-            let d = xxx_destripe(colours);
+        SimpleShapePatina::Solid(colours) | SimpleShapePatina::Hollow(colours) => {
             let direct = layer.get_direct(geometry)?;
-            direct.direct(addable,&d,vertexes)?;
+            direct.direct(addable,&colours,vertexes)?;
         },
         /*
         Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
@@ -83,11 +100,11 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, geometr
             let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(d.clone()))?;
             spot.spot(&mut process)?;
         }
-        */
         Patina::ZMenu(template,values) => {
             // XXX ZMenu
             // tools.zmenus().add_rectangle(layer,zmenu,values,anchor,allotment,x_size,y_size);
         }
+        */
     }
     Ok(())
 }
@@ -141,35 +158,34 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 campaign.close();
             }
         },
-        GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind,PatinaProgram::Solid) => {
-            let kind = to_trianges_kind(&allotment_kind);
+        GLShape::Heraldry(area,handles,allotments,program_kind) => {
+            let kind = to_trianges_kind(&program_kind);
             let left = layer.left();
-            let patina_name = PatinaProcessName::from_patina(&patina);
-            if let Some(patina_name) = patina_name {
-                let track_triangles = kind.get_process(layer,&patina_name)?;
-                let builder = layer.get_process_mut(&kind.geometry_program_name(),&patina_name)?;
-                let hollow = match patina { Patina::Hollow(_) => true, _ => false };
-                let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
-                if let Some(mut campaign) = campaign {
-                    add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
-                    campaign.close();
-                }
+            let heraldry = tools.heraldry();
+            let dims = handles.iter()
+                .map(|handle| heraldry.get_texture_areas(handle))
+                .collect::<Result<Vec<_>,_>>()?;
+            let canvas = heraldry.canvas_id(canvas_builder)?;
+            let geometry = kind.geometry_program_name();
+            let patina = layer.get_texture(&geometry,&canvas)?;
+            let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
+            let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
+            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,false,kind)?;
+            if let Some(mut campaign) = campaign {
+                patina.add_rectangle(builder,&mut campaign,gl.bindery(),&canvas,&dims,gl.flat_store())?;
+                campaign.close();
             }
-            // XXX ZMenus
-        }
-        GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind,PatinaProgram::Striped) => {
+        },
+        GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind) => {
             let kind = to_trianges_kind(&allotment_kind);
             let left = layer.left();
-            let patina_name = PatinaProcessName::from_patina(&patina);
-            if let Some(patina_name) = patina_name {
-                let track_triangles = kind.get_process(layer,&patina_name)?;
-                let builder = layer.get_process_mut(&kind.geometry_program_name(),&patina_name)?;
-                let hollow = match patina { Patina::Hollow(_) => true, _ => false };
-                let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
-                if let Some(mut campaign) = campaign {
-                    add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
-                    campaign.close();
-                }
+            let track_triangles = kind.get_process(layer,&PatinaProcessName::Direct)?;
+            let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Direct)?;
+            let hollow = match patina { SimpleShapePatina::Hollow(_) => true, _ => false };
+            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
+            if let Some(mut campaign) = campaign {
+                add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
+                campaign.close();
             }
             // XXX ZMenus
         }
