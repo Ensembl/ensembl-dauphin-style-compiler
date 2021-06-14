@@ -54,13 +54,13 @@ impl DrawingTools {
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp)?;
-        self.heraldry.calculate_requirements(gl,&mut preparations.heraldry)?;
+        self.heraldry.calculate_requirements(gl,&mut preparations.crisp)?;
         Ok(preparations)
     }
 
     pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
         self.text.draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,&mut preparations.heraldry)?;
+        self.heraldry.draw_at_locations(canvas_store,&mut preparations.crisp)?;
         Ok(())
     }
 }
