@@ -72,7 +72,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
         let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
             match colour {
                 Colour::Direct(_) => PatinaProgram::Solid,
-                Colour::Stripe(_,_) => PatinaProgram::Striped
+                Colour::Stripe(_,_,_) => PatinaProgram::Striped
             }
         });
         for (pkind,filter) in &mut demerge_colour {
@@ -99,8 +99,8 @@ fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<Vec<Heraldr
     };
     Ok(colours.iter().map(|colour| {
         match colour {
-            Colour::Stripe(a,b) => {
-                Ok(heraldry.add(Heraldry::Stripe(a.clone(),b.clone())))
+            Colour::Stripe(a,b,c) => {
+                Ok(heraldry.add(Heraldry::Stripe(a.clone(),b.clone(),*c)))
             },
             _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))
         }

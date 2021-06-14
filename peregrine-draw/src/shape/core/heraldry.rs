@@ -12,22 +12,27 @@ use crate::util::message::Message;
 keyed_handle!(HeraldryHandle);
 
 pub(crate) enum Heraldry {
-    Stripe(DirectColour,DirectColour)
+    Stripe(DirectColour,DirectColour,u32)
 }
 
 
 impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
-        Ok((16,16))
+        Ok(match self {
+            &mut Heraldry::Stripe(_,_,count) => (16*count,16)
+        })
     }
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         match self {
-            Heraldry::Stripe(a,b) => {
-                canvas.rectangle(mask_origin,size,&DirectColour(0,0,0))?;
-                canvas.rectangle(text_origin,size,a)?;
-                canvas.path(text_origin,&[(0,0),(8,0),(16,8),(16,16)],b)?;
-                canvas.path(text_origin,&[(0,8),(8,16),(0,16)],b)?;
+            Heraldry::Stripe(a,b,count) => {
+                for i in 0..*count {
+                    let offset = i*16;
+                    canvas.rectangle(mask_origin,size,&DirectColour(0,0,0))?;
+                    canvas.rectangle(text_origin,size,a)?;
+                    canvas.path(text_origin,&[(offset,0),(offset+8,0),(offset+16,8),(offset+16,16)],b)?;
+                    canvas.path(text_origin,&[(offset,8),(offset+8,16),(offset,16)],b)?;
+                }
             }
         }
         Ok(())
