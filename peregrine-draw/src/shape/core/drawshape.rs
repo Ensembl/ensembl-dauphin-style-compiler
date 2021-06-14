@@ -21,12 +21,6 @@ pub enum AllotmentProgramKind {
     SpaceLabel
 }
 
-#[derive(Clone,PartialEq,Eq,Hash,Debug)]
-pub enum PatinaProgram {
-    Solid,
-    Striped
-}
-
 pub(crate) enum SimpleShapePatina {
     Solid(Vec<DirectColour>),
     Hollow(Vec<DirectColour>)
@@ -53,7 +47,7 @@ impl SimpleShapePatina {
 
 pub(crate) enum GLShape {
     Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
-    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind),
+    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,bool),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(SpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
 }
@@ -158,7 +152,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 campaign.close();
             }
         },
-        GLShape::Heraldry(area,handles,allotments,program_kind) => {
+        GLShape::Heraldry(area,handles,allotments,program_kind,hollow) => {
             let kind = to_trianges_kind(&program_kind);
             let left = layer.left();
             let heraldry = tools.heraldry();
@@ -170,7 +164,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
             let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
-            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,false,kind)?;
+            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
             if let Some(mut campaign) = campaign {
                 patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
                 campaign.close();

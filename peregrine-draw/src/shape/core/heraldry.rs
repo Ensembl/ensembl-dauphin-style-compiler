@@ -11,15 +11,28 @@ use crate::util::message::Message;
 
 keyed_handle!(HeraldryHandle);
 
+const STAMP : u32 = 32;
+const PAD : u32 = 8;
+
+fn pad(z: (u32,u32)) -> (u32,u32) {
+    (z.0+PAD,z.1+PAD)
+}
+
 #[derive(Hash)]
 pub(crate) enum Heraldry {
-    Stripe(DirectColour,DirectColour,u32)
+    Stripe(DirectColour,DirectColour,u32,u32)
 }
 
 impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match self {
-            Heraldry::Stripe(_,_,count) => (16*(*count),16)
+            Heraldry::Stripe(_,_,_,count) => (STAMP*(*count),STAMP)
+        })
+    }
+
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+        Ok(match  self {
+            &mut Heraldry::Stripe(_,_,_,_) => (PAD,PAD)
         })
     }
 
@@ -31,14 +44,30 @@ impl FlatDrawingItem for Heraldry {
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         match self {
-            Heraldry::Stripe(a,b,count) => {
+            Heraldry::Stripe(a,b,prop,count) => {
+                let p = (PAD+STAMP) * (*prop) / 100;
                 for i in 0..*count {
-                    let offset = i*16;
-                    canvas.rectangle(mask_origin,size,&DirectColour(0,0,0))?;
-                    canvas.rectangle(text_origin,size,a)?;
-                    canvas.path(text_origin,&[(offset,0),(offset+8,0),(offset+16,8),(offset+16,16)],b)?;
-                    canvas.path(text_origin,&[(offset,8),(offset+8,16),(offset,16)],b)?;
+                    let offset = i*STAMP;
+                    canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0))?;
+                    canvas.rectangle(pad(text_origin),size,b)?;
+                    canvas.path(text_origin,&[
+                        pad((offset,      0)),
+                        pad((offset+p,    0)),
+                        pad((offset+STAMP,STAMP-p)),
+                        pad((offset+STAMP,STAMP))
+                    ],a)?;
+                    canvas.path(text_origin,&[
+                        pad((offset,  STAMP-p)),
+                        pad((offset+p,STAMP)),
+                        pad((offset,  STAMP))
+                    ],a)?;
                 }
+                /* bleed */
+                let x_far = *count * STAMP + 2*PAD;
+                let y_far = STAMP+2*PAD;
+                canvas.rectangle(text_origin,(p+PAD,PAD), a)?;
+                canvas.rectangle((text_origin.0+x_far-PAD,text_origin.1+y_far-PAD-p),(PAD,PAD+p),a)?;
+                canvas.rectangle((text_origin.0,text_origin.1+y_far-PAD-p),(PAD+p,PAD+p),a)?;
             }
         }
         Ok(())

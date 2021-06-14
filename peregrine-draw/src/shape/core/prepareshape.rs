@@ -6,18 +6,8 @@ use crate::shape::core::drawshape::SimpleShapePatina;
 use crate::shape::core::heraldry::Heraldry;
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
-use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram, PatinaProgram };
+use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
 use super::heraldry::HeraldryHandle;
-
-/*
-fn colour_to_patina(colour: &Colour) -> PatinaProcessName {
-    match colour {
-        Colour::Direct(_) => PatinaProcessName::Direct,
-        Colour::Spot(c) => PatinaProcessName::Spot(c.clone()),
-        //Colour::Stripe(_,_) => PatinaProcessName::Texture(FlatId::)
-    }
-}
-*/
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     // XXX yuk!
@@ -51,6 +41,12 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
 }
 
+#[derive(Clone,PartialEq,Eq,Hash,Debug)]
+pub enum ShapeCategory {
+    Solid,
+    Striped
+}
+
 fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(allotter,&allotment)?;
     let mut demerge = DataFilter::demerge(&allotment,|allotment| {
@@ -69,20 +65,21 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
             Patina::Hollow(c) => c,
             Patina::ZMenu(_,_) => &xxx // XXX zmenus 
         };
+        let hollow = match patina { Patina::Hollow(_) => true, _ => false };
         let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
             match colour {
-                Colour::Direct(_) => PatinaProgram::Solid,
-                Colour::Stripe(_,_,_) => PatinaProgram::Striped
+                Colour::Direct(_) => ShapeCategory::Solid,
+                Colour::Stripe(_,_,_) => ShapeCategory::Striped
             }
         });
         for (pkind,filter) in &mut demerge_colour {
             filter.set_size(area.len());
             match pkind {
-                PatinaProgram::Solid => {
+                ShapeCategory::Solid => {
                     out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
                 },
-                PatinaProgram::Striped => {
-                    out.push(GLShape::Heraldry(area.filter(filter),make_heraldry(tools,patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
+                ShapeCategory::Striped => {
+                    out.push(GLShape::Heraldry(area.filter(filter),make_heraldry(tools,patina.filter(filter))?,filter.filter(&allotment),kind.clone(),hollow));
                 }
             }
         }
@@ -100,7 +97,7 @@ fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<Vec<Heraldr
     Ok(colours.iter().map(|colour| {
         match colour {
             Colour::Stripe(a,b,c) => {
-                Ok(heraldry.add(Heraldry::Stripe(a.clone(),b.clone(),*c)))
+                Ok(heraldry.add(Heraldry::Stripe(a.clone(),b.clone(),25,*c)))
             },
             _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))
         }

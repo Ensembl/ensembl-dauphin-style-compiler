@@ -14,6 +14,12 @@ use crate::util::message::Message;
 
 keyed_handle!(TextHandle);
 
+const PAD : u32 = 4;
+
+fn pad(x: (u32,u32)) -> (u32,u32) {
+    (x.0+PAD,x.1+PAD)
+}
+
 struct Text {
     pen: Pen,
     text: String,
@@ -34,6 +40,8 @@ impl FlatDrawingItem for Text {
         canvas.measure(&self.text)
     }
 
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
+
     fn compute_hash(&self) -> Option<u64> {
         let mut hasher = DefaultHasher::new();
         self.pen.hash(&mut hasher);
@@ -44,8 +52,8 @@ impl FlatDrawingItem for Text {
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
-        canvas.text(&self.text,text_origin,size,&self.colour)?;
-        canvas.text(&self.text,mask_origin,size,&DirectColour(0,0,0))?;
+        canvas.text(&self.text,pad(text_origin),size,&self.colour)?;
+        canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0))?;
         Ok(())
     }
 }
