@@ -165,24 +165,29 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
             let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
-
-            let (area_left,area_right,area_top,area_bottom) = area.hollow(1.);
-            /* bottom */
-            let mut campaign = track_triangles.add_rectangles(builder, &area_bottom, &allotments,left,false,&kind)?;
-            patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
-            campaign.close();
-            /* top */
-            let mut campaign = track_triangles.add_rectangles(builder, &area_top, &allotments,left,false,&kind)?;
-            patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
-            campaign.close();
-            /* left */
-            let mut campaign = track_triangles.add_rectangles(builder, &area_left, &allotments,left,false,&kind)?;
-            patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
-            campaign.close();
-            /* right */
-            let mut campaign = track_triangles.add_rectangles(builder, &area_right, &allotments,left,false,&kind)?;
-            patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
-            campaign.close();
+            if hollow {
+                let (area_left,area_right,area_top,area_bottom) = area.hollow(1.);
+                /* bottom */
+                let mut campaign = track_triangles.add_rectangles(builder, &area_bottom, &allotments,left,false,&kind)?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
+                campaign.close();
+                /* top */
+                let mut campaign = track_triangles.add_rectangles(builder, &area_top, &allotments,left,false,&kind)?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
+                campaign.close();
+                /* left */
+                let mut campaign = track_triangles.add_rectangles(builder, &area_left, &allotments,left,false,&kind)?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
+                campaign.close();
+                /* right */
+                let mut campaign = track_triangles.add_rectangles(builder, &area_right, &allotments,left,false,&kind)?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
+                campaign.close();
+            } else {
+                let mut campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,false,&kind)?;
+                patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
+                campaign.close();
+            }
         },
         GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind) => {
             let kind = to_trianges_kind(&allotment_kind);
