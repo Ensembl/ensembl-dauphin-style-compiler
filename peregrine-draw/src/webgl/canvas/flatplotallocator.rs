@@ -3,29 +3,28 @@ use std::collections::{ HashMap, HashSet };
 use super::packer::allocate_areas;
 use crate::webgl::{FlatId, Texture, program::uniform};
 use super::weave::{ CanvasWeave };
-use super::drawingflats::{ DrawingFlatsDrawable };
+use super::drawingflats::{ DrawingAllFlatsBuilder };
 use crate::webgl::global::WebGlGlobal;
 use keyed::keyed_handle;
 use crate::util::message::Message;
 
-keyed_handle!(FlatPlotRequestHandle);
+keyed_handle!(FlatPositionCampaignHandle);
 
-struct FlatPositionAllocatorData {
+struct Campaign {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-/* Can be multiple per FLAT, orresponds to one entry in DrawingFlatsDrawable */
-pub(crate) struct FlatPositionAllocator {
+pub(crate) struct FlatPositionManager {
     uniform_name: String,
-    requests: KeyedData<FlatPlotRequestHandle,Option<FlatPositionAllocatorData>>,
+    requests: KeyedData<FlatPositionCampaignHandle,Option<Campaign>>,
     weave: CanvasWeave,
     canvas: Option<FlatId>
 }
 
-impl FlatPositionAllocator {
-    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> FlatPositionAllocator {
-        FlatPositionAllocator {
+impl FlatPositionManager {
+    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> FlatPositionManager {
+        FlatPositionManager {
             uniform_name: uniform_name.to_string(),
             weave: weave.clone(),
             requests: KeyedData::new(),
@@ -33,13 +32,13 @@ impl FlatPositionAllocator {
         }
     }
 
-    pub(crate) fn insert(&mut self, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
-        self.requests.add(Some(FlatPositionAllocatorData {
+    pub(crate) fn insert(&mut self, sizes: &[(u32,u32)]) -> FlatPositionCampaignHandle {
+        self.requests.add(Some(Campaign {
             sizes: sizes.to_vec(), origin: vec![]
         }))
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
@@ -58,7 +57,7 @@ impl FlatPositionAllocator {
         Ok(())
     }
 
-    pub(crate) fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
+    pub(crate) fn origins(&self, id: &FlatPositionCampaignHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).as_ref().unwrap().origin.clone()
     }
 
@@ -66,7 +65,7 @@ impl FlatPositionAllocator {
         self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no canvas set")))
     }
 
-    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         self.allocate(gl,drawable)?;
         for (id,_) in self.requests.items() {
             drawable.add(id,self.canvas.as_ref().unwrap());

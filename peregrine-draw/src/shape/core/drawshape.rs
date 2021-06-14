@@ -7,7 +7,7 @@ use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::{ PatinaProgramName, PatinaProcessName };
 use super::super::layers::geometry::GeometryProgramName;
 use super::texture::CanvasTextureAreas;
-use crate::webgl::{DrawingFlatsDrawable, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements };
+use crate::webgl::{DrawingAllFlatsBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
@@ -128,7 +128,7 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureAreas]) -> 
     SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes)
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, canvas_builder: &DrawingFlatsDrawable, shape: GLShape) -> Result<(),Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, canvas_builder: &DrawingAllFlatsBuilder, shape: GLShape) -> Result<(),Message> {
     match shape {
         GLShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             //let patina = colour_to_patina(&Colour::Spot(colour.clone()));
@@ -147,7 +147,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 .collect::<Result<Vec<_>,_>>()?;
             let area = position_canvas_areas(&position,&dims);
             let left = layer.left();
-            let canvas = text.canvas_id(canvas_builder)?;
+            let canvas = text.canvas_id()?;
             let geometry = kind.geometry_program_name();
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
@@ -165,7 +165,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let dims = handles.iter()
                 .map(|handle| heraldry.get_texture_areas(handle))
                 .collect::<Result<Vec<_>,_>>()?;
-            let canvas = heraldry.canvas_id(canvas_builder)?;
+            let canvas = heraldry.canvas_id()?;
             let geometry = kind.geometry_program_name();
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;

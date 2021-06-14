@@ -3,9 +3,9 @@ use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::heraldry::DrawingHeraldry;
-use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
+use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 //use crate::shape::core::heraldry::DrawingHeraldry;
-use crate::webgl::{CanvasWeave, DrawingFlats, DrawingFlatsDrawable, DrawingSession, FlatStore, Process};
+use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
@@ -13,19 +13,19 @@ use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 pub(crate) struct ToolPreparations {
-    crisp: FlatPositionAllocator,
-    heraldry: FlatPositionAllocator
+    crisp: FlatPositionManager,
+    heraldry: FlatPositionManager
 }
 
 impl ToolPreparations {
     fn new() -> ToolPreparations {
         ToolPreparations {
-            crisp: FlatPositionAllocator::new(&CanvasWeave::Crisp,"uSampler"),
-            heraldry: FlatPositionAllocator::new(&CanvasWeave::Heraldry,"uSampler")
+            crisp: FlatPositionManager::new(&CanvasWeave::Crisp,"uSampler"),
+            heraldry: FlatPositionManager::new(&CanvasWeave::Heraldry,"uSampler")
         }
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingFlatsDrawable) -> Result<(),Message> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         self.crisp.make(gl,drawable)?;
         self.heraldry.make(gl,drawable)?;
         Ok(())
@@ -58,9 +58,9 @@ impl DrawingTools {
         Ok(preparations)
     }
 
-    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, builder: &DrawingFlatsDrawable, mut preparations: ToolPreparations) -> Result<(),Message> {
-        self.text.draw_at_locations(canvas_store,builder,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,builder,&mut preparations.heraldry)?;
+    pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
+        self.text.draw_at_locations(canvas_store,&mut preparations.crisp)?;
+        self.heraldry.draw_at_locations(canvas_store,&mut preparations.heraldry)?;
         Ok(())
     }
 }
@@ -68,7 +68,7 @@ impl DrawingTools {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingTools,
-    flats: Option<DrawingFlatsDrawable>
+    flats: Option<DrawingAllFlatsBuilder>
 }
 
 impl DrawingBuilder {
@@ -88,9 +88,9 @@ impl DrawingBuilder {
 
     pub(crate) fn prepare_tools(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut prep = self.tools.start_preparation(gl)?;
-        let mut drawable = DrawingFlatsDrawable::new();
+        let mut drawable = DrawingAllFlatsBuilder::new();
         prep.allocate(gl,&mut drawable)?;
-        self.tools.finish_preparation(gl.canvas_store_mut(),&drawable,prep)?;
+        self.tools.finish_preparation(gl.canvas_store_mut(),prep)?;
         self.flats = Some(drawable);
         Ok(())
     }
@@ -109,7 +109,7 @@ impl DrawingBuilder {
 
 pub(crate) struct Drawing {
     processes: Vec<Process>,
-    canvases: DrawingFlats,
+    canvases: DrawingAllFlats,
     zmenus: DrawingZMenus
 }
 
@@ -131,7 +131,7 @@ impl Drawing {
         drawing.build(gl)
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
         Ok(Drawing {
             processes,
             canvases,

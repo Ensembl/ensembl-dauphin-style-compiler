@@ -5,7 +5,7 @@ use super::super::core::spotcolourdraw::SpotColourDraw;
 use super::super::core::tracktriangles::TrackTrianglesProgram;
 use super::super::core::texture::TextureDraw;
 use crate::{ webgl::FlatId};
-use crate::webgl::{ ProcessBuilder, Process, DrawingFlats };
+use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
 use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
@@ -86,7 +86,7 @@ impl GeometrySubLayer {
         Ok(self.holder(programs,patina)?.get_patina())
     }
 
-    fn build(mut self, gl: &mut WebGlGlobal, processes: &mut Vec<Process>, canvases: &DrawingFlats) -> Result<(),Message> {
+    fn build(mut self, gl: &mut WebGlGlobal, processes: &mut Vec<Process>, canvases: &DrawingAllFlats) -> Result<(),Message> {
         if let Some(direct) = self.direct {
             processes.push(direct.into_process().build(gl,self.left)?);
         }
@@ -183,7 +183,7 @@ impl Layer {
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
     }
 
-    pub(super) fn build(self, gl: &mut WebGlGlobal, canvases: &DrawingFlats) -> Result<Vec<Process>,Message> {
+    pub(super) fn build(self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
         let mut processes = vec![];
         self.wiggle.build(gl,&mut processes,canvases)?;
         self.track_triangles.build(gl,&mut processes,canvases)?;

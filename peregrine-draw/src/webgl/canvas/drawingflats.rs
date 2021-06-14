@@ -4,17 +4,17 @@ use crate::webgl::CanvasWeave;
 use keyed::KeyedData;
 use crate::webgl::ProcessBuilder;
 use super::flatstore::{ FlatId, FlatStore };
-use super::flatplotallocator::FlatPlotRequestHandle;
+use super::flatplotallocator::FlatPositionCampaignHandle;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
-pub struct DrawingFlats {
+pub struct DrawingAllFlats {
     main_canvases: HashMap<FlatId,String>
 }
 
-impl DrawingFlats {
-     fn new() -> DrawingFlats {
-        DrawingFlats {
+impl DrawingAllFlats {
+     fn new() -> DrawingAllFlats {
+        DrawingAllFlats {
             main_canvases: HashMap::new(),
         }
     }
@@ -42,20 +42,20 @@ impl DrawingFlats {
 }
 
 /* One overall, differentiates FLATS */
-pub(crate) struct DrawingFlatsDrawable {
-    responses: KeyedData<FlatPlotRequestHandle,Option<FlatId>>,
-    drawing_flats: DrawingFlats
+pub(crate) struct DrawingAllFlatsBuilder {
+    responses: KeyedData<FlatPositionCampaignHandle,Option<FlatId>>,
+    drawing_flats: DrawingAllFlats
 }
 
-impl DrawingFlatsDrawable {
-    pub(crate) fn new() -> DrawingFlatsDrawable {
-        DrawingFlatsDrawable {
+impl DrawingAllFlatsBuilder {
+    pub(crate) fn new() -> DrawingAllFlatsBuilder {
+        DrawingAllFlatsBuilder {
             responses: KeyedData::new(),
-            drawing_flats: DrawingFlats::new()
+            drawing_flats: DrawingAllFlats::new()
         }
     }
 
-    pub(super) fn add(&mut self, id: FlatPlotRequestHandle, canvas: &FlatId) {
+    pub(super) fn add(&mut self, id: FlatPositionCampaignHandle, canvas: &FlatId) {
         self.responses.insert(&id,canvas.clone());
     }
 
@@ -63,5 +63,5 @@ impl DrawingFlatsDrawable {
         self.drawing_flats.allocate(gl,weave,size,uniform_name)
     }
 
-    pub(crate) fn built(self) -> DrawingFlats { self.drawing_flats }
+    pub(crate) fn built(self) -> DrawingAllFlats { self.drawing_flats }
 }

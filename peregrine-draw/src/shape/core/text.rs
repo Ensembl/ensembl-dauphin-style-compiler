@@ -1,7 +1,7 @@
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;
-use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
-use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat };
+use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
+use crate::webgl::{ CanvasWeave, DrawingAllFlatsBuilder, FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use super::texture::CanvasTextureAreas;
@@ -49,7 +49,7 @@ impl DrawingText {
         self.0.add(Text::new(pen,text,colour))
     }
 
-    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
         self.0.calculate_requirements(gl,allocator,|vv| {
             /* sort by pen to speed up calculation */
             let mut texts_by_pen = HashMap::new();
@@ -64,12 +64,12 @@ impl DrawingText {
         })
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable,  allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
-        self.0.draw_at_locations(store,builder,allocator)
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+        self.0.draw_at_locations(store,allocator)
     }
 
-    pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
-        self.0.canvas_id(builder)
+    pub(crate) fn canvas_id(&self) -> Result<FlatId,Message> {
+        self.0.canvas_id()
     }
 
     pub(crate) fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureAreas,Message> {

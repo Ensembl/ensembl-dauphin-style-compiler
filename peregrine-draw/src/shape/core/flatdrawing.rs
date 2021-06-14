@@ -1,6 +1,6 @@
 use keyed::{KeyedData, KeyedHandle};
-use crate::webgl::canvas::flatplotallocator::FlatPositionAllocator;
-use crate::webgl::{ DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotRequestHandle };
+use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
+use crate::webgl::{ DrawingAllFlatsBuilder, FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use crate::util::message::Message;
@@ -45,7 +45,7 @@ impl FlatBoundary {
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
     texts: KeyedData<H,(T,FlatBoundary)>,
-    request: Option<FlatPlotRequestHandle>,
+    request: Option<FlatPositionCampaignHandle>,
     canvas: Option<FlatId>
 }
 
@@ -73,7 +73,7 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn calculate_requirements<F>(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionAllocator, sorter: F) -> Result<(),Message>
+    pub(crate) fn calculate_requirements<F>(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager, sorter: F) -> Result<(),Message>
                 where F: FnOnce(&mut Vec<&mut (T,FlatBoundary)>) {
         self.calc_sizes(gl,sorter)?;
         let mut sizes = vec![];
@@ -87,7 +87,7 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, builder: &DrawingFlatsDrawable, allocator: &mut FlatPositionAllocator) -> Result<(),Message> {
+    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
         self.canvas = Some(allocator.canvas()?);
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
@@ -103,7 +103,7 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> Result<FlatId,Message> {
+    pub(crate) fn canvas_id(&self) -> Result<FlatId,Message> {
         self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no associated canvas")))
     }
 
