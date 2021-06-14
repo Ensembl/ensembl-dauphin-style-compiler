@@ -1,11 +1,14 @@
+use std::collections::HashMap;
+
 use keyed::{KeyedData, KeyedHandle};
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ DrawingAllFlatsBuilder, FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
+use crate::webgl::{ FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
 use crate::webgl::global::WebGlGlobal;
 use super::texture::CanvasTextureAreas;
 use crate::util::message::Message;
 
 pub(crate) trait FlatDrawingItem {
+    fn compute_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
 }
@@ -44,14 +47,16 @@ impl FlatBoundary {
 }
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
+    hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
     canvas: Option<FlatId>
 }
 
-impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
+impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     pub fn new() -> FlatDrawingManager<H,T> {
         FlatDrawingManager {
+            hashed_items: HashMap::new(),
             texts: KeyedData::new(),
             request: None,
             canvas: None
@@ -59,7 +64,17 @@ impl<H: KeyedHandle,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     }
 
     pub(crate) fn add(&mut self, item: T) -> H {
-        self.texts.add((item,FlatBoundary::new()))
+        let hash = item.compute_hash();
+        if let Some(hash) = hash {
+            if let Some(old) = self.hashed_items.get(&hash) {
+                return old.clone();
+            }
+        }
+        let handle = self.texts.add((item,FlatBoundary::new()));
+        if let Some(hash) = hash {
+            self.hashed_items.insert(hash,handle.clone());
+        }
+        handle
     }
 
     fn calc_sizes<F>(&mut self, gl: &mut WebGlGlobal, sorter: F) -> Result<(),Message>

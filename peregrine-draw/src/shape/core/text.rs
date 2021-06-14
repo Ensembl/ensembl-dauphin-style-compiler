@@ -6,6 +6,8 @@ use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use super::texture::CanvasTextureAreas;
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use crate::util::message::Message;
 
 // TODO padding measurements!
@@ -30,6 +32,14 @@ impl FlatDrawingItem for Text {
         let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         canvas.set_font(&self.pen)?;
         canvas.measure(&self.text)
+    }
+
+    fn compute_hash(&self) -> Option<u64> {
+        let mut hasher = DefaultHasher::new();
+        self.pen.hash(&mut hasher);
+        self.text.hash(&mut hasher);
+        self.colour.hash(&mut hasher);
+        Some(hasher.finish())
     }
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {

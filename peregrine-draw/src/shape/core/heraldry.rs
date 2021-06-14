@@ -1,26 +1,32 @@
-use keyed::KeyedData;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{ Hash, Hasher };
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-use crate::webgl::{ CanvasWeave, DrawingAllFlatsBuilder, FlatId, FlatStore, Flat, FlatPositionCampaignHandle };
+use crate::webgl::{ FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
 use super::texture::CanvasTextureAreas;
 use crate::util::message::Message;
 
-
 keyed_handle!(HeraldryHandle);
 
+#[derive(Hash)]
 pub(crate) enum Heraldry {
     Stripe(DirectColour,DirectColour,u32)
 }
 
-
 impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match self {
-            &mut Heraldry::Stripe(_,_,count) => (16*count,16)
+            Heraldry::Stripe(_,_,count) => (16*(*count),16)
         })
+    }
+
+    fn compute_hash(&self) -> Option<u64> {
+        let mut hasher = DefaultHasher::new();
+        self.hash(&mut hasher);
+        Some(hasher.finish())
     }
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
