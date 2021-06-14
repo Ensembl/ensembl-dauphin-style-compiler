@@ -79,7 +79,8 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                     out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
                 },
                 ShapeCategory::Striped => {
-                    out.push(GLShape::Heraldry(area.filter(filter),make_heraldry(tools,patina.filter(filter))?,filter.filter(&allotment),kind.clone(),hollow));
+                    let (handles_h,handles_v) = make_heraldry(tools,patina.filter(filter))?;
+                    out.push(GLShape::Heraldry(area.filter(filter),handles_h,handles_v,filter.filter(&allotment),kind.clone(),hollow));
                 }
             }
         }
@@ -87,21 +88,27 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
     Ok(out)
 }
 
-fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<Vec<HeraldryHandle>,Message> {
+fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<(Vec<HeraldryHandle>,Vec<HeraldryHandle>),Message> {
     let heraldry = tools.heraldry();
     let colours = match patina {
         Patina::Filled(c) => c,
         Patina::Hollow(c) => c,
         _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non filled/hollow")))?
     };
-    Ok(colours.iter().map(|colour| {
-        match colour {
+    let mut handles_h = vec![];
+    let mut handles_v = vec![];
+    for colour in &colours {
+        let spec_h = match colour {
             Colour::Stripe(a,b,c) => {
-                Ok(heraldry.add(Heraldry::Stripe(a.clone(),b.clone(),25,*c)))
+                Heraldry::Bar(a.clone(),b.clone(),50,*c,false)
             },
-            _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))
-        }
-    }).collect::<Result<Vec<_>,_>>()?)
+            _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))?
+        };
+        let spec_v = spec_h.rotate();
+        handles_h.push(heraldry.add(spec_h));
+        handles_v.push(heraldry.add(spec_v));
+    }
+    Ok((handles_h,handles_v))
 }
 
 pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape, allotter: &Allotter) -> Result<Vec<GLShape>,Message> {

@@ -4,7 +4,7 @@ use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
-use super::texture::CanvasTextureAreas;
+use super::texture::{CanvasTextureArea };
 use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -90,7 +90,7 @@ impl DrawingText {
         self.0.canvas_id()
     }
 
-    pub(crate) fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureAreas,Message> {
+    pub(crate) fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureArea,Message> {
         self.0.get_texture_areas(handle)
     }
 }

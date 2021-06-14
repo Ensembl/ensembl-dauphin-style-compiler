@@ -57,7 +57,7 @@ func spacebase(number,number,number) becomes spacebaseid;
 func use_allotment(string) becomes allotment;
 func direct_colour(number,number,number) becomes directcolour;
 func simple_colour(directcolour) becomes colour;
-func striped(directcolour,directcolour,number) becomes colour;
+func striped(directcolour,directcolour,number,number) becomes colour;
 func zmenu(string) becomes zmenutmpl;
 func patina_filled(colour) becomes patina;
 func patina_hollow(colour) becomes patina;

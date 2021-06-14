@@ -68,10 +68,19 @@ impl Flat {
         Ok(())
     }
 
+    pub(crate) fn clear(&self, origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+        if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
+        let context = self.context()?;
+        context.clear_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
+        Ok(())
+    }
+
+
     pub(crate) fn path(&self, origin: (u32,u32), path: &[(u32,u32)], colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?;
         context.set_fill_style(&colour_to_css(colour).into()); // TODO background colours for pen
+        context.begin_path();
         let mut first = true;
         for point in path {
             let (x,y) = ((point.0+origin.0) as f64, (point.1+origin.1) as f64);

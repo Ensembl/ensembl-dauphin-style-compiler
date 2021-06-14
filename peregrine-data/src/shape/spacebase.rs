@@ -115,6 +115,33 @@ impl SpaceBase {
             max_len: self.max_len
         }
     }
+
+    pub fn replace_normal(&self, other: &SpaceBase) -> SpaceBase {
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: self.tangent.clone(),
+            normal: other.normal.clone(),
+            max_len: self.max_len
+        }
+    }
+
+    pub fn nudge_tangent(&self, amt: f64) -> SpaceBase {
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: Arc::new(self.tangent.iter().map(|x| *x+amt).collect()),
+            normal: self.normal.clone(),
+            max_len: self.max_len
+        }        
+    }
+
+    pub fn nudge_normal(&self, amt: f64) -> SpaceBase {
+        SpaceBase {
+            base: self.base.clone(),
+            tangent: self.tangent.clone(),
+            normal: Arc::new(self.normal.iter().map(|x| *x+amt).collect()),
+            max_len: self.max_len
+        }        
+    }
 }
 
 pub struct SpaceBaseIterator<'a> {
@@ -179,9 +206,7 @@ impl SpaceBaseArea {
         let len = self.len();
         other.iter().cycle().take(len)
     }
-}
 
-impl SpaceBaseArea {
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
         let top_left = DataFilter::new(&mut self.0.base.iter(),|base| {
             *base <= max_value
@@ -195,6 +220,29 @@ impl SpaceBaseArea {
     pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea {
         SpaceBaseArea(self.0.filter(filter),self.1.filter(filter))
     }
+
+    pub fn hollow(&self, w: f64) -> (SpaceBaseArea,SpaceBaseArea,SpaceBaseArea,SpaceBaseArea) {
+        let mut left = self.clone();
+        left.1.base = left.0.base.clone();
+        left.1.tangent = Arc::new(left.0.tangent.iter().map(|x| *x+w).collect());
+        /**/
+        let mut right = self.clone();
+        right.0.base = right.1.base.clone();
+        right.0.tangent = Arc::new(right.1.tangent.iter().map(|x| *x-w).collect());
+        /**/
+        let mut top = self.clone();
+        top.1.normal = Arc::new(top.0.normal.iter().map(|x| *x+w).collect());
+        /**/
+        let mut bottom = self.clone();
+        bottom.0.normal = Arc::new(bottom.1.normal.iter().map(|x| *x-w).collect());
+        /**/
+        (left,right,top,bottom)
+    }
+
+    pub fn top_left(&self) -> SpaceBase { self.0.clone() }
+    pub fn bottom_right(&self) -> SpaceBase { self.1.clone() }
+    pub fn bottom_left(&self) -> SpaceBase { self.0.replace_normal(&self.1) }
+    pub fn top_right(&self) -> SpaceBase { self.1.replace_normal(&self.0) }
 }
 
 impl Clone for SpaceBaseArea {

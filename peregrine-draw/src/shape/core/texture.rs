@@ -4,15 +4,16 @@ use crate::webgl::TextureBindery;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatStore;
 
-pub struct CanvasTextureAreas {
+#[derive(Debug)]
+pub struct CanvasTextureArea {
     texture_origin: (u32,u32),
     mask_origin: (u32,u32),
     size: (u32,u32)
 }
 
-impl CanvasTextureAreas {
-    pub(crate) fn new(texture_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureAreas {
-        CanvasTextureAreas { texture_origin, mask_origin, size }
+impl CanvasTextureArea {
+    pub(crate) fn new(texture_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
+        CanvasTextureArea { texture_origin, mask_origin, size }
     }
 
     pub(crate) fn texture_origin(&self) -> (u32,u32) { self.texture_origin }
@@ -42,7 +43,8 @@ pub struct TextureDraw(TextureProgram);
 // TODO to array utils
 
 fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
-    data.push((x as f32)/(size.0 as f32)); data.push((y as f32)/(size.1 as f32));
+    data.push((x as f32)/(size.0 as f32));
+    data.push((y as f32)/(size.1 as f32));
 }
 
 impl TextureDraw {
@@ -62,7 +64,7 @@ impl TextureDraw {
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureAreas],flat_store: &FlatStore) -> Result<(),Message> {
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea], flat_store: &FlatStore) -> Result<(),Message> {
         let size = flat_store.get(canvas)?.size();
         let mut texture_data = dims.iter()
             .map(|x| (x.texture_origin(),x.size()));

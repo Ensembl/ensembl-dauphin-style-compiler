@@ -1,8 +1,10 @@
-use crate::{shape::layers::patina::PatinaProcessName, webgl::ProcessBuilder};
+use std::ops::{Add, Sub};
+
+use crate::{ webgl::ProcessBuilder};
 use crate::webgl::ProcessStanzaElements;
 use crate::util::message::Message;
 
-pub fn plain_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32) {
+pub fn plain_rectangle<T>(data: &mut Vec<T>, left: T, top: T, right: T, bottom: T) where T: Copy {
     data.push(left);
     data.push(top);
     data.push(left);
@@ -13,7 +15,7 @@ pub fn plain_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bot
     data.push(bottom);
 }
 
-pub fn hollow_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32, w: f32) {
+pub fn hollow_rectangle<T>(data: &mut Vec<T>, left: T, top: T, right: T, bottom: T, w: T) where T: Sub<Output=T> + Add<Output=T> + Copy {
     data.push(left+w);
     data.push(top+w);
     data.push(left);
@@ -35,7 +37,7 @@ pub fn hollow_rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bo
     data.push(top);
 }
 
-pub fn rectangle(data: &mut Vec<f32>, left: f32, top: f32, right: f32, bottom: f32, w: Option<f32>){
+pub fn rectangle<T>(data: &mut Vec<T>, left: T, top: T, right: T, bottom: T, w: Option<T>) where T: Sub<Output=T> + Add<Output=T> + Copy {
     match w {
         Some(w) => hollow_rectangle(data,left,top,right,bottom,w),
         None => plain_rectangle(data,left,top,right,bottom)

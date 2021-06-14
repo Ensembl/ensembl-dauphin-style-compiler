@@ -83,7 +83,7 @@ impl TrackTrianglesProgram {
         })
     }
 
-    fn add_rectangles_real(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64,width: Option<f64>, kind: TrianglesKind)-> Result<ProcessStanzaElements,Message> {
+    fn add_rectangles_real(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64,width: Option<f64>, kind: &TrianglesKind)-> Result<ProcessStanzaElements,Message> {
         let indexes = if width.is_some() {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
         } else {
@@ -98,10 +98,10 @@ impl TrackTrianglesProgram {
         Ok(elements)
     }
 
-    pub(crate) fn add_rectangles(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: TrianglesKind)-> Result<Option<ProcessStanzaElements>,Message> {
+    pub(crate) fn add_rectangles(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind)-> Result<ProcessStanzaElements,Message> {
         Ok(match hollow {
-            true => Some(self.add_rectangles_real(builder,area,allotments,left,Some(1.),kind)?),
-            false => Some(self.add_rectangles_real(builder,area,allotments,left,None,kind)?),
+            true => self.add_rectangles_real(builder,area,allotments,left,Some(1.),kind)?,
+            false => self.add_rectangles_real(builder,area,allotments,left,None,kind)?,
         })
     }
 }

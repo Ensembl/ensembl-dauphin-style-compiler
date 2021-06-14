@@ -6,7 +6,7 @@ use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
-use super::texture::CanvasTextureAreas;
+use super::texture::{CanvasTextureArea };
 use crate::util::message::Message;
 
 keyed_handle!(HeraldryHandle);
@@ -18,21 +18,68 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
     (z.0+PAD,z.1+PAD)
 }
 
+fn stripe_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
+    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
+    canvas.rectangle(t,(STAMP,STAMP),b)?;
+    canvas.path(t,&[
+        (0,    0),
+        (p,    0),
+        (STAMP,STAMP-p),
+        (STAMP,STAMP)
+    ],a)?;
+    canvas.path(t,&[
+        (0,STAMP-p),
+        (p,STAMP),
+        (0,STAMP)
+    ],a)?;
+    Ok(())
+}
+
+fn bar_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32,horiz: bool) -> Result<(),Message> {
+    let p = 100-p;
+    let extent= if horiz { (100,p) } else { (p,100) };
+    let offset= if horiz { (0,50-p/2) } else { (50-p/2,0) };
+    let extent = ((extent.0*STAMP) / 100,(extent.1*STAMP) / 100);
+    let offset = ((offset.0*STAMP) / 100,(offset.1*STAMP) / 100);
+    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
+    canvas.rectangle(t,(STAMP,STAMP),a)?;
+    canvas.path((t.0+offset.0,t.1+offset.1),&[
+        (0,       0),
+        (extent.0,0),
+        (extent.0,extent.1),
+        (0,       extent.1)
+    ],b)?;
+    Ok(())
+}
+
 #[derive(Hash)]
 pub(crate) enum Heraldry {
-    Stripe(DirectColour,DirectColour,u32,u32)
+    Stripe(DirectColour,DirectColour,u32,(u32,u32)),
+    Bar(DirectColour,DirectColour,u32,(u32,u32),bool),
+}
+
+impl Heraldry {
+    pub(crate) fn rotate(&self) -> Heraldry {
+        match  self {
+            Heraldry::Stripe(a,b,p,(x,y)) => Heraldry::Stripe(a.clone(),b.clone(),*p,(*y,*x)),
+            Heraldry::Bar(a,b,p,(x,y),dir) => Heraldry::Bar(a.clone(),b.clone(),*p,(*y,*x),!dir),
+        }
+    }
 }
 
 impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match self {
-            Heraldry::Stripe(_,_,_,count) => (STAMP*(*count),STAMP)
+            Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
+            Heraldry::Bar(_,_,_,count,false) => (STAMP*count.0,STAMP),
+            Heraldry::Bar(_,_,_,count,true) => (STAMP,count.0*STAMP),
         })
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match  self {
-            &mut Heraldry::Stripe(_,_,_,_) => (PAD,PAD)
+            Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
+            Heraldry::Bar(_,_,_,_,_) => (PAD,PAD)
         })
     }
 
@@ -42,33 +89,26 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), _size: (u32,u32)) -> Result<(),Message> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
-                let p = (PAD+STAMP) * (*prop) / 100;
-                for i in 0..*count {
-                    let offset = i*STAMP;
-                    canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0))?;
-                    canvas.rectangle(pad(text_origin),size,b)?;
-                    canvas.path(text_origin,&[
-                        pad((offset,      0)),
-                        pad((offset+p,    0)),
-                        pad((offset+STAMP,STAMP-p)),
-                        pad((offset+STAMP,STAMP))
-                    ],a)?;
-                    canvas.path(text_origin,&[
-                        pad((offset,  STAMP-p)),
-                        pad((offset+p,STAMP)),
-                        pad((offset,  STAMP))
-                    ],a)?;
+                let p = STAMP * (*prop) / 100;
+                for y in 0..count.1 {
+                    for x in 0..count.0 {
+                        let t = (text_origin.0+x*STAMP,text_origin.1+y*STAMP);
+                        let m = (mask_origin.0+x*STAMP,mask_origin.1+y*STAMP);
+                        stripe_stamp(canvas,pad(t),pad(m),a,b,p)?;
+                    }
                 }
-                /* bleed */
-                let x_far = *count * STAMP + 2*PAD;
-                let y_far = STAMP+2*PAD;
-                canvas.rectangle(text_origin,(p+PAD,PAD), a)?;
-                canvas.rectangle((text_origin.0+x_far-PAD,text_origin.1+y_far-PAD-p),(PAD,PAD+p),a)?;
-                canvas.rectangle((text_origin.0,text_origin.1+y_far-PAD-p),(PAD+p,PAD+p),a)?;
-            }
+            },
+            Heraldry::Bar(a,b,prop,count,horiz) => {
+                for c in 0..count.0 {
+                    let (x,y) = if *horiz { (0,c) } else { (c,0) };
+                    let t = (text_origin.0+x*STAMP,text_origin.1+y*STAMP);
+                    let m = (mask_origin.0+x*STAMP,mask_origin.1+y*STAMP);
+                    bar_stamp(canvas,pad(t),pad(m),a,b,*prop,*horiz)?;
+                }
+            },
         }
         Ok(())
     }
@@ -95,7 +135,7 @@ impl DrawingHeraldry {
         self.0.canvas_id()
     }
 
-    pub(crate) fn get_texture_areas(&self, handle: &HeraldryHandle) -> Result<CanvasTextureAreas,Message> {
+    pub(crate) fn get_texture_areas(&self, handle: &HeraldryHandle) -> Result<CanvasTextureArea,Message> {
         self.0.get_texture_areas(handle)
     }
 }

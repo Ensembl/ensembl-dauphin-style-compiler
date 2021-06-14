@@ -6,7 +6,7 @@ use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::{ PatinaProcessName };
 use super::super::layers::geometry::GeometryProgramName;
-use super::texture::CanvasTextureAreas;
+use super::texture::{CanvasTextureArea};
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
@@ -47,7 +47,7 @@ impl SimpleShapePatina {
 
 pub(crate) enum GLShape {
     Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
-    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,bool),
+    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,bool),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(SpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
 }
@@ -111,7 +111,7 @@ fn to_trianges_kind(program_kind: &AllotmentProgramKind) -> TrianglesKind {
     }
 }
 
-fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureAreas]) -> SpaceBaseArea {
+fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> SpaceBaseArea {
     let mut x_sizes = vec![];
     let mut y_sizes = vec![];
     for dim in areas {
@@ -146,17 +146,18 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
             let builder = layer.get_process_mut(&geometry, &PatinaProcessName::Texture(canvas.clone()))?;
-            let campaign = track_triangles.add_rectangles(builder,&area,&allotments,left,false,kind)?;
-            if let Some(mut campaign) = campaign {
-                patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
-                campaign.close();
-            }
+            let mut campaign = track_triangles.add_rectangles(builder,&area,&allotments,left,false,&kind)?;
+            patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
+            campaign.close();
         },
-        GLShape::Heraldry(area,handles,allotments,program_kind,hollow) => {
+        GLShape::Heraldry(area,handles_h,handles_v,allotments,program_kind,hollow) => {       
             let kind = to_trianges_kind(&program_kind);
             let left = layer.left();
             let heraldry = tools.heraldry();
-            let dims = handles.iter()
+            let dims_h = handles_h.iter()
+                .map(|handle| heraldry.get_texture_areas(handle))
+                .collect::<Result<Vec<_>,_>>()?;
+            let dims_v = handles_v.iter()
                 .map(|handle| heraldry.get_texture_areas(handle))
                 .collect::<Result<Vec<_>,_>>()?;
             let canvas = heraldry.canvas_id()?;
@@ -164,11 +165,24 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let patina = layer.get_texture(&geometry,&canvas)?;
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
             let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
-            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
-            if let Some(mut campaign) = campaign {
-                patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
-                campaign.close();
-            }
+
+            let (area_left,area_right,area_top,area_bottom) = area.hollow(1.);
+            /* bottom */
+            let mut campaign = track_triangles.add_rectangles(builder, &area_bottom, &allotments,left,false,&kind)?;
+            patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
+            campaign.close();
+            /* top */
+            let mut campaign = track_triangles.add_rectangles(builder, &area_top, &allotments,left,false,&kind)?;
+            patina.add_rectangle(&mut campaign,&canvas,&dims_h,gl.flat_store())?;
+            campaign.close();
+            /* left */
+            let mut campaign = track_triangles.add_rectangles(builder, &area_left, &allotments,left,false,&kind)?;
+            patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
+            campaign.close();
+            /* right */
+            let mut campaign = track_triangles.add_rectangles(builder, &area_right, &allotments,left,false,&kind)?;
+            patina.add_rectangle(&mut campaign,&canvas,&dims_v,gl.flat_store())?;
+            campaign.close();
         },
         GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind) => {
             let kind = to_trianges_kind(&allotment_kind);
@@ -176,11 +190,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Direct)?;
             let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Direct)?;
             let hollow = match patina { SimpleShapePatina::Hollow(_) => true, _ => false };
-            let campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,kind)?;
-            if let Some(mut campaign) = campaign {
-                add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
-                campaign.close();
-            }
+            let mut campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,&kind)?;
+            add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;
+            campaign.close();
             // XXX ZMenus
         }
     }
