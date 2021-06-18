@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
-use crate::{util::Message, webgl::program::statement};
+use crate::{ util::Message };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 

@@ -165,4 +165,4 @@ pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
-pub use self::util::ringarray::DataFilter;
+pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };

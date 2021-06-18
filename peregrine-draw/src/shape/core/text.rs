@@ -20,7 +20,7 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
     (x.0+PAD,x.1+PAD)
 }
 
-struct Text {
+pub(crate) struct Text {
     pen: Pen,
     text: String,
     colour: DirectColour
@@ -82,15 +82,5 @@ impl DrawingText {
         })
     }
 
-    pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
-        self.0.draw_at_locations(store,allocator)
-    }
-
-    pub(crate) fn canvas_id(&self) -> Result<FlatId,Message> {
-        self.0.canvas_id()
-    }
-
-    pub(crate) fn get_texture_areas(&self, handle: &TextHandle) -> Result<CanvasTextureArea,Message> {
-        self.0.get_texture_areas(handle)
-    }
+    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
 }

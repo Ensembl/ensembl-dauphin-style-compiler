@@ -1,7 +1,5 @@
 use keyed::KeyedData;
-use std::collections::{ HashMap, HashSet };
-use super::packer::allocate_areas;
-use crate::webgl::{FlatId, Texture, program::uniform};
+use crate::webgl::{FlatId };
 use super::weave::{ CanvasWeave };
 use super::drawingflats::{ DrawingAllFlatsBuilder };
 use crate::webgl::global::WebGlGlobal;
@@ -45,7 +43,8 @@ impl FlatPositionManager {
             let req = self.requests.get(req_id).as_ref().unwrap();
             sizes.extend(req.sizes.iter());
         }
-        let (mut origins,width,height) = allocate_areas(&sizes,gl.gpuspec())?;
+        if sizes.len() == 0 { return Ok(()); }
+        let (mut origins,width,height) = self.weave.pack(&sizes,gl)?;
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
             let req = self.requests.get_mut(req_id).as_mut().unwrap();
@@ -61,14 +60,14 @@ impl FlatPositionManager {
         self.requests.get(id).as_ref().unwrap().origin.clone()
     }
 
-    pub(crate) fn canvas(&self) -> Result<FlatId,Message> {
-        self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no canvas set")))
-    }
+    pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Message> { Ok(self.canvas.as_ref()) }
 
     pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         self.allocate(gl,drawable)?;
         for (id,_) in self.requests.items() {
-            drawable.add(id,self.canvas.as_ref().unwrap());
+            if let Some(canvas) = &self.canvas {
+                drawable.add(id,canvas);
+            }
         }
         Ok(())
     }

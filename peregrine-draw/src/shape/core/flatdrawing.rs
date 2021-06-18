@@ -67,7 +67,7 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
     hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
-    canvas: Option<FlatId>
+    canvas_id: Option<FlatId>
 }
 
 impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
@@ -76,7 +76,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
             request: None,
-            canvas: None
+            canvas_id: None
         }
     }
 
@@ -121,23 +121,24 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     }
 
     pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
-        self.canvas = Some(allocator.canvas()?);
+        self.canvas_id = allocator.canvas()?.cloned();
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
-        let canvas_id = allocator.canvas()?;
-        let canvas = store.get_mut(&canvas_id)?;
-        for (text,boundary) in self.texts.values_mut() {
-            let mask_origin = origins_iter.next().unwrap();
-            let text_origin = origins_iter.next().unwrap();
-            boundary.set_origin(text_origin,mask_origin);
-            let size = boundary.size_with_padding()?;
-            text.build(canvas,text_origin,mask_origin,size)?;
+        if let Some(canvas_id) = &self.canvas_id {
+            let canvas = store.get_mut(canvas_id)?;
+            for (text,boundary) in self.texts.values_mut() {
+                let mask_origin = origins_iter.next().unwrap();
+                let text_origin = origins_iter.next().unwrap();
+                boundary.set_origin(text_origin,mask_origin);
+                let size = boundary.size_with_padding()?;
+                text.build(canvas,text_origin,mask_origin,size)?;
+            }
         }
         Ok(())
     }
 
-    pub(crate) fn canvas_id(&self) -> Result<FlatId,Message> {
-        self.canvas.as_ref().cloned().ok_or_else(|| Message::CodeInvariantFailed(format!("no associated canvas")))
+    pub(crate) fn canvas_id(&self) ->Option<FlatId> {
+        self.canvas_id.as_ref().cloned()
     }
 
     pub(crate) fn get_texture_areas(&self, handle: &H) -> Result<CanvasTextureArea,Message> {

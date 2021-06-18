@@ -2,6 +2,7 @@ use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
+use crate::shape::core::flatdrawing::FlatDrawingManager;
 use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 //use crate::shape::core::heraldry::DrawingHeraldry;
@@ -14,20 +15,27 @@ use crate::util::message::Message;
 
 pub(crate) struct ToolPreparations {
     crisp: FlatPositionManager,
-    heraldry: FlatPositionManager
+    heraldry_h: FlatPositionManager,
+    heraldry_v: FlatPositionManager
 }
 
 impl ToolPreparations {
     fn new() -> ToolPreparations {
         ToolPreparations {
             crisp: FlatPositionManager::new(&CanvasWeave::Crisp,"uSampler"),
-            heraldry: FlatPositionManager::new(&CanvasWeave::Heraldry,"uSampler")
+            heraldry_h: FlatPositionManager::new(&CanvasWeave::HorizStack,"uSampler"),
+            heraldry_v: FlatPositionManager::new(&CanvasWeave::VertStack,"uSampler"),
         }
     }
 
+    pub(crate) fn crisp_manager(&mut self) -> &mut FlatPositionManager { &mut self.crisp }
+    pub(crate) fn heraldry_h_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_h }
+    pub(crate) fn heraldry_v_manager(&mut self) -> &mut FlatPositionManager { &mut self.heraldry_v }
+
     fn allocate(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         self.crisp.make(gl,drawable)?;
-        self.heraldry.make(gl,drawable)?;
+        self.heraldry_h.make(gl,drawable)?;
+        self.heraldry_v.make(gl,drawable)?;
         Ok(())
     }
 }
@@ -54,13 +62,13 @@ impl DrawingTools {
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp)?;
-        self.heraldry.calculate_requirements(gl,&mut preparations.crisp)?;
+        self.heraldry.calculate_requirements(gl,&mut preparations)?;
         Ok(preparations)
     }
 
     pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
-        self.text.draw_at_locations(canvas_store,&mut preparations.crisp)?;
-        self.heraldry.draw_at_locations(canvas_store,&mut preparations.crisp)?;
+        self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
+        self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;
         Ok(())
     }
 }

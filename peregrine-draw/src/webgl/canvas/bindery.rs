@@ -42,14 +42,20 @@ use crate::util::evictlist::EvictList;
 fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<(),Message> {
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Crisp =>
-            (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
+            (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
                 WebGlRenderingContext::CLAMP_TO_EDGE,WebGlRenderingContext::CLAMP_TO_EDGE),
         CanvasWeave::Fuzzy =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
                 WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
-        &CanvasWeave::Heraldry => 
+        CanvasWeave::Heraldry => 
             (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
                 WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
+        CanvasWeave::HorizStack => 
+            (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
+                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
+        CanvasWeave::VertStack => 
+            (WebGlRenderingContext::NEAREST,WebGlRenderingContext::NEAREST,
+                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),        
     };
     context.tex_parameteri(WebGlRenderingContext::TEXTURE_2D,
                         WebGlRenderingContext::TEXTURE_MIN_FILTER,
