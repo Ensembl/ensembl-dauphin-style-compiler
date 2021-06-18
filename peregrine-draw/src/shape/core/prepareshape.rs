@@ -7,7 +7,7 @@ use crate::shape::core::heraldry::{Heraldry, HeraldryCanvas};
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
 use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
-use super::heraldry::{HeraldryCanvasesUsed, HeraldryHandle};
+use super::heraldry::{HeraldryCanvasesUsed, HeraldryHandle, HeraldryScale};
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     // XXX yuk!
@@ -44,7 +44,7 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub(crate) enum ShapeCategory {
     Solid,
-    Heraldry(HeraldryCanvasesUsed)
+    Heraldry(HeraldryCanvasesUsed,HeraldryScale)
 }
 
 fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
@@ -68,7 +68,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
         let patina_hollow = match patina { Patina::Hollow(_) => true, _ => false };
         let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
             if let Some(heraldry) = colour_to_heraldry(colour,patina_hollow) {
-                ShapeCategory::Heraldry(heraldry.canvases_used())                                
+                ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
             } else {
                 ShapeCategory::Solid
             }
@@ -79,15 +79,15 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                 ShapeCategory::Solid => {
                     out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
                 },
-                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas)) => {
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry_tool = tools.heraldry();
                     let mut heraldry = make_heraldry(patina.filter(filter))?;
                     let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
                     let area = area.filter(filter);
                     let allotment = filter.filter(&allotment);
-                    out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),heraldry_canvas.clone()));
+                    out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),heraldry_canvas.clone(),scale.clone()));
                 },
-                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v)) => {
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let heraldry_tool = tools.heraldry();
                     let mut heraldry = make_heraldry(patina.filter(filter))?;
                     let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
@@ -95,10 +95,10 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                     let allotment = filter.filter(&allotment);
                     let (area_left,area_right,area_top,area_bottom) = area.hollow(4.);
                     // XXX too much cloning, at least Arc them
-                    out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone()));
-                    out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone()));
-                    out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_h.clone()));
-                    out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),heraldry_canvas_h.clone()));
+                    out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone()));
+                    out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone()));
+                    out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_h.clone(),scale.clone()));
+                    out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),heraldry_canvas_h.clone(),scale.clone()));
                 }
             }
         }

@@ -127,6 +127,7 @@ mod util {
     pub mod miscpromises;
     pub mod ringarray;
     pub mod unlock;
+    pub mod vecutils;
 
     pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
@@ -166,3 +167,4 @@ pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
+pub use self::util::vecutils::expand_by_repeating;

@@ -1,4 +1,7 @@
-use peregrine_data::{Allotment, AllotmentPositionKind, Colour, DataFilter, DataFilterBuilder, DirectColour, Patina, Plotter, PositionVariant, SpaceBase, SpaceBaseArea};
+use peregrine_data::{
+    Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, Patina, Plotter, PositionVariant, SpaceBase, 
+    SpaceBaseArea, expand_by_repeating
+};
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::patina::{ PatinaProcessName };
@@ -10,9 +13,8 @@ use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
-use super::heraldry::{HeraldryHandle, InternalHeraldryHandle};
+use super::heraldry::{HeraldryHandle, HeraldryScale};
 use crate::webgl::canvas::flatstore::FlatId;
-
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentProgramKind {
@@ -47,7 +49,7 @@ impl SimpleShapePatina {
 
 pub(crate) enum GLShape {
     Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
-    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas),
+    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(SpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
 }
@@ -122,7 +124,7 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> S
     SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes)
 }
 
-fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, dims: &[CanvasTextureArea]) -> Result<(),Message> {
+fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, mut dims: &[CanvasTextureArea]) -> Result<(),Message> {
     let geometry = kind.geometry_program_name();
     let left = layer.left();
     let patina = layer.get_texture(&geometry,&canvas)?;
@@ -135,7 +137,11 @@ fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, a
     Ok(())
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &TrianglesKind, area_a: &SpaceBaseArea, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas) -> Result<(),Message> {
+fn overrun_horiz(area_a: &SpaceBaseArea, dims: &mut Vec<CanvasTextureArea>) {
+    //expand_by_repeating(dims,area_a.len());
+}
+
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &TrianglesKind, area_a: &SpaceBaseArea, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale) -> Result<(),Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();
@@ -150,6 +156,9 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
     filter.set_size(area_a.len());
     if filter.count() == 0 { return Ok(()); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+    if scale.overrun_horiz(heraldry_canvas) {
+        overrun_horiz(area_a, &mut dims);
+    }
     draw_from_canvas(layer,gl,kind,&area_a.filter(&filter),allotments,&canvas,&dims)?;
     Ok(())
 }
@@ -175,9 +184,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
             draw_from_canvas(layer,gl,&kind,&area,&allotments,&canvas,&dims)?;
         },
-        GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas) => {       
+        GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale) => {
             let kind = to_trianges_kind(&program_kind);
-            draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas)?;
+            draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas,&scale)?;
         },
         GLShape::SpaceBaseRect(area,patina,allotments,allotment_kind) => {
             let kind = to_trianges_kind(&allotment_kind);
