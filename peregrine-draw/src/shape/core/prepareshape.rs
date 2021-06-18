@@ -3,7 +3,7 @@ use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
-use crate::shape::core::heraldry::Heraldry;
+use crate::shape::core::heraldry::{Heraldry, HeraldryCanvas};
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
 use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
@@ -81,7 +81,18 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                 },
                 ShapeCategory::Heraldry => {
                     let handles = make_heraldry(tools,patina.filter(filter))?;
-                    out.push(GLShape::Heraldry(area.filter(filter),handles,filter.filter(&allotment),kind.clone(),hollow));
+                    let area = area.filter(filter);
+                    let allotment = filter.filter(&allotment);
+                    if hollow {
+                        let (area_left,area_right,area_top,area_bottom) = area.hollow(4.);
+                        // XXX too much cloning, at least Arc them
+                        out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Vert));
+                        out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Vert));
+                        out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Horiz));
+                        out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),HeraldryCanvas::Horiz));
+                    } else {
+                        out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),HeraldryCanvas::Horiz));
+                    }
                 }
             }
         }

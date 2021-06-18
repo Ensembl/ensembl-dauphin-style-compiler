@@ -143,6 +143,7 @@ enum HeraldryHandleType {
     Horiz
 }
 
+#[derive(Clone)]
 pub(crate) enum HeraldryHandle {
     HorizVert(InternalHeraldryHandle,InternalHeraldryHandle),
     Horiz(InternalHeraldryHandle)
