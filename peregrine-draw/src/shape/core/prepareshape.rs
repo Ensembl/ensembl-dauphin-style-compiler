@@ -7,7 +7,7 @@ use crate::shape::core::heraldry::{Heraldry, HeraldryCanvas};
 use crate::util::message::Message;
 use super::tracktriangles::TrianglesKind;
 use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
-use super::heraldry::HeraldryHandle;
+use super::heraldry::{HeraldryCanvasesUsed, HeraldryHandle};
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     // XXX yuk!
@@ -42,9 +42,9 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
 }
 
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
-pub enum ShapeCategory {
+pub(crate) enum ShapeCategory {
     Solid,
-    Heraldry
+    Heraldry(HeraldryCanvasesUsed)
 }
 
 fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
@@ -65,12 +65,12 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
             Patina::Hollow(c) => c,
             Patina::ZMenu(_,_) => &xxx // XXX zmenus 
         };
-        let hollow = match patina { Patina::Hollow(_) => true, _ => false };
+        let patina_hollow = match patina { Patina::Hollow(_) => true, _ => false };
         let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
-            match colour {
-                Colour::Direct(_) => ShapeCategory::Solid,
-                Colour::Stripe(_,_,_) => ShapeCategory::Heraldry,
-                Colour::Bar(_,_,_) => ShapeCategory::Heraldry
+            if let Some(heraldry) = colour_to_heraldry(colour,patina_hollow) {
+                ShapeCategory::Heraldry(heraldry.canvases_used())                                
+            } else {
+                ShapeCategory::Solid
             }
         });
         for (pkind,filter) in &mut demerge_colour {
@@ -79,20 +79,26 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                 ShapeCategory::Solid => {
                     out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),kind.clone()));
                 },
-                ShapeCategory::Heraldry => {
-                    let handles = make_heraldry(tools,patina.filter(filter))?;
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas)) => {
+                    let heraldry_tool = tools.heraldry();
+                    let mut heraldry = make_heraldry(patina.filter(filter))?;
+                    let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
                     let area = area.filter(filter);
                     let allotment = filter.filter(&allotment);
-                    if hollow {
-                        let (area_left,area_right,area_top,area_bottom) = area.hollow(4.);
-                        // XXX too much cloning, at least Arc them
-                        out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Vert));
-                        out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Vert));
-                        out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),HeraldryCanvas::Horiz));
-                        out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),HeraldryCanvas::Horiz));
-                    } else {
-                        out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),HeraldryCanvas::Horiz));
-                    }
+                    out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),heraldry_canvas.clone()));
+                },
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v)) => {
+                    let heraldry_tool = tools.heraldry();
+                    let mut heraldry = make_heraldry(patina.filter(filter))?;
+                    let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
+                    let area = area.filter(filter);
+                    let allotment = filter.filter(&allotment);
+                    let (area_left,area_right,area_top,area_bottom) = area.hollow(4.);
+                    // XXX too much cloning, at least Arc them
+                    out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone()));
+                    out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone()));
+                    out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_h.clone()));
+                    out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),heraldry_canvas_h.clone()));
                 }
             }
         }
@@ -100,8 +106,23 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
     Ok(out)
 }
 
-fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<Vec<HeraldryHandle>,Message> {
-    let heraldry = tools.heraldry();
+fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
+    match colour {
+        Colour::Stripe(a,b,c) => {
+            Some(Heraldry::Stripe(a.clone(),b.clone(),50,*c))
+        },
+        Colour::Bar(a,b,c) => {
+            if hollow {
+                Some(Heraldry::Dots(a.clone(),b.clone(),50,*c,false))
+            } else {
+                Some(Heraldry::Bar(a.clone(),b.clone(),50,*c,false))
+            }
+        },
+        _ => None
+    }
+}
+
+fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
     let (colours,hollow) = match patina {
         Patina::Filled(c) => (c,false),
         Patina::Hollow(c) => (c,true),
@@ -109,20 +130,9 @@ fn make_heraldry(tools: &mut DrawingTools, patina: Patina) -> Result<Vec<Heraldr
     };
     let mut handles = vec![];
     for colour in &colours {
-        let spec_h = match colour {
-            Colour::Stripe(a,b,c) => {
-                Heraldry::Stripe(a.clone(),b.clone(),50,*c)
-            },
-            Colour::Bar(a,b,c) => {
-                if hollow {
-                    Heraldry::Dots(a.clone(),b.clone(),50,*c,false)
-                } else {
-                    Heraldry::Bar(a.clone(),b.clone(),50,*c,false)
-                }
-            },
-            _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))?
-        };
-        handles.push(heraldry.add(spec_h));
+        let heraldry = colour_to_heraldry(colour,hollow)
+            .ok_or_else(|| Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))?;
+        handles.push(heraldry);
     }
     Ok(handles)
 }

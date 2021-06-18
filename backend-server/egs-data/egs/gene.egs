@@ -96,7 +96,6 @@ non_pc_colour := barred(direct_colour(255,0,0),direct_colour(255,255,255),4,2);
 pc_colour := simple_colour(direct_colour(128,128,128));
 patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
-
 text_colour := [direct_colour(111,129,144),direct_colour(100,100,100)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
 

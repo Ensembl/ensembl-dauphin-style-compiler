@@ -1,10 +1,8 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
-use std::iter::Inspect;
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
 use crate::shape::layers::drawing::ToolPreparations;
-use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{Flat, FlatStore};
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
@@ -71,19 +69,16 @@ impl Heraldry {
         }
     }
 
-    pub(crate) fn hollow(&self) -> bool {
+    fn handle_type(&self) -> HeraldryHandleType {
         match self {
-            Heraldry::Dots(_,_,_,_,_) => true,
-            _ => false
+            Heraldry::Stripe(_,_,_,_) => HeraldryHandleType::Crisp,
+            Heraldry::Bar(_,_,_,_,_) => HeraldryHandleType::Crisp,
+            Heraldry::Dots(_,_,_,_,_) => HeraldryHandleType::HorizVert
         }
     }
 
-    fn handle_type(&self) -> HeraldryHandleType {
-        match self {
-            Heraldry::Stripe(_,_,_,_) => HeraldryHandleType::Horiz,
-            Heraldry::Bar(_,_,_,_,_) => HeraldryHandleType::Horiz,
-            Heraldry::Dots(_,_,_,_,_) => HeraldryHandleType::HorizVert
-        }
+    pub(crate) fn canvases_used(&self) -> HeraldryCanvasesUsed {
+        self.handle_type().canvases_used()
     }
 }
 
@@ -138,32 +133,55 @@ impl FlatDrawingItem for Heraldry {
     }
 }
 
+#[derive(Clone,PartialEq,Eq,Hash,Debug)]
+pub(crate) enum HeraldryCanvasesUsed {
+    Solid(HeraldryCanvas),
+    Hollow(HeraldryCanvas,HeraldryCanvas)
+}
+
 enum HeraldryHandleType {
     HorizVert,
-    Horiz
+    Horiz,
+    Crisp
+}
+
+impl HeraldryHandleType {
+    fn canvases_used(&self) -> HeraldryCanvasesUsed {
+        match self {
+            HeraldryHandleType::Crisp => HeraldryCanvasesUsed::Solid(HeraldryCanvas::Crisp),
+            HeraldryHandleType::Horiz => HeraldryCanvasesUsed::Solid(HeraldryCanvas::Horiz),
+            &HeraldryHandleType::HorizVert => HeraldryCanvasesUsed::Hollow(HeraldryCanvas::Horiz,HeraldryCanvas::Vert)
+        }
+    }
+
 }
 
 #[derive(Clone)]
 pub(crate) enum HeraldryHandle {
     HorizVert(InternalHeraldryHandle,InternalHeraldryHandle),
-    Horiz(InternalHeraldryHandle)
+    Horiz(InternalHeraldryHandle),
+    Crisp(InternalHeraldryHandle)
 }
 
+#[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub(crate) enum HeraldryCanvas {
     Horiz,
-    Vert
+    Vert,
+    Crisp
 }
 
 pub struct DrawingHeraldry {
     horiz: FlatDrawingManager<InternalHeraldryHandle,Heraldry>,
-    vert: FlatDrawingManager<InternalHeraldryHandle,Heraldry>
+    vert: FlatDrawingManager<InternalHeraldryHandle,Heraldry>,
+    crisp: FlatDrawingManager<InternalHeraldryHandle,Heraldry>
 }
 
 impl DrawingHeraldry {
     pub fn new() -> DrawingHeraldry { 
         DrawingHeraldry {
             horiz: FlatDrawingManager::new(),
-            vert: FlatDrawingManager::new()
+            vert: FlatDrawingManager::new(),
+            crisp: FlatDrawingManager::new()
         }
     }
 
@@ -171,6 +189,9 @@ impl DrawingHeraldry {
         match heraldry.handle_type() {
             HeraldryHandleType::Horiz => {
                 HeraldryHandle::Horiz(self.horiz.add(heraldry))
+            },
+            HeraldryHandleType::Crisp => {
+                HeraldryHandle::Crisp(self.crisp.add(heraldry))
             },
             HeraldryHandleType::HorizVert => {
                 let heraldry_rotated = heraldry.rotate();
@@ -182,6 +203,7 @@ impl DrawingHeraldry {
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, preparations: &mut ToolPreparations) -> Result<(),Message> {
         self.horiz.calculate_requirements(gl,preparations.heraldry_h_manager(),|_| {})?;
         self.vert.calculate_requirements(gl,preparations.heraldry_v_manager(),|_| {})?;
+        self.crisp.calculate_requirements(gl,preparations.crisp_manager(),|_| {})?;
         Ok(())
     }
 
@@ -190,6 +212,7 @@ impl DrawingHeraldry {
             (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(self.horiz.get_texture_areas(h)?),
             (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(self.horiz.get_texture_areas(h)?),
             (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some(self.vert.get_texture_areas(v)?),
+            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some(self.crisp.get_texture_areas(h)?),
             _ => None
         })
     }
@@ -197,13 +220,15 @@ impl DrawingHeraldry {
     pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, preparations: &mut ToolPreparations) -> Result<(),Message> {
         self.horiz.draw_at_locations(store,preparations.heraldry_h_manager())?;
         self.vert.draw_at_locations(store,preparations.heraldry_v_manager())?;
+        self.crisp.draw_at_locations(store,preparations.crisp_manager())?;
         Ok(())
     }
 
     pub(crate) fn canvas_id(&self, canvas: &HeraldryCanvas) -> Option<FlatId> {
         match canvas {
             HeraldryCanvas::Horiz => self.horiz.canvas_id(),
-            HeraldryCanvas::Vert => self.vert.canvas_id()
+            HeraldryCanvas::Vert => self.vert.canvas_id(),
+            &HeraldryCanvas::Crisp => self.crisp.canvas_id()
         }
     }
 }
