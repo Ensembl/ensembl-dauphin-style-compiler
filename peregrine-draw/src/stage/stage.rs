@@ -10,6 +10,7 @@ pub(crate) struct ProgramStage {
     hpos: UniformHandle,
     vpos: UniformHandle,
     bp_per_screen: UniformHandle,
+    full_size: UniformHandle,
     size: UniformHandle,
     opacity: UniformHandle,
     model: UniformHandle
@@ -22,6 +23,7 @@ impl ProgramStage {
             vpos: builder.get_uniform_handle("uStageVpos")?,
             bp_per_screen: builder.get_uniform_handle("uStageZoom")?,
             size: builder.get_uniform_handle("uSize")?,
+            full_size: builder.get_uniform_handle("uFullSize")?,
             opacity: builder.get_uniform_handle("uOpacity")?,
             model: builder.get_uniform_handle("uModel")?
         })
@@ -57,7 +59,9 @@ impl ProgramStage {
         process.set_uniform(&self.bp_per_screen,&[2./stage.x.bp_per_screen()? as f32])?;
         /* uSize gets drawable_size because it's later scaled by size/drawable_size */
         let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
+        let full_size = (stage.x.size()?,stage.y.size()?);
         process.set_uniform(&self.size,&[(size.0/2.) as f32,(size.1/2.) as f32])?;
+        process.set_uniform(&self.full_size,&[(full_size.0/2.) as f32,(full_size.1/2.) as f32])?;
         process.set_uniform(&self.opacity,&[opacity as f32])?;
         process.set_uniform(&self.model, &self.model_matrix(stage)?)?;
         Ok(())
@@ -133,6 +137,8 @@ pub(crate) fn get_stage_source() -> SourceInstrs {
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageHpos"),
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageVpos"),
         UniformProto::new_vertex(PR_DEF,GLArity::Scalar,"uStageZoom"),
+        UniformProto::new_vertex(PR_DEF,GLArity::Vec2,"uFullSize"),
+        UniformProto::new_fragment(PR_DEF,GLArity::Vec2,"uFullSize"),
         UniformProto::new_vertex(PR_DEF,GLArity::Vec2,"uSize"),
         UniformProto::new_vertex(PR_DEF,GLArity::Matrix4,"uModel"),
         UniformProto::new_fragment(PR_LOW,GLArity::Scalar,"uOpacity")

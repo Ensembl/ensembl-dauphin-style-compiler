@@ -69,16 +69,24 @@ impl PatinaProgramName {
                     Statement::new_fragment("gl_FragColor = vec4(uColour,uOpacity)")
                 ],
                 PatinaProgramName::Texture => vec![
-                    TextureProto::new("uSampler"),
+                    TextureProto::new("uSampler","uSamplerSize"),
                     AttributeProto::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
                     AttributeProto::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
+                    UniformProto::new_fragment(PR_DEF,GLArity::Vec2,"uSize"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
-                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
+                    Statement::new_vertex("vMaskCoord = aMaskCoord"),    
+
+                //Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
+
+                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
+                            (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x,
+                            -(gl_FragCoord.y-vOrigin.y)/uSamplerSize.y))"),
+
+
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
+                    //Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
                 ]
             }
         )

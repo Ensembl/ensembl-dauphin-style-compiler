@@ -84,6 +84,14 @@ impl SpaceBase {
         }
     }
 
+    pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a> {
+        SpaceBaseIterator {
+            spacebase: self,
+            index: 0,
+            length: self.max_len
+        }
+    }
+
     pub fn filter(&self, filter: &DataFilter) -> SpaceBase {
         SpaceBase {
             base: Arc::new(filter.filter(&self.base)),

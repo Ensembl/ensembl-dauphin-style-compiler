@@ -1,6 +1,7 @@
 use super::super::core::wigglegeometry::{WiggleProgram };
 use super::super::core::tracktriangles::{ TrackTrianglesProgram };
-use crate::webgl::{ SourceInstrs, GLArity, Header, Statement, AttributeProto, ProgramBuilder };
+use crate::shape::layers::consts::PR_DEF;
+use crate::webgl::{AttributeProto, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
@@ -43,12 +44,23 @@ impl GeometryProgramName {
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),
                 Statement::new_vertex("
-                    gl_Position = uModel * vec4(
+                     gl_Position = uModel * vec4(
                         (aBase.x -uStageHpos) * uStageZoom + 
                                     aDelta.x / uSize.x,
                         1.0 - (aBase.y - uStageVpos + aDelta.y) / uSize.y, 
-                        0.0, 1.0)")
+                        0.0, 1.0);
+
+                     vec4 x = uModel * vec4(
+                        (aOriginBase.x -uStageHpos) * uStageZoom + 
+                                    aOriginDelta.x / uSize.x,
+                        1.0 - (aOriginBase.y - uStageVpos + aOriginDelta.y) / uSize.y, 
+                        0.0, 1.0);
+                    vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                ")
             ],
             GeometryProgramName::BaseLabelTriangles => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),

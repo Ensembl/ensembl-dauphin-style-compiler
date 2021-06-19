@@ -1,5 +1,5 @@
 use super::source::{ Source };
-use super::program::{ Program, ProgramBuilder };
+use super::program::{ ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use keyed::keyed_handle;

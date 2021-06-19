@@ -1,23 +1,29 @@
-use crate::webgl::FlatId;
+use crate::shape::layers::consts::PR_LOW;
+use crate::webgl::{FlatId, FlatStore, GLArity};
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
+use keyed::keyed_handle;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
 use super::source::{ Source };
 use super::super::{ GPUSpec, Phase };
-use super::program::{ Program, ProgramBuilder };
+use super::program::{ ProgramBuilder };
 use crate::webgl::util::handle_context_errors;
 
 // XXX some merging into uniform?
 
+keyed_handle!(TextureHandle);
+
 #[derive(Clone)]
 pub(crate) struct TextureProto {
-    name: String
+    name: String,
+    size_name: String
 }
 
 impl TextureProto {
-    pub fn new(name: &str) -> Box<TextureProto> {
+    pub fn new(name: &str, size_name: &str) -> Box<TextureProto> {
         Box::new(TextureProto {
-            name: name.to_string()
+            name: name.to_string(),
+            size_name: size_name.to_string()
         })
     }
 
@@ -27,9 +33,9 @@ impl TextureProto {
 impl Source for TextureProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn declare(&self, _spec: &GPUSpec, phase: Phase) -> String {
+    fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
         if phase != Phase::Fragment { return String::new(); }
-        format!("uniform sampler2D {};\n",self.name)
+        format!("uniform {} {};\nuniform sampler2D {};\n",spec.best_size(&PR_LOW,&&Phase::Fragment).as_string(GLArity::Vec2),self.size_name,self.name)
     }
 
     fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
@@ -40,30 +46,35 @@ impl Source for TextureProto {
 #[derive(Clone)]
 pub(crate) struct Texture {
     proto: TextureProto,
-    location: Option<WebGlUniformLocation>
+    location: Option<WebGlUniformLocation>,
+    location_size: Option<WebGlUniformLocation>
 }
 
 impl Texture {
     pub(super) fn new(proto: &TextureProto, context: &WebGlRenderingContext, program: &WebGlProgram) -> Result<Texture,Message> {
         let location = context.get_uniform_location(program,&proto.name);
+        let location_size = context.get_uniform_location(program,&proto.size_name);
         handle_context_errors(context)?;
-        Ok(Texture { proto: proto.clone(), location })
+        Ok(Texture { proto: proto.clone(), location, location_size })
     }
 }
 
 pub(crate) struct TextureValues {
     texture: Texture,
     flat_id: Option<FlatId>,
+    flat_size: Option<(u32,u32)>,
     bound: bool
 }
 
 impl TextureValues {
     pub(super) fn new(texture: Texture) -> TextureValues {
-        TextureValues { texture: texture, flat_id: None, bound: false }
+        TextureValues { texture: texture, flat_id: None, flat_size: None, bound: false }
     }
 
-    pub fn set_value(&mut self, flat: &FlatId) -> Result<(),Message> {
-        self.flat_id = Some(flat.clone());
+    pub fn set_value(&mut self, flat_store: &FlatStore, flat_id: &FlatId) -> Result<(),Message> {
+        self.flat_id = Some(flat_id.clone());
+        let flat = flat_store.get(flat_id)?;
+        self.flat_size = Some(flat.size().clone());
         Ok(())
     }
 
@@ -72,6 +83,10 @@ impl TextureValues {
             let index = gl.bindery_mut().allocate(flat_id)?.apply(gl)?;
             self.bound = true;
             gl.context().uniform1i(Some(location),index as i32);
+            handle_context_errors(gl.context())?;
+        }
+        if let (Some(flat_size),Some(location_size)) = (&self.flat_size,&self.texture.location_size) {
+            gl.context().uniform2f(Some(location_size),flat_size.0 as f32, flat_size.1 as f32);
             handle_context_errors(gl.context())?;
         }
         Ok(())

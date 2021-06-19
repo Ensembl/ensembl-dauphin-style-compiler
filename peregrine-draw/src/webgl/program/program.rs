@@ -4,7 +4,7 @@ use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle, AttributeProto };
 use keyed::{ KeyedValues, KeyedData };
 use super::uniform::{ Uniform, UniformHandle, UniformValues, UniformProto };
-use super::texture::{ Texture, TextureValues, TextureProto };
+use super::texture::{ Texture, TextureValues, TextureProto, TextureHandle };
 use crate::webgl::util::handle_context_errors;
 use super::source::SourceInstrs;
 use crate::util::message::Message;
@@ -15,7 +15,7 @@ pub struct ProgramBuilder {
     program: RefCell<Option<Rc<Program>>>,
     source: SourceInstrs,
     uniforms: KeyedValues<UniformHandle,UniformProto>,
-    textures: KeyedValues<UniformHandle,TextureProto>,
+    textures: KeyedValues<TextureHandle,TextureProto>,
     attribs: KeyedValues<AttribHandle,AttributeProto>,
     method: u32
 }
@@ -59,7 +59,7 @@ impl ProgramBuilder {
         self.uniforms.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing uniform key: {}",name)))
     }
 
-    pub(crate) fn get_texture_handle(&self, name: &str) -> Result<UniformHandle,Message> {
+    pub(crate) fn get_texture_handle(&self, name: &str) -> Result<TextureHandle,Message> {
         self.textures.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing texture key: {}",name)))
     }
 
@@ -81,7 +81,7 @@ pub struct Program {
     program: WebGlProgram,
     uniforms: KeyedValues<UniformHandle,Uniform>,
     attribs: KeyedValues<AttribHandle,Attribute>,
-    textures: KeyedValues<UniformHandle,Texture>,
+    textures: KeyedValues<TextureHandle,Texture>,
     method: u32
 }
 
@@ -112,7 +112,7 @@ impl Program {
         self.uniforms.data().map::<_,_,()>(|_,u| Ok(UniformValues::new(u.clone()))).unwrap()
     }
 
-    pub(super) fn make_textures(&self) -> KeyedData<UniformHandle,TextureValues> {
+    pub(super) fn make_textures(&self) -> KeyedData<TextureHandle,TextureValues> {
         self.textures.data().map::<_,_,()>(|_,t| Ok(TextureValues::new(t.clone()))).unwrap()
     }
 

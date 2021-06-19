@@ -2,7 +2,7 @@ use std::rc::Rc;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::{ Program, ProgramBuilder };
 use super::uniform::{ UniformHandle, UniformValues };
-use super::texture::{ TextureValues };
+use super::texture::{ TextureValues, TextureHandle };
 use keyed::KeyedData;
 use crate::webgl::util::handle_context_errors;
 use crate::stage::stage::{ ReadStage, ProgramStage };
@@ -51,13 +51,9 @@ impl ProcessBuilder {
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
             let handle = self.builder.get_texture_handle(&name)?;
-            textures.get_mut(&handle).set_value(&value)?;
+            textures.get_mut(&handle).set_value(gl.flat_store(),&value)?;
         }
-        let (program,stanza_builder) = (
-            program,
-            self.stanza_builder
-        );
-        Process::new(gl,program,&self.builder,stanza_builder,uniforms,textures,left)
+        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left)
     }
 }
 
@@ -66,12 +62,12 @@ pub struct Process {
     stanzas: Vec<ProcessStanza>,
     program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: KeyedData<UniformHandle,TextureValues>,
+    textures: KeyedData<TextureHandle,TextureValues>,
     left: f64
 }
 
 impl Process {
-    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<UniformHandle,TextureValues>, left: f64) -> Result<Process,Message> {
+    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64) -> Result<Process,Message> {
         let stanzas = program.make_stanzas(gl.context(),gl.aux_array(),&stanza_builder)?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
