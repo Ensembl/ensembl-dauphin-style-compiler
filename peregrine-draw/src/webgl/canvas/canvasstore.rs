@@ -44,14 +44,8 @@ impl HtmlFlatCanvas {
 
     fn clear(&self) -> Result<(),Message> {
         let context = self.context()?;
-        context.set_fill_style(&JsValue::from_str("rgb(255,0,0)"));
-        context.fill_rect(0.,0.,self.size.0 as f64,(self.size.1/2) as f64);
-        context.set_fill_style(&JsValue::from_str("rgb(0,255,0)"));
-        context.fill_rect(0.,(self.size.1/2) as f64,self.size.0 as f64,(self.size.1/2 + self.size.1/2) as f64);
-        context.set_fill_style(&JsValue::from_str("rgb(0,0,255)"));
-        context.fill_rect(0.,0.,10.,self.size.1 as f64);
-        context.set_fill_style(&JsValue::from_str("rgb(255,255,0)"));
-        context.fill_rect(0.,(self.size.1 - 10) as f64,self.size.0 as f64,10.);
+        context.set_fill_style(&JsValue::from_str("rgb(255,255,255)"));
+        context.fill_rect(0.,0.,self.size.0 as f64,self.size.1 as f64);
         Ok(())
     }
 }

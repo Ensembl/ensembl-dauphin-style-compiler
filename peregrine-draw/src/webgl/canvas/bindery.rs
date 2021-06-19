@@ -43,7 +43,7 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
     let (minf,magf,wraps,wrapt) = match weave {
         CanvasWeave::Crisp =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
-                WebGlRenderingContext::CLAMP_TO_EDGE,WebGlRenderingContext::CLAMP_TO_EDGE),
+                WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),
         CanvasWeave::Fuzzy =>
             (WebGlRenderingContext::LINEAR,WebGlRenderingContext::LINEAR,
                 WebGlRenderingContext::REPEAT,WebGlRenderingContext::REPEAT),

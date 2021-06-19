@@ -7,7 +7,7 @@ use peregrine_message::Reporter;
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-const CARRIAGE_FLANK : u64 = 0;
+const CARRIAGE_FLANK : u64 = 2;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,

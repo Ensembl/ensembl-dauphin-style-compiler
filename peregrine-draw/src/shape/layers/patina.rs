@@ -81,12 +81,17 @@ impl PatinaProgramName {
                 //Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
 
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
-                            (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x,
-                            -(gl_FragCoord.y-vOrigin.y)/uSamplerSize.y))"),
+                            (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
+                            (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vTextureCoord.y))"),
+
+                    Statement::new_fragment("lowp vec4 mask = texture2D(uSampler,vec2(
+                        (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
+                        (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vMaskCoord.y))"),
+    
 
 
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-                    //Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
+                    Statement::new_fragment("if(mask.r > 0.995) discard")
                 ]
             }
         )

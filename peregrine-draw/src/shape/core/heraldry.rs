@@ -43,6 +43,7 @@ fn bar_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &Di
     let extent = ((extent.0*STAMP) / 100,(extent.1*STAMP) / 100);
     let offset = ((offset.0*STAMP) / 100,(offset.1*STAMP) / 100);
     canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
+    let a = if horiz { a } else { &DirectColour(0,255,0) };
     canvas.rectangle(t,(STAMP,STAMP),a)?;
     canvas.path((t.0+offset.0,t.1+offset.1),&[
         (0,       0),
@@ -180,7 +181,7 @@ impl HeraldryHandleType {
         match self {
             HeraldryHandleType::Crisp => HeraldryCanvasesUsed::Solid(HeraldryCanvas::Crisp),
             HeraldryHandleType::Horiz => HeraldryCanvasesUsed::Solid(HeraldryCanvas::Horiz),
-            HeraldryHandleType::HorizVert => HeraldryCanvasesUsed::Hollow(HeraldryCanvas::Horiz,HeraldryCanvas::Vert)
+            HeraldryHandleType::HorizVert => HeraldryCanvasesUsed::Hollow(HeraldryCanvas::Vert,HeraldryCanvas::Horiz)
         }
     }
 }
@@ -224,7 +225,7 @@ impl DrawingHeraldry {
             },
             HeraldryHandleType::HorizVert => {
                 let heraldry_rotated = heraldry.rotate();
-                HeraldryHandle::HorizVert(self.horiz.add(heraldry),self.vert.add(heraldry_rotated))        
+                HeraldryHandle::HorizVert(self.horiz.add(heraldry_rotated),self.vert.add(heraldry))        
             }
         }
     }
