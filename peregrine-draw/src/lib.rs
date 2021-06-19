@@ -153,6 +153,7 @@ mod webgl {
 
     mod program {
         pub(crate) mod compiler;
+        pub(crate) mod conditional;
         pub(crate) mod texture;
         pub(crate) mod header;
         pub(crate) mod process;
@@ -185,7 +186,8 @@ mod webgl {
     pub(crate) use program::varying::Varying;
     pub(crate) use program::session::DrawingSession;
     pub(crate) use program::source::{ SourceInstrs };
-    pub(crate) use program::statement::Statement;
+    pub(crate) use program::conditional::{ Conditional, SetFlag };
+    pub(crate) use program::statement::{ Statement, Declaration };
     pub(crate) use program::texture::{ Texture, TextureProto };
 
     pub(crate) mod global;

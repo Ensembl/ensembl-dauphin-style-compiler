@@ -1,7 +1,8 @@
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use crate::webgl::FlatId;
+use crate::shape::core::flatdrawing::FlatDrawingManager;
+use crate::webgl::{FlatId, SetFlag};
 use crate::webgl::{ ProcessBuilder, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use peregrine_data::{ DirectColour, Patina, Colour };
 use super::super::core::drawshape::SimpleShapePatina;
@@ -11,7 +12,8 @@ use crate::util::message::Message;
 pub(crate) enum PatinaProgram {
     Direct(DirectProgram),
     Spot(SpotProgram),
-    Texture(TextureProgram)
+    Texture(TextureProgram),
+    FreeTexture(TextureProgram)
 }
 
 impl PatinaProgram {
@@ -24,6 +26,12 @@ impl PatinaProgram {
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not texture"))); }
                 }
             },
+            PatinaProgram::FreeTexture(v) => {
+                match skin {
+                    PatinaProcessName::FreeTexture(_) => PatinaProcess::FreeTexture(TextureDraw::new(v)?),
+                    _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not free texture"))); }
+                }
+            },
             PatinaProgram::Spot(v) => {
                 match skin {
                     PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(colour,v)?),
@@ -34,16 +42,17 @@ impl PatinaProgram {
     }
 }
 
-pub(crate) enum PatinaProgramName { Direct, Spot, Texture }
+pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
 
 impl PatinaProgramName {
-    pub const COUNT : usize = 3;
+    pub const COUNT : usize = 4;
 
     pub fn get_index(&self) -> usize {
         match self {
             PatinaProgramName::Direct => 0,
             PatinaProgramName::Spot => 1,
-            PatinaProgramName::Texture => 2
+            PatinaProgramName::Texture => 2,
+            PatinaProgramName::FreeTexture => 3
         }
     }
 
@@ -52,6 +61,7 @@ impl PatinaProgramName {
             PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(builder)?),
             PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(builder)?),
             PatinaProgramName::Texture => PatinaProgram::Texture(TextureProgram::new(builder)?),
+            PatinaProgramName::FreeTexture => PatinaProgram::FreeTexture(TextureProgram::new(builder)?),
         })
     }
 
@@ -76,14 +86,24 @@ impl PatinaProgramName {
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
-                    Statement::new_vertex("vMaskCoord = aMaskCoord"),    
-
-                //Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
-
+                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
+                    Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
+                    Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
+                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.995) discard")
+                ],
+                PatinaProgramName::FreeTexture => vec![
+                    TextureProto::new("uSampler","uSamplerSize"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
+                    UniformProto::new_fragment(PR_DEF,GLArity::Vec2,"uSize"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
+                    Statement::new_vertex("vTextureCoord = aTextureCoord"),
+                    Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vec2(
                             (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vTextureCoord.x,
                             (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vTextureCoord.y))"),
-
+                    SetFlag::new("need-origin"),
                     Statement::new_fragment("lowp vec4 mask = texture2D(uSampler,vec2(
                         (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
                         (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vMaskCoord.y))"),
@@ -102,20 +122,23 @@ pub(super) enum PatinaProcess {
     Direct(DirectColourDraw),
     Spot(SpotColourDraw),
     Texture(TextureDraw),
+    FreeTexture(TextureDraw),
     None
 }
 
 // TODO texture types
 
 #[derive(Clone)]
-pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(FlatId) }
+pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(FlatId), FreeTexture(FlatId) }
 
 impl PatinaProcessName {
     pub(super) fn get_program_name(&self) -> PatinaProgramName {
         match self {
             PatinaProcessName::Direct => PatinaProgramName::Direct,
             PatinaProcessName::Spot(_) => PatinaProgramName::Spot,
-            PatinaProcessName::Texture(_) => PatinaProgramName::Texture
+            PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
+            PatinaProcessName::FreeTexture(_) => PatinaProgramName::FreeTexture
+
         }
     }
 }

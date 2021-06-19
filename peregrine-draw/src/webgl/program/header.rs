@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::source::Source;
 use super::program::{ Program, ProgramBuilder };
 use crate::util::message::Message;
@@ -18,7 +20,7 @@ impl Header {
 impl Source for Header {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
         builder.set_method(self.method);
         Ok(())
     }

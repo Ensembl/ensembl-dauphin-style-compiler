@@ -30,7 +30,8 @@ impl ProgramBuilder {
             attribs: KeyedValues::new(),
             method: WebGlRenderingContext::TRIANGLES
         };
-        source.register(&mut out)?;
+        let flags = source.get_flags();
+        source.register(&mut out, &flags)?;
         Ok(out)
     }
 

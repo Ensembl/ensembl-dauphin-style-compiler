@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::shape::layers::consts::PR_LOW;
 use crate::webgl::{FlatId, FlatStore, GLArity};
 use crate::webgl::global::WebGlGlobal;
@@ -33,12 +35,12 @@ impl TextureProto {
 impl Source for TextureProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
+    fn declare(&self, spec: &GPUSpec, phase: Phase, _flags: &HashSet<String>) -> String {
         if phase != Phase::Fragment { return String::new(); }
         format!("uniform {} {};\nuniform sampler2D {};\n",spec.best_size(&PR_LOW,&&Phase::Fragment).as_string(GLArity::Vec2),self.size_name,self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
         builder.add_texture(&self)
     }
 }

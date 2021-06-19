@@ -25,7 +25,7 @@ pub(crate) struct Flat {
 
 impl Flat {
     pub(super) fn new(canvas_store: &mut CanvasStore, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
-        let el = canvas_store.allocate(document, size.0, size.1)?;
+        let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
         let context = el.element()
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()

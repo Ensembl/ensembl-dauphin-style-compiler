@@ -31,4 +31,11 @@ impl CanvasWeave {
         }
         size
     }
+
+    pub(crate) fn round_up(&self) -> bool {
+        match self {
+            CanvasWeave::HorizStack | CanvasWeave::VertStack => false,
+            _ => true
+        }
+    }
 }

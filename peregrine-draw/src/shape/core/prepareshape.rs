@@ -143,7 +143,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let allotment = allotments(allotter,&[allotment])?;
             vec![GLShape::Wiggle(range,y,plotter,allotment[0].clone())]
         },
-        Shape::Text2(spacebase,mut pen,texts,allotment) => {
+        Shape::Text2(spacebase, pen,texts,allotment) => {
             let allotment = allotments(allotter,&allotment)?;
             let demerge = DataFilter::demerge(&allotment,|allotment| {
                 AllotmentProgram::new(&allotment.position().kind()).kind()

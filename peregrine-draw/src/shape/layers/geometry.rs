@@ -1,7 +1,7 @@
 use super::super::core::wigglegeometry::{WiggleProgram };
 use super::super::core::tracktriangles::{ TrackTrianglesProgram };
 use crate::shape::layers::consts::PR_DEF;
-use crate::webgl::{AttributeProto, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
+use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
@@ -44,44 +44,78 @@ impl GeometryProgramName {
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
-                Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),
+                Declaration::new_vertex("
+                    vec4 transform(in vec2 base, in vec2 delta)
+                    {
+                        return uModel * vec4(
+                            (base.x -uStageHpos) * uStageZoom + 
+                                        delta.x / uSize.x,
+                            1.0 - (base.y - uStageVpos + delta.y) / uSize.y, 
+                            0.0, 1.0);                      
+                    }
+                "),
                 Statement::new_vertex("
-                     gl_Position = uModel * vec4(
-                        (aBase.x -uStageHpos) * uStageZoom + 
-                                    aDelta.x / uSize.x,
-                        1.0 - (aBase.y - uStageVpos + aDelta.y) / uSize.y, 
-                        0.0, 1.0);
-
-                     vec4 x = uModel * vec4(
-                        (aOriginBase.x -uStageHpos) * uStageZoom + 
-                                    aOriginDelta.x / uSize.x,
-                        1.0 - (aOriginBase.y - uStageVpos + aOriginDelta.y) / uSize.y, 
-                        0.0, 1.0);
-                    vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
-                ")
+                    gl_Position = transform(aBase,aDelta);
+                "),
+                Conditional::new("need-origin",vec![
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Statement::new_vertex("
+                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                    ")
+                ]),
             ],
             GeometryProgramName::BaseLabelTriangles => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Declaration::new_vertex("
+                    vec4 transform(in vec2 base, in vec2 delta)
+                    {
+                        return uModel * vec4(
+                            (base.x -uStageHpos) * uStageZoom + 
+                                        delta.x / uSize.x,
+                            (1.0 - delta.y / uSize.y) * base.y, 
+                            0.0, 1.0)
+                    }
+                "),
                 Statement::new_vertex("
-                    gl_Position = uModel * vec4(
-                        (aBase.x -uStageHpos) * uStageZoom + 
-                                    aDelta.x / uSize.x,
-                        (1.0 - aDelta.y / uSize.y) * aBase.y, 
-                        0.0, 1.0)")
+                    gl_Position = transform(aBase,aDelta)
+                "),
+                Conditional::new("need-origin",vec![
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Statement::new_vertex("
+                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                    ")
+                ]),
             ],
             GeometryProgramName::SpaceLabelTriangles => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
-                Statement::new_vertex("
-                    gl_Position = uModel * vec4(
-                        (aDelta.x / uSize.x - 1.0) * aBase.x, 
-                        1.0 - (aBase.y - uStageVpos + aDelta.y) / uSize.y, 
-                        0.0, 1.0)")
+                Declaration::new_vertex("
+                    vec4 transform(in vec2 base, in vec2 delta)
+                    {
+                        return uModel * vec4(
+                            (aData.x -uStageHpos) * uStageZoom,
+                            - (aData.y - uStageVpos) / uSize.y, 
+                            0.0, 1.0)
+                    }
+                "),
+                Conditional::new("need-origin",vec![
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Statement::new_vertex("
+                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                    ")
+                ]),
             ],
             GeometryProgramName::Wiggle => vec![
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),

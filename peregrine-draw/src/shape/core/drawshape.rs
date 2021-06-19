@@ -127,9 +127,9 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> S
 fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, mut dims: &[CanvasTextureArea]) -> Result<(),Message> {
     let geometry = kind.geometry_program_name();
     let left = layer.left();
-    let patina = layer.get_texture(&geometry,&canvas)?;
-    let track_triangles = kind.get_process(layer,&PatinaProcessName::Texture(canvas.clone()))?;
-    let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Texture(canvas.clone()))?;
+    let patina = layer.get_free_texture(&geometry,&canvas)?;
+    let track_triangles = kind.get_process(layer,&PatinaProcessName::FreeTexture(canvas.clone()))?;
+    let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::FreeTexture(canvas.clone()))?;
     /**/
     let mut campaign = track_triangles.add_rectangles(builder,area,allotments,left,false,&kind)?;
     patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;

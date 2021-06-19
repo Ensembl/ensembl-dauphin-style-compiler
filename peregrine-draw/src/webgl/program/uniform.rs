@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::source::{ Source };
 use super::program::{ ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
@@ -39,12 +41,12 @@ impl UniformProto {
 impl Source for UniformProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
+    fn declare(&self, spec: &GPUSpec, phase: Phase, _flags: &HashSet<String>) -> String {
         if phase != self.phase { return String::new(); }
         format!("uniform {} {};\n",spec.best_size(&self.precision,&self.phase).as_string(self.arity),self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> {
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> {
         builder.add_uniform(&self)
     }
 }

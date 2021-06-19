@@ -35,6 +35,7 @@ struct GeometrySubLayer {
     direct: Option<ShapeProgram>,
     spot: HashMap<DirectColour,ShapeProgram>,
     texture: HashMap<FlatId,ShapeProgram>,
+    free_texture: HashMap<FlatId,ShapeProgram>,
     geometry_program_name: GeometryProgramName,
     left: f64
 }
@@ -45,6 +46,7 @@ impl GeometrySubLayer {
             direct: None,
             spot: HashMap::new(),
             texture: HashMap::new(),
+            free_texture: HashMap::new(),
             geometry_program_name: geometry_program_name.clone(),
             left
         })
@@ -52,7 +54,7 @@ impl GeometrySubLayer {
 
     fn holder(&mut self, programs: &ProgramStore, patina: &PatinaProcessName) -> Result<&mut ShapeProgram,Message> {
         let geometry = self.geometry_program_name.clone();
-        Ok(match &patina {
+        Ok(match patina {
             PatinaProcessName::Direct => {
                 if self.direct.is_none() {
                     self.direct = Some(ShapeProgram::new(programs,&geometry,&patina)?);
@@ -70,6 +72,12 @@ impl GeometrySubLayer {
                     self.texture.insert(c.clone(), ShapeProgram::new(programs,&geometry,patina)?);
                 }
                 self.texture.get_mut(c).unwrap()
+            },
+            PatinaProcessName::FreeTexture(c) => {
+                if !self.free_texture.contains_key(c) {
+                    self.free_texture.insert(c.clone(), ShapeProgram::new(programs,&geometry,patina)?);
+                }
+                self.free_texture.get_mut(c).unwrap()
             }
         })
     }
@@ -94,6 +102,10 @@ impl GeometrySubLayer {
             processes.push(sub.into_process().build(gl,self.left)?);
         }
         for (flat_id,mut sub) in self.texture.drain() {
+            canvases.add_process(&flat_id,sub.get_process_mut())?;
+            processes.push(sub.into_process().build(gl,self.left)?);
+        }
+        for (flat_id,mut sub) in self.free_texture.drain() {
             canvases.add_process(&flat_id,sub.get_process_mut())?;
             processes.push(sub.into_process().build(gl,self.left)?);
         }
@@ -181,6 +193,11 @@ impl Layer {
     pub(crate) fn get_texture(&mut self, geometry: &GeometryProgramName, element_id: &FlatId) -> Result<TextureDraw,Message> {
         let patina = self.get_patina(geometry,&PatinaProcessName::Texture(element_id.clone()))?;
         match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
+    }
+
+    pub(crate) fn get_free_texture(&mut self, geometry: &GeometryProgramName, element_id: &FlatId) -> Result<TextureDraw,Message> {
+        let patina = self.get_patina(geometry,&PatinaProcessName::FreeTexture(element_id.clone()))?;
+        match patina { PatinaProcess::FreeTexture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
     }
 
     pub(super) fn build(self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {

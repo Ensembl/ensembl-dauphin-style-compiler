@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use super::source::Source;
 use super::program::{ Program, ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
@@ -30,12 +32,12 @@ impl AttributeProto {
 impl Source for AttributeProto {
     fn cloned(&self) -> Box<dyn Source> { Box::new(self.clone()) }
 
-    fn declare(&self, spec: &GPUSpec, phase: Phase) -> String {
+    fn declare(&self, spec: &GPUSpec, phase: Phase, _flags: &HashSet<String>) -> String {
         if phase != Phase::Vertex { return String::new(); }
         format!("attribute {} {};\n",spec.best_size(&self.precision,&Phase::Vertex).as_string(self.arity),self.name)
     }
 
-    fn register(&self, builder: &mut ProgramBuilder) -> Result<(),Message> { 
+    fn register(&self, builder: &mut ProgramBuilder, _flags: &HashSet<String>) -> Result<(),Message> { 
         builder.add_attrib(&self)
     }
 }

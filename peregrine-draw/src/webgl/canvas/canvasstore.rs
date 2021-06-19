@@ -25,7 +25,7 @@ impl HtmlFlatCanvas {
         let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
         element.set_width(x);
         element.set_height(y);
-        document.body().unwrap().append_child(&element);
+        //document.body().unwrap().append_child(&element);
         Ok(HtmlFlatCanvas {
             element,
             size: (x,y)
@@ -74,8 +74,11 @@ impl CanvasStore {
         (rounded(x),rounded(y))
     }
 
-    pub fn allocate(&mut self, document: &Document, x: u32, y: u32) -> Result<HtmlFlatCanvas,Message> {
-        //let (x,y) = self.round_up(x,y);
+    pub fn allocate(&mut self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<HtmlFlatCanvas,Message> {
+        if round_up {
+            x = rounded(x);
+            y = rounded(y);
+        }
         if let Some(mut list) = self.canvases.get_mut(&(x,y)) {
             if let Some(value) = list.pop() {
                 value.clear()?;
