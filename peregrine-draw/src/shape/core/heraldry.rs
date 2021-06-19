@@ -43,7 +43,6 @@ fn bar_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &Di
     let extent = ((extent.0*STAMP) / 100,(extent.1*STAMP) / 100);
     let offset = ((offset.0*STAMP) / 100,(offset.1*STAMP) / 100);
     canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
-    let a = if horiz { a } else { &DirectColour(0,255,0) };
     canvas.rectangle(t,(STAMP,STAMP),a)?;
     canvas.path((t.0+offset.0,t.1+offset.1),&[
         (0,       0),
@@ -128,7 +127,7 @@ impl FlatDrawingItem for Heraldry {
         Ok(match  self {
             Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
             Heraldry::Bar(_,_,_,_,_) => (PAD,PAD),
-            Heraldry::Dots(_,_,_,_,_) => (PAD,PAD),
+            Heraldry::Dots(_,_,_,_,_) => (0,0),
         })
     }
 
@@ -138,7 +137,7 @@ impl FlatDrawingItem for Heraldry {
         Some(hasher.finish())
     }
 
-    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), _size: (u32,u32)) -> Result<(),Message> {
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         match self {
             Heraldry::Stripe(a,b,prop,count) => {
                 let p = STAMP * (*prop) / 100;
@@ -152,11 +151,13 @@ impl FlatDrawingItem for Heraldry {
             },
             Heraldry::Bar(a,b,prop,count,horiz) |
             Heraldry::Dots(a,b,prop,count,horiz) => {
-                for c in 0..count.0 {
+                let size = if *horiz { size.1 } else { size.0 };
+                let count = size/STAMP+1;
+                for c in 0..count {
                     let (x,y) = if *horiz { (0,c) } else { (c,0) };
                     let t = (text_origin.0+x*STAMP,text_origin.1+y*STAMP);
                     let m = (mask_origin.0+x*STAMP,mask_origin.1+y*STAMP);
-                    bar_stamp(canvas,pad(t),pad(m),a,b,*prop,*horiz)?;
+                    bar_stamp(canvas,t,m,a,b,*prop,*horiz)?;
                 }
             },
         }

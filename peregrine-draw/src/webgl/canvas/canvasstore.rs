@@ -75,7 +75,7 @@ impl CanvasStore {
     }
 
     pub fn allocate(&mut self, document: &Document, x: u32, y: u32) -> Result<HtmlFlatCanvas,Message> {
-        let (x,y) = self.round_up(x,y);
+        //let (x,y) = self.round_up(x,y);
         if let Some(mut list) = self.canvases.get_mut(&(x,y)) {
             if let Some(value) = list.pop() {
                 value.clear()?;

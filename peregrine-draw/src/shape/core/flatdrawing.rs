@@ -36,6 +36,10 @@ impl FlatBoundary {
         Ok((size.0+self.padding.0,size.1+self.padding.1))
     }
 
+    fn update_padded_size(&mut self, size: (u32,u32)) {
+        self.size = Some((size.0-self.padding.0,size.1-self.padding.1));
+    }
+
     fn set_size(&mut self, size: (u32,u32), padding: (u32,u32)) {
         self.size = Some(size);
         self.padding = padding;
@@ -123,13 +127,18 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
     pub(crate) fn draw_at_locations(&mut self, store: &mut FlatStore, allocator: &mut FlatPositionManager) -> Result<(),Message> {
         self.canvas_id = allocator.canvas()?.cloned();
         let mut origins = allocator.origins(self.request.as_ref().unwrap());
+        let mut sizes = allocator.sizes(self.request.as_ref().unwrap());
         let mut origins_iter = origins.drain(..);
+        let mut sizes_iter = sizes.drain(..);
         if let Some(canvas_id) = &self.canvas_id {
             let canvas = store.get_mut(canvas_id)?;
             for (text,boundary) in self.texts.values_mut() {
                 let mask_origin = origins_iter.next().unwrap();
                 let text_origin = origins_iter.next().unwrap();
+                let size = sizes_iter.next().unwrap();
+                let size = sizes_iter.next().unwrap(); // XXX assumes always the same
                 boundary.set_origin(text_origin,mask_origin);
+                boundary.update_padded_size(size);
                 let size = boundary.size_with_padding()?;
                 text.build(canvas,text_origin,mask_origin,size)?;
             }

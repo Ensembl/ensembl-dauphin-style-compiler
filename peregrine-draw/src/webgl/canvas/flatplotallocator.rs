@@ -48,8 +48,9 @@ impl FlatPositionManager {
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
             let req = self.requests.get_mut(req_id).as_mut().unwrap();
-            for _ in 0..req.sizes.len() {
+            for size in req.sizes.iter_mut() {
                 req.origin.push(origins_iter.next().unwrap());
+                *size = self.weave.expand_size(size,&(width,height));
             }
         }
         self.canvas = Some(builder.make_canvas(gl,&self.weave,(width,height),&self.uniform_name)?);
@@ -58,6 +59,10 @@ impl FlatPositionManager {
 
     pub(crate) fn origins(&self, id: &FlatPositionCampaignHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).as_ref().unwrap().origin.clone()
+    }
+
+    pub(crate) fn sizes(&self, id: &FlatPositionCampaignHandle) -> Vec<(u32,u32)> {
+        self.requests.get(id).as_ref().unwrap().sizes.clone()
     }
 
     pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Message> { Ok(self.canvas.as_ref()) }

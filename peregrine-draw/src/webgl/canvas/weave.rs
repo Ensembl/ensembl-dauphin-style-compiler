@@ -1,5 +1,3 @@
-use std::marker;
-
 use crate::{Message, webgl::{ global::WebGlGlobal}};
 
 use super::packer::{allocate_areas, allocate_horizontal, allocate_vertical};
@@ -22,5 +20,15 @@ impl CanvasWeave {
             CanvasWeave::VertStack => allocate_vertical(&sizes,gpu_spec),
             _ =>  allocate_areas(&sizes,gl.gpuspec())
         }
+    }
+
+    pub(crate) fn expand_size(&self, size: &(u32,u32), canvas_size: &(u32,u32)) -> (u32,u32) {
+        let mut size = *size;
+        match self {
+            CanvasWeave::HorizStack => { size.1 = canvas_size.1 },
+            CanvasWeave::VertStack => { size.0 = canvas_size.0 },
+            _ =>  {}
+        }
+        size
     }
 }
