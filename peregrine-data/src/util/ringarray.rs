@@ -278,11 +278,16 @@ impl DataFilter {
     }
 
     pub fn set_size(&mut self, size: usize) {
-        while self.size < size {
-            self.double_to(size);
-        }
-        if self.size > size {
-            self.chop_down(size);
+        if self.num_set == self.size {
+            self.ranges[0].1 = size;
+            self.num_set = size;
+        } else if self.num_set != 0 {
+            while self.size < size {
+                self.double_to(size);
+            }
+            if self.size > size {
+                self.chop_down(size);
+            }
         }
         self.size = size;
     }

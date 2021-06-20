@@ -111,6 +111,8 @@ mod util {
     pub(crate) mod message;
     pub(crate) mod monostable;
     pub(crate) mod resizeobserver;
+    #[macro_use]
+    pub(crate) mod misc;
     pub(crate) mod needed;
 
     #[cfg(blackbox)]

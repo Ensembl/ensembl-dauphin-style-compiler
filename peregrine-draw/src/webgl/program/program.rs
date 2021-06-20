@@ -68,6 +68,10 @@ impl ProgramBuilder {
         self.attribs.get_handle(name).map_err(|e| Message::CodeInvariantFailed(format!("missing attrib key: {}",name)))
     }
 
+    pub(crate) fn try_get_attrib_handle(&self, name: &str) -> Option<AttribHandle> {
+        self.attribs.try_get_handle(name)
+    }
+
     pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Rc<Program>,Message> {
         let mut prog = self.program.borrow_mut();
         if prog.is_none() {

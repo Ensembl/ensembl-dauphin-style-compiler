@@ -47,8 +47,12 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
         self.0.insert(name.to_string(),key);
     }
 
+    pub fn try_get_handle(&self, name: &str) -> Option<K> {
+        self.0.get(name).map(|h| h.clone_handle())
+    }
+
     pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
-        Ok(self.0.get(name).ok_or_else(|| err!("no such item '{}",name))?.clone_handle())
+        Ok(self.try_get_handle(name).ok_or_else(|| err!("no such item '{}",name))?.clone_handle())
     }
 
     pub fn make_maker<'f,F,U>(&self, template: F) -> KeyedDataMaker<'f,K,U> where F: Fn() -> U + 'f {
@@ -242,9 +246,8 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
         handle
     }
 
-    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
-        self.our_keys.get_handle(name)
-    }
+    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> { self.our_keys.get_handle(name) }
+    pub fn try_get_handle(&self, name: &str) -> Option<K> { self.our_keys.try_get_handle(name) }
 
     pub fn map<F,U,E>(&self, f: F) -> Result<KeyedValues<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
         Ok(KeyedValues {

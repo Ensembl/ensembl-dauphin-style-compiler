@@ -22,13 +22,13 @@ impl PatinaProgram {
             PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
             PatinaProgram::Texture(v) => {
                 match skin {
-                    PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(v)?),
+                    PatinaProcessName::Texture(_) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not texture"))); }
                 }
             },
             PatinaProgram::FreeTexture(v) => {
                 match skin {
-                    PatinaProcessName::FreeTexture(_) => PatinaProcess::FreeTexture(TextureDraw::new(v)?),
+                    PatinaProcessName::FreeTexture(_) => PatinaProcess::FreeTexture(TextureDraw::new(v,true)?),
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not free texture"))); }
                 }
             },
@@ -118,7 +118,7 @@ impl PatinaProgramName {
     }
 }
 
-pub(super) enum PatinaProcess {
+pub(crate) enum PatinaProcess {
     Direct(DirectColourDraw),
     Spot(SpotColourDraw),
     Texture(TextureDraw),
@@ -128,7 +128,7 @@ pub(super) enum PatinaProcess {
 
 // TODO texture types
 
-#[derive(Clone)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub enum PatinaProcessName { Direct, Spot(DirectColour), Texture(FlatId), FreeTexture(FlatId) }
 
 impl PatinaProcessName {

@@ -81,8 +81,8 @@ impl TrianglesKind {
 pub struct TrackTrianglesProgram {
     base: AttribHandle,
     delta: AttribHandle,
-    origin_base: AttribHandle,
-    origin_delta: AttribHandle,
+    origin_base: Option<AttribHandle>,
+    origin_delta: Option<AttribHandle>,
 }
 
 impl TrackTrianglesProgram {
@@ -90,8 +90,8 @@ impl TrackTrianglesProgram {
         Ok(TrackTrianglesProgram {
             base: builder.get_attrib_handle("aBase")?,
             delta: builder.get_attrib_handle("aDelta")?,
-            origin_base: builder.get_attrib_handle("aOriginBase")?,
-            origin_delta: builder.get_attrib_handle("aOriginDelta")?
+            origin_base: builder.try_get_attrib_handle("aOriginBase"),
+            origin_delta: builder.try_get_attrib_handle("aOriginDelta")
         })
     }
 
@@ -106,8 +106,12 @@ impl TrackTrianglesProgram {
         let (origin_base,origin_delta) = kind.add_spacebase(&area.top_left(),allotments,left,width);
         elements.add(&self.base,base,2)?;
         elements.add(&self.delta,delta,2)?;
-        elements.add(&self.origin_base,origin_base,2)?;
-        elements.add(&self.origin_delta,origin_delta,2)?;
+        if let Some(origin_base_handle) = &self.origin_base {
+            elements.add(origin_base_handle,origin_base,2)?;
+        }
+        if let Some(origin_delta_handle) = &self.origin_delta {
+            elements.add(origin_delta_handle,origin_delta,2)?;
+        }
         Ok(elements)
     }
 

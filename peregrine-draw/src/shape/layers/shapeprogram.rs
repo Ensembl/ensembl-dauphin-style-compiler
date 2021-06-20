@@ -4,7 +4,7 @@ use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
 use crate::util::message::Message;
 
-pub(super) struct ShapeProgram {
+pub(crate) struct ShapeProgram {
     process: ProcessBuilder,
     geometry: GeometryProgram,
     patina: PatinaProcess
@@ -25,7 +25,7 @@ impl ShapeProgram {
     }
 
     pub(super) fn into_process(self) -> ProcessBuilder { self.process }
-    pub(super) fn get_process_mut(&mut self) -> &mut ProcessBuilder { &mut self.process }
-    pub(super) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
-    pub(super) fn get_patina(&self) -> &PatinaProcess { &self.patina }
+    pub(crate) fn get_process_mut(&mut self) -> &mut ProcessBuilder { &mut self.process }
+    pub(crate) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
+    pub(crate) fn get_patina(&self) -> &PatinaProcess { &self.patina }
 }

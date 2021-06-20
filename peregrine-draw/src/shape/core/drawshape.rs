@@ -1,6 +1,6 @@
 use peregrine_data::{
     Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, Patina, Plotter, PositionVariant, SpaceBase, 
-    SpaceBaseArea, expand_by_repeating
+    SpaceBaseArea
 };
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
@@ -124,21 +124,18 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> S
     SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes)
 }
 
-fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, mut dims: &[CanvasTextureArea]) -> Result<(),Message> {
-    let geometry = kind.geometry_program_name();
+fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, dims: &[CanvasTextureArea], free: bool) -> Result<(),Message> {
+    let geometry_name = kind.geometry_program_name();
+    let patina_name = if free { PatinaProcessName::FreeTexture(canvas.clone()) } else { PatinaProcessName::Texture(canvas.clone()) };
     let left = layer.left();
-    let patina = layer.get_free_texture(&geometry,&canvas)?;
-    let track_triangles = kind.get_process(layer,&PatinaProcessName::FreeTexture(canvas.clone()))?;
-    let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::FreeTexture(canvas.clone()))?;
+    let patina = if free { layer.get_free_texture(&geometry_name,&canvas)? } else { layer.get_texture(&geometry_name,&canvas)? };
+    let track_triangles = kind.get_process(layer,&patina_name)?;
+    let builder = layer.shape_program(&kind.geometry_program_name(),&patina_name)?.get_process_mut();
     /**/
     let mut campaign = track_triangles.add_rectangles(builder,area,allotments,left,false,&kind)?;
     patina.add_rectangle(&mut campaign,&canvas,&dims,gl.flat_store())?;
     campaign.close();
     Ok(())
-}
-
-fn overrun_horiz(area_a: &SpaceBaseArea, dims: &mut Vec<CanvasTextureArea>) {
-    //expand_by_repeating(dims,area_a.len());
 }
 
 fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &TrianglesKind, area_a: &SpaceBaseArea, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale) -> Result<(),Message> {
@@ -156,10 +153,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
     filter.set_size(area_a.len());
     if filter.count() == 0 { return Ok(()); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-    if scale.overrun_horiz(heraldry_canvas) {
-        overrun_horiz(area_a, &mut dims);
-    }
-    draw_from_canvas(layer,gl,kind,&area_a.filter(&filter),allotments,&canvas,&dims)?;
+    draw_from_canvas(layer,gl,kind,&area_a.filter(&filter),allotments,&canvas,&dims,true)?;
     Ok(())
 }
 
@@ -182,7 +176,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
                 .collect::<Result<Vec<_>,_>>()?;
             let area = position_canvas_areas(&position,&dims);
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            draw_from_canvas(layer,gl,&kind,&area,&allotments,&canvas,&dims)?;
+            draw_from_canvas(layer,gl,&kind,&area,&allotments,&canvas,&dims,false)?;
         },
         GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale) => {
             let kind = to_trianges_kind(&program_kind);
@@ -192,7 +186,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &m
             let kind = to_trianges_kind(&allotment_kind);
             let left = layer.left();
             let track_triangles = kind.get_process(layer,&PatinaProcessName::Direct)?;
-            let builder = layer.get_process_mut(&kind.geometry_program_name(),&PatinaProcessName::Direct)?;
+            let builder = layer.shape_program(&kind.geometry_program_name(),&PatinaProcessName::Direct)?.get_process_mut();
             let hollow = match patina { SimpleShapePatina::Hollow(_) => true, _ => false };
             let mut campaign = track_triangles.add_rectangles(builder, &area, &allotments,left,hollow,&kind)?;
             add_colour(&mut campaign,layer,&GeometryProgramName::TrackTriangles,&patina)?;

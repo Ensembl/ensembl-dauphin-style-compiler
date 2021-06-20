@@ -14,7 +14,7 @@ pub(crate) enum GeometryProgram {
     SpaceLabelTriangles(TrackTrianglesProgram),
 }
 
-#[derive(Clone)]
+#[derive(Clone,Hash,PartialEq,Eq)]
 pub(crate) enum GeometryProgramName { Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles }
 
 impl GeometryProgramName {

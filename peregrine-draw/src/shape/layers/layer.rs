@@ -14,6 +14,8 @@ use crate::util::message::Message;
 use crate::webgl::global::WebGlGlobal;
 use super::shapeprogram::ShapeProgram;
 
+use crate::force_branch;
+
 /* 
 TODO ensure + index
 TODO y split bug
@@ -31,102 +33,20 @@ TODO hollowwidth
 TODO intersection cache
 */
 
-struct GeometrySubLayer {
-    direct: Option<ShapeProgram>,
-    spot: HashMap<DirectColour,ShapeProgram>,
-    texture: HashMap<FlatId,ShapeProgram>,
-    free_texture: HashMap<FlatId,ShapeProgram>,
-    geometry_program_name: GeometryProgramName,
-    left: f64
-}
-
-impl GeometrySubLayer {
-    fn new(geometry_program_name: &GeometryProgramName, left: f64) -> Result<GeometrySubLayer,Message> {
-        Ok(GeometrySubLayer {
-            direct: None,
-            spot: HashMap::new(),
-            texture: HashMap::new(),
-            free_texture: HashMap::new(),
-            geometry_program_name: geometry_program_name.clone(),
-            left
-        })
-    }
-
-    fn holder(&mut self, programs: &ProgramStore, patina: &PatinaProcessName) -> Result<&mut ShapeProgram,Message> {
-        let geometry = self.geometry_program_name.clone();
-        Ok(match patina {
-            PatinaProcessName::Direct => {
-                if self.direct.is_none() {
-                    self.direct = Some(ShapeProgram::new(programs,&geometry,&patina)?);
-                }
-                self.direct.as_mut().unwrap()
-            }
-            PatinaProcessName::Spot(c) => {
-                if !self.spot.contains_key(c) {
-                    self.spot.insert(c.clone(), ShapeProgram::new(programs,&geometry,patina)?);
-                }
-                self.spot.get_mut(c).unwrap()
-            },
-            PatinaProcessName::Texture(c) => {
-                if !self.texture.contains_key(c) {
-                    self.texture.insert(c.clone(), ShapeProgram::new(programs,&geometry,patina)?);
-                }
-                self.texture.get_mut(c).unwrap()
-            },
-            PatinaProcessName::FreeTexture(c) => {
-                if !self.free_texture.contains_key(c) {
-                    self.free_texture.insert(c.clone(), ShapeProgram::new(programs,&geometry,patina)?);
-                }
-                self.free_texture.get_mut(c).unwrap()
-            }
-        })
-    }
-
-    fn get_process_mut(&mut self, programs: &ProgramStore, patina: &PatinaProcessName) -> Result<&mut ProcessBuilder,Message> {
-        Ok(self.holder(programs,patina)?.get_process_mut())
-    }
-
-    fn get_geometry(&mut self, programs: &ProgramStore, patina: &PatinaProcessName) -> Result<&GeometryProgram,Message> {
-        Ok(self.holder(programs,patina)?.get_geometry())
-    }
-
-    fn get_patina(&mut self, programs: &ProgramStore, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
-        Ok(self.holder(programs,patina)?.get_patina())
-    }
-
-    fn build(mut self, gl: &mut WebGlGlobal, processes: &mut Vec<Process>, canvases: &DrawingAllFlats) -> Result<(),Message> {
-        if let Some(direct) = self.direct {
-            processes.push(direct.into_process().build(gl,self.left)?);
-        }
-        for (_,sub) in self.spot.drain() {
-            processes.push(sub.into_process().build(gl,self.left)?);
-        }
-        for (flat_id,mut sub) in self.texture.drain() {
-            canvases.add_process(&flat_id,sub.get_process_mut())?;
-            processes.push(sub.into_process().build(gl,self.left)?);
-        }
-        for (flat_id,mut sub) in self.free_texture.drain() {
-            canvases.add_process(&flat_id,sub.get_process_mut())?;
-            processes.push(sub.into_process().build(gl,self.left)?);
-        }
-        Ok(())
-    }
-}
+#[derive(Clone,PartialEq,Eq,Hash)]
+pub(crate) struct ProgramCharacter(pub GeometryProgramName, pub PatinaProcessName);
 
 pub(crate) struct Layer {
     programs: ProgramStore,
-    wiggle: GeometrySubLayer,
-    track_triangles: GeometrySubLayer,
-    base_label_triangles: GeometrySubLayer,
-    space_label_triangles: GeometrySubLayer,
+    store: HashMap<ProgramCharacter,ShapeProgram>,
     left: f64
 }
 
 macro_rules! layer_geometry_accessor {
     ($func:ident,$geom_type:ty,$geom_name:ident) => {
         pub(crate) fn $func(&mut self, patina: &PatinaProcessName) -> Result<$geom_type,Message> {
-            let geom = self.get_geometry(&GeometryProgramName::$geom_name,patina)?;
-            match geom { GeometryProgram::$geom_name(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer A"))) }
+            let geom = self.shape_program(&GeometryProgramName::$geom_name,patina)?.get_geometry();
+            force_branch!(GeometryProgram,$geom_name,geom)
         }
     };
 }
@@ -134,8 +54,8 @@ macro_rules! layer_geometry_accessor {
 macro_rules! layer_patina_accessor {
     ($func:ident,$patina_type:ty,$patina_name:ident) => {
         pub(crate) fn $func(&mut self, geometry: &GeometryProgramName) -> Result<$patina_type,Message> {
-            let patina = self.get_patina(geometry,&PatinaProcessName::$patina_name)?;
-            match patina { PatinaProcess::$patina_name(x) => Ok(x.clone()), _ =>  Err(Message::CodeInvariantFailed(format!("inconsistent layer B"))) }
+            let patina = self.shape_program(geometry,&PatinaProcessName::$patina_name)?.get_patina();
+            force_branch!(PatinaProcess,$patina_name,patina)
         }                
     };
 }
@@ -144,38 +64,19 @@ impl Layer {
     pub fn new(programs: &ProgramStore, left: f64) -> Result<Layer,Message> {
         Ok(Layer {
             programs: programs.clone(),
-            wiggle: GeometrySubLayer::new(&GeometryProgramName::Wiggle,left)?,
-            track_triangles: GeometrySubLayer::new(&GeometryProgramName::TrackTriangles,left)?,
-            base_label_triangles: GeometrySubLayer::new(&GeometryProgramName::BaseLabelTriangles,left)?,
-            space_label_triangles: GeometrySubLayer::new(&GeometryProgramName::SpaceLabelTriangles,left)?,
+            store: HashMap::new(),
             left
         })
     }
 
     pub(crate) fn left(&self) -> f64 { self.left }
 
-    fn holder(&mut self, geometry: &GeometryProgramName) -> Result<(&mut GeometrySubLayer,&ProgramStore),Message> {
-        Ok(match geometry {
-            GeometryProgramName::Wiggle => (&mut self.wiggle,&self.programs),
-            GeometryProgramName::TrackTriangles => (&mut self.track_triangles,&self.programs),
-            GeometryProgramName::BaseLabelTriangles => (&mut self.base_label_triangles,&self.programs),
-            GeometryProgramName::SpaceLabelTriangles => (&mut self.space_label_triangles,&self.programs),
-        })
-    }
-
-    pub(crate) fn get_process_mut(&mut self,  geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ProcessBuilder,Message> {
-        let (sub,compiler) = self.holder(geometry)?;
-        sub.get_process_mut(compiler,patina)
-    }
-
-    fn get_geometry(&mut self, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&GeometryProgram,Message> {
-        let (sub,compiler) = self.holder(geometry)?;
-       sub.get_geometry(compiler,patina)
-    }
-
-    fn get_patina(&mut self, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&PatinaProcess,Message> {
-        let (sub,compiler) = self.holder(geometry)?;
-        sub.get_patina(compiler,patina)
+    pub(crate) fn shape_program(&mut self, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<&mut ShapeProgram,Message> {
+        let character = ProgramCharacter(geometry.clone(),patina.clone());
+        if !self.store.contains_key(&character) {
+            self.store.insert(character.clone(),ShapeProgram::new(&self.programs,&geometry,&patina)?);
+        }
+        Ok(self.store.get_mut(&character).unwrap())
     }
 
     layer_geometry_accessor!(get_wiggle,WiggleProgram,Wiggle);
@@ -186,26 +87,32 @@ impl Layer {
     layer_patina_accessor!(get_direct,DirectColourDraw,Direct);
 
     pub(crate) fn get_spot(&mut self, geometry: &GeometryProgramName, colour: &DirectColour) -> Result<SpotColourDraw,Message> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Spot(colour.clone()))?;
-        match patina { PatinaProcess::Spot(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer C"))) }
+        let patina = self.shape_program(geometry,&PatinaProcessName::Spot(colour.clone()))?.get_patina();
+        force_branch!(PatinaProcess,Spot,patina)
     }
 
     pub(crate) fn get_texture(&mut self, geometry: &GeometryProgramName, element_id: &FlatId) -> Result<TextureDraw,Message> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::Texture(element_id.clone()))?;
-        match patina { PatinaProcess::Texture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
+        let patina = self.shape_program(geometry,&PatinaProcessName::Texture(element_id.clone()))?.get_patina();
+        force_branch!(PatinaProcess,Texture,patina)
     }
 
     pub(crate) fn get_free_texture(&mut self, geometry: &GeometryProgramName, element_id: &FlatId) -> Result<TextureDraw,Message> {
-        let patina = self.get_patina(geometry,&PatinaProcessName::FreeTexture(element_id.clone()))?;
-        match patina { PatinaProcess::FreeTexture(x) => Ok(x.clone()), _ => Err(Message::CodeInvariantFailed(format!("inconsistent layer D"))) }
+        let patina = self.shape_program(geometry,&PatinaProcessName::FreeTexture(element_id.clone()))?.get_patina();
+        force_branch!(PatinaProcess,FreeTexture,patina)
     }
 
     pub(super) fn build(self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
         let mut processes = vec![];
-        self.wiggle.build(gl,&mut processes,canvases)?;
-        self.track_triangles.build(gl,&mut processes,canvases)?;
-        self.base_label_triangles.build(gl,&mut processes,canvases)?;
-        self.space_label_triangles.build(gl,&mut processes,canvases)?;
+        for (character,mut prog) in self.store {
+            match character {
+                ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
+                ProgramCharacter(_,PatinaProcessName::FreeTexture(flat_id)) =>{
+                    canvases.add_process(&flat_id,prog.get_process_mut())?;
+                },
+                _ => {}
+            }
+            processes.push(prog.into_process().build(gl,self.left)?);
+        }
         Ok(processes)
     }
 }

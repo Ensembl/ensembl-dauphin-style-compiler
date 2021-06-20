@@ -1,6 +1,5 @@
-use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProgramBuilder };
+use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
-use crate::webgl::TextureBindery;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatStore;
 
@@ -37,7 +36,7 @@ impl TextureProgram {
 }
 
 #[derive(Clone)]
-pub struct TextureDraw(TextureProgram);
+pub struct TextureDraw(TextureProgram,bool);
 
 // TODO structify
 // TODO to array utils
@@ -48,14 +47,14 @@ fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
 }
 
 impl TextureDraw {
-    pub(crate) fn new(variety: &TextureProgram) -> Result<TextureDraw,Message> {
-        Ok(TextureDraw(variety.clone()))
+    pub(crate) fn new(variety: &TextureProgram, free: bool) -> Result<TextureDraw,Message> {
+        Ok(TextureDraw(variety.clone(),free))
     }
 
     fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
         let mut data = vec![];
         for (origin,size) in dims {
-            let size = (0,0);
+            let size = if self.1 { (0,0) } else { size };
             push(&mut data, origin.0,origin.1,&csize);
             push(&mut data, origin.0,origin.1+size.1,&csize);
             push(&mut data, origin.0+size.0,origin.1,&csize);
