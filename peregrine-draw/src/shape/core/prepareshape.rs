@@ -47,7 +47,7 @@ pub(crate) enum ShapeCategory {
     Heraldry(HeraldryCanvasesUsed,HeraldryScale)
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea<f64>, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(allotter,&allotment)?;
     let mut demerge = DataFilter::demerge(&allotment,|allotment| {
         AllotmentProgram::new(&allotment.position().kind()).kind()

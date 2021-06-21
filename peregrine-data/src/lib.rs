@@ -85,16 +85,22 @@ mod shape {
     mod shapelist;
     mod zmenu;
     mod zmenufixed;
-    mod spacebase;
 
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter 
     };
     pub use self::shape::Shape;
-    pub use self::spacebase::{ SpaceBase, SpaceBaseArea };
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
+}
+
+pub(crate) mod spacebase {
+    pub(crate) mod spacebase;
+    pub(crate) mod spacebasearea;
+
+    pub use self::spacebase::SpaceBase;
+    pub use self::spacebasearea::SpaceBaseArea;
 }
 
 pub(crate) mod switch {
@@ -156,7 +162,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    SpaceBase, SpaceBaseArea, ShapeList
+    ShapeList
 };
 pub use self::switch::allotment::{ 
     AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,
@@ -168,3 +174,4 @@ pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
+pub use self::spacebase::{ SpaceBase, SpaceBaseArea };

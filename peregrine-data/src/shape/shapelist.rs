@@ -40,11 +40,11 @@ impl ShapeListBuilder {
         }
     }
 
-    pub fn add_rectangle(&mut self, top_left: SpaceBase, bottom_right: SpaceBase, patina: Patina, allotments: Vec<AllotmentHandle>) {
+    pub fn add_rectangle(&mut self, top_left: SpaceBase<f64>, bottom_right: SpaceBase<f64>, patina: Patina, allotments: Vec<AllotmentHandle>) {
         self.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina,allotments));
     }
 
-    pub fn add_text2(&mut self, position: SpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+    pub fn add_text2(&mut self, position: SpaceBase<f64>, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
         self.push(Shape::Text2(position,pen,text,allotments));
     }
 

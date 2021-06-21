@@ -73,10 +73,10 @@ impl<'a> DrawingShapePatina<'a> {
 }
 
 pub(crate) enum GLShape {
-    Text2(SpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
-    Heraldry(SpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale),
+    Text2(SpaceBase<f64>,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind),
+    Heraldry(SpaceBaseArea<f64>,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
-    SpaceBaseRect(SpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
+    SpaceBaseRect(SpaceBaseArea<f64>,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind),
 }
 
 pub enum AllotmentProgram {
@@ -142,7 +142,7 @@ fn to_trianges_kind(program_kind: &AllotmentProgramKind) -> TrianglesKind {
     }
 }
 
-fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> SpaceBaseArea {
+fn position_canvas_areas(position: &SpaceBase<f64>, areas: &[CanvasTextureArea]) -> SpaceBaseArea<f64> {
     let mut x_sizes = vec![];
     let mut y_sizes = vec![];
     for dim in areas {
@@ -153,7 +153,7 @@ fn position_canvas_areas(position: &SpaceBase, areas: &[CanvasTextureArea]) -> S
     SpaceBaseArea::new_from_sizes(&position,&x_sizes,&y_sizes)
 }
 
-fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea, allotments: &[Allotment], canvas: &FlatId, dims: &[CanvasTextureArea], free: bool) -> Result<(),Message> {
+fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, area: &SpaceBaseArea<f64>, allotments: &[Allotment], canvas: &FlatId, dims: &[CanvasTextureArea], free: bool) -> Result<(),Message> {
     let mut geometry_yielder = kind.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
@@ -165,7 +165,7 @@ fn draw_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, kind: &TrianglesKind, a
     Ok(())
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &TrianglesKind, area_a: &SpaceBaseArea, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale) -> Result<(),Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &TrianglesKind, area_a: &SpaceBaseArea<f64>, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale) -> Result<(),Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();

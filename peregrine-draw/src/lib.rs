@@ -126,7 +126,7 @@ mod util {
 mod webgl {
     pub(crate) mod canvas {
         pub(crate) mod bindery;
-        pub(super) mod canvasstore;
+        pub(crate) mod canvasstore;
         pub(crate) mod drawingflats;
         pub(crate) mod flatplotallocator;
         pub(crate) mod flat;

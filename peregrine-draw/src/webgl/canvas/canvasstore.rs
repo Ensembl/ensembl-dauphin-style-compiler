@@ -75,13 +75,13 @@ impl CanvasStore {
             x = rounded(x);
             y = rounded(y);
         }
-        if let Some(mut list) = self.canvases.get_mut(&(x,y)) {
+        if let Some(list) = self.canvases.get_mut(&(x,y)) {
             if let Some(value) = list.pop() {
                 value.clear()?;
                 return Ok(value);
             }
         }
-        let mut out = HtmlFlatCanvas::new(document,x,y)?;
+        let out = HtmlFlatCanvas::new(document,x,y)?;
         out.clear()?;
         Ok(out)
     }

@@ -1,14 +1,14 @@
 use super::core::{ Patina, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::switch::allotment::AllotmentHandle;
-use crate::shape::spacebase::{ SpaceBase, SpaceBaseArea };
+use crate::spacebase::{ SpaceBase, SpaceBaseArea };
 use crate::util::ringarray::DataFilter;
 
 #[derive(Clone,Debug)]
 pub enum Shape {
-    Text2(SpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Text2(SpaceBase<f64>,Pen,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
-    SpaceBaseRect(SpaceBaseArea,Patina,Vec<AllotmentHandle>)
+    SpaceBaseRect(SpaceBaseArea<f64>,Patina,Vec<AllotmentHandle>)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {

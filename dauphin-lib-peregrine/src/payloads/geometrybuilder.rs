@@ -1,4 +1,5 @@
 use anyhow::{ anyhow as err, bail };
+use core::f64;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{AllotmentHandle, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu, lock};
 use owning_ref::ArcRef;
@@ -12,7 +13,7 @@ enum GeometryBuilderEntry {
     Pen(Arc<Pen>),
     Plotter(Arc<Plotter>),
     Allotment(Arc<AllotmentHandle>),
-    SpaceBase(Arc<SpaceBase>),
+    SpaceBase(Arc<SpaceBase<f64>>),
 }
 
 impl GeometryBuilderEntry {
@@ -90,5 +91,5 @@ impl GeometryBuilder {
     builder_type!(pen,add_pen,Pen,Pen,"pen");
     builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
     builder_type!(allotment,add_allotment,Allotment,AllotmentHandle,"allotment");
-    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase,"spacebase");
+    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64>,"spacebase");
 }
