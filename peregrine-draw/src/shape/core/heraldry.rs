@@ -87,7 +87,7 @@ impl Heraldry {
         match self {
             Heraldry::Stripe(a,b,p,(x,y)) => Heraldry::Stripe(a.clone(),b.clone(),*p,(*y,*x)),
             Heraldry::Bar(a,b,p,(x,y),dir) => Heraldry::Bar(a.clone(),b.clone(),*p,(*y,*x),!dir),
-            Heraldry::Dots(a,b,p,(x,y),dir) => Heraldry::Bar(a.clone(),b.clone(),*p,(*y,*x),!dir),
+            Heraldry::Dots(a,b,p,(x,y),dir) => Heraldry::Dots(a.clone(),b.clone(),*p,(*y,*x),!dir),
         }
     }
 

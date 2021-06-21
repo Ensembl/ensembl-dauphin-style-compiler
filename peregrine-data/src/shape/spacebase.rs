@@ -5,6 +5,10 @@ fn cycle<T>(data: &[T], index: usize) -> &T {
     &data[index%data.len()]
 }
 
+fn average(a: &[f64], b: &[f64]) -> Vec<f64> {
+    a.iter().zip(b.iter().cycle()).map(|(a,b)| (*a+*b)/2.).collect()
+}
+
 pub struct SpaceBasePoint {
     base: f64,
     normal: f64,
@@ -150,6 +154,16 @@ impl SpaceBase {
             max_len: self.max_len
         }        
     }
+
+    pub fn middle_base(&self, other: &SpaceBase) -> SpaceBase {
+        if self.max_len < other.max_len { return other.middle_base(self); }
+        SpaceBase {
+            base: Arc::new(average(&self.base,&other.base)),
+            tangent: self.tangent.clone(),
+            normal: self.normal.clone(),
+            max_len: self.max_len
+        }
+    }
 }
 
 pub struct SpaceBaseIterator<'a> {
@@ -251,6 +265,7 @@ impl SpaceBaseArea {
     pub fn bottom_right(&self) -> SpaceBase { self.1.clone() }
     pub fn bottom_left(&self) -> SpaceBase { self.0.replace_normal(&self.1) }
     pub fn top_right(&self) -> SpaceBase { self.1.replace_normal(&self.0) }
+    pub fn middle_base(&self) -> SpaceBase { self.0.middle_base(&self.1) }
 }
 
 impl Clone for SpaceBaseArea {

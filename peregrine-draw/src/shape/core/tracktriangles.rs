@@ -1,5 +1,3 @@
-use super::super::layers::layer::{ Layer };
-use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder};
 use peregrine_data::{Allotment, AllotmentPosition, PositionVariant, SpaceBase, SpaceBaseArea};
 use super::super::util::arrayutil::rectangle64;
@@ -135,7 +133,8 @@ impl TrackTrianglesProgram {
         };
         let mut elements = builder.get_stanza_builder().make_elements(area.len(),&indexes)?;
         let (base,delta) = kind.add_spacebase_area(area,allotments,left,width);
-        let (origin_base,origin_delta) = kind.add_spacebase(&area.top_left(),allotments,left,width);
+        // XXX only if needed
+        let (origin_base,origin_delta) = kind.add_spacebase(&area.middle_base(),allotments,left,width);
         elements.add(&self.base,base,2)?;
         elements.add(&self.delta,delta,2)?;
         if let Some(origin_base_handle) = &self.origin_base {

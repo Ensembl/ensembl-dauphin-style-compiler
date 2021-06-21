@@ -78,8 +78,6 @@ impl TextureDraw {
 }
 
 pub(crate) struct TextureYielder {
-    flat_id: FlatId,
-    free: bool,
     patina_process_name: PatinaProcessName,
     texture: Option<TextureDraw>
 }
@@ -88,7 +86,7 @@ impl TextureYielder {
     pub(crate) fn new(flat_id: &FlatId, free: bool) -> TextureYielder {
         let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
         TextureYielder { 
-            flat_id: flat_id.clone(), free, texture: None,
+            texture: None,
             patina_process_name
         }
     }

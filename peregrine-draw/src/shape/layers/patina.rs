@@ -1,12 +1,10 @@
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use crate::shape::core::flatdrawing::FlatDrawingManager;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{FlatId, SetFlag};
 use crate::webgl::{ ProcessBuilder, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
 use peregrine_data::{ DirectColour, Patina, Colour };
-use super::super::core::drawshape::SimpleShapePatina;
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
 
@@ -105,9 +103,6 @@ impl PatinaProgramName {
                     Statement::new_fragment("lowp vec4 mask = texture2D(uSampler,vec2(
                         (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
                         (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vMaskCoord.y))"),
-    
-
-
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
                     Statement::new_fragment("if(mask.r > 0.995) discard")
                 ]
