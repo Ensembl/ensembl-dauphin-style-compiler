@@ -2,13 +2,13 @@ use std::sync::{ Arc, Mutex };
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
-use crate::input::low::spectre::MarchingAnts;
+use crate::shape::core::spectre::MarchingAnts;
+use crate::shape::core::spectre::Spectre;
+use crate::shape::core::spectremanager::SpectreHandle;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
 use super::pointer::{ PointerConfig, PointerAction };
 use super::cursor::CursorHandle;
-use super::super::spectre::Spectre;
-use super::super::spectremanager::SpectreHandle;
 use crate::run::CursorCircumstance;
 use super::pinch::FingerAxis;
 

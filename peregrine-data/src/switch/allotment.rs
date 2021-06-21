@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::{io::LineWriter, sync::{ Arc, Mutex }};
+use std::{sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedValues, KeyedData, KeyedHandle };
 use crate::util::DataMessage;
@@ -28,7 +28,13 @@ impl AllotmentRequest {
     pub fn priority(&self) -> i64 { self.priority }
     pub fn name(&self) -> &str { &self.name }
 
-    pub fn kind(&self) -> AllotmentPositionKind { AllotmentPositionKind::Track }
+    pub fn kind(&self) -> AllotmentPositionKind { 
+        if self.name.starts_with("window:") {
+            AllotmentPositionKind::Overlay
+        } else {
+            AllotmentPositionKind::Track
+        }
+    }
 }
 
 
@@ -78,29 +84,33 @@ pub enum PositionVariant {
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentPositionKind {
     Track,
+    Overlay,
     BaseLabel(PositionVariant),
     SpaceLabel(PositionVariant)
 }
 
 impl AllotmentPositionKind {
     fn make_allocator(&self) -> Box<dyn AllotmentPositionAllocator> {
-        Box::new(match self {
-            AllotmentPositionKind::Track => LinearAllotmentPositionAllocator::new(64, |index,size| {
+        match self {
+            AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(64, |index,size| {
                 AllotmentPosition::Track(OffsetSize(index*size,size))
-            }), // XXX size
+            })), // XXX size
             AllotmentPositionKind::BaseLabel(priority) => {
                 let priority = priority.clone();
-                LinearAllotmentPositionAllocator::new(64, move |index,size| {
+                Box::new(LinearAllotmentPositionAllocator::new(64, move |index,size| {
                     AllotmentPosition::BaseLabel(priority.clone(),OffsetSize(index*size,size))
-                })
+                }))
             }, // XXX size
             AllotmentPositionKind::SpaceLabel(priority) => {
                 let priority = priority.clone();
-                LinearAllotmentPositionAllocator::new(64, move |index,size| {
+                Box::new(LinearAllotmentPositionAllocator::new(64, move |index,size| {
                     AllotmentPosition::SpaceLabel(priority.clone(),OffsetSize(index*size,size))
-                })
+                }))
             }, // XXX size
-        })
+            AllotmentPositionKind::Overlay => {
+                Box::new(OverlayAllotmentPositionAllocator::new()) as Box<dyn AllotmentPositionAllocator>
+            }
+        }
     }
 }
 
@@ -110,6 +120,7 @@ pub struct OffsetSize(pub i64,i64);
 #[derive(Clone,Debug)]
 pub enum AllotmentPosition {
     Track(OffsetSize),
+    Overlay(i64),
     BaseLabel(PositionVariant,OffsetSize),
     SpaceLabel(PositionVariant,OffsetSize)
 }
@@ -118,6 +129,7 @@ impl AllotmentPosition {
     pub fn kind(&self) -> AllotmentPositionKind {
         match self {
             AllotmentPosition::Track(_) => AllotmentPositionKind::Track,
+            AllotmentPosition::Overlay(_) => AllotmentPositionKind::Overlay,
             AllotmentPosition::BaseLabel(p,_) => AllotmentPositionKind::BaseLabel(p.clone()),
             AllotmentPosition::SpaceLabel(p,_) => AllotmentPositionKind::SpaceLabel(p.clone()),
         }
@@ -128,6 +140,7 @@ impl AllotmentPosition {
             AllotmentPosition::Track(x) => x.0,
             AllotmentPosition::BaseLabel(_,x) => x.0,
             AllotmentPosition::SpaceLabel(_,x) => x.0,
+            AllotmentPosition::Overlay(x) => *x,
         }
     }
 }
@@ -156,6 +169,26 @@ impl LinearAllotmentPositionAllocator {
 impl AllotmentPositionAllocator for LinearAllotmentPositionAllocator {
     fn allocate(&mut self) -> AllotmentPosition {
         let out = (self.ctor)(self.index,self.size);
+        self.index += 1;
+        out
+    }
+}
+
+struct OverlayAllotmentPositionAllocator {
+    index: i64
+}
+
+impl OverlayAllotmentPositionAllocator {
+    fn new() -> OverlayAllotmentPositionAllocator {
+        OverlayAllotmentPositionAllocator {
+            index: 0,
+        }
+    }
+}
+
+impl AllotmentPositionAllocator for OverlayAllotmentPositionAllocator {
+    fn allocate(&mut self) -> AllotmentPosition {
+        let out = AllotmentPosition::Overlay(self.index);
         self.index += 1;
         out
     }

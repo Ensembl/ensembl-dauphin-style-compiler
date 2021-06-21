@@ -6,6 +6,7 @@ use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
 use crate::input::Input;
 use crate::util::message::Message;
+use crate::webgl::DrawingSession;
 use super::dom::PeregrineDom;
 
 fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, input: &Input, elapsed: f64) -> Result<(),Message> {
@@ -16,9 +17,14 @@ fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager,
     if spectres.len() > 0 {
         web.stage.lock().unwrap().redraw_needed().set();
     }
-    web.trainset.transition_animate_tick(&web.data_api,&mut web.webgl.lock().unwrap(),elapsed)?;
+    let gl = &mut web.webgl.lock().unwrap();
+    web.trainset.transition_animate_tick(&web.data_api,gl,elapsed)?;
     if read_stage.ready() {
-        web.trainset.draw_animate_tick(read_stage,&mut web.webgl.lock().unwrap(),&spectres)?;
+        let mut session = DrawingSession::new();
+        session.begin(gl)?;
+        web.trainset.draw_animate_tick(read_stage,gl,&session)?;
+        web.spectre_manager.draw(&mut web.data_api.base.allotment_petitioner, gl,read_stage,&session)?;
+        session.finish()?;
     }
     Ok(())
 }

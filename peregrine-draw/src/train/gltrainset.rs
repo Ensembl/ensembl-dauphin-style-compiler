@@ -1,15 +1,13 @@
 use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore, ConfigKey };
+use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore };
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }, util::needed::{Needed, NeededLock}};
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
-use crate::input::Spectre;
 use crate::util::message::Message;
-use crate::webgl::glspectre::draw_spectre;
 
 #[derive(Clone)]
 enum FadeState {
@@ -131,16 +129,7 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_spectres(&self, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
-        for spectre in spectres {
-            draw_spectre(gl,spectre)?;
-        }
-        Ok(())
-    }
-
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
-        let mut session = DrawingSession::new();
-        session.begin(gl)?;
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
@@ -153,8 +142,6 @@ impl GlTrainSetData {
                 self.get_train(gl,to).draw(gl,stage,&session)?;
             },
         }
-        self.draw_spectres(gl,spectres)?;
-        session.finish()?;
         Ok(())
     }
 
@@ -204,8 +191,8 @@ impl GlTrainSet {
         Ok(())
     }
 
-    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, spectres: &[Spectre]) -> Result<(),Message> {
-        self.data.lock().unwrap().draw_animate_tick(stage,gl,spectres)
+    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
+        self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
     }
 
     pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {

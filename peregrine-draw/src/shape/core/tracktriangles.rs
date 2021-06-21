@@ -32,7 +32,8 @@ impl<'a> GeometryYielder for TrackTrianglesYielder {
             GeometryProgram::BaseLabelTriangles(t) => t,
             GeometryProgram::SpaceLabelTriangles(t) => t,
             GeometryProgram::TrackTriangles(t) => t,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+            GeometryProgram::WindowTriangles(t) => t,
+            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: tracktriangles")))? }
         }.clone());
         Ok(())
     }
@@ -54,7 +55,8 @@ impl TrackTrianglesYielder {
 pub enum TrianglesKind {
     Track,
     Base,
-    Space
+    Space,
+    Window
 }
 
 impl TrianglesKind {
@@ -89,6 +91,12 @@ impl TrianglesKind {
                     rectangle64(&mut base, flip_x, base_y, flip_x,base_y,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }        
+            },
+            TrianglesKind::Window => {
+                for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
+                    rectangle64(&mut base, 0., 0., 0.,0.,base_width);
+                    rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                }
             }
         }
         (base,delta)
@@ -98,7 +106,8 @@ impl TrianglesKind {
         match self {
             TrianglesKind::Track => GeometryProgramName::TrackTriangles,
             TrianglesKind::Base => GeometryProgramName::BaseLabelTriangles,
-            TrianglesKind::Space => GeometryProgramName::SpaceLabelTriangles
+            TrianglesKind::Space => GeometryProgramName::SpaceLabelTriangles,
+            TrianglesKind::Window => GeometryProgramName::WindowTriangles
         }
     }
 
@@ -135,8 +144,8 @@ impl TrackTrianglesProgram {
         let (base,delta) = kind.add_spacebase_area(area,allotments,left,width);
         // XXX only if needed
         let (origin_base,origin_delta) = kind.add_spacebase(&area.middle_base(),allotments,left,width);
-        elements.add(&self.base,base,2)?;
         elements.add(&self.delta,delta,2)?;
+        elements.add(&self.base,base,2)?;
         if let Some(origin_base_handle) = &self.origin_base {
             elements.add(origin_base_handle,origin_base,2)?;
         }

@@ -107,7 +107,7 @@ impl PatinaYielder for TextureYielder {
         self.texture = Some(match program {
             PatinaProcess::FreeTexture(t) => t,
             PatinaProcess::Texture(t) => t,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: texture")))? }
         }.clone());
         Ok(())
     }

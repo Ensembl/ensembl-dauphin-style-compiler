@@ -1,11 +1,10 @@
 use std::sync::{ Arc, Mutex };
 use crate::input::InputEventKind;
+use crate::shape::core::spectre::Spectre;
+use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
 use crate::stage::stage::ReadStage;
-use crate::util::needed::Needed;
 use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
-use super::spectre::Spectre;
-use super::spectremanager::{ SpectreHandle, SpectreManager };
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
 use super::mouseinput::{ MouseEventHandler };
@@ -37,7 +36,7 @@ pub struct LowLevelState {
 }
 
 impl LowLevelState {
-    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig, redraw_needed: &Needed) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
+    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
         let mut mapping = InputMapBuilder::new();
         mapping.add_config(config)?;
         let modifiers = Arc::new(Mutex::new(Modifiers {
@@ -54,7 +53,7 @@ impl LowLevelState {
             mapping: mapping.build(),
             modifiers,
             stage: Arc::new(Mutex::new(None)),
-            spectres: SpectreManager::new(redraw_needed)
+            spectres: spectres.clone()
         },distributor))
     }
 
@@ -107,8 +106,8 @@ pub struct LowLevelInput {
 }
 
 impl LowLevelInput {
-    pub fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, config: &PgPeregrineConfig, redraw_needed: &Needed) -> Result<LowLevelInput,Message> {
-        let (state,distributor) = LowLevelState::new(dom,commander,config,redraw_needed)?;
+    pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
+        let (state,distributor) = LowLevelState::new(dom,commander,spectres,config)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state)?;
         Ok(LowLevelInput { keyboard, mouse, distributor, state })

@@ -115,7 +115,7 @@ impl<'a> GeometryYielder for WiggleAccessor {
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
         self.wiggles = Some(match program {
             GeometryProgram::Wiggle(w) => w,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: wiggle")))? }
         }.clone());
         Ok(())
     }

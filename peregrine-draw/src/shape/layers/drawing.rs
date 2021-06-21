@@ -2,7 +2,6 @@ use super::layer::Layer;
 use peregrine_data::{ Shape, Allotter, ShapeList };
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
-use crate::shape::core::flatdrawing::FlatDrawingManager;
 use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 //use crate::shape::core::heraldry::DrawingHeraldry;

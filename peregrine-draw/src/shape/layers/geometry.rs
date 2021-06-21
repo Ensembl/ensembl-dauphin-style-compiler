@@ -13,6 +13,7 @@ pub(crate) enum GeometryProgram {
     TrackTriangles(TrackTrianglesProgram),
     BaseLabelTriangles(TrackTrianglesProgram),
     SpaceLabelTriangles(TrackTrianglesProgram),
+    WindowTriangles(TrackTrianglesProgram)
 }
 
 pub(crate) trait GeometryYielder {
@@ -22,7 +23,7 @@ pub(crate) trait GeometryYielder {
 }
 
 #[derive(Clone,Hash,PartialEq,Eq)]
-pub(crate) enum GeometryProgramName { Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles }
+pub(crate) enum GeometryProgramName { Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles, WindowTriangles }
 
 impl EnumerableKey for GeometryProgramName {
     fn enumerable(&self) -> Enumerable {
@@ -31,7 +32,8 @@ impl EnumerableKey for GeometryProgramName {
             GeometryProgramName::TrackTriangles => 1,
             GeometryProgramName::BaseLabelTriangles => 2,
             GeometryProgramName::SpaceLabelTriangles => 3,
-        },4)
+            &GeometryProgramName::WindowTriangles => 4,
+        },5)
     }
 }
 
@@ -42,6 +44,7 @@ impl GeometryProgramName {
             GeometryProgramName::TrackTriangles => GeometryProgram::TrackTriangles(TrackTrianglesProgram::new(builder)?),
             GeometryProgramName::BaseLabelTriangles => GeometryProgram::BaseLabelTriangles(TrackTrianglesProgram::new(builder)?),
             GeometryProgramName::SpaceLabelTriangles => GeometryProgram::SpaceLabelTriangles(TrackTrianglesProgram::new(builder)?),
+            GeometryProgramName::WindowTriangles => GeometryProgram::WindowTriangles(TrackTrianglesProgram::new(builder)?),
         })
     }
 
@@ -113,6 +116,32 @@ impl GeometryProgramName {
                             - (aData.y - uStageVpos) / uSize.y, 
                             0.0, 1.0)
                     }
+                "),
+                Statement::new_vertex("
+                    gl_Position = transform(aBase,aDelta)
+                "),
+                Conditional::new("need-origin",vec![
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Statement::new_vertex("
+                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                    ")
+                ]),
+            ],
+            GeometryProgramName::WindowTriangles => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Declaration::new_vertex("
+                    vec4 transform(in vec2 base, in vec2 delta)
+                    {
+                        return uModel * vec4(delta.x/uSize.x-1.0,1.0-delta.y/uSize.y,0.0,1.0);
+                    }
+                "),
+                Statement::new_vertex("
+                    gl_Position = transform(aBase,aDelta)
                 "),
                 Conditional::new("need-origin",vec![
                     AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),

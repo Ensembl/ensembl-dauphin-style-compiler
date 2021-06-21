@@ -21,6 +21,7 @@ use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
+use crate::shape::core::spectremanager::SpectreManager;
 
 #[cfg(blackbox)]
 pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
@@ -117,7 +118,8 @@ pub struct PeregrineInnerAPI {
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     target_manager: Arc<Mutex<TargetManager>>,
-    dom: PeregrineDom
+    dom: PeregrineDom,
+    spectre_manager: SpectreManager
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -129,6 +131,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub message_sender: &'t mut CommanderStream<Message>,
     pub target_manager: &'t mut Arc<Mutex<TargetManager>>,
     pub dom: &'t mut PeregrineDom,
+    pub(crate) spectre_manager: &'t mut SpectreManager,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -168,6 +171,7 @@ impl PeregrineInnerAPI {
             message_sender: &mut self.message_sender,
             target_manager: &mut self.target_manager,
             dom: &mut self.dom,
+            spectre_manager: &mut self.spectre_manager,
             guard
         }
     }
@@ -195,6 +199,7 @@ impl PeregrineInnerAPI {
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let dom2 = dom.clone();
+        let redraw_needed = stage.lock().unwrap().redraw_needed();
         core.application_ready();
         Ok(PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -202,10 +207,12 @@ impl PeregrineInnerAPI {
             messages, message_sender,
             data_api: core.clone(), commander, trainset, stage,  webgl,
             target_manager,
-            dom: dom.clone()
+            dom: dom.clone(),
+            spectre_manager: SpectreManager::new(&&redraw_needed)
         })
     }
 
+    pub(crate) fn spectres(&self) -> &SpectreManager { &self.spectre_manager }
     pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
 
     pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {

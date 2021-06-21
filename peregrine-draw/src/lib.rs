@@ -15,9 +15,7 @@ mod input {
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 
-        pub mod mapping;   
-        pub(super) mod spectre;
-        pub(super) mod spectremanager;
+        pub mod mapping;
     }
 
     mod translate {
@@ -28,7 +26,6 @@ mod input {
     }
 
     pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
-    pub(crate) use self::low::spectre::{ Spectre, MarchingAnts };
 }
 
 mod integration {
@@ -69,6 +66,9 @@ mod shape {
         pub(super) mod tracktriangles;
         pub(crate) mod heraldry;
         pub(crate) mod flatdrawing;
+        pub(crate) mod spectre;
+        pub(crate) mod spectraldrawing;
+        pub(crate) mod spectremanager;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
@@ -194,7 +194,6 @@ mod webgl {
     pub(crate) use program::texture::{ Texture, TextureProto };
 
     pub(crate) mod global;
-    pub(crate) mod glspectre;
     mod util;
 }
 

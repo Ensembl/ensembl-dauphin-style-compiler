@@ -66,7 +66,7 @@ impl PatinaYielder for DirectYielder {
     fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
         self.draw = Some(match program {
             PatinaProcess::Direct(d) => d,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: colour")))? }
         }.clone());
         Ok(())
     }

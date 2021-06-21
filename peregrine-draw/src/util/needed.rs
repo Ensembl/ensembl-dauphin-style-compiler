@@ -33,8 +33,17 @@ impl NeededData {
         }
     }
 
-    fn maybe_needed(&mut self) -> Option<PromiseFuture<()>> {
+    fn is_needed(&mut self) -> bool {
         if self.edge || self.locks > 0 { 
+            self.edge = false;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn maybe_needed(&mut self) -> Option<PromiseFuture<()>> {
+        if self.is_needed() {
             self.edge = false;
             return None;
         }
@@ -71,6 +80,10 @@ impl Needed {
 
     pub fn set(&self) {
         self.0.lock().unwrap().set();
+    }
+
+    pub fn is_needed(&mut self) -> bool {
+        self.0.lock().unwrap().is_needed()
     }
 
     pub async fn wait_until_needed(&self) {

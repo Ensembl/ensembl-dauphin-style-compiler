@@ -22,6 +22,7 @@ use crate::webgl::canvas::flatstore::FlatId;
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum AllotmentProgramKind {
     Track,
+    Overlay,
     BaseLabel,
     SpaceLabel
 }
@@ -79,6 +80,7 @@ pub(crate) enum GLShape {
 }
 pub enum AllotmentProgram {
     Track,
+    Overlay,
     BaseLabel(PositionVariant),
     SpaceLabel(PositionVariant)
 }
@@ -87,6 +89,7 @@ impl AllotmentProgram {
     pub(super) fn kind(&self) -> AllotmentProgramKind {
         match self {
             AllotmentProgram::Track => AllotmentProgramKind::Track,
+            AllotmentProgram::Overlay => AllotmentProgramKind::Overlay,
             AllotmentProgram::SpaceLabel(_) => AllotmentProgramKind::SpaceLabel,
             AllotmentProgram::BaseLabel(_) => AllotmentProgramKind::BaseLabel
         }        
@@ -97,6 +100,7 @@ impl AllotmentProgram {
     pub(super) fn new(allotment: &AllotmentPositionKind) -> AllotmentProgram {
         match allotment {
             AllotmentPositionKind::Track => AllotmentProgram::Track,
+            AllotmentPositionKind::Overlay => AllotmentProgram::Overlay,
             AllotmentPositionKind::SpaceLabel(x) => AllotmentProgram::SpaceLabel(x.clone()),
             AllotmentPositionKind::BaseLabel(x) => AllotmentProgram::BaseLabel(x.clone())
         }
@@ -132,7 +136,8 @@ fn to_trianges_kind(program_kind: &AllotmentProgramKind) -> TrianglesKind {
     match program_kind {
         AllotmentProgramKind::Track => TrianglesKind::Track,
         AllotmentProgramKind::BaseLabel => TrianglesKind::Base,
-        AllotmentProgramKind::SpaceLabel => TrianglesKind::Space
+        AllotmentProgramKind::SpaceLabel => TrianglesKind::Space,
+        &AllotmentProgramKind::Overlay => TrianglesKind::Window
     }
 }
 
@@ -178,7 +183,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
     Ok(())
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal,  tools: &mut DrawingTools, shape: GLShape) -> Result<(),Message> {
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<(),Message> {
     match shape {
         GLShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
             //let patina = colour_to_patina(&Colour::Spot(colour.clone()));

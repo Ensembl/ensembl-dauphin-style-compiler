@@ -5,9 +5,7 @@ use crate::lane::{ ShapeRequest, Region };
 use crate::shape::{ Shape, ShapeListBuilder, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
-use crate::switch::trackconfig::{ TrackConfig };
 use crate::switch::trackconfiglist::TrainTrackConfigList;
-use crate::switch::allotment::Allotter;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct CarriageId {
