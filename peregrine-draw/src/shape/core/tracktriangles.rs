@@ -3,7 +3,7 @@ use super::super::layers::patina::PatinaProcessName;
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder};
 use peregrine_data::{Allotment, AllotmentPosition, PositionVariant, SpaceBase, SpaceBaseArea};
 use super::super::util::arrayutil::rectangle64;
-use crate::shape::layers::geometry::GeometryProgramName;
+use crate::shape::layers::geometry::{GeometryProgram, GeometryProgramName, GeometryYielder};
 use crate::util::message::Message;
 
 fn flip(allotment: &Allotment) -> f64 {
@@ -14,6 +14,42 @@ fn flip(allotment: &Allotment) -> f64 {
     } {
         PositionVariant::HighPriority => 1.,
         PositionVariant::LowPriority => -1.
+    }
+}
+
+pub(crate) struct TrackTrianglesYielder {
+    geometry_program_name: GeometryProgramName,
+    track_triangles: Option<TrackTrianglesProgram>
+}
+
+impl<'a> GeometryYielder for TrackTrianglesYielder {
+    fn name(&self) -> &GeometryProgramName { &self.geometry_program_name }
+
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
+        self.geometry_program_name.make_geometry_program(builder)
+    }
+
+    fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
+        self.track_triangles = Some(match program {
+            GeometryProgram::BaseLabelTriangles(t) => t,
+            GeometryProgram::SpaceLabelTriangles(t) => t,
+            GeometryProgram::TrackTriangles(t) => t,
+            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+        }.clone());
+        Ok(())
+    }
+}
+
+impl TrackTrianglesYielder {
+    pub(crate) fn new(geometry_program_name: &GeometryProgramName) -> TrackTrianglesYielder {
+        TrackTrianglesYielder {
+            geometry_program_name: geometry_program_name.clone(),
+            track_triangles: None
+        }
+    }
+
+    pub(crate) fn track_triangles(&self) -> Result<&TrackTrianglesProgram,Message> {
+        self.track_triangles.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
     }
 }
 
@@ -60,20 +96,16 @@ impl TrianglesKind {
         (base,delta)
     }
 
-    pub(crate) fn get_process(&self, layer: &mut Layer, patina: &PatinaProcessName) -> Result<TrackTrianglesProgram,Message> {
-        Ok(match self {
-            TrianglesKind::Track => layer.get_track_triangles(patina)?,
-            TrianglesKind::Base => layer.get_base_label_triangles(patina)?,
-            TrianglesKind::Space => layer.get_space_label_triangles(patina)?,
-        })
-    }
-
     pub(crate) fn geometry_program_name(&self) -> GeometryProgramName {
         match self {
             TrianglesKind::Track => GeometryProgramName::TrackTriangles,
             TrianglesKind::Base => GeometryProgramName::BaseLabelTriangles,
             TrianglesKind::Space => GeometryProgramName::SpaceLabelTriangles
         }
+    }
+
+    pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {
+        TrackTrianglesYielder::new(&self.geometry_program_name())
     }
 }
 

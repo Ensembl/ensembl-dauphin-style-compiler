@@ -1,3 +1,4 @@
+use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaProgram, PatinaYielder};
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
 use crate::util::message::Message;
@@ -72,6 +73,44 @@ impl TextureDraw {
             .map(|x| (x.mask_origin(),x.size()));
         self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
         self.add_rectangle_one(addable,&self.0.mask,&mut mask_data,size)?;
+        Ok(())
+    }
+}
+
+pub(crate) struct TextureYielder {
+    flat_id: FlatId,
+    free: bool,
+    patina_process_name: PatinaProcessName,
+    texture: Option<TextureDraw>
+}
+
+impl TextureYielder {
+    pub(crate) fn new(flat_id: &FlatId, free: bool) -> TextureYielder {
+        let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
+        TextureYielder { 
+            flat_id: flat_id.clone(), free, texture: None,
+            patina_process_name
+        }
+    }
+
+    pub(crate) fn draw(&self) -> Result<&TextureDraw,Message> {
+        self.texture.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
+    }
+}
+
+impl PatinaYielder for TextureYielder {
+    fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
+
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgram,Message> {
+        Ok(PatinaProgram::Texture(TextureProgram::new(builder)?))
+    }
+    
+    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
+        self.texture = Some(match program {
+            PatinaProcess::FreeTexture(t) => t,
+            PatinaProcess::Texture(t) => t,
+            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+        }.clone());
         Ok(())
     }
 }

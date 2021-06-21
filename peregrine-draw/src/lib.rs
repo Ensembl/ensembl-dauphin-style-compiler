@@ -81,7 +81,7 @@ mod shape {
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
-        mod shapeprogram;
+        pub(crate) mod shapeprogram;
         pub(super) mod patina;
     }
 
@@ -106,6 +106,7 @@ mod train {
 
 mod util {
     pub(crate) mod ajax;
+    pub(crate) mod enummap;
     pub(crate) mod error;
     pub(crate) mod evictlist;
     pub(crate) mod message;

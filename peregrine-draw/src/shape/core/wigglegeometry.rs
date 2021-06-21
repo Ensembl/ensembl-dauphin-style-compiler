@@ -3,6 +3,7 @@ use web_sys::WebGlRenderingContext;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
+use crate::shape::layers::geometry::{GeometryProgram, GeometryYielder};
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
@@ -96,5 +97,32 @@ pub struct WiggleGeometry {
 impl WiggleGeometry {
     pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgram) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
+    }
+}
+
+struct WiggleAccessor {
+    geometry_program_name: GeometryProgramName,
+    wiggles: Option<WiggleProgram>
+}
+
+impl<'a> GeometryYielder for WiggleAccessor {
+    fn name(&self) -> &GeometryProgramName { &self.geometry_program_name }
+
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
+        self.geometry_program_name.make_geometry_program(builder)
+    }
+
+    fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
+        self.wiggles = Some(match program {
+            GeometryProgram::Wiggle(w) => w,
+            _ => { Err(Message::CodeInvariantFailed(format!("mismateched program")))? }
+        }.clone());
+        Ok(())
+    }
+}
+
+impl WiggleAccessor {
+    pub(crate) fn wiggles(&self) -> Result<&WiggleProgram,Message> {
+        self.wiggles.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
     }
 }
