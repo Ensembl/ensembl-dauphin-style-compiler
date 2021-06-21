@@ -85,18 +85,12 @@ impl SpectreManager {
         SpectreHandle(self.0.clone(),id)
     }
 
-    fn update(&self, handle: &SpectreHandle, spectre: Spectre) {
-        self.0.lock().unwrap().update(&handle.1,spectre);
-    }
-
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> {
         self.0.lock().unwrap().get_spectres()        
     }
 
     pub(crate) fn draw(&mut self, allotment_petitioner: &mut AllotmentPetitioner, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if self.0.lock().unwrap().new_shapes() {
-            use web_sys::console;
-            console::log_1(&format!("update needed").into());
             self.1.update(gl,allotment_petitioner,&self.get_spectres())?;
         }
         self.1.draw(gl,stage,session)

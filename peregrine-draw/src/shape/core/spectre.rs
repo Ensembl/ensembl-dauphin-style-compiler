@@ -1,6 +1,7 @@
 use std::sync::{ Arc };
 use peregrine_data::{AllotmentPetitioner, AllotmentRequest, Colour, DirectColour, Patina, ShapeListBuilder, SpaceBase};
 use crate::Message;
+use std::cmp::min;
 
 #[derive(Debug)]
 struct BoundingBox {
@@ -27,8 +28,8 @@ impl MarchingAnts {
         let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin-over",0));
         let pos = self.0.tlbr;
         shapes.add_allotment(&window_origin);
-        shapes.add_rectangle(SpaceBase::new(vec![-1.],vec![pos.0],vec![pos.1]), 
-                          SpaceBase::new(vec![-1.],vec![pos.2],vec![pos.3]), 
+        shapes.add_rectangle(SpaceBase::new(vec![0.],vec![pos.0],vec![pos.1]), 
+                          SpaceBase::new(vec![0.],vec![pos.2],vec![pos.3]), 
                                       Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),DirectColour(255,0,0,255),(4,2))]),
                             vec![window_origin]);
         Ok(())
@@ -37,10 +38,10 @@ impl MarchingAnts {
 
 
 #[derive(Clone,Debug)]
-pub(crate) struct Stain(Arc<BoundingBox>);
+pub(crate) struct Stain(Arc<BoundingBox>,bool);
 
 impl Stain {
-    pub(crate) fn new(tlbr: &(f64,f64,f64,f64)) -> Stain {
+    pub(crate) fn new(tlbr: &(f64,f64,f64,f64),flipped: bool) -> Stain {
         let tlbr = (
             tlbr.0.min(tlbr.2),
             tlbr.1.min(tlbr.3),
@@ -49,17 +50,37 @@ impl Stain {
         );
         Stain(Arc::new(BoundingBox {
             tlbr
-        }))
+        }),flipped)
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
         let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin",-1));
         let pos = self.0.tlbr;
         shapes.add_allotment(&window_origin);
-        shapes.add_rectangle(SpaceBase::new(vec![-0.5],vec![pos.0],vec![pos.1]), 
-                          SpaceBase::new(vec![-0.5],vec![pos.2],vec![pos.3]), 
-                                      Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
-                            vec![window_origin]);
+        if self.1 {
+            shapes.add_rectangle(SpaceBase::new(vec![0.],vec![0.],vec![0.]),
+                              SpaceBase::new(vec![0.],vec![-1.],vec![pos.1.min(pos.3)]),
+                              Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
+                              vec![window_origin.clone()]);
+            shapes.add_rectangle(SpaceBase::new(vec![0.],vec![-1.],vec![pos.1.max(pos.3)]),
+                              SpaceBase::new(vec![0.],vec![0.],vec![-1.]),
+                              Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
+                              vec![window_origin.clone()]);
+            shapes.add_rectangle(SpaceBase::new(vec![0.],vec![0.],vec![pos.1.min(pos.3)]),
+                              SpaceBase::new(vec![0.],vec![pos.0.min(pos.2)],vec![pos.1.max(pos.3)]),
+                              Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
+                              vec![window_origin.clone()]);
+            shapes.add_rectangle(SpaceBase::new(vec![0.],vec![pos.0.max(pos.2)],vec![pos.1.min(pos.3)]),
+                              SpaceBase::new(vec![0.],vec![-1.],vec![pos.1.max(pos.3)]),
+                              Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
+                              vec![window_origin.clone()]);
+
+        } else {
+            shapes.add_rectangle(SpaceBase::new(vec![0.],vec![pos.0],vec![pos.1]), 
+                            SpaceBase::new(vec![0.],vec![pos.2],vec![pos.3]), 
+                                        Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),
+                                vec![window_origin]);
+        }
         Ok(())
     }
 }

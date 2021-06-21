@@ -4,7 +4,6 @@ use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
-//use crate::shape::core::heraldry::DrawingHeraldry;
 use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;

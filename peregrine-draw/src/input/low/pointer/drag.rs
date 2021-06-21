@@ -118,7 +118,7 @@ impl DragStateData {
         if let Some(spectre_handle) = &self.spectre {
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
-                Spectre::Stain(Stain::new(&ants)),
+                Spectre::Stain(Stain::new(&ants,true)),
                 Spectre::MarchingAnts(MarchingAnts::new(&ants)),
             ]);
             spectre_handle.update(spectre);
@@ -176,7 +176,7 @@ impl DragStateData {
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
                 Spectre::MarchingAnts(MarchingAnts::new(&ants)),
-                Spectre::Stain(Stain::new(&ants))
+                Spectre::Stain(Stain::new(&ants,true))
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);

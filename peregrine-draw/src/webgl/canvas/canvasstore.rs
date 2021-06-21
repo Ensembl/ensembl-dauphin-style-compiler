@@ -70,10 +70,6 @@ impl CanvasStore {
         }
     }
 
-    fn round_up(&self, x: u32, y: u32) -> (u32,u32) {
-        (rounded(x),rounded(y))
-    }
-
     pub fn allocate(&mut self, document: &Document, mut x: u32, mut y: u32, round_up: bool) -> Result<HtmlFlatCanvas,Message> {
         if round_up {
             x = rounded(x);

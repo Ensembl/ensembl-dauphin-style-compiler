@@ -23,7 +23,11 @@ impl SpectralDrawing {
     }
 
     pub(crate) fn update(&self, gl: &mut WebGlGlobal, allotment_petitioner: &mut AllotmentPetitioner, spectres: &[Spectre]) -> Result<(),Message> {
-        *self.0.lock().unwrap() = Some(draw_spectres(gl,allotment_petitioner,spectres)?);
+        let mut drawing = self.0.lock().unwrap();
+        if let Some(drawing) = drawing.as_mut() {
+            drawing.discard(gl)?;
+        }
+        *drawing = Some(draw_spectres(gl,allotment_petitioner,spectres)?);
         Ok(())
     }
 
