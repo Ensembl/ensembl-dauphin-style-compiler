@@ -20,7 +20,7 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
 }
 
 fn stripe_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
-    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
+    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0,255))?;
     canvas.rectangle(t,(STAMP,STAMP),b)?;
     canvas.path(t,&[
         (0,    0),
@@ -42,7 +42,16 @@ fn bar_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &Di
     let offset= if horiz { (0,50-p/2) } else { (50-p/2,0) };
     let extent = ((extent.0*STAMP) / 100,(extent.1*STAMP) / 100);
     let offset = ((offset.0*STAMP) / 100,(offset.1*STAMP) / 100);
-    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0))?;
+
+canvas.rectangle(m,(STAMP,STAMP),&DirectColour(255,255,255,255))?;
+canvas.path((m.0+offset.0,m.1+offset.1),&[
+    (0,       0),
+    (extent.0,0),
+    (extent.0,extent.1),
+    (0,       extent.1)
+],&DirectColour(0,0,0,255))?;
+
+
     canvas.rectangle(t,(STAMP,STAMP),a)?;
     canvas.path((t.0+offset.0,t.1+offset.1),&[
         (0,       0),

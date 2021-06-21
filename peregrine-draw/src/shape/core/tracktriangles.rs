@@ -94,7 +94,7 @@ impl TrianglesKind {
             },
             TrianglesKind::Window => {
                 for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
-                    rectangle64(&mut base, 0., 0., 0.,0.,base_width);
+                    rectangle64(&mut base, *top_left.base, 0., *top_left.base,0.,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }
             }

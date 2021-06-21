@@ -24,17 +24,17 @@ impl DrawingSession {
             .ok_or_else(|| Message::ConfusedWebBrowser(format!("unsized canvas")))?;
         //use web_sys::console;
         //console::log_1(&format!("init {} {}",size.0,size.1).into());    
-        gl.context().enable(WebGlRenderingContext::DEPTH_TEST);
+        gl.context().disable(WebGlRenderingContext::DEPTH_TEST);
         gl.context().enable(WebGlRenderingContext::BLEND);
         gl.context().enable(WebGlRenderingContext::SCISSOR_TEST);
         gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
         gl.context().scissor(0,0,size.0 as i32,size.1 as i32);
         gl.context().clear_color(1., 1., 1., 1.);
-        gl.context().depth_mask(false);
+        gl.context().depth_mask(true);
         gl.handle_context_errors()?;
         gl.context().clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
         gl.handle_context_errors()?;
-        gl.context().blend_func_separate(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA, WebGlRenderingContext::ONE, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
+        gl.context().blend_func(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
         gl.handle_context_errors()?;
         Ok(())
     }

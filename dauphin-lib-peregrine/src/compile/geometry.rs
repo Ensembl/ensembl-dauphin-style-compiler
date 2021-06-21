@@ -15,7 +15,7 @@ simple_command!(PinEndCommand,PinEndCommandType,"peregrine","pin_end",2,(0,1));
 simple_command!(ZMenuCommand,ZMenuCommandType,"peregrine","zmenu",2,(0,1));
 simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",2,(0,1));
 simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",2,(0,1));
-simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","direct_colour",4,(0,1,2,3));
+simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","direct_colour",5,(0,1,2,3,4));
 simple_command!(UseAllotmentCommand,UseAllotmentCommandType,"peregrine","use_allotment",2,(0,1));
 simple_command!(PenCommand,PenCommandType,"peregrine","pen",4,(0,1,2,3));
 simple_command!(PlotterCommand,PlotterCommandType,"peregrine","plotter",3,(0,1,2));

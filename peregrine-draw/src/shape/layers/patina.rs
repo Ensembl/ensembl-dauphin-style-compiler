@@ -65,10 +65,10 @@ impl PatinaProgramName {
         SourceInstrs::new(
             match self {
                 PatinaProgramName::Direct => vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec3,"aVertexColour"),
-                    Varying::new(PR_LOW,GLArity::Vec3,"vColour"),
-                    Statement::new_vertex("vColour = vec3(aVertexColour)"),
-                    Statement::new_fragment("gl_FragColor = vec4(vColour,uOpacity)")
+                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aVertexColour"),
+                    Varying::new(PR_LOW,GLArity::Vec4,"vColour"),
+                    Statement::new_vertex("vColour = aVertexColour"),
+                    Statement::new_fragment("gl_FragColor = vColour")
                 ],
                 PatinaProgramName::Spot => vec![
                     UniformProto::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),

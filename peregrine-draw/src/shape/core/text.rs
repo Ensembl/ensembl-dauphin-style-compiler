@@ -53,7 +53,7 @@ impl FlatDrawingItem for Text {
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
         canvas.text(&self.text,pad(text_origin),size,&self.colour)?;
-        canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0))?;
+        canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255))?;
         Ok(())
     }
 }

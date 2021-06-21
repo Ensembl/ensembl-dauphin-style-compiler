@@ -55,7 +55,7 @@ proc track_apply(laneid);
 func spacebase(number,number,number) becomes spacebaseid;
 
 func use_allotment(string) becomes allotment;
-func direct_colour(number,number,number) becomes directcolour;
+func direct_colour(number,number,number,number) becomes directcolour;
 func simple_colour(directcolour) becomes colour;
 func striped(directcolour,directcolour,number,number) becomes colour;
 func barred(directcolour,directcolour,number,number) becomes colour;

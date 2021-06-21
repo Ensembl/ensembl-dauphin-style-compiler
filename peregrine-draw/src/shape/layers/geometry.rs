@@ -137,7 +137,7 @@ impl GeometryProgramName {
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
                     {
-                        return uModel * vec4(delta.x/uSize.x-1.0,1.0-delta.y/uSize.y,0.0,1.0);
+                        return uModel * vec4(delta.x/uSize.x-1.0,1.0-delta.y/uSize.y,base.x,1.0);
                     }
                 "),
                 Statement::new_vertex("

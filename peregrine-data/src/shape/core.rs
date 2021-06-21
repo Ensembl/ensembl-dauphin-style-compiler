@@ -25,7 +25,7 @@ pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T:
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub struct DirectColour(pub u8,pub u8,pub u8);
+pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct Pen(pub String,pub u32,pub Vec<DirectColour>);

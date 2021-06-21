@@ -99,7 +99,7 @@ impl Flat {
     // TODO white-bgd canvas
     pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        self.rectangle(origin,size,&DirectColour(255,255,255))?;
+        self.rectangle(origin,size,&DirectColour(255,255,255,255))?;
         let context = self.context()?;
         context.set_text_baseline("top");
         context.set_fill_style(&colour_to_css(&colour).into());

@@ -13,7 +13,7 @@ simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,
 simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(0,1));
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,2,(0,1));
-simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,4,(0,1,2,3));
+simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,5,(0,1,2,3,4));
 simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
@@ -64,14 +64,15 @@ impl InterpCommand for DirectColourInterpCommand {
         let red = registers.get_numbers(&self.1)?.to_vec();
         let green = registers.get_numbers(&self.2)?.to_vec();
         let blue = registers.get_numbers(&self.3)?.to_vec();
-        let (red_len,green_len,blue_len) = (red.len(),green.len(),blue.len());
-        let len = max(max(red_len,green_len),blue_len);
+        let alpha = registers.get_numbers(&self.4)?.to_vec();
+        let (red_len,green_len,blue_len,alpha_len) = (red.len(),green.len(),blue.len(),alpha.len());
+        let len = max(max(red_len,green_len),max(blue_len,alpha_len));
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();    
         let mut colours = vec![];
         for i in 0..len {
-            let dc = DirectColour(red[i%red_len] as u8,green[i%green_len] as u8,blue[i%blue_len] as u8);
+            let dc = DirectColour(red[i%red_len] as u8,green[i%green_len] as u8,blue[i%blue_len] as u8,alpha[i%alpha_len] as u8);
             colours.push(geometry_builder.add_direct_colour(dc) as usize);
         }
         drop(peregrine);
@@ -92,7 +93,7 @@ impl InterpCommand for SimpleColourInterpCommand {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
             dc.as_ref().clone()
         } else {
-            DirectColour(255,255,255)
+            DirectColour(255,255,255,0)
         };
         let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
         drop(peregrine);
@@ -117,13 +118,13 @@ impl InterpCommand for StripedInterpCommand {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
             dc.as_ref().clone()
         } else {
-            DirectColour(255,255,255)
+            DirectColour(255,255,255,0)
         };
         let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
             dc.as_ref().clone()
         } else {
-            DirectColour(255,255,255)
+            DirectColour(255,255,255,0)
         };
         let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b,stripes));
         drop(peregrine);
@@ -148,13 +149,13 @@ impl InterpCommand for BarredInterpCommand {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
             dc.as_ref().clone()
         } else {
-            DirectColour(255,255,255)
+            DirectColour(255,255,255,0)
         };
         let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
             let dc = geometry_builder.direct_colour(*direct_id as u32)?;
             dc.as_ref().clone()
         } else {
-            DirectColour(255,255,255)
+            DirectColour(255,255,255,0)
         };
         let colour_id = geometry_builder.add_colour(Colour::Bar(direct_colour_a,direct_colour_b,stripes));
         drop(peregrine);

@@ -4,6 +4,7 @@ use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
 use crate::shape::core::spectre::MarchingAnts;
 use crate::shape::core::spectre::Spectre;
+use crate::shape::core::spectre::Stain;
 use crate::shape::core::spectremanager::SpectreHandle;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
@@ -114,8 +115,13 @@ impl DragStateData {
     }
 
     fn update_spectre(&self) {
-        if let Some(spectre) = &self.spectre {
-            spectre.update(Spectre::MarchingAnts(self.make_ants()));
+        if let Some(spectre_handle) = &self.spectre {
+            let ants = self.make_ants();
+            let spectre = Spectre::Compound(vec![
+                Spectre::Stain(Stain::new(&ants)),
+                Spectre::MarchingAnts(MarchingAnts::new(&ants)),
+            ]);
+            spectre_handle.update(spectre);
         }
     }
 
@@ -154,20 +160,25 @@ impl DragStateData {
         self.set_mode(self.mode.clone()); // Force cursor to be correct
     }
 
-    fn make_ants(&self) -> MarchingAnts {
-        MarchingAnts::new((
+    fn make_ants(&self) -> (f64,f64,f64,f64) {
+        (
             self.primary.start().1,
             self.primary.start().0,
             self.primary.current().1,
             self.primary.current().0
-        ))
+        )
     }
 
     fn hold_timer_expired(&mut self) {
         if !self.alive { return; }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
-            self.spectre = Some(self.lowlevel.add_spectre(Spectre::MarchingAnts(self.make_ants())));
+            let ants = self.make_ants();
+            let spectre = Spectre::Compound(vec![
+                Spectre::MarchingAnts(MarchingAnts::new(&ants)),
+                Spectre::Stain(Stain::new(&ants))
+            ]);
+            self.spectre = Some(self.lowlevel.add_spectre(spectre));
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
     }

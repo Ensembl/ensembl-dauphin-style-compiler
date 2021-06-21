@@ -92,12 +92,12 @@ pc_colour := simple_colour(direct_colour(128,128,128));
 patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 */
 
-non_pc_colour := barred(direct_colour(255,255,255),direct_colour(255,0,0),4,2);
-pc_colour := simple_colour(direct_colour(128,128,128));
+non_pc_colour := barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),4,2);
+pc_colour := simple_colour(direct_colour(128,128,128,255));
 pc_colour := non_pc_colour;
 patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
-text_colour := [direct_colour(111,129,144),direct_colour(100,100,100)][(@==1)==get_switch(["settings","bluer"])];
+text_colour := [direct_colour(111,129,144,255),direct_colour(100,100,100,255)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
 
 textpen := pen("'Lato', sans-serif",text_size,text_colour);
