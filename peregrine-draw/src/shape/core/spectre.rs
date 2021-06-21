@@ -24,7 +24,7 @@ impl MarchingAnts {
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin",0));
+        let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin-over",0));
         let pos = self.0.tlbr;
         shapes.add_allotment(&window_origin);
         shapes.add_rectangle(SpaceBase::new(vec![-1.],vec![pos.0],vec![pos.1]), 
@@ -53,7 +53,7 @@ impl Stain {
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin-over",-1));
+        let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin",-1));
         let pos = self.0.tlbr;
         shapes.add_allotment(&window_origin);
         shapes.add_rectangle(SpaceBase::new(vec![-0.5],vec![pos.0],vec![pos.1]), 

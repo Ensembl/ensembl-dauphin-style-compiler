@@ -1,7 +1,7 @@
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder};
 use peregrine_data::{Allotment, AllotmentPosition, PositionVariant, SpaceBase, SpaceBaseArea};
 use super::super::util::arrayutil::rectangle64;
-use crate::shape::layers::geometry::{GeometryProgram, GeometryProgramName, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryProgramName, GeometryYielder};
 use crate::util::message::Message;
 
 fn flip(allotment: &Allotment) -> f64 {
@@ -16,15 +16,15 @@ fn flip(allotment: &Allotment) -> f64 {
 }
 
 pub(crate) struct TrackTrianglesYielder {
-    geometry_program_name: GeometryProgramName,
+    geometry_process_name: GeometryProcessName,
     track_triangles: Option<TrackTrianglesProgram>
 }
 
 impl<'a> GeometryYielder for TrackTrianglesYielder {
-    fn name(&self) -> &GeometryProgramName { &self.geometry_program_name }
+    fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
     fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
-        self.geometry_program_name.make_geometry_program(builder)
+        self.geometry_process_name.get_program_name().make_geometry_program(builder)
     }
 
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
@@ -40,9 +40,9 @@ impl<'a> GeometryYielder for TrackTrianglesYielder {
 }
 
 impl TrackTrianglesYielder {
-    pub(crate) fn new(geometry_program_name: &GeometryProgramName) -> TrackTrianglesYielder {
+    pub(crate) fn new(geometry_process_name: &GeometryProcessName) -> TrackTrianglesYielder {
         TrackTrianglesYielder {
-            geometry_program_name: geometry_program_name.clone(),
+            geometry_process_name: geometry_process_name.clone(),
             track_triangles: None
         }
     }
@@ -52,11 +52,12 @@ impl TrackTrianglesYielder {
     }
 }
 
+#[derive(Debug)]
 pub enum TrianglesKind {
     Track,
     Base,
     Space,
-    Window
+    Window(i64)
 }
 
 impl TrianglesKind {
@@ -90,9 +91,9 @@ impl TrianglesKind {
                     let base_y = allotment.position().offset() as f64;
                     rectangle64(&mut base, flip_x, base_y, flip_x,base_y,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
-                }        
+                }
             },
-            TrianglesKind::Window => {
+            TrianglesKind::Window(_) => {
                 for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
                     rectangle64(&mut base, *top_left.base, 0., *top_left.base,0.,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
@@ -102,17 +103,18 @@ impl TrianglesKind {
         (base,delta)
     }
 
-    pub(crate) fn geometry_program_name(&self) -> GeometryProgramName {
-        match self {
-            TrianglesKind::Track => GeometryProgramName::TrackTriangles,
-            TrianglesKind::Base => GeometryProgramName::BaseLabelTriangles,
-            TrianglesKind::Space => GeometryProgramName::SpaceLabelTriangles,
-            TrianglesKind::Window => GeometryProgramName::WindowTriangles
-        }
+    pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
+        let (program,priority) = match self {
+            TrianglesKind::Track => (GeometryProgramName::TrackTriangles,0),
+            TrianglesKind::Base => (GeometryProgramName::BaseLabelTriangles,0),
+            TrianglesKind::Space => (GeometryProgramName::SpaceLabelTriangles,0),
+            TrianglesKind::Window(p) => (GeometryProgramName::WindowTriangles,*p)
+        };
+        GeometryProcessName::new(program,priority)
     }
 
     pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {
-        TrackTrianglesYielder::new(&self.geometry_program_name())
+        TrackTrianglesYielder::new(&self.geometry_process_name())
     }
 }
 

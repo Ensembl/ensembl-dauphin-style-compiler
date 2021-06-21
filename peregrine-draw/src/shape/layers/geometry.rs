@@ -17,12 +17,12 @@ pub(crate) enum GeometryProgram {
 }
 
 pub(crate) trait GeometryYielder {
-    fn name(&self) -> &GeometryProgramName;
+    fn name(&self) -> &GeometryProcessName;
     fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message>;
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message>;
 }
 
-#[derive(Clone,Hash,PartialEq,Eq)]
+#[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub(crate) enum GeometryProgramName { Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles, WindowTriangles }
 
 impl EnumerableKey for GeometryProgramName {
@@ -164,4 +164,16 @@ impl GeometryProgramName {
             ]
         })
     }
+}
+
+#[derive(Clone,PartialEq,Eq,Hash,Debug)]
+pub(crate) struct GeometryProcessName(GeometryProgramName,i64);
+
+impl GeometryProcessName {
+    pub(crate) fn new(program: GeometryProgramName, priority: i64) -> GeometryProcessName {
+        GeometryProcessName(program,priority)
+    }
+
+    pub(crate) fn get_program_name(&self) -> GeometryProgramName { self.0.clone() }
+    pub(crate) fn order(&self) -> i64 { self.1 }
 }

@@ -3,7 +3,7 @@ use web_sys::WebGlRenderingContext;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::shape::layers::geometry::{GeometryProgram, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryYielder};
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
@@ -101,15 +101,15 @@ impl WiggleGeometry {
 }
 
 struct WiggleAccessor {
-    geometry_program_name: GeometryProgramName,
+    geometry_process_name: GeometryProcessName,
     wiggles: Option<WiggleProgram>
 }
 
 impl<'a> GeometryYielder for WiggleAccessor {
-    fn name(&self) -> &GeometryProgramName { &self.geometry_program_name }
+    fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
     fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
-        self.geometry_program_name.make_geometry_program(builder)
+        self.geometry_process_name.get_program_name().make_geometry_program(builder)
     }
 
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {

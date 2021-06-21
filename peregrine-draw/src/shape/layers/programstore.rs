@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
 use crate::webgl::{ProcessBuilder, Program, ProgramBuilder, SourceInstrs, make_program};
-use super::geometry::{ GeometryProgramName, GeometryProgram };
+use super::geometry::{GeometryProcessName, GeometryProgram, GeometryProgramName};
 use super::patina::{PatinaProcessName, PatinaProgram, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
@@ -80,7 +80,7 @@ impl ProgramStore {
         Ok(ProgramStore(Rc::new(RefCell::new(ProgramStoreData::new()?))))
     }
 
-    pub(super) fn get_shape_program(&self, geometry: &GeometryProgramName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
-        self.0.borrow_mut().get_program(geometry.clone(),patina.get_program_name())?.make_shape_program(patina)
+    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(patina)
     }
 }
