@@ -51,20 +51,23 @@ pub struct ProcessStanzaElements {
     elements: Vec<(Rc<RefCell<ProcessStanzaElementsEntry>>,usize)>,
     points_per_shape: usize,
     shape_count: usize,
-    active: Rc<RefCell<bool>>
+    active: Rc<RefCell<bool>>,
+    self_active: bool
 }
 
 impl ProcessStanzaElements {
-    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, shape_count: usize, indexes: &[u16]) -> ProcessStanzaElements {
+    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, shape_count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
         let mut out = ProcessStanzaElements {
             points_per_shape: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
             elements: vec![],
             shape_count,
-            active: stanza_builder.active().clone()
+            active: stanza_builder.active().clone(),
+            self_active: false
         };
+        out.open()?;
         out.allocate_entries(stanza_builder);
         out.add_indexes(indexes);
-        out
+        Ok(out)
     }
 
     fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder) {
@@ -89,8 +92,23 @@ impl ProcessStanzaElements {
         }
     }
 
-    pub(crate) fn close(&mut self) {
+    pub(crate) fn open(&mut self) -> Result<(),Message> {
+        if self.self_active { return Ok(()); }
+        if *self.active.borrow() {
+            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
+        }
+        *self.active.borrow_mut() = true;
+        self.self_active = true;
+        Ok(())
+    }
+
+    pub(crate) fn close(&mut self) -> Result<(),Message> {
+        if !self.self_active {
+            return Err(Message::CodeInvariantFailed(format!("closing unopened campaign/array")));
+        }
+        self.self_active = false;
         *self.active.borrow_mut() = false;
+        Ok(())
     }
 }
 

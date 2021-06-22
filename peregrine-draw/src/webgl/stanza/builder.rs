@@ -44,29 +44,21 @@ impl ProcessStanzaBuilder {
     }
 
     pub(crate) fn make_elements(&mut self, count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
-        if *self.active.borrow() {
-            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
-        }
         if self.elements.len() == 0 {
             self.make_elements_entry();
         }
-        *self.active.borrow_mut() = true;
-        Ok(ProcessStanzaElements::new(self,count,indexes))
+        ProcessStanzaElements::new(self,count,indexes)
     }
 
     pub(crate) fn make_array(&mut self, len: usize) -> Result<ProcessStanzaArray,Message> {
-        if *self.active.borrow() {
-            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
-        }
-        let out = ProcessStanzaArray::new(&self.active,&self.maker,len);
+        let out = ProcessStanzaArray::new(&self.active,&self.maker,len)?;
         self.arrays.push(out.clone());
-        *self.active.borrow_mut() = true;
         Ok(out)
     }
 
     pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
         if *self.active.borrow() {
-            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
+            return Err(Message::CodeInvariantFailed(format!("attempt to make while campaign still open")));
         }
         let mut out = self.elements.iter().map(|x| x.replace(ProcessStanzaElementsEntry::new(&self.maker)).make_stanza(attribs.data(),context,aux_array)).collect::<Result<Vec<_>,_>>()?;
         out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context,aux_array)).collect::<Result<_,_>>()?);

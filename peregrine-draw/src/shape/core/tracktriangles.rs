@@ -142,7 +142,7 @@ impl TrackTrianglesProgram {
         })
     }
 
-    fn add_rectangles_real(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64>, allotments: &[Allotment], left: f64,width: Option<f64>, kind: &TrianglesKind)-> Result<ProcessStanzaElements,Message> {
+    fn add_rectangles_real(&self, builder: &mut ProcessBuilder, area: &SpaceBaseArea<f64>, allotments: &[Allotment], left: f64, width: Option<f64>, kind: &TrianglesKind)-> Result<ProcessStanzaElements,Message> {
         let indexes = if width.is_some() {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
         } else {
