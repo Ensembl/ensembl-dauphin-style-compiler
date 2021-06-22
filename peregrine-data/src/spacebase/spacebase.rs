@@ -1,5 +1,7 @@
-use std::{marker::PhantomData, ops::{Add, Div}, sync::Arc};
+use std::{marker::PhantomData, ops::{Add, Div}, sync::{Arc, Mutex}};
 use crate::util::ringarray::{ UniformData, DataFilter };
+
+use super::parametric::{ ParametricType, ParameterValue, Substitutions };
 
 fn cycle<T>(data: &[T], index: usize) -> &T {
     &data[index%data.len()]
@@ -8,7 +10,6 @@ fn cycle<T>(data: &[T], index: usize) -> &T {
 fn average<X: Clone + Add<Output=X> + Div<f64,Output=X>>(a: &[X], b: &[X]) -> Vec<X> {
     a.iter().zip(b.iter().cycle()).map(|(a,b)| (a.clone()+b.clone())/2.).collect()
 }
-
 pub struct SpaceBasePoint<X> {
     base: X,
     normal: X,
@@ -42,27 +43,28 @@ pub struct SpaceBase<X> {
     pub(super) max_len: usize
 }
 
-pub trait ParametricType {
-    type Location;
-    type Value;
-
-    fn replace(&mut self, replace: &[(Self::Location,Self::Value)]);
-}
-
 pub enum SpaceBaseParameterLocation {
     Base(usize),
     Normal(usize),
     Tangent(usize)
 }
 
-impl SpaceBaseParameterLocation {
+impl<X: Clone + Default> SpaceBase<ParameterValue<X>> {
+    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(SpaceBaseParameterLocation) -> L {
+        SpaceBase {
+            base: Arc::new(subs.flatten(&self.base,|x| cb(SpaceBaseParameterLocation::Base(x)))),
+            normal: Arc::new(subs.flatten(&self.normal, |x| cb(SpaceBaseParameterLocation::Normal(x)))),
+            tangent: Arc::new(subs.flatten(&self.tangent,|x| cb(SpaceBaseParameterLocation::Tangent(x)))),
+            max_len: self.max_len
+        }
+    }
 }
 
 impl<X: Clone> ParametricType for SpaceBase<X> {
     type Location = SpaceBaseParameterLocation;
     type Value = X;
 
-    fn replace(&mut self, replace: &[(Self::Location,X)]) {
+    fn replace(&mut self, replace: &[(&Self::Location,X)]) {
         let mut base = None;
         let mut normal = None;
         let mut tangent = None;  
@@ -79,6 +81,20 @@ impl<X: Clone> ParametricType for SpaceBase<X> {
                 SpaceBaseParameterLocation::Normal(index) => { normal.as_mut().unwrap()[*index] = value.clone(); },
                 SpaceBaseParameterLocation::Tangent(index) => { tangent.as_mut().unwrap()[*index] = value.clone(); },
             }
+        }
+    }
+}
+
+pub enum HoleySpaceBase {
+    Simple(SpaceBase<f64>),
+    Parametric(SpaceBase<ParameterValue<f64>>)
+}
+
+impl HoleySpaceBase {
+    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<f64> where F: Fn(SpaceBaseParameterLocation) -> L {
+        match self {
+            HoleySpaceBase::Simple(x) => x.clone(),
+            HoleySpaceBase::Parametric(x) => x.flatten(subs,cb)
         }
     }
 }

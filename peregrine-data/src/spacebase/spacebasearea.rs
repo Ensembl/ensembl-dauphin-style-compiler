@@ -1,9 +1,54 @@
 use std::{ops::{Add, Div, Sub}, sync::Arc};
 use crate::util::ringarray::{ DataFilter };
-use super::spacebase::{ SpaceBase, SpaceBaseIterator, SpaceBasePointRef };
+use super::{parametric::{ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}};
 
 #[derive(Debug)]
 pub struct SpaceBaseArea<X>(SpaceBase<X>,SpaceBase<X>);
+
+pub enum SpaceBaseAreaParameterLocation {
+    Left(SpaceBaseParameterLocation),
+    Right(SpaceBaseParameterLocation)
+}
+
+impl<X: Clone + Default> SpaceBaseArea<ParameterValue<X>> {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<X> where F: Fn(SpaceBaseAreaParameterLocation) -> L {
+        let left = self.0.flatten(subs,|location| cb(SpaceBaseAreaParameterLocation::Left(location)));
+        let right = self.1.flatten(subs,|location| cb(SpaceBaseAreaParameterLocation::Left(location)));
+        SpaceBaseArea(left,right)
+    }
+}
+
+impl<X: Clone> ParametricType for SpaceBaseArea<X> {
+    type Location = SpaceBaseAreaParameterLocation;
+    type Value = X;
+
+    fn replace(&mut self, replace: &[(&Self::Location,X)]) {
+        let mut left_replace = vec![];
+        let mut right_replace = vec![];
+        for (location,value) in replace.iter() {
+            match location {
+                SpaceBaseAreaParameterLocation::Left(x) => { left_replace.push((x,value.clone())); },
+                SpaceBaseAreaParameterLocation::Right(x) => { right_replace.push((x,value.clone())); },
+            }
+        }
+        self.0.replace(&left_replace);
+        self.1.replace(&right_replace);
+    }
+}
+
+pub enum HoleySpaceBaseArea {
+    Simple(SpaceBaseArea<f64>),
+    Parametric(SpaceBaseArea<ParameterValue<f64>>)
+}
+
+impl HoleySpaceBaseArea {
+    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<f64> where F: Fn(SpaceBaseAreaParameterLocation) -> L {
+        match self {
+            HoleySpaceBaseArea::Simple(x) => x.clone(),
+            HoleySpaceBaseArea::Parametric(x) => x.flatten(subs,cb)
+        }
+    }
+}
 
 impl<X: Clone> SpaceBaseArea<X> {
     pub fn new(top_left: SpaceBase<X>, bottom_right: SpaceBase<X>) -> SpaceBaseArea<X> {

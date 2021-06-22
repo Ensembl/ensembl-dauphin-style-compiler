@@ -96,6 +96,7 @@ mod shape {
 }
 
 pub(crate) mod spacebase {
+    pub(crate) mod parametric;
     pub(crate) mod spacebase;
     pub(crate) mod spacebasearea;
 
