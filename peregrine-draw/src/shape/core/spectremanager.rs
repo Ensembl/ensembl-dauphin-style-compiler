@@ -9,7 +9,8 @@ pub enum SpectreConfigKey {
     MarchingAntsWidth,
     MarchingAntsColour,
     MarchingAntsLength,
-    MarchingAntsProp
+    MarchingAntsProp,
+    StainColour,
 }
 
 pub struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);
@@ -99,8 +100,8 @@ impl SpectreManager {
         Ok(Spectre::MarchingAnts(MarchingAnts::new(&self.config,area)?))
     }
 
-    pub(crate) fn stain(&self, area: &AreaVariables, flip: bool) -> Spectre {
-        Spectre::Stain(Stain::new(area,flip))
+    pub(crate) fn stain(&self, area: &AreaVariables, flip: bool) -> Result<Spectre,Message> {
+        Ok(Spectre::Stain(Stain::new(&self.config,area,flip)?))
     }
 
     pub(crate) fn add(&self, spectre: Spectre) -> SpectreHandle {

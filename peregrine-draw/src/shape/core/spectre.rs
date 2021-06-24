@@ -80,27 +80,35 @@ impl MarchingAnts {
 }
 
 #[derive(Clone)]
-pub(crate) struct Stain(AreaVariables,bool);
+pub(crate) struct Stain {
+    area: AreaVariables,
+    invert: bool,
+    colour: DirectColour
+}
 
 impl Stain {
-    pub(super) fn new(area: &AreaVariables,flipped: bool) -> Stain {
-        Stain(area.clone(),flipped)
+    pub(super) fn new(config: &PgPeregrineConfig, area: &AreaVariables,invert: bool) -> Result<Stain,Message> {
+        Ok(Stain { 
+            area: area.clone(),
+            invert,
+            colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::StainColour))?
+        })
     }
-
+    
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
         let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin",-1));
         shapes.add_allotment(&window_origin);
         let mut rectangles = vec![];
-        if self.1 {
+        if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
-            let pos = self.0.tlbr().clone();
+            let pos = self.area.tlbr().clone();
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Constant(0.)],vec![ParameterValue::Constant(0.)]),
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Variable(pos.1,16.)])
             )));
-            let pos = self.0.tlbr().clone();
+            let pos = self.area.tlbr().clone();
             /* top right of screen to bottom of screen, allong righthand edge of selection */
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
@@ -109,7 +117,7 @@ impl Stain {
                                      vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Constant(-1.)])
             )));
             /* length of top of shape from top of screen to that shape */
-            let pos = self.0.tlbr().clone();
+            let pos = self.area.tlbr().clone();
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Constant(0.)],vec![ParameterValue::Variable(pos.1,0.)]),
@@ -117,7 +125,7 @@ impl Stain {
                                      vec![ParameterValue::Variable(pos.0,0.)],vec![ParameterValue::Variable(pos.3,16.)])
             )));
             /* length of bottom of shape from bottom of shape to bottom of screen */
-            let pos = self.0.tlbr().clone();
+            let pos = self.area.tlbr().clone();
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Variable(pos.2,0.)],vec![ParameterValue::Variable(pos.1,0.)]),
@@ -125,7 +133,7 @@ impl Stain {
                                      vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Variable(pos.3,16.)])
             )));
         } else {
-            let pos = self.0.tlbr().clone();
+            let pos = self.area.tlbr().clone();
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Variable(pos.0,0.)],vec![ParameterValue::Variable(pos.1,0.)]),
@@ -134,7 +142,7 @@ impl Stain {
             )));
         }
         for area in rectangles.drain(..) {
-            shapes.add_rectangle(area,Patina::Filled(vec![Colour::Direct(DirectColour(0,0,255,128))]),vec![window_origin.clone()]);
+            shapes.add_rectangle(area,Patina::Filled(vec![Colour::Direct(self.colour.clone())]),vec![window_origin.clone()]);
         }
         Ok(())
     }

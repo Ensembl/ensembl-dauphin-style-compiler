@@ -5,7 +5,6 @@ use crate::input::low::lowlevel::Modifiers;
 use crate::shape::core::spectre::AreaVariables;
 use crate::shape::core::spectre::MarchingAnts;
 use crate::shape::core::spectre::Spectre;
-use crate::shape::core::spectre::Stain;
 use crate::shape::core::spectremanager::SpectreHandle;
 use super::pinch::PinchManager;
 use super::pinch::PinchManagerFactory;
@@ -182,7 +181,7 @@ impl DragStateData {
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
                 self.lowlevel.spectre_manager().marching_ants(&self.hold_vars)?,
-                self.lowlevel.spectre_manager().stain(&self.hold_vars,true)
+                self.lowlevel.spectre_manager().stain(&self.hold_vars,true)?
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
             self.hold_vars.update(ants);
