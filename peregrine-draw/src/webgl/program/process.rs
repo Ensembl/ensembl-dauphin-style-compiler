@@ -80,6 +80,13 @@ impl Process {
         })
     }
 
+    pub fn update_attributes(&self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        for stanza in &self.stanzas {
+            stanza.update_values(gl.context(),gl.aux_array())?;
+        }
+        Ok(())
+    }
+
     pub fn set_uniform(&mut self, handle: &UniformHandle, values: &[f32]) -> Result<(),Message> {
         self.uniforms.get_mut(handle).set_value(values)
     }

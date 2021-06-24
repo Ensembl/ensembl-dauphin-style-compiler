@@ -1,8 +1,9 @@
 use super::layer::Layer;
-use peregrine_data::{ Shape, Allotter, ShapeList };
+use peregrine_data::{Allotter, Shape, ShapeList, VariableValues};
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
 use crate::shape::core::heraldry::DrawingHeraldry;
+use crate::util::needed::Needed;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
@@ -10,6 +11,10 @@ use crate::webgl::global::WebGlGlobal;
 use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
+
+pub(crate) trait DynamicShape {
+    fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message>;
+}
 
 pub(crate) struct ToolPreparations {
     crisp: FlatPositionManager,
@@ -74,15 +79,19 @@ impl DrawingTools {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingTools,
-    flats: Option<DrawingAllFlatsBuilder>
+    variables: VariableValues<f64>,
+    flats: Option<DrawingAllFlatsBuilder>,
+    dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(gl: &WebGlGlobal, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(gl: &WebGlGlobal, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl.program_store(),left)?,
             tools: DrawingTools::new(),
-            flats: None
+            flats: None,
+            variables: variables.clone(),
+            dynamic_shapes: vec![]
         })
     }
 
@@ -103,26 +112,31 @@ impl DrawingBuilder {
 
     pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Message> {
         let (layer, tools,) = (&mut self.main_layer,&mut self.tools);
-        add_shape_to_layer(layer,gl,tools,shape)
+        let mut dynamic = add_shape_to_layer(layer,gl,tools,shape)?;
+        self.dynamic_shapes.append(&mut dynamic);
+        Ok(())
     }
 
     pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build(gl,&flats)?;
-        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build())?)
+        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes,&self.variables)?)
     }
 }
 
 pub(crate) struct Drawing {
     processes: Vec<Process>,
     canvases: DrawingAllFlats,
-    zmenus: DrawingZMenus
+    variables: VariableValues<f64>,
+    zmenus: DrawingZMenus,
+    dynamic_shapes: Vec<Box<dyn DynamicShape>>,
+    recompute: Needed
 }
 
 impl Drawing {
-    pub(crate) fn new(shapes: ShapeList, gl: &mut WebGlGlobal, left: f64) -> Result<Drawing,Message> {
+    pub(crate) fn new(shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(gl,left)?;
+        let mut drawing = DrawingBuilder::new(gl,variables,left)?;
         let allotter = shapes.allotter();
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
@@ -137,12 +151,17 @@ impl Drawing {
         drawing.build(gl)
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus) -> Result<Drawing,Message> {
-        Ok(Drawing {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+        let mut out = Drawing {
             processes,
             canvases,
-            zmenus
-        })
+            zmenus,
+            variables: variables.clone(),
+            dynamic_shapes,
+            recompute: Needed::new()
+        };
+        out.recompute()?;
+        Ok(out)
     }
 
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
@@ -154,9 +173,21 @@ impl Drawing {
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> Result<(),Message> {
+        let recompute =  self.recompute.is_needed();
         for process in &mut self.processes {
+            if recompute {
+                process.update_attributes(gl)?;
+            }
             session.run_process(gl,stage,process,opacity)?;
         }
+        Ok(())
+    }
+
+    pub(crate) fn recompute(&mut self) -> Result<(),Message> {
+        for shape in &mut self.dynamic_shapes {
+            shape.recompute(&self.variables)?;
+        }
+        self.recompute.set();
         Ok(())
     }
 

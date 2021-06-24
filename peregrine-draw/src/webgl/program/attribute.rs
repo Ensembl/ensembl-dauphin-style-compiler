@@ -83,6 +83,25 @@ fn create_buffer(context: &WebGlRenderingContext, aux_array: &Float32Array, valu
     Ok(buffer)
 }
 
+fn replace_buffer(context: &WebGlRenderingContext, buffer: &WebGlBuffer, aux_array: &Float32Array, values: &[f32]) -> Result<(),Message> {
+    let mut local_buffer = None;
+    let values_js = if values.len() <= aux_array.length() as usize {
+        aux_array
+    } else {
+        local_buffer = Some(Float32Array::new_with_length(values.len() as u32));
+        local_buffer.as_ref().unwrap()
+    };
+    unsafe { values_js.set(&Float32Array::view(&values),0) }
+    context.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER,Some(&buffer));
+    context.buffer_data_with_opt_array_buffer(
+        WebGlRenderingContext::ARRAY_BUFFER,
+        Some(&values_js.subarray(0,values.len() as u32).buffer()),
+        WebGlRenderingContext::STATIC_DRAW
+    );
+    handle_context_errors(context)?;
+    Ok(())
+}
+
 pub(crate) struct AttributeValues {
     gl_value: WebGlBuffer,
     arity: i32,
@@ -96,6 +115,11 @@ impl AttributeValues {
             arity: object.proto.arity.to_num() as i32,
             location: object.location.unwrap()
         })
+    }
+
+    pub(crate) fn replace(&self, our_value: &[f32], context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<(),Message> {
+        replace_buffer(context,&self.gl_value,aux_array,our_value)?;
+        Ok(())
     }
 
     pub(crate) fn activate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {

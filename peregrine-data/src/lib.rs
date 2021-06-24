@@ -100,8 +100,9 @@ pub(crate) mod spacebase {
     pub(crate) mod spacebase;
     pub(crate) mod spacebasearea;
 
-    pub use self::spacebase::SpaceBase;
-    pub use self::spacebasearea::SpaceBaseArea;
+    pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
+    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation };
+    pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
 }
 
 pub(crate) mod switch {
@@ -175,4 +176,8 @@ pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
-pub use self::spacebase::{ SpaceBase, SpaceBaseArea };
+pub use self::spacebase::{ 
+    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable,
+    SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
+    SpaceBaseParameterLocation, HollowEdge, Variable
+};

@@ -1,7 +1,7 @@
 use super::super::program::attribute::{ Attribute, AttribHandle };
 use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
-use super::stanza::ProcessStanza;
+use super::stanza::{AttribSource, ProcessStanza};
 use super::builder::ProcessStanzaAddable;
 use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
@@ -10,14 +10,14 @@ use crate::util::message::Message;
 
 #[derive(Clone)]
 pub(crate) struct ProcessStanzaArray {
-    attribs: Rc<RefCell<KeyedData<AttribHandle,Vec<f32>>>>,
+    attribs: Rc<RefCell<KeyedData<AttribHandle,AttribSource>>>,
     len: usize,
     active: Rc<RefCell<bool>>,
     self_active: bool
 }
 
 impl ProcessStanzaArray {
-    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,Vec<f32>>, len: usize) -> Result<ProcessStanzaArray,Message> {
+    pub(super) fn new(active: &Rc<RefCell<bool>>, maker: &KeyedDataMaker<'static,AttribHandle,AttribSource>, len: usize) -> Result<ProcessStanzaArray,Message> {
         let mut out = ProcessStanzaArray {
             attribs: Rc::new(RefCell::new(maker.make())),
             active: active.clone(),
@@ -29,7 +29,7 @@ impl ProcessStanzaArray {
     }
 
     pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
-        ProcessStanza::new_array(context,aux_array,self.len,values,&self.attribs)
+        ProcessStanza::new_array(context,aux_array,self.len,values,&self.attribs.borrow())
     }
 
     pub(crate) fn open(&mut self) -> Result<(),Message> {
@@ -55,7 +55,7 @@ impl ProcessStanzaArray {
 impl ProcessStanzaAddable for ProcessStanzaArray {
     fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, _dims: usize) -> Result<(),Message> {
         // TODO check size
-        self.attribs.borrow_mut().get_mut(handle).extend_from_slice(&values);
+        self.attribs.borrow_mut().get_mut(handle).get().extend_from_slice(&values);
         Ok(())
     }
 
@@ -66,7 +66,7 @@ impl ProcessStanzaAddable for ProcessStanzaArray {
         while remaining > 0 {
             let mut real_count = remaining;
             if offset+real_count > values_size { real_count = values_size-offset; }
-            self.attribs.borrow_mut().get_mut(handle).extend_from_slice(&values[offset..(offset+real_count)]);
+            self.attribs.borrow_mut().get_mut(handle).get().extend_from_slice(&values[offset..(offset+real_count)]);
             remaining -= real_count;
             offset += real_count;
             if offset == values_size { offset = 0; }

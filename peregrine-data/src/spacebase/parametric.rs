@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::{cmp::Ordering, sync::{Arc, Mutex}};
 
 pub trait ParametricType {
     type Location;
@@ -10,9 +10,45 @@ pub trait ParametricType {
 #[derive(Clone)]
 pub struct Variable(usize);
 
-pub enum ParameterValue<X> {
+#[derive(Clone)]
+pub enum ParameterValue<X: Clone> {
     Constant(X),
-    Variable(Variable)
+    Variable(Variable,X)
+}
+
+impl<X:Clone> ParameterValue<X> {
+    pub fn param_default(&self) -> &X {
+        match self {
+            ParameterValue::Constant(x) => x,
+            ParameterValue::Variable(_,x) => x
+        }
+    }
+}
+
+impl<X: PartialEq + Clone> PartialEq for ParameterValue<X> {
+    fn eq(&self, other: &ParameterValue<X>) -> bool {
+        self.param_default() == other.param_default()
+    }
+}
+
+impl<X: PartialOrd + Clone> PartialOrd for ParameterValue<X> {
+    fn partial_cmp(&self, other: &ParameterValue<X>) -> Option<Ordering> {
+        self.param_default().partial_cmp(other.param_default())
+    }
+}
+
+
+pub trait Flattenable {
+    type Location;
+    type Target;
+
+    fn extract(&self) -> (Self::Target,Substitutions<Self::Location>) {
+        let mut subs = Substitutions::empty();
+        let out = self.flatten(&mut subs,|x| x);
+        (out,subs)
+    }
+
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L;
 }
 
 #[derive(Clone)]
@@ -21,26 +57,26 @@ pub struct VariableValues<X> {
 }
 
 impl<X: Clone> VariableValues<X> {
-    fn new() -> VariableValues<X> {
+    pub fn new() -> VariableValues<X> {
         VariableValues {
             values: Arc::new(Mutex::new(vec![]))
         }
     }
 
-    fn new_variable(&self, value: X) -> Variable {
+    pub fn new_variable(&self, value: X) -> Variable {
         let mut vars = self.values.lock().unwrap();
         let out = vars.len();
         vars.push(value);
         Variable(out)
     }
 
-    fn update_variable(&self, var: &Variable, value: X) {
+    pub fn update_variable(&self, var: &Variable, value: X) {
         self.values.lock().unwrap()[var.0] = value;
     }
 
-    fn get_values(&self, vars: &[&Variable]) -> Vec<X> {
+    fn get_values(&self, vars: &[&Variable]) -> Vec<Option<X>> {
         vars.iter().map(|x| {
-            self.values.lock().unwrap()[x.0].clone()
+            self.values.lock().unwrap().get(x.0).cloned()
         }).collect()
     }
 }
@@ -56,28 +92,30 @@ impl<L> Substitutions<L> {
         }
     }
 
-    pub(super) fn flatten<X: Clone+Default, F>(&mut self, data: &[ParameterValue<X>], cb: F) -> Vec<X> where F: Fn(usize) -> L {
+    pub(super) fn flatten<X: Clone, F>(&mut self, data: &[ParameterValue<X>], cb: F) -> Vec<X> where F: Fn(usize) -> L {
         let mut out = vec![];
         for (i,item) in data.iter().enumerate() {
             match item {
                 ParameterValue::Constant(v) => { 
                     out.push(v.clone());
                 }
-                ParameterValue::Variable(var) => {
+                ParameterValue::Variable(var,initial) => {
                     self.locations.push((cb(i),var.clone()));
-                    out.push(Default::default());
+                    out.push(initial.clone());
                 }
             }
         }
         out
     }
 
-    fn apply<X: Clone>(&self, target: &mut dyn ParametricType<Location=L,Value=X>, values: VariableValues<X>) {
+    pub fn apply<X: Clone>(&self, target: &mut dyn ParametricType<Location=L,Value=X>, values: &VariableValues<X>) {
         let vars = self.locations.iter().map(|x| &x.1).collect::<Vec<_>>();
         let mut values = values.get_values(&vars);
         let mut subs = vec![];
         for ((location,_),value) in self.locations.iter().zip(values.drain(..)) {
-            subs.push((location,value));
+            if let Some(value) = value {
+                subs.push((location,value));
+            }
         }
         target.replace(&subs);
     }

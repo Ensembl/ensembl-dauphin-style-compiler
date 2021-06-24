@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{ Builder, ShapeListBuilder };
+use peregrine_data::{Builder, HoleySpaceBase, HoleySpaceBaseArea, ShapeListBuilder, SpaceBaseArea};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -26,7 +26,8 @@ impl InterpCommand for RectangleInterpCommand {
             Ok(geometry.allotment(*id as u32)?.as_ref().clone())
         }).collect::<anyhow::Result<Vec<_>>>()?;        
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_rectangle(top_left,bottom_right,patina,allotments);
+        let area = SpaceBaseArea::new(top_left,bottom_right);
+        zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,allotments);
         Ok(CommandResult::SyncResult())
     }
 }
@@ -48,7 +49,7 @@ impl InterpCommand for Text2InterpCommand {
             allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_text2(spacebase,pen,text,allotments);
+        zoo.lock().add_text2(HoleySpaceBase::Simple(spacebase),pen,text,allotments);
         Ok(CommandResult::SyncResult())
     }
 }

@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex };
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::lowlevel::Modifiers;
+use crate::shape::core::spectre::AreaVariables;
 use crate::shape::core::spectre::MarchingAnts;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectre::Stain;
@@ -91,6 +92,7 @@ pub struct DragStateData {
     pinch: Option<PinchManager>,
     mode: DragMode,
     alive: bool,
+    hold_vars: AreaVariables,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
     #[allow(unused)] // keep as guard
@@ -107,6 +109,7 @@ impl DragStateData {
             pinch: None,
             mode: DragMode::Unknown,
             alive: true,
+            hold_vars: AreaVariables::new(lowlevel.spectre_variables()),
             cursor: None,
             spectre: None
         };
@@ -114,15 +117,12 @@ impl DragStateData {
         Ok(out)
     }
 
-    fn update_spectre(&self) {
-        if let Some(spectre_handle) = &self.spectre {
-            let ants = self.make_ants();
-            let spectre = Spectre::Compound(vec![
-                Spectre::Stain(Stain::new(&ants,true)),
-                Spectre::MarchingAnts(MarchingAnts::new(&ants)),
-            ]);
-            spectre_handle.update(spectre);
+    fn update_spectre(&mut self) -> Result<(),Message> {
+        if self.spectre.is_some() {
+            self.hold_vars.update(self.make_ants());
+            self.lowlevel.redraw_spectres()?;
         }
+        Ok(())
     }
 
     fn check_secondary(&mut self, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<(),Message> {
@@ -161,26 +161,37 @@ impl DragStateData {
     }
 
     fn make_ants(&self) -> (f64,f64,f64,f64) {
-        (
+        let pos = (
             self.primary.start().1,
             self.primary.start().0,
             self.primary.current().1,
             self.primary.current().0
+        );
+        (
+            pos.0.min(pos.2),
+            pos.1.min(pos.3),
+            pos.0.max(pos.2),
+            pos.1.max(pos.3)
         )
     }
 
-    fn hold_timer_expired(&mut self) {
-        if !self.alive { return; }
+    fn hold_timer_expired(&mut self) -> Result<(),Message> {
+        if !self.alive { return Ok(()); }
         if self.mode == DragMode::Unknown {
             self.set_mode(DragMode::Hold);
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
-                Spectre::MarchingAnts(MarchingAnts::new(&ants)),
-                Spectre::Stain(Stain::new(&ants,true))
+                Spectre::MarchingAnts(MarchingAnts::new(&self.hold_vars)),
+                Spectre::Stain(Stain::new(&self.hold_vars,true))
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
+            self.hold_vars.update(ants);
+            self.lowlevel.redraw_spectres()?;
+            self.update_spectre()?;
+            self.lowlevel.redraw_spectres()?;
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
+        Ok(())
     }
 
     fn send_drag(&mut self, delta: (f64,f64), start: bool) {
@@ -212,7 +223,7 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
-        self.update_spectre();
+        self.update_spectre()?;
         let delta_p = self.primary.delta();
         self.send_drag(delta_p,true);
         Ok(())
@@ -222,7 +233,7 @@ impl DragStateData {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
         self.check_dragged(config);
-        self.update_spectre();
+        self.update_spectre()?;
         let delta = self.primary.delta();
         self.send_drag(delta,true);
         self.alive = false;

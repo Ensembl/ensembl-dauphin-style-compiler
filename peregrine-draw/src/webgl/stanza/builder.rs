@@ -3,7 +3,7 @@ use js_sys::Float32Array;
 use keyed::{ KeyedValues, KeyedDataMaker };
 use super::array::ProcessStanzaArray;
 use super::elements::{ ProcessStanzaElements, ProcessStanzaElementsEntry };
-use super::stanza::ProcessStanza;
+use super::stanza::{AttribSource, ProcessStanza};
 use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -17,14 +17,14 @@ pub trait ProcessStanzaAddable {
 pub struct ProcessStanzaBuilder {
     elements: Vec<Rc<RefCell<ProcessStanzaElementsEntry>>>,
     arrays: Vec<ProcessStanzaArray>,
-    maker: KeyedDataMaker<'static,AttribHandle,Vec<f32>>,
+    maker: KeyedDataMaker<'static,AttribHandle,AttribSource>,
     active: Rc<RefCell<bool>>
 
 }
 
 impl ProcessStanzaBuilder {
     pub(crate) fn new(attribs: &KeyedValues<AttribHandle,AttributeProto>) -> ProcessStanzaBuilder {
-        let maker = attribs.keys().make_maker(|| vec![]);
+        let maker = attribs.keys().make_maker(|| AttribSource::new());
         ProcessStanzaBuilder {
             maker,
             elements: vec![],
@@ -60,7 +60,10 @@ impl ProcessStanzaBuilder {
         if *self.active.borrow() {
             return Err(Message::CodeInvariantFailed(format!("attempt to make while campaign still open")));
         }
-        let mut out = self.elements.iter().map(|x| x.replace(ProcessStanzaElementsEntry::new(&self.maker)).make_stanza(attribs.data(),context,aux_array)).collect::<Result<Vec<_>,_>>()?;
+        let mut out = self.elements.iter()
+            .map(|x| 
+                x.borrow().make_stanza(attribs.data(),context,aux_array))
+                .collect::<Result<Vec<_>,_>>()?;
         out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context,aux_array)).collect::<Result<_,_>>()?);
         Ok(out.drain(..).filter(|x| x.is_some()).map(|x| x.unwrap()).collect())
     }

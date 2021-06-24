@@ -89,7 +89,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::SetPosition), name: "keys.pixels-scale", default: &PgConfigValue::StaticStr("RunningPinch") },
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
-            ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1500.) },
+            ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1000.) },
             ConfigKeyInfo { key: PgConfigKey::WheelTimeout, name: "mouse.wheel-timeout", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Default), name: "mouse.cursor.default", default: &PgConfigValue::StaticStr("default") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::WheelPositive), name: "mouse.cursor.wheel.positive", default: &PgConfigValue::StaticStr("zoom-in col-resize") },

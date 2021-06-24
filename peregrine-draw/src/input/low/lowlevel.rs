@@ -11,7 +11,7 @@ use super::mouseinput::{ MouseEventHandler };
 use crate::input::{ InputEvent, Distributor };
 use super::mapping::InputMap;
 use js_sys::Date;
-use peregrine_data::Commander;
+use peregrine_data::{Commander, VariableValues};
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
@@ -95,6 +95,8 @@ impl LowLevelState {
     }
 
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.spectres.get_spectres() }
+    pub(crate) fn redraw_spectres(&self) -> Result<(),Message> { self.spectres.update() }
+    pub(crate) fn spectre_variables(&self) -> &VariableValues<f64> { self.spectres.variables() }
 }
 
 #[derive(Clone)]

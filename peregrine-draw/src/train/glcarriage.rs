@@ -1,4 +1,4 @@
-use peregrine_data::{ Carriage, CarriageId };
+use peregrine_data::{Carriage, CarriageId, VariableValues};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -33,7 +33,7 @@ impl GLCarriage {
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
-            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left())?
+            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left(),&VariableValues::new())?
         })
     }
 

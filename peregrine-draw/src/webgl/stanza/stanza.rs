@@ -1,5 +1,4 @@
-use std::rc::Rc;
-use std::cell::RefCell;
+use std::sync::{Arc, Mutex, MutexGuard};
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
 use js_sys::Float32Array;
 use keyed::{ KeyedData };
@@ -7,6 +6,21 @@ use web_sys::{ WebGlBuffer, WebGlRenderingContext };
 use crate::webgl::util::handle_context_errors;
 use crate::webgl::Attribute;
 use crate::util::message::Message;
+
+#[derive(Clone,Debug)]
+pub struct AttribSource(Arc<Mutex<Vec<f32>>>);
+
+impl AttribSource {
+    pub fn new() -> AttribSource {
+        AttribSource(Arc::new(Mutex::new(vec![])))
+    }
+
+    pub fn len(&self) -> usize { self.0.lock().unwrap().len() }
+
+    pub fn get(&self) -> MutexGuard<Vec<f32>> {
+        self.0.lock().unwrap()
+    }
+}
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
@@ -26,30 +40,41 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Resul
 }
 
 pub(crate) struct ProcessStanza {
-    attribs: KeyedData<AttribHandle,AttributeValues>,
+    attribs: KeyedData<AttribHandle,(AttribSource,AttributeValues)>,
     index: Option<WebGlBuffer>,
     len: usize
 }
 
 impl ProcessStanza {
-    pub(super) fn new_elements(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: KeyedData<AttribHandle,Vec<f32>>) -> Result<Option<ProcessStanza>,Message> {
+    pub(crate) fn update_values(&self, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<(),Message> {
+        for (source,attrib) in self.attribs.values() {
+            attrib.replace(&source.get(),context,aux_array)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn new_elements(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
                 len: index.len(),
-                attribs: attribs.map_into(|k,v| AttributeValues::new(values.get(&k),&v,context,aux_array))?
+                attribs: attribs.map(|k,v| 
+                    Ok((v.clone(),AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?))
+                )?
             }))
         } else {
             Ok(None)
         }
     }
 
-    pub(super) fn new_array(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &Rc<RefCell<KeyedData<AttribHandle,Vec<f32>>>>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) fn new_array(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
         if len > 0 {
             Ok(Some(ProcessStanza {
                 index: None,
                 len,
-                attribs: attribs.replace(KeyedData::new()).map_into(|k,v| AttributeValues::new(values.get(&k),&v,context,aux_array))?
+                attribs: attribs.map(|k,v| 
+                    Ok((v.clone(),AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?))
+                )?
             }))
         } else {
             Ok(None)
@@ -61,7 +86,7 @@ impl ProcessStanza {
             context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(index));
             handle_context_errors(context)?;
         }
-        for attrib in self.attribs.values() {
+        for (_,attrib) in self.attribs.values() {
             attrib.activate(context)?;
         }
         Ok(())
@@ -70,7 +95,7 @@ impl ProcessStanza {
     pub(crate) fn deactivate(&self, context: &WebGlRenderingContext) -> Result<(),Message> {
         context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,None);
         handle_context_errors(context)?;
-        for attrib in self.attribs.values() {
+        for (_,attrib) in self.attribs.values() {
             attrib.deactivate(context)?;
         }
         Ok(())
@@ -92,7 +117,7 @@ impl ProcessStanza {
             context.delete_buffer(Some(index));
             handle_context_errors(context)?;
         }
-       for attrib in self.attribs.values_mut() {
+       for (_,attrib) in self.attribs.values_mut() {
             attrib.discard(context)?;
         }
         Ok(())

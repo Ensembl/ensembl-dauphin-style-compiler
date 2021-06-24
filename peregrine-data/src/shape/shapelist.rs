@@ -1,10 +1,9 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{ Shape, SpaceBase, SpaceBaseArea };
+use crate::{HoleySpaceBase, HoleySpaceBaseArea, Shape };
 use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
-#[derive(Debug)]
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
     allotments: HashSet<AllotmentHandle>
@@ -40,11 +39,11 @@ impl ShapeListBuilder {
         }
     }
 
-    pub fn add_rectangle(&mut self, top_left: SpaceBase<f64>, bottom_right: SpaceBase<f64>, patina: Patina, allotments: Vec<AllotmentHandle>) {
-        self.push(Shape::SpaceBaseRect(SpaceBaseArea::new(top_left,bottom_right),patina,allotments));
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentHandle>) {
+        self.push(Shape::SpaceBaseRect(area,patina,allotments));
     }
 
-    pub fn add_text2(&mut self, position: SpaceBase<f64>, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+    pub fn add_text2(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
         self.push(Shape::Text2(position,pen,text,allotments));
     }
 

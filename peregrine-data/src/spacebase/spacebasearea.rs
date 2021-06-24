@@ -1,8 +1,7 @@
 use std::{ops::{Add, Div, Sub}, sync::Arc};
-use crate::util::ringarray::{ DataFilter };
-use super::{parametric::{ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}};
+use crate::{util::ringarray::{ DataFilter }};
+use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}};
 
-#[derive(Debug)]
 pub struct SpaceBaseArea<X>(SpaceBase<X>,SpaceBase<X>);
 
 pub enum SpaceBaseAreaParameterLocation {
@@ -10,10 +9,10 @@ pub enum SpaceBaseAreaParameterLocation {
     Right(SpaceBaseParameterLocation)
 }
 
-impl<X: Clone + Default> SpaceBaseArea<ParameterValue<X>> {
+impl<X: Clone> SpaceBaseArea<ParameterValue<X>> {
     fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<X> where F: Fn(SpaceBaseAreaParameterLocation) -> L {
         let left = self.0.flatten(subs,|location| cb(SpaceBaseAreaParameterLocation::Left(location)));
-        let right = self.1.flatten(subs,|location| cb(SpaceBaseAreaParameterLocation::Left(location)));
+        let right = self.1.flatten(subs,|location| cb(SpaceBaseAreaParameterLocation::Right(location)));
         SpaceBaseArea(left,right)
     }
 }
@@ -36,13 +35,42 @@ impl<X: Clone> ParametricType for SpaceBaseArea<X> {
     }
 }
 
+#[derive(Clone)]
 pub enum HoleySpaceBaseArea {
     Simple(SpaceBaseArea<f64>),
     Parametric(SpaceBaseArea<ParameterValue<f64>>)
 }
 
 impl HoleySpaceBaseArea {
-    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<f64> where F: Fn(SpaceBaseAreaParameterLocation) -> L {
+    pub fn len(&self) -> usize {
+        match self {
+            HoleySpaceBaseArea::Simple(x) => x.len(),
+            HoleySpaceBaseArea::Parametric(x) => x.len()
+        }
+    }
+
+    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea {
+        match self {
+            HoleySpaceBaseArea::Simple(x) => HoleySpaceBaseArea::Simple(x.filter(filter)),
+            HoleySpaceBaseArea::Parametric(x) => HoleySpaceBaseArea::Parametric(x.filter(filter))
+        }
+    }
+
+    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+        match self {
+            HoleySpaceBaseArea::Simple(x) =>
+                x.make_base_filter(min_value,max_value),
+            HoleySpaceBaseArea::Parametric(x) =>
+                x.make_base_filter(ParameterValue::Constant(min_value),ParameterValue::Constant(max_value))
+        }
+    }
+}
+
+impl Flattenable for HoleySpaceBaseArea {
+    type Location = SpaceBaseAreaParameterLocation;
+    type Target = SpaceBaseArea<f64>;
+
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<f64> where F: Fn(Self::Location) -> L {
         match self {
             HoleySpaceBaseArea::Simple(x) => x.clone(),
             HoleySpaceBaseArea::Parametric(x) => x.flatten(subs,cb)
@@ -90,27 +118,35 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>> SpaceBaseArea<X> {
     pub fn middle_base(&self) -> SpaceBase<X> { self.0.middle_base(&self.1) }
 }
 
+#[derive(Clone,Debug)]
+pub enum HollowEdge { Top, Left, Bottom, Right }
+
 impl<X: Clone + Add<Output=X> + Sub<Output=X>> SpaceBaseArea<X> {
     pub fn new_from_sizes(points: &SpaceBase<X>, x_size: &[X], y_size: &[X]) -> SpaceBaseArea<X> {
-        SpaceBaseArea(points.clone(),points.delta(x_size,y_size))
+        let mut far = points.clone();
+        far.delta(x_size,y_size);
+        SpaceBaseArea(points.clone(),far)
     }
 
-    pub fn hollow(&self, w: X) -> (SpaceBaseArea<X>,SpaceBaseArea<X>,SpaceBaseArea<X>,SpaceBaseArea<X>) {
-        let mut left = self.clone();
-        left.1.base = left.0.base.clone();
-        left.1.tangent = Arc::new(left.0.tangent.iter().map(|x| x.clone()+w.clone()).collect());
-        /**/
-        let mut right = self.clone();
-        right.0.base = right.1.base.clone();
-        right.0.tangent = Arc::new(right.1.tangent.iter().map(|x| x.clone()-w.clone()).collect());
-        /**/
-        let mut top = self.clone();
-        top.1.normal = Arc::new(top.0.normal.iter().map(|x| x.clone()+w.clone()).collect());
-        /**/
-        let mut bottom = self.clone();
-        bottom.0.normal = Arc::new(bottom.1.normal.iter().map(|x| x.clone()-w.clone()).collect());
-        /**/
-        (left,right,top,bottom)
+    pub fn hollow_edge(&self, w: X, edge: &HollowEdge) -> SpaceBaseArea<X> {
+        let mut out = self.clone();
+        match edge {
+            HollowEdge::Left => {
+                out.1.base = out.0.base.clone();
+                out.1.tangent = Arc::new(out.0.tangent.iter().map(|x| x.clone()+w.clone()).collect());        
+            },
+            HollowEdge::Right => {
+                out.0.base = out.1.base.clone();
+                out.0.tangent = Arc::new(out.1.tangent.iter().map(|x| x.clone()-w.clone()).collect());        
+            },
+            HollowEdge::Top => {
+                out.1.normal = Arc::new(out.0.normal.iter().map(|x| x.clone()+w.clone()).collect());
+            },
+            HollowEdge::Bottom => {
+                out.0.normal = Arc::new(out.1.normal.iter().map(|x| x.clone()-w.clone()).collect());
+            }
+        }
+        out
     }
 }
 

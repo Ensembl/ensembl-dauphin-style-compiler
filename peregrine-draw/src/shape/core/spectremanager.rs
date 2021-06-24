@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
-use keyed::{KeyedOptionalValues, keyed_handle, KeyedHandle };
-use peregrine_data::AllotmentPetitioner;
+use keyed::{KeyedOptionalValues, keyed_handle };
+use peregrine_data::{AllotmentPetitioner, VariableValues};
 
 use crate::{Message, stage::stage::ReadStage, util::needed::{Needed, NeededLock}, webgl::{DrawingSession, global::WebGlGlobal}};
 
@@ -77,7 +77,8 @@ pub(crate) struct SpectreManager(Arc<Mutex<SpectreState>>,SpectralDrawing);
 
 impl SpectreManager {
     pub(crate) fn new(redraw_needed: &Needed) -> SpectreManager {
-        SpectreManager(Arc::new(Mutex::new(SpectreState::new(redraw_needed))),SpectralDrawing::new())
+        let variables = VariableValues::new();
+        SpectreManager(Arc::new(Mutex::new(SpectreState::new(redraw_needed))),SpectralDrawing::new(&variables))
     }
 
     pub(crate) fn add(&self, spectre: Spectre) -> SpectreHandle {
@@ -91,8 +92,14 @@ impl SpectreManager {
 
     pub(crate) fn draw(&mut self, allotment_petitioner: &mut AllotmentPetitioner, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if self.0.lock().unwrap().new_shapes() {
-            self.1.update(gl,allotment_petitioner,&self.get_spectres())?;
+            self.1.set(gl,allotment_petitioner,&self.get_spectres())?;
         }
         self.1.draw(gl,stage,session)
     }
+
+    pub(crate) fn update(&self) -> Result<(),Message> {
+        self.1.update()
+    }
+
+    pub(crate) fn variables(&self) -> &VariableValues<f64> { self.1.variables() }
 }

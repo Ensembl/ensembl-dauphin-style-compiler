@@ -1,11 +1,9 @@
-use peregrine_data::{Allotment, AllotmentHandle, Allotter, Colour, DataFilter, Patina, Plotter, Shape, SpaceBaseArea};
-use super::text::TextHandle;
+use peregrine_data::{Allotment, AllotmentHandle, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
 use crate::shape::core::heraldry::{Heraldry, HeraldryCanvas};
 use crate::util::message::Message;
-use super::tracktriangles::TrianglesKind;
 use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
 use super::heraldry::{HeraldryCanvasesUsed, HeraldryHandle, HeraldryScale};
 
@@ -47,7 +45,7 @@ pub(crate) enum ShapeCategory {
     Heraldry(HeraldryCanvasesUsed,HeraldryScale)
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: SpaceBaseArea<f64>, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(allotter,&allotment)?;
     let mut demerge = DataFilter::demerge(&allotment,|allotment| {
         AllotmentProgram::new(&allotment.position().kind()).kind()
@@ -85,7 +83,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                     let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
                     let area = area.filter(filter);
                     let allotment = filter.filter(&allotment);
-                    out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),heraldry_canvas.clone(),scale.clone()));
+                    out.push(GLShape::Heraldry(area,handles,allotment,kind.clone(),heraldry_canvas.clone(),scale.clone(),None));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let heraldry_tool = tools.heraldry();
@@ -93,12 +91,11 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Spac
                     let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
                     let area = area.filter(filter);
                     let allotment = filter.filter(&allotment);
-                    let (area_left,area_right,area_top,area_bottom) = area.hollow(4.);
                     // XXX too much cloning, at least Arc them
-                    out.push(GLShape::Heraldry(area_left,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone()));
-                    out.push(GLShape::Heraldry(area_right,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone()));
-                    out.push(GLShape::Heraldry(area_top,handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_h.clone(),scale.clone()));
-                    out.push(GLShape::Heraldry(area_bottom,handles,allotment,kind.clone(),heraldry_canvas_h.clone(),scale.clone()));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left)));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right)));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),kind.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top)));
+                    out.push(GLShape::Heraldry(area.clone(),handles,allotment,kind.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom)));
                 }
             }
         }
