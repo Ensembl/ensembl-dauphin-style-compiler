@@ -208,7 +208,7 @@ impl PeregrineInnerAPI {
             data_api: core.clone(), commander, trainset, stage,  webgl,
             target_manager,
             dom: dom.clone(),
-            spectre_manager: SpectreManager::new(&&redraw_needed)
+            spectre_manager: SpectreManager::new(&config.draw,&redraw_needed)
         })
     }
 

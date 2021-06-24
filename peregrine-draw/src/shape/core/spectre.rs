@@ -1,6 +1,8 @@
 use std::sync::{ Arc };
 use peregrine_data::{AllotmentHandle, AllotmentPetitioner, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
-use crate::Message;
+use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
+
+use super::spectremanager::SpectreConfigKey;
 
 #[derive(Debug)]
 struct BoundingBox {
@@ -38,16 +40,22 @@ impl AreaVariables {
 }
 
 #[derive(Clone)]
-pub(crate) struct MarchingAnts(AreaVariables);
+pub(crate) struct MarchingAnts {
+    area: AreaVariables,
+    width: f64
+}
 
 impl MarchingAnts {
-    pub(crate) fn new(area: &AreaVariables) -> MarchingAnts {
-        MarchingAnts(area.clone())
+    pub(super) fn new(config: &PgPeregrineConfig, area: &AreaVariables) -> Result<MarchingAnts,Message> {
+        Ok(MarchingAnts {
+            area: area.clone(),
+            width: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth))?
+        })
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
         let window_origin = allotment_petitioner.add(AllotmentRequest::new("window:origin-over",0));
-        let pos = self.0.tlbr().clone();
+        let pos = self.area.tlbr().clone();
         shapes.add_allotment(&window_origin);
         let top_left = SpaceBase::new(
             vec![ParameterValue::Constant(0.)],
@@ -60,7 +68,7 @@ impl MarchingAnts {
             vec![ParameterValue::Variable(pos.3,16.)]
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),DirectColour(255,0,0,255),(4,2))]),vec![window_origin]);
+        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),DirectColour(255,0,0,255),(4,2))],self.width as u32),vec![window_origin]);
         Ok(())
     }
 }
@@ -69,7 +77,7 @@ impl MarchingAnts {
 pub(crate) struct Stain(AreaVariables,bool);
 
 impl Stain {
-    pub(crate) fn new(area: &AreaVariables,flipped: bool) -> Stain {
+    pub(super) fn new(area: &AreaVariables,flipped: bool) -> Stain {
         Stain(area.clone(),flipped)
     }
 

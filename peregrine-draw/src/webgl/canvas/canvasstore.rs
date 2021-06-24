@@ -25,7 +25,7 @@ impl HtmlFlatCanvas {
         let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
         element.set_width(x);
         element.set_height(y);
-        document.body().unwrap().append_child(&element);
+        //document.body().unwrap().append_child(&element);
         Ok(HtmlFlatCanvas {
             element,
             size: (x,y)

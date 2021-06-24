@@ -1,6 +1,6 @@
 use std::num::{ParseFloatError, ParseIntError};
 use peregrine_data::{ DataMessage };
-use crate::util::message::Message;
+use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;
@@ -58,6 +58,7 @@ pub enum PgConfigKey {
     // min factor where we try to calculate centre-of-zoom rather htan default, to avoid divide-by-zero.
     // smaller than 1/(px-of-a-giant-screen), but much bigger than precision of floats
     PinchMinScale,
+    Spectre(SpectreConfigKey), // various visual properties of spectres
 }
 
 #[derive(Clone)]
@@ -105,7 +106,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
-            ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) }
+            ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(2.) },
         ]};
 }
 

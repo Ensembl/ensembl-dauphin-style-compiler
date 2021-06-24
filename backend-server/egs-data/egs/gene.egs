@@ -86,16 +86,9 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
  */
 
 // XXX allow types to overlap with functions/vars
-/*
-non_pc_colour := striped(direct_colour(255,0,0),direct_colour(255,255,255),4,1);
-pc_colour := simple_colour(direct_colour(128,128,128));
-patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
-*/
-
-non_pc_colour := barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),4,2);
+non_pc_colour := striped(direct_colour(255,0,0,255),direct_colour(255,255,255,255),4,1);
 pc_colour := simple_colour(direct_colour(128,128,128,255));
-pc_colour := non_pc_colour;
-patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
 text_colour := [direct_colour(111,129,144,255),direct_colour(100,100,100,255)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
@@ -122,7 +115,7 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  */
 
 //rectangle_on_genome(start,end,5,patina,allotment);
-rectangle_on_genome(start,end,15,patina,allotment);
+rectangle_on_genome(start,end,5,patina,allotment);
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);

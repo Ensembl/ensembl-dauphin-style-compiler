@@ -2,7 +2,10 @@ use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder};
-use peregrine_data::{Allotment, AllotmentPosition, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, PositionVariant, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, /*SpaceBaseSized, SpaceBaseSizedParameterLocation,*/ Substitutions, VariableValues};
+use peregrine_data::{
+    Allotment, AllotmentPosition, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, PositionVariant,
+    SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
+};
 use super::super::util::arrayutil::rectangle64;
 use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryProgramName, GeometryYielder};
 use crate::util::message::Message;
@@ -128,7 +131,7 @@ impl TrianglesKind {
 }
 
 enum RectanglesLocation {
-    Area(SpaceBaseArea<f64>,Substitutions<SpaceBaseAreaParameterLocation>,Option<HollowEdge>),
+    Area(SpaceBaseArea<f64>,Substitutions<SpaceBaseAreaParameterLocation>,Option<HollowEdge<f64>>),
     Sized(SpaceBase<f64>,Substitutions<SpaceBaseParameterLocation>,Vec<f64>,Vec<f64>)
 }
 
@@ -138,7 +141,7 @@ impl RectanglesLocation {
             RectanglesLocation::Area(ref mut a ,s,edge) => {
                 s.apply( a,variables);
                 let out = if let Some(edge) = edge {
-                    a.hollow_edge(4., &edge)
+                    a.hollow_edge(&edge)
                 } else {
                     a.clone()
                 };
@@ -173,7 +176,7 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind, edge: &Option<HollowEdge>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,subs,edge.clone());
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)

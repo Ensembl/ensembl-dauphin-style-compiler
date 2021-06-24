@@ -61,7 +61,7 @@ func striped(directcolour,directcolour,number,number) becomes colour;
 func barred(directcolour,directcolour,number,number) becomes colour;
 func zmenu(string) becomes zmenutmpl;
 func patina_filled(colour) becomes patina;
-func patina_hollow(colour) becomes patina;
+func patina_hollow(colour,number) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
 func pen(string,number,directcolour) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;

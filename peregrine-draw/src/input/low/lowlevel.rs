@@ -94,9 +94,12 @@ impl LowLevelState {
         self.spectres.add(spectre)
     }
 
+    pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
+    /*
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.spectres.get_spectres() }
     pub(crate) fn redraw_spectres(&self) -> Result<(),Message> { self.spectres.update() }
     pub(crate) fn spectre_variables(&self) -> &VariableValues<f64> { self.spectres.variables() }
+    */
 }
 
 #[derive(Clone)]
@@ -118,5 +121,5 @@ impl LowLevelInput {
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
 
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.get_spectres() }
+    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.spectre_manager().get_spectres() }
 }

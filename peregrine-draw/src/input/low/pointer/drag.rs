@@ -109,7 +109,7 @@ impl DragStateData {
             pinch: None,
             mode: DragMode::Unknown,
             alive: true,
-            hold_vars: AreaVariables::new(lowlevel.spectre_variables()),
+            hold_vars: AreaVariables::new(lowlevel.spectre_manager().variables()),
             cursor: None,
             spectre: None
         };
@@ -120,7 +120,7 @@ impl DragStateData {
     fn update_spectre(&mut self) -> Result<(),Message> {
         if self.spectre.is_some() {
             self.hold_vars.update(self.make_ants());
-            self.lowlevel.redraw_spectres()?;
+            self.lowlevel.spectre_manager().update()?;
         }
         Ok(())
     }
@@ -181,14 +181,14 @@ impl DragStateData {
             self.set_mode(DragMode::Hold);
             let ants = self.make_ants();
             let spectre = Spectre::Compound(vec![
-                Spectre::MarchingAnts(MarchingAnts::new(&self.hold_vars)),
-                Spectre::Stain(Stain::new(&self.hold_vars,true))
+                self.lowlevel.spectre_manager().marching_ants(&self.hold_vars)?,
+                self.lowlevel.spectre_manager().stain(&self.hold_vars,true)
             ]);
             self.spectre = Some(self.lowlevel.add_spectre(spectre));
             self.hold_vars.update(ants);
-            self.lowlevel.redraw_spectres()?;
+            self.lowlevel.spectre_manager().update()?;
             self.update_spectre()?;
-            self.lowlevel.redraw_spectres()?;
+            self.lowlevel.spectre_manager().update()?;
             self.emit(&PointerAction::SwitchToHold(self.modifiers.clone(),self.primary.start()),true);
         }
         Ok(())

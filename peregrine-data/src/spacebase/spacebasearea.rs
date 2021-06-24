@@ -119,7 +119,7 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>> SpaceBaseArea<X> {
 }
 
 #[derive(Clone,Debug)]
-pub enum HollowEdge { Top, Left, Bottom, Right }
+pub enum HollowEdge<X> { Top(X), Left(X), Bottom(X), Right(X) }
 
 impl<X: Clone + Add<Output=X> + Sub<Output=X>> SpaceBaseArea<X> {
     pub fn new_from_sizes(points: &SpaceBase<X>, x_size: &[X], y_size: &[X]) -> SpaceBaseArea<X> {
@@ -128,21 +128,21 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>> SpaceBaseArea<X> {
         SpaceBaseArea(points.clone(),far)
     }
 
-    pub fn hollow_edge(&self, w: X, edge: &HollowEdge) -> SpaceBaseArea<X> {
+    pub fn hollow_edge(&self, edge: &HollowEdge<X>) -> SpaceBaseArea<X> {
         let mut out = self.clone();
         match edge {
-            HollowEdge::Left => {
+            HollowEdge::Left(w) => {
                 out.1.base = out.0.base.clone();
                 out.1.tangent = Arc::new(out.0.tangent.iter().map(|x| x.clone()+w.clone()).collect());        
             },
-            HollowEdge::Right => {
+            HollowEdge::Right(w) => {
                 out.0.base = out.1.base.clone();
                 out.0.tangent = Arc::new(out.1.tangent.iter().map(|x| x.clone()-w.clone()).collect());        
             },
-            HollowEdge::Top => {
+            HollowEdge::Top(w) => {
                 out.1.normal = Arc::new(out.0.normal.iter().map(|x| x.clone()+w.clone()).collect());
             },
-            HollowEdge::Bottom => {
+            HollowEdge::Bottom(w) => {
                 out.0.normal = Arc::new(out.1.normal.iter().map(|x| x.clone()-w.clone()).collect());
             }
         }

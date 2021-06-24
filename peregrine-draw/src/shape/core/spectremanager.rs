@@ -1,10 +1,13 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
 use peregrine_data::{AllotmentPetitioner, VariableValues};
+use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, util::needed::{Needed, NeededLock}, webgl::{DrawingSession, global::WebGlGlobal}};
+use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
 
-use crate::{Message, stage::stage::ReadStage, util::needed::{Needed, NeededLock}, webgl::{DrawingSession, global::WebGlGlobal}};
-
-use super::{spectraldrawing::SpectralDrawing, spectre::Spectre};
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub enum SpectreConfigKey {
+    MarchingAntsWidth
+}
 
 pub struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);
 
@@ -73,33 +76,46 @@ impl SpectreState {
 }
 
 #[derive(Clone)]
-pub(crate) struct SpectreManager(Arc<Mutex<SpectreState>>,SpectralDrawing);
+pub(crate) struct SpectreManager {
+    state: Arc<Mutex<SpectreState>>,
+    drawing: SpectralDrawing,
+    config: Arc<PgPeregrineConfig>
+}
 
 impl SpectreManager {
-    pub(crate) fn new(redraw_needed: &Needed) -> SpectreManager {
+    pub(crate) fn new(config: &Arc<PgPeregrineConfig>, redraw_needed: &Needed) -> SpectreManager {
         let variables = VariableValues::new();
-        SpectreManager(Arc::new(Mutex::new(SpectreState::new(redraw_needed))),SpectralDrawing::new(&variables))
+        SpectreManager {
+            state: Arc::new(Mutex::new(SpectreState::new(redraw_needed))),
+            drawing: SpectralDrawing::new(&variables),
+            config: config.clone()
+        }
+    }
+
+    pub(crate) fn marching_ants(&self, area: &AreaVariables) -> Result<Spectre,Message> {
+        Ok(Spectre::MarchingAnts(MarchingAnts::new(&self.config,area)?))
+    }
+
+    pub(crate) fn stain(&self, area: &AreaVariables, flip: bool) -> Spectre {
+        Spectre::Stain(Stain::new(area,flip))
     }
 
     pub(crate) fn add(&self, spectre: Spectre) -> SpectreHandle {
-        let id = self.0.lock().unwrap().add(spectre);
-        SpectreHandle(self.0.clone(),id)
+        let id = self.state.lock().unwrap().add(spectre);
+        SpectreHandle(self.state.clone(),id)
     }
 
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> {
-        self.0.lock().unwrap().get_spectres()        
+        self.state.lock().unwrap().get_spectres()        
     }
 
     pub(crate) fn draw(&mut self, allotment_petitioner: &mut AllotmentPetitioner, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
-        if self.0.lock().unwrap().new_shapes() {
-            self.1.set(gl,allotment_petitioner,&self.get_spectres())?;
+        if self.state.lock().unwrap().new_shapes() {
+            self.drawing.set(gl,allotment_petitioner,&self.get_spectres())?;
         }
-        self.1.draw(gl,stage,session)
+        self.drawing.draw(gl,stage,session)
     }
 
-    pub(crate) fn update(&self) -> Result<(),Message> {
-        self.1.update()
-    }
-
-    pub(crate) fn variables(&self) -> &VariableValues<f64> { self.1.variables() }
+    pub(crate) fn update(&self) -> Result<(),Message> { self.drawing.update() }
+    pub(crate) fn variables(&self) -> &VariableValues<f64> { self.drawing.variables() }
 }

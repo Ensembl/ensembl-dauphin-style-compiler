@@ -3,9 +3,7 @@ use crate::command::{ Instruction, InstructionType };
 use chrono::{ DateTime, Utc, offset::TimeZone };
 use serde_cbor::Value as CborValue;
 use dauphin_interp::command::ProgramMetadata;
-use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::cbor::{ cbor_make_map, cbor_map, cbor_string, cbor_option, cbor_int };
-use std::convert::TryInto;
 
 #[derive(Debug)]
 pub struct ProgramMetadataBuilder {

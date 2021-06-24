@@ -53,7 +53,7 @@ pub enum Colour {
 #[derive(Clone,Debug)]
 pub enum Patina {
     Filled(Vec<Colour>),
-    Hollow(Vec<Colour>),
+    Hollow(Vec<Colour>,u32),
     ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
@@ -69,7 +69,7 @@ impl Patina {
     pub fn bulk(self, len: usize, primary: bool) -> Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(bulk(c,len,primary)),
-            Patina::Hollow(c) => Patina::Hollow(bulk(c,len,primary)),
+            Patina::Hollow(c,w) => Patina::Hollow(bulk(c,len,primary),w),
             Patina::ZMenu(z,mut h) => {
                 let mut new_h  = h.clone();
                 for (k,v) in h.drain(..) {
@@ -83,7 +83,7 @@ impl Patina {
     pub fn filter(&self, filter: &DataFilter) -> Patina {
         match self {
             Patina::Filled(c) => Patina::Filled(filter.filter(c)),
-            Patina::Hollow(c) => Patina::Hollow(filter.filter(c)),
+            Patina::Hollow(c,w) => Patina::Hollow(filter.filter(c),*w),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }
