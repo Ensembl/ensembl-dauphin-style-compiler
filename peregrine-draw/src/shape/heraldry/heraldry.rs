@@ -2,13 +2,14 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{ Hash, Hasher };
 use peregrine_data::{ DirectColour };
 use keyed::keyed_handle;
+use crate::shape::core::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
+use crate::shape::core::texture::CanvasTextureArea;
 use crate::shape::layers::drawing::ToolPreparations;
 use crate::webgl::{Flat, FlatStore};
 use crate::webgl::global::WebGlGlobal;
-use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
-use super::texture::CanvasTextureArea;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
+use super::bardots::HeraldryBarDots;
 
 keyed_handle!(InternalHeraldryHandle);
 
@@ -36,29 +37,6 @@ fn stripe_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: 
     Ok(())
 }
 
-fn bar_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32,horiz: bool) -> Result<(),Message> {
-    let p = 100-p;
-    let extent= if horiz { (100,p) } else { (p,100) };
-    let offset= if horiz { (0,50-p/2) } else { (50-p/2,0) };
-    let extent = ((extent.0*STAMP) / 100,(extent.1*STAMP) / 100);
-    let offset = ((offset.0*STAMP) / 100,(offset.1*STAMP) / 100);
-    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(255,255,255,255))?;
-    canvas.path((m.0+offset.0,m.1+offset.1),&[
-        (0,       0),
-        (extent.0,0),
-        (extent.0,extent.1),
-        (0,       extent.1)
-    ],&DirectColour(0,0,0,255))?;
-    canvas.rectangle(t,(STAMP,STAMP),a)?;
-    canvas.path((t.0+offset.0,t.1+offset.1),&[
-        (0,       0),
-        (extent.0,0),
-        (extent.0,extent.1),
-        (0,       extent.1)
-    ],b)?;
-    Ok(())
-}
-
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub(crate) enum HeraldryScale {
     Squeeze,
@@ -66,20 +44,6 @@ pub(crate) enum HeraldryScale {
 }
 
 impl HeraldryScale {
-    pub(crate) fn overrun_horiz(&self, canvas: &HeraldryCanvas) -> bool {
-        match (self,canvas) {
-            (HeraldryScale::Overrun,HeraldryCanvas::Horiz) => true,
-            _ => false
-        }
-    }
-
-    pub(crate) fn overrun_vert(&self, canvas: &HeraldryCanvas) -> bool {
-        match (self,canvas) {
-            (HeraldryScale::Overrun,HeraldryCanvas::Vert) => true,
-            _ => false
-        }
-    }
-
     pub fn is_free(&self) -> bool {
         match self {
             HeraldryScale::Overrun => true,
@@ -88,35 +52,39 @@ impl HeraldryScale {
     }
 }
 
-#[derive(Hash)]
+#[derive(Hash,Clone)]
 pub(crate) enum Heraldry {
     Stripe(DirectColour,DirectColour,u32,(u32,u32)),
-    Bar(DirectColour,DirectColour,u32,(u32,u32),bool),
-    Dots(DirectColour,DirectColour,u32,(u32,u32),bool),
+    BarDots(HeraldryBarDots),
 }
 
 impl Heraldry {
+    pub(crate) fn new_dots(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> Heraldry {
+        Heraldry::BarDots(HeraldryBarDots::new_dots(col_a,col_b,prop,number,dir))
+    }
+
+    pub(crate) fn new_bar(col_a: &DirectColour, col_b: &DirectColour, prop: u32, number: (u32,u32), dir: bool) -> Heraldry {
+        Heraldry::BarDots(HeraldryBarDots::new_bar(col_a,col_b,prop,number,dir))
+    }
+
     pub(crate) fn rotate(&self) -> Heraldry {
         match self {
             Heraldry::Stripe(a,b,p,(x,y)) => Heraldry::Stripe(a.clone(),b.clone(),*p,(*y,*x)),
-            Heraldry::Bar(a,b,p,(x,y),dir) => Heraldry::Bar(a.clone(),b.clone(),*p,(*y,*x),!dir),
-            Heraldry::Dots(a,b,p,(x,y),dir) => Heraldry::Dots(a.clone(),b.clone(),*p,(*y,*x),!dir),
+            Heraldry::BarDots(dots) => Heraldry::BarDots(dots.rotate()),
         }
     }
 
     fn handle_type(&self) -> HeraldryHandleType {
         match self {
             Heraldry::Stripe(_,_,_,_) => HeraldryHandleType::Crisp,
-            Heraldry::Bar(_,_,_,_,_) => HeraldryHandleType::Crisp,
-            Heraldry::Dots(_,_,_,_,_) => HeraldryHandleType::HorizVert
+            Heraldry::BarDots(bardots) => bardots.handle_type(),
         }
     }
 
     pub(crate) fn scale(&self) -> HeraldryScale {
         match self {
             Heraldry::Stripe(_,_,_,_) => HeraldryScale::Squeeze,
-            Heraldry::Bar(_,_,_,_,_) => HeraldryScale::Squeeze,
-            Heraldry::Dots(_,_,_,_,_) => HeraldryScale::Overrun
+            Heraldry::BarDots(bardots) => bardots.scale(),
         }
     }
 
@@ -129,18 +97,14 @@ impl FlatDrawingItem for Heraldry {
     fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
-            Heraldry::Bar(_,_,_,count,false) => (STAMP*count.0,STAMP),
-            Heraldry::Bar(_,_,_,count,true) => (STAMP,count.0*STAMP),
-            Heraldry::Dots(_,_,_,count,false) => (STAMP*count.0,STAMP),
-            Heraldry::Dots(_,_,_,count,true) => (STAMP,count.0*STAMP),
+            Heraldry::BarDots(dots) => dots.size()
         })
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         Ok(match  self {
             Heraldry::Stripe(_,_,_,_) => (PAD,PAD),
-            Heraldry::Bar(_,_,_,_,_) => (PAD,PAD),
-            Heraldry::Dots(_,_,_,_,_) => (0,0),
+            Heraldry::BarDots(bardots) => bardots.padding()
         })
     }
 
@@ -162,16 +126,8 @@ impl FlatDrawingItem for Heraldry {
                     }
                 }
             },
-            Heraldry::Bar(a,b,prop,count,horiz) |
-            Heraldry::Dots(a,b,prop,count,horiz) => {
-                let size = if *horiz { size.1 } else { size.0 };
-                let count = size/STAMP+1;
-                for c in 0..count {
-                    let (x,y) = if *horiz { (0,c) } else { (c,0) };
-                    let t = (text_origin.0+x*STAMP,text_origin.1+y*STAMP);
-                    let m = (mask_origin.0+x*STAMP,mask_origin.1+y*STAMP);
-                    bar_stamp(canvas,t,m,a,b,*prop,*horiz)?;
-                }
+            Heraldry::BarDots(dots) => {
+                dots.draw(canvas,text_origin,mask_origin,size)?;
             },
         }
         Ok(())
@@ -184,7 +140,7 @@ pub(crate) enum HeraldryCanvasesUsed {
     Hollow(HeraldryCanvas,HeraldryCanvas)
 }
 
-enum HeraldryHandleType {
+pub(super) enum HeraldryHandleType {
     HorizVert,
     Horiz,
     Crisp
@@ -272,7 +228,7 @@ impl DrawingHeraldry {
         match canvas {
             HeraldryCanvas::Horiz => self.horiz.canvas_id(),
             HeraldryCanvas::Vert => self.vert.canvas_id(),
-            &HeraldryCanvas::Crisp => self.crisp.canvas_id()
+            HeraldryCanvas::Crisp => self.crisp.canvas_id()
         }
     }
 }

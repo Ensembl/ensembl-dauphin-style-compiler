@@ -64,7 +64,6 @@ mod shape {
         pub(super) mod geometrydata;
         pub(super) mod spotcolourdraw;
         pub(super) mod tracktriangles;
-        pub(crate) mod heraldry;
         pub(crate) mod flatdrawing;
         pub(crate) mod spectre;
         pub(crate) mod spectraldrawing;
@@ -72,6 +71,11 @@ mod shape {
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
+    }
+
+    pub(crate) mod heraldry {
+        pub(super) mod bardots;
+        pub(crate) mod heraldry;
     }
 
     pub(crate) mod layers {

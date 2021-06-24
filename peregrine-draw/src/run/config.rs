@@ -110,6 +110,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
         ]};
 }

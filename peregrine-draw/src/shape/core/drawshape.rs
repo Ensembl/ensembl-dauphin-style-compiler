@@ -6,7 +6,7 @@ use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::texture::{CanvasTextureArea, TextureYielder};
-use crate::shape::core::heraldry::HeraldryCanvas;
+use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{ ProcessStanzaAddable };
@@ -14,7 +14,6 @@ use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use super::tracktriangles::{Rectangles, TrianglesKind};
-use super::heraldry::{HeraldryHandle, HeraldryScale};
 use crate::webgl::canvas::flatstore::FlatId;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]

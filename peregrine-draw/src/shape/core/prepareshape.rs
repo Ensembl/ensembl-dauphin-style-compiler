@@ -2,10 +2,9 @@ use peregrine_data::{Allotment, AllotmentHandle, Allotter, Colour, DataFilter, H
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
-use crate::shape::core::heraldry::{Heraldry, HeraldryCanvas};
+use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed, HeraldryScale};
 use crate::util::message::Message;
-use super::drawshape::{ GLShape, AllotmentProgramKind, AllotmentProgram };
-use super::heraldry::{HeraldryCanvasesUsed, HeraldryHandle, HeraldryScale};
+use super::drawshape::{ GLShape, AllotmentProgram };
 
 fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     // XXX yuk!
@@ -110,9 +109,9 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
         },
         Colour::Bar(a,b,c) => {
             if hollow {
-                Some(Heraldry::Dots(a.clone(),b.clone(),50,*c,false))
+                Some(Heraldry::new_dots(a,b,50,*c,false))
             } else {
-                Some(Heraldry::Bar(a.clone(),b.clone(),50,*c,false))
+                Some(Heraldry::new_bar(a,b,50,*c,false))
             }
         },
         _ => None
