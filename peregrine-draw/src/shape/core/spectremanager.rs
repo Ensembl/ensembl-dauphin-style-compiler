@@ -8,7 +8,8 @@ use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingA
 pub enum SpectreConfigKey {
     MarchingAntsWidth,
     MarchingAntsColour,
-    MarchingAntsLength
+    MarchingAntsLength,
+    MarchingAntsProp
 }
 
 pub struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);

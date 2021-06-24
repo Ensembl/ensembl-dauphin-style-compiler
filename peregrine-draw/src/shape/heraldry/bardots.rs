@@ -84,9 +84,8 @@ impl HeraldryBarDots {
         let unit = self.unit_size();
         let t = (text_origin.0+x*unit.0,text_origin.1+y*unit.1);
         let m = (mask_origin.0+x*unit.0,mask_origin.1+y*unit.1);
-        let prop = 100-self.prop;
-        let extent= if self.dir { (100,prop) } else { (prop,100) };
-        let offset= if self.dir { (0,50-prop/2) } else { (50-prop/2,0) };
+        let extent= if self.dir { (100,self.prop) } else { (self.prop,100) };
+        let offset= if self.dir { (0,50-self.prop/2) } else { (50-self.prop/2,0) };
         let extent = ((extent.0*unit.0) / 100,(extent.1*unit.1) / 100);
         let offset = ((offset.0*unit.0) / 100,(offset.1*unit.1) / 100);
         match self.variety {

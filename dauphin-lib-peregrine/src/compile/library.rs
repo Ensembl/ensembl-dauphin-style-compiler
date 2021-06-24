@@ -22,7 +22,7 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(29,0),0x69D2225CCFD62583)
+    CommandSetId::new("peregrine",(30,0),0x6B02225F00D62583)
 }
 
 pub fn make_peregrine() -> CompLibRegister {

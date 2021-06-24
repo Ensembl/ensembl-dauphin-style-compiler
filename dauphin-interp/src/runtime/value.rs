@@ -41,6 +41,14 @@ pub fn to_index(value: f64) -> Option<usize> {
     }
 }
 
+pub fn lossless_to_index(value: f64) -> Option<usize> {
+    if value.fract() == 0.0 {
+        to_index(value)
+    } else {
+        None
+    }
+}
+
 fn indexes_to_numbers(data: &Vec<usize>) -> anyhow::Result<Vec<f64>> {
     data.iter().map(|x| {
         if *x <= MAX_USIZE {
@@ -54,6 +62,16 @@ fn indexes_to_numbers(data: &Vec<usize>) -> anyhow::Result<Vec<f64>> {
 pub fn numbers_to_indexes(data: &Vec<f64>) -> anyhow::Result<Vec<usize>> {
     data.iter().map(|x| {
         if let Some(x) = to_index(*x) {
+            Ok(x)
+        } else {
+            Err(DauphinError::runtime(&format!("Cannot convert {:?} to index",x)))
+        }
+    }).collect()
+}
+
+pub fn lossless_numbers_to_indexes(data: &Vec<f64>) -> anyhow::Result<Vec<usize>> {
+    data.iter().map(|x| {
+        if let Some(x) = lossless_to_index(*x) {
             Ok(x)
         } else {
             Err(DauphinError::runtime(&format!("Cannot convert {:?} to index",x)))

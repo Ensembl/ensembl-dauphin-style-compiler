@@ -104,14 +104,14 @@ fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: Hole
 
 fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
     match colour {
-        Colour::Stripe(a,b,c) => {
+        Colour::Stripe(a,b,c,prop) => {
             Some(Heraldry::Stripe(a.clone(),b.clone(),50,*c))
         },
-        Colour::Bar(a,b,c) => {
+        Colour::Bar(a,b,c,prop) => {
             if hollow {
-                Some(Heraldry::new_dots(a,b,50,*c,false))
+                Some(Heraldry::new_dots(a,b,(prop*100.) as u32,*c,false))
             } else {
-                Some(Heraldry::new_bar(a,b,50,*c,false))
+                Some(Heraldry::new_bar(a,b,(prop*100.) as u32,*c,false))
             }
         },
         _ => None

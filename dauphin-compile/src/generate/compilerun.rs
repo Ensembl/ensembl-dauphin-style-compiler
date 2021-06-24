@@ -21,7 +21,7 @@ use crate::cli::Config;
 use crate::command::{ CompilerLink, Instruction, InstructionType, PreImageOutcome };
 use crate::model::{ PreImageContext };
 use crate::util::DFloat;
-use dauphin_interp::runtime::{ Register, InterpValue, numbers_to_indexes, InterpContext };
+use dauphin_interp::runtime::{ Register, InterpValue, InterpContext, lossless_numbers_to_indexes };
 use dauphin_interp::util::{ DauphinError, error_locate_cb };
 
 struct CompileRun<'a,'b,'d> {
@@ -96,7 +96,7 @@ impl<'a,'b,'d> CompileRun<'a,'b,'d> {
                 self.add(Instruction::new(InstructionType::Const(indexes.to_vec()),vec![*reg]))?;
             },
             InterpValue::Numbers(numbers) => {
-                if let Some(indexes) = numbers_to_indexes(numbers).ok() {
+                if let Some(indexes) = lossless_numbers_to_indexes(numbers).ok() {
                     self.add(Instruction::new(InstructionType::Const(indexes.to_vec()),vec![*reg]))?;
                 } else {
                     self.long_constant(reg,numbers,|r,n| {

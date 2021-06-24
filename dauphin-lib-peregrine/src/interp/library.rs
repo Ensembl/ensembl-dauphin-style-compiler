@@ -24,7 +24,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(29,0),0x69D2225CCFD62583)
+    CommandSetId::new("peregrine",(30,0),0x6B02225F00D62583)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {

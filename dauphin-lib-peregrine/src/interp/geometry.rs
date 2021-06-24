@@ -18,8 +18,8 @@ simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
-simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,5,(0,1,2,3,4));
-simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,5,(0,1,2,3,4));
+simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,5));
+simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -110,6 +110,7 @@ impl InterpCommand for StripedInterpCommand {
         let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
         let stripe_x = *registers.get_numbers(&self.3)?.to_vec().get(0).unwrap_or(&2.);
         let stripe_y = *registers.get_numbers(&self.4)?.to_vec().get(0).unwrap_or(&2.);
+        let prop = *registers.get_numbers(&self.5)?.to_vec().get(0).unwrap_or(&0.5);
         let stripes = (stripe_x as u32,stripe_y as u32);
         drop(registers);
         let peregrine = get_peregrine(context)?;
@@ -126,7 +127,7 @@ impl InterpCommand for StripedInterpCommand {
         } else {
             DirectColour(255,255,255,0)
         };
-        let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b,stripes));
+        let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b,stripes,prop));
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
@@ -141,6 +142,7 @@ impl InterpCommand for BarredInterpCommand {
         let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
         let stripe_x = *registers.get_numbers(&self.3)?.to_vec().get(0).unwrap_or(&2.);
         let stripe_y = *registers.get_numbers(&self.4)?.to_vec().get(0).unwrap_or(&2.);
+        let prop = *registers.get_numbers(&self.5)?.to_vec().get(0).unwrap_or(&0.5);
         let stripes = (stripe_x as u32,stripe_y as u32);
         drop(registers);
         let peregrine = get_peregrine(context)?;
@@ -157,7 +159,7 @@ impl InterpCommand for BarredInterpCommand {
         } else {
             DirectColour(255,255,255,0)
         };
-        let colour_id = geometry_builder.add_colour(Colour::Bar(direct_colour_a,direct_colour_b,stripes));
+        let colour_id = geometry_builder.add_colour(Colour::Bar(direct_colour_a,direct_colour_b,stripes,prop));
         drop(peregrine);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
