@@ -79,6 +79,13 @@ impl HeraldryScale {
             _ => false
         }
     }
+
+    pub fn is_free(&self) -> bool {
+        match self {
+            HeraldryScale::Overrun => true,
+            HeraldryScale::Squeeze => false
+        }
+    }
 }
 
 #[derive(Hash)]
