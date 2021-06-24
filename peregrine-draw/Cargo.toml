@@ -17,6 +17,7 @@ base64="*"
 async-trait="*"
 url="*"
 console_error_panic_hook="*"
+css-color-parser="*"
 
 [dependencies.wasm-bindgen]
 version="*"

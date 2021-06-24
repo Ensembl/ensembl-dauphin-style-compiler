@@ -66,7 +66,7 @@ name = "blackbox"
 version = "0.0.0"
 dependencies = [
  "hashbrown",
- "lazy_static",
+ "lazy_static 1.4.0",
  "owning_ref",
  "serde_json",
 ]
@@ -98,7 +98,7 @@ dependencies = [
  "futures",
  "hashbrown",
  "identitynumber",
- "lazy_static",
+ "lazy_static 1.4.0",
  "ordered-float",
  "owning_ref",
 ]
@@ -120,11 +120,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "css-color-parser"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ccb6ce7ef97e6dc6e575e51b596c9889a5cc88a307b5ef177d215c61fd7581d"
+dependencies = [
+ "lazy_static 0.1.16",
+]
+
+[[package]]
 name = "dauphin_interp"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "lazy_static",
+ "lazy_static 1.4.0",
  "serde_cbor",
  "thiserror",
 ]
@@ -281,7 +290,7 @@ dependencies = [
 name = "identitynumber"
 version = "0.0.0"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.4.0",
 ]
 
 [[package]]
@@ -325,6 +334,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "0.1.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf186d1a8aa5f5bee5fd662bc9c1b949e0259e1bcc379d1f006847b0080c7417"
 
 [[package]]
 name = "lazy_static"
@@ -396,7 +411,7 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 name = "peregrine_config"
 version = "0.0.0"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.4.0",
 ]
 
 [[package]]
@@ -412,7 +427,7 @@ dependencies = [
  "identitynumber",
  "js-sys",
  "keyed",
- "lazy_static",
+ "lazy_static 1.4.0",
  "owning_ref",
  "peregrine_config",
  "peregrine_dauphin_queue",
@@ -459,11 +474,12 @@ dependencies = [
  "blackbox",
  "commander",
  "console_error_panic_hook",
+ "css-color-parser",
  "dauphin_interp",
  "fnv",
  "js-sys",
  "keyed",
- "lazy_static",
+ "lazy_static 1.4.0",
  "once_cell",
  "owning_ref",
  "peregrine_config",
@@ -701,7 +717,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b33f6a0694ccfea53d94db8b2ed1c3a8a4c86dd936b13b9f0a15ec4a451b900"
 dependencies = [
  "bumpalo",
- "lazy_static",
+ "lazy_static 1.4.0",
  "log",
  "proc-macro2",
  "quote",

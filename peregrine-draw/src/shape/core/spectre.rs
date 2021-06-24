@@ -42,14 +42,16 @@ impl AreaVariables {
 #[derive(Clone)]
 pub(crate) struct MarchingAnts {
     area: AreaVariables,
-    width: f64
+    width: f64,
+    colour: DirectColour
 }
 
 impl MarchingAnts {
     pub(super) fn new(config: &PgPeregrineConfig, area: &AreaVariables) -> Result<MarchingAnts,Message> {
         Ok(MarchingAnts {
             area: area.clone(),
-            width: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth))?
+            width: config.get_f64(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth))?,
+            colour: config.get_colour(&PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour))?,
         })
     }
 
@@ -68,7 +70,7 @@ impl MarchingAnts {
             vec![ParameterValue::Variable(pos.3,16.)]
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),DirectColour(255,0,0,255),(4,2))],self.width as u32),vec![window_origin]);
+        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(4,2))],self.width as u32),vec![window_origin]);
         Ok(())
     }
 }

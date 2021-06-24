@@ -1,9 +1,10 @@
 use std::num::{ParseFloatError, ParseIntError};
-use peregrine_data::{ DataMessage };
+use peregrine_data::{DataMessage, DirectColour};
 use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;
+use css_color_parser::Color as CssColor;
 
 // XXX factor with similar in peregrine-data
 // XXX chromosome ned-stops
@@ -67,7 +68,8 @@ pub enum PgConfigValue {
     String(String),
     StaticStr(&'static str),
     Boolean(bool),
-    Size(usize)
+    Size(usize),
+    DirectColour(DirectColour)
 }
 
 lazy_static! {
@@ -107,7 +109,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) },
-            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(2.) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
         ]};
 }
 
@@ -117,6 +120,11 @@ fn string_to_float(value_str: &str) -> Result<f64,String> {
 
 fn string_to_usize(value_str: &str) -> Result<usize,String> {
     value_str.parse().map_err(|e: ParseIntError| e.to_string())
+}
+
+fn string_to_colour(value_str: &str) -> Result<DirectColour,String> {
+    let x = value_str.parse::<CssColor>().map_err(|op| format!("converting colour: {}",op.to_string()))?;
+    Ok(DirectColour(x.r,x.g,x.b,(x.a*255.0) as u8))
 }
 
 // XXX macroise
@@ -170,6 +178,18 @@ impl PgConfigValue {
         if let Some(v) = self.try_as_size() { return Ok(v); }
         Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as size"))))
     }
+
+    fn try_as_colour(&self) -> Option<DirectColour> {
+        match self {
+            PgConfigValue::DirectColour(x) => Some(x.clone()),
+            _ => None
+        }
+    }
+
+    fn as_colour(&self) -> Result<DirectColour,Message> {
+        if let Some(v) = self.try_as_colour() { return Ok(v); }
+        Err(Message::DataError(DataMessage::CodeInvariantFailed(format!("cannot get value as colour"))))
+    }
 }
 
 fn truthy(value: &str) -> bool {
@@ -184,7 +204,8 @@ impl ConfigValue for PgConfigValue {
             PgConfigValue::String(_) => PgConfigValue::String(value_str.to_string()),
             PgConfigValue::StaticStr(_) => PgConfigValue::String(value_str.to_string()),
             PgConfigValue::Boolean(_) => PgConfigValue::Boolean(truthy(value_str)),
-            PgConfigValue::Size(_) => PgConfigValue::Size(string_to_usize(value_str)?)
+            PgConfigValue::Size(_) => PgConfigValue::Size(string_to_usize(value_str)?),
+            PgConfigValue::DirectColour(_) => PgConfigValue::DirectColour(string_to_colour(value_str)?)
         })
     }
 }
@@ -212,4 +233,7 @@ impl PgPeregrineConfig {
     pub fn get_bool(&self, key: &PgConfigKey) -> Result<bool,Message> { self.get(key)?.as_bool() }
     pub fn try_get_size(&self, key: &PgConfigKey) -> Option<usize> { self.0.try_get(key).and_then(|x| x.try_as_size()) }
     pub fn get_size(&self, key: &PgConfigKey) -> Result<usize,Message> { self.get(key)?.as_size() }
+    pub fn try_get_colour(&self, key: &PgConfigKey) -> Option<DirectColour> { self.0.try_get(key).and_then(|x| x.try_as_colour()) }
+    pub fn get_colour(&self, key: &PgConfigKey) -> Result<DirectColour,Message> { self.get(key)?.as_colour() }
+
 }

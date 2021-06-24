@@ -1,12 +1,13 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
-use peregrine_data::{AllotmentPetitioner, VariableValues};
+use peregrine_data::{AllotmentPetitioner, DirectColour, VariableValues};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, util::needed::{Needed, NeededLock}, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum SpectreConfigKey {
-    MarchingAntsWidth
+    MarchingAntsWidth,
+    MarchingAntsColour
 }
 
 pub struct SpectreHandle(Arc<Mutex<SpectreState>>,SpectreId);
