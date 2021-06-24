@@ -86,7 +86,7 @@ impl PatinaProgramName {
                     Statement::new_vertex("vMaskCoord = aMaskCoord"),
                     Statement::new_fragment("gl_FragColor = texture2D(uSampler,vTextureCoord)"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-//                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.95) discard")
+                    Statement::new_fragment("if(texture2D(uSampler,vMaskCoord).r > 0.995) discard")
                 ],
                 PatinaProgramName::FreeTexture => vec![
                     TextureProto::new("uSampler","uSamplerSize"),
@@ -105,7 +105,7 @@ impl PatinaProgramName {
                         (gl_FragCoord.x-vOrigin.x)/uSamplerSize.x+vMaskCoord.x,
                         (vOrigin.y-gl_FragCoord.y)/uSamplerSize.y+vMaskCoord.y))"),
                     Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity"),
-//                    Statement::new_fragment("if(mask.r > 0.95) discard")
+                    Statement::new_fragment("if(mask.r > 0.995) discard")
                 ]
             }
         )
