@@ -38,9 +38,10 @@ pub enum InputEventKind {
     PixelsLeft, // [pixels]
     PixelsRight, // [pixels]
     SetPosition, // [scale, centre, y]
+    AnimatePosition, // [scale, centre, y]
     PixelsIn,
     PixelsOut,
-    DebugAction
+    DebugAction,
 }
 
 impl InputEventKind {

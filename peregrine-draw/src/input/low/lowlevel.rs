@@ -95,11 +95,6 @@ impl LowLevelState {
     }
 
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
-    /*
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.spectres.get_spectres() }
-    pub(crate) fn redraw_spectres(&self) -> Result<(),Message> { self.spectres.update() }
-    pub(crate) fn spectre_variables(&self) -> &VariableValues<f64> { self.spectres.variables() }
-    */
 }
 
 #[derive(Clone)]

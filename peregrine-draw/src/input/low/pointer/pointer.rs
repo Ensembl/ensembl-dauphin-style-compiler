@@ -43,7 +43,7 @@ pub(super) enum PointerAction {
     DoubleClick(Modifiers,(f64,f64)),
     SwitchToPinch(Modifiers,ScreenPosition),
     SwitchToHold(Modifiers,(f64,f64)),
-    HoldDrag(Modifiers,(f64,f64)),
+    HoldDrag(Modifiers,f64,f64,f64),
     PinchDrag(Modifiers,ScreenPosition),
 }
 
@@ -64,7 +64,7 @@ impl PointerAction {
                 vec![("SwitchToPinch",pinch.parameters())],modifiers
             ),
             PointerAction::SwitchToHold(modifiers,pos) => (vec![("SwitchToHold",vec![pos.0,pos.1])],modifiers),
-            PointerAction::HoldDrag(modifiers,amount) => (vec![("Hold",vec![amount.0,amount.1])],modifiers),
+            PointerAction::HoldDrag(modifiers,scale,centre,y) => (vec![("Court",vec![*scale,*centre,*y])],modifiers),
             PointerAction::PinchDrag(modifiers,pinch) => (
                 vec![("Pinch",pinch.parameters())],modifiers
             ),

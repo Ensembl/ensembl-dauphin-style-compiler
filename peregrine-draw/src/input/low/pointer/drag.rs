@@ -228,6 +228,29 @@ impl DragStateData {
         Ok(())
     }
 
+    fn compute_hold(&self) -> Result<Option<(f64,f64,f64)>,Message> {
+        let pos_a = self.primary.start();
+        let pos_b = self.primary.current();
+        let (a,b,c,d) = (pos_a.0.min(pos_b.0),pos_a.1.min(pos_b.1),
+                                              pos_a.0.max(pos_b.0),pos_a.1.max(pos_b.1));
+        use web_sys::console;
+        console::log_1(&format!("hold ({},{})-({},{})",a,b,c,d).into());
+        if let Some(stage) = self.lowlevel.stage() {
+            let width_pixels = stage.x().size()?;
+            let bp_centre = stage.x().position()?;
+            let bp_per_screen = stage.x().bp_per_screen()?;
+            let want_bp_per_screen = (c-a)*bp_per_screen/width_pixels;
+            let centroid_px = (c+a)/2.;
+            let centroid_scr = centroid_px/width_pixels-0.5; // [-0.5,0.5] screen
+            let centroid_bp = centroid_scr*bp_per_screen + bp_centre;
+            console::log_1(&format!("centre={}bp bp_per_screen={}bp",centroid_bp,want_bp_per_screen).into());
+            // XXX y
+            Ok(Some((want_bp_per_screen,centroid_bp,0.)))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn drag_finished(&mut self, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<bool,Message> {
         self.primary.set(primary);
         self.check_secondary(primary,secondary)?;
@@ -247,7 +270,9 @@ impl DragStateData {
             },
             DragMode::Hold => {
                 self.send_drag((0.,0.),false);
-                self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),total_delta),true);
+                if let Some((scale,centre,y)) = self.compute_hold()? {
+                    self.emit(&PointerAction::HoldDrag(self.modifiers.clone(),scale,centre,y),true);
+                }
                 true
             },
             DragMode::Pinch => {

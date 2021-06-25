@@ -80,7 +80,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(true), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(false), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Drag[2] Hold[3] HoldDrag[4] SwitchToHold[6] DoubleClick[7] Pinch[10] SwitchToPinch[11] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Shift-W[500]") },
@@ -90,6 +90,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullIn), name: "keys.pull-in", default: &PgConfigValue::StaticStr("w ArrowUp") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::SetPosition), name: "keys.pixels-scale", default: &PgConfigValue::StaticStr("RunningPinch") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::AnimatePosition), name: "keys.animate-position", default: &PgConfigValue::StaticStr("Court") },
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1000.) },
@@ -113,7 +114,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
-            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(150,150,180,100)) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(150,150,255,100)) },
             ]};
 }
 
