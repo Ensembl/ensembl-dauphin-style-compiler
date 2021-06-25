@@ -54,6 +54,7 @@ impl InputEventKind {
             InputEventKind::PixelsLeft,
             InputEventKind::PixelsRight,
             InputEventKind::SetPosition,
+            InputEventKind::AnimatePosition,
             InputEventKind::PixelsIn,
             InputEventKind::PixelsOut,
             InputEventKind::DebugAction

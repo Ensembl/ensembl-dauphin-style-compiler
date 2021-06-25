@@ -43,8 +43,10 @@ pub enum PgConfigKey {
     AnimationFadeRate(bool),
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
+    AutomatedPullMaxSpeed, // screenfulls/frame
     PullAcceleration, // screenfulls/frame/frame
     ZoomMaxSpeed, // factors-of-2/second,
+    AutomatedZoomMaxSpeed, // factors-of-2/second,
     ZoomAcceleration, // factors-of-2/second/second,
     ZoomPixelSpeed, // how many pixels is a doubling?
     MouseClickRadius, // px (click vs drag)
@@ -103,9 +105,11 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Pinch), name: "mouse.cursor.pinch", default: &PgConfigValue::StaticStr("nsew-resize") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
-            ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./40000.) },
+            ConfigKeyInfo { key: PgConfigKey::AutomatedPullMaxSpeed, name: "pull.max-speed.automated", default: &PgConfigValue::Float(1.) },
+            ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./4000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
-            ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./10000.) },
+            ConfigKeyInfo { key: PgConfigKey::AutomatedZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(4.) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./300.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
@@ -114,7 +118,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
-            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(150,150,255,100)) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(50,50,50,100)) },
             ]};
 }
 
