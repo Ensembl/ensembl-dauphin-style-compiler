@@ -7,83 +7,133 @@ use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
 
-#[derive(Clone,Debug,PartialEq,Eq)]
-pub enum PullDirection {
-    Decrease,
-    Increase
-}
-
-pub struct PullSpeed {
-    current_dec: bool,
-    current_inc: bool,
-    speed: f64,
+pub struct ClosedRamp {
+    start: f64,
+    accel: f64,
     max_speed: f64,
-    acceleration: f64,
-    physics_lock: Option<NeededLock>
+    total_distance: f64,
+    total_time: f64,
 }
 
-impl PullSpeed {
-    fn new(max_speed: f64, acceleration: f64) ->PullSpeed {
-        PullSpeed {
-            current_dec: false,
-            current_inc: false,
-            speed: 0.,
-            max_speed,
-            acceleration,
-            physics_lock: None
+impl ClosedRamp {
+    fn new(accel: f64, speed_limit: f64, start: f64, end: f64) -> ClosedRamp {
+        let total_distance = end - start;
+        /* does max_speed need to be reduced due to short distance and so no cruise? */
+        let max_speed = (accel*total_distance).sqrt().min(speed_limit);
+        let total_time = 2.0*total_distance/max_speed + max_speed/accel;
+        ClosedRamp { accel, max_speed, total_time, total_distance, start }    
+    }
+
+    fn position_half(&self, time: f64) -> f64 {
+        let ramp_time = self.max_speed/self.accel;
+        let accel_time = time.min(ramp_time);
+        let cruise_time = time - accel_time;
+        self.accel * accel_time * accel_time / 2.0 + cruise_time * self.max_speed
+    }
+
+    fn position(&self, time: f64) -> f64 {
+        if time > self.total_time / 2. {
+            self.start + self.total_distance - self.position_half(self.total_time - time)
+        } else {
+            self.start + self.position_half(time)
         }
     }
+}
 
-    fn set_direction(&mut self, physics_needed: &Needed, direction: PullDirection, start: bool) {
-        *match direction {
-            PullDirection::Decrease => &mut self.current_dec,
-            PullDirection::Increase => &mut self.current_inc
-        }=start;
-        self.physics_lock = Some(physics_needed.lock());
+pub struct OpenRamp {
+    accel: f64,
+    speed_limit: f64,
+    start: f64,
+    negative: bool
+}
+
+impl OpenRamp {
+    fn new(accel: f64, speed_limit: f64, start: f64, negative: bool) -> OpenRamp {
+        OpenRamp { accel, speed_limit, start, negative }
     }
 
-    fn step(&mut self) -> bool {
-        /* update pull speed */
-        let direction = match (self.current_dec,self.current_inc) {
-            (true,false) => -1.,
-            (false,true) => 1.,
-            _ => { 
-                self.speed = 0.;
-                self.physics_lock.take();
-                return false;
+    fn change(&self, time: f64) -> f64 {
+        let accel_time = time.min(self.speed_limit/self.accel);
+        let cruise_time = (time - self.speed_limit/self.accel).max(0.);
+        let change = self.accel*accel_time*accel_time/2.0 + cruise_time * self.speed_limit;
+        change
+    }
+
+    fn position_linear(&self, time: f64) -> f64 {
+        let dir = if self.negative { -1. } else { 1. };
+        self.start + self.change(time) * dir
+    }
+
+    fn position_exponential(&self, time: f64) -> f64 {
+        let dir = if self.negative { -1. } else { 1. };
+        self.start * (2_f64).powf(self.change(time) * dir)
+    }
+
+    fn negative(&self) -> bool { self.negative }
+}
+
+pub struct OpenRampSwitches {
+    tick: f64,
+    ramp: Option<OpenRamp>,
+    speed_limit: f64,
+    accel: f64,
+}
+
+impl OpenRampSwitches {
+    fn new(accel: f64, speed_limit: f64) -> OpenRampSwitches {
+        OpenRampSwitches { ramp: None, speed_limit, accel, tick: 0. }
+    }
+
+    fn set(&mut self, position: f64, start: bool, negative: bool, scale: f64) {
+        if let Some(ramp) = &self.ramp {
+            if ramp.negative() == negative { /* same direction */
+                if !start { self.ramp = None; }
+                return;
+            } else { /* opposite direction */
+                if !start { return; }
             }
-        };
-        if self.speed * direction < 0. { self.speed = 0.; } // direction change, so halt immediately
-        self.speed += direction * self.acceleration;
-        if self.speed > self.max_speed { self.speed = self.max_speed; }
-        if self.speed < -self.max_speed { self.speed = -self.max_speed; }
-        true
+        }
+        self.ramp = Some(OpenRamp::new(self.accel * scale,self.speed_limit * scale,position,negative));
+        self.tick = 0.;
     }
 
-    fn speed(&self) -> f64 { self.speed }
+    fn next_point_linear(&mut self) -> Option<f64> {
+        let tick = self.tick;
+        self.tick += 1.;
+        self.ramp.as_mut().map(|ramp| ramp.position_linear(tick))
+    }
+
+    fn next_point_exponential(&mut self) -> Option<f64> {
+        let tick = self.tick;
+        self.tick += 1.;
+        self.ramp.as_mut().map(|ramp| ramp.position_exponential(tick))
+    }
+
+    fn is_active(&self) -> bool { self.ramp.is_some() }
+    fn clear(&mut self) { self.ramp = None; }
 }
 
 pub struct PhysicsState {
-    pull_x_speed: PullSpeed,
-    pull_x_to: Option<f64>,
-    pull_z_speed: PullSpeed,
-    pull_z_to: Option<f64>,
+    x_switches: OpenRampSwitches,
+    z_switches: OpenRampSwitches,
     zoom_px_speed: f64,
+    physics_needed: Needed,
+    physics_lock: Option<NeededLock>
 }
 
 impl PhysicsState {
-    fn new(config: &PgPeregrineConfig) -> Result<PhysicsState,Message> {
+    fn new(config: &PgPeregrineConfig, physics_needed: &Needed) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
-            pull_x_speed: PullSpeed::new(config.get_f64(&PgConfigKey::PullMaxSpeed)?,config.get_f64(&PgConfigKey::PullAcceleration)?),
-            pull_x_to: None,
-            pull_z_speed: PullSpeed::new(config.get_f64(&PgConfigKey::ZoomMaxSpeed)?,config.get_f64(&PgConfigKey::ZoomAcceleration)?),
-            pull_z_to: None,
-            zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?
+            x_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::PullAcceleration)?,config.get_f64(&PgConfigKey::PullMaxSpeed)?),
+            z_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::ZoomAcceleration)?,config.get_f64(&PgConfigKey::ZoomMaxSpeed)?),
+            zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?,
+            physics_needed: physics_needed.clone(),
+            physics_lock: None
         })
     }
 
     fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
-        self.pull_x_to = None;
+        self.x_switches.clear();
         let x = api.x()?;
         let bp_per_screen = api.bp_per_screen()?;
         let px_per_screen = api.size().map(|x| x.0 as f64);
@@ -117,35 +167,28 @@ impl PhysicsState {
         api.set_y(y);
     }
 
-    fn update_x_pull(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        if self.pull_x_speed.step() {
-            if self.pull_x_to.is_none() { self.pull_x_to = api.x()?; }
-            if let (Some(pull_to),Some(bp_per_screen)) = (&mut self.pull_x_to,api.bp_per_screen()?) { 
-                *pull_to += self.pull_x_speed.speed() * bp_per_screen;
-                api.set_x(*pull_to);
-            }
-        } else {
-            self.pull_x_to = None;
-        }
-        Ok(())
+    fn get_x_pull(&mut self, api: &PeregrineAPI) -> Result<Option<f64>,Message> {
+        api.x()
     }
 
-    fn update_z_pull(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        if self.pull_z_speed.step() {
-            if self.pull_z_to.is_none() { self.pull_z_to = api.bp_per_screen()?; }
-            if let Some(pull_to) = &mut self.pull_z_to {
-                *pull_to *= (2_f64).powf(self.pull_z_speed.speed());
-                api.set_bp_per_screen(*pull_to);
-            }
-        } else {
-            self.pull_z_to = None;
-        }
-        Ok(())
+    fn get_z_pull(&mut self, api: &PeregrineAPI) -> Result<Option<f64>,Message> {
+        api.bp_per_screen()
     }
 
     fn physics_step(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        self.update_x_pull(api)?;
-        self.update_z_pull(api)?;
+        if let Some(position) = self.x_switches.next_point_linear() {
+            api.set_x(position);
+        }
+        if let Some(position) = self.z_switches.next_point_exponential() {
+            api.set_bp_per_screen(position);
+        }
+        if self.x_switches.is_active() || self.z_switches.is_active() {
+            if self.physics_lock.is_none() {
+                self.physics_lock = Some(self.physics_needed.lock());
+            }
+        } else {
+            self.physics_lock = None;
+        }
         Ok(())
     }
 }
@@ -159,16 +202,28 @@ pub struct Physics {
 // XXX blur halt
 
 impl Physics {
-    fn incoming_pull_event(&self, event: &InputEvent) {
+    fn incoming_pull_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+        let bp_per_screen = match api.bp_per_screen()? { Some(x) => x, None => { return Ok(()); } };
         let mut state = self.state.lock().unwrap();
-        let (new_direction,target) = match event.details {
-            InputEventKind::PullLeft => (PullDirection::Decrease,&mut state.pull_x_speed),
-            InputEventKind::PullRight=> (PullDirection::Increase,&mut state.pull_x_speed),
-            InputEventKind::PullIn => (PullDirection::Decrease,&mut state.pull_z_speed),
-            InputEventKind::PullOut=> (PullDirection::Increase,&mut state.pull_z_speed),
-            _ => { return; }
+        let (target,position,scale) = match event.details {
+            InputEventKind::PullLeft | InputEventKind::PullRight => {
+                let position = state.get_x_pull(api)?;
+                (&mut state.x_switches,position,bp_per_screen)
+            },
+            InputEventKind::PullIn | InputEventKind::PullOut => {
+                let position = state.get_z_pull(api)?;
+                (&mut state.z_switches,position,1.)
+            },
+            _ => { return Ok(()); }
         };
-        target.set_direction(&self.physics_needed,new_direction,event.start);
+        let negative = match event.details {
+            InputEventKind::PullLeft | InputEventKind::PullIn => { true },
+            _ => { false }
+        };
+        if let Some(position) = position {
+            target.set(position,event.start,negative,scale);
+        }
+        Ok(())
     }
 
     fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
@@ -204,7 +259,7 @@ impl Physics {
     }
 
     fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        self.incoming_pull_event(event);
+        self.incoming_pull_event(api,event)?;
         self.incoming_jump_request(api,event)?;
         self.incoming_scale_event(api,event)?;
         Ok(())
@@ -214,14 +269,15 @@ impl Physics {
         loop {
             self.state.lock().unwrap().physics_step(api)?;
             cdr_tick(1).await;
-            self.physics_needed.wait_until_needed().await;
+            //self.physics_needed.wait_until_needed().await;
         }
     }
 
     pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Physics,Message> {
+        let physics_needed = Needed::new();
         let out = Physics {
-            state: Arc::new(Mutex::new(PhysicsState::new(config)?)),
-            physics_needed: Needed::new()
+            state: Arc::new(Mutex::new(PhysicsState::new(config,&physics_needed)?)),
+            physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();
         let api2 = api.clone();
