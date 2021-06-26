@@ -88,4 +88,6 @@ impl Input {
 
     pub fn update_stage(&self, stage: &ReadStage) { self.low_level.update_stage(stage); }
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.low_level.get_spectres() }
+
+    pub fn set_artificial(&self, name: &str, start: bool) { self.low_level.set_artificial(name,start); }
 }

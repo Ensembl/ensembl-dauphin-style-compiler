@@ -1,9 +1,9 @@
 use std::sync::{ Arc, Mutex };
-use crate::{ run::CursorCircumstance, util::{ Message }};
+use crate::{input::low::modifiers::Modifiers, run::CursorCircumstance, util::{ Message }};
 use crate::util::monostable::Monostable;
-use crate::input::low::lowlevel::{ LowLevelState, Modifiers };
+use crate::input::low::lowlevel::{ LowLevelState };
 use js_sys::Date;
-use super::{drag::DragState, pinch::PixelPinchAction};
+use super::{drag::DragState };
 use crate::run::{ PgConfigKey, PgPeregrineConfig };
 use crate::input::InputEventKind;
 use super::cursor::CursorHandle;
@@ -70,7 +70,7 @@ impl PointerAction {
             ),
         };
         for (name,args) in kinds {
-            if let Some((action,map_args)) = state.map(&name,&modifiers) {
+            for (action,map_args) in state.map(&name,&modifiers) {
                 let mut out_args = args.to_vec();
                 for (i,arg) in map_args.iter().enumerate() {
                     if i < args.len() { out_args[i] = *arg; }
@@ -111,11 +111,7 @@ impl Pointer {
             drag: None,
             previous_click: None,
             start: (0.,0.),
-            modifiers: Modifiers { // XXX constructor
-                shift: false,
-                control: false,
-                alt: false
-            },
+            modifiers: lowlevel.modifiers(),
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout, move || {
                 wheel_cursor2.lock().unwrap().take();

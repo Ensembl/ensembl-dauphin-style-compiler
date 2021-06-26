@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
-use crate::input::low::lowlevel::Modifiers;
+use crate::input::low::modifiers::Modifiers;
 use crate::shape::core::spectre::AreaVariables;
 use crate::shape::core::spectre::MarchingAnts;
 use crate::shape::core::spectre::Spectre;
@@ -231,10 +231,8 @@ impl DragStateData {
     fn compute_hold(&self) -> Result<Option<(f64,f64,f64)>,Message> {
         let pos_a = self.primary.start();
         let pos_b = self.primary.current();
-        let (a,b,c,d) = (pos_a.0.min(pos_b.0),pos_a.1.min(pos_b.1),
+        let (a,_,c,_) = (pos_a.0.min(pos_b.0),pos_a.1.min(pos_b.1),
                                               pos_a.0.max(pos_b.0),pos_a.1.max(pos_b.1));
-        use web_sys::console;
-        console::log_1(&format!("hold ({},{})-({},{})",a,b,c,d).into());
         if let Some(stage) = self.lowlevel.stage() {
             let width_pixels = stage.x().size()?;
             let bp_centre = stage.x().position()?;
@@ -243,7 +241,6 @@ impl DragStateData {
             let centroid_px = (c+a)/2.;
             let centroid_scr = centroid_px/width_pixels-0.5; // [-0.5,0.5] screen
             let centroid_bp = centroid_scr*bp_per_screen + bp_centre;
-            console::log_1(&format!("centre={}bp bp_per_screen={}bp",centroid_bp,want_bp_per_screen).into());
             // XXX y
             Ok(Some((want_bp_per_screen,centroid_bp,0.)))
         } else {

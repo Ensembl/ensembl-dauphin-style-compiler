@@ -1,26 +1,21 @@
 use std::sync::{ Arc, Mutex };
 use crate::input::InputEventKind;
+use crate::input::low::modifiers::KeyboardModifiers;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
 use crate::stage::stage::ReadStage;
 use crate::{PeregrineDom, PgCommanderWeb, run::PgPeregrineConfig};
 use crate::util::Message;
+use super::modifiers::Modifiers;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
 use super::mouseinput::{ MouseEventHandler };
 use crate::input::{ InputEvent, Distributor };
 use super::mapping::InputMap;
 use js_sys::Date;
-use peregrine_data::{Commander, VariableValues};
+use peregrine_data::{Commander };
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
-
-#[derive(Debug,Clone,Hash,PartialEq,Eq)]
-pub struct Modifiers {
-    pub shift: bool,
-    pub control: bool,
-    pub alt: bool
-}
 
 // XXX pub
 #[derive(Clone)]
@@ -39,11 +34,7 @@ impl LowLevelState {
     fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
         let mut mapping = InputMapBuilder::new();
         mapping.add_config(config)?;
-        let modifiers = Arc::new(Mutex::new(Modifiers {
-            shift: false,
-            control: false,
-            alt: false
-        }));
+        let modifiers = Arc::new(Mutex::new(Modifiers::new(KeyboardModifiers::new(false,false,false),&[])));
         let distributor = Distributor::new();
         Ok((LowLevelState {
             cursor: Cursor::new(dom,config)?,
@@ -60,11 +51,11 @@ impl LowLevelState {
     fn update_stage(&self, stage: &ReadStage) { *self.stage.lock().unwrap() = Some(stage.clone()); }
     pub(super) fn stage(&self) -> Option<ReadStage> { self.stage.lock().unwrap().as_ref().cloned() }
 
-    pub(super) fn update_modifiers(&self, modifiers: Modifiers) {
-        *self.modifiers.lock().unwrap() = modifiers;
+    pub(super) fn update_keyboard_modifiers(&self, modifiers: KeyboardModifiers) {
+        self.modifiers.lock().unwrap().update_keyboard_modifiers(modifiers);
     }
 
-    pub(super) fn map(&self, key: &str, modifiers: &Modifiers) -> Option<(InputEventKind,Vec<f64>)> {
+    pub(super) fn map(&self, key: &str, modifiers: &Modifiers) -> Vec<(InputEventKind,Vec<f64>)> {
         self.mapping.map(key,modifiers)
     }
 
@@ -95,6 +86,10 @@ impl LowLevelState {
     }
 
     pub(crate) fn spectre_manager(&self) -> &SpectreManager { &self.spectres }
+
+    pub fn set_artificial(&self, name: &str, start: bool) {
+        self.modifiers.lock().unwrap().set_artificial(name,start);
+    }
 }
 
 #[derive(Clone)]
@@ -117,4 +112,6 @@ impl LowLevelInput {
 
     pub fn update_stage(&self, stage: &ReadStage) { self.state.update_stage(stage); }
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.spectre_manager().get_spectres() }
+
+    pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
 }

@@ -15,6 +15,8 @@ mod input {
         pub(crate) mod keyboardinput;
         pub(crate) mod mouseinput;
         pub(crate) mod lowlevel; 
+        pub(crate) mod keyspec;
+        pub(crate) mod modifiers;
         pub mod mapping;
     }
 

@@ -198,14 +198,13 @@ impl PeregrineInnerAPI {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
-        let dom2 = dom.clone();
         let redraw_needed = stage.lock().unwrap().redraw_needed();
         core.application_ready();
         Ok(PeregrineInnerAPI {
             config: config.draw.clone(),
             lock: commander.make_lock(),
             messages, message_sender,
-            data_api: core.clone(), commander, trainset, stage,  webgl,
+            data_api: core.clone(), commander, trainset, stage, webgl,
             target_manager,
             dom: dom.clone(),
             spectre_manager: SpectreManager::new(&config.draw,&redraw_needed)
@@ -214,6 +213,10 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn spectres(&self) -> &SpectreManager { &self.spectre_manager }
     pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
+
+    pub(crate) fn set_artificial(&self, name: &str) {
+
+    }
 
     pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
         self.target_manager.lock().unwrap().add_target_callback(cb);

@@ -170,6 +170,10 @@ impl GenomeBrowser {
         });    
     }
     
+    pub fn set_artificial(&self, name: &str, start: bool) {
+        self.api.set_artificial(name,start);
+    }
+
     /*
     * Set x
     */

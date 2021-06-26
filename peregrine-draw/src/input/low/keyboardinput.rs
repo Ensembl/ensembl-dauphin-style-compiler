@@ -3,7 +3,8 @@ use web_sys::{ KeyboardEvent, Event };
 use crate::input::{ InputEventKind };
 use crate::util::{ Message };
 use super::event::{ EventSystem };
-use super::lowlevel::{ Modifiers, LowLevelState };
+use super::lowlevel::{ LowLevelState };
+use super::modifiers::{KeyboardModifiers, Modifiers};
 
 enum KeyboardEventKind { Down, Up }
 
@@ -29,13 +30,13 @@ impl KeyboardEventHandler {
     }
 
     fn keyboard_event(&mut self, event_kind: &KeyboardEventKind, event: &KeyboardEvent) {
-        let mut modifiers = Modifiers {
-            shift: event.shift_key(),
-            control: event.ctrl_key() || event.meta_key(),
-            alt: event.alt_key()
-        };
+        self.state.update_keyboard_modifiers(KeyboardModifiers::new(
+            event.shift_key(),
+            event.ctrl_key() || event.meta_key(),
+            event.alt_key()
+        ));
+        let mut modifiers = self.state.modifiers();
         let mut key = event.key();
-        self.state.update_modifiers(modifiers.clone());
         let down = match event_kind {
             KeyboardEventKind::Down => {
                 if let Some((down_key,down_modifiers)) = self.down_character.get(&event.code()) {
@@ -54,7 +55,7 @@ impl KeyboardEventHandler {
                 false
             }
         };
-        if let Some((kind,args)) = self.state.map(&key,&modifiers) {
+        for (kind,args)in self.state.map(&key,&modifiers) {
             if self.current.contains(&kind) != down { // ie not a repeat
                 if down { self.current.insert(kind.clone()); } else { self.current.remove(&kind); }
                 self.state.send(kind,down,&args);

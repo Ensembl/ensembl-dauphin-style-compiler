@@ -26,7 +26,7 @@ enum DrawMessage {
     Bootstrap(Channel),
     SetupBlackbox(String),
     SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>),
-    DebugAction(u8)
+    DebugAction(u8),
 }
 
 // XXX conditional
@@ -177,6 +177,12 @@ impl PeregrineAPI {
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
     pub fn bp_per_screen(&self) -> Result<Option<f64>,Message> { self.target.lock().unwrap().bp_per_screen() }
     pub fn size(&self) -> Option<(u32,u32)> { self.target.lock().unwrap().size().cloned() }
+
+    pub fn set_artificial(&self, name: &str, start: bool) {
+        if let Some(input) = self.input.lock().unwrap().as_ref() {
+            input.set_artificial(name,start);
+        }
+    }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {
         loop {
