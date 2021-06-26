@@ -1,7 +1,7 @@
 use wasm_bindgen::JsCast;
 use web_sys::{ Document, HtmlCanvasElement, CanvasRenderingContext2d };
 use peregrine_data::{ Pen, DirectColour };
-use super::{canvasstore::HtmlFlatCanvas, weave::CanvasWeave};
+use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, weave::CanvasWeave};
 use crate::util::message::Message;
 use super::canvasstore::CanvasStore;
 
@@ -20,7 +20,8 @@ pub(crate) struct Flat {
     font: Option<String>,
     font_height: Option<u32>,
     size: (u32,u32),
-    discarded: bool
+    discarded: bool,
+    gl_texture: Option<SelfManagedWebGlTexture>
 }
 
 impl Flat {
@@ -37,9 +38,13 @@ impl Flat {
             weave: weave.clone(),
             font: None,
             font_height: None,
-            discarded: false
+            discarded: false,
+            gl_texture: None
         })
     }
+
+    pub(crate) fn get_gl_texture(&self) -> Option<&SelfManagedWebGlTexture> { self.gl_texture.as_ref() }
+    pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
 
     pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }

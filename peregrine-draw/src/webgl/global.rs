@@ -1,5 +1,5 @@
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, shape::layers::programstore::ProgramStore};
-use crate::webgl::{ FlatStore, TextureBindery,TextureStore };
+use crate::webgl::{ FlatStore, TextureBindery };
 use js_sys::Float32Array;
 use web_sys::Document;
 use crate::webgl::util::handle_context_errors;
@@ -16,7 +16,6 @@ pub struct WebGlGlobal {
     context: WebGlRenderingContext,
     canvas_store: FlatStore,
     bindery: TextureBindery,
-    texture_store: TextureStore,
     document: Document,
     canvas_size: Option<(u32,u32)>,
     gpuspec: GPUSpec,
@@ -37,7 +36,6 @@ impl WebGlGlobal {
             program_store, 
             canvas_store, 
             bindery,
-            texture_store: TextureStore::new(),
             context: context.clone(),
             document: dom.document().clone(),
             canvas_size: None,
@@ -51,10 +49,9 @@ impl WebGlGlobal {
     pub(crate) fn context(&self) -> &WebGlRenderingContext { &self.context }
     pub(crate) fn aux_array(&self) -> &Float32Array {&self.aux_array }
     pub(crate) fn flat_store(&self) -> &FlatStore { &self.canvas_store }
-    pub(crate) fn canvas_store_mut(&mut self) -> &mut FlatStore { &mut self.canvas_store }
+    pub(crate) fn flat_store_mut(&mut self) -> &mut FlatStore { &mut self.canvas_store }
     pub(crate) fn bindery(&self) -> &TextureBindery { &self.bindery }
     pub(crate) fn bindery_mut(&mut self) -> &mut TextureBindery { &mut self.bindery }
-    pub(crate) fn texture_store(&mut self) -> &mut TextureStore { &mut self.texture_store }
     pub(crate) fn canvas_size(&mut self) -> &mut Option<(u32,u32)> { &mut self.canvas_size }
     pub(crate) fn gpuspec(&self) -> &GPUSpec { &self.gpuspec }
 

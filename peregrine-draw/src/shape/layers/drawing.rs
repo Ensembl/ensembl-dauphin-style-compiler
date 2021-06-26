@@ -105,7 +105,7 @@ impl DrawingBuilder {
         let mut prep = self.tools.start_preparation(gl)?;
         let mut drawable = DrawingAllFlatsBuilder::new();
         prep.allocate(gl,&mut drawable)?;
-        self.tools.finish_preparation(gl.canvas_store_mut(),prep)?;
+        self.tools.finish_preparation(gl.flat_store_mut(),prep)?;
         self.flats = Some(drawable);
         Ok(())
     }
@@ -195,7 +195,7 @@ impl Drawing {
         for process in &mut self.processes {
             process.discard(gl)?;
         }
-        self.canvases.discard(gl.canvas_store_mut())?;
+        self.canvases.discard(gl.flat_store_mut())?;
         Ok(())
     }
 }

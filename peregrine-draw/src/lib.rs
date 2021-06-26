@@ -142,7 +142,7 @@ mod webgl {
     pub(crate) use canvas::weave::CanvasWeave;
     pub(crate) use canvas::flat::Flat;
     pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
-    pub(crate) use canvas::bindery::{ TextureBindery, TextureStore };
+    pub(crate) use canvas::bindery::{ TextureBindery };
     pub(crate) use canvas::drawingflats::{ DrawingAllFlats, DrawingAllFlatsBuilder };
     pub(crate) use canvas::flatplotallocator::{ FlatPositionCampaignHandle };
 

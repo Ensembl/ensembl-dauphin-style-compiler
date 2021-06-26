@@ -73,7 +73,7 @@ fn apply_weave(context: &WebGlRenderingContext,weave: &CanvasWeave) -> Result<()
     Ok(())
 }
 
-fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<WebGlTexture,Message> {
+fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_data: &FlatId) -> Result<SelfManagedWebGlTexture,Message> {
     let canvas = canvas_store.get(our_data)?;
     let texture = context.create_texture().ok_or_else(|| Message::WebGLFailure("cannot create texture".to_string()))?;
     handle_context_errors(context)?;
@@ -85,26 +85,23 @@ fn create_texture(context: &WebGlRenderingContext,canvas_store: &FlatStore, our_
     ).map_err(|e| Message::WebGLFailure(format!("cannot bind texture: {:?}",&e.as_string())))?;
     handle_context_errors(context)?;
     apply_weave(context,canvas.weave())?;
-    Ok(texture)
+    Ok(SelfManagedWebGlTexture::new(texture,context))
 }
 
-pub struct TextureStore(KeyedData<FlatId,Option<WebGlTexture>>);
+pub struct SelfManagedWebGlTexture(WebGlTexture,WebGlRenderingContext);
 
-impl TextureStore {
-    pub fn new() -> TextureStore {
-        TextureStore(KeyedData::new())
+impl SelfManagedWebGlTexture {
+    pub fn new(texture: WebGlTexture, context: &WebGlRenderingContext) -> SelfManagedWebGlTexture {
+        SelfManagedWebGlTexture(texture,context.clone())
     }
 
-    fn add(&mut self, id: &FlatId, texture: WebGlTexture) {
-        self.0.insert(id,texture);
-    }
-    
-    fn get(&mut self, id: &FlatId) -> Result<Option<&WebGlTexture>,Message> {
-        Ok(self.0.try_get(id).as_ref())
-    }
+    pub fn texture(&self) -> &WebGlTexture { &self.0 }
+}
 
-    fn remove(&mut self, id: &FlatId) -> Result<WebGlTexture,Message> {
-        self.0.remove(id).ok_or_else(|| Message::CodeInvariantFailed(format!("missing key C")))
+impl Drop for SelfManagedWebGlTexture {
+    fn drop(&mut self) {
+        self.1.delete_texture(Some(&self.0));
+        // XXX errors
     }
 }
 
@@ -127,27 +124,25 @@ impl Rebind {
         Rebind { old_texture: Some(flat_id), new_texture: None, new_index: 0}
     }
 
-    fn noop() ->Rebind {
+    fn noop() -> Rebind {
         Rebind {old_texture: None, new_texture: None, new_index: 0 }
     }
 
     pub(crate) fn apply(&self, gl: &mut WebGlGlobal) -> Result<u32,Message> {
         if let Some(old_id) = &self.old_texture {
-            let old_flat = gl.texture_store().remove(old_id)?;
-            gl.context().delete_texture(Some(&old_flat));
-            gl.handle_context_errors()?;
+            gl.flat_store_mut().get_mut(old_id)?.set_gl_texture(None);
         }
         if let Some(new_id) = &self.new_texture {
-            let texture = gl.texture_store().get(new_id)?;
+            let texture = gl.flat_store_mut().get(new_id)?.get_gl_texture();
             if texture.is_none() {
                 let texture = create_texture(gl.context(),gl.flat_store(),new_id)?;
-                gl.texture_store().add(new_id,texture);
+                gl.flat_store_mut().get_mut(new_id)?.set_gl_texture(Some(texture));
             }
             gl.context().active_texture(WebGlRenderingContext::TEXTURE0 + self.new_index);
             gl.handle_context_errors()?;
             let context = gl.context().clone();
-            let texture = gl.texture_store().get(new_id)?.unwrap();
-            context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(&texture));
+            let texture = gl.flat_store_mut().get(new_id)?.get_gl_texture().unwrap();
+            context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
             gl.handle_context_errors()?;
         }
         Ok(self.new_index)
