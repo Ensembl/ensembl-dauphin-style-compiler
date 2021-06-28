@@ -1,8 +1,6 @@
 use crate::webgl::{ ProcessBuilder };
 use super::geometry::{ GeometryProgramName, GeometryProgram };
-use super::programstore::ProgramStore;
 use super::patina::{ PatinaProcess, PatinaProcessName };
-use crate::util::message::Message;
 
 pub(crate) struct ShapeProgram {
     process: ProcessBuilder,

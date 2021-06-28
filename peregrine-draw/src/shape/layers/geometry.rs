@@ -1,5 +1,6 @@
 use super::super::core::wigglegeometry::{WiggleProgram };
 use crate::shape::layers::consts::PR_DEF;
+use crate::shape::triangles::triangleskind::TrianglesProgramKind;
 use crate::shape::triangles::trianglesprogram::TrackTrianglesProgram;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
@@ -10,29 +11,25 @@ use crate::util::message::Message;
 #[derive(Clone)]
 pub(crate) enum GeometryProgram {
     Wiggle(WiggleProgram),
-    TrackTriangles(TrackTrianglesProgram),
-    BaseLabelTriangles(TrackTrianglesProgram),
-    SpaceLabelTriangles(TrackTrianglesProgram),
-    WindowTriangles(TrackTrianglesProgram)
+    Triangles(TrianglesProgramKind,TrackTrianglesProgram),
 }
 
 pub(crate) trait GeometryYielder {
     fn name(&self) -> &GeometryProcessName;
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message>;
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message>;
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub(crate) enum GeometryProgramName { Wiggle, TrackTriangles, BaseLabelTriangles, SpaceLabelTriangles, WindowTriangles }
+pub(crate) enum GeometryProgramName { Wiggle, Triangles(TrianglesProgramKind) }
 
 impl EnumerableKey for GeometryProgramName {
     fn enumerable(&self) -> Enumerable {
         Enumerable(match self {
             GeometryProgramName::Wiggle => 0,
-            GeometryProgramName::TrackTriangles => 1,
-            GeometryProgramName::BaseLabelTriangles => 2,
-            GeometryProgramName::SpaceLabelTriangles => 3,
-            GeometryProgramName::WindowTriangles => 4,
+            GeometryProgramName::Triangles(TrianglesProgramKind::Track) => 1,
+            GeometryProgramName::Triangles(TrianglesProgramKind::Base) => 2,
+            GeometryProgramName::Triangles(TrianglesProgramKind::Space) => 3,
+            GeometryProgramName::Triangles(TrianglesProgramKind::Window) => 4,
         },5)
     }
 }
@@ -41,16 +38,13 @@ impl GeometryProgramName {
     pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
         Ok(match self {
             GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(builder)?),
-            GeometryProgramName::TrackTriangles => GeometryProgram::TrackTriangles(TrackTrianglesProgram::new(builder)?),
-            GeometryProgramName::BaseLabelTriangles => GeometryProgram::BaseLabelTriangles(TrackTrianglesProgram::new(builder)?),
-            GeometryProgramName::SpaceLabelTriangles => GeometryProgram::SpaceLabelTriangles(TrackTrianglesProgram::new(builder)?),
-            GeometryProgramName::WindowTriangles => GeometryProgram::WindowTriangles(TrackTrianglesProgram::new(builder)?),
+            GeometryProgramName::Triangles(kind) => GeometryProgram::Triangles(kind.clone(),TrackTrianglesProgram::new(builder)?),
         })
     }
 
     pub(crate) fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
-            GeometryProgramName::TrackTriangles => vec![
+            GeometryProgramName::Triangles(TrianglesProgramKind::Track) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -77,7 +71,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::BaseLabelTriangles => vec![
+            GeometryProgramName::Triangles(TrianglesProgramKind::Base) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -104,7 +98,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::SpaceLabelTriangles => vec![
+            GeometryProgramName::Triangles(TrianglesProgramKind::Space) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -130,7 +124,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::WindowTriangles => vec![
+            GeometryProgramName::Triangles(TrianglesProgramKind::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -168,13 +162,24 @@ impl GeometryProgramName {
 }
 
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
-pub(crate) struct GeometryProcessName(GeometryProgramName,i64);
+pub(crate) struct GeometryProcessName(GeometryProgramName);
 
 impl GeometryProcessName {
-    pub(crate) fn new(program: GeometryProgramName, priority: i64) -> GeometryProcessName {
-        GeometryProcessName(program,priority)
+    pub(crate) fn new(program: GeometryProgramName) -> GeometryProcessName {
+        GeometryProcessName(program)
     }
 
     pub(crate) fn get_program_name(&self) -> GeometryProgramName { self.0.clone() }
-    pub(crate) fn order(&self) -> i64 { self.1 }
+}
+
+impl PartialOrd for GeometryProcessName {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.get_program_name().enumerable().partial_cmp(&other.get_program_name().enumerable())
+    }
+}
+
+impl Ord for GeometryProcessName  {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }

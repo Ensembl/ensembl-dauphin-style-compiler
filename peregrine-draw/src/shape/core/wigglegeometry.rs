@@ -108,10 +108,6 @@ struct WiggleAccessor {
 impl<'a> GeometryYielder for WiggleAccessor {
     fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
-        self.geometry_process_name.get_program_name().make_geometry_program(builder)
-    }
-
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
         self.wiggles = Some(match program {
             GeometryProgram::Wiggle(w) => w,

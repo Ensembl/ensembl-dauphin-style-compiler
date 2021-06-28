@@ -11,6 +11,18 @@ pub trait EnumerableKey {
     fn enumerable(&self) -> Enumerable;
 }
 
+impl PartialEq for Enumerable {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&self.1)
+    }
+}
+
+impl PartialOrd for Enumerable {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
 pub fn enumerable_compose(a: &dyn EnumerableKey, b: &dyn EnumerableKey) -> Enumerable {
     let a = a.enumerable();
     let b = b.enumerable();

@@ -132,7 +132,18 @@ impl PatinaProcessName {
             PatinaProcessName::Spot(_) => PatinaProgramName::Spot,
             PatinaProcessName::Texture(_) => PatinaProgramName::Texture,
             PatinaProcessName::FreeTexture(_) => PatinaProgramName::FreeTexture
-
         }
+    }
+}
+
+impl PartialOrd for PatinaProcessName {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.get_program_name().enumerable().partial_cmp(&other.get_program_name().enumerable())
+    }
+}
+
+impl Ord for PatinaProcessName  {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }

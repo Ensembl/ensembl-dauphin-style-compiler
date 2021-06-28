@@ -26,14 +26,8 @@ TODO hollowwidth
 TODO intersection cache
 */
 
-
-
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessName);
-
-impl ProgramCharacter {
-    fn order(&self) -> i64 { self.0.order() }
-}
 
 pub(crate) struct Layer {
     programs: ProgramStore,
@@ -76,7 +70,7 @@ impl Layer {
     pub(super) fn build(mut self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
-        characters.sort_by_cached_key(|ch| ch.order());
+        characters.sort();
         for character in &characters {
             let mut prog = self.store.remove(&character).unwrap();
             match character {

@@ -13,6 +13,14 @@ fn flip(allotment: &Allotment) -> f64 {
     }
 }
 
+#[derive(Clone,Hash,PartialEq,Eq,Debug)]
+pub enum TrianglesProgramKind {
+    Track,
+    Base,
+    Space,
+    Window
+}
+
 #[derive(Debug,Clone)]
 pub enum TrianglesKind {
     Track,
@@ -25,6 +33,15 @@ impl TrianglesKind {
     pub(super) fn add_spacebase(&self, point: &SpaceBase<f64>, allotments: &[Allotment], left: f64, width: Option<f64>) -> (Vec<f32>,Vec<f32>) {
         let area = SpaceBaseArea::new(point.clone(),point.clone());
         self.add_spacebase_area(&area,allotments,left,width)
+    }
+
+    pub(super) fn to_program_kind(&self) -> TrianglesProgramKind {
+        match self {
+            TrianglesKind::Track => TrianglesProgramKind::Track,
+            TrianglesKind::Base => TrianglesProgramKind::Base,
+            TrianglesKind::Space => TrianglesProgramKind::Space,
+            TrianglesKind::Window(_) => TrianglesProgramKind::Window
+        }
     }
 
     pub(super) fn add_spacebase_area(&self, area: &SpaceBaseArea<f64>, allotments: &[Allotment], left: f64, width: Option<f64>)-> (Vec<f32>,Vec<f32>) {
@@ -71,13 +88,8 @@ impl TrianglesKind {
     }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
-        let (program,priority) = match self {
-            TrianglesKind::Track => (GeometryProgramName::TrackTriangles,0),
-            TrianglesKind::Base => (GeometryProgramName::BaseLabelTriangles,0),
-            TrianglesKind::Space => (GeometryProgramName::SpaceLabelTriangles,0),
-            TrianglesKind::Window(p) => (GeometryProgramName::WindowTriangles,*p)
-        };
-        GeometryProcessName::new(program,priority)
+        let program = GeometryProgramName::Triangles(self.to_program_kind());
+        GeometryProcessName::new(program)
     }
 
     pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {

@@ -1,5 +1,4 @@
 use crate::{Message, shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryYielder}, webgl::ProgramBuilder};
-
 use super::trianglesprogram::TrackTrianglesProgram;
 
 pub(crate) struct TrackTrianglesYielder {
@@ -10,16 +9,9 @@ pub(crate) struct TrackTrianglesYielder {
 impl<'a> GeometryYielder for TrackTrianglesYielder {
     fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
-        self.geometry_process_name.get_program_name().make_geometry_program(builder)
-    }
-
     fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
         self.track_triangles = Some(match program {
-            GeometryProgram::BaseLabelTriangles(t) => t,
-            GeometryProgram::SpaceLabelTriangles(t) => t,
-            GeometryProgram::TrackTriangles(t) => t,
-            GeometryProgram::WindowTriangles(t) => t,
+            GeometryProgram::Triangles(_,prog) => prog,
             _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: tracktriangles")))? }
         }.clone());
         Ok(())
