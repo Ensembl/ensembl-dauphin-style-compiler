@@ -18,6 +18,9 @@ inline "+" plus left 4;
 func minus(number,number) becomes number;
 inline "-" minus left 4;
 
+func divide(number,number) becomes number;
+inline "/" divide left 3;
+
 expr unary_minus(a) 0-a;
 inline "-" unary_minus prefix 3;
 

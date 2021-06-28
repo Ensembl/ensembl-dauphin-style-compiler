@@ -86,7 +86,7 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
  */
 
 // XXX allow types to overlap with functions/vars
-non_pc_colour := barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),4,1,0.8);
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
 pc_colour := simple_colour(direct_colour(128,128,128,255));
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 

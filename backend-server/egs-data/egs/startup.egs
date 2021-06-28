@@ -60,3 +60,10 @@ track_add_allotment(p,"gene-nonpc-rev",-1000);
 track_add_allotment(p,"gene-pc-fwd",1000);
 track_add_allotment(p,"gene-nonpc-fwd",1100);
 track_apply(p);
+
+p := track_new("self()","gc",1,100,2);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gc"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"gc",2000);
+track_apply(p);

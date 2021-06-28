@@ -6,6 +6,7 @@ use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
 use super::texture::{CanvasTextureArea, TextureYielder};
+use crate::shape::core::wigglegeometry::{WiggleYielder, make_wiggle};
 use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::patina::PatinaYielder;
@@ -194,13 +195,13 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<Vec<Box<dyn DynamicShape>>,Message> {
     let mut dynamic : Vec<Box<dyn DynamicShape>> = vec![];
     match shape {
-        GLShape::Wiggle((start,end),y,Plotter(height,colour),allotment) => {
-            //let patina = colour_to_patina(&Colour::Spot(colour.clone()));
-            //let (mut array,geometry) = add_wiggle(layer,start,end,y,height,&patina,allotment)?;
-            //let spot = layer.get_spot(&geometry,&colour)?;
-            //let mut process = layer.get_process_mut(&geometry,&patina)?;
-            //spot.spot(&mut process)?;
-            //array.close();
+        GLShape::Wiggle((start,end),yy,Plotter(height,colour),allotment) => {
+            let mut geometry_yielder = WiggleYielder::new();
+            let mut patina_yielder = DirectYielder::new(); // XXX spot
+            let left = layer.left();
+            let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left)?;
+            patina_yielder.draw()?.direct(&mut array,&[colour],1)?;
+            array.close()?;
         },
         GLShape::Text2(points,handles,allotments,program_kind) => {
             let kind = to_trianges_kind(&program_kind);

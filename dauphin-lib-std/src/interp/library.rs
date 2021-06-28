@@ -26,7 +26,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,0),0x8A07AE1254D6E44B)
+    CommandSetId::new("std",(0,2),0xDA1B281177EEC3E7)
 }
 
 pub struct AssertDeserializer();

@@ -3,7 +3,6 @@ use std::cmp::{ max, min };
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
 use crate::switch::allotment::AllotmentHandle;
-use crate::spacebase::{ SpaceBase, SpaceBaseArea };
 use crate::util::ringarray::DataFilter;
 
 #[derive(Clone)]
@@ -18,11 +17,12 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
     let aim_min = if wanted_min < got_min { got_min } else { wanted_min }; // ie invariant: aim_min >= got_min
     let aim_max = if wanted_max > got_max { got_max } else { wanted_max }; // ie invariant: aim_max <= got_max
     let pitch = (got_max-got_min)/(y.len() as f64);
-    let left_truncate = ((aim_min-got_min)/pitch).floor() as usize -1;
-    let right_truncate = ((got_max-aim_max)/pitch).floor() as usize -1;
-    let left = min(max(left_truncate,0),y.len());
-    let right = max(left,min(max(0,y.len()-right_truncate),y.len()));
-    (aim_min,aim_max,y[left..right].to_vec())
+    let left_truncate = ((aim_min-got_min)/pitch).floor() as i64 - 1;
+    let right_truncate = ((got_max-aim_max)/pitch).floor() as i64 - 1;
+    let y_len = y.len() as i64;
+    let left = min(max(left_truncate,0),y_len);
+    let right = max(left,min(max(0,y_len-right_truncate),y_len));
+    (aim_min,aim_max,y[(left as usize)..(right as usize)].to_vec())
 }
 
 impl Shape {

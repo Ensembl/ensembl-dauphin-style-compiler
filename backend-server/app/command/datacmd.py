@@ -3,12 +3,14 @@ import logging
 from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
 from data.genedata import GeneDataHandler, GeneOverviewDataHandler
+from data.wiggle import WiggleDataHandler
 
 class DataHandler(Handler):
     def __init__(self):
         self.handlers : Dict[str,DataHandler] = {
             "gene": GeneDataHandler(),
             "gene-overview": GeneOverviewDataHandler(),
+            "gc": WiggleDataHandler(),
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:

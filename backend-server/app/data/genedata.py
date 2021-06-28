@@ -28,7 +28,6 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
 def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
     out = {}
     path = chrom.file_path("genes_and_transcripts","transcripts.bb")
-    logging.warn("hello from gene panel = {0} path = {1} {2}-{3}".format(str(vars(panel)),path,panel.start,panel.end))
     data = get_bigbed_data(path,chrom,panel.start,panel.end)
     seen_genes = set()
     genes = []
@@ -93,7 +92,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
 def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out = {}
     path = chrom.file_path("genes_and_transcripts","transcripts.bb")
-    logging.warn("hello from gene panel = {0} path = {1} {2}-{3}".format(str(vars(panel)),path,panel.start,panel.end))
+    #logging.warn("hello from gene panel = {0} path = {1} {2}-{3}".format(str(vars(panel)),path,panel.start,panel.end))
     data = get_bigbed_data(path,chrom,panel.start,panel.end)
     seen_genes = set()
     genes = []
@@ -118,8 +117,6 @@ def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
     logging.warn("got {0} genes".format(len(genes)))
-    for (k,v) in out.items():
-        logging.warn("len({0}) = {1}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
 class GeneDataHandler(DataHandler):

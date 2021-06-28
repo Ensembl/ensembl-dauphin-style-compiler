@@ -72,9 +72,9 @@ impl ProcessStanza {
             Ok(Some(ProcessStanza {
                 index: None,
                 len,
-                attribs: attribs.map(|k,v| 
+                attribs: attribs.map(|k,v| {
                     Ok((v.clone(),AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?))
-                )?
+                })?
             }))
         } else {
             Ok(None)

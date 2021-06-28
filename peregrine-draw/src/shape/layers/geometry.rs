@@ -154,7 +154,7 @@ impl GeometryProgramName {
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(
                         (aData.x -uStageHpos) * uStageZoom,
-                        - (aData.y - uStageVpos) / uSize.y, 
+                        1.0 - (aData.y - uStageVpos) / uSize.y, 
                         0.0, 1.0)")
             ]
         })
