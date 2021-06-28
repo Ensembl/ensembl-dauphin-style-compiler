@@ -201,9 +201,9 @@ impl DrawingHeraldry {
     }
 
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, preparations: &mut ToolPreparations) -> Result<(),Message> {
-        self.horiz.calculate_requirements(gl,preparations.heraldry_h_manager(),|_| {})?;
-        self.vert.calculate_requirements(gl,preparations.heraldry_v_manager(),|_| {})?;
-        self.crisp.calculate_requirements(gl,preparations.crisp_manager(),|_| {})?;
+        self.horiz.calculate_requirements(gl,preparations.heraldry_h_manager())?;
+        self.vert.calculate_requirements(gl,preparations.heraldry_v_manager())?;
+        self.crisp.calculate_requirements(gl,preparations.crisp_manager())?;
         Ok(())
     }
 

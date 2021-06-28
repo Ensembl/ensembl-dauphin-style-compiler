@@ -50,6 +50,10 @@ impl FlatDrawingItem for Text {
         Some(hasher.finish())
     }
 
+    fn group_hash(&self) -> Option<u64> {
+        Some(self.pen.group_hash())
+    }
+
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
         canvas.text(&self.text,pad(text_origin),size,&self.colour)?;
@@ -68,18 +72,7 @@ impl DrawingText {
     }
 
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
-        self.0.calculate_requirements(gl,allocator,|vv| {
-            /* sort by pen to speed up calculation */
-            let mut texts_by_pen = HashMap::new();
-            for v in vv.drain(..) {
-                texts_by_pen.entry(v.0.pen.clone()).or_insert_with(|| vec![]).push(v);
-            }
-            let mut out = vec![];
-            for (_,mut texts) in texts_by_pen.drain() {
-                out.append(&mut texts);
-            }
-            *vv = out;
-        })
+        self.0.calculate_requirements(gl,allocator)
     }
 
     pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }

@@ -6,7 +6,7 @@ use crate::util::message::Message;
 use super::canvasstore::CanvasStore;
 
 fn pen_to_font(pen: &Pen) -> String {
-    format!("{}px {}",pen.1,pen.0)
+    format!("{}px {}",pen.size(),pen.name())
 }
 
 fn colour_to_css(c: &DirectColour) -> String {
@@ -53,7 +53,7 @@ impl Flat {
             if *old_font == new_font { return Ok(()); }
         }
         self.font = Some(new_font.to_string());
-        self.font_height = Some(pen.1 as u32);
+        self.font_height = Some(pen.size());
         self.context()?.set_font(self.font.as_ref().unwrap());
         Ok(())
     }

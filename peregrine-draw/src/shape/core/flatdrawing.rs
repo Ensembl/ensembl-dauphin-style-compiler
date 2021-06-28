@@ -9,6 +9,7 @@ use crate::util::message::Message;
 
 pub(crate) trait FlatDrawingItem {
     fn compute_hash(&self) -> Option<u64> { None }
+    fn group_hash(&self) -> Option<u64> { None }
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message>;
     fn padding(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((0,0)) }
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message>;
@@ -71,6 +72,7 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
     hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
+    groups: HashMap<Option<u64>,Vec<H>>,
     canvas_id: Option<FlatId>
 }
 
@@ -79,6 +81,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         FlatDrawingManager {
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
+            groups: HashMap::new(),
             request: None,
             canvas_id: None
         }
@@ -91,18 +94,22 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
                 return old.clone();
             }
         }
+        let group = item.group_hash();
         let handle = self.texts.add((item,FlatBoundary::new()));
         if let Some(hash) = hash {
             self.hashed_items.insert(hash,handle.clone());
         }
+        self.groups.entry(group).or_insert(vec![]).push(handle.clone());
         handle
     }
 
-    fn calc_sizes<F>(&mut self, gl: &mut WebGlGlobal, sorter: F) -> Result<(),Message>
-                where F: FnOnce(&mut Vec<&mut (T,FlatBoundary)>) {
-        let mut texts = self.texts.values_mut().collect::<Vec<_>>();
-        sorter(&mut texts);
-        for v in texts.iter_mut() {
+    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        let mut handles = vec![];
+        for group in self.groups.values() {
+            handles.extend(group.iter().cloned());
+        }
+        for handle in handles.drain(..) {
+            let v = self.texts.get_mut(&handle);
             let size = v.0.calc_size(gl)?;
             let padding = v.0.padding(gl)?;
             v.1.set_size(size,padding);
@@ -110,9 +117,8 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         Ok(())
     }
 
-    pub(crate) fn calculate_requirements<F>(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager, sorter: F) -> Result<(),Message>
-                where F: FnOnce(&mut Vec<&mut (T,FlatBoundary)>) {
-        self.calc_sizes(gl,sorter)?;
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+        self.calc_sizes(gl)?;
         let mut sizes = vec![];
         for (text,boundary) in self.texts.values_mut() {
             let size = boundary.size_with_padding()?;

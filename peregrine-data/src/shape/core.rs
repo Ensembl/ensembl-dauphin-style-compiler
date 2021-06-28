@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
 use super::zmenu::ZMenu;
 use crate::util::ringarray::{ UniformData, DataFilter };
 
@@ -28,16 +28,57 @@ pub(super) fn bulk<T>(b: Vec<T>, a_len: usize, primary: bool) -> Vec<T> where T:
 pub struct DirectColour(pub u8,pub u8,pub u8,pub u8);
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub struct Pen(pub String,pub u32,pub Vec<DirectColour>);
+struct PenGeometry {
+    name: String,
+    size: u32,
+    hash: u64
+}
+
+impl PenGeometry {
+    fn new(name: &str, size:u32) -> PenGeometry {
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        size.hash(&mut hasher);
+        let hash = hasher.finish();
+        PenGeometry {
+            name: name.to_string(),
+            size,
+            hash
+        }
+    }
+}
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+pub struct Pen {
+    geometry: Arc<PenGeometry>,
+    colours: Vec<DirectColour>
+}
 
 impl Pen {
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour]) -> Pen {
+        Pen {
+            geometry: geometry.clone(),
+            colours: colours.to_vec()
+        }
+    }
+
+    pub fn new(name: &str, size: u32, colours: &[DirectColour]) -> Pen {
+        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours)
+    }
+
+    pub fn name(&self) -> &str { &self.geometry.name }
+    pub fn size(&self) -> u32 { self.geometry.size }
+    pub fn colours(&self) -> &[DirectColour] { &self.colours }
+
     pub fn bulk(self, len: usize, primary: bool) -> Pen {
-        Pen(self.0,self.1,bulk(self.2,len,primary))
+        Pen::new_real(&self.geometry,&bulk(self.colours,len,primary))
     }
 
     pub fn filter(&self, filter: &DataFilter) -> Pen {
-        Pen(self.0.clone(),self.1,filter.filter(&self.2))
+        Pen::new_real(&self.geometry,&filter.filter(&self.colours))
     }
+
+    pub fn group_hash(&self) -> u64 { self.geometry.hash }
 }
 
 #[derive(Clone,Debug)]

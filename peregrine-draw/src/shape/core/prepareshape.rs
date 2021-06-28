@@ -145,7 +145,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 AllotmentProgram::new(&allotment.position().kind()).kind()
             });
             let drawing_text = tools.text();
-            let colours_iter = pen.2.iter().cycle();
+            let colours_iter = pen.colours().iter().cycle();
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
             let mut out = vec![];
             for (kind,filter) in &demerge {
