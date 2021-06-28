@@ -1,6 +1,6 @@
 use super::super::core::wigglegeometry::{WiggleProgram };
-use super::super::core::tracktriangles::{ TrackTrianglesProgram };
 use crate::shape::layers::consts::PR_DEF;
+use crate::shape::triangles::trianglesprogram::TrackTrianglesProgram;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use super::consts::{ PR_LOW };
@@ -32,7 +32,7 @@ impl EnumerableKey for GeometryProgramName {
             GeometryProgramName::TrackTriangles => 1,
             GeometryProgramName::BaseLabelTriangles => 2,
             GeometryProgramName::SpaceLabelTriangles => 3,
-            &GeometryProgramName::WindowTriangles => 4,
+            GeometryProgramName::WindowTriangles => 4,
         },5)
     }
 }

@@ -98,7 +98,7 @@ mod test {
     pub fn test_timer() {
         let mut timers : TimerSet<OrderedFloat<f64>,Option<TaskContainerHandle>> = TimerSet::new();
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
-        timers.run(OrderedFloat(0.),|_| true);
+        timers.run(OrderedFloat(0.),&|_| true);
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
         let shared = Arc::new(Mutex::new(false));
         let shared2 = shared.clone();
@@ -111,14 +111,14 @@ mod test {
         assert_eq!(Some(OrderedFloat(0.1)),timers.min());
         assert!(!*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
-        timers.run(OrderedFloat(0.5), |_| true);
+        timers.run(OrderedFloat(0.5), &|_| true);
         assert!(!*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
-        timers.run(OrderedFloat(1.), |_| true);
+        timers.run(OrderedFloat(1.), &|_| true);
         assert!(*shared.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()!=0);
         assert_eq!(Some(OrderedFloat(1.1)),timers.min());
-        timers.run(OrderedFloat(1.5), |_| true);
+        timers.run(OrderedFloat(1.5), &|_| true);
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
         assert_eq!(None,timers.min());
     }
@@ -150,7 +150,7 @@ mod test {
         timers.add(Some(h3),OrderedFloat(3.),timer_maker(&timers_run));
         tasks.remove(&h2);
         tasks.remove(&h1);
-        timers.run(OrderedFloat(4.), |j| j.as_ref().map(|h| tasks.get(h).is_some()).unwrap_or(true));
+        timers.run(OrderedFloat(4.), &|j| j.as_ref().map(|h| tasks.get(h).is_some()).unwrap_or(true));
         assert_eq!(1,*timers_run.lock().unwrap());
         assert!(timers.0.lock().unwrap().timeouts.len()==0);
     }

@@ -9,11 +9,12 @@ use super::texture::{CanvasTextureArea, TextureYielder};
 use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::patina::PatinaYielder;
+use crate::shape::triangles::rectangles::{Rectangles };
+use crate::shape::triangles::triangleskind::TrianglesKind;
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
-use super::tracktriangles::{Rectangles, TrianglesKind};
 use crate::webgl::canvas::flatstore::FlatId;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]

@@ -65,7 +65,6 @@ mod shape {
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;
         pub(super) mod spotcolourdraw;
-        pub(super) mod tracktriangles;
         pub(crate) mod flatdrawing;
         pub(crate) mod spectre;
         pub(crate) mod spectraldrawing;
@@ -73,6 +72,13 @@ mod shape {
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
+    }
+
+    pub(crate) mod triangles {
+        pub(crate) mod trianglesyielder;
+        pub(crate) mod triangleskind;
+        pub(crate) mod trianglesprogram;
+        pub(crate) mod rectangles;
     }
 
     pub(crate) mod heraldry {
