@@ -1,9 +1,7 @@
-use web_sys::WebGlRenderingContext;
-
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgramLink, GeometryYielder};
 use crate::webgl::{ AttribHandle, ProcessBuilder, ProcessStanzaAddable, Program, ProcessStanzaArray, GPUSpec, ProgramBuilder };
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
@@ -11,13 +9,13 @@ use crate::util::message::Message;
 const THICKNESS: f64 = 1.; // XXX
 
 #[derive(Clone)]
-pub struct WiggleProgram {
+pub struct WiggleProgramLink {
     data: AttribHandle
 }
 
-impl WiggleProgram {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleProgram,Message> {
-        Ok(WiggleProgram {
+impl WiggleProgramLink {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleProgramLink,Message> {
+        Ok(WiggleProgramLink {
             data: builder.get_attrib_handle("aData")?,
         })
     }
@@ -90,27 +88,27 @@ impl WigglePusher {
 
 #[derive(Clone)]
 pub struct WiggleGeometry {
-    variety: WiggleProgram,
+    variety: WiggleProgramLink,
     patina: PatinaProcessName
 }
 
 impl WiggleGeometry {
-    pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgram) -> Result<WiggleGeometry,Message> {
+    pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgramLink) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 }
 
 struct WiggleAccessor {
     geometry_process_name: GeometryProcessName,
-    wiggles: Option<WiggleProgram>
+    wiggles: Option<WiggleProgramLink>
 }
 
 impl<'a> GeometryYielder for WiggleAccessor {
     fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
-    fn set(&mut self, program: &GeometryProgram) -> Result<(),Message> {
+    fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message> {
         self.wiggles = Some(match program {
-            GeometryProgram::Wiggle(w) => w,
+            GeometryProgramLink::Wiggle(w) => w,
             _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: wiggle")))? }
         }.clone());
         Ok(())
@@ -118,7 +116,7 @@ impl<'a> GeometryYielder for WiggleAccessor {
 }
 
 impl WiggleAccessor {
-    pub(crate) fn wiggles(&self) -> Result<&WiggleProgram,Message> {
+    pub(crate) fn wiggles(&self) -> Result<&WiggleProgramLink,Message> {
         self.wiggles.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
     }
 }

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
 use crate::webgl::{ProcessBuilder, Program, ProgramBuilder, SourceInstrs, make_program};
-use super::geometry::{GeometryProcessName, GeometryProgram, GeometryProgramName};
-use super::patina::{PatinaProcessName, PatinaProgram, PatinaProgramName};
+use super::geometry::{GeometryProcessName, GeometryProgramLink, GeometryProgramName};
+use super::patina::{PatinaProcessName, PatinaProgramLink, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
@@ -19,8 +19,8 @@ impl EnumerableKey for ProgramIndex {
 
 pub(crate) struct ProgramStoreEntry {
     builder: Rc<ProgramBuilder>,
-    geometry: GeometryProgram,
-    patina: PatinaProgram
+    geometry: GeometryProgramLink,
+    patina: PatinaProgramLink
 }
 
 impl ProgramStoreEntry {

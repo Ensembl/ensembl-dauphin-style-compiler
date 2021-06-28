@@ -8,9 +8,9 @@ use peregrine_data::{
 };
 use super::super::util::arrayutil::rectangle64;
 use super::triangleskind::TrianglesKind;
-use super::trianglesprogram::TrackTrianglesProgram;
+use super::trianglesprogramlink::TrianglesProgramLink;
 use super::trianglesyielder::TrackTrianglesYielder;
-use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgram, GeometryProgramName, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgramLink, GeometryProgramName, GeometryYielder};
 use crate::util::message::Message;
 
 enum RectanglesLocation {
@@ -50,7 +50,7 @@ impl RectanglesLocation {
 
 pub(crate) struct Rectangles {
     elements: ProcessStanzaElements,
-    program: TrackTrianglesProgram,
+    program: TrianglesProgramLink,
     location: RectanglesLocation,
     allotments: Vec<Allotment>,
     left: f64,

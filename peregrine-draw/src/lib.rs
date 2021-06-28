@@ -77,7 +77,7 @@ mod shape {
     pub(crate) mod triangles {
         pub(crate) mod trianglesyielder;
         pub(crate) mod triangleskind;
-        pub(crate) mod trianglesprogram;
+        pub(crate) mod trianglesprogramlink;
         pub(crate) mod rectangles;
     }
 

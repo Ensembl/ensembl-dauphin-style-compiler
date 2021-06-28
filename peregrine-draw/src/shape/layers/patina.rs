@@ -1,7 +1,7 @@
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use super::geometry::GeometryProgram;
+use super::geometry::GeometryProgramLink;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{FlatId, SetFlag};
 use crate::webgl::{ ProcessBuilder, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
@@ -9,20 +9,20 @@ use peregrine_data::{ DirectColour, Patina, Colour };
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
 
-pub(crate) enum PatinaProgram {
+pub(crate) enum PatinaProgramLink {
     Direct(DirectProgram),
     Spot(SpotProgram),
     Texture(TextureProgram),
     FreeTexture(TextureProgram)
 }
 
-impl PatinaProgram {
+impl PatinaProgramLink {
     pub(super) fn make_patina_process(&self, skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
         Ok(match self {
-            PatinaProgram::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
-            PatinaProgram::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
-            PatinaProgram::FreeTexture(v) => PatinaProcess::FreeTexture(TextureDraw::new(v,true)?),
-            PatinaProgram::Spot(v) => {
+            PatinaProgramLink::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
+            PatinaProgramLink::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
+            PatinaProgramLink::FreeTexture(v) => PatinaProcess::FreeTexture(TextureDraw::new(v,true)?),
+            PatinaProgramLink::Spot(v) => {
                 match skin {
                     PatinaProcessName::Spot(colour) => PatinaProcess::Spot(SpotColourDraw::new(colour,v)?),
                     _ => { return Err(Message::CodeInvariantFailed(format!("unexpected type mismatch, not spot"))); }
@@ -37,7 +37,7 @@ pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
 
 pub(crate) trait PatinaYielder {
     fn name(&self) -> &PatinaProcessName;
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgram,Message>;
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgramLink,Message>;
     fn set(&mut self, program: &PatinaProcess) -> Result<(),Message>;
 }
 
@@ -53,12 +53,12 @@ impl EnumerableKey for PatinaProgramName {
 }
 
 impl PatinaProgramName {
-    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaProgram,Message> {
+    pub(super) fn make_patina_program(&self, builder: &ProgramBuilder) -> Result<PatinaProgramLink,Message> {
         Ok(match self {
-            PatinaProgramName::Direct => PatinaProgram::Direct(DirectProgram::new(builder)?),
-            PatinaProgramName::Spot => PatinaProgram::Spot(SpotProgram::new(builder)?),
-            PatinaProgramName::Texture => PatinaProgram::Texture(TextureProgram::new(builder)?),
-            PatinaProgramName::FreeTexture => PatinaProgram::FreeTexture(TextureProgram::new(builder)?),
+            PatinaProgramName::Direct => PatinaProgramLink::Direct(DirectProgram::new(builder)?),
+            PatinaProgramName::Spot => PatinaProgramLink::Spot(SpotProgram::new(builder)?),
+            PatinaProgramName::Texture => PatinaProgramLink::Texture(TextureProgram::new(builder)?),
+            PatinaProgramName::FreeTexture => PatinaProgramLink::FreeTexture(TextureProgram::new(builder)?),
         })
     }
 

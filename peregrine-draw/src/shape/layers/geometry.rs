@@ -1,7 +1,7 @@
-use super::super::core::wigglegeometry::{WiggleProgram };
+use super::super::core::wigglegeometry::WiggleProgramLink;
 use crate::shape::layers::consts::PR_DEF;
 use crate::shape::triangles::triangleskind::TrianglesProgramKind;
-use crate::shape::triangles::trianglesprogram::TrackTrianglesProgram;
+use crate::shape::triangles::trianglesprogramlink::TrianglesProgramLink;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use super::consts::{ PR_LOW };
@@ -9,14 +9,14 @@ use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 
 #[derive(Clone)]
-pub(crate) enum GeometryProgram {
-    Wiggle(WiggleProgram),
-    Triangles(TrianglesProgramKind,TrackTrianglesProgram),
+pub(crate) enum GeometryProgramLink {
+    Wiggle(WiggleProgramLink),
+    Triangles(TrianglesProgramLink),
 }
 
 pub(crate) trait GeometryYielder {
     fn name(&self) -> &GeometryProcessName;
-    fn set(&mut self, program: &GeometryProgram) -> Result<(),Message>;
+    fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message>;
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
@@ -35,10 +35,10 @@ impl EnumerableKey for GeometryProgramName {
 }
 
 impl GeometryProgramName {
-    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryProgram,Message> {
+    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryProgramLink,Message> {
         Ok(match self {
-            GeometryProgramName::Wiggle => GeometryProgram::Wiggle(WiggleProgram::new(builder)?),
-            GeometryProgramName::Triangles(kind) => GeometryProgram::Triangles(kind.clone(),TrackTrianglesProgram::new(builder)?),
+            GeometryProgramName::Wiggle => GeometryProgramLink::Wiggle(WiggleProgramLink::new(builder)?),
+            GeometryProgramName::Triangles(_) => GeometryProgramLink::Triangles(TrianglesProgramLink::new(builder)?),
         })
     }
 

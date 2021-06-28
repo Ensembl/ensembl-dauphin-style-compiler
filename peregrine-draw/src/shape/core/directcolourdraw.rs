@@ -1,4 +1,4 @@
-use crate::{shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaProgram, PatinaYielder}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use crate::{shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaProgramLink, PatinaYielder}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
 use peregrine_data::DirectColour;
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;
@@ -60,8 +60,8 @@ impl DirectYielder {
 impl PatinaYielder for DirectYielder {
     fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgram,Message> {
-        Ok(PatinaProgram::Direct(DirectProgram::new(builder)?))
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgramLink,Message> {
+        Ok(PatinaProgramLink::Direct(DirectProgram::new(builder)?))
     }
     
     fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
