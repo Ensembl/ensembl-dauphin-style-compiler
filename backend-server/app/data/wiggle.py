@@ -11,11 +11,22 @@ SCALE = 4
 def get_wiggle(chrom: Chromosome, panel: Panel) -> Response:
     path = chrom.file_path("gc","gc.bw")
     data = get_bigwig_data(path,chrom,panel.start,panel.end)
+    # Awkwardly, issing data seems tobe treated as 0.0 by the reader.
+    # Need also to mask adjacentvalues as averages are affected
+    present = []
+    for i in range(0,len(data)):
+        missing = data[i]<= 0.0 or (i>0 and data[i-1]<=0.0) or (i<len(data)-1 and data[i+1]<=0.0)
+        present.append(not missing)    
+    present = bytearray(present)
+    logging.warn(data)
     data = bytearray([round(x/SCALE) for x in data])
     out = {
         "values": compress(lesqlite2(zigzag(delta(data)))),
+        "present": compress(present),
         "range": compress(lesqlite2([panel.start,panel.end]))
     }
+    for (k,v) in out.items():
+        logging.warn("{}= {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
 class WiggleDataHandler(DataHandler):

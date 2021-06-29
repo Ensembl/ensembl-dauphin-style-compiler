@@ -15,7 +15,7 @@
  */
 
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
-use dauphin_interp::runtime::{ InterpContext, Register };
+use dauphin_interp::runtime::{InterpContext, InterpValue, Register};
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
 use serde_cbor::Value as CborValue;
@@ -26,7 +26,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,2),0xDA1B281177EEC3E7)
+    CommandSetId::new("std",(0,3),0x6C6E47F619B0B06)
 }
 
 pub struct AssertDeserializer();
@@ -54,6 +54,30 @@ impl InterpCommand for AssertInterpCommand {
     }
 }
 
+pub struct BytesToBoolDeserializer();
+
+impl CommandDeserializer for BytesToBoolDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((25,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(BytesToBoolInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?)))
+    }
+}
+
+pub struct BytesToBoolInterpCommand(Register,Register);
+
+impl InterpCommand for BytesToBoolInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut bools = vec![];
+        let datas = registers.get_bytes(&self.1)?;
+        for data in datas.iter() {
+            bools.extend(data.iter().map(|x| *x!=0));
+        }
+        registers.write(&self.0,InterpValue::Boolean(bools));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 pub fn make_std_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     library_eq_command_interp(&mut set);
@@ -63,5 +87,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     library_numops_commands_interp(&mut set);
     library_vector_commands_interp(&mut set);
     library_map_commands_interp(&mut set);
+    set.push(BytesToBoolDeserializer());
     set
 }

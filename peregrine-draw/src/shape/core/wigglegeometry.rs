@@ -106,8 +106,10 @@ struct WigglePusher {
 
 impl WigglePusher {
     fn cap(&mut self) {
-        self.x.push(*self.x.last().unwrap());
-        self.y.push(*self.y.last().unwrap());
+        if let (Some(last_x),Some(last_y)) = (self.x.last().cloned(),self.y.last().cloned()) {
+            self.x.push(last_x);
+            self.y.push(last_y);    
+        }
     }
 
     fn active(&mut self, y: f64) {

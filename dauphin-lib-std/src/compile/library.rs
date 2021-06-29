@@ -33,11 +33,39 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,2),0xDA1B281177EEC3E7)
+    CommandSetId::new("std",(0,3),0x6C6E47F619B0B06)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
     Identifier::new("std",name)
+}
+
+
+pub struct BytesToBoolCommandType();
+
+impl CommandType for BytesToBoolCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 2,
+            trigger: CommandTrigger::Command(std("bytes_to_bool"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(BytesToBoolCommand(it.regs[0].clone(),it.regs[1].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct BytesToBoolCommand(Register,Register);
+
+impl Command for BytesToBoolCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
+    }
 }
 
 pub struct LenCommandType();
@@ -162,6 +190,7 @@ impl Command for AlienateCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
+    /* next is 26 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -169,6 +198,7 @@ pub fn make_std() -> CompLibRegister {
     set.push("alienate",Some(13),AlienateCommandType());
     set.push("print",Some(14),PrintCommandType());
     set.push("format",Some(2),FormatCommandType());
+    set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);
