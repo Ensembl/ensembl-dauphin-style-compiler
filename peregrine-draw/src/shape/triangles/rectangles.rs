@@ -10,7 +10,6 @@ use super::super::util::arrayutil::rectangle64;
 use super::triangleskind::TrianglesKind;
 use super::trianglesprogramlink::TrianglesProgramLink;
 use super::trianglesyielder::TrackTrianglesYielder;
-use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgramLink, GeometryProgramName, GeometryYielder};
 use crate::util::message::Message;
 
 enum RectanglesLocation {

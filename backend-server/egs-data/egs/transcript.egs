@@ -15,8 +15,10 @@ data := get_data("self()","transcript",get_region());
 gene_id := string_seq(data,"gene_ids");
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
-start := delta_seq(data,"transcript_starts");
-end := start + delta_seq(data,"transcript_lengths");
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+transcript_start := delta_seq(data,"transcript_starts");
+transcript_end := transcript_start + delta_seq(data,"transcript_lengths");
 gene_designation := classified_seq(data,"gene_designation_keys","gene_designation_values");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
@@ -99,9 +101,17 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
  */
 
 // XXX allow types to overlap with functions/vars
-non_pc_colour := simple_colour(direct_colour(200,200,200,255));
-pc_colour := simple_colour(direct_colour(128,128,128,255));
+base_non_pc_colour := direct_colour(200,200,200,255);
+base_pc_colour := direct_colour(128,128,128,255);
+
+dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,5,1,0.25);
+dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.25);
+non_pc_colour := simple_colour(base_non_pc_colour);
+pc_colour := simple_colour(base_pc_colour);
+
 patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1);
+hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
 exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
 
 text_colour := direct_colour(111,129,144,255);
@@ -128,8 +138,10 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  * draw everything!
  */
 
-//rectangle_on_genome(start,end,5,patina,allotment);
-rectangle_on_genome(start,end,1,patina,allotment); // central line
+rectangle_on_genome(start,start,5,hollow_patina,allotment); // left stop
+rectangle_on_genome(end,end,5,hollow_patina,allotment); // right stop
+rectangle_on_genome(start,end,1,dotted_patina,allotment); // central dotted line
+rectangle_on_genome(transcript_start,transcript_end,1,patina,allotment); // central line
 rectangle_on_genome(exon_start,exon_end,5,exon_patina,exon_allotment);
 //rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 //rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);

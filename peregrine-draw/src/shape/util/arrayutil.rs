@@ -22,16 +22,16 @@ pub fn hollow_rectangle<T>(data: &mut Vec<T>, left: T, top: T, right: T, bottom:
     data.push(top);
 
     data.push(left+w);
-    data.push(bottom-w);
+    data.push(bottom+w);
     data.push(left);
     data.push(bottom);
 
-    data.push(right-w);
-    data.push(bottom-w);
+    data.push(right+w);
+    data.push(bottom+w);
     data.push(right);
     data.push(bottom);    
 
-    data.push(right-w);
+    data.push(right+w);
     data.push(top+w);
     data.push(right);
     data.push(top);
