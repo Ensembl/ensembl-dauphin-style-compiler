@@ -1,5 +1,6 @@
 import collections
 import logging
+from typing import Dict, List, Mapping, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
 from model.bigbed import get_bigbed_data
 from model.chromosome import Chromosome
@@ -25,13 +26,53 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
     else:
         return 0
 
-def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
+def classified_numbers(result: dict, data: List[str], name: str):
+    (keys,values) = classify(data)
+    result[name+"_keys"] = compress("\0".join(keys))
+    result[name+"_values"] = compress(lesqlite2(values))
+
+def starts_and_ends(result: dict, sizes: List[Tuple[int,int]], name: str):
+    if name:
+        name += "_"
+    else:
+        name = ""
+    result[name+'starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in sizes ]))))
+    result[name+'lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in sizes ]))))
+
+def starts_and_lengths(result: dict, sizes: List[Tuple[int,int]], name: str):
+    if name:
+        name += "_"
+    else:
+        name = ""
+    result[name+'starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in sizes ]))))
+    result[name+'lengths'] = compress(lesqlite2(zigzag(delta([ x[1] for x in sizes ]))))
+
+def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,TranscriptFileLine]):
+    sizes = []
+    # below are needed to get it into the correct allotment
+    gene_biotypes = []
+    strands = []
+    transcript_sizes = []
+    for gene_id in genes:
+        line = transcripts[gene_id]
+        transcript_sizes.append((line.transcript_start,line.transcript_end))
+        for (start,length) in zip(line.block_starts,line.block_sizes):
+            sizes.append((line.transcript_start+start,length))
+            gene_biotypes.append(line.gene_biotype)
+            strands.append(line.strand=='+')
+    starts_and_lengths(result,sizes,"exon")
+    starts_and_ends(result,transcript_sizes,"transcript")
+    classified_numbers(result,gene_biotypes,"exon_gene_biotypes")
+    result['exon_strands'] = compress(lesqlite2(strands))
+
+def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool) -> Response:
     out = {}
     path = chrom.file_path("genes_and_transcripts","transcripts.bb")
     data = get_bigbed_data(path,chrom,panel.start,panel.end)
     seen_genes = set()
     genes = []
     gene_sizes = {}
+    transcript_sizes = {}
     gene_names = {}
     gene_descs = {}
     gene_biotypes = {}
@@ -45,6 +86,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
             genes.append(line.gene_id)
             seen_genes.add(line.gene_id)
         gene_sizes[line.gene_id] = (line.gene_start,line.gene_end)
+        transcript_sizes[line.gene_id] = (line.transcript_start,line.transcript_end)
         gene_names[line.gene_id] = line.gene_name or line.gene_id
         gene_descs[line.gene_id] = line.gene_description
         gene_biotypes[line.gene_id] = line.gene_biotype
@@ -56,38 +98,29 @@ def extract_gene_data(chrom: Chromosome, panel: Panel) -> Response:
         dt_grade = transcript_grade(line.transcript_designation,line.transcript_biotype)
         if dt_grade > dt_grade_stored:
             designated_transcript[line.gene_id] = (dt_grade,line)
+    designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
+    transcript_sizes = list([ transcript_sizes[gene] for gene in genes ])
     gene_names = "\0".join([ gene_names[gene] for gene in genes ])
     gene_descs = "\0".join([ gene_descs[gene] for gene in genes ])
     gene_biotypes = [ gene_biotypes[gene] for gene in genes ]
-    gene_designations = [ designated_transcript[gene][1].transcript_designation for gene in genes ]
-    designated_transcript_ids = [ designated_transcript[gene][1].transcript_id for gene in genes ]
+    gene_designations = [ designated_transcript[gene].transcript_designation for gene in genes ]
+    designated_transcript_ids = [ designated_transcript[gene].transcript_id for gene in genes ]
     designated_transcript_biotypes = [ transcript_biotypes[transcript] for transcript in designated_transcript_ids ]
     designated_transcript_designations = [ transcript_designations[transcript] for transcript in designated_transcript_ids ]
-    (gene_designations_keys,gene_designations_values) = classify(gene_designations)
-    (gene_biotypes_keys,gene_biotypes_values) = classify(gene_biotypes)
-    (designated_transcript_biotypes_keys,designated_transcript_biotypes_values) = classify(designated_transcript_biotypes)
-    (designated_transcript_designations_keys,designated_transcript_designations_values) = classify(designated_transcript_designations)
-    out['starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in gene_sizes ]))))
-    out['lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in gene_sizes ]))))
+    starts_and_ends(out,gene_sizes,None)
     out['gene_names'] = compress(gene_names)
     out['gene_descs'] = compress(gene_descs)
     out['gene_ids'] = compress("\0".join(genes))
     out['designated_transcript_ids'] = compress("\0".join(designated_transcript_ids))
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
-    out['gene_designations_keys'] = compress("\0".join(gene_designations_keys))
-    out['gene_designations_values'] = compress(lesqlite2(gene_designations_values))
-    out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
-    out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
-    out['designated_transcript_biotypes_keys'] = compress("\0".join(designated_transcript_biotypes_keys))
-    out['designated_transcript_biotypes_values'] = compress(lesqlite2(designated_transcript_biotypes_values))
-    out['designated_transcript_designations_keys'] = compress("\0".join(designated_transcript_designations_keys))
-    out['designated_transcript_designations_values'] = compress(lesqlite2(designated_transcript_designations_values))
-    logging.warn("got {0} genes".format(len(genes)))
-    for (k,v) in out.items():
-        logging.warn("len({0}) = {1}".format(k,len(v)))
+    classified_numbers(out,gene_designations,"gene_designations")
+    classified_numbers(out,gene_biotypes,"gene_biotypes")
+    classified_numbers(out,designated_transcript_biotypes,"designated_transcript_biotypes")
+    classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
+    if include_exons:
+        add_exon_data(out,genes,designated_transcript)
     return Response(5,{ 'data': out })
-
 
 def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out = {}
@@ -119,12 +152,19 @@ def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     logging.warn("got {0} genes".format(len(genes)))
     return Response(5,{ 'data': out })
 
+class TranscriptDataHandler(DataHandler):
+    def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
+        chrom = data_accessor.data_model.sticks.get(panel.stick)
+        if chrom == None:
+            return Response(1,"Unknown chromosome {0}".format(panel.stick))
+        return extract_gene_data(chrom,panel,True)
+
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(chrom,panel)
+        return extract_gene_data(chrom,panel,False)
 
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:

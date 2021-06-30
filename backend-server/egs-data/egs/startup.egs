@@ -15,8 +15,23 @@ import "lib:peregrine"; use "peregrine";
 100Mb   26
 */
 
+/* exon-struxcture; labels ; zmenus */
+p := track_new("self()","transcript",8,18,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gene-pc-fwd"]);
+track_add_trigger(p,["track","gene-pc-rev"]);
+track_add_trigger(p,["track","gene-nonpc-fwd"]);
+track_add_trigger(p,["track","gene-nonpc-rev"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"focus",-1000000);
+track_add_allotment(p,"gene-pc-rev",-1100);
+track_add_allotment(p,"gene-nonpc-rev",-1000);
+track_add_allotment(p,"gene-pc-fwd",1000);
+track_add_allotment(p,"gene-nonpc-fwd",1100);
+track_apply(p);
+
 /* no exon-structure; labels; zmenus */
-p := track_new("self()","gene",17,21,4);
+p := track_new("self()","gene",18,21,4);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gene-pc-fwd"]);
 track_add_trigger(p,["track","gene-pc-rev"]);

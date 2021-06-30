@@ -332,6 +332,7 @@ impl DataFilter {
     /* VERY HOT CODE PATH: PREFER SPEED OVER ELEGANCE */
     pub fn filter<X: Clone>(&self, other: &[X]) -> Vec<X> {
         let other_full_len = other.len();
+        if other_full_len == 0 { return vec![]; }
         let mut out = Vec::with_capacity(self.num_set);
         for (start,len) in &self.ranges {
             let mut other_start = *start % other_full_len;

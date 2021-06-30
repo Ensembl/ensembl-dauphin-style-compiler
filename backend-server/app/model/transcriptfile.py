@@ -23,6 +23,14 @@ import base64
     string geneBiotype;             "Gene biotype"
 """
 
+"""
+
+2425979 2505532 
+2479887 2505213 19      
+90,128,170,93,203,120,171,107,143,92,82,97,182,124,84,146,79,297,1354,  0,296,4560,7019,7285,7710,9319,9872,11304,14968,15600,16719,16940,18635,18856,19196,19753,22224,24034, 
+2479887 2505276
+"""
+
 class TranscriptFileLine(object):
     def __init__(self,data):
         (self.gene_start, self.gene_end, rest) = data
@@ -32,7 +40,9 @@ class TranscriptFileLine(object):
             self.transcript_end, self.transcript_biotype, self.transcript_designation,
             self.gene_id, self.gene_name, base64_gene_description, self.gene_biotype
         ) = rest.split("\t")
-        self.block_sizes = block_sizes.split(",")
-        self.block_starts = block_starts.split(",")
+        self.block_sizes = [int(x) for x in block_sizes.split(",") if len(x)]
+        self.block_starts = [int(x) for x in block_starts.split(",") if len(x)]
+        self.transcript_start = int(self.transcript_start)
+        self.transcript_end = int(self.transcript_end)
         self.gene_description = base64.decodebytes(base64_gene_description.encode("ascii")).decode("utf8")
 
