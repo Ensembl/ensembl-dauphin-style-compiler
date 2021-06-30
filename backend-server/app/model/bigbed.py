@@ -1,3 +1,4 @@
+import logging
 import pyBigWig
 
 def get_bigbed_data(path,chrom,start,end):
@@ -15,7 +16,8 @@ def get_bigwig_data(path,chrom,start,end):
     bw = pyBigWig.open(path)
     try:
         out = bw.stats(chrom.name,start,end,nBins=1000) or []
-    except (RuntimeError,OverflowError):
+    except (RuntimeError,OverflowError) as e:
+        logging.error(e)
         out = []
     bw.close()
     return out
