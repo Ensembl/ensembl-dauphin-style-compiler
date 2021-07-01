@@ -96,8 +96,17 @@ impl GLTrain {
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+        let mut min = 0;
+        let mut max = 0;
         for carriage in self.carriages.values_mut() {
-            carriage.draw(gl,stage,session)?;
+            let here_prio = carriage.priority_range();
+            min = min.min(here_prio.0);
+            max = max.max(here_prio.1);
+        }
+        for prio in min..(max+1) {
+            for carriage in self.carriages.values_mut() {
+                carriage.draw(gl,stage,session,prio)?;
+            }
         }
         Ok(())
     }

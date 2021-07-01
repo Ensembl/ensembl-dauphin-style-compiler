@@ -59,7 +59,7 @@ allotment := index(allotment_idx,allotments);
 
 non_pc_colour := simple_colour(direct_colour(200,200,200,255));
 pc_colour := simple_colour(direct_colour(128,128,128,255));
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
 
 /*
  * draw everything!

@@ -3,11 +3,14 @@ use super::trianglesprogramlink::TrianglesProgramLink;
 
 pub(crate) struct TrackTrianglesYielder {
     geometry_process_name: GeometryProcessName,
-    track_triangles: Option<TrianglesProgramLink>
+    track_triangles: Option<TrianglesProgramLink>,
+    priority: i8
 }
 
 impl<'a> GeometryYielder for TrackTrianglesYielder {
     fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
+
+    fn priority(&self) -> i8 { self.priority }
 
     fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message> {
         self.track_triangles = Some(match program {
@@ -19,10 +22,11 @@ impl<'a> GeometryYielder for TrackTrianglesYielder {
 }
 
 impl TrackTrianglesYielder {
-    pub(crate) fn new(geometry_process_name: &GeometryProcessName) -> TrackTrianglesYielder {
+    pub(crate) fn new(geometry_process_name: &GeometryProcessName, priority: i8) -> TrackTrianglesYielder {
         TrackTrianglesYielder {
             geometry_process_name: geometry_process_name.clone(),
-            track_triangles: None
+            track_triangles: None,
+            priority
         }
     }
 

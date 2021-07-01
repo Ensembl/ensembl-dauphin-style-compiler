@@ -16,6 +16,7 @@ pub(crate) enum GeometryProgramLink {
 
 pub(crate) trait GeometryYielder {
     fn name(&self) -> &GeometryProcessName;
+    fn priority(&self) -> i8;
     fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message>;
 }
 

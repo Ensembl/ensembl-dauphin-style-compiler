@@ -31,21 +31,27 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
 
 def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,TranscriptFileLine]):
     sizes = []
+    thick = []
     # below are needed to get it into the correct allotment
     gene_biotypes = []
     strands = []
     transcript_sizes = []
-    for gene_id in genes:
+    exon_counts = []
+    for (gene_idx,gene_id) in enumerate(genes):
         line = transcripts[gene_id]
         transcript_sizes.append((line.transcript_start,line.transcript_end))
+        thick.append((line.thick_start,line.thick_end))
+        exon_counts.append(len(line.block_starts))
         for (start,length) in zip(line.block_starts,line.block_sizes):
             sizes.append((line.transcript_start+start,length))
             gene_biotypes.append(line.gene_biotype)
             strands.append(line.strand=='+')
     starts_and_lengths(result,sizes,"exon")
     starts_and_ends(result,transcript_sizes,"transcript")
+    starts_and_ends(result,thick,"thick")
     classified_numbers(result,gene_biotypes,"exon_gene_biotypes")
     result['exon_strands'] = compress(lesqlite2(strands))
+    result['exon_counts'] = compress(lesqlite2(zigzag(delta(exon_counts))))
 
 def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
     out = {}

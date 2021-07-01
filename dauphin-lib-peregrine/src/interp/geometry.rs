@@ -11,8 +11,8 @@ use crate::util::{ get_peregrine, get_instance };
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(0,1));
-simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
-simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,3,(0,1,2));
+simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,3,(0,1,2));
+simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,4,(0,1,2,3));
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,5,(0,1,2,3,4));
 simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
@@ -38,10 +38,11 @@ impl InterpCommand for SpaceBaseInterpCommand {
     }
 }
 
-fn patina_colour<F,X>(context: &mut InterpContext, out: &Register, colour: &Register, extra: X, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Vec<Colour>,X) -> Patina {
+fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, priority: &Register,  cb: F) -> anyhow::Result<()>
+        where F: FnOnce(Vec<Colour>,i8) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
+    let priority = registers.get_numbers(priority)?.to_vec()[0] as i8;
     drop(registers);
     let peregrine = get_peregrine(context)?;
     let geometry_builder = peregrine.geometry_builder();
@@ -50,7 +51,7 @@ fn patina_colour<F,X>(context: &mut InterpContext, out: &Register, colour: &Regi
         colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
     }
     drop(peregrine);
-    let patina = cb(colours,extra);
+    let patina = cb(colours,priority);
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -196,7 +197,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
 
 impl InterpCommand for PatinaFilledInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, (),|c,_| Patina::Filled(c))?;
+        patina_colour(context,&self.0,&self.1, &self.2,|c,p| Patina::Filled(c,p))?;
         Ok(CommandResult::SyncResult())
     }
 }
@@ -206,7 +207,7 @@ impl InterpCommand for PatinaHollowInterpCommand {
         let registers = context.registers_mut();
         let width = *registers.get_numbers(&self.2)?.to_vec().get(0).unwrap_or(&1.);
         drop(registers);    
-        patina_colour(context,&self.0,&self.1, (),|c,_| Patina::Hollow(c,width as u32))?;
+        patina_colour(context,&self.0,&self.1, &self.3,|c,p| Patina::Hollow(c,width as u32,p))?;
         Ok(CommandResult::SyncResult())
     }
 }

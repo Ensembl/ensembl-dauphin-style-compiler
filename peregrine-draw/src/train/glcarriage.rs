@@ -43,9 +43,11 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) ->Result<(),Message> {
+    pub fn priority_range(&self) -> (i8,i8) { self.drawing.priority_range() }
+
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, priority: i8) ->Result<(),Message> {
         let opacity = self.opacity.lock().unwrap().clone();
-        self.drawing.draw(gl,stage,session,opacity)
+        self.drawing.draw(gl,stage,session,opacity,priority)
     }
 
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {

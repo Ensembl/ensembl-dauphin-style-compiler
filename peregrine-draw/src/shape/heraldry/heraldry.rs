@@ -156,7 +156,7 @@ impl HeraldryHandleType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub(crate) enum HeraldryHandle {
     HorizVert(InternalHeraldryHandle,InternalHeraldryHandle),
     Horiz(InternalHeraldryHandle),

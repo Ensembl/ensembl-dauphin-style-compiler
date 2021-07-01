@@ -4,6 +4,12 @@ use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substituti
 
 pub struct SpaceBaseArea<X>(SpaceBase<X>,SpaceBase<X>);
 
+impl<X: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f,"SpaceBaseArea({:?},{:?})",self.0,self.1)
+    }
+}
+
 pub enum SpaceBaseAreaParameterLocation {
     Left(SpaceBaseParameterLocation),
     Right(SpaceBaseParameterLocation)
@@ -35,7 +41,7 @@ impl<X: Clone> ParametricType for SpaceBaseArea<X> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub enum HoleySpaceBaseArea {
     Simple(SpaceBaseArea<f64>),
     Parametric(SpaceBaseArea<ParameterValue<f64>>)

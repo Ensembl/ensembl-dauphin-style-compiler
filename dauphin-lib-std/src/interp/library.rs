@@ -26,7 +26,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,3),0x6C6E47F619B0B06)
+    CommandSetId::new("std",(0,4),0x44F0AA9C639A3211)
 }
 
 pub struct AssertDeserializer();
@@ -78,6 +78,34 @@ impl InterpCommand for BytesToBoolInterpCommand {
     }
 }
 
+pub struct DerunDeserializer();
+
+impl CommandDeserializer for DerunDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((26,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(DerunInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?)))
+    }
+}
+
+pub struct DerunInterpCommand(Register,Register);
+
+impl InterpCommand for DerunInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut out = vec![];
+        let datas = registers.get_indexes(&self.1)?;
+        let mut next = 0;
+        for mul in datas.iter() {
+            for _ in 0..*mul {
+                out.push(next);
+            }
+            next += 1;
+        }
+        registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 pub fn make_std_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     library_eq_command_interp(&mut set);
@@ -88,5 +116,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     library_vector_commands_interp(&mut set);
     library_map_commands_interp(&mut set);
     set.push(BytesToBoolDeserializer());
+    set.push(DerunDeserializer());
     set
 }

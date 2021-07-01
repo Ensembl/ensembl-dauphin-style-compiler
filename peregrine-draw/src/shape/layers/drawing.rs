@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use super::layer::Layer;
 use peregrine_data::{Allotter, Shape, ShapeList, VariableValues};
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -125,7 +126,7 @@ impl DrawingBuilder {
 }
 
 pub(crate) struct Drawing {
-    processes: Vec<Process>,
+    processes: BTreeMap<i8,Vec<Process>>,
     canvases: DrawingAllFlats,
     variables: VariableValues<f64>,
     zmenus: DrawingZMenus,
@@ -151,7 +152,21 @@ impl Drawing {
         drawing.build(gl)
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+    pub fn priority_range(&self) -> (i8,i8) {
+        let first = self.processes.iter().next().map(|x| *x.0);
+        let last = self.processes.iter().rev().next().map(|x| *x.0);
+        if let (Some(first),Some(last)) = (first,last) {
+            (first,last)
+        } else {
+            (0,0)
+        }
+    }
+
+    fn new_real(mut processes_in: Vec<(Process,i8)>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+        let mut processes = BTreeMap::new();
+        for (proc,prio) in processes_in.drain(..) {
+            processes.entry(prio).or_insert_with(|| vec![]).push(proc);
+        }
         let mut out = Drawing {
             processes,
             canvases,
@@ -172,9 +187,9 @@ impl Drawing {
         self.zmenus.intersects_fast(stage,mouse)
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64, priority: i8) -> Result<(),Message> {
         let recompute =  self.recompute.is_needed();
-        for process in &mut self.processes {
+        for process in self.processes.get_mut(&priority).unwrap_or(&mut vec![]) {
             if recompute {
                 process.update_attributes(gl)?;
             }
@@ -192,8 +207,10 @@ impl Drawing {
     }
 
     pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for process in &mut self.processes {
-            process.discard(gl)?;
+        for processes in self.processes.values_mut() {
+            for process in processes {
+                process.discard(gl)?;
+            }
         }
         self.canvases.discard(gl.flat_store_mut())?;
         Ok(())

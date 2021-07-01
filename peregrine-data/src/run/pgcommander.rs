@@ -11,7 +11,7 @@ async fn then_print_stats<T>(agent: Agent, f: Pin<Box<dyn Future<Output=T>>>) ->
     let out = f.await;
     if agent.stats_enabled() {
         // XXX not web_sys
-        console::log_1(&format!("task timings took={}ms clock={}ms",agent.run_time(),agent.clock_time()).into());
+        //console::log_1(&format!("task timings took={}ms clock={}ms",agent.run_time(),agent.clock_time()).into());
     }
     out
 }

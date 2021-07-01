@@ -88,7 +88,7 @@ impl<X: Clone> ParametricType for SpaceBase<X> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub enum HoleySpaceBase {
     Simple(SpaceBase<f64>),
     Parametric(SpaceBase<ParameterValue<f64>>)

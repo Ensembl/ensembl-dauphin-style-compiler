@@ -5,7 +5,7 @@ use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
 use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgramLink, GeometryYielder};
 use crate::shape::layers::patina::PatinaYielder;
-use crate::webgl::{AttribHandle, GPUSpec, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, Program, ProgramBuilder};
+use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, Program, ProgramBuilder};
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
 
@@ -13,12 +13,15 @@ const THICKNESS: f64 = 1.; // XXX
 
 pub(crate) struct WiggleYielder {
     geometry_process_name: GeometryProcessName,
-    link: Option<WiggleProgramLink>
+    link: Option<WiggleProgramLink>,
+    priority: i8
 }
 
 impl<'a> GeometryYielder for WiggleYielder {
     fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
 
+    fn priority(&self) -> i8 { self.priority }
+    
     fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message> {
         self.link = Some(match program {
             GeometryProgramLink::Wiggle(prog) => prog,
@@ -29,10 +32,11 @@ impl<'a> GeometryYielder for WiggleYielder {
 }
 
 impl WiggleYielder {
-    pub(crate) fn new() -> WiggleYielder {
+    pub(crate) fn new(priority: i8) -> WiggleYielder {
         WiggleYielder {
             geometry_process_name: GeometryProcessName::new(GeometryProgramName::Wiggle),
-            link: None
+            link: None,
+            priority
         }
     }
 
@@ -143,28 +147,5 @@ pub struct WiggleGeometry {
 impl WiggleGeometry {
     pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgramLink) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
-    }
-}
-
-struct WiggleAccessor {
-    geometry_process_name: GeometryProcessName,
-    wiggles: Option<WiggleProgramLink>
-}
-
-impl<'a> GeometryYielder for WiggleAccessor {
-    fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
-
-    fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message> {
-        self.wiggles = Some(match program {
-            GeometryProgramLink::Wiggle(w) => w,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: wiggle")))? }
-        }.clone());
-        Ok(())
-    }
-}
-
-impl WiggleAccessor {
-    pub(crate) fn wiggles(&self) -> Result<&WiggleProgramLink,Message> {
-        self.wiggles.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
     }
 }

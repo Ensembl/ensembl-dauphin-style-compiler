@@ -74,7 +74,7 @@ impl MarchingAnts {
             vec![ParameterValue::Variable(pos.3,16.)]
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop)],self.width as u32),vec![window_origin]);
+        shapes.add_rectangle(area,Patina::Hollow(vec![Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop)],self.width as u32,0),vec![window_origin]);
         Ok(())
     }
 }
@@ -142,7 +142,7 @@ impl Stain {
             )));
         }
         for area in rectangles.drain(..) {
-            shapes.add_rectangle(area,Patina::Filled(vec![Colour::Direct(self.colour.clone())]),vec![window_origin.clone()]);
+            shapes.add_rectangle(area,Patina::Filled(vec![Colour::Direct(self.colour.clone())],0),vec![window_origin.clone()]);
         }
         Ok(())
     }

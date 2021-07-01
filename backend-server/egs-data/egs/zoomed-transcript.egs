@@ -113,10 +113,10 @@ dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.2
 non_pc_colour := simple_colour(base_non_pc_colour);
 pc_colour := simple_colour(base_pc_colour);
 
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
-dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1);
-hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
-exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
+dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1,0);
+hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1,0);
+exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
 
 text_colour := direct_colour(111,129,144,255);
 text_size := 12;

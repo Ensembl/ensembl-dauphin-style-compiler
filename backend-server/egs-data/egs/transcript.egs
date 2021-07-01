@@ -32,6 +32,22 @@ exon_strand := positive_seq(data,"exon_strands");
 exon_gene_biotype := classified_seq(data,"exon_gene_biotypes_keys","exon_gene_biotypes_values");
 exon_start := delta_seq(data,"exon_starts");
 exon_end := exon_start + delta_seq(data,"exon_lengths");
+thick_start := delta_seq(data,"thick_starts");
+thick_end := thick_start + delta_seq(data,"thick_lengths");
+exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
+exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
+exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
+trunc_left := exon_thick_limit_start>exon_start;
+trunc_right := exon_thick_limit_end<exon_end;
+exon_thick_start := exon_start;
+exon_thick_end := exon_end;
+exon_thick_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
+exon_thick_end#[trunc_right] := exon_thick_limit_end#[trunc_right];
+
+thick_exons := exon_thick_start < exon_thick_end;
+thick_exon_gene_indexes := exon_gene_indexes#[thick_exons];
+exon_thick_start := exon_thick_start#[thick_exons];
+exon_thick_end := exon_thick_end#[thick_exons];
 
 /* 
  * What are the current track settings?
@@ -74,6 +90,7 @@ exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment := index(exon_allotment_idx,allotments);
+thick_exon_allotment := exon_allotment#[thick_exons];
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -109,11 +126,13 @@ dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.2
 non_pc_colour := simple_colour(base_non_pc_colour);
 pc_colour := simple_colour(base_pc_colour);
 
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
-dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1);
-hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
-exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
-
+under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),-1);
+under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1,-1);
+hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1,0);
+exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
+exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1,0);
+white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)),0);
+thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
 text_colour := direct_colour(111,129,144,255);
 text_size := 12;
 
@@ -140,9 +159,11 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
 
 rectangle_on_genome(start,start,5,hollow_patina,allotment); // left stop
 rectangle_on_genome(end,end,5,hollow_patina,allotment); // right stop
-rectangle_on_genome(start,end,1,dotted_patina,allotment); // central dotted line
-rectangle_on_genome(transcript_start,transcript_end,1,patina,allotment); // central line
-rectangle_on_genome(exon_start,exon_end,5,exon_patina,exon_allotment);
+rectangle_on_genome(start,end,1,under_dotted_patina,allotment); // central dotted line
+rectangle_on_genome(transcript_start,transcript_end,1,under_patina,allotment); // central line
+rectangle_on_genome(exon_start,exon_end,5,white_patina,exon_allotment); // exon white box
+rectangle_on_genome(exon_start,exon_end,5,exon_hollow_patina,exon_allotment); // exon hollow box
+rectangle_on_genome(exon_thick_start,exon_thick_end,5,thick_exon_patina,thick_exon_allotment); // exon solid box
 //rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 //rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);

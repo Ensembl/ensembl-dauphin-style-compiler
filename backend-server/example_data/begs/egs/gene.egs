@@ -86,7 +86,7 @@ gene_labels := [gene_name,gene_id][(@==1)==get_switch(["track","gene-pc-fwd","la
 
 non_pc_colour := colour(200,200,200);
 pc_colour := colour(128,128,128);
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
 
 text_colour := [colour(111,129,144),colour(111,129,255)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];

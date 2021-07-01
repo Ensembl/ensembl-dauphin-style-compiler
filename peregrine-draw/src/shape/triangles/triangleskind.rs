@@ -92,7 +92,7 @@ impl TrianglesKind {
         GeometryProcessName::new(program)
     }
 
-    pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {
-        TrackTrianglesYielder::new(&self.geometry_process_name())
+    pub(crate) fn geometry_yielder(&self, priority: i8) -> TrackTrianglesYielder {
+        TrackTrianglesYielder::new(&self.geometry_process_name(),priority)
     }
 }
