@@ -7,7 +7,7 @@ export PATH="$PATH:$DIR/../dauphin/target/debug"
 SRC="$DIR/egs-data/egs"
 DST="$DIR/egs-data/begs"
 
-dauphin -c $SRC/gene.egs -c $SRC/transcript.egs -c $SRC/gene-overview.egs -c $SRC/gc.egs -c $SRC/zoomed-transcript.egs -o $DST/render.begs -L peregrine -O2 
+dauphin -c $SRC/zoomed-seq.egs -c $SRC/gene.egs -c $SRC/transcript.egs -c $SRC/gene-overview.egs -c $SRC/gc.egs -c $SRC/zoomed-transcript.egs -o $DST/render.begs -L peregrine -O2 
 dauphin -c $SRC/startup.egs -c $SRC/lookup.egs -o $DST/stick.begs -L peregrine -O2
 dauphin -c $SRC/boot.egs -o $DST/boot.begs -L peregrine -O2
 

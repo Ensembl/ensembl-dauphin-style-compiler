@@ -15,6 +15,8 @@ import "lib:peregrine"; use "peregrine";
 100Mb   26
 */
 
+sequence_scale := 9;
+
 stmt gene_std(p) {
     track_add_tag(p,"local");
     track_add_trigger(p,["track","gene-pc-fwd"]);
@@ -30,13 +32,13 @@ stmt gene_std(p) {
 }
 
 /* exon-struxcture; labels ; zmenus; sequence blocks */
-p := track_new("self()","zoomed-transcript",0,9,3);
+p := track_new("self()","zoomed-transcript",0,sequence_scale,3);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
 
 /* exon-struxcture; labels ; zmenus; no sequence blocks */
-p := track_new("self()","transcript",9,18,3);
+p := track_new("self()","transcript",sequence_scale,18,3);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
@@ -58,9 +60,18 @@ p := track_new("self()","gene-overview",23,100,6);
 gene_std(p);
 track_apply(p);
 
+/* gc */
 p := track_new("self()","gc",1,100,3);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gc"]);
 track_add_switch(p,["settings"]);
 track_add_allotment(p,"gc",2000);
+track_apply(p);
+
+/* sequence */
+p := track_new("self()","zoomed-seq",0,sequence_scale,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
 track_apply(p);

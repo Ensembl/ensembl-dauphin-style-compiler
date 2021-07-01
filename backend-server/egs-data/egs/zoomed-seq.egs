@@ -1,0 +1,19 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+data := get_data("self()","zoomed-seq",get_region());
+seq_start := delta_seq(data,"seq_starts");
+seq_end := seq_start + 1;
+seq_letter := classified_seq(data,"seq_keys","seq_values");
+
+seq_colour := simple_colour(direct_colour(148,160,171,255));
+patina := patina_hollow(seq_colour,1,0);
+
+text_colour := direct_colour(111,129,144,255);
+text_size := 14;
+textpen := pen("'Lato', sans-serif",text_size,text_colour);
+
+allotment := use_allotment("contig");
+indented_rectangle_on_genome(seq_start,seq_end,14,patina,allotment);
+coords := spacebase(seq_start + 0.5,-6,-4);
+text2(coords,textpen,seq_letter,allotment);

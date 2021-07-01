@@ -29,6 +29,7 @@ lookup="sa-lookup"
 boot="boot"
 
 [begs.render]
+zoomed-seq="zoomed-seq"
 zoomed-transcript="zoomed-transcript"
 transcript="transcript"
 gene="gene"

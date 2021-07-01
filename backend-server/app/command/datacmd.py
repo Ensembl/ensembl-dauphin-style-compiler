@@ -4,11 +4,13 @@ from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
 from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
 from data.wiggle import WiggleDataHandler
+from data.sequence import ZoomedSeqDataHandler
 
 class DataHandler(Handler):
     def __init__(self):
         self.handlers : Dict[str,DataHandler] = {
             "zoomed-transcript": TranscriptDataHandler(True),
+            "zoomed-seq": ZoomedSeqDataHandler(),
             "transcript": TranscriptDataHandler(False),
             "gene": GeneDataHandler(),
             "gene-overview": GeneOverviewDataHandler(),

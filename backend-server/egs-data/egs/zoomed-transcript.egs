@@ -37,6 +37,34 @@ seq_start := delta_seq(data,"seq_starts");
 seq_end := seq_start + 1;
 seq_letter := classified_seq(data,"seq_keys","seq_values");
 
+thick_start := delta_seq(data,"thick_starts");
+thick_end := thick_start + delta_seq(data,"thick_lengths");
+exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
+
+/* apply solidity in thick region ... */
+/* ... find thick limits for each exon */
+exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
+exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
+trunc_left := exon_thick_limit_start>exon_start;
+trunc_right := exon_thick_limit_end<exon_end;
+
+/* ... update exons to thivk limit */
+exon_thick_start := exon_start;
+exon_thick_end := exon_end;
+exon_thick_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
+exon_thick_end#[trunc_right] := exon_thick_limit_end#[trunc_right];
+
+/* ... remove entirely thin exons */
+thick_exons := exon_thick_start < exon_thick_end;
+thick_exon_gene_indexes := exon_gene_indexes#[thick_exons];
+exon_thick_start := exon_thick_start#[thick_exons];
+exon_thick_end := exon_thick_end#[thick_exons];
+
+
+thick_seq_start := seq_start;
+thick_seq_end := seq_end;
+
+
 /* 
  * What are the current track settings?
  */
