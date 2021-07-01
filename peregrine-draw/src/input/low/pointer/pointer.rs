@@ -17,6 +17,7 @@ pub(crate) struct PointerConfig {
     pub wheel_timeout: f64, // ms
     pub pinch_min_sep: f64, // px
     pub pinch_min_scale: f64, // factor
+    pub wheel_sensitivity: f64, // factor
 }
 
 impl PointerConfig {
@@ -29,6 +30,7 @@ impl PointerConfig {
             wheel_timeout: config.get_f64(&PgConfigKey::WheelTimeout)?,
             pinch_min_sep: config.get_f64(&PgConfigKey::PinchMinSep)?,
             pinch_min_scale: config.get_f64(&PgConfigKey::PinchMinScale)?,
+            wheel_sensitivity: config.get_f64(&PgConfigKey::WheelSensitivity)?,
         })
     }
 }

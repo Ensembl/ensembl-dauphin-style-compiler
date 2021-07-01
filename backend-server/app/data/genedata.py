@@ -1,11 +1,14 @@
 import collections
 import logging
+import re
 from typing import Dict, List, Mapping, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
 from model.bigbed import get_bigbed_data
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
+from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
+from .sequence import sequence_blocks
 
 # HACK should use correct codes in the first place
 def munge_designation(s):
@@ -26,27 +29,6 @@ def transcript_grade(designation: str, transcript_biotype: str) -> str:
     else:
         return 0
 
-def classified_numbers(result: dict, data: List[str], name: str):
-    (keys,values) = classify(data)
-    result[name+"_keys"] = compress("\0".join(keys))
-    result[name+"_values"] = compress(lesqlite2(values))
-
-def starts_and_ends(result: dict, sizes: List[Tuple[int,int]], name: str):
-    if name:
-        name += "_"
-    else:
-        name = ""
-    result[name+'starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in sizes ]))))
-    result[name+'lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in sizes ]))))
-
-def starts_and_lengths(result: dict, sizes: List[Tuple[int,int]], name: str):
-    if name:
-        name += "_"
-    else:
-        name = ""
-    result[name+'starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in sizes ]))))
-    result[name+'lengths'] = compress(lesqlite2(zigzag(delta([ x[1] for x in sizes ]))))
-
 def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,TranscriptFileLine]):
     sizes = []
     # below are needed to get it into the correct allotment
@@ -65,7 +47,7 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,Transcri
     classified_numbers(result,gene_biotypes,"exon_gene_biotypes")
     result['exon_strands'] = compress(lesqlite2(strands))
 
-def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool) -> Response:
+def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
     out = {}
     path = chrom.file_path("genes_and_transcripts","transcripts.bb")
     data = get_bigbed_data(path,chrom,panel.start,panel.end)
@@ -120,6 +102,9 @@ def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool) -> R
     classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
     if include_exons:
         add_exon_data(out,genes,designated_transcript)
+    sequence_blocks(out,chrom,panel,not include_sequence)
+    for (k,v) in out.items():
+        logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
 def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
@@ -149,22 +134,24 @@ def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
-    logging.warn("got {0} genes".format(len(genes)))
     return Response(5,{ 'data': out })
 
 class TranscriptDataHandler(DataHandler):
+    def __init__(self, seq: bool):
+        self._seq = seq
+
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(chrom,panel,True)
+        return extract_gene_data(chrom,panel,True,self._seq)
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(chrom,panel,False)
+        return extract_gene_data(chrom,panel,False,False)
 
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:

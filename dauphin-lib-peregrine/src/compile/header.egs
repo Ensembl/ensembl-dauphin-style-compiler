@@ -83,6 +83,12 @@ stmt rectangle_on_genome(start,end,half_height,patina,allt) {
     rectangle(top_left,bottom_right,patina,allt);
 }
 
+stmt indented_rectangle_on_genome(start,end,half_height,patina,allt) {
+    top_left := spacebase(start,-half_height,1);
+    bottom_right := spacebase(end,half_height,-1);
+    rectangle(top_left,bottom_right,patina,allt);
+}
+
 func get_region() becomes region;
 func get_data(string,string,region) becomes datasource;
 

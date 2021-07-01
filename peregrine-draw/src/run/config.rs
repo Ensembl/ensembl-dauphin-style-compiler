@@ -54,6 +54,7 @@ pub enum PgConfigKey {
     DoubleClickTime, // ms, how long a gap to not be part of double click
     Cursor(CursorCircumstance), // string, default mouse cursor
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
+    WheelSensitivity,
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
     DebugFlag(DebugFlag),
     AuxBufferSize, // 4-byte units
@@ -108,8 +109,9 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::AutomatedPullMaxSpeed, name: "pull.max-speed.automated", default: &PgConfigValue::Float(1.) },
             ConfigKeyInfo { key: PgConfigKey::PullAcceleration, name: "pull.acceleration", default: &PgConfigValue::Float(1./4000.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
-            ConfigKeyInfo { key: PgConfigKey::AutomatedZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(4.) },
+            ConfigKeyInfo { key: PgConfigKey::AutomatedZoomMaxSpeed, name: "zoom.max-speed.auto", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./300.) },
+            ConfigKeyInfo { key: PgConfigKey::WheelSensitivity, name: "wheel.sensitivity", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },

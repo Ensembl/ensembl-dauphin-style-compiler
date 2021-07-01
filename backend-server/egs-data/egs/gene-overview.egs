@@ -21,7 +21,7 @@ strand := positive_seq(data,"strands");
  * What are the current track settings?
  */
 
-potential_tracks := ["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd","focus"];
+potential_tracks := ["track:gene-nonpc-rev","track:gene-pc-rev","track:gene-nonpc-fwd","track:gene-pc-fwd","track:focus"];
 enabled_tracks := get_switch([
     ["track","gene-nonpc-rev"],
     ["track","gene-pc-rev"],

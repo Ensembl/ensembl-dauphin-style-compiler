@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 import logging
 from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
@@ -8,7 +8,8 @@ from data.wiggle import WiggleDataHandler
 class DataHandler(Handler):
     def __init__(self):
         self.handlers : Dict[str,DataHandler] = {
-            "transcript": TranscriptDataHandler(),
+            "zoomed-transcript": TranscriptDataHandler(True),
+            "transcript": TranscriptDataHandler(False),
             "gene": GeneDataHandler(),
             "gene-overview": GeneOverviewDataHandler(),
             "gc": WiggleDataHandler(),

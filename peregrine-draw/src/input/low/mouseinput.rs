@@ -121,11 +121,13 @@ impl MouseEventHandler {
     fn wheel_amount(&self, event: &WheelEvent) -> f64 {
         let mode = event.delta_mode();
         let y = event.delta_y();
-        match mode {
-            0 => y,
-            1 => y*40.,
-            _ => y*800.
-        }
+        let browser_mul = match mode {
+            0 => 1.,
+            1 => 40.,
+            _ => 800.
+        };
+        let config_mul = self.config.wheel_sensitivity;
+        y * browser_mul * config_mul
     }
 
     fn wheel_event(&mut self, event: &WheelEvent) {
