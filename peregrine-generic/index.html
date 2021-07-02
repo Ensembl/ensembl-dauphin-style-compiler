@@ -28,7 +28,9 @@
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
         let genome_browser = new GenomeBrowser();
-        genome_browser.go();
+        genome_browser.go({
+          "spectre.stain.colour": "rgba(255,0,0,0.5)"
+        });
         genome_browser.set_message_reporter(function(x) {
           console.error(x);
         });
