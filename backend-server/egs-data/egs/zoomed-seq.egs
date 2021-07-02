@@ -11,7 +11,7 @@ patina := patina_hollow(seq_colour,1,0);
 
 text_colour := direct_colour(111,129,144,255);
 text_size := 14;
-textpen := pen("'Lato', sans-serif",text_size,text_colour);
+textpen := pen("'Lato', sans-serif",text_size,text_colour,[][],0);
 
 allotment := use_allotment("contig");
 indented_rectangle_on_genome(seq_start,seq_end,14,patina,allotment);

@@ -146,10 +146,11 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             });
             let drawing_text = tools.text();
             let colours_iter = pen.colours().iter().cycle();
-            let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour)).collect();
+            let background = pen.background();
+            let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
             let mut out = vec![];
             for (kind,filter) in &demerge {
-                out.push(GLShape::Text2(spacebase.filter(filter),filter.filter(&handles),filter.filter(&allotment),kind.clone(),0));
+                out.push(GLShape::Text2(spacebase.filter(filter),filter.filter(&handles),filter.filter(&allotment),kind.clone(),pen.depth()));
             }
             out
         },

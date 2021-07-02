@@ -63,7 +63,7 @@ func zmenu(string) becomes zmenutmpl;
 func patina_filled(colour,number) becomes patina;
 func patina_hollow(colour,number,number) becomes patina;
 func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
-func pen(string,number,directcolour) becomes penspec;
+func pen(string,number,directcolour,directcolour,number) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
 func get_switch(vec(string)) becomes boolean;

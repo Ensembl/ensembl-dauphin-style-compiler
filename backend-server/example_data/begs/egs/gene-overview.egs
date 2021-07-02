@@ -91,7 +91,7 @@ patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colo
 text_colour := if(get_switch(["settings","bluer"]),colour(111,129,255),colour(111,129,144));
 text_size := if(get_switch(["settings","bigger"]),24,12);
 
-textpen := pen("Lato sans-serif",text_size,text_colour);
+textpen := pen("Lato sans-serif",text_size,text_colour,[][],0);
 
 /*
  * prepare the zmenus

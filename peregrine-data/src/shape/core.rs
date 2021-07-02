@@ -51,31 +51,37 @@ impl PenGeometry {
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct Pen {
     geometry: Arc<PenGeometry>,
-    colours: Vec<DirectColour>
+    colours: Vec<DirectColour>,
+    background: Option<DirectColour>,
+    depth: i8
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour]) -> Pen {
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour], background: &Option<DirectColour>, depth: i8) -> Pen {
         Pen {
             geometry: geometry.clone(),
-            colours: colours.to_vec()
+            colours: colours.to_vec(),
+            background: background.clone(),
+            depth
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour]) -> Pen {
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours)
+    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<DirectColour>, depth: i8) -> Pen {
+        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours,background,depth)
     }
 
     pub fn name(&self) -> &str { &self.geometry.name }
     pub fn size(&self) -> u32 { self.geometry.size }
+    pub fn depth(&self) -> i8{ self.depth }
     pub fn colours(&self) -> &[DirectColour] { &self.colours }
+    pub fn background(&self) -> &Option<DirectColour> { &self.background }
 
     pub fn bulk(self, len: usize, primary: bool) -> Pen {
-        Pen::new_real(&self.geometry,&bulk(self.colours,len,primary))
+        Pen::new_real(&self.geometry,&bulk(self.colours,len,primary),&self.background,self.depth)
     }
 
     pub fn filter(&self, filter: &DataFilter) -> Pen {
-        Pen::new_real(&self.geometry,&filter.filter(&self.colours))
+        Pen::new_real(&self.geometry,&filter.filter(&self.colours),&self.background,self.depth)
     }
 
     pub fn group_hash(&self) -> u64 { self.geometry.hash }

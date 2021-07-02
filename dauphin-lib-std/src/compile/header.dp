@@ -60,3 +60,4 @@ expr find_key(k,src) index(lookup(k,[src[].key],0),src);
 expr if(p,a,b) [[b],[a]][(@==1)==p][];
 
 func bytes_to_bool(bytes) becomes boolean;
+func extract_filter(_X,number,number) becomes number;

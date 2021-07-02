@@ -4,8 +4,6 @@ use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{ CanvasWeave, FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
 use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
-use super::texture::{CanvasTextureArea };
-use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use crate::util::message::Message;
@@ -23,12 +21,13 @@ fn pad(x: (u32,u32)) -> (u32,u32) {
 pub(crate) struct Text {
     pen: Pen,
     text: String,
-    colour: DirectColour
+    colour: DirectColour,
+    background: Option<DirectColour>
 }
 
 impl Text {
-    fn new(pen: &Pen, text: &str, colour: &DirectColour) -> Text {
-        Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone() }
+    fn new(pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> Text {
+        Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone(), background: background.clone() }
     }
 }
 
@@ -56,8 +55,13 @@ impl FlatDrawingItem for Text {
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.set_font(&self.pen)?;
-        canvas.text(&self.text,pad(text_origin),size,&self.colour)?;
-        canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255))?;
+        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,255));
+        canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
+        if self.background.is_some() {
+            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255))?;
+        } else{
+            canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255),&DirectColour(255,255,255,255))?;
+        }
         Ok(())
     }
 }
@@ -67,8 +71,8 @@ pub struct DrawingText(FlatDrawingManager<TextHandle,Text>);
 impl DrawingText {
     pub fn new() -> DrawingText { DrawingText(FlatDrawingManager::new()) }
 
-    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour) -> TextHandle {
-        self.0.add(Text::new(pen,text,colour))
+    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
+        self.0.add(Text::new(pen,text,colour,background))
     }
 
     pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {

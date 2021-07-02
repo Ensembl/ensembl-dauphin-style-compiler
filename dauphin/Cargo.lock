@@ -308,6 +308,7 @@ dependencies = [
  "dauphin_interp",
  "hashbrown",
  "serde_cbor",
+ "web-sys",
 ]
 
 [[package]]

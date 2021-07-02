@@ -15,6 +15,7 @@
  */
 
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
+use dauphin_interp::polymorphic;
 use dauphin_interp::runtime::{InterpContext, InterpValue, Register};
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
@@ -26,7 +27,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,4),0x44F0AA9C639A3211)
+    CommandSetId::new("std",(0,5),0xF333A5BF97DDBBC2)
 }
 
 pub struct AssertDeserializer();
@@ -106,6 +107,76 @@ impl InterpCommand for DerunInterpCommand {
     }
 }
 
+pub struct ExtractFilterDeserializer();
+
+impl CommandDeserializer for ExtractFilterDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((27,4))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(ExtractFilterInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,
+                                               Register::deserialize(&value[2])?,Register::deserialize(&value[3])?)))
+    }
+}
+
+fn interval_union(starts: &[usize], ends: &[usize]) -> Vec<(usize,usize,usize)> {
+    let mut intervals = starts.iter().zip(ends.iter().cycle()).enumerate()
+        .map(|(i,x)| (*x.0,*x.1,i))
+        .collect::<Vec<_>>();
+    intervals.sort();
+    let mut out : Vec<(usize,usize,usize)> = vec![];
+    for (start,end,index) in intervals {
+        let len = out.len();
+        if len>0 && start <= out[len-1].1 {
+            out[len-1].1 = end;
+        } else {
+            out.push((start,end,index));
+        }
+    }
+    out
+}
+
+fn extract_filter(src: &[usize], starts: &[usize], ends: &[usize]) -> Vec<usize> {
+    let sentinel = starts.len();
+    /* we can use a simple binary search after unioning intervals to ensure no overlap */
+    let intervals = interval_union(starts,ends);
+    let mut values = src.iter().cloned().enumerate().collect::<Vec<_>>();
+    values.sort_by_key(|(_,value)| *value);
+    let mut interval_iter = intervals.iter().peekable();
+    let mut out = vec![];
+    for (index,value) in values {
+        loop {
+            let mut advance = false;
+            if let Some((_,peek_end,_)) = interval_iter.peek() {
+                if *peek_end <= value { advance = true; }
+            }
+            if advance { interval_iter.next(); } else { break; }
+        }
+        let mut out_value = sentinel;
+        if let Some((peek_start,_,index)) = interval_iter.peek() {
+            if value >= *peek_start { out_value = *index; }
+        }
+        out.push((index,out_value));
+    }
+    out.sort_by_key(|(pos,_)| *pos);
+    let out = out.drain(..).map(|x| x.1).collect();
+    use web_sys::console;
+    console::log_1(&format!("extract_filter({:?},{:?},{:?})={:?}",src,starts,ends,out).into());
+    out
+}
+
+pub struct ExtractFilterInterpCommand(Register,Register,Register,Register);
+
+impl InterpCommand for ExtractFilterInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let src = registers.get_indexes(&self.1)?;
+        let range_starts = registers.get_indexes(&self.2)?;
+        let range_ends = registers.get_indexes(&self.3)?;
+        let dst = extract_filter(&src,&range_starts,&range_ends);
+        registers.write(&self.0,InterpValue::Indexes(dst));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 pub fn make_std_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     library_eq_command_interp(&mut set);
@@ -117,5 +188,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     library_map_commands_interp(&mut set);
     set.push(BytesToBoolDeserializer());
     set.push(DerunDeserializer());
+    set.push(ExtractFilterDeserializer());
     set
 }

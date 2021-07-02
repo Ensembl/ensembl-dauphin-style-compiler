@@ -14,7 +14,7 @@ simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(
 simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,3,(0,1,2));
 simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,4,(0,1,2,3));
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,5,(0,1,2,3,4));
-simple_interp_command!(PenInterpCommand,PenDeserializer,16,4,(0,1,2,3));
+simple_interp_command!(PenInterpCommand,PenDeserializer,16,6,(0,1,2,3,4,5));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
@@ -280,12 +280,15 @@ impl InterpCommand for PenInterpCommand {
         let font = registers.get_strings(&self.1)?[0].to_string();
         let size = registers.get_numbers(&self.2)?[0];
         let colour_ids = registers.get_indexes(&self.3)?;
+        let background_id = registers.get_indexes(&self.4)?.get(0).cloned();
+        let depth = registers.get_numbers(&self.5)?[0] as i8;
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let pen = Pen::new(&font,size as u32,&colours);
+        let background = background_id.map(|id| geometry_builder.direct_colour(id as u32)).transpose()?.map(|x| x.as_ref().clone());
+        let pen = Pen::new(&font,size as u32,&colours,&background,depth);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
         let registers = context.registers_mut();
