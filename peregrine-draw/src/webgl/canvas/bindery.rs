@@ -18,7 +18,6 @@ use crate::util::evictlist::EvictList;
  * insufficent texture slots be available, we can first take an AVAILABLE texture and unbind it to free the space.
  * On the other hand, if we wish use an AVAILABLE texture, we can do so without rebinding.
  *
- *
  * There are three operations during draw.
  * allocate(): a texture needs to be bound, ie transferred from SLEEPING or AVAILABLE to ACTIVE.
  * free(): a flat is no longer required, it should be moved from AVAILABLE or ACTIVE into SLEEPING.

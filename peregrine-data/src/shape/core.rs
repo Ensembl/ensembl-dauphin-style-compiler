@@ -49,20 +49,38 @@ impl PenGeometry {
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub struct Pen {
+struct PenInner {
     geometry: Arc<PenGeometry>,
     colours: Vec<DirectColour>,
     background: Option<DirectColour>,
     depth: i8
 }
 
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub struct Pen {
+    inner: Arc<PenInner>,
+    hash: u64
+}
+
+impl Hash for Pen {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
+
 impl Pen {
     fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour], background: &Option<DirectColour>, depth: i8) -> Pen {
-        Pen {
+        let inner = PenInner {
             geometry: geometry.clone(),
             colours: colours.to_vec(),
             background: background.clone(),
             depth
+        };
+        let mut h = DefaultHasher::new();
+        inner.hash(&mut h);
+        Pen {
+            inner: Arc::new(inner),
+            hash: h.finish()
         }
     }
 
@@ -70,21 +88,21 @@ impl Pen {
         Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours,background,depth)
     }
 
-    pub fn name(&self) -> &str { &self.geometry.name }
-    pub fn size(&self) -> u32 { self.geometry.size }
-    pub fn depth(&self) -> i8{ self.depth }
-    pub fn colours(&self) -> &[DirectColour] { &self.colours }
-    pub fn background(&self) -> &Option<DirectColour> { &self.background }
+    pub fn name(&self) -> &str { &self.inner.geometry.name }
+    pub fn size(&self) -> u32 { self.inner.geometry.size }
+    pub fn depth(&self) -> i8{ self.inner.depth }
+    pub fn colours(&self) -> &[DirectColour] { &self.inner.colours }
+    pub fn background(&self) -> &Option<DirectColour> { &self.inner.background }
 
     pub fn bulk(self, len: usize, primary: bool) -> Pen {
-        Pen::new_real(&self.geometry,&bulk(self.colours,len,primary),&self.background,self.depth)
+        Pen::new_real(&self.inner.geometry,&bulk(self.inner.colours.to_vec(),len,primary),&self.inner.background,self.inner.depth)
     }
 
     pub fn filter(&self, filter: &DataFilter) -> Pen {
-        Pen::new_real(&self.geometry,&filter.filter(&self.colours),&self.background,self.depth)
+        Pen::new_real(&self.inner.geometry,&filter.filter(&self.inner.colours),&self.inner.background,self.inner.depth)
     }
 
-    pub fn group_hash(&self) -> u64 { self.geometry.hash }
+    pub fn group_hash(&self) -> u64 { self.inner.geometry.hash }
 }
 
 #[derive(Clone,Debug)]
