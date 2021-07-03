@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::webgl::CanvasWeave;
+use crate::webgl::{CanvasWeave, TextureBindery};
 use keyed::KeyedData;
 use crate::webgl::ProcessBuilder;
 use super::flatstore::{ FlatId, FlatStore };
@@ -33,8 +33,9 @@ impl DrawingAllFlats {
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, store: &mut FlatStore) -> Result<(),Message> {
+    pub(crate) fn discard(&mut self, store: &mut FlatStore, bindery: &mut TextureBindery) -> Result<(),Message> {
         for (id,_) in self.main_canvases.drain() {
+            bindery.free(&id,store)?;
             store.discard(&id)?;
         }
         Ok(())

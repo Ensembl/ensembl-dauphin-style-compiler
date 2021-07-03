@@ -1,13 +1,10 @@
 use std::collections::{ HashSet };
-use crate::webgl::global::WebGlGlobalRefs;
 use crate::webgl::{ FlatId, FlatStore };
-use keyed::KeyedData;
 use crate::webgl::GPUSpec;
 use super::weave::CanvasWeave;
 use web_sys::WebGlRenderingContext;
 use web_sys::WebGlTexture;
 use crate::webgl::util::handle_context_errors;
-use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 use crate::util::evictlist::EvictList;
 
@@ -107,7 +104,6 @@ impl Drop for SelfManagedWebGlTexture {
 
 pub(crate) struct TextureBindery {
     lru: EvictList,
-    active: Vec<FlatId>,
     available: HashSet<FlatId>,
     max_textures: u32,
     current_textures: u32,
@@ -120,7 +116,6 @@ impl TextureBindery {
         let max_textures = gpuspec.max_textures();
         TextureBindery {
             lru: EvictList::new(),
-            active: vec![],
             available: HashSet::new(),
             current_textures: 0,
             max_textures,
@@ -141,50 +136,55 @@ impl TextureBindery {
     }
 
     fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
-        self.available.insert(flat.clone());
         self.current_textures += 1;
         if self.current_textures > self.max_textures {
             self.make_one_unavailable(flat_store)?;
         }
+        self.available.insert(flat.clone());
         let texture = create_texture(context,flat_store,flat)?;
         flat_store.get_mut(flat)?.set_gl_texture(Some(texture));
         Ok(())
     }
 
-    pub(crate) fn allocate(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Message> {
+    pub(crate) fn allocate(&mut self, flat_id: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Message> {
         /* Promote to AVAILABLE if SLEEPING */
-        if !self.available.contains(flat) {
-            self.make_available(flat,flat_store,context)?;
+        if !self.available.contains(flat_id) {
+            self.make_available(flat_id,flat_store,context)?;
         }
         /* Promote from AVAILABLE to ACTIVE */
-        self.active.push(flat.clone());
-        self.lru.remove_item(flat);
+        *flat_store.get_mut(flat_id).map_err(|e| Message::ConfusedWebBrowser(format!("V")))?.is_active() = true;
+        self.lru.remove_item(flat_id);
         /* Allocate a gl index for this program */
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
         /* Actually bind it */
         context.active_texture(WebGlRenderingContext::TEXTURE0 + our_gl_index);
         handle_context_errors(context)?;
-        let texture = flat_store.get(flat)?.get_gl_texture().unwrap();
+        let texture = flat_store.get(flat_id)?.get_gl_texture().unwrap();
         context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
         handle_context_errors(context)?;
         Ok(our_gl_index)
     }
 
-    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
-        if self.lru.remove_item(flat) { 
-            self.available.remove(flat);
+    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Message> {
+        if self.available.remove(flat) {
             self.current_textures -= 1;
-            flat_store.get_mut(flat)?.set_gl_texture(None);
         }
+        flat_store.get_mut(flat)?.set_gl_texture(None);
+        self.lru.remove_item(flat);
         Ok(())
     }
 
-    pub(crate) fn clear(&mut self) {
-        for flat in self.active.drain(..) {
-            self.lru.insert(&flat,self.current_epoch);
+    pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
+        for flat_id in &self.available {
+            let is_active = flat_store.get_mut(&flat_id)?.is_active();
+            if *is_active {
+                *flat_store.get_mut(&flat_id)?.is_active() = false;
+                self.lru.insert(&flat_id,self.current_epoch);    
+            }
         }
         self.current_epoch += 1;
         self.next_gl_index = 0;
+        Ok(())
     }
 }

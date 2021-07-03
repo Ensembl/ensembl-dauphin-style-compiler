@@ -212,7 +212,8 @@ impl Drawing {
                 process.discard(gl)?;
             }
         }
-        self.canvases.discard(gl.flat_store_mut())?;
+        let gl = gl.refs();
+        self.canvases.discard(gl.flat_store,gl.bindery)?;
         Ok(())
     }
 }

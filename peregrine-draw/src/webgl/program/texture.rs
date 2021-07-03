@@ -97,7 +97,7 @@ impl TextureValues {
     pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Message> {
         if self.bound {
             if let Some(flat) = &self.flat_id {
-                gl.bindery.free(flat,gl.flat_store,gl.context)?;
+                gl.bindery.free(flat,gl.flat_store)?;
             }
         }
         Ok(())

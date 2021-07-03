@@ -93,7 +93,7 @@ impl Process {
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
         let mut gl = gl.refs();
-        gl.bindery.clear();
+        gl.bindery.clear(gl.flat_store)?;
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
         self.program.select_program(gl.context)?;

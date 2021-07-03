@@ -21,7 +21,8 @@ pub(crate) struct Flat {
     font_height: Option<u32>,
     size: (u32,u32),
     discarded: bool,
-    gl_texture: Option<SelfManagedWebGlTexture>
+    gl_texture: Option<SelfManagedWebGlTexture>,
+    is_active: bool
 }
 
 impl Flat {
@@ -39,12 +40,14 @@ impl Flat {
             font: None,
             font_height: None,
             discarded: false,
-            gl_texture: None
+            gl_texture: None,
+            is_active: false
         })
     }
 
     pub(crate) fn get_gl_texture(&self) -> Option<&SelfManagedWebGlTexture> { self.gl_texture.as_ref() }
     pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
+    pub(crate) fn is_active(&mut self) -> &mut bool { &mut self.is_active }
 
     pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
