@@ -22,6 +22,17 @@ pub struct WebGlGlobal {
     aux_array: Float32Array
 }
 
+pub(crate) struct WebGlGlobalRefs<'a> {
+    pub program_store: &'a ProgramStore,
+    pub context: &'a WebGlRenderingContext,
+    pub flat_store: &'a mut FlatStore,
+    pub bindery: &'a mut TextureBindery,
+    pub document: &'a Document,
+    pub canvas_size: &'a mut Option<(u32,u32)>,
+    pub gpuspec: &'a GPUSpec,
+    pub aux_array: &'a Float32Array
+}
+
 impl WebGlGlobal {
     pub(crate) fn new(dom: &PeregrineDom, config: &PgPeregrineConfig) -> Result<WebGlGlobal,Message> {
         let context = dom.canvas()
@@ -50,7 +61,6 @@ impl WebGlGlobal {
     pub(crate) fn aux_array(&self) -> &Float32Array {&self.aux_array }
     pub(crate) fn flat_store(&self) -> &FlatStore { &self.canvas_store }
     pub(crate) fn flat_store_mut(&mut self) -> &mut FlatStore { &mut self.canvas_store }
-    pub(crate) fn bindery(&self) -> &TextureBindery { &self.bindery }
     pub(crate) fn bindery_mut(&mut self) -> &mut TextureBindery { &mut self.bindery }
     pub(crate) fn canvas_size(&mut self) -> &mut Option<(u32,u32)> { &mut self.canvas_size }
     pub(crate) fn gpuspec(&self) -> &GPUSpec { &self.gpuspec }
@@ -58,5 +68,18 @@ impl WebGlGlobal {
     pub(crate) fn handle_context_errors(&mut self) -> Result<(),Message> {
         handle_context_errors(&self.context)?;
         Ok(())
+    }
+
+    pub(crate) fn refs<'a>(&'a mut self) -> WebGlGlobalRefs<'a> {
+        WebGlGlobalRefs {
+            program_store: &self.program_store,
+            context: &self.context,
+            flat_store: &mut self.canvas_store,
+            bindery: &mut self.bindery,
+            document: &self.document,
+            canvas_size: &mut self.canvas_size,
+            gpuspec: &self.gpuspec,
+            aux_array: &self.aux_array       
+        }
     }
 }

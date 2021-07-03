@@ -92,42 +92,36 @@ impl Process {
     }
 
     pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
-        gl.bindery_mut().clear();
+        let mut gl = gl.refs();
+        gl.bindery.clear();
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
-        let context = gl.context();
-        self.program.select_program(context)?;
-        drop(context);
+        self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
-            let context = gl.context();
-            stanza.activate(context)?;
-            drop(context);
+            stanza.activate(gl.context)?;
             for entry in self.textures.values_mut() {
-                entry.apply(gl)?;
+                entry.apply(&mut gl)?;
             }
-            let context = gl.context();
             for entry in self.uniforms.values() {
-                entry.activate(context)?;
+                entry.activate(gl.context)?;
             }
-            stanza.draw(context,self.program.get_method())?;
-            stanza.deactivate(context)?;
-            handle_context_errors(context)?;
+            stanza.draw(gl.context,self.program.get_method())?;
+            stanza.deactivate(gl.context)?;
+            handle_context_errors(gl.context)?;
         }
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let context = gl.context();
+    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Message> {
+        let mut gl = gl.refs();
         for entry in self.uniforms.values_mut() {
-            entry.discard(context)?;
+            entry.discard(gl.context)?;
         }
-        drop(context);
         for entry in self.textures.values_mut() {
-            entry.discard(gl)?;
+            entry.discard(&mut gl)?;
         }
-        let context = gl.context();
         for stanza in self.stanzas.iter_mut() {
-            stanza.discard(context)?;
+            stanza.discard(gl.context)?;
         }
         Ok(())
     }

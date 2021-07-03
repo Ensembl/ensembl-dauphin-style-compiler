@@ -153,7 +153,7 @@ thick_seq_patina := patina_filled(thick_seq_colour,0);
 thin_seq_patina := patina_hollow(thin_seq_colour,1,0);
 
 thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour,1);
-thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],1);
+thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],0);
 
 /*
  * prepare the zmenus
@@ -199,6 +199,6 @@ indented_rectangle_on_genome(thick_seq_start,thick_seq_end,14,thick_seq_patina,t
 coords := spacebase(thick_seq_start + 0.5,-6,-4);
 text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment);
 
-indented_rectangle_on_genome(thin_seq_start,thin_seq_end,14,thin_seq_patina,thin_seq_allotment);
-coords := spacebase(thin_seq_start + 0.5,-6,-4);
-text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
+//indented_rectangle_on_genome(thin_seq_start,thin_seq_end,14,thin_seq_patina,thin_seq_allotment);
+//coords := spacebase(thin_seq_start + 0.5,-6,-4);
+//text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);

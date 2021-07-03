@@ -1,4 +1,5 @@
 use std::collections::{ HashSet };
+use crate::webgl::global::WebGlGlobalRefs;
 use crate::webgl::{ FlatId, FlatStore };
 use keyed::KeyedData;
 use crate::webgl::GPUSpec;
@@ -104,50 +105,6 @@ impl Drop for SelfManagedWebGlTexture {
     }
 }
 
-pub struct Rebind {
-    old_texture: Option<FlatId>,
-    new_texture: Option<FlatId>,
-    new_index: u32
-}
-
-impl Rebind {
-    fn remove_activate(old_texture: Option<FlatId>, new_texture: FlatId, new_index: u32) -> Rebind {
-        Rebind { old_texture, new_texture: Some(new_texture), new_index }
-    }
-
-    fn activate(flat_id: &FlatId, index: u32) -> Rebind {
-        Rebind { old_texture: None, new_texture: Some(flat_id.clone()), new_index: index }
-    }
-
-    fn remove(flat_id: FlatId) -> Rebind {
-        Rebind { old_texture: Some(flat_id), new_texture: None, new_index: 0}
-    }
-
-    fn noop() -> Rebind {
-        Rebind {old_texture: None, new_texture: None, new_index: 0 }
-    }
-
-    pub(crate) fn apply(&self, gl: &mut WebGlGlobal) -> Result<u32,Message> {
-        if let Some(old_id) = &self.old_texture {
-            gl.flat_store_mut().get_mut(old_id)?.set_gl_texture(None);
-        }
-        if let Some(new_id) = &self.new_texture {
-            let texture = gl.flat_store_mut().get(new_id)?.get_gl_texture();
-            if texture.is_none() {
-                let texture = create_texture(gl.context(),gl.flat_store(),new_id)?;
-                gl.flat_store_mut().get_mut(new_id)?.set_gl_texture(Some(texture));
-            }
-            gl.context().active_texture(WebGlRenderingContext::TEXTURE0 + self.new_index);
-            gl.handle_context_errors()?;
-            let context = gl.context().clone();
-            let texture = gl.flat_store_mut().get(new_id)?.get_gl_texture().unwrap();
-            context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
-            gl.handle_context_errors()?;
-        }
-        Ok(self.new_index)
-    }
-}
-
 pub(crate) struct TextureBindery {
     lru: EvictList,
     active: Vec<FlatId>,
@@ -172,37 +129,55 @@ impl TextureBindery {
         }
     }
 
-    pub(crate) fn allocate(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
-        self.active.push(flat.clone());
-        self.lru.remove_item(flat);
-        let our_gl_index = self.next_gl_index;
-        self.next_gl_index += 1;
-        if self.available.contains(flat) {
-            return Ok(Rebind::activate(flat,our_gl_index));
+    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
+        if let Some((_,old_item)) = self.lru.remove_oldest() {
+            self.current_textures -= 1;
+            self.available.remove(&old_item);
+            flat_store.get_mut(&old_item)?.set_gl_texture(None);
+        } else {
+            return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
         }
-        self.available.insert(flat.clone());
-        self.current_textures += 1;
-        let mut old = None;
-        if self.current_textures > self.max_textures {
-            if let Some((_,old_item)) = self.lru.remove_oldest() {
-                self.current_textures -= 1;
-                self.available.remove(&old_item);
-                old = Some(old_item);
-            } else {
-                return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
-            }
-        }
-        Ok(Rebind::remove_activate(old,flat.clone(),our_gl_index))
+        Ok(())
     }
 
-    pub(crate) fn free(&mut self, flat: &FlatId) -> Result<Rebind,Message> {
+    fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
+        self.available.insert(flat.clone());
+        self.current_textures += 1;
+        if self.current_textures > self.max_textures {
+            self.make_one_unavailable(flat_store)?;
+        }
+        let texture = create_texture(context,flat_store,flat)?;
+        flat_store.get_mut(flat)?.set_gl_texture(Some(texture));
+        Ok(())
+    }
+
+    pub(crate) fn allocate(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Message> {
+        /* Promote to AVAILABLE if SLEEPING */
+        if !self.available.contains(flat) {
+            self.make_available(flat,flat_store,context)?;
+        }
+        /* Promote from AVAILABLE to ACTIVE */
+        self.active.push(flat.clone());
+        self.lru.remove_item(flat);
+        /* Allocate a gl index for this program */
+        let our_gl_index = self.next_gl_index;
+        self.next_gl_index += 1;
+        /* Actually bind it */
+        context.active_texture(WebGlRenderingContext::TEXTURE0 + our_gl_index);
+        handle_context_errors(context)?;
+        let texture = flat_store.get(flat)?.get_gl_texture().unwrap();
+        context.bind_texture(WebGlRenderingContext::TEXTURE_2D,Some(texture.texture()));
+        handle_context_errors(context)?;
+        Ok(our_gl_index)
+    }
+
+    pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
         if self.lru.remove_item(flat) { 
             self.available.remove(flat);
             self.current_textures -= 1;
-            Ok(Rebind::remove(flat.clone()))
-        } else {
-            Ok(Rebind::noop())
+            flat_store.get_mut(flat)?.set_gl_texture(None);
         }
+        Ok(())
     }
 
     pub(crate) fn clear(&mut self) {
