@@ -103,44 +103,45 @@ impl Drop for SelfManagedWebGlTexture {
 }
 
 pub(crate) struct TextureBindery {
-    lru: EvictList,
-    available: HashSet<FlatId>,
-    max_textures: u32,
-    current_textures: u32,
+    available_or_active: HashSet<FlatId>,
+    max_textures: usize,
     current_epoch: i64,
     next_gl_index: u32
 }
 
 impl TextureBindery {
     pub(crate) fn new(gpuspec: &GPUSpec) -> TextureBindery {
-        let max_textures = gpuspec.max_textures();
+        let max_textures = gpuspec.max_textures() as usize;
         TextureBindery {
-            lru: EvictList::new(),
-            available: HashSet::new(),
-            current_textures: 0,
+            available_or_active: HashSet::new(),
             max_textures,
             current_epoch: 0,
             next_gl_index: 0
         }
     }
 
-    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
-        if let Some((_,old_item)) = self.lru.remove_oldest() {
-            self.current_textures -= 1;
-            self.available.remove(&old_item);
-            flat_store.get_mut(&old_item)?.set_gl_texture(None);
-        } else {
-            return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
+    fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Message> {
+        let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
+        for flat_id in flats {
+            if !*flat_store.get_mut(&flat_id)?.is_active() {
+                self.available_or_active.remove(&flat_id);
+                return Ok(flat_id);
+            }
         }
+        return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
+    }
+
+    fn make_one_unavailable(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
+        let old_item = self.find_victim(flat_store)?;
+        flat_store.get_mut(&old_item)?.set_gl_texture(None);
         Ok(())
     }
 
     fn make_available(&mut self, flat: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<(),Message> {
-        self.current_textures += 1;
-        if self.current_textures > self.max_textures {
+        if self.available_or_active.len() >= self.max_textures {
             self.make_one_unavailable(flat_store)?;
         }
-        self.available.insert(flat.clone());
+        self.available_or_active.insert(flat.clone());
         let texture = create_texture(context,flat_store,flat)?;
         flat_store.get_mut(flat)?.set_gl_texture(Some(texture));
         Ok(())
@@ -148,12 +149,11 @@ impl TextureBindery {
 
     pub(crate) fn allocate(&mut self, flat_id: &FlatId, flat_store: &mut FlatStore, context: &WebGlRenderingContext) -> Result<u32,Message> {
         /* Promote to AVAILABLE if SLEEPING */
-        if !self.available.contains(flat_id) {
+        if !self.available_or_active.contains(flat_id) {
             self.make_available(flat_id,flat_store,context)?;
         }
         /* Promote from AVAILABLE to ACTIVE */
-        *flat_store.get_mut(flat_id).map_err(|e| Message::ConfusedWebBrowser(format!("V")))?.is_active() = true;
-        self.lru.remove_item(flat_id);
+        *flat_store.get_mut(flat_id)?.is_active() = true;
         /* Allocate a gl index for this program */
         let our_gl_index = self.next_gl_index;
         self.next_gl_index += 1;
@@ -167,20 +167,16 @@ impl TextureBindery {
     }
 
     pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Message> {
-        if self.available.remove(flat) {
-            self.current_textures -= 1;
-        }
+        self.available_or_active.remove(flat);
         flat_store.get_mut(flat)?.set_gl_texture(None);
-        self.lru.remove_item(flat);
         Ok(())
     }
 
     pub(crate) fn clear(&mut self, flat_store: &mut FlatStore) -> Result<(),Message> {
-        for flat_id in &self.available {
+        for flat_id in &self.available_or_active {
             let is_active = flat_store.get_mut(&flat_id)?.is_active();
             if *is_active {
                 *flat_store.get_mut(&flat_id)?.is_active() = false;
-                self.lru.insert(&flat_id,self.current_epoch);    
             }
         }
         self.current_epoch += 1;
