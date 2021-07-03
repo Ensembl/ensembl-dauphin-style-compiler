@@ -103,7 +103,7 @@ impl Drop for SelfManagedWebGlTexture {
 }
 
 pub(crate) struct TextureBindery {
-    available_or_active: HashSet<FlatId>,
+    available_or_active: Vec<FlatId>,
     max_textures: usize,
     current_epoch: i64,
     next_gl_index: u32
@@ -113,7 +113,7 @@ impl TextureBindery {
     pub(crate) fn new(gpuspec: &GPUSpec) -> TextureBindery {
         let max_textures = gpuspec.max_textures() as usize;
         TextureBindery {
-            available_or_active: HashSet::new(),
+            available_or_active: vec![],
             max_textures,
             current_epoch: 0,
             next_gl_index: 0
@@ -122,10 +122,10 @@ impl TextureBindery {
 
     fn find_victim(&mut self, flat_store: &mut FlatStore) -> Result<FlatId,Message> {
         let flats = self.available_or_active.iter().cloned().collect::<Vec<_>>();
-        for flat_id in flats {
+        for (i,flat_id) in flats.iter().enumerate() {
             if !*flat_store.get_mut(&flat_id)?.is_active() {
-                self.available_or_active.remove(&flat_id);
-                return Ok(flat_id);
+                self.available_or_active.swap_remove(i);
+                return Ok(flat_id.clone());
             }
         }
         return Err(Message::CodeInvariantFailed("too many textures bound".to_string()));
@@ -141,7 +141,7 @@ impl TextureBindery {
         if self.available_or_active.len() >= self.max_textures {
             self.make_one_unavailable(flat_store)?;
         }
-        self.available_or_active.insert(flat.clone());
+        self.available_or_active.push(flat.clone());
         let texture = create_texture(context,flat_store,flat)?;
         flat_store.get_mut(flat)?.set_gl_texture(Some(texture));
         Ok(())
@@ -167,7 +167,9 @@ impl TextureBindery {
     }
 
     pub(crate) fn free(&mut self, flat: &FlatId, flat_store: &mut FlatStore) -> Result<(),Message> {
-        self.available_or_active.remove(flat);
+        if let Some(pos) = self.available_or_active.iter().position(|id| id == flat) {
+            self.available_or_active.swap_remove(pos);
+        }
         flat_store.get_mut(flat)?.set_gl_texture(None);
         Ok(())
     }
