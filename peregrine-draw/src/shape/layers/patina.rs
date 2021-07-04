@@ -69,7 +69,8 @@ impl PatinaProgramName {
                     AttributeProto::new(PR_LOW,GLArity::Vec4,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec4,"vColour"),
                     Statement::new_vertex("vColour = aVertexColour"),
-                    Statement::new_fragment("gl_FragColor = vColour")
+                    Statement::new_fragment("gl_FragColor = vColour"),
+                    Statement::new_fragment("gl_FragColor.a = gl_FragColor.a * uOpacity")
                 ],
                 PatinaProgramName::Spot => vec![
                     UniformProto::new_fragment(PR_LOW,GLArity::Vec3,"uColour"),

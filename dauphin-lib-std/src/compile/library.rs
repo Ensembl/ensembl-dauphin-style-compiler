@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,5),0xF333A5BF97DDBBC2)
+    CommandSetId::new("std",(2,0),0xF1E3A5BF97DDBBC2)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -144,25 +144,30 @@ pub struct ExtractFilterCommandType();
 impl CommandType for ExtractFilterCommandType {
     fn get_schema(&self) -> CommandSchema {
         CommandSchema {
-            values: 4,
+            values: 7,
             trigger: CommandTrigger::Command(std("extract_filter"))
         }
     }
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
-            Ok(Box::new(ExtractFilterCommand(it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),it.regs[3].clone())))
+            Ok(Box::new(ExtractFilterCommand(
+                it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone(),
+                it.regs[3].clone(),it.regs[4].clone(),it.regs[5].clone(),
+                it.regs[6].clone())))
         } else {
             Err(DauphinError::malformed("unexpected instruction"))
         }
     }
 }
 
-pub struct ExtractFilterCommand(Register,Register,Register,Register);
+pub struct ExtractFilterCommand(Register,Register,Register,Register,Register,Register,Register);
 
 impl Command for ExtractFilterCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
-        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize()]))
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),
+                     self.3.serialize(),self.4.serialize(),self.5.serialize(),
+                     self.6.serialize()]))
     }
 }
 
