@@ -1,7 +1,9 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-data := get_data("self()","contig",get_region());
+endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
+
+data := get_data("self()",endpoint,get_region());
 
 start := delta_seq(data,"contig_starts");
 end := start + delta_seq(data,"contig_lengths");
