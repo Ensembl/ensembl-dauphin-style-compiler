@@ -49,7 +49,7 @@ exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
 trunc_left := exon_thick_limit_start>exon_start;
 trunc_right := exon_thick_limit_end<exon_end;
 
-/* ... update exons to thivk limit */
+/* ... update exons to thick limit */
 exon_thick_start := exon_start;
 exon_thick_end := exon_end;
 exon_thick_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
@@ -174,7 +174,7 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
 
 /* thick letters */
 extract_filter(thick_seq_start,thick_seq_index,thick_seq_exon_index,seq_start,seq_end,exon_thick_start,exon_thick_end);
-thick_seq_gene_index := index(thick_seq_exon_index,[exon_gene_indexes]);
+thick_seq_gene_index := index(thick_seq_exon_index,[thick_exon_gene_indexes]);
 thick_seq_letter := index(thick_seq_index,[seq_letter]);
 thick_seq_allotment := index(thick_seq_gene_index,[allotment]);
 
