@@ -7,7 +7,7 @@ use super::boot::{ AddStickAuthorityCommandType, GetStickIdCommandType, GetStick
 use super::data::{ GetLaneCommandType, GetDataCommandType, DataStreamCommandType };
 use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
-    ClassifyCommandType, SplitStringCommandType
+    ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
 use super::track::{ 
     NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType, AddAllotmentCommandType,
@@ -22,7 +22,7 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(33,0),0x3695E85547CAB8F2)
+    CommandSetId::new("peregrine",(34,0),0xB778FBFFB0386F2E)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -65,6 +65,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("simple_colour",Some(35),SimpleColourCommandType());
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());
+    set.push("base_flip",Some(38),BaseFlipCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }
