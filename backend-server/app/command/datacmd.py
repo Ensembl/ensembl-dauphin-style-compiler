@@ -5,6 +5,7 @@ from .datasources import DataAccessor
 from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
 from data.wiggle import WiggleDataHandler
 from data.sequence import ZoomedSeqDataHandler
+from data.contig import ContigDataHandler
 
 class DataHandler(Handler):
     def __init__(self):
@@ -15,6 +16,7 @@ class DataHandler(Handler):
             "gene": GeneDataHandler(),
             "gene-overview": GeneOverviewDataHandler(),
             "gc": WiggleDataHandler(),
+            "contig": ContigDataHandler(),
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
