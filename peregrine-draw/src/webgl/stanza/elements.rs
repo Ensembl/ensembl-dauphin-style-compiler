@@ -31,8 +31,10 @@ impl ProcessStanzaElementsEntry {
         Ok(ProcessStanzaElementsEntryCursor(self.attribs.map(|_,v| Ok(v.len()))?))
     }
 
-    fn space_in_shapes(&self, points_per_shape: usize) -> usize {
-        (LIMIT - self.index.len()) / points_per_shape
+    fn space_in_shapes(&self, points_per_shape: usize, index_len_per_shape: usize) -> usize {
+        let index_space = (LIMIT - self.index.len()) / index_len_per_shape;
+        let points_space = (LIMIT - self.offset as usize) /points_per_shape;
+        index_space.min(points_space)
     }
 
     fn add_indexes(&mut self, indexes: &[u16], count: u16) -> Result<ProcessStanzaElementsEntryCursor,Message> {
@@ -68,6 +70,7 @@ impl ProcessStanzaElementsEntry {
 pub struct ProcessStanzaElements {
     elements: Vec<(Rc<RefCell<ProcessStanzaElementsEntry>>,usize,ProcessStanzaElementsEntryCursor)>,
     points_per_shape: usize,
+    index_len_per_shape: usize,
     shape_count: usize,
     active: Rc<RefCell<bool>>,
     self_active: bool
@@ -77,6 +80,7 @@ impl ProcessStanzaElements {
     pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, shape_count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
         let mut out = ProcessStanzaElements {
             points_per_shape: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
+            index_len_per_shape: indexes.len(),
             elements: vec![],
             shape_count,
             active: stanza_builder.active().clone(),
@@ -91,7 +95,7 @@ impl ProcessStanzaElements {
         let mut remaining_shapes = self.shape_count;
         while remaining_shapes > 0 {
             let entry = stanza_builder.elements().clone();
-            let mut space_in_shapes = entry.borrow().space_in_shapes(self.points_per_shape);
+            let mut space_in_shapes = entry.borrow().space_in_shapes(self.points_per_shape,self.index_len_per_shape);
             if space_in_shapes > remaining_shapes { space_in_shapes = remaining_shapes; }
             if space_in_shapes > 0 {
                 let cursor = entry.borrow_mut().add_indexes(&indexes,space_in_shapes as u16)?;
