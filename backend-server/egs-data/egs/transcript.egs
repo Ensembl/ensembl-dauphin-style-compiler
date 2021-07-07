@@ -140,7 +140,7 @@ exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_c
 white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)),0);
 thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
 text_colour := direct_colour(111,129,144,255);
-text_size := 12;
+text_size := 10;
 
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][],0);
 
@@ -163,13 +163,13 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  * draw everything!
  */
 
-rectangle_on_genome(start,start,5,hollow_patina,allotment); // left stop
-rectangle_on_genome(end,end,5,hollow_patina,allotment); // right stop
-rectangle_on_genome(start,end,1,under_dotted_patina,allotment); // central dotted line
-rectangle_on_genome(transcript_start,transcript_end,1,under_patina,allotment); // central line
-rectangle_on_genome(exon_start,exon_end,5,white_patina,exon_allotment); // exon white box
-rectangle_on_genome(exon_start,exon_end,5,exon_hollow_patina,exon_allotment); // exon hollow box
-rectangle_on_genome(exon_thick_start,exon_thick_end,5,thick_exon_patina,thick_exon_allotment); // exon solid box
+rectangle_on_genome(start,start,6,hollow_patina,allotment); // left stop
+rectangle_on_genome(end,end,6,hollow_patina,allotment); // right stop
+rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment,3); // central dotted line
+rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment,3); // central line
+rectangle_on_genome(exon_start,exon_end,6,white_patina,exon_allotment); // exon white box
+rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
+rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box
 //rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 //rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);

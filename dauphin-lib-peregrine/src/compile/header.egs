@@ -77,15 +77,21 @@ stmt text_underneath(x,y,penspec,writing,allt) {
     text2(x,penspec,writing,allt);
 }
 
-stmt rectangle_on_genome(start,end,half_height,patina,allt) {
-    top_left := spacebase(start,-half_height,0);
-    bottom_right := spacebase(end,half_height,0);
+stmt rectangle_on_genome(start,end,height,patina,allt) {
+    top_left := spacebase(start,0,0);
+    bottom_right := spacebase(end,height,0);
     rectangle(top_left,bottom_right,patina,allt);
 }
 
-stmt indented_rectangle_on_genome(start,end,half_height,patina,allt) {
-    top_left := spacebase(start,-half_height,1);
-    bottom_right := spacebase(end,half_height,-1);
+stmt rectangle_on_genome_offset(start,end,height,patina,allt,offset) {
+    top_left := spacebase(start,offset,0);
+    bottom_right := spacebase(end,height+offset,0);
+    rectangle(top_left,bottom_right,patina,allt);
+}
+
+stmt indented_rectangle_on_genome(start,end,height,patina,allt) {
+    top_left := spacebase(start,0,1);
+    bottom_right := spacebase(end,height,-1);
     rectangle(top_left,bottom_right,patina,allt);
 }
 
@@ -101,6 +107,7 @@ func delta(number) becomes number;
 func alternate(number) becomes number;
 func classify(string,number) becomes string;
 func split_string(string) becomes vec(string);
+func base_flip(string) becomes string;
 
 expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
 expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];

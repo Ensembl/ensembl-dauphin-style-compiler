@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::shape::layers::consts::PR_LOW;
 use crate::webgl::{FlatId, FlatStore, GLArity};
-use crate::webgl::global::WebGlGlobal;
+use crate::webgl::global::{WebGlGlobal, WebGlGlobalRefs};
 use crate::util::message::Message;
 use keyed::keyed_handle;
 use web_sys::{ WebGlUniformLocation, WebGlRenderingContext, WebGlProgram };
@@ -80,24 +80,24 @@ impl TextureValues {
         Ok(())
     }
 
-    pub(super) fn apply(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    pub(super) fn apply(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Message> {
         if let (Some(flat_id),Some(location)) = (&self.flat_id,&self.texture.location) {
-            let index = gl.bindery_mut().allocate(flat_id)?.apply(gl)?;
+            let index = gl.bindery.allocate(flat_id,gl.flat_store,gl.context)?;
             self.bound = true;
-            gl.context().uniform1i(Some(location),index as i32);
-            handle_context_errors(gl.context())?;
+            gl.context.uniform1i(Some(location),index as i32);
+            handle_context_errors(gl.context)?;
         }
         if let (Some(flat_size),Some(location_size)) = (&self.flat_size,&self.texture.location_size) {
-            gl.context().uniform2f(Some(location_size),flat_size.0 as f32, flat_size.1 as f32);
-            handle_context_errors(gl.context())?;
+            gl.context.uniform2f(Some(location_size),flat_size.0 as f32, flat_size.1 as f32);
+            handle_context_errors(gl.context)?;
         }
         Ok(())
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+    pub fn discard(&mut self, gl: &mut WebGlGlobalRefs) -> Result<(),Message> {
         if self.bound {
             if let Some(flat) = &self.flat_id {
-                gl.bindery_mut().free(flat)?.apply(gl)?;
+                gl.bindery.free(flat,gl.flat_store)?;
             }
         }
         Ok(())

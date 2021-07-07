@@ -37,6 +37,7 @@ exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 seq_start := delta_seq(data,"seq_starts");
 seq_end := seq_start + 1;
 seq_letter := classified_seq(data,"seq_keys","seq_values");
+seq_rev_letter := base_flip(seq_letter);
 
 thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
@@ -49,7 +50,7 @@ exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
 trunc_left := exon_thick_limit_start>exon_start;
 trunc_right := exon_thick_limit_end<exon_end;
 
-/* ... update exons to thivk limit */
+/* ... update exons to thick limit */
 exon_thick_start := exon_start;
 exon_thick_end := exon_end;
 exon_thick_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
@@ -153,7 +154,7 @@ thick_seq_patina := patina_filled(thick_seq_colour,0);
 thin_seq_patina := patina_hollow(thin_seq_colour,1,0);
 
 thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour,1);
-thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],1);
+thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],0);
 
 /*
  * prepare the zmenus
@@ -166,39 +167,33 @@ zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
                                       [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation]][]);
 
+/* find thick exon regions */
+
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
 ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id]][]);
 
 /* thick letters */
-thick_seq_extract := extract_filter(seq_start,exon_thick_start,exon_thick_end);
-thick_seq_filter := thick_seq_extract < len([exon_thick_start]);
-thick_seq_exon := thick_seq_extract#[thick_seq_filter];
-thick_seq_gene := index(exon_gene_indexes,[thick_seq_exon]);
+extract_filter(thick_seq_start,thick_seq_index,thick_seq_exon_index,seq_start,seq_end,exon_thick_start,exon_thick_end);
+thick_seq_gene_index := index(thick_seq_exon_index,[thick_exon_gene_indexes]);
+thick_seq_letter := index(thick_seq_index,[seq_letter]);
+thick_seq_rev_letter := index(thick_seq_index,[seq_rev_letter]);
+thick_seq_gene_strand := index(thick_seq_gene_index,[strand]);
+thick_seq_letter#[thick_seq_gene_strand==0] := thick_seq_rev_letter#[thick_seq_gene_strand==0];
+thick_seq_allotment := index(thick_seq_gene_index,[allotment]);
 
-thick_seq_start := seq_start#[thick_seq_filter];
-thick_seq_end := seq_end#[thick_seq_filter];
-thick_seq_letter := seq_letter#[thick_seq_filter];
-thick_seq_allotment := index(thick_seq_gene,[allotment]);
-
-indented_rectangle_on_genome(thick_seq_start,thick_seq_end,14,thick_seq_patina,thick_seq_allotment);
-coords := spacebase(thick_seq_start + 0.5,-6,-4);
+indented_rectangle_on_genome(thick_seq_start,thick_seq_start+1,30,thick_seq_patina,thick_seq_allotment);
+coords := spacebase(thick_seq_start + 0.5,8,-4);
 text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment);
 
 /* thin letters */
-thin_seq_extract := extract_filter(seq_start,transcript_start,transcript_end);
-thin_seq_filter := thin_seq_extract < len([transcript_start]);
-thin_seq_gene := thin_seq_extract#[thin_seq_filter];
+extract_filter(thin_seq_start,thin_seq_index,thin_seq_gene_index,seq_start,seq_end,transcript_start,transcript_end);
+thin_seq_letter := index(thin_seq_index,[seq_letter]);
+thin_seq_rev_letter := index(thin_seq_index,[seq_rev_letter]);
+thin_seq_gene_strand := index(thin_seq_gene_index,[strand]);
+thin_seq_letter#[thin_seq_gene_strand==0] := thin_seq_rev_letter#[thin_seq_gene_strand==0];
+thin_seq_allotment := index(thin_seq_gene_index,[allotment]);
 
-thin_seq_start := seq_start#[thin_seq_filter];
-thin_seq_end := seq_end#[thin_seq_filter];
-thin_seq_letter := seq_letter#[thin_seq_filter];
-thin_seq_allotment := index(thin_seq_gene,[allotment]);
-
-indented_rectangle_on_genome(thick_seq_start,thick_seq_end,14,thick_seq_patina,thick_seq_allotment);
-coords := spacebase(thick_seq_start + 0.5,-6,-4);
-text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment);
-
-indented_rectangle_on_genome(thin_seq_start,thin_seq_end,14,thin_seq_patina,thin_seq_allotment);
-coords := spacebase(thin_seq_start + 0.5,-6,-4);
+indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,30,thin_seq_patina,thin_seq_allotment);
+coords := spacebase(thin_seq_start + 0.5,8,-4);
 text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);

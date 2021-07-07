@@ -11,9 +11,28 @@ simple_interp_command!(InflateStringInterpCommand,InflateStringDeserializer,25,2
 simple_interp_command!(Lesqlite2InterpCommand,Lesqlite2Deserializer,26,2,(0,1));
 simple_interp_command!(ZigzagInterpCommand,ZigzagDeserializer,27,2,(0,1));
 simple_interp_command!(DeltaInterpCommand,DeltaDeserializer,28,2,(0,1));
-// 29 is unused
 simple_interp_command!(ClassifyInterpCommand,ClassifyDeserializer,30,3,(0,1,2));
 simple_interp_command!(SplitStringInterpCommand,SplitStringDeserializer,31,4,(0,1,2,3));
+simple_interp_command!(BaseFlipInterpCommand,BaseFlipDeserializer,38,2,(0,1));
+
+impl InterpCommand for BaseFlipInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let datas = registers.get_strings(&self.1)?;
+        let mut out = vec![];
+        for data in datas.iter() {
+            out.push(match data.as_str() {
+                "c" => "g", "C" => "G",
+                "g" => "c", "G" => "C",
+                "a" => "t", "A" => "T",
+                "t" => "a", "T" => "A",
+                x => x
+            }.to_string());
+        }
+        registers.write(&self.0,InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
 
 impl InterpCommand for InflateBytesInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

@@ -3,7 +3,7 @@ use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetSti
 use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer };
 use super::decompress::{ 
     InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
-    ClassifyDeserializer, SplitStringDeserializer
+    ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
 };
 
 use super::track::{ 
@@ -24,7 +24,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(33,0),0x3695E85547CAB8F2)
+    CommandSetId::new("peregrine",(34,0),0xB778FBFFB0386F2E)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -67,5 +67,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(SimpleColourDeserializer());
     set.push(StripedDeserializer());
     set.push(BarredDeserializer());
+    set.push(BaseFlipDeserializer());
     set
 }

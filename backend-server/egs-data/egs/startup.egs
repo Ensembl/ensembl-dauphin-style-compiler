@@ -68,6 +68,23 @@ track_add_switch(p,["settings"]);
 track_add_allotment(p,"gc",2000);
 track_apply(p);
 
+/* shimmer contigs */
+p := track_new("self()","contig",26,200,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
+track_set_switch(p,["scale","shimmer"]);
+track_apply(p);
+
+/* contigs */
+p := track_new("self()","contig",sequence_scale,26,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
+track_apply(p);
+
 /* sequence */
 p := track_new("self()","zoomed-seq",0,sequence_scale,3);
 track_add_tag(p,"local");

@@ -27,7 +27,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(0,5),0xF333A5BF97DDBBC2)
+    CommandSetId::new("std",(2,0),0xF1E3A5BF97DDBBC2)
 }
 
 pub struct AssertDeserializer();
@@ -110,69 +110,50 @@ impl InterpCommand for DerunInterpCommand {
 pub struct ExtractFilterDeserializer();
 
 impl CommandDeserializer for ExtractFilterDeserializer {
-    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((27,4))) }
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((27,7))) }
     fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
         Ok(Box::new(ExtractFilterInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,
-                                               Register::deserialize(&value[2])?,Register::deserialize(&value[3])?)))
+                                               Register::deserialize(&value[2])?,Register::deserialize(&value[3])?,
+                                               Register::deserialize(&value[4])?,Register::deserialize(&value[5])?,
+                                               Register::deserialize(&value[6])?)))
     }
 }
 
-fn interval_union(starts: &[usize], ends: &[usize]) -> Vec<(usize,usize,usize)> {
-    let mut intervals = starts.iter().zip(ends.iter().cycle()).enumerate()
-        .map(|(i,x)| (*x.0,*x.1,i))
-        .collect::<Vec<_>>();
-    intervals.sort();
-    let mut out : Vec<(usize,usize,usize)> = vec![];
-    for (start,end,index) in intervals {
-        let len = out.len();
-        if len>0 && start <= out[len-1].1 {
-            out[len-1].1 = end;
-        } else {
-            out.push((start,end,index));
-        }
-    }
-    out
-}
-
-fn extract_filter(src: &[usize], starts: &[usize], ends: &[usize]) -> Vec<usize> {
-    let sentinel = starts.len();
-    /* we can use a simple binary search after unioning intervals to ensure no overlap */
-    let intervals = interval_union(starts,ends);
-    let mut values = src.iter().cloned().enumerate().collect::<Vec<_>>();
-    values.sort_by_key(|(_,value)| *value);
-    let mut interval_iter = intervals.iter().peekable();
-    let mut out = vec![];
-    for (index,value) in values {
-        loop {
-            let mut advance = false;
-            if let Some((_,peek_end,_)) = interval_iter.peek() {
-                if *peek_end <= value { advance = true; }
+fn extract_filter(values: &mut Vec<usize>, source_indexes: &mut Vec<usize>, range_indexes: &mut Vec<usize>,
+                  start: usize, end: usize, range_starts_and_ends: &[(usize,(usize,usize))], source_index: usize) {
+    for (range_index,(range_start,range_end)) in range_starts_and_ends {
+        let ixn_start = *range_start.max(&start);
+        let ixn_end = *range_end.min(&end);
+        if ixn_start < ixn_end {
+            for pos in ixn_start..ixn_end {
+                range_indexes.push(*range_index);
+                values.push(pos);
+                source_indexes.push(source_index);
             }
-            if advance { interval_iter.next(); } else { break; }
         }
-        let mut out_value = sentinel;
-        if let Some((peek_start,_,index)) = interval_iter.peek() {
-            if value >= *peek_start { out_value = *index; }
-        }
-        out.push((index,out_value));
     }
-    out.sort_by_key(|(pos,_)| *pos);
-    let out = out.drain(..).map(|x| x.1).collect();
-    use web_sys::console;
-    console::log_1(&format!("extract_filter({:?},{:?},{:?})={:?}",src,starts,ends,out).into());
-    out
 }
 
-pub struct ExtractFilterInterpCommand(Register,Register,Register,Register);
+pub struct ExtractFilterInterpCommand(Register,Register,Register,Register,Register,Register,Register);
 
 impl InterpCommand for ExtractFilterInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
-        let src = registers.get_indexes(&self.1)?;
-        let range_starts = registers.get_indexes(&self.2)?;
-        let range_ends = registers.get_indexes(&self.3)?;
-        let dst = extract_filter(&src,&range_starts,&range_ends);
-        registers.write(&self.0,InterpValue::Indexes(dst));
+        let starts = registers.get_indexes(&self.3)?;
+        let ends = registers.get_indexes(&self.4)?;
+        let range_starts = registers.get_indexes(&self.5)?;
+        let range_ends = registers.get_indexes(&self.6)?;
+        let mut values = vec![];
+        let mut source_indexes = vec![];
+        let mut range_indexes = vec![];
+        let mut range_starts_and_ends = 
+            range_starts.iter().cloned().zip(range_ends.iter().cycle().cloned()).enumerate().collect::<Vec<_>>();
+        for (i,(start,end)) in starts.iter().zip(ends.iter().cycle()).enumerate() {
+            extract_filter(&mut values, &mut source_indexes, &mut range_indexes,*start,*end,&range_starts_and_ends,i);
+        }
+        registers.write(&self.0,InterpValue::Indexes(values));
+        registers.write(&self.1,InterpValue::Indexes(source_indexes));
+        registers.write(&self.2,InterpValue::Indexes(range_indexes));
         Ok(CommandResult::SyncResult())
     }
 }
