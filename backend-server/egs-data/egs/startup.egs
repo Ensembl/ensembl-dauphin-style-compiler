@@ -61,7 +61,7 @@ gene_std(p);
 track_apply(p);
 
 /* gc */
-p := track_new("self()","gc",1,100,3);
+p := track_new("self()","gc",1,100,5);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gc"]);
 track_add_switch(p,["settings"]);

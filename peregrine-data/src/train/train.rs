@@ -117,9 +117,11 @@ impl TrainData {
 
     fn set_carriages(&mut self, events: &mut CarriageEvents) {
         if let Some(carriages) = &mut self.carriages {
-            let reporter = carriages.depend();
-            if let Some(index) = self.active {
-                events.set_carriages(&self.carriages(),index,reporter.as_ref());
+            if carriages.ready() {
+                let reporter = carriages.depend();
+                if let Some(index) = self.active {
+                    events.set_carriages(&self.carriages(),index,reporter.as_ref());
+                }
             }
         }
     }

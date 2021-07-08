@@ -152,11 +152,11 @@ impl PeregrineApiQueue {
             task: Box::pin(async move {
                 loop {
                     let mut messages = self2.queue.get_multi().await;
-                    let mut campagin = ApiQueueCampaign::new(&data2.viewport);
+                    let mut campaign = ApiQueueCampaign::new(&data2.viewport);
                     for (message,instigator) in messages.drain(..) {
-                        campagin.run_message(&mut data2,message,instigator);
+                        campaign.run_message(&mut data2,message,instigator);
                     }
-                    self2.update_viewport(&mut data2,campagin.viewport().clone(),Instigator::new());
+                    self2.update_viewport(&mut data2,campaign.viewport().clone(),Instigator::new());
                 }
             }),
             stats: false

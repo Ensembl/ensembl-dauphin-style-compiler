@@ -71,7 +71,7 @@ fn parse_one(spec: &str) -> Result<Option<(String,ModifiersPattern,Vec<f64>)>,Me
          } 
     }
     let required = Modifiers::new(KeyboardModifiers::new(shift,control,alt),&require);
-    let prohibited = Modifiers::new(KeyboardModifiers::new(shift,control,alt),&prohibit);
+    let prohibited = Modifiers::new(KeyboardModifiers::new(false,false,false),&prohibit);
     let (args,text) = parse_final_part(&last)?;
     Ok(Some((text.to_string(),ModifiersPattern::new(required,prohibited),args)))
 }

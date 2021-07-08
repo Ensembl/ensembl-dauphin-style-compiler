@@ -33,7 +33,7 @@ impl GLCarriage {
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
-            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left(),&VariableValues::new())?
+            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new())?
         })
     }
 
@@ -45,9 +45,18 @@ impl GLCarriage {
 
     pub fn priority_range(&self) -> (i8,i8) { self.drawing.priority_range() }
 
+    fn in_view(&self, stage: &ReadStage) -> Result<bool,Message> {
+        let stage = stage.x().left_right()?;
+        let carriage = self.id.left_right();
+        Ok(!(stage.0 > carriage.1 || stage.1 < carriage.0))
+    }
+
     pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, priority: i8) ->Result<(),Message> {
         let opacity = self.opacity.lock().unwrap().clone();
-        self.drawing.draw(gl,stage,session,opacity,priority)
+        if self.in_view(stage)? {
+            self.drawing.draw(gl,stage,session,opacity,priority)?;
+        }
+        Ok(())
     }
 
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {

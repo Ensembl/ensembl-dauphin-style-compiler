@@ -272,7 +272,8 @@ impl PeregrineInnerAPI {
         use crate::stage::axis::ReadStageAxis;
         console::log_1(&format!("received debug action {}",index).into());
         if index == 9 {
-            console::log_1(&format!("bp_per_screen {:?}",self.stage.lock().unwrap().x().bp_per_screen()).into());
+            let stage = self.stage.lock().unwrap();
+            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
         }
     }
 }
