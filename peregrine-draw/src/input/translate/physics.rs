@@ -7,13 +7,9 @@ use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
+use super::axisphysics::AxisPhysics;
 
-const LETHARGY : f64 = 2500.;
-const BOING : f64 = 1.;
-const VEL_MIN : f64 = 0.0005; // px/ms
-const FORCE_MIN : f64 = 0.000001; // px/ms/ms
 const PULL_SPEED : f64 = 2.; // px/ms
-const BRAKE_MUL : f64 = 0.2;
 
 pub struct ClosedRamp {
     start: f64,
@@ -93,33 +89,6 @@ impl OpenRamp {
     fn negative(&self) -> bool { self.negative }
 }
 
-struct Switches {
-    active: Option<f64>
-}
-
-impl Switches {
-    fn new() -> Switches {
-        Switches {
-            active: None
-        }
-    }
-
-    fn set(&mut self, speed: f64, start: bool) {
-        if start {
-            self.active = Some(speed);
-        } else {
-            self.active = None;
-        }
-    }
-
-    fn active(&self) -> bool { self.active.is_some() }
-
-    fn tick(&mut self, dt: f64) -> Option<f64> {
-        use web_sys::console;
-        self.active.map(|speed| speed*dt)
-    }
-}
-
 pub struct OpenRampSwitches {
     tick: f64,
     ramp: Option<OpenRamp>,
@@ -195,75 +164,6 @@ impl ClosedRampTimer {
     fn done(&self) -> bool { self.ramp.done(self.tick) }
 }
 
-struct AxisPhysics {
-    target: Option<f64>,
-    brake: bool,
-    velocity: f64,
-    switch: Switches,
-}
-
-impl AxisPhysics {
-    fn new() -> AxisPhysics {
-        AxisPhysics {
-            switch: Switches::new(),
-            brake: false,
-            target: None,
-            velocity: 0.
-        }
-    }
-
-    fn jump(&mut self, current_bp: f64, amount_bp: f64) {
-        let target = &mut self.target;
-        if target.is_none() { *target = Some(current_bp); }
-        if let Some(target) = target {
-            *target += amount_bp;
-        }
-        self.velocity = 0.;
-    }
-
-    fn pull(&mut self, speed: f64, start: bool) {
-        self.switch.set(speed,start);
-        if !start { self.brake = true; }
-    }
-
-    fn apply_spring(&mut self, px_per_bp: f64, mut current_bp: f64, mut total_dt: f64) -> Result<f64,Message> {
-        if let Some(target_bp) = self.target {
-            let crit = (4./LETHARGY).sqrt()/BOING; /* critically damped when BOING = 1.0 */
-            let mut stop = false;
-            while total_dt > 0. {
-                let dt = total_dt.min(1.);
-                total_dt -= dt;
-                let drive_bp = target_bp - current_bp;
-                let drive_px = drive_bp * px_per_bp;
-                let mut drive_f = drive_px/LETHARGY;
-                let mut friction_f =  self.velocity * crit;
-                if self.brake { friction_f *= BRAKE_MUL; drive_f = 0.; }
-                let force = drive_f-friction_f;
-                self.velocity += force * dt;
-                let delta_x_px = self.velocity*dt;
-                let delta_bp = delta_x_px / px_per_bp;
-                current_bp += delta_bp;
-                if self.velocity.abs() < VEL_MIN && force.abs() < FORCE_MIN { stop = true; }
-            }
-            if stop {
-                self.target = None;
-                self.brake = false;
-            }
-            Ok(current_bp)
-        } else {
-            Ok(current_bp)
-        }
-    }
-
-    fn tick(&mut self, dt: f64) -> Option<f64> {
-        self.switch.tick(dt)
-    }
-
-    fn active(&self) -> bool {
-        self.switch.active() || self.target.is_some()
-    }
-}
-
 pub struct PhysicsState {
     x: AxisPhysics,
     last_update: Option<f64>,
@@ -318,14 +218,13 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn apply_spring(&mut self, api: &PeregrineAPI, mut total_dt: f64) -> Result<(),Message> {
+    fn apply_spring(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
         let x_current_bp = api.x()?;
-        if let (Some(mut x_current_bp),Some(screen_size),Some(bp_per_screen)) = 
+        if let (Some(x_current_bp),Some(screen_size),Some(bp_per_screen)) = 
                     (x_current_bp,api.size(),api.bp_per_screen()?) {
             let px_per_screen = screen_size.0 as f64;
             let px_per_bp = px_per_screen / bp_per_screen;
-            let new_pos = self.x.apply_spring(px_per_bp, x_current_bp, total_dt)?;
-
+            let new_pos = self.x.apply_spring(px_per_bp, x_current_bp, total_dt);
             api.set_x(new_pos);
         }
         Ok(())
