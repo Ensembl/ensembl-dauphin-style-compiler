@@ -47,7 +47,6 @@ impl AxisPhysics {
     }
 
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
-        use web_sys::console;
         if let Some(target) = self.target {
             let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
             while total_dt > 0. {

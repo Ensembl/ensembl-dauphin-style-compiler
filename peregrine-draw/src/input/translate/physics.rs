@@ -32,7 +32,7 @@ impl PhysicsState {
         let z_accel = config.get_f64(&PgConfigKey::ZoomAcceleration)?;
         let z_speed = config.get_f64(&PgConfigKey::AutomatedZoomMaxSpeed)?;
         let x_config = AxisPhysicsConfig {
-            lethargy: 2500., // 100
+            lethargy: 100., // 2500 for keys
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
@@ -71,7 +71,7 @@ impl PhysicsState {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
             let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
             self.z.halt();
-            if !self.x.have_target()  {
+            if !self.x.have_target() {
                 self.x.move_to(current_px);
             }
             self.x.move_more(amount_px);
@@ -106,6 +106,7 @@ impl PhysicsState {
     }
 
     fn apply_spring_x(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+        if !self.x.have_target() { return Ok(()); }
         let x_current_bp = api.x()?;
         if let (Some(x_current_bp),Some(screen_size),Some(bp_per_screen)) = 
                     (x_current_bp,api.size(),api.bp_per_screen()?) {
@@ -118,6 +119,7 @@ impl PhysicsState {
     }
 
     fn apply_spring_z(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+        if !self.z.have_target() { return Ok(()); }
         let px_per_screen = api.size().map(|x| x.0 as f64);
         let z_current_bp = api.bp_per_screen()?;
         let x = api.x()?;
