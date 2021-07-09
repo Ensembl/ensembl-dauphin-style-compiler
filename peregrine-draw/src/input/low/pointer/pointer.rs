@@ -180,7 +180,7 @@ impl Pointer {
             _ => { *cursor = Some((lowlevel.set_cursor(&circ),circ)) }
         };
         self.wheel_monostable.set();
-        for (kind,args) in PointerAction::Wheel(lowlevel.modifiers(),amount,*position).map(lowlevel) {
+        for (kind,args) in PointerAction::Wheel(lowlevel.modifiers(),amount/10.,*position).map(lowlevel) {
             lowlevel.send(kind,true,&args);
         }
     }

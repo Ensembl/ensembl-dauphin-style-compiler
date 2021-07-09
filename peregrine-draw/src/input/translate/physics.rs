@@ -16,6 +16,7 @@ pub struct PhysicsState {
     z: AxisPhysics,
     last_update: Option<f64>,
     zoom_px_speed: f64,
+    zoom_centre: Option<(f64,f64)>,
     physics_needed: Needed,
     physics_lock: Option<NeededLock>,
     x_accel: f64,
@@ -31,17 +32,17 @@ impl PhysicsState {
         let z_accel = config.get_f64(&PgConfigKey::ZoomAcceleration)?;
         let z_speed = config.get_f64(&PgConfigKey::AutomatedZoomMaxSpeed)?;
         let x_config = AxisPhysicsConfig {
-            lethargy: 2500.,
+            lethargy: 2500., // 100
             boing: 1.,
             vel_min: 0.0005,
-            force_min: 0.000001,
+            force_min: 0.00001,
             brake_mul: 0.2
         };
         let z_config = AxisPhysicsConfig {
-            lethargy: 2500.,
+            lethargy: 100.,
             boing: 1.,
             vel_min: 0.0005,
-            force_min: 0.000001,
+            force_min: 0.00001,
             brake_mul: 0.2
         };
         Ok(PhysicsState {
@@ -52,6 +53,7 @@ impl PhysicsState {
             //z_target: None,
             //ready_z_target: None,
             zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?,
+            zoom_centre: None,
             physics_needed: physics_needed.clone(),
             physics_lock: None,
             x_accel,
@@ -61,33 +63,43 @@ impl PhysicsState {
         })
     }
 
+    fn set_zoom_centre(&mut self, pos: (f64,f64)) {
+        self.zoom_centre = Some(pos);
+    }
+
     fn jump_x(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
             let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
             self.z.halt();
-            self.x.jump(current_px,amount_px);
+            if !self.x.have_target()  {
+                self.x.move_to(current_px);
+            }
+            self.x.move_more(amount_px);
         }
         self.update_needed();
         Ok(())
     }
 
     fn jump_z(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
-        if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
+        if let Some(bp_per_screen) = api.bp_per_screen()? {
             let z_current_px = bp_to_zpx(bp_per_screen);
             self.x.halt();
-            self.z.jump(z_current_px,amount_px);
+            if !self.z.have_target() {
+                self.z.move_to(z_current_px);
+            }
+            self.z.move_more(amount_px);
         }
         self.update_needed();
         Ok(())
     }
 
-    fn pull_x(&mut self, api: &PeregrineAPI, speed: f64, start: bool) -> Result<(),Message> {
+    fn pull_x(&mut self, speed: f64, start: bool) -> Result<(),Message> {
         self.x.pull(speed,start);
         self.update_needed();
         Ok(())
     }
 
-    fn pull_z(&mut self, api: &PeregrineAPI, speed: f64, start: bool) -> Result<(),Message> {
+    fn pull_z(&mut self, speed: f64, start: bool) -> Result<(),Message> {
         self.z.pull(speed,start);
         self.update_needed();
         Ok(())
@@ -106,13 +118,20 @@ impl PhysicsState {
     }
 
     fn apply_spring_z(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+        let px_per_screen = api.size().map(|x| x.0 as f64);
         let z_current_bp = api.bp_per_screen()?;
-        if let (Some(z_current_bp),Some(screen_size),Some(bp_per_screen)) = 
-                    (z_current_bp,api.size(),api.bp_per_screen()?) {                        
+        let x = api.x()?;
+        if let (Some(x),Some(z_current_bp),Some(screen_size),Some(bp_per_screen)) = 
+                    (x,z_current_bp,px_per_screen,api.bp_per_screen()?) {                        
             let z_current_px = bp_to_zpx(z_current_bp);
             let new_pos_px = self.z.apply_spring(z_current_px,total_dt);
-            let new_z_pos_bp = zpx_to_bp(new_pos_px);
-            api.set_bp_per_screen(new_z_pos_bp);
+            let new_bp_per_screen = zpx_to_bp(new_pos_px);
+            let x_screen = self.zoom_centre.map(|centre| centre.0/screen_size).unwrap_or(0.5);
+            let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
+            let x_bp = x + (x_screen - 0.5) * bp_per_screen;
+            let new_middle = x_bp - new_bp_from_middle;
+            api.set_bp_per_screen(new_bp_per_screen);
+            api.set_x(new_middle);
         }
         Ok(())
     }
@@ -176,13 +195,9 @@ impl PhysicsState {
 
     fn apply_ongoing(&mut self, api: &PeregrineAPI, dt: f64) -> Result<(),Message> {
         if let Some(delta) = self.x.tick(dt) {
-            use web_sys::console;
-            //console::log_1(&format!("delta={}",delta).into());
             self.jump_x(api,delta)?;
         }
         if let Some(delta) = self.z.tick(dt) {
-            use web_sys::console;
-            //console::log_1(&format!("delta={}",delta).into());
             self.jump_z(api,delta)?;
         }
         Ok(())
@@ -228,10 +243,10 @@ impl Physics {
         let bp_per_screen = match api.bp_per_screen()? { Some(x) => x, None => { return Ok(()); } };
         let mut state = self.state.lock().unwrap();
         match event.details {
-            InputEventKind::PullLeft => state.pull_x(api,-PULL_SPEED*2.,event.start)?,
-            InputEventKind::PullRight => state.pull_x(api,PULL_SPEED*2.,event.start)?,
-            InputEventKind::PullIn => state.pull_z(api,-PULL_SPEED,event.start)?,
-            InputEventKind::PullOut => state.pull_z(api,PULL_SPEED,event.start)?,
+            InputEventKind::PullLeft => state.pull_x(-PULL_SPEED*2.,event.start)?,
+            InputEventKind::PullRight => state.pull_x(PULL_SPEED*2.,event.start)?,
+            InputEventKind::PullIn => state.pull_z(-PULL_SPEED,event.start)?,
+            InputEventKind::PullOut => state.pull_z(PULL_SPEED,event.start)?,
             _ => {}
         }
 
@@ -284,7 +299,9 @@ impl Physics {
         let distance = *event.amount.get(0).unwrap_or(&0.);
         let pos_x = event.amount.get(1);
         let pos_y = event.amount.get(2);
-        let pos = if let (Some(x),Some(y)) = (pos_x,pos_y) { Some((*x,*y)) } else { None };
+        if let (Some(x),Some(y)) = (pos_x,pos_y) {
+            state.set_zoom_centre((*x,*y));
+        }
         match event.details {
             InputEventKind::PixelsLeft => { state.jump_x(api,-distance)?; },
             InputEventKind::PixelsRight => { state.jump_x(api,distance)?; },

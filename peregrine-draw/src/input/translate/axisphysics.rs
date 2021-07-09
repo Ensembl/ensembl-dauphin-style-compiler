@@ -30,10 +30,12 @@ impl AxisPhysics {
         self.brake = false;
     }
 
-    pub(super) fn jump(&mut self, current: f64, amount: f64) {
-        let target = &mut self.target;
-        if target.is_none() { *target = Some(current); }
-        if let Some(target) = target {
+    pub(super) fn move_to(&mut self, position: f64) {
+        self.target = Some(position);
+    }
+
+    pub(super) fn move_more(&mut self, amount: f64) {
+        if let Some(target) = &mut self.target {
             *target += amount;
         }
         self.velocity = 0.;
@@ -45,6 +47,7 @@ impl AxisPhysics {
     }
 
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
+        use web_sys::console;
         if let Some(target) = self.target {
             let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
             while total_dt > 0. {
@@ -76,7 +79,9 @@ impl AxisPhysics {
         self.target_speed.map(|speed| speed*dt)
     }
 
+    pub(super) fn have_target(&self) -> bool { self.target.is_some() }
+
     pub(super) fn active(&self) -> bool {
-        self.target_speed.is_some() || self.target.is_some()
+        self.target_speed.is_some() || self.have_target()
     }
 }
