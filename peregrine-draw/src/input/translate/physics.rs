@@ -205,8 +205,8 @@ impl PhysicsState {
 
     fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
-            let amount_bp = amount_px / (size_px.0 as f64) * bp_per_screen;
-            self.x.jump(current_bp,amount_bp);
+            let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
+            self.x.jump(current_px,amount_px);
         }
         self.update_needed();
         Ok(())
@@ -224,8 +224,8 @@ impl PhysicsState {
                     (x_current_bp,api.size(),api.bp_per_screen()?) {
             let px_per_screen = screen_size.0 as f64;
             let px_per_bp = px_per_screen / bp_per_screen;
-            let new_pos = self.x.apply_spring(px_per_bp, x_current_bp, total_dt);
-            api.set_x(new_pos);
+            let new_pos_px = self.x.apply_spring(x_current_bp*px_per_bp,total_dt);
+            api.set_x(new_pos_px / px_per_bp);
         }
         Ok(())
     }
