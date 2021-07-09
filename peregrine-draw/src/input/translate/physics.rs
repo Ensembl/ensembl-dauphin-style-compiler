@@ -17,6 +17,7 @@ pub struct PhysicsState {
     last_update: Option<f64>,
     zoom_px_speed: f64,
     zoom_centre: Option<(f64,f64)>,
+    z_zoom_centre: Option<(f64,f64)>,
     physics_needed: Needed,
     physics_lock: Option<NeededLock>,
     x_accel: f64,
@@ -54,6 +55,7 @@ impl PhysicsState {
             //ready_z_target: None,
             zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?,
             zoom_centre: None,
+            z_zoom_centre: None,
             physics_needed: physics_needed.clone(),
             physics_lock: None,
             x_accel,
@@ -70,7 +72,6 @@ impl PhysicsState {
     fn jump_x(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
             let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
-            self.z.halt();
             if !self.x.have_target() {
                 self.x.move_to(current_px);
             }
@@ -83,8 +84,8 @@ impl PhysicsState {
     fn jump_z(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let Some(bp_per_screen) = api.bp_per_screen()? {
             let z_current_px = bp_to_zpx(bp_per_screen);
-            self.x.halt();
             if !self.z.have_target() {
+                self.z_zoom_centre = self.zoom_centre;
                 self.z.move_to(z_current_px);
             }
             self.z.move_more(amount_px);
@@ -128,12 +129,14 @@ impl PhysicsState {
             let z_current_px = bp_to_zpx(z_current_bp);
             let new_pos_px = self.z.apply_spring(z_current_px,total_dt);
             let new_bp_per_screen = zpx_to_bp(new_pos_px);
-            let x_screen = self.zoom_centre.map(|centre| centre.0/screen_size).unwrap_or(0.5);
-            let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
-            let x_bp = x + (x_screen - 0.5) * bp_per_screen;
-            let new_middle = x_bp - new_bp_from_middle;
             api.set_bp_per_screen(new_bp_per_screen);
-            api.set_x(new_middle);
+            if let Some(zoom_centre) = self.z_zoom_centre {
+                let x_screen = zoom_centre.0/screen_size;
+                let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
+                let x_bp = x + (x_screen - 0.5) * bp_per_screen;
+                let new_middle = x_bp - new_bp_from_middle;
+                api.set_x(new_middle);
+            }
         }
         Ok(())
     }
@@ -144,32 +147,14 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64, position: Option<(f64,f64)>) -> Result<(),Message> {
-        // self.x_target = None;
-        //self.z_target = None;
-        let px_per_screen = api.size().map(|x| x.0 as f64);
-        let bp_per_screen = api.bp_per_screen()?;
-        let x = api.x()?;
-        if let (Some(x),Some(px_per_screen),Some(bp_per_screen)) = (x,px_per_screen,bp_per_screen) {
-            let x_screen = if let Some(position) = position { position.0/px_per_screen } else { 0.5 };
-            let x_bp = x + (x_screen - 0.5) * bp_per_screen;
-            let factor = 2_f64.powf(amount_px/self.zoom_px_speed);
-            let new_bp_per_screen = bp_per_screen*factor;
-            let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
-            let new_middle = x_bp - new_bp_from_middle;
-            api.set_bp_per_screen(new_bp_per_screen);
-            api.set_x(new_middle);
-        }
+    fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre_bp: f64, y: f64) -> Result<(),Message> {
+        self.x.halt();
+        self.z.halt();
+        self.z_zoom_centre = None;
+        self.z.move_to( bp_to_zpx(scale));
+        api.set_x(centre_bp);
+        self.update_needed();
         Ok(())
-    }
-
-    fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre: f64, y: f64) {
-        // self.x_target = None;
-        //self.z_target = None;
-        //self.ready_z_target = None;
-        api.set_bp_per_screen(scale);
-        api.set_x(centre);
-        api.set_y(y);
     }
 
     fn animate_to(&mut self, api: &PeregrineAPI, scale: f64, centre: f64) -> Result<(),Message> {
@@ -322,7 +307,7 @@ impl Physics {
         let y = *event.amount.get(2).unwrap_or(&0.);
         match event.details {
             InputEventKind::SetPosition => {
-                state.scale(api,scale,centre,0.);
+               state.scale(api,scale,centre,0.)?;
             },
             _ => {}
         }
