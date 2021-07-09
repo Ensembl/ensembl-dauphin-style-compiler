@@ -166,12 +166,13 @@ impl ClosedRampTimer {
 
 pub struct PhysicsState {
     x: AxisPhysics,
+    z: AxisPhysics,
     last_update: Option<f64>,
     // x_switches: OpenRampSwitches,
-    z_switches: OpenRampSwitches,
+    //z_switches: OpenRampSwitches,
     // x_target: Option<ClosedRampTimer>,
-    z_target: Option<ClosedRampTimer>,
-    ready_z_target: Option<ClosedRampTimer>,
+    //z_target: Option<ClosedRampTimer>,
+    //ready_z_target: Option<ClosedRampTimer>,
     zoom_px_speed: f64,
     physics_needed: Needed,
     physics_lock: Option<NeededLock>,
@@ -194,12 +195,20 @@ impl PhysicsState {
             force_min: 0.000001,
             brake_mul: 0.2
         };
+        let z_config = AxisPhysicsConfig {
+            lethargy: 2500.,
+            boing: 1.,
+            vel_min: 0.0005,
+            force_min: 0.000001,
+            brake_mul: 0.2
+        };
         Ok(PhysicsState {
             last_update: None,
             x: AxisPhysics::new(x_config),
-            z_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::ZoomAcceleration)?,config.get_f64(&PgConfigKey::ZoomMaxSpeed)?),
-            z_target: None,
-            ready_z_target: None,
+            z: AxisPhysics::new(z_config),
+            //z_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::ZoomAcceleration)?,config.get_f64(&PgConfigKey::ZoomMaxSpeed)?),
+            //z_target: None,
+            //ready_z_target: None,
             zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?,
             physics_needed: physics_needed.clone(),
             physics_lock: None,
@@ -210,10 +219,19 @@ impl PhysicsState {
         })
     }
 
-    fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
+    fn jump_x(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
             let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
             self.x.jump(current_px,amount_px);
+        }
+        self.update_needed();
+        Ok(())
+    }
+
+    fn jump_z(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
+        if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
+            let z_current_px = bp_per_screen.log2() * 100.;
+            self.z.jump(z_current_px,amount_px);
         }
         self.update_needed();
         Ok(())
@@ -225,7 +243,13 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn apply_spring(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+    fn pull_z(&mut self, api: &PeregrineAPI, speed: f64, start: bool) -> Result<(),Message> {
+        self.z.pull(speed,start);
+        self.update_needed();
+        Ok(())
+    }
+
+    fn apply_spring_x(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
         let x_current_bp = api.x()?;
         if let (Some(x_current_bp),Some(screen_size),Some(bp_per_screen)) = 
                     (x_current_bp,api.size(),api.bp_per_screen()?) {
@@ -237,9 +261,27 @@ impl PhysicsState {
         Ok(())
     }
 
+    fn apply_spring_z(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+        let z_current_bp = api.bp_per_screen()?;
+        if let (Some(z_current_bp),Some(screen_size),Some(bp_per_screen)) = 
+                    (z_current_bp,api.size(),api.bp_per_screen()?) {                        
+            let z_current_px = z_current_bp.log2() * 100.;
+            let new_pos_px = self.z.apply_spring(z_current_px,total_dt);
+            let new_z_pos_bp = 2_f64.powf(new_pos_px/100.);
+            api.set_bp_per_screen(new_z_pos_bp);
+        }
+        Ok(())
+    }
+
+    fn apply_spring(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+        self.apply_spring_x(api,total_dt)?;
+        self.apply_spring_z(api,total_dt)?;
+        Ok(())
+    }
+
     fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64, position: Option<(f64,f64)>) -> Result<(),Message> {
         // self.x_target = None;
-        self.z_target = None;
+        //self.z_target = None;
         let px_per_screen = api.size().map(|x| x.0 as f64);
         let bp_per_screen = api.bp_per_screen()?;
         let x = api.x()?;
@@ -258,8 +300,8 @@ impl PhysicsState {
 
     fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre: f64, y: f64) {
         // self.x_target = None;
-        self.z_target = None;
-        self.ready_z_target = None;
+        //self.z_target = None;
+        //self.ready_z_target = None;
         api.set_bp_per_screen(scale);
         api.set_x(centre);
         api.set_y(y);
@@ -267,6 +309,7 @@ impl PhysicsState {
 
     fn animate_to(&mut self, api: &PeregrineAPI, scale: f64, centre: f64) -> Result<(),Message> {
         // self.x_switches.clear();
+        /*
         self.z_switches.clear();
         if let (Some(bp_per_screen),Some(x)) = (api.bp_per_screen()?,api.x()?) {
             // self.x_target = Some(ClosedRampTimer::new(self.x_accel,self.x_speed,
@@ -275,6 +318,7 @@ impl PhysicsState {
                 bp_per_screen,scale,bp_per_screen));    
             self.physics_step(api)?;
         }
+        */
         Ok(())
     }
 
@@ -290,13 +334,18 @@ impl PhysicsState {
         if let Some(delta) = self.x.tick(dt) {
             use web_sys::console;
             //console::log_1(&format!("delta={}",delta).into());
-            self.jump(api,delta)?;
+            self.jump_x(api,delta)?;
+        }
+        if let Some(delta) = self.z.tick(dt) {
+            use web_sys::console;
+            //console::log_1(&format!("delta={}",delta).into());
+            self.jump_z(api,delta)?;
         }
         Ok(())
     }
 
     fn update_needed(&mut self) {
-        if self.x.active() || self.z_switches.is_active() || self.z_target.is_some() {
+        if self.x.active() || self.z.active() {
             if self.physics_lock.is_none() {
                 self.physics_lock = Some(self.physics_needed.lock());
             }
@@ -314,17 +363,6 @@ impl PhysicsState {
             self.apply_spring(api,dt)?;
         }
         self.last_update = Some(now);
-        if let Some(position) = self.z_switches.next_point_exponential() {
-            api.set_bp_per_screen(position);
-        }
-        if /*self.x_target.is_none() &&*/ self.z_target.is_none() {
-            self.z_target = self.ready_z_target.take();
-        }
-        if let Some(position) = self.z_target.as_mut().and_then(|ramp| ramp.next_point_exponential()) {
-            api.set_bp_per_screen(position);
-        } else {
-            self.z_target = None;
-        }
         self.update_needed();
         Ok(())
     }
@@ -345,9 +383,12 @@ impl Physics {
         match event.details {
             InputEventKind::PullLeft => state.pull_x(api,-PULL_SPEED,event.start)?,
             InputEventKind::PullRight => state.pull_x(api,PULL_SPEED,event.start)?,
+            InputEventKind::PullIn => state.pull_z(api,-PULL_SPEED,event.start)?,
+            InputEventKind::PullOut => state.pull_z(api,PULL_SPEED,event.start)?,
             _ => {}
         }
 
+        /*
         let (target,position,scale) = match event.details {
             InputEventKind::PullLeft | InputEventKind::PullRight => {
                 let position = state.get_x_pull(api)?;
@@ -356,10 +397,12 @@ impl Physics {
             },
             InputEventKind::PullIn | InputEventKind::PullOut => {
                 let position = state.get_z_pull(api)?;
-                (&mut state.z_switches,position,1.)
+                return Ok(());
             },
             _ => { return Ok(()); }
         };
+        */
+        /*
         let negative = match event.details {
             InputEventKind::PullLeft | InputEventKind::PullIn => { true },
             _ => { false }
@@ -368,6 +411,7 @@ impl Physics {
             target.set(position,event.start,negative,scale);
             state.physics_step(api)?;
         }
+        */
         Ok(())
     }
 
@@ -395,8 +439,8 @@ impl Physics {
         let pos_y = event.amount.get(2);
         let pos = if let (Some(x),Some(y)) = (pos_x,pos_y) { Some((*x,*y)) } else { None };
         match event.details {
-            InputEventKind::PixelsLeft => { state.jump(api,-distance)?; },
-            InputEventKind::PixelsRight => { state.jump(api,distance)?; },
+            InputEventKind::PixelsLeft => { state.jump_x(api,-distance)?; },
+            InputEventKind::PixelsRight => { state.jump_x(api,distance)?; },
             InputEventKind::PixelsIn => { state.zoom(api,-distance,pos)?; },
             InputEventKind::PixelsOut => { state.zoom(api,distance,pos)?; },
             _ => {}
