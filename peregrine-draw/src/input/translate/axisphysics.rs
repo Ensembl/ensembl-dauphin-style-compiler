@@ -25,6 +25,11 @@ impl AxisPhysics {
         }
     }
 
+    pub(super) fn halt(&mut self) {
+        self.target = None;
+        self.brake = false;
+    }
+
     pub(super) fn jump(&mut self, current: f64, amount: f64) {
         let target = &mut self.target;
         if target.is_none() { *target = Some(current); }
@@ -42,7 +47,6 @@ impl AxisPhysics {
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
         if let Some(target) = self.target {
             let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
-            let mut stop = false;
             while total_dt > 0. {
                 let dt = total_dt.min(1.);
                 total_dt -= dt;
@@ -58,12 +62,9 @@ impl AxisPhysics {
                 let delta = self.velocity*dt;
                 current += delta;
                 if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
-                    stop = true;
+                    self.halt();
+                    break;
                 }
-            }
-            if stop {
-                self.target = None;
-                self.brake = false;
             }
             current
         } else {

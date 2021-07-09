@@ -11,168 +11,10 @@ use super::axisphysics::{AxisPhysics, AxisPhysicsConfig};
 
 const PULL_SPEED : f64 = 2.; // px/ms
 
-pub struct ClosedRamp {
-    start: f64,
-    end: f64,
-    accel: f64,
-    max_speed: f64,
-    total_distance: f64,
-    total_time: f64,
-    neg: f64,
-}
-
-impl ClosedRamp {
-    fn new(accel: f64, speed_limit: f64, start: f64, end: f64) -> ClosedRamp {
-        let total_distance = (end - start).abs();
-        let neg = if end < start { -1. } else { 1. };
-        /* does max_speed need to be reduced due to short distance and so no cruise? */
-        let max_speed = (accel*total_distance).sqrt().min(speed_limit);
-        let total_time = total_distance/max_speed + max_speed/accel;
-        ClosedRamp { accel, max_speed, total_time, total_distance, start, end, neg }    
-    }
-
-    fn position_half(&self, time: f64) -> f64 {
-        let ramp_time = self.max_speed/self.accel;
-        let accel_time = time.min(ramp_time);
-        let cruise_time = (time - accel_time).max(0.);
-        self.accel * accel_time * accel_time / 2.0 + cruise_time * self.max_speed
-    }
-
-    fn position_unit(&self, time: f64) -> f64 {
-        if time > self.total_time / 2. {
-            self.total_distance - self.position_half(self.total_time - time)
-        } else {
-            self.position_half(time)
-        }
-    }
-
-    fn position_linear(&self, time: f64) -> f64 {
-        self.start + self.position_unit(time) * self.neg
-    }
-
-    fn position_exponential(&self, time: f64) -> f64 {
-        self.start*((self.end/self.start).powf(self.position_unit(time)/self.total_distance))
-    }
-
-    fn done(&self, time: f64) -> bool { time > self.total_time }
-}
-
-pub struct OpenRamp {
-    accel: f64,
-    speed_limit: f64,
-    start: f64,
-    negative: bool
-}
-
-impl OpenRamp {
-    fn new(accel: f64, speed_limit: f64, start: f64, negative: bool) -> OpenRamp {
-        OpenRamp { accel, speed_limit, start, negative }
-    }
-
-    fn change(&self, time: f64) -> f64 {
-        let accel_time = time.min(self.speed_limit/self.accel);
-        let cruise_time = (time - self.speed_limit/self.accel).max(0.);
-        let change = self.accel*accel_time*accel_time/2.0 + cruise_time * self.speed_limit;
-        change
-    }
-
-    fn position_linear(&self, time: f64) -> f64 {
-        let dir = if self.negative { -1. } else { 1. };
-        self.start + self.change(time) * dir
-    }
-
-    fn position_exponential(&self, time: f64) -> f64 {
-        let dir = if self.negative { -1. } else { 1. };
-        self.start * (2_f64).powf(self.change(time) * dir)
-    }
-
-    fn negative(&self) -> bool { self.negative }
-}
-
-pub struct OpenRampSwitches {
-    tick: f64,
-    ramp: Option<OpenRamp>,
-    speed_limit: f64,
-    accel: f64,
-}
-
-impl OpenRampSwitches {
-    fn new(accel: f64, speed_limit: f64) -> OpenRampSwitches {
-        OpenRampSwitches { ramp: None, speed_limit, accel, tick: 0. }
-    }
-
-    fn set(&mut self, position: f64, start: bool, negative: bool, scale: f64) {
-        if let Some(ramp) = &self.ramp {
-            if ramp.negative() == negative { /* same direction */
-                if !start {
-                    self.ramp = None;
-                }
-                return;
-            } else { /* opposite direction */
-                if !start { return; }
-            }
-        }
-        self.ramp = Some(OpenRamp::new(self.accel * scale,self.speed_limit * scale,position,negative));
-        self.tick = 0.;
-    }
-
-    fn next_point_linear(&mut self) -> Option<f64> {
-        let tick = self.tick;
-        self.tick += 1.;
-        self.ramp.as_mut().map(|ramp| ramp.position_linear(tick))
-    }
-
-    fn next_point_exponential(&mut self) -> Option<f64> {
-        let tick = self.tick;
-        self.tick += 1.;
-        self.ramp.as_mut().map(|ramp| ramp.position_exponential(tick))
-    }
-
-    fn is_active(&self) -> bool { self.ramp.is_some() }
-    fn clear(&mut self) { 
-        self.ramp = None;
-    }
-}
-
-pub struct ClosedRampTimer {
-    ramp: ClosedRamp,
-    tick: f64
-}
-
-impl ClosedRampTimer {
-    fn new(accel: f64, speed_limit: f64, start: f64, end: f64, scale: f64) -> ClosedRampTimer {
-        ClosedRampTimer {
-            ramp: ClosedRamp::new(accel * scale,speed_limit * scale,start,end),
-            tick: 0.
-        }
-    }
-
-    fn next_point_linear(&mut self) -> Option<f64> {
-        if self.done() { return None; }
-        let tick = self.tick;
-        self.tick += 1.;
-        Some(self.ramp.position_linear(tick))
-    }
-
-    fn next_point_exponential(&mut self) -> Option<f64> {
-        if self.done() { return None; }
-        let tick = self.tick;
-        self.tick += 1.;
-        Some(self.ramp.position_exponential(tick))
-    }
-
-    fn done(&self) -> bool { self.ramp.done(self.tick) }
-}
-
 pub struct PhysicsState {
     x: AxisPhysics,
     z: AxisPhysics,
     last_update: Option<f64>,
-    // x_switches: OpenRampSwitches,
-    //z_switches: OpenRampSwitches,
-    // x_target: Option<ClosedRampTimer>,
-    //z_target: Option<ClosedRampTimer>,
-    //ready_z_target: Option<ClosedRampTimer>,
     zoom_px_speed: f64,
     physics_needed: Needed,
     physics_lock: Option<NeededLock>,
@@ -222,6 +64,7 @@ impl PhysicsState {
     fn jump_x(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
             let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
+            self.z.halt();
             self.x.jump(current_px,amount_px);
         }
         self.update_needed();
@@ -230,7 +73,8 @@ impl PhysicsState {
 
     fn jump_z(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
         if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
-            let z_current_px = bp_per_screen.log2() * 100.;
+            let z_current_px = bp_to_zpx(bp_per_screen);
+            self.x.halt();
             self.z.jump(z_current_px,amount_px);
         }
         self.update_needed();
@@ -265,9 +109,9 @@ impl PhysicsState {
         let z_current_bp = api.bp_per_screen()?;
         if let (Some(z_current_bp),Some(screen_size),Some(bp_per_screen)) = 
                     (z_current_bp,api.size(),api.bp_per_screen()?) {                        
-            let z_current_px = z_current_bp.log2() * 100.;
+            let z_current_px = bp_to_zpx(z_current_bp);
             let new_pos_px = self.z.apply_spring(z_current_px,total_dt);
-            let new_z_pos_bp = 2_f64.powf(new_pos_px/100.);
+            let new_z_pos_bp = zpx_to_bp(new_pos_px);
             api.set_bp_per_screen(new_z_pos_bp);
         }
         Ok(())
@@ -368,6 +212,9 @@ impl PhysicsState {
     }
 }
 
+fn bp_to_zpx(bp: f64) -> f64 { bp.log2() * 100. }
+fn zpx_to_bp(zpx: f64) -> f64 { 2_f64.powf(zpx/100.) }
+
 #[derive(Clone)]
 pub struct Physics {
     state: Arc<Mutex<PhysicsState>>,
@@ -381,8 +228,8 @@ impl Physics {
         let bp_per_screen = match api.bp_per_screen()? { Some(x) => x, None => { return Ok(()); } };
         let mut state = self.state.lock().unwrap();
         match event.details {
-            InputEventKind::PullLeft => state.pull_x(api,-PULL_SPEED,event.start)?,
-            InputEventKind::PullRight => state.pull_x(api,PULL_SPEED,event.start)?,
+            InputEventKind::PullLeft => state.pull_x(api,-PULL_SPEED*2.,event.start)?,
+            InputEventKind::PullRight => state.pull_x(api,PULL_SPEED*2.,event.start)?,
             InputEventKind::PullIn => state.pull_z(api,-PULL_SPEED,event.start)?,
             InputEventKind::PullOut => state.pull_z(api,PULL_SPEED,event.start)?,
             _ => {}
@@ -441,8 +288,8 @@ impl Physics {
         match event.details {
             InputEventKind::PixelsLeft => { state.jump_x(api,-distance)?; },
             InputEventKind::PixelsRight => { state.jump_x(api,distance)?; },
-            InputEventKind::PixelsIn => { state.zoom(api,-distance,pos)?; },
-            InputEventKind::PixelsOut => { state.zoom(api,distance,pos)?; },
+            InputEventKind::PixelsIn => { state.jump_z(api,-distance)?; },
+            InputEventKind::PixelsOut => { state.jump_z(api,distance)?; },
             _ => {}
         }
         Ok(())
