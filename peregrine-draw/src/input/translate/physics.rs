@@ -7,7 +7,7 @@ use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
-use super::axisphysics::AxisPhysics;
+use super::axisphysics::{AxisPhysics, AxisPhysicsConfig};
 
 const PULL_SPEED : f64 = 2.; // px/ms
 
@@ -187,9 +187,16 @@ impl PhysicsState {
         let x_speed = config.get_f64(&PgConfigKey::AutomatedPullMaxSpeed)?;
         let z_accel = config.get_f64(&PgConfigKey::ZoomAcceleration)?;
         let z_speed = config.get_f64(&PgConfigKey::AutomatedZoomMaxSpeed)?;
+        let x_config = AxisPhysicsConfig {
+            lethargy: 2500.,
+            boing: 1.,
+            vel_min: 0.0005,
+            force_min: 0.000001,
+            brake_mul: 0.2
+        };
         Ok(PhysicsState {
             last_update: None,
-            x: AxisPhysics::new(),
+            x: AxisPhysics::new(x_config),
             z_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::ZoomAcceleration)?,config.get_f64(&PgConfigKey::ZoomMaxSpeed)?),
             z_target: None,
             ready_z_target: None,

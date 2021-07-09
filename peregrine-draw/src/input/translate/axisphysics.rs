@@ -1,12 +1,13 @@
-use crate::Message;
-
-const LETHARGY : f64 = 2500.;
-const BOING : f64 = 1.;
-const VEL_MIN : f64 = 0.0005; // px/ms
-const FORCE_MIN : f64 = 0.000001; // px/ms/ms
-const BRAKE_MUL : f64 = 0.2;
+pub struct AxisPhysicsConfig {
+    pub lethargy: f64,
+    pub boing: f64,
+    pub vel_min: f64,
+    pub force_min: f64,
+    pub brake_mul: f64
+}
 
 pub(super) struct AxisPhysics {
+    config: AxisPhysicsConfig,
     target: Option<f64>,
     brake: bool,
     velocity: f64,
@@ -14,8 +15,9 @@ pub(super) struct AxisPhysics {
 }
 
 impl AxisPhysics {
-    pub(super) fn new() -> AxisPhysics {
+    pub(super) fn new(config: AxisPhysicsConfig) -> AxisPhysics {
         AxisPhysics {
+            config,
             target_speed: None,
             brake: false,
             target: None,
@@ -39,20 +41,25 @@ impl AxisPhysics {
 
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
         if let Some(target) = self.target {
-            let crit = (4./LETHARGY).sqrt()/BOING; /* critically damped when BOING = 1.0 */
+            let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
             let mut stop = false;
             while total_dt > 0. {
                 let dt = total_dt.min(1.);
                 total_dt -= dt;
                 let drive = target - current;
-                let mut drive_f = drive/LETHARGY;
+                let mut drive_f = drive/self.config.lethargy;
                 let mut friction_f =  self.velocity * crit;
-                if self.brake { friction_f *= BRAKE_MUL; drive_f = 0.; }
+                if self.brake {
+                    friction_f *= self.config.brake_mul;
+                    drive_f = 0.;
+                }
                 let force = drive_f-friction_f;
                 self.velocity += force * dt;
                 let delta = self.velocity*dt;
                 current += delta;
-                if self.velocity.abs() < VEL_MIN && force.abs() < FORCE_MIN { stop = true; }
+                if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
+                    stop = true;
+                }
             }
             if stop {
                 self.target = None;
