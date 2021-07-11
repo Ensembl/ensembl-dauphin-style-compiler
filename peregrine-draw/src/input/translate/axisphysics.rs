@@ -1,3 +1,28 @@
+pub(super) struct Puller {
+    target_speed: Option<f64>,
+}
+
+impl Puller {
+    pub(super) fn new() -> Puller {
+        Puller {
+            target_speed: None
+        }
+    }
+
+    pub(super) fn pull(&mut self, speed: Option<f64>) {
+        self.target_speed = speed;
+    }
+
+    pub(super) fn tick(&mut self, dt: f64) -> Option<f64> {
+        self.target_speed.map(|speed| speed*dt)
+    }
+
+    pub(super) fn is_active(&self) -> bool {
+        self.target_speed.is_some()
+    }
+}
+
+#[derive(Clone)]
 pub struct AxisPhysicsConfig {
     pub lethargy: f64,
     pub boing: f64,
@@ -10,20 +35,20 @@ pub(super) struct AxisPhysics {
     config: AxisPhysicsConfig,
     target: Option<f64>,
     brake: bool,
-    velocity: f64,
-    target_speed: Option<f64>,
+    velocity: f64
 }
 
 impl AxisPhysics {
     pub(super) fn new(config: AxisPhysicsConfig) -> AxisPhysics {
         AxisPhysics {
             config,
-            target_speed: None,
             brake: false,
             target: None,
             velocity: 0.
         }
     }
+
+    pub(super) fn brake(&mut self) { self.brake = true; }
 
     pub(super) fn halt(&mut self) {
         self.target = None;
@@ -39,11 +64,6 @@ impl AxisPhysics {
             *target += amount;
         }
         self.velocity = 0.;
-    }
-
-    pub(super) fn pull(&mut self, speed: f64, start: bool) {
-        self.target_speed = if start { Some(speed) } else { None };
-        if !start { self.brake = true; }
     }
 
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
@@ -68,19 +88,10 @@ impl AxisPhysics {
                     break;
                 }
             }
-            current
-        } else {
-            current
         }
+        current
+
     }
 
-    pub(super) fn tick(&mut self, dt: f64) -> Option<f64> {
-        self.target_speed.map(|speed| speed*dt)
-    }
-
-    pub(super) fn have_target(&self) -> bool { self.target.is_some() }
-
-    pub(super) fn active(&self) -> bool {
-        self.target_speed.is_some() || self.have_target()
-    }
+    pub(super) fn is_active(&self) -> bool { self.target.is_some() }
 }

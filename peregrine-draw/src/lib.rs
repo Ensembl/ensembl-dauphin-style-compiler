@@ -21,6 +21,7 @@ mod input {
     }
 
     mod translate {
+        pub(crate) mod animqueue;
         pub(crate) mod axisphysics;
         pub(crate) mod physics;
         pub(crate) mod debug;
