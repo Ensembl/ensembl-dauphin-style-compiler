@@ -23,6 +23,7 @@
         <div>flip stick <input id="stick" type="checkbox"/></div>
         <div>drag <input id="drag" type="checkbox"/></div>
         <button id="goto">goto</button>
+        <button id="chr">chr</button>
       </div>
     </div>
     <script type="module">
@@ -41,8 +42,7 @@
         genome_browser.set_switch(["track","gene-nonpc-rev","label"]);
         genome_browser.set_switch(["track","gc"]);
         genome_browser.set_switch(["track","contig"]);
-        genome_browser.set_x(2500000);
-        genome_browser.set_bp_per_screen(1000000);
+        genome_browser.goto(2000000,3000000);
         genome_browser.set_switch(["settings"]);
 
         function flipper(path,go) {
@@ -67,7 +67,10 @@
 
         document.getElementById("goto").onclick = function() {
           genome_browser.goto(10000000,10100000);
-        }
+        };
+        document.getElementById("chr").onclick = function() {
+          genome_browser.set_stick("homo_sapiens_GCA_000001405_27:2");
+        };
         document.getElementById("crazy").onclick = function() {
           test(genome_browser.copy());
         };

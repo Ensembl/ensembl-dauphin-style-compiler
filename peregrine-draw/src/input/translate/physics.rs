@@ -1,6 +1,7 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
+use peregrine_message::Instigator;
 use crate::{PeregrineAPI, PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, stage::axis::ReadStageAxis, util::needed::{Needed, NeededLock}};
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
@@ -108,13 +109,18 @@ impl PhysicsState {
         Ok(())
     }
 
-    pub fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+    fn goto_not_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        inner.set_x(centre, &mut Instigator::new());
+        inner.set_bp_per_screen(bp_per_screen, &mut Instigator::new());
+        Ok(())
+    }
+
+    fn goto_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        use web_sys::console;
+        console::log_1(&format!("goto").into());        
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         let stage = inner.stage().lock().unwrap();
-        if !stage.ready() { return Ok(()) }
-        let px_per_screen = stage.x().size()?;
         self.runner.queue_clear();
-        use web_sys::console;
         console::log_1(&format!("centre={} bp={}",centre,bp_per_screen).into());
         /* what should we zoom out to (if at all) to get both on screen? */
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
@@ -132,6 +138,16 @@ impl PhysicsState {
 
         //self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
         self.update_needed();
+        Ok(())
+    }
+
+    pub fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        let ready = inner.stage().lock().unwrap().ready();
+        if ready {
+            self.goto_ready(inner,centre,bp_per_screen)?;
+        } else {
+            self.goto_not_ready(inner,centre,bp_per_screen)?;
+        }
         Ok(())
     }
 }

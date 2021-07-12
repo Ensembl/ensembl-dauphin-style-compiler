@@ -40,21 +40,21 @@ pub(super) struct PhysicsRunner {
 impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
         let w_config = AxisPhysicsConfig {
-            lethargy: 50000., // 2500 for keys & animate, 300 for mouse
+            lethargy: 2500., // 2500 for keys & animate, 300 for mouse, 50000 for goto
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let x_config = AxisPhysicsConfig {
-            lethargy: 50000., // 2500 for keys
+            lethargy: 2500.,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let z_config = AxisPhysicsConfig {
-            lethargy: 50000.,
+            lethargy: 2500.,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
@@ -91,7 +91,7 @@ impl PhysicsRunner {
         self.z.halt();
         let new_left_bp = new_x - (new_bp_per_screen/2.);
         let new_right_bp = new_x + (new_bp_per_screen/2.);
-        self.w_scale = 1.; // measure.bp_per_screen / measure.px_per_screen; // bp_per_px
+        self.w_scale = measure.bp_per_screen / measure.px_per_screen; // bp_per_px
         self.w_left.move_to(new_left_bp/self.w_scale);
         self.w_right.move_to(new_right_bp/self.w_scale);
         Ok(())
