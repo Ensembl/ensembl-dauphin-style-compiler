@@ -184,6 +184,10 @@ impl GenomeBrowser {
         });
     }
     
+    pub fn goto(&self, left: f64, right: f64) {
+        self.api.goto(left,right);
+    }
+
     pub fn set_y(&self,y: f64) {
         self.api.set_y(y);
     }

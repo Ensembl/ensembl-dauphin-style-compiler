@@ -1,7 +1,7 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
-use crate::{PeregrineAPI, input::translate::animqueue::bp_to_zpx, util::needed::{Needed, NeededLock}};
+use crate::{PeregrineAPI, PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, stage::axis::ReadStageAxis, util::needed::{Needed, NeededLock}};
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
@@ -55,27 +55,20 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre_bp: f64, y: f64) -> Result<(),Message> {
-        use web_sys::console;
-//        console::log_1(&format!("scale").into());
+    fn scale(&mut self, scale: f64, centre_bp: f64, y: f64) -> Result<(),Message> {
         self.runner.queue_clear();
         self.runner.queue_add(QueueEntry::MoveW(centre_bp,scale));
         self.update_needed();
         Ok(())
     }
 
-    fn animate_to(&mut self, api: &PeregrineAPI, scale: f64, centre: f64) -> Result<(),Message> {
-        use web_sys::console;
-        //console::log_1(&format!("scale={} centre={}",scale,centre).into());
-        if let (Some(screen_size),Some(bp_per_screen)) = 
-                    (api.size(),api.bp_per_screen()?) {
-            let new_px_per_screen = screen_size.0 as f64;
-            let new_px_per_bp = new_px_per_screen / bp_per_screen;
-            self.runner.queue_clear();
-            self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
-            self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(scale),ZoomCentre::CentreOfScreen(centre)));
-            self.update_needed();
-        }
+    fn animate_to(&mut self, inner: &PeregrineInnerAPI, scale: f64, centre: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        self.runner.queue_clear();
+        self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(scale),ZoomCentre::CentreOfScreen(centre)));
+        self.update_needed();
         Ok(())
     }
 
@@ -102,15 +95,42 @@ impl PhysicsState {
         }
     }
 
-    fn physics_step(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
+    fn physics_step(&mut self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
         let now = Date::now();
         if let Some(last_update) = self.last_update {
             let dt = now - last_update;
             self.apply_ongoing(dt)?;
-            self.runner.drain_animation_queue(api)?;
-            self.runner.apply_spring(api,dt)?;
+            self.runner.drain_animation_queue(inner)?;
+            self.runner.apply_spring(inner,dt)?;
         }
         self.last_update = Some(now);
+        self.update_needed();
+        Ok(())
+    }
+
+    pub fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let stage = inner.stage().lock().unwrap();
+        if !stage.ready() { return Ok(()) }
+        let px_per_screen = stage.x().size()?;
+        self.runner.queue_clear();
+        use web_sys::console;
+        console::log_1(&format!("centre={} bp={}",centre,bp_per_screen).into());
+        /* what should we zoom out to (if at all) to get both on screen? */
+        let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
+        let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
+        let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
+        let mut new_px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        if rightmost-leftmost > measure.bp_per_screen {
+            self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),ZoomCentre::None));
+            new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
+        }
+        /* shift so item is centralised */
+        self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
+        /* zoom in */
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),ZoomCentre::None));
+
+        //self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
         self.update_needed();
         Ok(())
     }
@@ -125,7 +145,7 @@ pub struct Physics {
 // XXX blur halt
 
 impl Physics {
-    fn incoming_pull_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_pull_event(&self, event: &InputEvent) -> Result<(),Message> {
         let mut state = self.state.lock().unwrap();
         match event.details {
             InputEventKind::PullLeft => state.pull_x(-PULL_SPEED*2.,event.start)?,
@@ -137,7 +157,7 @@ impl Physics {
         Ok(())
     }
 
-    fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_jump_request(&self, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let distance = *event.amount.get(0).unwrap_or(&0.);
@@ -169,7 +189,7 @@ impl Physics {
         Ok(())
     }
 
-    fn incoming_scale_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_scale_event(&self, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let scale = *event.amount.get(0).unwrap_or(&1.);
@@ -177,14 +197,14 @@ impl Physics {
         let y = *event.amount.get(2).unwrap_or(&0.);
         match event.details {
             InputEventKind::SetPosition => {
-               state.scale(api,scale,centre,0.)?;
+               state.scale(scale,centre,0.)?;
             },
             _ => {}
         }
         Ok(())
     }
 
-    fn incoming_animate_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_animate_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let scale = *event.amount.get(0).unwrap_or(&1.);
@@ -193,41 +213,45 @@ impl Physics {
         match event.details {
             InputEventKind::AnimatePosition => {
                 // XXX y
-                state.animate_to(api,scale,centre)?;
+                state.animate_to(inner,scale,centre)?;
             },
             _ => {}
         }
         Ok(())
     }
 
-    fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        self.incoming_pull_event(api,event)?;
-        self.incoming_jump_request(api,event)?;
-        self.incoming_scale_event(api,event)?;
-        self.incoming_animate_event(api,event)?;
+    fn incoming_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+        self.incoming_pull_event(event)?;
+        self.incoming_jump_request(event)?;
+        self.incoming_scale_event(event)?;
+        self.incoming_animate_event(inner,event)?;
         Ok(())
     }
 
-    async fn physics_loop(&self, api: &PeregrineAPI) -> Result<(),Message> {
+    async fn physics_loop(&self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
         loop {
-            self.state.lock().unwrap().physics_step(api)?;
+            self.state.lock().unwrap().physics_step(inner)?;
             cdr_tick(1).await;
             self.physics_needed.wait_until_needed().await;
         }
     }
 
-    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Physics,Message> {
+    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb) -> Result<Physics,Message> {
         let physics_needed = Needed::new();
         let out = Physics {
             state: Arc::new(Mutex::new(PhysicsState::new(config,&physics_needed)?)),
             physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();
-        let api2 = api.clone();
-        low_level.distributor_mut().add(move |e| { out2.incoming_event(&api2,e).ok(); }); // XXX error distribution
+        let inner2 = inner.clone();
+        low_level.distributor_mut().add(move |e| { out2.incoming_event(&inner2,e).ok(); }); // XXX error distribution
         let out2 = out.clone();
-        let api2 = api.clone();
-        commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&api2).await }));
+        let mut inner2 = inner.clone();
+        commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&mut inner2).await }));
         Ok(out)
+    }
+
+    pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
+        self.state.lock().unwrap().goto(api,centre,scale)
     }
 }

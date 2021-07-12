@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
-use crate::{Message, PeregrineAPI};
+use peregrine_message::Instigator;
+
+use crate::{Message, PeregrineAPI, PeregrineInnerAPI, stage::axis::ReadStageAxis};
 use super::axisphysics::{AxisPhysics, AxisPhysicsConfig};
+use super::measure::Measure;
 
 pub(super) fn bp_to_zpx(bp: f64) -> f64 { bp.log2() * 100. }
 pub(super) fn zpx_to_bp(zpx: f64) -> f64 { 2_f64.powf(zpx/100.) }
@@ -33,24 +36,25 @@ pub(super) struct PhysicsRunner {
     zoom_centre: ZoomCentre
 }
 
+
 impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
         let w_config = AxisPhysicsConfig {
-            lethargy: 300., // 2500 for keys & animate, 300 for mouse
+            lethargy: 50000., // 2500 for keys & animate, 300 for mouse
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let x_config = AxisPhysicsConfig {
-            lethargy: 300., // 2500 for keys
+            lethargy: 50000., // 2500 for keys
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let z_config = AxisPhysicsConfig {
-            lethargy: 100.,
+            lethargy: 50000.,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
@@ -81,111 +85,105 @@ impl PhysicsRunner {
         self.animation_queue.len() !=0 || self.animation_current.is_some()
     }
 
-    fn jump_w(&mut self, api: &PeregrineAPI, new_x: f64, new_bp_per_screen: f64) -> Result<(),Message> {
+    fn jump_w(&mut self, inner: &PeregrineInnerAPI, new_x: f64, new_bp_per_screen: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.x.halt();
         self.z.halt();
-        if let (Some(old_x),Some(old_bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
-            let new_left_bp = new_x - (new_bp_per_screen/2.);
-            let new_right_bp = new_x + (new_bp_per_screen/2.);
-            self.w_scale = old_bp_per_screen / (size_px.0 as f64); // bp_per_px
-            self.w_left.move_to(new_left_bp/self.w_scale);
-            self.w_right.move_to(new_right_bp/self.w_scale);
-        }
+        let new_left_bp = new_x - (new_bp_per_screen/2.);
+        let new_right_bp = new_x + (new_bp_per_screen/2.);
+        self.w_scale = 1.; // measure.bp_per_screen / measure.px_per_screen; // bp_per_px
+        self.w_left.move_to(new_left_bp/self.w_scale);
+        self.w_right.move_to(new_right_bp/self.w_scale);
         Ok(())
     }
 
-    fn jump_x(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
-        if let (Some(current_bp),Some(bp_per_screen),Some(size_px)) = (api.x()?,api.bp_per_screen()?,api.size()) {
-            let current_px = current_bp / bp_per_screen * (size_px.0 as f64);
-            if !self.x.is_active() {
-                self.x.move_to(current_px);
-            }
-            self.x.move_more(amount_px);
+    fn jump_x(&mut self, inner: &PeregrineInnerAPI, amount_px: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let current_px = measure.x_bp / measure.bp_per_screen * measure.px_per_screen;
+        if !self.x.is_active() {
+            self.x.move_to(current_px);
         }
+        self.x.move_more(amount_px);
         self.update_needed();
         Ok(())
     }
 
-    fn jump_z(&mut self, api: &PeregrineAPI, amount_px: f64, centre: &ZoomCentre) -> Result<(),Message> {
-        if let Some(bp_per_screen) = api.bp_per_screen()? {
-            let z_current_px = bp_to_zpx(bp_per_screen);
-            if !self.z.is_active() {
-                self.zoom_centre = centre.clone();
-                self.z.move_to(z_current_px);
-            }
-            self.z.move_more(amount_px);
+    fn jump_z(&mut self, inner: &PeregrineInnerAPI, amount_px: f64, centre: &ZoomCentre) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let z_current_px = bp_to_zpx(measure.bp_per_screen);
+        if !self.z.is_active() {
+            self.zoom_centre = centre.clone();
+            self.z.move_to(z_current_px);
         }
+        self.z.move_more(amount_px);
         self.update_needed();
         Ok(())
     }
 
-    fn apply_spring_x(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
-        if !self.x.is_active() { return Ok(()); }
-        let x_current_bp = api.x()?;
-        if let (Some(x_current_bp),Some(screen_size),Some(bp_per_screen)) = 
-                    (x_current_bp,api.size(),api.bp_per_screen()?) {
-            let px_per_screen = screen_size.0 as f64;
-            let px_per_bp = px_per_screen / bp_per_screen;
-            let new_pos_px = self.x.apply_spring(x_current_bp*px_per_bp,total_dt);
-            api.set_x(new_pos_px / px_per_bp);
+    fn apply_spring_x(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        if let Some(new_pos_px) = self.x.apply_spring(measure.x_bp*px_per_bp,total_dt) {
+            inner.set_x(new_pos_px / px_per_bp,&mut Instigator::new());
         }
         Ok(())
     }
 
-    fn apply_spring_w(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+    fn apply_spring_w(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         if !self.w_left.is_active() && !self.w_right.is_active() { return Ok(()); }
-        let current_x = api.x()?;
-        if let (Some(current_x),Some(screen_size),Some(current_bp_per_screen)) = 
-                    (current_x,api.size(),api.bp_per_screen()?) {
-            /* where are we right now? */
-            let old_left_bp = current_x - current_bp_per_screen/2.;
-            let old_right_bp = current_x + current_bp_per_screen/2.;
-            let old_left_px = old_left_bp / self.w_scale;
-            let old_right_px = old_right_bp / self.w_scale;
-            /* how much should we move */
-            let new_left_px = self.w_left.apply_spring(old_left_px,total_dt);
-            let new_right_px = self.w_right.apply_spring(old_right_px,total_dt);
+        /* where are we right now? */
+        let old_left_bp = measure.x_bp - measure.bp_per_screen/2.;
+        let old_right_bp = measure.x_bp + measure.bp_per_screen/2.;
+        let old_left_px = old_left_bp / self.w_scale;
+        let old_right_px = old_right_bp / self.w_scale;
+        /* how much should we move */
+        let new_left_px = self.w_left.apply_spring(old_left_px,total_dt);
+        let new_right_px = self.w_right.apply_spring(old_right_px,total_dt);
+        let new_pos = match (new_left_px,new_right_px) {
+            (Some(left),Some(right)) => Some((left,right)),
+            (Some(left),None) => Some((left,old_right_px)),
+            (None,Some(right)) => Some((old_left_px,right)),
+            (None,None) => None
+        };
+        if let Some((new_left_px,new_right_px)) = new_pos {
             let new_left_bp = new_left_px * self.w_scale;
             let new_right_bp = new_right_px * self.w_scale;
             /* compute new position */
-            api.set_x((new_left_bp+new_right_bp)/2.);
-            api.set_bp_per_screen(new_right_bp-new_left_bp);
+            inner.set_x((new_left_bp+new_right_bp)/2.,&mut Instigator::new());
+            inner.set_bp_per_screen(new_right_bp-new_left_bp,&mut Instigator::new());
         }
         Ok(())
     }
 
-    fn apply_spring_z(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
+    fn apply_spring_z(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         if !self.z.is_active() { return Ok(()); }
-        let px_per_screen = api.size().map(|x| x.0 as f64);
-        let z_current_bp = api.bp_per_screen()?;
-        let x = api.x()?;
-        if let (Some(x),Some(z_current_bp),Some(screen_size),Some(bp_per_screen)) = 
-                    (x,z_current_bp,px_per_screen,api.bp_per_screen()?) {                        
-            let z_current_px = bp_to_zpx(z_current_bp);
-            let new_pos_px = self.z.apply_spring(z_current_px,total_dt);
+        let z_current_px = bp_to_zpx(measure.bp_per_screen);
+        if let Some(new_pos_px) = self.z.apply_spring(z_current_px,total_dt) {
             let new_bp_per_screen = zpx_to_bp(new_pos_px);
             match self.zoom_centre {
                 ZoomCentre::StationaryPoint(stationary) => {
-                    let x_screen = stationary/screen_size;
-                    let new_bp_from_middle = (x_screen-0.5)*bp_per_screen;
-                    let x_bp = x + (x_screen - 0.5) * bp_per_screen;
+                    let x_screen = stationary/measure.px_per_screen;
+                    let new_bp_from_middle = (x_screen-0.5)*measure.bp_per_screen;
+                    let x_bp = measure.x_bp + (x_screen - 0.5) * measure.bp_per_screen;
                     let new_middle = x_bp - new_bp_from_middle;
-                    api.set_x(new_middle);    
+                    inner.set_x(new_middle,&mut Instigator::new());
                 },
                 ZoomCentre::CentreOfScreen(centre) => {
-                    api.set_x(centre);
+                    inner.set_x(centre,&mut Instigator::new());
                 },
                 ZoomCentre::None => {}
             }
-            api.set_bp_per_screen(new_bp_per_screen);
+            inner.set_bp_per_screen(new_bp_per_screen,&mut Instigator::new());
         }
         Ok(())
     }
 
-    pub(super) fn apply_spring(&mut self, api: &PeregrineAPI, total_dt: f64) -> Result<(),Message> {
-        self.apply_spring_w(api,total_dt)?;
-        self.apply_spring_x(api,total_dt)?;
-        self.apply_spring_z(api,total_dt)?;
+    pub(super) fn apply_spring(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
+        self.apply_spring_w(inner,total_dt)?;
+        self.apply_spring_x(inner,total_dt)?;
+        self.apply_spring_z(inner,total_dt)?;
         Ok(())
     }
 
@@ -194,7 +192,7 @@ impl PhysicsRunner {
         self.w_left.halt();
     }
 
-    pub(super) fn drain_animation_queue(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
+    pub(super) fn drain_animation_queue(&mut self, inner: &PeregrineInnerAPI) -> Result<(),Message> {
         loop {
             /* still ongoing? */
             if let Some(current) = &mut self.animation_current {
@@ -218,11 +216,13 @@ impl PhysicsRunner {
             }
             /* do it */
             match &self.animation_current {
-                Some(QueueEntry::MoveW(centre,scale)) => { self.jump_w(api,*centre, *scale)?; },
-                Some(QueueEntry::MoveX(amt)) => { self.x.move_to(*amt); },
+                Some(QueueEntry::MoveW(centre,scale)) => { self.jump_w(inner,*centre, *scale)?; },
+                Some(QueueEntry::MoveX(amt)) => { 
+                    self.x.move_to(*amt);
+                },
                 Some(QueueEntry::MoveZ(amt,centre)) => { self.zoom_centre = centre.clone(); self.z.move_to(*amt); },
-                Some(QueueEntry::JumpX(amt)) => { self.jump_x(api,*amt)?; },
-                Some(QueueEntry::JumpZ(amt,pos)) => { self.jump_z(api,*amt,&pos.clone())?; },
+                Some(QueueEntry::JumpX(amt)) => { self.jump_x(inner,*amt)?; },
+                Some(QueueEntry::JumpZ(amt,pos)) => { self.jump_z(inner,*amt,&pos.clone())?; },
                 Some(QueueEntry::BrakeX) => { self.x.brake() },
                 Some(QueueEntry::BrakeZ) => { self.z.brake() },
                 _ => {}

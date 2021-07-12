@@ -66,7 +66,7 @@ impl AxisPhysics {
         self.velocity = 0.;
     }
 
-    pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> f64 {
+    pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> Option<f64> {
         if let Some(target) = self.target {
             let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
             while total_dt > 0. {
@@ -88,9 +88,10 @@ impl AxisPhysics {
                     break;
                 }
             }
+            Some(current)
+        } else {
+            None
         }
-        current
-
     }
 
     pub(super) fn is_active(&self) -> bool { self.target.is_some() }

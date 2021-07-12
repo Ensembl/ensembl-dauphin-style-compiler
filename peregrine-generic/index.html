@@ -22,6 +22,7 @@
         <div>id labels <input id="id-labels" type="checkbox"/></div>
         <div>flip stick <input id="stick" type="checkbox"/></div>
         <div>drag <input id="drag" type="checkbox"/></div>
+        <button id="goto">goto</button>
       </div>
     </div>
     <script type="module">
@@ -63,6 +64,10 @@
         document.getElementById("bluer").onclick = flipper(["settings","bluer"],false);
         document.getElementById("bigger").onclick = flipper(["settings","bigger"],false);
         document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
+
+        document.getElementById("goto").onclick = function() {
+          genome_browser.goto(10000000,10100000);
+        }
         document.getElementById("crazy").onclick = function() {
           test(genome_browser.copy());
         };
