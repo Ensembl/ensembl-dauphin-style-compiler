@@ -10,8 +10,8 @@ if not pyBigWig.numpy:
 
 def get_bigbed_data(path,chrom,start,end):
     end = min(end,chrom.size)
-    bb = pyBigWig.open(path)
     try:
+        bb = pyBigWig.open(path)
         out = bb.entries(chrom.name,start,end) or []
     except (RuntimeError,OverflowError):
         out = []
@@ -20,10 +20,10 @@ def get_bigbed_data(path,chrom,start,end):
 
 def get_bigwig_data(path,chrom,start,end):
     end = min(end,chrom.size)
-    bw = pyBigWig.open(path)
     start_time = time.time()
     try:
-        out = bw.stats(chrom.name,start,end,nBins=4000) or []
+        bw = pyBigWig.open(path)
+        out = bw.stats(chrom.name,start,end,nBins=1000) or []
     except (RuntimeError,OverflowError) as e:
         logging.error(e)
         out = []
