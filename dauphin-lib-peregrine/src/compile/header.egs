@@ -1,0 +1,116 @@
+module "peregrine";
+
+/* sticks etc */
+
+struct allot {
+    name: string,
+    priority: number
+};
+
+expr make_allotment(name_val,priority_val) allot { name: name_val, priority: priority_val };
+
+struct stick {
+    id: string,
+    size: number,
+    topology: number,
+    tags: vec(string)
+};
+
+proc add_stick_authority(string);
+func get_stick_id() becomes string;
+func get_stick_data(string,string) becomes stick;
+proc add_stick(stick);
+
+/* */
+
+struct laneid { value: number };
+struct directcolour { value: number };
+struct colour { value: number };
+struct patina { value: number };
+struct zmenutmpl { value: number };
+struct penspec { value: number };
+struct plotterspec { value: number };
+struct allotment { value: number };
+struct spacebaseid { value: number };
+
+struct region {
+    stick: string,
+    index: number,
+    scale: number
+};
+
+struct datasource { value: number };
+
+func track_new(string,string,number,number,number) becomes laneid;
+proc track_add_tag(laneid,string);
+proc track_add_trigger(laneid,vec(string));
+proc track_add_allotment(laneid,string,number);
+proc track_add_switch(laneid,vec(string));
+proc track_set_switch(laneid,vec(string));
+proc track_clear_switch(laneid,vec(string));
+proc track_set_scale(laneid,number,number);
+proc track_set_max_scale_jump(laneid,number);
+proc track_apply(laneid);
+
+func spacebase(number,number,number) becomes spacebaseid;
+
+func use_allotment(string) becomes allotment;
+func direct_colour(number,number,number,number) becomes directcolour;
+func simple_colour(directcolour) becomes colour;
+func striped(directcolour,directcolour,number,number,number) becomes colour;
+func barred(directcolour,directcolour,number,number,number) becomes colour;
+func zmenu(string) becomes zmenutmpl;
+func patina_filled(colour,number) becomes patina;
+func patina_hollow(colour,number,number) becomes patina;
+func patina_zmenu(zmenutmpl, vec(string), vec(string)) becomes patina;
+func pen(string,number,directcolour,directcolour,number) becomes penspec;
+func plotter(number,directcolour) becomes plotterspec;
+
+func get_switch(vec(string)) becomes boolean;
+
+proc rectangle(spacebaseid,spacebaseid,patina,allotment);
+proc text2(spacebaseid,penspec,string,allotment);
+proc wiggle(number,number,plotterspec,number,boolean,allotment);
+
+stmt text_underneath(x,y,penspec,writing,allt) {
+    x := spacebase(x,y,0);
+    text2(x,penspec,writing,allt);
+}
+
+stmt rectangle_on_genome(start,end,height,patina,allt) {
+    top_left := spacebase(start,0,0);
+    bottom_right := spacebase(end,height,0);
+    rectangle(top_left,bottom_right,patina,allt);
+}
+
+stmt rectangle_on_genome_offset(start,end,height,patina,allt,offset) {
+    top_left := spacebase(start,offset,0);
+    bottom_right := spacebase(end,height+offset,0);
+    rectangle(top_left,bottom_right,patina,allt);
+}
+
+stmt indented_rectangle_on_genome(start,end,height,patina,allt) {
+    top_left := spacebase(start,0,1);
+    bottom_right := spacebase(end,height,-1);
+    rectangle(top_left,bottom_right,patina,allt);
+}
+
+func get_region() becomes region;
+func get_data(string,string,region) becomes datasource;
+
+func data_stream(datasource,string) becomes bytes;
+func inflate_bytes(bytes) becomes bytes;
+func inflate_string(bytes) becomes string;
+func lesqlite2(bytes) becomes number;
+func zigzag(number) becomes number;
+func delta(number) becomes number;
+func alternate(number) becomes number;
+func classify(string,number) becomes string;
+func split_string(string) becomes vec(string);
+func base_flip(string) becomes string;
+
+expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
+expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];
+expr positive_seq(stream,name) lesqlite2(inflate_bytes(data_stream(data,name)));
+expr classified_seq(stream,keys,values) classify(string_seq(stream,keys),positive_seq(stream,values));
+expr bool_seq(stream,name) std::bytes_to_bool(inflate_bytes(data_stream(data,name)));

@@ -1,48 +1,97 @@
-use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
-use std::cmp::{ max, min };
-use super::shape::Shape;
+use std::sync::Arc;
+use std::collections::HashSet;
+use super::core::{ Patina, Pen, Plotter };
+use crate::{HoleySpaceBase, HoleySpaceBaseArea, Shape };
+use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
 
-#[derive(Debug)]
+pub struct ShapeListBuilder {
+    shapes: Vec<Shape>,
+    allotments: HashSet<AllotmentHandle>
+}
+
+impl ShapeListBuilder {
+    pub fn new() -> ShapeListBuilder {
+        ShapeListBuilder {
+            shapes: vec![],
+            allotments: HashSet::new()
+        }
+    }
+
+    fn push(&mut self, shape: Shape) {
+        let shape =shape.remove_nulls();
+        if !shape.is_empty() {
+            self.shapes.push(shape);
+        }
+    }
+
+    pub fn len(&self) -> usize { self.shapes.len() }
+    pub fn vec_len(&self) -> usize {
+        let mut out = 0;
+        for shape in &self.shapes {
+            out += shape.len();
+        }
+        out
+    }
+
+    pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
+        if !allotment.is_null() {
+            self.allotments.insert(allotment.clone());
+        }
+    }
+
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentHandle>) {
+        self.push(Shape::SpaceBaseRect(area,patina,allotments));
+    }
+
+    pub fn add_text2(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+        self.push(Shape::Text2(position,pen,text,allotments));
+    }
+
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {
+        self.push(Shape::Wiggle((min,max),values,plotter,allotment))
+    }
+
+    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
+        let mut shapes = vec![];
+        for shape in self.shapes.iter() {
+            shapes.push(shape.filter(min_value,max_value));
+        }
+        ShapeListBuilder { shapes, allotments: self.allotments.clone() }
+    }
+
+    pub fn append(&mut self, more: &ShapeListBuilder) {
+        self.shapes.extend(more.shapes.iter().cloned());
+        self.allotments = self.allotments.union(&more.allotments).cloned().collect();
+    }
+
+    pub fn build(self, petitioner: &AllotmentPetitioner) -> ShapeList {
+        ShapeList::new(self,petitioner)
+    }
+}
+
+#[derive(Clone)]
 pub struct ShapeList {
-    shapes: Vec<Shape>
+    shapes: Arc<Vec<Shape>>,
+    allotter: Arc<Allotter>
 }
 
 impl ShapeList {
-    pub fn new() -> ShapeList {
+    pub fn empty() -> ShapeList {
         ShapeList {
-            shapes: vec![]
+            shapes: Arc::new(vec![]),
+            allotter: Arc::new(Allotter::empty())
         }
     }
 
-    pub fn add_rectangle_1(&mut self, anchors: SingleAnchor, patina: Patina, allotments: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
-        self.shapes.push(Shape::SingleAnchorRect(anchors,patina,allotments,x_size,y_size));
-    }
-
-    pub fn add_rectangle_2(&mut self, anchors: AnchorPair, patina: Patina, allotments: Vec<String>) {
-        self.shapes.push(Shape::DoubleAnchorRect(anchors,patina,allotments));
-    }
-
-    pub fn add_text(&mut self, anchors: SingleAnchor, pen: Pen, text: Vec<String>, allotments: Vec<String>) {
-        self.shapes.push(Shape::Text(anchors,pen,text,allotments));
-    }
-
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: String) {
-        self.shapes.push(Shape::Wiggle((min,max),values,plotter,allotment))
-    }
-
-    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeList {
-        let mut new = vec![];
-        for shape in self.shapes.iter() {
-            new.push(shape.filter(min_value,max_value));
-        }
+    fn new(builder: ShapeListBuilder, petitioner: &AllotmentPetitioner) -> ShapeList {
+        let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
         ShapeList {
-            shapes: new
+            shapes: Arc::new(builder.shapes),
+            allotter: Arc::new(Allotter::new(petitioner,&handles))
         }
     }
 
-    pub fn append(&mut self, more: &ShapeList) {
-        self.shapes.extend(more.shapes.iter().cloned());
-    }
-
-    pub fn shapes(&self) -> &Vec<Shape> { &self.shapes }
+    pub fn len(&self) -> usize { self.shapes.len() }
+    pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
+    pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }
 }

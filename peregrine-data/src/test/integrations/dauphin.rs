@@ -29,7 +29,8 @@ impl FakeDauphinReceiver {
             prio: 2,
             slot: None,
             timeout: None,
-            task: Box::pin(main_loop(commander.clone(),fdr.clone(),pdq.clone()))
+            task: Box::pin(main_loop(commander.clone(),fdr.clone(),pdq.clone())),
+            stats: false
         });
         fdr
     }

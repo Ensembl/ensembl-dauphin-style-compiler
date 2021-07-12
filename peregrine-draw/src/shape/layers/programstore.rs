@@ -1,91 +1,86 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
-use crate::webgl::{ WebGlCompiler, Program, SourceInstrs, GPUSpec };
-use super::geometry::{ GeometryProgramName, GeometryProgram };
-use super::patina::{ PatinaProgramName, PatinaProgram };
-use super::super::core::stage::get_stage_source;
-use web_sys::WebGlRenderingContext;
+use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
+use crate::webgl::{ProcessBuilder, Program, ProgramBuilder, SourceInstrs, make_program};
+use super::geometry::{GeometryProcessName, GeometryProgramLink, GeometryProgramName};
+use super::patina::{PatinaProcessName, PatinaProgramLink, PatinaProgramName};
+use super::shapeprogram::ShapeProgram;
+use crate::stage::stage::get_stage_source;
+use crate::util::message::Message;
 
+
+#[derive(Clone)]
 struct ProgramIndex(GeometryProgramName,PatinaProgramName);
 
-impl ProgramIndex {
-    const COUNT : usize = GeometryProgramName::COUNT * PatinaProgramName::COUNT;
-
-    pub fn get_index(&self) -> usize {
-        self.0.get_index() * PatinaProgramName::COUNT + self.1.get_index()
-    }
+impl EnumerableKey for ProgramIndex {
+    fn enumerable(&self) -> Enumerable { enumerable_compose(&self.0,&self.1) }
 }
 
 pub(crate) struct ProgramStoreEntry {
-    program: Rc<Program>,
-    geometry: GeometryProgram,
-    patina: PatinaProgram
+    builder: Rc<ProgramBuilder>,
+    geometry: GeometryProgramLink,
+    patina: PatinaProgramLink
 }
 
 impl ProgramStoreEntry {
-    fn new(program: Program, index: &ProgramIndex) -> anyhow::Result<ProgramStoreEntry> {
-        let geometry = index.0.make_geometry_program(&program)?;
-        let patina = index.1.make_patina_program(&program)?;
+    fn new(builder: ProgramBuilder, index: &ProgramIndex) -> Result<ProgramStoreEntry,Message> {
+        let geometry = index.0.make_geometry_program(&builder)?;
+        let patina = index.1.make_patina_program(&builder)?;
         Ok(ProgramStoreEntry {
-            program: Rc::new(program),
+            builder: Rc::new(builder),
             geometry,
             patina
         })
     }
 
-    pub(crate) fn program(&self) -> &Rc<Program> { &self.program }
-    pub(crate) fn get_geometry(&self) -> &GeometryProgram { &self.geometry }
-    pub(crate) fn get_patina(&self) -> &PatinaProgram { &self.patina }
+    pub(crate) fn make_shape_program(&self, patina_process_name: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+        let geometry = self.geometry.clone();
+        let patina = self.patina.make_patina_process(patina_process_name)?;
+        let process = ProcessBuilder::new(self.builder.clone());
+        Ok(ShapeProgram::new(process,geometry,patina))
+    }
 }
 
-pub struct ProgramStoreData {
-    compiler: WebGlCompiler,
-    gpu_spec: GPUSpec,
-    programs: RefCell<Vec<Option<Rc<ProgramStoreEntry>>>>
+struct ProgramStoreData {
+    programs: EnumerableMap<ProgramIndex,ProgramStoreEntry>
 }
 
 impl ProgramStoreData {
-    fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStoreData> {
-        let gpuspec = GPUSpec::new(context)?;
-        let programs = RefCell::new(vec![None;ProgramIndex::COUNT]);
+    fn new() -> Result<ProgramStoreData,Message> {
         Ok(ProgramStoreData {
-            compiler: WebGlCompiler::new(context,&gpuspec),
-            gpu_spec: gpuspec,
-            programs
+            programs: EnumerableMap::new()
         })
     }
 
-    fn make_program(&self, index: &ProgramIndex) -> anyhow::Result<()> {
+    fn make_program(&mut self, index: &ProgramIndex) -> Result<(),Message> {
         let mut source = SourceInstrs::new(vec![]);
         source.merge(get_stage_source());
         source.merge(index.0.get_source());
         source.merge(index.1.get_source());
-        self.programs.borrow_mut()[index.get_index()] = Some(Rc::new(ProgramStoreEntry::new(self.compiler.make_program(source)?,&index)?));
+        let builder = ProgramBuilder::new(&source)?;
+        self.programs.insert(index.clone(),ProgramStoreEntry::new(builder,&index)?);
         Ok(())
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
+    fn get_program(&mut self, geometry: GeometryProgramName, patina: PatinaProgramName) -> Result<&ProgramStoreEntry,Message> {
         let index = ProgramIndex(geometry,patina);
-        if self.programs.borrow()[index.get_index()].is_none() {
+        if self.programs.get(&index).is_none() {
             self.make_program(&index)?;
         }
-        Ok(self.programs.borrow()[index.get_index()].as_ref().unwrap().clone())
+        Ok(self.programs.get(&index).as_ref().unwrap().clone())
     }
-
-    pub(super) fn gpu_spec(&self) -> &GPUSpec { &self.gpu_spec }
 }
 
 #[derive(Clone)]
-pub struct ProgramStore(Rc<ProgramStoreData>);
+pub struct ProgramStore(Rc<RefCell<ProgramStoreData>>);
 
 impl ProgramStore {
-    pub(crate) fn new(context: &WebGlRenderingContext) -> anyhow::Result<ProgramStore> {
-        Ok(ProgramStore(Rc::new(ProgramStoreData::new(context)?)))
+    pub(crate) fn new() -> Result<ProgramStore,Message> {
+        Ok(ProgramStore(Rc::new(RefCell::new(ProgramStoreData::new()?))))
     }
 
-    pub(super) fn get_program(&self, geometry: GeometryProgramName, patina: PatinaProgramName) -> anyhow::Result<Rc<ProgramStoreEntry>> {
-        self.0.get_program(geometry,patina)
+    pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(patina)
     }
-
-    pub(crate) fn gpu_spec(&self) -> &GPUSpec { self.0.gpu_spec() }
 }

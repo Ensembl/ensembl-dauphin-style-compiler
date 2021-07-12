@@ -1,11 +1,10 @@
 use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
-    PgCommander, PgCommanderTaskSpec, InstancePayload, RequestManager, StickStore, CountingPromise, PanelProgramStore,
-    DataStore, PeregrineCore, DataMessage, add_task
+    PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, DataMessage, add_task
 };
 use peregrine_dauphin_queue::{ PgDauphinTaskSpec, PgDauphinRunTaskSpec, PgDauphinLoadTaskSpec };
-use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory, Payload };
+use dauphin_interp::{ Dauphin, CommandInterpretSuite, InterpretInstance, make_core_interp, PayloadFactory };
 use dauphin_lib_std::make_std_interp;
 use dauphin_lib_peregrine::{ make_peregrine_interp, add_peregrine_payloads };
 use std::any::Any;
@@ -66,7 +65,8 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
                 task: Box::pin(async move {
                     stream.add(process.run().await);
                     Ok(())
-                })
+                }),
+                stats: true
             };
             add_task(&commander,task);
         },
@@ -78,9 +78,9 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
 }
 
 async fn main_loop(integration: Box<dyn PgDauphinIntegration>, core: PeregrineCore) -> Result<(),DataMessage> {
-    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::XXXTmp(e.to_string()))?);
+    let mut dauphin = Dauphin::new(command_suite().map_err(|e| DataMessage::DauphinIntegrationError(e.to_string()))?);
     integration.add_payloads(&mut dauphin);
-    add_peregrine_payloads(&mut dauphin,&core.base.manager,&core.agent_store,&core.base.booted);
+    add_peregrine_payloads(&mut dauphin,&core.base,&core.agent_store,&core.switches);
     loop {
         let e = core.base.dauphin_queue.get().await;
         match e.task {
@@ -96,6 +96,7 @@ pub fn peregrine_dauphin(integration: Box<dyn PgDauphinIntegration>, core: &Pere
         prio: 2,
         slot: None,
         timeout: None,
-        task: Box::pin(main_loop(integration,core.clone()))
+        task: Box::pin(main_loop(integration,core.clone())),
+        stats: false
     });
 }

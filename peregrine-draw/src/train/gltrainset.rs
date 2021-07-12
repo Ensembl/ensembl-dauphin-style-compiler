@@ -1,11 +1,9 @@
-use anyhow::{ bail };
 use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ Carriage, CarriageSpeed, PeregrineConfig, PeregrineCore };
+use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore };
 use super::gltrain::GLTrain;
-use crate::shape::core::stage::{ Stage, ReadStage };
-use crate::shape::core::redrawneeded::{ RedrawNeeded, RedrawNeededLock };
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }, util::needed::{Needed, NeededLock}};
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
@@ -14,22 +12,26 @@ use crate::util::message::Message;
 #[derive(Clone)]
 enum FadeState {
     Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,f64,RedrawNeededLock)
+    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlTrainSetData {
     slow_fade_time: f64,
     fast_fade_time: f64,
+    slow_fade_overlap_prop: f64,
+    fast_fade_overlap_prop: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
-    redraw_needed: RedrawNeeded
+    redraw_needed: Needed
 }
 
 impl GlTrainSetData {
-    fn new(config: &PeregrineConfig, redraw_needed: &RedrawNeeded) -> anyhow::Result<GlTrainSetData> {
+    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
-            slow_fade_time: config.get_f64("animate.fade.slow").unwrap_or(0.),
-            fast_fade_time: config.get_f64("animate.fade.fast").unwrap_or(0.),
+            slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(false))?,
+            fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(true))?,
+            slow_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(false))?,
+            fast_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(true))?,
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
@@ -43,7 +45,7 @@ impl GlTrainSetData {
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> anyhow::Result<()> {
+    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> Result<(),Message> {
         self.get_train(gl,index).set_carriages(new_carriages,gl)
     }
 
@@ -51,23 +53,38 @@ impl GlTrainSetData {
         self.get_train(gl,index).set_max(len);
     }
 
-    fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> anyhow::Result<()> {
-        let from = match self.fade_state {
+    fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> Result<(),Message> {
+        let from = match self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
-                bail!("overlapping fades sent to UI");
+                return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from,index,speed,0.,self.redraw_needed.clone().lock());
+        self.fade_state = FadeState::Fading(from,index,speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
 
-    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64) -> f64 {
+    fn prop(&self, speed: &CarriageSpeed, elapsed: f64) -> f64 {
         let fade_time = match speed {
             CarriageSpeed::Quick => self.fast_fade_time,
             CarriageSpeed::Slow => self.slow_fade_time
         };
-        (elapsed/fade_time).min(1.).max(0.)
+        elapsed/fade_time
+    }
+
+    fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64, out: bool) -> f64 {
+        let factor = match speed {
+            CarriageSpeed::Quick => self.fast_fade_overlap_prop,
+            CarriageSpeed::Slow => self.slow_fade_overlap_prop
+        };
+        let prop = self.prop(speed,elapsed).min(1.).max(0.)*(1.+factor.abs());
+        let val = match (factor>0.,out) {
+            (true,true) => { 1.-prop }, /* out before in; out */
+            (true,false) => { prop-factor }, /* out before in; in */
+            (false,true) => { 1.-(prop+factor) }, /* in before out; out */
+            (false,false) => { prop } /* in before out; in */
+        }.min(1.).max(0.);
+        val
     }
 
     fn notify_fade_state(&mut self,gl: &WebGlGlobal) {
@@ -76,13 +93,15 @@ impl GlTrainSetData {
             FadeState::Constant(Some(index)) => {
                 self.get_train(gl,index).set_opacity(1.);
             },
-            FadeState::Fading(from,to,speed,elapsed,_) => {
-                let prop = self.fade_time(&speed,elapsed);
-                self.get_train(gl,to).set_opacity(prop);
+            FadeState::Fading(from,to,speed,Some(elapsed),_) => {
+                let prop_out = self.fade_time(&speed,elapsed,true);
+                let prop_in = self.fade_time(&speed,elapsed,false);
+                self.get_train(gl,to).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_train(gl,from).set_opacity(1.-prop);
+                    self.get_train(gl,from).set_opacity(prop_out);
                 }
-            }
+            },
+            FadeState::Fading(from,to,speed,None,_) => {}
         }
     }
 
@@ -91,11 +110,11 @@ impl GlTrainSetData {
         match self.fade_state.clone() {
             FadeState::Constant(_) => {}
             FadeState::Fading(from,to,speed,mut elapsed,redraw) => {
-                elapsed += newly_elapsed;
-                let prop = self.fade_time(&speed,elapsed);
-                if prop >= 1. {
+                elapsed = Some(elapsed.map(|e| e+newly_elapsed).unwrap_or(0.));
+                let prop = self.prop(&speed,elapsed.unwrap());
+                if prop >= 1.{
                     if let Some(from) = from {
-                        self.get_train(gl,from).discard(gl).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                        self.get_train(gl,from).discard(gl)?;
                         self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
@@ -110,26 +129,23 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let mut session = DrawingSession::new();
-        session.begin(gl,stage).map_err(|e| Message::XXXTmp(e.to_string()))?;
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                self.get_train(gl,train).draw(gl,stage,&session)?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                    self.get_train(gl,from).draw(gl,stage,&session)?;
                 }
-                self.get_train(gl,to).draw(gl,stage,&session).map_err(|e| Message::XXXTmp(e.to_string()))?;
+                self.get_train(gl,to).draw(gl,stage,&session)?;
             },
         }
-        session.finish().map_err(|e| Message::XXXTmp(e.to_string()))?;
         Ok(())
     }
 
-    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -138,7 +154,7 @@ impl GlTrainSetData {
         }).transpose()?.flatten())
     }
 
-    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<bool,Message> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -147,7 +163,7 @@ impl GlTrainSetData {
         }).transpose()?.unwrap_or(false))
     }
 
-    fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for(_,mut train) in self.trains.drain() {
             train.discard(gl)?;
         }
@@ -161,43 +177,43 @@ pub struct GlTrainSet {
 }
 
 impl GlTrainSet {
-    pub fn new(config: &PeregrineConfig, stage: &Stage) -> anyhow::Result<GlTrainSet> {
+    pub fn new(draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
         Ok(GlTrainSet {
-            data: Arc::new(Mutex::new(GlTrainSetData::new(config,&stage.redraw_needed())?))
+            data: Arc::new(Mutex::new(GlTrainSetData::new(draw_config,&stage.redraw_needed())?))
         })
     }
 
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
-        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed).map_err(|e| Message::XXXTmp(e.to_string()))? {
+        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
             blackbox_log!("gltrain","transition_complete()");
             api.transition_complete();
         }
         Ok(())
     }
 
-    pub fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        self.data.lock().unwrap().draw_animate_tick(stage,gl)
+    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
+        self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> anyhow::Result<()> {
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {
         self.data.lock().unwrap().set_carriages(gl,new_carriages,index)
     }
 
-    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> anyhow::Result<()> {
+    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(index,speed)?;
         self.data.lock().unwrap().set_max(gl,index,max);
         Ok(())
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.data.lock().unwrap().intersects(stage,gl,mouse)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) ->Result<bool,Message> {
         self.data.lock().unwrap().intersects_fast(stage,gl,mouse)
     }
 
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.data.lock().unwrap().discard(gl)
     }
 }

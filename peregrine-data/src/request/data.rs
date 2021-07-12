@@ -3,7 +3,7 @@ use blackbox::{ blackbox_log, blackbox_count };
 use std::any::Any;
 use std::collections::HashMap;
 use super::channel::{ Channel, PacketPriority };
-use crate::Panel;
+use crate::Region;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
@@ -20,15 +20,15 @@ pub struct DataResponse {
 pub struct DataCommandRequest {
     channel: Channel,
     name: String,
-    panel: Panel
+    region: Region
 }
 
 impl DataCommandRequest {
-    pub fn new(channel: &Channel, name: &str, panel: &Panel) -> DataCommandRequest {
+    pub fn new(channel: &Channel, name: &str, region: &Region) -> DataCommandRequest {
         DataCommandRequest {
             channel: channel.clone(),
             name: name.to_string(),
-            panel: panel.clone()
+            region: region.clone()
         }
     }
 
@@ -37,15 +37,16 @@ impl DataCommandRequest {
         blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-request",1.);
         let mut backoff = Backoff::new();
         match backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))? {
+                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(d) => {
                 blackbox_log!(&format!("channel-{}",self.channel.to_string()),"data response received");
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-success",1.);
                 Ok(d)
             },
-            Err(_) => {
+            Err(e) => {
                 blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-fail",1.);
-                Err(DataMessage::XXXTmp("failed to retrieve data".to_string()))
+                // XXX and send via messagesender
+                Err(DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)))
             }
         }
     }
@@ -54,7 +55,7 @@ impl DataCommandRequest {
 impl RequestType for DataCommandRequest {
     fn type_index(&self) -> u8 { 4 }
     fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.panel.serialize()?]))
+        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.region.serialize()?]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(GeneralFailure::new("data loading failed"))

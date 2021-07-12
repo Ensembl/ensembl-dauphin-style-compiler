@@ -1,6 +1,4 @@
-use anyhow::bail;
 use crate::core::{ Viewport };
-use crate::request::bootstrap::bootstrap;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
@@ -8,14 +6,16 @@ use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
 use crate::{ 
     PgCommander, PgDauphin, ProgramLoader, RequestManager, StickStore, StickAuthorityStore, Commander,
-    CountingPromise, PanelProgramStore, PanelRunStore, PanelStore, DataStore
+    CountingPromise, LaneStore, DataStore
 };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
-use crate::core::{ Track, Focus, StickId };
+use crate::core::{ Focus, StickId };
 use crate::util::message::DataMessage;
-use super::agentstore;
+use peregrine_message::Instigator;
+use crate::switch::switch::Switches;
+use crate::switch::allotment::AllotmentPetitioner;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -38,6 +38,8 @@ pub struct PeregrineCoreBase {
     pub commander: PgCommander,
     pub manager: RequestManager,
     pub booted: CountingPromise,
+    pub queue: PeregrineApiQueue,
+    pub allotment_petitioner: AllotmentPetitioner
 }
 
 #[derive(Clone)]
@@ -47,16 +49,16 @@ pub struct PeregrineCore {
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub train_set: TrainSet,
     pub viewport: Viewport,
-    pub queue: PeregrineApiQueue,
+    pub switches: Switches,
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> anyhow::Result<PeregrineCore> 
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
         let mut agent_store = AgentStore::new();
-        let messages = MessageSender(Arc::new(Mutex::new(Box::new(messages))));
+        let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
-        let dauphin = PgDauphin::new(&dauphin_queue)?;
+        let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
         let booted = CountingPromise::new();
@@ -66,18 +68,18 @@ impl PeregrineCore {
             dauphin,
             dauphin_queue,
             manager,
-            messages
+            messages,
+            queue: PeregrineApiQueue::new(),
+            allotment_petitioner: AllotmentPetitioner::new()
         };
-        agent_store.set_data_store(DataStore::new(32,&base));
+        agent_store.set_data_store(DataStore::new(32,&base,&agent_store));
         agent_store.set_program_loader(ProgramLoader::new(&base));
-        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base));
+        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));
         agent_store.set_stick_store(StickStore::new(&base,&agent_store));
-        agent_store.set_panel_store(PanelStore::new(128,&base,&agent_store));
-        agent_store.set_panel_program_store(PanelProgramStore::new());
-        agent_store.set_panel_run_store(PanelRunStore::new(32,&base,&agent_store));
+        agent_store.set_lane_store(LaneStore::new(128,&base,&agent_store));
         let train_set = TrainSet::new(&base);
         if !agent_store.ready() {
-            bail!("dependency injection failed");
+            return Err(DataMessage::CodeInvariantFailed(format!("dependency injection failed")));
         }
         Ok(PeregrineCore {
             base,
@@ -85,7 +87,7 @@ impl PeregrineCore {
             integration: Arc::new(Mutex::new(integration)),
             train_set,
             viewport: Viewport::empty(),
-            queue: PeregrineApiQueue::new(),
+            switches: Switches::new()
         })
     }
 
@@ -94,49 +96,72 @@ impl PeregrineCore {
     }
 
     pub fn application_ready(&mut self) {
-        self.queue.clone().run(self);
-        self.queue.push(ApiMessage::Ready);
+        let instigator = Instigator::new();
+        self.base.queue.clone().run(self);
+        self.base.queue.push(ApiMessage::Ready,instigator);
     }
 
-    pub fn bootstrap(&self, channel: Channel) {
-        bootstrap(&self.base,&self.agent_store,channel)
+    pub fn bootstrap(&self, channel: Channel) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::Bootstrap(channel),instigator.clone());
+        instigator
     }
 
     /* from api */
     pub fn ready(&self, mut core: PeregrineCore) {
-        self.queue.run(&mut core);
-        self.queue.push(ApiMessage::Ready);
+        let instigator = Instigator::new();
+        self.base.queue.run(&mut core);
+        self.base.queue.push(ApiMessage::Ready,instigator);
+    }
+
+    /* called after someprograms to refresh state in-case tracks appeared */
+    pub(crate) fn regenerate_track_config(&self, instigator: Instigator<DataMessage>) {
+        self.base.queue.push(ApiMessage::RegeneraateTrackConfig,instigator);
     }
 
     pub fn backend_bootstrap(&self, channel: Channel) {
-        self.queue.push(ApiMessage::Bootstrap(channel));
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::Bootstrap(channel),instigator);
     }
 
     pub fn transition_complete(&self) {
-        self.queue.push(ApiMessage::TransitionComplete);
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::TransitionComplete,instigator);
     }
 
-    pub fn add_track(&self, track: Track) {
-        self.queue.push(ApiMessage::AddTrack(track));
+    pub fn set_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
+        instigator
     }
 
-    pub fn remove_track(&self, track: Track) {
-        self.queue.push(ApiMessage::RemoveTrack(track));
+    pub fn clear_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
+        instigator
     }
 
-    pub fn set_position(&self, pos: f64) {
-        self.queue.push(ApiMessage::SetPosition(pos));
+    pub fn set_position(&self, pos: f64) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::SetPosition(pos),instigator.clone());
+        instigator
     }
 
-    pub fn set_bp_per_screen(&self, scale: f64) {
-        self.queue.push(ApiMessage::SetBpPerScreen(scale));
+    pub fn set_bp_per_screen(&self, scale: f64) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::SetBpPerScreen(scale),instigator.clone());
+        instigator
     }
 
-    pub fn set_focus(&self, focus: &Focus) {
-        self.queue.push(ApiMessage::SetFocus(focus.clone()));
+    pub fn set_focus(&self, focus: &Focus) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::SetFocus(focus.clone()),instigator.clone());
+        instigator
     }
 
-    pub fn set_stick(&self, stick: &StickId) {
-        self.queue.push(ApiMessage::SetStick(stick.clone()));
+    pub fn set_stick(&self, stick: &StickId) -> Instigator<DataMessage> {
+        let instigator = Instigator::new();
+        self.base.queue.push(ApiMessage::SetStick(stick.clone()),instigator.clone());
+        instigator
     }
 }

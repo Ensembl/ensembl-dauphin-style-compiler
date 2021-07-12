@@ -30,6 +30,20 @@ impl Scale {
         1 << self.0
     }
 
+    pub fn convert_index(&self, old_scale: &Scale, old_index: u64) -> u64 {
+        let log_bp_factor = (self.0 as i64) - (old_scale.0 as i64);
+        //use web_sys::console;
+        //console::log_1(&format!("old ={} new={} index={}",old_scale,self.0,old_index).into());
+        if log_bp_factor >= 0 {
+            /* zooming out so we are entirely contained => easy */
+            old_index / (1<<log_bp_factor)
+        } else {
+            /* zooming in, choose centre */
+            let left = old_index * (1<<(-log_bp_factor));
+            left + (1<<(-log_bp_factor-1))
+        }
+    }
+
     pub fn carriage(&self, position: f64) -> u64 {
         (position / (self.bp_in_carriage() as f64)).floor() as u64
     }

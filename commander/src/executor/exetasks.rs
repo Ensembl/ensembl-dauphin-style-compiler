@@ -4,7 +4,8 @@ use crate::task::slot::RunSlot;
 use crate::task::task::TaskSummary;
 use crate::task::taskhandle::ExecutorTaskHandle;
 use super::runnable::Runnable;
-use super::taskcontainer::{ TaskContainer, TaskContainerHandle };
+use super::taskcontainer::TaskContainer;
+use super::taskcontainerhandle::TaskContainerHandle;
 use super::timings::ExecutorTimings;
 
 pub(crate) struct ExecutorTasks {
@@ -48,7 +49,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn block_task(&mut self, handle: &TaskContainerHandle) {
-        self.runnable.remove(&self.tasks,handle);
+        self.runnable.block(&self.tasks,handle);
     }
 
     fn other_using_slot(&self, slot: &RunSlot, handle: &TaskContainerHandle) -> bool {
@@ -73,7 +74,7 @@ impl ExecutorTasks {
     }
 
     pub(crate) fn unblock_task(&mut self, handle: &TaskContainerHandle) {
-        self.runnable.add(&self.tasks,&handle);
+        self.runnable.unblock(&self.tasks,&handle);
     }
 
     fn remove_from_slot_queue(&mut self, handle: &TaskContainerHandle) {
@@ -100,10 +101,6 @@ impl ExecutorTasks {
         self.runnable.run(&mut self.tasks,tick)
     }
 
-    pub(crate) fn any_runnable(&self) -> bool {
-        !self.runnable.empty()
-    }
-
     pub(crate) fn summarize(&self, handle: &TaskContainerHandle) -> Option<TaskSummary> {
         self.tasks.get(handle).and_then(|x| x.summarize())
     }
@@ -116,8 +113,12 @@ impl ExecutorTasks {
         container_handle
     }
 
-    pub(crate) fn check_timers(&self, timings: &ExecutorTimings) {
-        timings.check_timers(&self.tasks);
+    pub(crate) fn run_timers(&self, timings: &ExecutorTimings) {
+        timings.run_timers(&self.tasks);
+    }
+
+    pub(crate) fn run_ticks(&self, timings: &ExecutorTimings) {
+        timings.run_ticks(&self.tasks);
     }
 
     pub fn summarize_all(&self) -> Vec<TaskSummary> {

@@ -53,7 +53,7 @@ impl Parser {
     fn benign_error(&self, e: &anyhow::Error) -> bool {
         if let Some(e) = e.downcast_ref::<DauphinError>() {
             match e {
-                DauphinError::SourceError(_,_,_) | DauphinError::FloatingSourceError(_) => {
+                DauphinError::SourceError(_,_,_,_) | DauphinError::FloatingSourceError(_) => {
                     return true;
                 },
                 _ => {}

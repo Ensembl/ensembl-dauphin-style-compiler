@@ -1,43 +1,40 @@
 use std::rc::Rc;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
-use super::program::Program;
+use super::program::{ Program, ProgramBuilder };
 use super::uniform::{ UniformHandle, UniformValues };
-use super::texture::{ TextureValues };
+use super::texture::{ TextureValues, TextureHandle };
 use keyed::KeyedData;
 use crate::webgl::util::handle_context_errors;
-use crate::shape::core::stage::{ ReadStage, ProgramStage };
+use crate::stage::stage::{ ReadStage, ProgramStage };
 use crate::webgl::{ FlatId };
 use crate::webgl::global::WebGlGlobal;
+use crate::util::message::Message;
 
-pub struct ProtoProcess {
-    program: Rc<Program>,
+pub(crate) struct ProcessBuilder {
+    builder: Rc<ProgramBuilder>,
     stanza_builder: ProcessStanzaBuilder,
-    uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>,
-    left: f64
+    uniforms: Vec<(UniformHandle,Vec<f32>)>,
+    textures: Vec<(String,FlatId)>
 }
 
-impl ProtoProcess {
-    pub(crate) fn new(program: Rc<Program>, left: f64) -> ProtoProcess {
-        let uniforms = program.make_uniforms();
-        let stanza_builder = program.make_stanza_builder();
-        ProtoProcess {
-            program,
+impl ProcessBuilder {
+    pub(crate) fn new(builder: Rc<ProgramBuilder>) -> ProcessBuilder {
+        let stanza_builder = builder.make_stanza_builder();
+        ProcessBuilder {
+            builder,
             stanza_builder,
-            uniforms,
-            textures: vec![],
-            left
+            uniforms: vec![],
+            textures: vec![]
         }
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
-        self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
+    pub(crate) fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f32>) -> Result<(),Message> {
+        self.uniforms.push((handle.clone(),values));
+        Ok(())
     }
 
-    pub fn add_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> anyhow::Result<()> {
-        let handle = self.program.get_uniform_handle(uniform_name)?;
-        let entry = TextureValues::new(&handle,canvas_id)?;
-        self.textures.push(entry);
+    pub(crate) fn set_texture(&mut self, uniform_name: &str, canvas_id: &FlatId) -> Result<(),Message> {
+        self.textures.push((uniform_name.to_string(),canvas_id.clone()));
         Ok(())
     }
 
@@ -45,8 +42,18 @@ impl ProtoProcess {
         &mut self.stanza_builder
     }
 
-    pub fn build(self) -> anyhow::Result<Process> {
-        Process::new(self)
+    pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64) -> Result<Process,Message> {
+        let program = self.builder.make(gl.context(),gl.gpuspec())?;
+        let mut uniforms = program.make_uniforms();
+        for (name,value) in self.uniforms {
+            uniforms.get_mut(&name).set_value(&value)?;
+        }
+        let mut textures = program.make_textures();
+        for (name,value) in self.textures {
+            let handle = self.builder.get_texture_handle(&name)?;
+            textures.get_mut(&handle).set_value(gl.flat_store(),&value)?;
+        }
+        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left)
     }
 }
 
@@ -55,66 +62,66 @@ pub struct Process {
     stanzas: Vec<ProcessStanza>,
     program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
-    textures: Vec<TextureValues>,
+    textures: KeyedData<TextureHandle,TextureValues>,
     left: f64
 }
 
 impl Process {
-    fn new(builder: ProtoProcess) -> anyhow::Result<Process> {
-        let stanzas = builder.program.make_stanzas(&builder.stanza_builder)?;
-        let program_stage = ProgramStage::new(&builder.program)?;
+    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64) -> Result<Process,Message> {
+        let stanzas = program.make_stanzas(gl.context(),gl.aux_array(),&stanza_builder)?;
+        let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
-            program: builder.program,
+            program,
             stanzas,
             program_stage,
-            uniforms: builder.uniforms,
-            textures: builder.textures,
-            left: builder.left
+            uniforms,
+            textures,
+            left
         })
     }
 
-    fn apply_textures(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        let (textures, uniforms, context) = (&self.textures,&mut self.uniforms,&self.program.context());
-        for entry in textures.iter() {
-            let (uniform_handle,value) = entry.apply(gl)?;
-            uniforms.get_mut(uniform_handle).set_value(context,vec![value as f64])?;
+    pub fn update_attributes(&self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        for stanza in &self.stanzas {
+            stanza.update_values(gl.context(),gl.aux_array())?;
         }
         Ok(())
     }
 
-    pub fn set_uniform(&mut self, handle: &UniformHandle, values: Vec<f64>) -> anyhow::Result<()> {
-        self.uniforms.get_mut(handle).set_value(&self.program.context(),values)
+    pub fn set_uniform(&mut self, handle: &UniformHandle, values: &[f32]) -> Result<(),Message> {
+        self.uniforms.get_mut(handle).set_value(values)
     }
 
-    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> anyhow::Result<()> {
-        gl.bindery().clear();
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
+        let mut gl = gl.refs();
+        gl.bindery.clear(gl.flat_store)?;
         let program_stage = self.program_stage.clone();
         program_stage.apply(stage,self.left,opacity,self)?;
-        self.apply_textures(gl)?;
-        let context = self.program.context();
-        self.program.select_program()?;
+        self.program.select_program(gl.context)?;
         for stanza in self.stanzas.iter() {
-            for entry in self.uniforms.values() {
-                entry.activate(context)?;
+            stanza.activate(gl.context)?;
+            for entry in self.textures.values_mut() {
+                entry.apply(&mut gl)?;
             }
-            stanza.activate(context)?;
-            stanza.draw(context,self.program.get_method())?;
-            stanza.deactivate(context)?;
-            handle_context_errors(context)?;
+            for entry in self.uniforms.values() {
+                entry.activate(gl.context)?;
+            }
+            stanza.draw(gl.context,self.program.get_method())?;
+            stanza.deactivate(gl.context)?;
+            handle_context_errors(gl.context)?;
         }
         Ok(())
     }
 
-    pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        let context = self.program.context();
+    pub(crate) fn discard(&mut self,  gl: &mut WebGlGlobal) -> Result<(),Message> {
+        let mut gl = gl.refs();
         for entry in self.uniforms.values_mut() {
-            entry.discard(context)?;
+            entry.discard(gl.context)?;
         }
-        for entry in self.textures.iter_mut() {
-            entry.discard(gl)?;
+        for entry in self.textures.values_mut() {
+            entry.discard(&mut gl)?;
         }
         for stanza in self.stanzas.iter_mut() {
-            stanza.discard(context)?;
+            stanza.discard(gl.context)?;
         }
         Ok(())
     }

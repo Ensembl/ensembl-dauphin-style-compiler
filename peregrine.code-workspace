@@ -4,7 +4,10 @@
 			"path": "."
 		},
 		{
-			"path": "keyed"
+			"path": "../genome-browser-service"
+		},
+		{
+			"path": "../ensembl-client"
 		}
 	],
 	"settings": {}

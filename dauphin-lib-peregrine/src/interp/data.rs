@@ -2,41 +2,31 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_data::{ StickId, Panel, Channel, Scale, Focus, Track, ProgramData };
+use peregrine_data::{ StickId, Region, Channel, Scale, ProgramData, ShapeRequest };
 use serde_cbor::Value as CborValue;
-use peregrine_data::DataMessage;
-use web_sys::console;
 
-simple_interp_command!(GetPanelInterpCommand,GetPanelDeserializer,21,5,(0,1,2,3,4));
-simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
+simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,6,(0,1,2,3,4,5));
 simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
 
-impl InterpCommand for GetPanelInterpCommand {
+impl InterpCommand for GetLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let panel = get_instance::<Panel>(context,"panel")?;
+        let shape = get_instance::<ShapeRequest>(context,"request")?;
+        let region = shape.region();
         let registers = context.registers_mut();
-        registers.write(&self.0,InterpValue::Strings(vec![panel.stick_id().get_id().to_string()]));
-        registers.write(&self.1,InterpValue::Numbers(vec![panel.index() as f64]));
-        registers.write(&self.2,InterpValue::Numbers(vec![panel.scale().get_index() as f64]));
-        registers.write(&self.3,InterpValue::Strings(vec![panel.track().name().to_string()]));
-        if let Some(focus) = panel.focus().name() {
-            registers.write(&self.4,InterpValue::Strings(vec![focus.to_string()]));
-        } else {
-            registers.write(&self.4,InterpValue::Strings(vec![]));
-        }
+        registers.write(&self.0,InterpValue::Strings(vec![region.stick().get_id().to_string()]));
+        registers.write(&self.1,InterpValue::Numbers(vec![region.index() as f64]));
+        registers.write(&self.2,InterpValue::Numbers(vec![region.scale().get_index() as f64]));
         Ok(CommandResult::SyncResult())
     }
 }
 
-fn get_panel(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::Result<Option<Panel>> {
+fn get_region(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::Result<Option<Region>> {
     if registers.len(&cmd.3)? == 0 { return Ok(None); }
     let stick = &registers.get_strings(&cmd.3)?[0];
     let index = &registers.get_numbers(&cmd.4)?[0];
     let scale = &registers.get_numbers(&cmd.5)?[0];
-    let track = &registers.get_strings(&cmd.6)?[0];
-    let focus = &registers.get_strings(&cmd.7)?;
-    let focus = focus.get(0);
-    Ok(Some(Panel::new(StickId::new(stick),*index as u64,Scale::new(*scale as u64),Focus::new(focus.map(|x| &x as &str)),Track::new(track))))
+    Ok(Some(Region::new(&StickId::new(stick),*index as u64,&Scale::new(*scale as u64))))
 }
 
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {
@@ -46,12 +36,12 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let channel_name = registers.get_strings(&cmd.1)?;
     let prog_name = &registers.get_strings(&cmd.2)?[0];
     let mut ids = vec![];
-    if let Some(panel) = get_panel(registers,&cmd)? {
+    if let Some(region) = get_region(registers,&cmd)? {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let data_store = peregrine.agent_store().data_store().await;
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
-        let result = data_store.get(&panel,&channel,prog_name).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        let result = data_store.get(&region,&channel,prog_name).await?;
         let id = program_data.add(result);
         ids.push(id as usize);
     }

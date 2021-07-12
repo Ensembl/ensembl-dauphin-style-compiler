@@ -1,22 +1,20 @@
-use crate::lock;
-use anyhow::bail;
 use std::any::Any;
 use std::collections::{ HashMap };
-use std::rc::Rc;
-use std::sync::{ Arc, Mutex };
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
-use crate::util::memoized::Memoized;
 use super::backoff::Backoff;
-use super::channel::{ Channel, PacketPriority };
+use super::channel::{ PacketPriority };
 use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, Commander, PgDauphin, add_task };
-use crate::run::pgcommander::PgCommanderTaskSpec;
+use crate::run::{ PgDauphin, };
+use crate::api::{ PeregrineCoreBase };
 use crate::util::message::DataMessage;
-use crate::api::PeregrineCoreBase;
+use crate::lane::programname::ProgramName;
+use crate::util::memoized::{ Memoized, MemoizedType };
+use crate::PgCommanderTaskSpec;
+use crate::run::add_task;
 
 pub struct SuppliedBundle {
     bundle_name: String,
@@ -47,34 +45,31 @@ impl SuppliedBundle {
 
 #[derive(Clone)]
 struct ProgramCommandRequest {
-    channel: Channel,
-    name: String // in-channel name
+    program_name: ProgramName
 }
 
 impl ProgramCommandRequest {
-    pub(crate) fn new(channel: &Channel, name: &str) -> ProgramCommandRequest {
-        blackbox_log!(&format!("channel-{}",channel.to_string()),"requesting program {}",name);
+    pub(crate) fn new(program_name: &ProgramName) -> ProgramCommandRequest {
+        blackbox_log!(&format!("channel-{}",program_name.0.to_string()),"requesting program {}",program_name);
         ProgramCommandRequest {
-            channel: channel.clone(),
-            name: name.to_string()
+            program_name: program_name.clone()
         }
     }
 
-    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> anyhow::Result<()> {
+    pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new();
-        let channel = self.channel.clone();
-        let name = self.name.clone();
+        let program_name = self.program_name.clone();
         backoff.backoff::<ProgramCommandResponse,_,_>(
-            manager,self.clone(),&self.channel,PacketPriority::RealTime, move |_| {
-                if dauphin.is_present(&channel,&name) {
+            manager,self.clone(),&self.program_name.0,PacketPriority::RealTime, move |_| {
+                if dauphin.is_present(&program_name) {
                     None
                 } else {
                     Some(GeneralFailure::new("program was returned but did not load successfully"))
                 }
             }
         ).await??;
-        if !dauphin.is_present(&self.channel,&self.name) {
-            bail!("program did not load");
+        if !dauphin.is_present(&self.program_name) {
+            return Err(DataMessage::DauphinProgramDidNotLoad(self.program_name));
         }
         Ok(())
     }
@@ -83,7 +78,7 @@ impl ProgramCommandRequest {
 impl RequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
     fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string())]))
+        self.program_name.serialize()
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(GeneralFailure::new("program loading failed"))
@@ -105,53 +100,53 @@ impl ResponseBuilderType for ProgramResponseBuilderType {
     }
 }
 
-async fn load_program(mut manager: RequestManager, dauphin: PgDauphin, channel: Channel, name: String) -> anyhow::Result<()> {
-    let req = ProgramCommandRequest::new(&channel,&name);
-    req.execute(&mut manager,&dauphin).await
+async fn load_program(mut base: PeregrineCoreBase, program_name: ProgramName) -> Result<(),DataMessage> {
+    let req = ProgramCommandRequest::new(&program_name);
+    req.execute(&mut base.manager,&base.dauphin).await
+}
+
+fn make_program_loader(base: &PeregrineCoreBase) -> Memoized<ProgramName,Result<(),DataMessage>> {
+    let base = base.clone();
+    Memoized::new(MemoizedType::Store,move |_,program_name: &ProgramName| {
+        let base = base.clone();
+        let program_name = program_name.clone();
+        Box::pin(async move { load_program(base.clone(),program_name.clone()).await })
+    })
 }
 
 #[derive(Clone)]
-pub struct ProgramLoader {
-    store: Memoized<(Channel,String),()>,
-    manager: RequestManager
-}
+pub struct ProgramLoader(Memoized<ProgramName,Result<(),DataMessage>>);
 
 impl ProgramLoader {
     pub fn new(base: &PeregrineCoreBase) -> ProgramLoader {
-        let base = base.clone();
-        ProgramLoader {
-            manager: base.manager.clone(),
-            store: Memoized::new(move |key: &(Channel,String),result| {
-                let (channel,name) = (key.0.clone(),key.1.clone());
-                let base2 = base.clone();
-                add_task(&base.commander,PgCommanderTaskSpec {
-                    name: format!("program-loader-{}-{}",channel,name),
-                    prio: 3,
-                    timeout: None,
-                    slot: None,
-                    task: Box::pin(async move {
-                        load_program(base2.manager,base2.dauphin,channel,name).await.unwrap_or(());
-                        result.resolve(());
-                        Ok(())
-                    })
-                });
-            })
-        }
+        ProgramLoader(make_program_loader(base))
     }
 
-    pub async fn load(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.store.get(&(channel.clone(),name.to_string())).await;
-        Ok(())
+    pub async fn load(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
+        self.0.get(program_name).await.as_ref().clone()
     }
 
-    pub fn load_background(&self, channel: &Channel, name: &str) -> anyhow::Result<()> {
-        self.store.get_no_wait(&(channel.clone(),name.to_string()))
+    pub fn load_background(&self, base: &PeregrineCoreBase, program_name: &ProgramName) {
+        let cache = self.0.clone();
+        let program_name = program_name.clone();
+        add_task(&base.commander,PgCommanderTaskSpec {
+            name: format!("program background loader"),
+            prio: 10,
+            slot: None,
+            timeout: None,
+            task: Box::pin(async move {
+                cache.get(&program_name).await;
+                Ok(())
+            }),
+            stats: false
+        });
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::sync::{ Arc, Mutex };
     use crate::{ Channel, ChannelLocation };
     use crate::test::helpers::{ TestHelpers, urlc };
     use crate::test::integrations::{ cbor_matches };
@@ -170,7 +165,8 @@ mod test {
                 ],
             }
         },vec![]);
-        let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
+        let program_name = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2".to_string());
+        let pcr = ProgramCommandRequest::new(&program_name);
         let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
@@ -191,7 +187,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(h.base.dauphin.is_present(&program_name));
     }
 
     #[test]
@@ -209,7 +205,8 @@ mod test {
                 }
             },vec![]);
         }
-        let pcr = ProgramCommandRequest::new(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2");
+        let program_name = ProgramName(Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2".to_string());
+        let pcr = ProgramCommandRequest::new(&program_name);
         let dauphin2 = h.base.dauphin.clone();
         let success = Arc::new(Mutex::new(None));
         let success2 = success.clone();
@@ -233,7 +230,7 @@ mod test {
                ] 
             }
         },&reqs[0]));
-        assert!(!h.base.dauphin.is_present(&Channel::new(&ChannelLocation::HttpChannel(urlc(1))),"test2"));
+        assert!(h.base.dauphin.is_present(&program_name));
     }
 
 }

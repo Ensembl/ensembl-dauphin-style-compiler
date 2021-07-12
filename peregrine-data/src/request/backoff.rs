@@ -1,4 +1,4 @@
-use anyhow::{ bail, anyhow as err };
+use anyhow::bail;
 use blackbox::blackbox_count;
 use commander::cdr_timer;
 use std::any::Any;

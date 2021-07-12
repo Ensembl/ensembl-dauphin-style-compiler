@@ -71,7 +71,11 @@ fn compare_indexed<T>(a: &SharedVec, b: &SharedVec, a_data: &[T], b_data: &[T]) 
 
 fn compare_data<T>(a: &[T], b: &[T]) -> Vec<bool> where T: PartialEq {
     let b_len = b.len();
-    a.iter().enumerate().map(|(i,av)| av == &b[i%b_len]).collect()
+    if b_len > 0 {
+        a.iter().enumerate().map(|(i,av)| av == &b[i%b_len]).collect()
+    } else {
+        vec![false;a.len()]
+    }
 }
 
 pub fn compare(a: &SharedVec, b: &SharedVec) -> anyhow::Result<Vec<bool>> {

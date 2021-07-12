@@ -32,7 +32,11 @@ class TranscriptFileLine(object):
             self.transcript_end, self.transcript_biotype, self.transcript_designation,
             self.gene_id, self.gene_name, base64_gene_description, self.gene_biotype
         ) = rest.split("\t")
-        self.block_sizes = block_sizes.split(",")
-        self.block_starts = block_starts.split(",")
+        self.block_sizes = [int(x) for x in block_sizes.split(",") if len(x)]
+        self.block_starts = [int(x) for x in block_starts.split(",") if len(x)]
+        self.transcript_start = int(self.transcript_start)
+        self.transcript_end = int(self.transcript_end)
+        self.thick_start = int(self.thick_start)
+        self.thick_end = int(self.thick_end)
         self.gene_description = base64.decodebytes(base64_gene_description.encode("ascii")).decode("utf8")
 

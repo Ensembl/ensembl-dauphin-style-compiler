@@ -3,17 +3,20 @@ use super::train::TrainId;
 use super::carriageevent::CarriageEvents;
 use super::carriage::{ Carriage, CarriageId };
 use crate::api::MessageSender;
+use peregrine_message::Reporter;
+use crate::util::message::DataMessage;
+use crate::switch::trackconfiglist::TrainTrackConfigList;
 
 const CARRIAGE_FLANK : u64 = 2;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,
     start: u64,
-    pending: bool
+    pending: Option<Reporter<DataMessage>>
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
+    fn create(train_id: &TrainId, configs: &TrainTrackConfigList, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         let mut pending = old.pending;
@@ -35,28 +38,25 @@ impl CarriageSet {
             carriages.push(if steal {
                 old_carriages.next().unwrap().1
             } else {
-                let out = Carriage::new(&CarriageId::new(train_id,index),messages);
-                carriage_events.carriage(&out);
-                pending = true;
+                let out = Carriage::new(&CarriageId::new(train_id,index),configs,messages);
+                carriage_events.carriage(&out,reporter);
+                pending = Some(reporter.clone());
                 out
             });
         }
         CarriageSet { carriages, start, pending }
     }
 
-    pub(super) fn new(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, messages: &MessageSender) -> CarriageSet {
-        let fake_old = CarriageSet { carriages: vec![], start: 0, pending: true };
-        CarriageSet::create(train_id,carriage_events,centre,fake_old,messages)
+    pub(super) fn new() -> CarriageSet {
+        CarriageSet { carriages: vec![], start: 0, pending: None }
     }
 
-    pub(super) fn new_using(train_id: &TrainId, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
-        CarriageSet::create(train_id,carriage_events,centre,old,messages)
+    pub(super) fn new_using(train_id: &TrainId, configs: &TrainTrackConfigList, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> CarriageSet {
+        CarriageSet::create(train_id,configs,carriage_events,centre,old,messages,reporter)
     }
 
-    pub(super) fn depend(&mut self) -> bool {
-        let out = self.pending;
-        self.pending = false;
-        out
+    pub(super) fn depend(&mut self) -> Option<Reporter<DataMessage>> {
+        self.pending.take()
     }
 
     pub(super) fn carriages(&self) -> &Vec<Carriage> { &self.carriages }

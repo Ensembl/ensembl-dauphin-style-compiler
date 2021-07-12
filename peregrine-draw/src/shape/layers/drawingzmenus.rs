@@ -1,24 +1,21 @@
 use std::collections::HashMap;
-use peregrine_data::{AnchorPair, SeaEnd, SeaEndPair, SingleAnchor, ZMenu, ZMenuGenerator};
-use crate::shape::core::stage::{ ReadStage };
-use crate::shape::core::fixgeometry::{ FixData };
-use crate::shape::core::pagegeometry::{ PageData };
-use crate::shape::core::pingeometry::{ PinData };
-use crate::shape::core::tapegeometry::{ TapeData };
+use peregrine_data::{Allotment, ZMenu, ZMenuGenerator };
+use crate::stage::stage::{ ReadStage };
 use peregrine_data::ZMenuFixed;
 use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
+use crate::util::message::Message;
 
 pub struct ZMenuResult {
     menu: ZMenuFixed,
-    allotment: String
+    allotment: Allotment
 }
 
 impl ZMenuResult {
-    pub fn new(menu: ZMenuFixed, allotment: &str) -> ZMenuResult {
+    pub fn new(menu: ZMenuFixed, allotment: Allotment) -> ZMenuResult {
         ZMenuResult {
             menu,
-            allotment: allotment.to_string()
+            allotment
         }
     }
 }
@@ -27,7 +24,7 @@ pub struct ZMenuEvent {
     menu: ZMenuFixed,
     pixel: (u32,u32),
     bp: (f64,u32), // TODO allotment y
-    allotment: String // TODO allotments
+    allotment: Allotment // TODO allotments
 }
 
 pub struct DrawingZMenusBuilder {
@@ -41,11 +38,12 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<String>) {
+    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<Allotment>) {
         self.entries.push(ZMenuRectangle::new(generator,region,allotment));
     }
 
-    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<String>, x_size: Vec<f64>, y_size: Vec<f64>) {
+    /*/
+    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<Allotment>, x_size: Vec<f64>, y_size: Vec<f64>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let region : Box<dyn GeometryData> = match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
             (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
@@ -64,7 +62,7 @@ impl DrawingZMenusBuilder {
         self.add_region(generator,region,allotment);
     }
 
-    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<String>) {
+    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<Allotment>) {
         let generator = ZMenuGenerator::new(&zmenu,&values);
         let anchors_x = anchors.0;
         let anchors_y = anchors.1;
@@ -90,6 +88,7 @@ impl DrawingZMenusBuilder {
         };
         self.add_region(generator,region,allotment);
     }
+    */
 
     pub(crate) fn build(mut self) -> DrawingZMenus {
         self.entries.reverse(); // we match top-down!
@@ -108,7 +107,7 @@ impl DrawingZMenus {
         }
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<Option<ZMenuEvent>> {
+    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         for entry in &self.entries {
             if let Some(result) = entry.intersects(stage,mouse)? {
                 return Ok(Some(ZMenuEvent {
@@ -122,7 +121,7 @@ impl DrawingZMenus {
         Ok(None)
     }
 
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> anyhow::Result<bool> {
+    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         for entry in &self.entries {
             if entry.intersects_fast(stage,mouse)? {
                 return Ok(true);

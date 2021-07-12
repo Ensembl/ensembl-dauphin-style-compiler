@@ -18,6 +18,9 @@ inline "+" plus left 4;
 func minus(number,number) becomes number;
 inline "-" minus left 4;
 
+func divide(number,number) becomes number;
+inline "/" divide left 3;
+
 expr unary_minus(a) 0-a;
 inline "-" unary_minus prefix 3;
 
@@ -33,6 +36,8 @@ inline "(+)" extend left 14;
 
 func repeat(number,_A) becomes _A;
 inline "(*)" repeat left 14;
+
+func derun(number) becomes number;
 
 proc alienate(mask _A);
 
@@ -51,3 +56,8 @@ func in(string,vec(string)) becomes boolean;
 func index(number,vec(_A)) becomes _A;
 
 expr find_key(k,src) index(lookup(k,[src[].key],0),src);
+
+expr if(p,a,b) [[b],[a]][(@==1)==p][];
+
+func bytes_to_bool(bytes) becomes boolean;
+proc extract_filter(stomp mask number,stomp mask number,stomp mask number,number,number,number,number);

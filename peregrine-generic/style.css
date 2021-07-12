@@ -1,0 +1,33 @@
+html, body {
+    padding: 0;
+    margin: 0;
+}
+
+.grid {
+    height: 100vh;
+    display: grid;
+    grid-template: "header header" "viewport sidebar";
+    grid-template-columns: 1fr min-content;
+    grid-template-rows: 100px 1fr;
+    transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
+}
+
+.other {
+    min-width: 300px;
+}
+
+.other2 {
+    min-width: 50px;
+    transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
+}
+
+.viewport {
+    grid-area: viewport;
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+}
+
+input {
+    display: inline;
+}

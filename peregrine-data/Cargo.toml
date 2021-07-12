@@ -16,14 +16,11 @@ url="*"
 futures="*"
 regex="*"
 lazy_static="*"
+# ouroboros="*"
 
 [dependencies.blackbox]
 version="*"
 path="../blackbox"
-
-[dependencies.varea]
-version="*"
-path="../varea"
 
 [dependencies.keyed]
 version="*"
@@ -37,6 +34,14 @@ path="../commander"
 version="*"
 path="../peregrine-dauphin-queue"
 
+[dependencies.peregrine_message]
+version="*"
+path="../peregrine-message"
+
+[dependencies.peregrine_config]
+version="*"
+path="../peregrine-config"
+
 [dependencies.dauphin_interp]
 version="*"
 path="../dauphin-interp"
@@ -48,3 +53,7 @@ features=["console"]
 
 [dependencies.js-sys]
 version="*"
+
+[dependencies.identitynumber]
+version="*"
+path="../identitynumber"

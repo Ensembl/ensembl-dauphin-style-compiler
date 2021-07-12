@@ -1,31 +1,32 @@
 use anyhow::{ anyhow as err, bail };
+use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ SeaEndPair, SeaEnd, ShipEnd, lock, Patina, DirectColour, ZMenu, Pen, Plotter };
+use peregrine_data::{AllotmentHandle, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu, lock};
 use owning_ref::ArcRef;
 
 #[derive(Clone)]
 enum GeometryBuilderEntry {
-    SeaEndPair(Arc<SeaEndPair>),
-    SeaEnd(Arc<SeaEnd>),
-    ShipEnd(Arc<ShipEnd>),
     DirectColour(Arc<DirectColour>),
+    Colour(Arc<Colour>),
     Patina(Arc<Patina>),
     ZMenu(Arc<ZMenu>),
     Pen(Arc<Pen>),
-    Plotter(Arc<Plotter>)
+    Plotter(Arc<Plotter>),
+    Allotment(Arc<AllotmentHandle>),
+    SpaceBase(Arc<SpaceBase<f64>>),
 }
 
 impl GeometryBuilderEntry {
     fn type_string(&self) -> &str {
         match self {
-            GeometryBuilderEntry::SeaEndPair(_) => "seaendpair",
-            GeometryBuilderEntry::SeaEnd(_) => "seaend",
-            GeometryBuilderEntry::ShipEnd(_) => "shipend",
             GeometryBuilderEntry::DirectColour(_) => "directcolour",
+            GeometryBuilderEntry::Colour(_) => "colour",
             GeometryBuilderEntry::Patina(_) => "patina",
             GeometryBuilderEntry::ZMenu(_) => "zmenu",
             GeometryBuilderEntry::Pen(_) => "pen",
-            GeometryBuilderEntry::Plotter(_) => "plotter"
+            GeometryBuilderEntry::Plotter(_) => "plotter",
+            GeometryBuilderEntry::Allotment(_) => "allotment",
+            GeometryBuilderEntry::SpaceBase(_) => "spacebase",
         }
     }
 }
@@ -60,18 +61,18 @@ impl GeometryBuilderData {
     }
 
     fn get(&self, id: u32) -> anyhow::Result<GeometryBuilderEntry> {
-        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("bad panel id"))?.clone())
+        Ok(self.geometry.get(munge(id) as usize).ok_or(err!("bad lane id"))?.clone())
     }
 }
 
 macro_rules! builder_type {
-    ($read:ident,$write:ident,$typ:tt,$type_name:expr) => {
+    ($read:ident,$write:ident,$branch:tt,$typ:ty,$type_name:expr) => {
         pub fn $read(&self, id: u32) -> anyhow::Result<ArcRef<$typ>> {
-            entry_branch!(lock!(self.0).get(id)?,$typ,$type_name)
+            entry_branch!(lock!(self.0).get(id)?,$branch,$type_name)
         }
 
         pub fn $write(&self, item: $typ) -> u32 {
-            lock!(self.0).add(GeometryBuilderEntry::$typ(Arc::new(item)))
+            lock!(self.0).add(GeometryBuilderEntry::$branch(Arc::new(item)))
         }
     };
 }
@@ -83,12 +84,12 @@ impl GeometryBuilder {
         GeometryBuilder(Arc::new(Mutex::new(GeometryBuilderData::new())))
     }
 
-    builder_type!(seaendpair,add_seaendpair,SeaEndPair,"seaendpair");
-    builder_type!(seaend,add_seaend,SeaEnd,"seaend");
-    builder_type!(shipend,add_shipend,ShipEnd,"shipend");
-    builder_type!(patina,add_patina,Patina,"patina");
-    builder_type!(direct_colour,add_direct_colour,DirectColour,"directcolour");
-    builder_type!(zmenu,add_zmenu,ZMenu,"zmenu");
-    builder_type!(pen,add_pen,Pen,"pen");
-    builder_type!(plotter,add_plotter,Plotter,"plotter");
+    builder_type!(patina,add_patina,Patina,Patina,"patina");
+    builder_type!(direct_colour,add_direct_colour,DirectColour,DirectColour,"directcolour");
+    builder_type!(colour,add_colour,Colour,Colour,"colour");
+    builder_type!(zmenu,add_zmenu,ZMenu,ZMenu,"zmenu");
+    builder_type!(pen,add_pen,Pen,Pen,"pen");
+    builder_type!(plotter,add_plotter,Plotter,Plotter,"plotter");
+    builder_type!(allotment,add_allotment,Allotment,AllotmentHandle,"allotment");
+    builder_type!(spacebase,add_spacebase,SpaceBase,SpaceBase<f64>,"spacebase");
 }

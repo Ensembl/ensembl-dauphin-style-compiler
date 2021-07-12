@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct PgDauphinRunTaskSpec {
-    pub prio: i8, 
+    pub prio: u8, 
     pub slot: Option<RunSlot>, 
     pub timeout: Option<f64>,
     pub bundle_name: String,

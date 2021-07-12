@@ -1,27 +1,30 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
 use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
-use super::data::{ GetPanelDeserializer, GetDataDeserializer, DataStreamDeserializer };
+use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer };
 use super::decompress::{ 
     InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
-    ClassifyDeserializer, SplitStringDeserializer
+    ClassifyDeserializer, SplitStringDeserializer, BaseFlipDeserializer
 };
 
-use super::panel::{ 
-    NewPanelDeserializer, AddTagDeserializer, AddTrackDeserializer, SetScaleDeserializer, DataSourceDeserializer,
-    PanelSetMaxScaleJumpDeserializer
+use super::track::{ 
+    NewLaneDeserializer, AddTagDeserializer, AddTriggerDeserializer, DataSourceDeserializer, AddSwitchDeserializer,
+    AddAllotmentDeserializer, SetSwitchDeserializer, ClearSwitchDeserializer
 };
 use super::geometry::{
-    IntervalDeserializer, ScreenStartPairDeserializer, ScreenEndPairDeserializer, ScreenSpanPairDeserializer, PositionDeserializer,
-    ScreenStartDeserializer, ScreenEndDeserializer, PinStartDeserializer, PinCentreDeserializer, PinEndDeserializer,
     PatinaFilledDeserializer, PatinaHollowDeserializer, DirectColourDeserializer, ZMenuDeserializer, PatinaZMenuDeserializer,
-    PenDeserializer, PlotterDeserializer
+    PenDeserializer, PlotterDeserializer, UseAllotmentDeserializer, SpaceBaseDeserializer, SimpleColourDeserializer,
+    StripedDeserializer, BarredDeserializer
 };
 use super::shape::{
-    Rectangle2Deserializer, Rectangle1Deserializer, TextDeserializer, WiggleDeserializer
+    WiggleDeserializer, RectangleDeserializer, Text2Deserializer
+};
+
+use super::switch::{
+    GetSwitchDeserializer
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(0,0),0xAAEE123877191698)
+    CommandSetId::new("peregrine",(34,0),0xB778FBFFB0386F2E)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -30,24 +33,11 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(GetStickIdDeserializer());
     set.push(GetStickDataDeserializer());
     set.push(AddStickDeserializer());
-    set.push(NewPanelDeserializer());
+    set.push(NewLaneDeserializer());
     set.push(AddTagDeserializer());
-    set.push(AddTrackDeserializer());
-    set.push(SetScaleDeserializer());
+    set.push(AddTriggerDeserializer());
     set.push(DataSourceDeserializer());
-    set.push(IntervalDeserializer());
-    set.push(ScreenStartPairDeserializer());
-    set.push(ScreenEndPairDeserializer());
-    set.push(ScreenSpanPairDeserializer());
-    set.push(PositionDeserializer());
-    set.push(ScreenStartDeserializer());
-    set.push(ScreenEndDeserializer());
-    set.push(PinStartDeserializer());
-    set.push(PinCentreDeserializer());
-    set.push(PinEndDeserializer());
-    set.push(Rectangle2Deserializer());
-    set.push(Rectangle1Deserializer());
-    set.push(GetPanelDeserializer());
+    set.push(GetLaneDeserializer());
     set.push(GetDataDeserializer());
     set.push(DataStreamDeserializer());
     set.push(InflateBytesDeserializer());
@@ -63,9 +53,20 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(ZMenuDeserializer());
     set.push(PatinaZMenuDeserializer());
     set.push(PenDeserializer());
-    set.push(TextDeserializer());
     set.push(PlotterDeserializer());
     set.push(WiggleDeserializer());
-    set.push(PanelSetMaxScaleJumpDeserializer());
+    set.push(AddAllotmentDeserializer());
+    set.push(AddSwitchDeserializer());
+    set.push(UseAllotmentDeserializer());
+    set.push(SpaceBaseDeserializer());
+    set.push(RectangleDeserializer());
+    set.push(Text2Deserializer());
+    set.push(GetSwitchDeserializer());
+    set.push(SetSwitchDeserializer());
+    set.push(ClearSwitchDeserializer());
+    set.push(SimpleColourDeserializer());
+    set.push(StripedDeserializer());
+    set.push(BarredDeserializer());
+    set.push(BaseFlipDeserializer());
     set
 }

@@ -30,7 +30,7 @@ from os.path import abspath
 import os.path
 
 current_directory = abspath(getsourcefile(lambda:0))
-example_data_dir = os.path.join(os.path.dirname(current_directory),"..","..","example_data")
+base_directory = os.path.join(os.path.dirname(current_directory),"..","..")
 
 VERSION = "0.0.0"
 API_PREFIX = "/api"
@@ -41,8 +41,16 @@ PROJECT_NAME: str = config("PROJECT_NAME", default="Peregrine Data Server")
 ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",
 )
-BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(example_data_dir,"begs_config.toml"))
-DATA_FILES: str = config("DATA_FILES", default=os.path.join(example_data_dir,"data"))
+
+egs_directory = config("EGS_DIRECTORY", default=os.path.join(base_directory,"egs-data","egs"))
+
+EGS_FILES: str = config("EGS_FILES", default=egs_directory)
+EGS_GLOBS: List[str] = ["*.egs"]
+BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(egs_directory,"begs_config.toml"))
+DATA_FILES: str = config("DATA_FILES", default=os.path.join(base_directory,"data"))
+BEGS_FILES: str = config("BEGS_FILES", default=os.path.join(base_directory,"egs-data","begs"))
+
+print(BEGS_FILES)
 
 # logging configuration
 

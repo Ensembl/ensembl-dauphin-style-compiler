@@ -46,7 +46,7 @@ struct RequestQueueData {
 }
 
 impl RequestQueueData {
-    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>>,DataMessage> {
+    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>,DataMessage> {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
@@ -69,7 +69,6 @@ impl RequestQueueData {
             for (response,stream) in streams {
                 let stream = stream.clone();
                 let channel = self.channel.clone();
-                let integration = self.integration.clone();
                 let messages = self.messages.clone();
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
@@ -115,13 +114,15 @@ impl RequestQueue {
             prio: 4,
             timeout: None,
             slot: None,
-            task: Box::pin(self2.main_loop())
+            task: Box::pin(self2.main_loop()),
+            stats: false
         });
         Ok(())
     }
 
-    async fn build_packet(&self) -> anyhow::Result<(RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>)> {
+    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let pending = lock!(self.0).pending_send.clone();
+        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
@@ -134,10 +135,11 @@ impl RequestQueue {
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);
-        Ok((packet,channels))
+        (packet,channels)
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let sender = lock!(self.0).make_packet_sender(packet)?;
         blackbox_log!(&format!("channel-{}",channel.to_string()),"sending packet");
@@ -176,17 +178,13 @@ impl RequestQueue {
         self.process_responses(response,streams).await;
     }
 
-    fn err_context<T>(&self, a: anyhow::Result<T>, msg: &str) -> Result<T,DataMessage> {
-        a.map_err(|e| DataMessage::XXXTmp(e.to_string()))
-    }
-
     pub(crate) fn set_timeout(&mut self, timeout: f64) {
         lock!(self.0).set_timeout(timeout);
     }
 
     async fn main_loop(self) -> Result<(),DataMessage> {
         loop {
-            let (mut request,mut streams) = self.err_context(self.build_packet().await,"preparing to send data")?;
+            let (mut request,mut streams) = self.build_packet().await;
             self.process_request(&mut request,&mut streams).await;
         }
     }

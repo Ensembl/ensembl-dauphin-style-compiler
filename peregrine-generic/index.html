@@ -1,0 +1,90 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <link href='http://fonts.googleapis.com/css?family=Lato:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+  </script>
+    <div class="grid" id="grid">
+      <div>
+
+      </div>
+      <div class="viewport" id="browser">
+      </div>
+      <div class="other" id="other">
+        <div>go crazy <input id="crazy" type="checkbox"/></div>
+        <div>shy track <input id="track" type="checkbox" checked/></div>
+        <div>labels bold <input id="labels-bold" type="checkbox" checked/></div>
+        <div>labels shy <input id="labels-shy" type="checkbox" checked/></div>
+        <div>bluer text <input id="bluer" type="checkbox" /></div>
+        <div>bigger text <input id="bigger" type="checkbox"/></div>
+        <div>id labels <input id="id-labels" type="checkbox"/></div>
+        <div>flip stick <input id="stick" type="checkbox"/></div>
+        <div>drag <input id="drag" type="checkbox"/></div>
+        <button id="goto">goto</button>
+        <button id="chr">chr</button>
+      </div>
+    </div>
+    <script type="module">
+      import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
+      init().then(function() {
+        let genome_browser = new GenomeBrowser();
+        genome_browser.go();
+        genome_browser.set_message_reporter(function(x) {
+          console.error(x);
+        });
+        genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
+        genome_browser.set_switch(["track","gene-pc-fwd"]);
+        genome_browser.set_switch(["track","gene-nonpc-fwd"]);
+        genome_browser.set_switch(["track","gene-nonpc-rev"]);
+        genome_browser.set_switch(["track","gene-nonpc-fwd","label"]);
+        genome_browser.set_switch(["track","gene-nonpc-rev","label"]);
+        genome_browser.set_switch(["track","gc"]);
+        genome_browser.set_switch(["track","contig"]);
+        genome_browser.goto(2000000,3000000);
+        genome_browser.set_switch(["settings"]);
+
+        function flipper(path,go) {
+            let flip = false;
+            let out = function() {
+                if(flip) {
+                    genome_browser.clear_switch(path);
+                } else {
+                    genome_browser.set_switch(path);
+                }
+                flip=!flip;
+            };
+            if(go) { out(); }
+            return out;
+        }
+        document.getElementById("track").onclick = flipper(["track","gene-pc-rev"],true);
+        document.getElementById("labels-bold").onclick = flipper(["track","gene-pc-fwd","label"],true);
+        document.getElementById("labels-shy").onclick = flipper(["track","gene-pc-rev","label"],true);
+        document.getElementById("bluer").onclick = flipper(["settings","bluer"],false);
+        document.getElementById("bigger").onclick = flipper(["settings","bigger"],false);
+        document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
+
+        document.getElementById("goto").onclick = function() {
+          genome_browser.goto(10000000,10100000);
+        };
+        document.getElementById("chr").onclick = function() {
+          genome_browser.set_stick("homo_sapiens_GCA_000001405_27:2");
+        };
+        document.getElementById("crazy").onclick = function() {
+          test(genome_browser.copy());
+        };
+        let flip = false;
+        document.getElementById("stick").onclick = function() {
+          genome_browser.set_stick(flip?"homo_sapiens_GCA_000001405_27:1":"homo_sapiens_GCA_000001405_27:2");
+          flip = !flip;
+        };
+        let flip2 = false;
+        document.getElementById("drag").onclick = function() {
+          flip2 = !flip2;
+          genome_browser.set_artificial("drag",flip2);
+        };
+      });
+    </script>
+  </body>
+</html>

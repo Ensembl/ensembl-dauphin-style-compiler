@@ -1,70 +1,35 @@
-use std::collections::{ BTreeSet, HashSet };
 use std::fmt::{ self, Display, Formatter };
-use super::focus::Focus;
 use super::stick::StickId;
-use super::track::Track;
+use crate::switch::trackconfiglist::TrackConfigList;
 
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct Layout {
-    tracks: BTreeSet<Track>,
-    focus: Focus,
-    stick: Option<StickId>
+    stick: StickId,
+    tracks: TrackConfigList
 }
 
 impl Layout {
-    pub fn new(stick: &StickId) -> Layout {
+    pub fn new(stick: &StickId, tcl: &TrackConfigList) -> Layout {
         Layout {
-            tracks: BTreeSet::new(),
-            focus: Focus::new(None),
-            stick: Some(stick.clone())
+            tracks: tcl.clone(),
+            stick: stick.clone()
         }
     }
 
-    pub fn empty() -> Layout {
-        Layout {
-            tracks: BTreeSet::new(),
-            focus: Focus::new(None),
-            stick: None
-        }
+    pub fn track_config_list(&self) -> &TrackConfigList { &self.tracks }
+    pub fn stick(&self) -> &StickId { &self.stick }
+
+    pub fn set_stick(&mut self, stick: &StickId) {
+        self.stick = stick.clone();
     }
 
-    pub fn ready(&self) -> bool { self.stick.is_some() }
-
-    pub fn tracks(&self) -> &BTreeSet<Track> { &self.tracks }
-    pub fn focus(&self) -> &Focus { &self.focus }
-    pub fn stick(&self) -> &Option<StickId> { &self.stick }
-
-    pub fn track_on(&self, track: &Track, yn: bool) -> Layout {
-        let mut out = self.clone();
-        if yn {
-            out.tracks.insert(track.clone());
-        } else {
-            out.tracks.remove(track);
-        }
-        out
-    }
-
-    pub fn set_stick(&self, stick: &StickId) -> Layout {
-        let mut out = self.clone();
-        out.stick = Some(stick.clone());
-        out
-    }
-
-    pub fn set_focus(&self, focus: &Focus) -> Layout {
-        let mut out = self.clone();
-        out.focus = focus.clone();
-        out
+    pub fn set_track_config_list(&mut self, track_config_list: &TrackConfigList) {
+        self.tracks = track_config_list.clone();
     }
 }
 
 impl Display for Layout {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        let mut tracks : Vec<_> = self.tracks.iter().map(|x| x.to_string()).collect();
-        tracks.sort();
-        if let Some(stick) = &self.stick {
-            write!(f,"Layout(tracks={} focus={} stick={})",tracks.join(", "),self.focus,stick)
-        } else {
-            write!(f,"Layout(tracks={} focus={}  *no stick*)",tracks.join(", "),self.focus)
-        }
+        write!(f,"Layout(tracks={:?} stick={})",self.tracks,self.stick)
     }
 }

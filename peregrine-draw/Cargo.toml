@@ -17,6 +17,7 @@ base64="*"
 async-trait="*"
 url="*"
 console_error_panic_hook="*"
+css-color-parser="*"
 
 [dependencies.wasm-bindgen]
 version="*"
@@ -33,24 +34,32 @@ features=[]
 version="*"
 path="../commander"
 
+[dependencies.peregrine_message]
+version="*"
+path="../peregrine-message"
+
 [dependencies.web-sys]
 version = "*"
 features = [
   'AbortController', 'AbortSignal',
-  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d',
-  'Document',
+  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration',
+  'Document', 'DomRect',
   'Element',
-  'HtmlElement', 'Headers', 'HtmlCanvasElement',
+  'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
+  'KeyboardEvent',
+  'MouseEvent',
   'Node',
+  'PointerEvent',
   'Request', 'RequestInit', 'RequestMode', 'Response',
+  'Screen',
   'TextMetrics',
   'Window', 'WebGlRenderingContext', 'WebGlShaderPrecisionFormat', 'WebGlProgram', 'WebGlShader',
-  'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture',
+  'WebGlUniformLocation', 'WebGlBuffer', 'WebGlTexture', 'WheelEvent',
   'XmlHttpRequest', 'XmlHttpRequestResponseType'
 ]
 
 [dependencies.js-sys]
-version = "*"
+version = "^0.3.51"
 
 [dependencies.dauphin_interp]
 version="*"
@@ -71,3 +80,7 @@ path="../peregrine-dauphin-queue"
 [dependencies.peregrine_dauphin]
 version="*"
 path="../peregrine-dauphin"
+
+[dependencies.peregrine_config]
+version="*"
+path="../peregrine-config"

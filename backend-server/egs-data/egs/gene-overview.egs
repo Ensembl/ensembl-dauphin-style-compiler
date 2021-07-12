@@ -1,0 +1,69 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+/* 
+ * actually get the data from the server
+ */
+
+data := get_data("self()","gene-overview",get_region());
+
+/*
+ * undo the compression applied by the server basically by applying
+ * the transforms applied there in reverse order.
+ */
+
+start := delta_seq(data,"starts");
+end := start + delta_seq(data,"lengths");
+gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
+strand := positive_seq(data,"strands");
+
+/* 
+ * What are the current track settings?
+ */
+
+potential_tracks := ["track:gene-nonpc-rev","track:gene-pc-rev","track:gene-nonpc-fwd","track:gene-pc-fwd","track:focus"];
+enabled_tracks := get_switch([
+    ["track","gene-nonpc-rev"],
+    ["track","gene-pc-rev"],
+    ["track","gene-nonpc-fwd"],
+    ["track","gene-pc-fwd"],
+][]);
+
+tracks_used := ["","","","","focus"];
+tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+
+/*
+ * Which allotment and track does data go into?
+ *
+ * There are separate allotments for protein_coding and non-protein_coding
+ * and also for forward and reverse strand. As usual there is a fifth 
+ * allotment for a focus-feature.
+ *
+ * For the data on each allotment there are currently two tracks: the
+ * main data and the labels.
+ */
+
+allotment_idx := len([start]) (*) 0;
+
+allotment_idx#[strand > 0] (+=) 2;
+allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+
+allotments := [use_allotment(tracks_used[])];
+allotment := index(allotment_idx,allotments);
+
+/*
+ * What colour? What font? etc
+ *
+ * (driven by allotment for gene)
+ */
+
+non_pc_colour := simple_colour(direct_colour(200,200,200,255));
+pc_colour := simple_colour(direct_colour(128,128,128,255));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
+
+/*
+ * draw everything!
+ */
+
+//rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome(start,end,5,patina,allotment);

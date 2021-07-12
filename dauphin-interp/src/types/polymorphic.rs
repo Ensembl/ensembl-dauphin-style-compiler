@@ -25,7 +25,13 @@ pub fn arbitrate_type(dst: &InterpValue, src: &InterpValue, prefer_dst: bool) ->
     Some(if let InterpNatural::Empty = dst_natural {
         src_natural
     } else {
-        if prefer_dst { dst_natural } else { src_natural }
+        /* indexes can be expanded into numbers */
+        match (&src_natural,&dst_natural) {
+            (InterpNatural::Indexes,InterpNatural::Numbers) => dst_natural,
+            (InterpNatural::Numbers,InterpNatural::Indexes) => src_natural,
+            _ =>  if prefer_dst { dst_natural } else { src_natural }
+        }
+
     })
 }
 

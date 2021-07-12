@@ -5,24 +5,16 @@ use crate::corefutures::namedfuture::NamedWait;
 
 pub(crate) struct NameAgent {
     name: String,
-    named_waits: HashSet<NamedWait>,
-    identity: Option<u64>
+    named_waits: HashSet<NamedWait>
 }
 
 impl NameAgent {
     pub(super) fn new(name: &str) -> NameAgent {
         NameAgent {
             name: name.to_string(),
-            named_waits: HashSet::new(),
-            identity: None
+            named_waits: HashSet::new()
         }
     }
-
-    pub(crate) fn set_identity(&mut self, identity: u64) {
-        self.identity = Some(identity);
-    }
-
-    pub(super) fn identity(&self) -> Option<u64> { self.identity }
 
     pub(crate) fn get_name(&self) -> String {
         self.name.to_string()

@@ -124,7 +124,7 @@ impl<'a> Lexer<'a> {
         });
         error_locate_cb(|| {
             let p = self.position();
-            (p.filename().to_string(),p.line())
+            (p.filename().to_string(),p.line(),0)
         },out)
     }
 

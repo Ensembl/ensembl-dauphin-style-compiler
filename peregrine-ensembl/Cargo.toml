@@ -1,0 +1,49 @@
+[package]
+name = "peregrine-ensembl"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow="*"
+wasm-bindgen-futures = "*"
+console_error_panic_hook="*"
+url="*"
+lazy_static="*"
+serde_json="*"
+
+[dependencies.serde]
+version="*"
+features = ['derive']
+
+[dependencies.commander]
+version="*"
+path="../commander"
+
+[dependencies.wasm-bindgen]
+version="*"
+features = [
+  'serde-serialize'
+]
+
+[dependencies.js-sys]
+version = "*"
+
+[dependencies.web-sys]
+version = "*"
+features=["CssStyleDeclaration","HtmlElement","DomTokenList"]
+
+[dependencies.peregrine_data]
+version="*"
+path="../peregrine-data"
+
+[dependencies.peregrine_draw]
+version="*"
+path="../peregrine-draw"
+
+[dependencies.peregrine_message]
+version="*"
+path="../peregrine-message"

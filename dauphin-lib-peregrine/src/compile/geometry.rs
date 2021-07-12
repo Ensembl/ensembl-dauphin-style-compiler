@@ -7,26 +7,22 @@ use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 use crate::simple_command;
 
-simple_command!(IntervalCommand,IntervalCommandType,"peregrine","interval",3,(0,1,2));
-simple_command!(ScreenStartPairCommand,ScreenStartPairCommandType,"peregrine","screen_start_pair",3,(0,1,2));
-simple_command!(ScreenEndPairCommand,ScreenEndPairCommandType,"peregrine","screen_end_pair",3,(0,1,2));
-simple_command!(ScreenSpanPairCommand,ScreenSpanPairCommandType,"peregrine","screen_span_pair",3,(0,1,2));
-
-simple_command!(PositionCommand,PositionCommandType,"peregrine","position",2,(0,1));
 simple_command!(ScreenStartCommand,ScreenStartCommandType,"peregrine","screen_start",2,(0,1));
 simple_command!(ScreenEndCommand,ScreenEndCommandType,"peregrine","screen_end",2,(0,1));
-
 simple_command!(PinStartCommand,PinStartCommandType,"peregrine","pin_start",2,(0,1));
 simple_command!(PinCentreCommand,PinCentreCommandType,"peregrine","pin_centre",2,(0,1));
 simple_command!(PinEndCommand,PinEndCommandType,"peregrine","pin_end",2,(0,1));
-
 simple_command!(ZMenuCommand,ZMenuCommandType,"peregrine","zmenu",2,(0,1));
-
-simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",2,(0,1));
-simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",2,(0,1));
-simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","colour",4,(0,1,2,3));
-simple_command!(PenCommand,PenCommandType,"peregrine","pen",4,(0,1,2,3));
+simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",3,(0,1,2));
+simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",4,(0,1,2,3));
+simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","direct_colour",5,(0,1,2,3,4));
+simple_command!(UseAllotmentCommand,UseAllotmentCommandType,"peregrine","use_allotment",2,(0,1));
+simple_command!(PenCommand,PenCommandType,"peregrine","pen",6,(0,1,2,3,4,5));
 simple_command!(PlotterCommand,PlotterCommandType,"peregrine","plotter",3,(0,1,2));
+simple_command!(SpaceBaseCommand,SpaceBaseCommandType,"peregrine","spacebase",4,(0,1,2,3));
+simple_command!(SimpleColourCommand,SimpleColourCommandType,"peregrine","simple_colour",2,(0,1));
+simple_command!(StripedCommand,StripedCommandType,"peregrine","striped",6,(0,1,2,3,4,5));
+simple_command!(BarCommand,BarCommandType,"peregrine","barred",6,(0,1,2,3,4,5));
 
 /* 0: out/patina  1: zmenu  2: key/D  3: key/A  4: key/B  5: value/D  6: value/A  7: value/B */
 pub struct PatinaZMenuCommand(Register,Register,Register,Register,Register,Register,Register,Register);

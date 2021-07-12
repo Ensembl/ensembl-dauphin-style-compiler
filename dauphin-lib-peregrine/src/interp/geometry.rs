@@ -1,164 +1,57 @@
 use crate::simple_interp_command;
-use peregrine_data::{ SeaEndPair, SeaEnd, ScreenEdge, ShipEnd, Colour, DirectColour, Patina, ZMenu, Pen, Plotter };
+use peregrine_data::{
+     Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage, Builder, ShapeListBuilder, SpaceBase
+};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
-use std::collections::HashMap;
-use std::collections::hash_map::Entry;
-use crate::util::{ get_peregrine };
+use crate::util::{ get_peregrine, get_instance };
 
-simple_interp_command!(IntervalInterpCommand,IntervalDeserializer,9,3,(0,1,2));
-simple_interp_command!(ScreenStartPairInterpCommand,ScreenStartPairDeserializer,10,3,(0,1,2));
-simple_interp_command!(ScreenEndPairInterpCommand,ScreenEndPairDeserializer,11,3,(0,1,2));
-simple_interp_command!(ScreenSpanPairInterpCommand,ScreenSpanPairDeserializer,12,3,(0,1,2));
+simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
+simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
+simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(0,1));
+simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,3,(0,1,2));
+simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,4,(0,1,2,3));
+simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,5,(0,1,2,3,4));
+simple_interp_command!(PenInterpCommand,PenDeserializer,16,6,(0,1,2,3,4,5));
+simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
+simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
+simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
+simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,5));
+simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 
-simple_interp_command!(PositionInterpCommand,PositionDeserializer,13,2,(0,1));
-simple_interp_command!(ScreenStartInterpCommand,ScreenStartDeserializer,14,2,(0,1));
-simple_interp_command!(ScreenEndInterpCommand,ScreenEndDeserializer,15,2,(0,1));
-
-simple_interp_command!(PinStartInterpCommand,PinStartDeserializer,16,2,(0,1));
-simple_interp_command!(PinCentreInterpCommand,PinCentreDeserializer,17,2,(0,1));
-simple_interp_command!(PinEndInterpCommand,PinEndDeserializer,18,2,(0,1));
-simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,34,2,(0,1));
-simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,35,8,(0,1,2,3,4,5,6,7));
-
-simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
-simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,32,2,(0,1));
-simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,33,4,(0,1,2,3));
-simple_interp_command!(PenInterpCommand,PenDeserializer,36,4,(0,1,2,3));
-simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,38,3,(0,1,2));
-
-fn seaendpair<F>(context: &mut InterpContext, out: &Register, starts: &Register, ends: &Register, cb: F) -> anyhow::Result<()>
-                where F: FnOnce(Vec<f64>,Vec<f64>) -> SeaEndPair {
-    let registers = context.registers_mut();
-    let starts = registers.get_numbers(&starts)?.to_vec();
-    let ends = registers.get_numbers(&ends)?.to_vec();
-    drop(registers);
-    let peregrine = get_peregrine(context)?;
-    let id = peregrine.geometry_builder().add_seaendpair(cb(starts,ends));
-    let registers = context.registers_mut();
-    registers.write(&out,InterpValue::Indexes(vec![id as usize]));
-    Ok(())
-}
-
-fn seaend<F>(context: &mut InterpContext, out: &Register, pos: &Register, cb: F) -> anyhow::Result<()>
-                where F: FnOnce(Vec<f64>) -> SeaEnd {
-    let registers = context.registers_mut();
-    let pos = registers.get_numbers(&pos)?.to_vec();
-    drop(registers);
-    let peregrine = get_peregrine(context)?;
-    let id = peregrine.geometry_builder().add_seaend(cb(pos));
-    let registers = context.registers_mut();
-    registers.write(&out,InterpValue::Indexes(vec![id as usize]));
-    Ok(())
-}
-
-fn shipend<F>(context: &mut InterpContext, out: &Register, pos: &Register, cb: F) -> anyhow::Result<()>
-                where F: FnOnce(Vec<f64>) -> ShipEnd {
-    let registers = context.registers_mut();
-    let pos = registers.get_numbers(&pos)?.to_vec();
-    drop(registers);
-    let peregrine = get_peregrine(context)?;
-    let id = peregrine.geometry_builder().add_shipend(cb(pos));
-    let registers = context.registers_mut();
-    registers.write(&out,InterpValue::Indexes(vec![id as usize]));
-    Ok(())
-}
-
-impl InterpCommand for IntervalInterpCommand {
+impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaendpair(context,&self.0,&self.1,&self.2,|starts,ends| SeaEndPair::Paper(starts,ends))?;
+        let registers = context.registers_mut();
+        let base = registers.get_numbers(&self.1)?.to_vec();
+        let normal = registers.get_numbers(&self.2)?.to_vec();
+        let tangent = registers.get_numbers(&self.3)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();
+        let spacebase = SpaceBase::new(base,normal,tangent);
+        let id = geometry_builder.add_spacebase(spacebase);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
         Ok(CommandResult::SyncResult())
     }
 }
 
-impl InterpCommand for ScreenStartPairInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaendpair(context,&self.0,&self.1,&self.2,|starts,ends| SeaEndPair::Screen(ScreenEdge::Min(starts),ScreenEdge::Min(ends)))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for ScreenEndPairInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaendpair(context,&self.0,&self.1,&self.2,|starts,ends| SeaEndPair::Screen(ScreenEdge::Max(starts),ScreenEdge::Max(ends)))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for ScreenSpanPairInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaendpair(context,&self.0,&self.1,&self.2,|starts,ends| SeaEndPair::Screen(ScreenEdge::Min(starts),ScreenEdge::Max(ends)))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for PositionInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaend(context,&self.0,&self.1,|pos| SeaEnd::Paper(pos))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for ScreenStartInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaend(context,&self.0,&self.1,|pos| SeaEnd::Screen(ScreenEdge::Min(pos)))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for ScreenEndInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        seaend(context,&self.0,&self.1,|pos| SeaEnd::Screen(ScreenEdge::Max(pos)))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for PinStartInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        shipend(context,&self.0,&self.1,|pos| ShipEnd::Min(pos))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for PinCentreInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        shipend(context,&self.0,&self.1,|pos| ShipEnd::Centre(pos))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-impl InterpCommand for PinEndInterpCommand {
-    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        shipend(context,&self.0,&self.1,|pos| ShipEnd::Max(pos))?;
-        Ok(CommandResult::SyncResult())
-    }
-}
-
-fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Vec<DirectColour>) -> Patina {
+fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, priority: &Register,  cb: F) -> anyhow::Result<()>
+        where F: FnOnce(Vec<Colour>,i8) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
+    let priority = registers.get_numbers(priority)?.to_vec()[0] as i8;
     drop(registers);
     let peregrine = get_peregrine(context)?;
     let geometry_builder = peregrine.geometry_builder();
-    let mut map : HashMap<usize,DirectColour> = HashMap::new();
     let mut colours = vec![];
-    // XXX too much cloning
     for colour_id in &colour_ids {
-        let colour = match map.entry(*colour_id) {
-            Entry::Occupied(v) => v.get().clone(),
-            Entry::Vacant(v) => {
-                let colour = geometry_builder.direct_colour(*colour_id as u32)?;
-                v.insert(colour.as_ref().clone());
-                colour.as_ref().clone()
-            }
-        };
-        colours.push(colour);
+        colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
     }
     drop(peregrine);
-    let patina = cb(colours);
+    let patina = cb(colours,priority);
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -172,14 +65,15 @@ impl InterpCommand for DirectColourInterpCommand {
         let red = registers.get_numbers(&self.1)?.to_vec();
         let green = registers.get_numbers(&self.2)?.to_vec();
         let blue = registers.get_numbers(&self.3)?.to_vec();
-        let (red_len,green_len,blue_len) = (red.len(),green.len(),blue.len());
-        let len = max(max(red_len,green_len),blue_len);
+        let alpha = registers.get_numbers(&self.4)?.to_vec();
+        let (red_len,green_len,blue_len,alpha_len) = (red.len(),green.len(),blue.len(),alpha.len());
+        let len = max(max(red_len,green_len),max(blue_len,alpha_len));
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();    
         let mut colours = vec![];
         for i in 0..len {
-            let dc = DirectColour(red[i%red_len] as u8,green[i%green_len] as u8,blue[i%blue_len] as u8);
+            let dc = DirectColour(red[i%red_len] as u8,green[i%green_len] as u8,blue[i%blue_len] as u8,alpha[i%alpha_len] as u8);
             colours.push(geometry_builder.add_direct_colour(dc) as usize);
         }
         drop(peregrine);
@@ -189,16 +83,131 @@ impl InterpCommand for DirectColourInterpCommand {
     }
 }
 
+impl InterpCommand for SimpleColourInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids = registers.get_indexes(&self.1)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let direct_colour = if let Some(direct_id) = direct_ids.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255,0)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Direct(direct_colour));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for StripedInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids_a = registers.get_indexes(&self.1)?.to_vec();
+        let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
+        let stripe_x = *registers.get_numbers(&self.3)?.to_vec().get(0).unwrap_or(&2.);
+        let stripe_y = *registers.get_numbers(&self.4)?.to_vec().get(0).unwrap_or(&2.);
+        let prop = *registers.get_numbers(&self.5)?.to_vec().get(0).unwrap_or(&0.5);
+        let stripes = (stripe_x as u32,stripe_y as u32);
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let direct_colour_a = if let Some(direct_id) = direct_ids_a.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255,0)
+        };
+        let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255,0)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Stripe(direct_colour_a,direct_colour_b,stripes,prop));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for BarredInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let direct_ids_a = registers.get_indexes(&self.1)?.to_vec();
+        let direct_ids_b = registers.get_indexes(&self.2)?.to_vec();
+        let stripe_x = *registers.get_numbers(&self.3)?.to_vec().get(0).unwrap_or(&2.);
+        let stripe_y = *registers.get_numbers(&self.4)?.to_vec().get(0).unwrap_or(&2.);
+        let prop = *registers.get_numbers(&self.5)?.to_vec().get(0).unwrap_or(&0.5);
+        let stripes = (stripe_x as u32,stripe_y as u32);
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder();    
+        let direct_colour_a = if let Some(direct_id) = direct_ids_a.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255,0)
+        };
+        let direct_colour_b = if let Some(direct_id) = direct_ids_b.get(0) {
+            let dc = geometry_builder.direct_colour(*direct_id as u32)?;
+            dc.as_ref().clone()
+        } else {
+            DirectColour(255,255,255,0)
+        };
+        let colour_id = geometry_builder.add_colour(Colour::Bar(direct_colour_a,direct_colour_b,stripes,prop));
+        drop(peregrine);
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(vec![colour_id as usize]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for UseAllotmentInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut name = registers.get_strings(&self.1)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry_builder = peregrine.geometry_builder(); 
+        let mut allotment_petitioner = peregrine.allotments().clone();
+        let handles = name.drain(..).map(|name| {
+            Ok(allotment_petitioner.lookup(&name).ok_or_else(||
+                DataMessage::NoSuchAllotment(name)
+            )?)
+        }).collect::<Result<Vec<_>,DataMessage>>()?;
+        let ids = handles.iter().map(|handle| {
+            geometry_builder.add_allotment(handle.clone()) as usize           
+        }).collect();
+        drop(peregrine);
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        for handle in &handles {
+            zoo.lock().add_allotment(handle);
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Indexes(ids));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 impl InterpCommand for PatinaFilledInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, |dc| Patina::Filled(Colour::Direct(dc)))?;
+        patina_colour(context,&self.0,&self.1, &self.2,|c,p| Patina::Filled(c,p))?;
         Ok(CommandResult::SyncResult())
     }
 }
 
 impl InterpCommand for PatinaHollowInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, |dc| Patina::Hollow(Colour::Direct(dc)))?;
+        let registers = context.registers_mut();
+        let width = *registers.get_numbers(&self.2)?.to_vec().get(0).unwrap_or(&1.);
+        drop(registers);    
+        patina_colour(context,&self.0,&self.1, &self.3,|c,p| Patina::Hollow(c,width as u32,p))?;
         Ok(CommandResult::SyncResult())
     }
 }
@@ -222,13 +231,13 @@ impl InterpCommand for ZMenuInterpCommand {
     }
 }
 
-fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<HashMap<String,Vec<String>>> {
-    let mut out = HashMap::new();
+fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<Vec<(String,Vec<String>)>> {
+    let mut out = vec![];
     let value_pos = value_a.iter().zip(value_b.iter().cycle());
     let kv = keys.iter().zip(value_pos.cycle());
     for (key,(value_start,value_length)) in kv {
         let values = &value_d[*value_start..(*value_start+*value_length)];
-        out.insert(key.to_string(),values.to_vec());
+        out.push((key.to_string(),values.to_vec()));
     }
     Ok(out)
 }
@@ -271,12 +280,15 @@ impl InterpCommand for PenInterpCommand {
         let font = registers.get_strings(&self.1)?[0].to_string();
         let size = registers.get_numbers(&self.2)?[0];
         let colour_ids = registers.get_indexes(&self.3)?;
+        let background_id = registers.get_indexes(&self.4)?.get(0).cloned();
+        let depth = registers.get_numbers(&self.5)?[0] as i8;
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
-        let pen = Pen(font,size as u32,colours);
+        let background = background_id.map(|id| geometry_builder.direct_colour(id as u32)).transpose()?.map(|x| x.as_ref().clone());
+        let pen = Pen::new(&font,size as u32,&colours,&background,depth);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
         let registers = context.registers_mut();

@@ -48,6 +48,8 @@ impl CommandGetter {
             None
         }
     }
+
+    pub fn index(&self) -> usize { self.index }
 }
 
 async fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext) -> anyhow::Result<bool> {
@@ -70,7 +72,7 @@ async fn more(commands: &mut CommandGetter, context: &mut InterpContext) -> anyh
     let out = more_internal(commands,context).await;
     error_locate_cb(|| {
         let line = context.get_line_number();
-        (line.0.to_string(),line.1)
+        (line.0.to_string(),line.1,commands.index())
     },out)
 }
 
@@ -164,7 +166,7 @@ impl<'b> InterpretInstance for DebugInterpretInstance<'b> {
             let out = self.more_internal().await;
             error_locate_cb(|| {
                 let line = self.context.get_line_number();
-                (line.0.to_string(),line.1)
+                (line.0.to_string(),line.1,self.commands.index())
             },out)
         })
     }

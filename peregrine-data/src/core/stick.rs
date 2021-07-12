@@ -2,8 +2,9 @@ use anyhow::bail;
 use std::collections::HashSet;
 use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
+use std::sync::Arc;
 use crate::util::message::DataMessage;
-
+use crate::switch::allotment::{ AllotmentRequest };
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
 
@@ -49,7 +50,7 @@ impl StickTopology {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct Stick {
     id: StickId,
     size: u64,
@@ -58,11 +59,11 @@ pub struct Stick {
 }
 
 impl Stick {
-    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String]) -> Stick {
+    pub fn new(id: &StickId, size: u64, topology: StickTopology, tags: &[String],) -> Stick {
         Stick {
             id: id.clone(),
             size, topology,
-            tags: tags.iter().cloned().collect()
+            tags: tags.iter().cloned().collect(),
         }
     }
 

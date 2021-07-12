@@ -5,7 +5,7 @@ import "lib:peregrine"; use "peregrine";
  * actually get the data from the server
  */
 
-data := get_data("self()","gene",get_panel());
+data := get_data("self()","gene",get_region());
 
 /*
  * undo the compression applied by the server basically by applying
@@ -26,6 +26,21 @@ designated_transcript_designation := classified_seq(data,"designated_transcript_
 strand_string := len([strand]) (*) "negative strand";
 strand_string#[strand>0] := "positive strand";
 
+/* 
+ * What are the current track settings?
+ */
+
+potential_tracks := ["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd","focus"];
+enabled_tracks := get_switch([
+    ["track","gene-nonpc-rev"],
+    ["track","gene-pc-rev"],
+    ["track","gene-nonpc-fwd"],
+    ["track","gene-pc-fwd"],
+][]);
+
+tracks_used := ["","","","","focus"];
+tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+
 /*
  * Which allotment and track does data go into?
  *
@@ -42,14 +57,26 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
-allotment := index(allotment_idx,["gene-nonpc-rev","gene-pc-rev","gene-nonpc-fwd","gene-pc-fwd"]);
+allotments := [use_allotment(tracks_used[])];
+allotment := index(allotment_idx,allotments);
 
 /*
- * Which track does the data go into. Basically the same as the allotment
- * but the labels go into a "subtrack"
+ * Filter labels by which tracks are configured to have labels
  */
 
-track := allotment;
+enabled_labels := get_switch([
+    ["track","gene-nonpc-rev","label"],
+    ["track","gene-pc-rev","label"],
+    ["track","gene-nonpc-fwd","label"],
+    ["track","gene-pc-fwd","label"],
+][]);
+
+enabled_gene_labels := index(allotment_idx,[enabled_labels]);
+
+text_allotment := allotment;
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
+
+gene_labels := [gene_name,gene_id][(@==1)==get_switch(["track","gene-pc-fwd","label","id"])];
 
 /*
  * What colour? What font? etc
@@ -57,11 +84,14 @@ track := allotment;
  * (driven by allotment for gene)
  */
 
-non_pc_colour := colour(250,250,250);
+non_pc_colour := colour(200,200,200);
 pc_colour := colour(128,128,128);
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
 
-textpen := pen("Lato",12,colour(250,250,250));
+text_colour := [colour(111,129,144),colour(111,129,255)][(@==1)==get_switch(["settings","bluer"])];
+text_size := [12,24][(@==1)==get_switch(["settings","bigger"])];
+
+textpen := pen("Lato sans-serif",text_size,text_colour,[][],0);
 
 /*
  * prepare the zmenus
@@ -82,7 +112,8 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id
  * draw everything!
  */
 
-rectangle_on_genome(start,end,5,patina,allotment,track);
-rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment,track);
-rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment,track);
-text_underneath(start,8,textpen,gene_name,allotment,track);
+//rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome(start,end,5,patina,allotment);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+text_underneath(start,8,textpen,gene_labels,text_allotment);

@@ -346,7 +346,7 @@ impl<'b> CodeGen<'b> {
         for stmt in stmts {
             if let Err(e) = self.build_stmt(stmt) {
                 let pos = &stmt.2;
-                errors.push(error_locate(e,pos.filename(),pos.line()));
+                errors.push(error_locate(e,pos.filename(),pos.line(),0));
             }
         }
         if errors.len() > 0 {

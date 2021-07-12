@@ -24,6 +24,7 @@ use super::parsedecl::{
 };
 use crate::parser::{ parse_error, parse_locate };
 use super::parseexpr::{ parse_expr, parse_exprlist, parse_full_identifier, peek_full_identifier };
+use dauphin_interp::util::extend_error;
 
 fn parse_regular(lexer: &mut Lexer, defstore: &DefStore) -> anyhow::Result<Vec<ParserStatement>> {
     if let Some(pattern) = peek_full_identifier(lexer,None) {
@@ -89,9 +90,16 @@ fn parse_funcstmt(lexer: &mut Lexer, defstore: &DefStore)-> anyhow::Result<Vec<P
     }    
 } 
 
+fn add_identifier_to_error(expr: &Expression, err: anyhow::Error) -> anyhow::Error {
+    match expr {
+        Expression::Identifier(id) =>  extend_error(err,&format!("missing {}?",id)),
+        e => err
+    }
+}
+
 fn parse_inlinestmt(lexer: &mut Lexer, defstore: &DefStore)-> anyhow::Result<Vec<ParserStatement>> {
     let left = parse_expr(lexer,defstore,false)?;
-    let op = get_operator(lexer,false)?;
+    let op = get_operator(lexer,false).map_err(|e| add_identifier_to_error(&left,e))?;
     let right = parse_expr(lexer,defstore,false)?;
     let inline = defstore.get_inline_binary(&op,lexer)?;
     if !defstore.stmt_like(&inline.identifier().0,lexer)? {
@@ -123,7 +131,7 @@ pub(in super) fn parse_statement(lexer: &mut Lexer, defstore: &DefStore, in_defn
                 }
             }?;
             if need_semicolon {
-                get_other(lexer,";")?;
+                get_other(lexer,";").map_err(|s| extend_error(s,&format!("missing {}?",id)))?;
             }
             Ok(out)
         },

@@ -1,5 +1,5 @@
-use hashbrown::HashSet;
-use crate::executor::taskcontainer::{ TaskContainer, TaskContainerHandle };
+use crate::executor::taskcontainer::TaskContainer;
+use crate::executor::taskcontainerhandle::{ TaskContainerHandle, TaskContainerHandleData };
 
 /* A RunQueue contains a list of runnable tasks of the same priority. They are
  * run in order, once per call to run() with this struct remembering the next
@@ -7,29 +7,55 @@ use crate::executor::taskcontainer::{ TaskContainer, TaskContainerHandle };
  * different priorities. This, in turn, sits inside the excutor.
  */
 
+struct RunQueueMember {
+    blocked: bool
+}
+
 pub(super) struct RunQueue {
-    present: HashSet<TaskContainerHandle>,
+    present: TaskContainerHandleData<RunQueueMember>,
     tasks: Vec<TaskContainerHandle>,
-    next_task: usize
+    next_task: usize,
+    num_unblocked: usize
 }
 
 impl RunQueue {
     pub(super) fn new() -> RunQueue {
         RunQueue {
-            present: HashSet::new(),
+            present: TaskContainerHandleData::new(),
             tasks: Vec::new(),
-            next_task: 0
+            next_task: 0,
+            num_unblocked: 0
         }
     }
 
-    pub(super) fn empty(&self) -> bool {
-        self.tasks.len() == 0
+    pub(super) fn empty(&self) -> bool { self.num_unblocked == 0 }
+
+    pub(super) fn block(&mut self, handle: &TaskContainerHandle) {
+        if let Some(member) = self.present.get_mut(handle) {
+            if !member.blocked {
+                member.blocked = true;
+                self.num_unblocked -= 1;
+            }
+        }
+    }
+
+    pub(super) fn unblock(&mut self, handle: &TaskContainerHandle) {
+        if let Some(member) = self.present.get_mut(handle) {
+            if member.blocked {
+                member.blocked = false;
+                self.num_unblocked += 1;
+            }
+        }
     }
 
     pub(super) fn add(&mut self, handle: &TaskContainerHandle) {
-        if !self.present.contains(&handle) {
-            self.present.insert(handle.clone());
+        if self.present.get(handle).is_none() {
+            let member = RunQueueMember {
+                blocked: false
+            };
+            self.present.insert(handle,member);
             self.tasks.push(handle.clone());
+            self.num_unblocked += 1;
         }
     }
 
@@ -38,19 +64,31 @@ impl RunQueue {
             if index < self.next_task {
                 self.next_task -= 1;
             }
-            self.present.remove(&handle);
+            self.num_unblocked -= 1;
+            self.present.remove(handle);
             self.tasks.remove(index);
         }
     }
 
-    pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) {
-        if self.next_task >= self.tasks.len() {
-            self.next_task = 0;
+    fn next_task(&mut self) -> &TaskContainerHandle {
+        loop {
+            if self.next_task >= self.tasks.len() {
+                self.next_task = 0;
+            }
+            self.next_task += 1;
+            let handle = &self.tasks[self.next_task-1];
+            if let Some(member) = self.present.get(handle) {
+                if !member.blocked {
+                    return handle;
+                }
+            }
         }
-        if let Some(task) = tasks.get_mut(&self.tasks[self.next_task]) {
+    }
+
+    pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) {
+        if let Some(task) = tasks.get_mut(self.next_task()) {
             task.run(tick_index);
         }
-        self.next_task += 1;
     }
 }
 

@@ -4,14 +4,14 @@ use super::taskhandle::ExecutorTaskHandle;
 
 struct FakeTaskState {
     runs: u32,
-    priority: i8
+    priority: u8
 }
 
 #[derive(Clone)]
 pub(crate) struct FakeTask(Arc<Mutex<FakeTaskState>>);
 
 impl FakeTask {
-    pub(crate) fn new(priority: i8) -> FakeTask {
+    pub(crate) fn new(priority: u8) -> FakeTask {
         FakeTask(Arc::new(Mutex::new(FakeTaskState {
             runs: 0,
             priority
@@ -25,7 +25,7 @@ impl FakeTask {
 
 impl ExecutorTaskHandle for FakeTask {
     fn run(&mut self, _tick_index: u64) { self.0.lock().unwrap().runs += 1; }
-    fn get_priority(&self) -> i8 { self.0.lock().unwrap().priority }
+    fn get_priority(&self) -> u8 { self.0.lock().unwrap().priority }
     fn summarize(&self) -> Option<TaskSummary> { None }
     fn evict(&self) {}
     fn kill(&self, _reason: KillReason) {}

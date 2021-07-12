@@ -7,7 +7,7 @@ mod api {
     pub use agentstore::AgentStore;
     pub use api::{ PeregrineIntegration, CarriageSpeed };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
-    pub use queue::PeregrineApiQueue;
+    pub use queue::{ ApiMessage, PeregrineApiQueue };
 }
 
 mod core {
@@ -16,15 +16,13 @@ mod core {
     mod layout;
     mod scale;
     pub mod stick;
-    pub mod track;
     mod viewport;
 
-    pub use self::config::{ PeregrineConfig, ConfigValue };
+    pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::focus::Focus;
     pub use self::layout::Layout;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
-    pub use track::Track;
     pub use viewport::Viewport;
 }
 
@@ -36,21 +34,20 @@ mod index {
     pub use self::stickauthoritystore::StickAuthorityStore;
 }
 
-mod panel {
+mod lane {
     mod datastore;
-    mod panel;
-    mod panelprogramstore;
-    mod programregion;
-    mod panelrunstore;
-    mod panelstore;
-    mod programdata;
+    mod shaperequest;
+    pub(crate) mod programregion;
+    mod resultstore;
+    pub(crate) mod programdata;
+    pub(crate) mod programname;
+
     pub use self::datastore::DataStore;
-    pub use self::panel::{ Panel };
+    pub use self::shaperequest::{ Region, ShapeRequest };
     pub use self::programdata::ProgramData;
-    pub use self::programregion::ProgramRegion;
-    pub use self::panelrunstore::{ PanelRunStore, PanelRunOutput };
-    pub use self::panelprogramstore::PanelProgramStore;
-    pub use self::panelstore::PanelStore;
+    pub use self::programname::ProgramName;
+    pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
+    pub use self::resultstore::{ LaneStore };
 }
 
 mod request {
@@ -88,16 +85,34 @@ mod shape {
     mod shapelist;
     mod zmenu;
     mod zmenufixed;
-    mod shapeoutput;
 
     pub use self::core::{ 
-        ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Pen, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis, Plotter 
+        Patina, Pen, Colour, DirectColour, Plotter 
     };
     pub use self::shape::Shape;
     pub use self::zmenu::ZMenu;
-    pub use self::shapelist::ShapeList;
-    pub use self::shapeoutput::ShapeOutput;
+    pub use self::shapelist::{ ShapeListBuilder, ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
+}
+
+pub(crate) mod spacebase {
+    pub(crate) mod parametric;
+    pub(crate) mod spacebase;
+    pub(crate) mod spacebasearea;
+
+    pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
+    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation };
+    pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
+}
+
+pub(crate) mod switch {
+    pub(crate) mod allotment;
+    pub(crate) mod track;
+    pub(crate) mod switch;
+    pub(crate) mod trackconfig;
+    pub(crate) mod trackconfiglist;
+
+    pub use self::allotment::AllotmentRequest;
 }
 
 mod train {
@@ -112,14 +127,17 @@ mod train {
 }
 
 mod util {
-    pub mod asyncmemoized;
+    pub mod builder;
     pub mod cbor;
-    pub mod fuse;
+    pub mod lrucache;
     pub mod memoized;
     pub mod message;
     pub mod miscpromises;
+    pub mod ringarray;
     pub mod unlock;
+    pub mod vecutils;
 
+    pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
     pub use self::message::DataMessage;
 }
@@ -138,14 +156,28 @@ mod test {
 }
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
-pub use self::core::{ PeregrineConfig, Stick, StickId, StickTopology, Track, Scale, Focus };
+pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Focus, Viewport };
 pub use self::index::{ StickStore, StickAuthorityStore };
-pub use self::panel::{ Panel, PanelProgramStore, PanelRunStore, ProgramRegion, PanelRunOutput, PanelStore, DataStore, ProgramData };
+pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
 pub use self::shape::{ 
-    ScreenEdge, SeaEnd, SeaEndPair, ShipEnd, AnchorPair, SingleAnchor, Patina, Colour, AnchorPairAxis, DirectColour, SingleAnchorAxis,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator
+    Patina, Colour, DirectColour,
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
+    ShapeList
 };
+pub use self::switch::allotment::{ 
+    AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,
+    PositionVariant, AllotmentPosition
+};
+pub use self::switch::switch::{ Switches };
+pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
-pub use self::util::{ CountingPromise, DataMessage };
+pub use self::util::{ CountingPromise, DataMessage, Builder };
+pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
+pub use self::util::vecutils::expand_by_repeating;
+pub use self::spacebase::{ 
+    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable,
+    SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
+    SpaceBaseParameterLocation, HollowEdge, Variable
+};

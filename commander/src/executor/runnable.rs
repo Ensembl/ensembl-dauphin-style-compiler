@@ -1,6 +1,8 @@
-use std::collections::BTreeMap;
-use crate::executor::taskcontainer::{ TaskContainer, TaskContainerHandle };
+use crate::executor::taskcontainer::TaskContainer;
+use crate::executor::taskcontainerhandle::TaskContainerHandle;
 use super::runqueue::RunQueue;
+
+/* VERY HOT CODE PATH: BE EFFICIENT NOT PRETTY */
 
 /* A Runnable contains a group of RunQueues. Each RunQueue has a different priority.
  * When asked to run a task, Runnable diverts the call to the RunQueue with the
@@ -8,49 +10,110 @@ use super::runqueue::RunQueue;
  */
 
 pub(super) struct Runnable {
-    queues: BTreeMap<i8,RunQueue>
+    range: Option<(usize,usize)>, // ends are both INCLUSIVE
+    queues: Vec<Option<RunQueue>>
 }
 
 impl Runnable {
     pub(super) fn new() -> Runnable {
         Runnable {
-            queues: BTreeMap::new()
+            range: None,
+            queues: vec![]
+        }
+    }
+
+    fn ensure(&mut self, index: usize) {
+        if self.queues.len() <= index {
+            self.queues.resize_with(index+1,Default::default)
+        }
+        if self.queues[index].is_none() {
+            self.queues[index] = Some(RunQueue::new());
+        }
+    }
+
+    fn update_limits_added(&mut self, index: usize) {
+        if let Some((min,max)) = &mut self.range {
+            if index < *min { *min = index; }
+            if index > *max { *max = index; }
+        } else {
+            self.range = Some((index,index));
+        }
+    }
+
+    fn find(&self, range: &mut dyn Iterator<Item=usize>, index: usize, cur_val: usize) -> Option<usize> {
+        if index == cur_val {
+            for i in range {
+                if let Some(queue) = &self.queues[i] {
+                    if !queue.empty() {
+                        return Some(i);
+                    }
+                }
+            }
+            None
+        } else {
+            Some(cur_val)
+        }
+    }
+
+    fn update_limits_removed(&mut self, index: usize) {
+        let mut new_min = None;
+        let mut new_max = None;
+        if let Some((min,max)) = &self.range {
+            if index != *min || index != *max {
+                new_min = self.find(&mut (index..self.queues.len()),index,*min);
+                new_max = self.find(&mut (0..index).rev(),index,*max);
+            }
+        }
+        if let (Some(new_min),Some(new_max)) = (new_min,new_max) {
+            self.range = Some((new_min,new_max));
+        } else {
+            self.range = None;
+        }
+    }
+
+    pub(super) fn block(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
+        if let Some(task) = tasks.get(handle) {
+            let index = task.get_priority() as usize;
+            let queue = self.queues[index].as_mut().unwrap();
+            queue.block(handle);
+            if queue.empty() {
+                self.update_limits_removed(index);
+            }
+        }
+    }
+
+    pub(super) fn unblock(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
+        if let Some(task) = tasks.get(handle) {
+            let index = task.get_priority() as usize;
+            self.queues[index].as_mut().unwrap().unblock(handle);
+            self.update_limits_added(index);
         }
     }
 
     pub(super) fn add(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
         if let Some(task) = tasks.get(handle) {
-            let queue = self.queues.entry(task.get_priority()).or_insert_with(||
-                RunQueue::new()
-            );
-            queue.add(handle);
+            let index = task.get_priority() as usize;
+            self.ensure(index);
+            self.queues[index].as_mut().unwrap().add(handle);
+            self.update_limits_added(index);
         }
     }
 
     pub(super) fn remove(&mut self, tasks: &TaskContainer, handle: &TaskContainerHandle) {
         if let Some(task) = tasks.get(handle) {
-            let mut doomed = false;
-            if let Some(queue) = self.queues.get_mut(&task.get_priority()) {
-                queue.remove(handle);
-                if queue.empty() {
-                    doomed = true;
-                }
-            }
-            if doomed {
-                self.queues.remove(&task.get_priority());
+            let index = task.get_priority() as usize;
+            self.ensure(index);
+            let queue = self.queues[index].as_mut().unwrap();
+            queue.remove(handle);
+            if queue.empty() {
+                self.update_limits_removed(index);
             }
         }
     }
 
-    fn first_queue(&mut self) -> Option<&mut RunQueue> {
-        self.queues.iter_mut().next().map(|x| x.1)
-    }
-
-    pub(super) fn empty(&self) -> bool { self.queues.len() == 0 }
-
     pub(super) fn run(&mut self, tasks: &mut TaskContainer, tick_index: u64) -> bool {
-        if let Some(queue) = self.first_queue() {
-            queue.run(tasks,tick_index);
+        if let Some((index,_)) = self.range {
+            self.queues[index].as_mut().unwrap().run(tasks,tick_index);
             true
         } else {
             false

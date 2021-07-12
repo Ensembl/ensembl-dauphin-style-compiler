@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="style.css"/>
+  </head>
+  <body>
+    <div class="grid" id="grid">
+      <div>
+
+      </div>
+      <div class="viewport" id="browser">
+      </div>
+      <div class="other" id="other">
+      </div>
+    </div>
+    <script type="module">
+      import { GenomeBrowser, default as init } from './pkg/peregrine_ensembl.js';
+      await init();
+      let genome_browser = new GenomeBrowser();
+      genome_browser.go();
+      genome_browser.set_message_reporter(function(x) {
+        console.error("this is my message receiver: "+x);
+      });
+      genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
+      genome_browser.set_switch(["track","gene-pc-fwd"]);
+    </script>
+  </body>
+</html>

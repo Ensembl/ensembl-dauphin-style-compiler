@@ -2,7 +2,7 @@ use super::glarity::GLArity;
 use web_sys::WebGlRenderingContext;
 
 #[derive(Clone,Copy)]
-pub enum GLSize {
+pub(crate) enum GLSize {
     FloatHigh, FloatMed, FloatLow,
     IntHigh,   IntMed,   IntLow
 }
@@ -15,7 +15,7 @@ impl GLSize {
         }
     }
 
-    pub fn as_string(&self, arity: GLArity) -> String {
+    pub(crate) fn as_string(&self, arity: GLArity) -> String {
         let prec_str = match self {
             GLSize::FloatHigh|GLSize::IntHigh => "highp",
             GLSize::FloatMed|GLSize::IntMed => "mediump",
@@ -27,6 +27,7 @@ impl GLSize {
                 GLArity::Vec2 => "ivec2",
                 GLArity::Vec3 => "ivec3",
                 GLArity::Vec4 => "ivec4",
+                GLArity::Matrix4 => "",
                 GLArity::Sampler2D => ""
             }
         } else {
@@ -35,6 +36,7 @@ impl GLSize {
                 GLArity::Vec2 => "vec2",
                 GLArity::Vec3 => "vec3",
                 GLArity::Vec4 => "vec4",
+                GLArity::Matrix4 => "mat4",
                 GLArity::Sampler2D => "sampler2D"
             }
 

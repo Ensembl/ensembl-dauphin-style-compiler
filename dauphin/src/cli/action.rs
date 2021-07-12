@@ -270,7 +270,7 @@ fn handle_runtime_errors(m: anyhow::Result<()>) -> anyhow::Result<()> {
         Err(e) => {
             let mut squash = false;
             if let Some(de) = e.downcast_ref::<DauphinError>() {
-                if let DauphinError::RuntimeError(r,_,_) | DauphinError::FloatingRuntimeError(r) = de {
+                if let DauphinError::RuntimeError(r,_,_,_) | DauphinError::FloatingRuntimeError(r) = de {
                     print!("runtime error: {}\n",r);
                     squash = true;
                 }

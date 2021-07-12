@@ -1,0 +1,46 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+data := get_data("self()","zoomed-seq",get_region());
+seq_start := delta_seq(data,"seq_starts");
+seq_end := seq_start + 1;
+seq_letter := classified_seq(data,"seq_keys","seq_values");
+seq_rev_letter := base_flip(seq_letter);
+three_bonds := len([seq_letter]) (*) false;
+three_bonds#[seq_letter=="C"] := true;
+three_bonds#[seq_letter=="G"] := true;
+
+seq_colour := simple_colour(direct_colour(148,160,271,255));
+patina := patina_hollow(seq_colour,1,0);
+
+text_colour := direct_colour(111,129,244,255);
+text_size := 14;
+textpen := pen("'Lato', sans-serif",text_size,text_colour,[][],0);
+
+allotment := use_allotment("contig");
+
+
+half_height := 14;
+
+stmt seq_rectangle(start,end,source,offset) {
+    top_left := spacebase(start,-half_height+offset,1);
+    bottom_right := spacebase(end,half_height+offset,-1);
+    rectangle(top_left,bottom_right,patina,allotment);
+    coords := spacebase(seq_start + 0.5,offset-6,-4);
+    text2(coords,textpen,source,allotment);
+}
+
+stmt bond(start,offset) {
+    top_left := spacebase(start+offset,-2,0);
+    bottom_right := spacebase(start+offset,2,1);
+    rectangle(top_left,bottom_right,patina,allotment);
+}
+
+seq_rectangle(seq_start,seq_end,seq_rev_letter,-16);
+seq_rectangle(seq_start,seq_end,seq_letter,16);
+
+bond(seq_start,0.3);
+bond(seq_start,0.7);
+bond(seq_start#[three_bonds],0.5);
+
+rectangle_on_genome(seq_start,seq_end,2,patina,allotment);

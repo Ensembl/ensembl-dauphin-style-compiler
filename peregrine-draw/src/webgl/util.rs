@@ -1,7 +1,8 @@
-use anyhow::{ anyhow as err };
 use web_sys::{ WebGlRenderingContext };
+use crate::util::message::Message;
 
-pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> anyhow::Result<()> {
+#[cfg(debug_webgl)]
+pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(),Message> {
     let mut errors = vec![];
     loop {
         let err = context.get_error();
@@ -9,8 +10,13 @@ pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> anyhow::
         errors.push(err);
     }
     if errors.len() > 0 {
-        Err(err!("webgl errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(",")))
+        Err(Message::WebGLFailure(format!("context errors: {}",errors.iter().map(|x| format!("{}",x)).collect::<Vec<_>>().join(","))))
     } else {
         Ok(())
     }
+}
+
+#[cfg(not(debug_webgl))]
+pub(crate) fn handle_context_errors(context: &WebGlRenderingContext) -> Result<(),Message> {
+    Ok(())
 }

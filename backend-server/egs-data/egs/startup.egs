@@ -1,0 +1,94 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+/* guidelines
+/scren  scale type
+1bp      0
+10bp     3
+100bp    6
+1kb     10
+10kb    13    ^
+100kb   16    exon structure
+2Mb     21    labels
+4Mb-8Mb 22-23 zmenus, no labels
+16Mb    24    no labels, no zmenus
+100Mb   26
+*/
+
+sequence_scale := 9;
+
+stmt gene_std(p) {
+    track_add_tag(p,"local");
+    track_add_trigger(p,["track","gene-pc-fwd"]);
+    track_add_trigger(p,["track","gene-pc-rev"]);
+    track_add_trigger(p,["track","gene-nonpc-fwd"]);
+    track_add_trigger(p,["track","gene-nonpc-rev"]);
+    track_add_switch(p,["settings"]);
+    track_add_allotment(p,"track:focus",-1000000);
+    track_add_allotment(p,"track:gene-pc-rev",-1100);
+    track_add_allotment(p,"track:gene-nonpc-rev",-1000);
+    track_add_allotment(p,"track:gene-pc-fwd",1000);
+    track_add_allotment(p,"track:gene-nonpc-fwd",1100);
+}
+
+/* exon-struxcture; labels ; zmenus; sequence blocks */
+p := track_new("self()","zoomed-transcript",0,sequence_scale,3);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+
+/* exon-struxcture; labels ; zmenus; no sequence blocks */
+p := track_new("self()","transcript",sequence_scale,18,3);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+
+/* no exon-structure; labels; zmenus */
+p := track_new("self()","gene",18,21,4);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+
+/* no exon-structure; no labels; zmenus */
+p := track_new("self()","gene",21,23,3);
+gene_std(p);
+track_set_switch(p,["scale","no-labels"]);
+track_apply(p);
+
+/* no exon-struxcture; no labels ; no-zmenus */
+p := track_new("self()","gene-overview",23,100,6);
+gene_std(p);
+track_apply(p);
+
+/* gc */
+p := track_new("self()","gc",1,100,5);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","gc"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"gc",2000);
+track_apply(p);
+
+/* shimmer contigs */
+p := track_new("self()","contig",26,200,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
+track_set_switch(p,["scale","shimmer"]);
+track_apply(p);
+
+/* contigs */
+p := track_new("self()","contig",sequence_scale,26,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
+track_apply(p);
+
+/* sequence */
+p := track_new("self()","zoomed-seq",0,sequence_scale,3);
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_add_allotment(p,"contig",0);
+track_apply(p);

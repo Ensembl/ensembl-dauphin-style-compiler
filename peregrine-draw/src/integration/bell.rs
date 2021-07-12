@@ -1,11 +1,21 @@
-use anyhow::{ self, Context, anyhow as err };
 use std::sync::{ Arc, Mutex };
 use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
-use web_sys::{ CustomEvent, CustomEventInit, HtmlElement };
-use crate::util::error::{ js_error, js_throw };
-use crate::util::safeelement::SafeElement;
+use web_sys::{ CustomEvent, CustomEventInit, Window };
 use wasm_bindgen::JsCast;
+use crate::util::message::{ Message, message };
+use std::thread_local;
+use keyed::{ KeyedOptionalValues, keyed_handle };
+
+pub fn js_panic<T>(e: Result<T,Message>) -> T {
+    match e {
+        Ok(t) => t,
+        Err(e) => {
+            message(e);
+            panic!("panic");
+        }
+    }
+}
 
 lazy_static! {
     static ref IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -13,26 +23,58 @@ lazy_static! {
 
 const MESSAGE_KEY : &str = "domutil-bell";
 
+keyed_handle!(ObjectKey);
+
+struct Objects {
+    event: CustomEvent,
+    window: Window
+}
+
+thread_local! {
+    static OBJECTS : Arc<Mutex<KeyedOptionalValues<ObjectKey,Objects>>> = Arc::new(Mutex::new(KeyedOptionalValues::new()));
+}
+
 #[derive(Clone)]
 pub struct BellSender {
-    el: SafeElement,
-    identity: u64
+    identity: u64,
+    event: ObjectKey
+}
+
+fn make_event(identity: u64) -> Result<ObjectKey,Message> {
+    let name = &format!("{}-{}",MESSAGE_KEY,identity);
+    let mut cvi = CustomEventInit::new();
+    cvi.bubbles(false);
+    let event = CustomEvent::new_with_event_init_dict(name,&cvi).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create event: {:?}",e)))?;
+    let window = web_sys::window().ok_or( Message::ConfusedWebBrowser(format!("cannot get window object")))?;
+    Ok(OBJECTS.with(|events| {
+        let mut locked = events.lock().unwrap();
+        locked.add(Objects { window, event })
+    }))
+}
+
+impl Drop for BellSender {
+    fn drop(&mut self) {
+        OBJECTS.with(|events| {
+            let mut locked = events.lock().unwrap();
+            locked.remove(&self.event);
+        });
+    }
 }
 
 impl BellSender {
-    fn new(identity: u64, el: &HtmlElement) -> BellSender {
-        BellSender {
-            el: SafeElement::new(el),
+    fn new(identity: u64) -> Result<BellSender,Message> {
+        Ok(BellSender {
+            event: make_event(identity)?,
             identity
-        }
+        })
     }
 
-    pub fn ring(&self) -> anyhow::Result<()> {
-        let name = &format!("{}-{}",MESSAGE_KEY,self.identity);
-        let mut cvi = CustomEventInit::new();
-        cvi.bubbles(false);
-        let e = js_error(CustomEvent::new_with_event_init_dict(name,&cvi)).context("creating bell event")?;
-        js_error(self.el.get()?.dispatch_event(&e)).context("sending bell event")?;
+    pub fn ring(&self) -> Result<(),Message> {
+        OBJECTS.with(|objects| {
+            let locked = objects.lock().unwrap();
+            let object = locked.get(&self.event).unwrap();
+            object.window.dispatch_event(&object.event).map_err(|e| Message::ConfusedWebBrowser(format!("cannot send event: {:?}",e)))
+        })?;
         Ok(())
     }
 }
@@ -40,52 +82,54 @@ impl BellSender {
 struct BellReceiverState {
     callbacks: Arc<Mutex<Vec<Box<dyn Fn() + 'static>>>>,
     name: String,
-    el: HtmlElement,
-    closure: Option<Closure<dyn Fn()>>
+    closure: Closure<dyn FnMut()>
 }
 
-fn run_callbacks(callbacks: Arc<Mutex<Vec<Box<dyn Fn()>>>>) {
+fn run_callbacks(callbacks: &Arc<Mutex<Vec<Box<dyn Fn()>>>>) {
     for cb in callbacks.lock().unwrap().iter_mut() {
         (cb)();
     }
 }
 
+fn pg_window() -> Result<Window,Message> {
+    web_sys::window().ok_or( Message::ConfusedWebBrowser(format!("cannot get window object")))
+}
+
 impl BellReceiverState {
-    fn new(identity: u64, el: &HtmlElement) -> anyhow::Result<BellReceiverState> {
-        let mut out = BellReceiverState {
-            name: format!("{}-{}",MESSAGE_KEY,identity),
-            callbacks: Arc::new(Mutex::new(Vec::new())),
-            el: el.clone(),
-            closure: None
+    fn new(identity: u64) -> Result<BellReceiverState,Message> {
+        let callbacks = Arc::new(Mutex::new(Vec::new()));
+        let callbacks2 = callbacks.clone();
+        let inner_closure = Closure::wrap(Box::new(move || {
+            run_callbacks(&callbacks2);
+        }) as Box<dyn FnMut()>);
+        let window = pg_window()?;
+        let closure =  Closure::wrap(Box::new(move || {
+            js_panic(
+                window.set_timeout_with_callback_and_timeout_and_arguments_0(inner_closure.as_ref().unchecked_ref(),0)
+                        .map_err(|e| Message::ConfusedWebBrowser(format!("cannot set_timer: {:?}",e))));
+        }) as Box<dyn FnMut()>);
+        let name = format!("{}-{}",MESSAGE_KEY,identity);
+        let out = BellReceiverState {
+            name: name.clone(),
+            callbacks,
+            closure
         };
-        out.call_dom()?;
+        let window = pg_window()?;
+        window.add_event_listener_with_callback(&name,out.closure.as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannt create event callback: {:?}",e.as_string())))?;
         Ok(out)
     }
 
     fn add(&mut self, callback: Box<dyn Fn() + 'static>) {
         self.callbacks.lock().unwrap().push(callback);
     }
-
-    fn call_dom(&mut self) -> anyhow::Result<()> {
-        let callbacks = self.callbacks.clone();
-        self.closure = Some(Closure::wrap(Box::new(move || {
-            let callbacks = callbacks.clone();
-            let closure = Closure::once_into_js(move || {
-                run_callbacks(callbacks);
-            });
-            let window = js_throw(web_sys::window().ok_or(err!("cannot get window object")));
-            js_throw(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),0).map_err(|_| err!("cannot set zero timeout")));
-        })));
-        js_error(self.el.add_event_listener_with_callback(&self.name,self.closure.as_ref().unwrap().as_ref().unchecked_ref()))?;
-        Ok(())
-    }
 }
 
 impl Drop for BellReceiverState {
-    fn drop(&mut self) {
-        if let Some(closure) = self.closure.take() {
-            self.el.remove_event_listener_with_callback(&self.name,closure.as_ref().unchecked_ref()).unwrap_or(());
+    fn drop(&mut self) {        
+        if let Some(window) = pg_window().ok() {
+            window.remove_event_listener_with_callback(&self.name,self.closure.as_ref().unchecked_ref()).unwrap_or(());
         }
+
     }
 }
 
@@ -93,8 +137,8 @@ impl Drop for BellReceiverState {
 pub struct BellReceiver(Arc<Mutex<BellReceiverState>>);
 
 impl BellReceiver {
-    fn new(identity: u64, el: &HtmlElement) -> anyhow::Result<BellReceiver> {
-        Ok(BellReceiver(Arc::new(Mutex::new(BellReceiverState::new(identity,el)?))))
+    fn new(identity: u64) -> Result<BellReceiver,Message> {
+        Ok(BellReceiver(Arc::new(Mutex::new(BellReceiverState::new(identity)?))))
     }
 
     pub fn add<T>(&mut self, callback: T) where T: Fn() + 'static {
@@ -102,10 +146,10 @@ impl BellReceiver {
     }
 }
 
-pub fn make_bell(el: &HtmlElement) -> anyhow::Result<(BellSender,BellReceiver)> {
+pub fn make_bell() -> Result<(BellSender,BellReceiver),Message> {
     let mut source = IDENTITY.lock().unwrap();
     let identity = *source;
     *source += 1;
     drop(source);
-    Ok((BellSender::new(identity,el),BellReceiver::new(identity,el)?))
+    Ok((BellSender::new(identity)?,BellReceiver::new(identity)?))
 }

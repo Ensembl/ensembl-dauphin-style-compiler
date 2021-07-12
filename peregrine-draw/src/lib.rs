@@ -1,3 +1,38 @@
+mod input {
+    mod core {
+        pub mod input;
+    }
+
+    mod low {
+        mod pointer {
+            pub(crate) mod cursor;
+            mod drag;
+            pub(super) mod pinch;
+            pub(super) mod pointer;   
+        }
+
+        mod event;
+        pub(crate) mod keyboardinput;
+        pub(crate) mod mouseinput;
+        pub(crate) mod lowlevel; 
+        pub(crate) mod keyspec;
+        pub(crate) mod modifiers;
+        pub mod mapping;
+    }
+
+    mod translate {
+        pub(super) mod measure;
+        pub(crate) mod animqueue;
+        pub(crate) mod axisphysics;
+        pub(crate) mod physics;
+        pub(crate) mod debug;
+
+        pub use self::physics::Physics;
+    }
+
+    pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
+}
+
 mod integration {
     mod bell;
     pub(crate) mod pgcommander;
@@ -5,49 +40,75 @@ mod integration {
     pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
     mod stream;
+
+    pub use self::pgcommander::PgCommanderWeb;
 }
 
 mod run {
-    pub mod draw;
+    pub mod api;
+    mod config;
+    mod dom;
+    mod globalconfig;
+    pub mod inner;
     mod frame;
+    pub(crate) mod progress;
+    mod size;
 
-    pub use self::draw::{ PeregrineDraw, PeregrineDrawApi };
+    pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };
+    pub use self::globalconfig::PeregrineConfig;
+    pub use self::dom::PeregrineDom;
+    pub use self::api::{ PeregrineAPI };
+    pub use self::inner::{ PeregrineInnerAPI };
 }
 
 mod shape {
     pub(crate) mod core {
-        pub(super) mod looper;
-        pub(crate) mod glshape;
+        pub(crate) mod prepareshape;
+        pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
         pub(super) mod geometrydata;
-        pub(super) mod fixgeometry;
-        pub(super) mod pagegeometry;
-        pub(super) mod pingeometry;
-        pub(crate) mod redrawneeded;
         pub(super) mod spotcolourdraw;
-        pub(super) mod tapegeometry;
-        pub(crate) mod stage;
+        pub(crate) mod flatdrawing;
+        pub(crate) mod spectre;
+        pub(crate) mod spectraldrawing;
+        pub(crate) mod spectremanager;
         pub(crate) mod text;
         pub(crate) mod texture;
         pub(crate) mod wigglegeometry;
     }
 
+    pub(crate) mod triangles {
+        pub(crate) mod trianglesyielder;
+        pub(crate) mod triangleskind;
+        pub(crate) mod trianglesprogramlink;
+        pub(crate) mod rectangles;
+    }
+
+    pub(crate) mod heraldry {
+        pub(super) mod bardots;
+        pub(crate) mod heraldry;
+    }
+
     pub(crate) mod layers {
         pub(crate) mod drawing;
         pub(crate) mod drawingzmenus;
-        pub(super) mod consts;
+        pub(crate) mod consts;
         pub(crate) mod geometry;
         pub(crate) mod programstore;
         pub(crate) mod layer;
+        pub(crate) mod shapeprogram;
         pub(super) mod patina;
     }
 
     pub(crate) mod util {
         pub(super) mod iterators;
-        pub(crate) mod glaxis;
-        pub(super) mod quickvec;
         pub(crate) mod arrayutil;
     }
+}
+
+mod stage {
+    pub(crate) mod axis;
+    pub(crate) mod stage;
 }
 
 mod train {
@@ -60,17 +121,27 @@ mod train {
 
 mod util {
     pub(crate) mod ajax;
+    pub(crate) mod enummap;
     pub(crate) mod error;
+    pub(crate) mod evictlist;
     pub(crate) mod message;
-    pub(crate) mod safeelement;
+    pub(crate) mod monostable;
+    pub(crate) mod resizeobserver;
+    #[macro_use]
+    pub(crate) mod misc;
+    pub(crate) mod needed;
+
+    #[cfg(blackbox)]
+    pub(crate) mod pgblackbox;
 
     pub use self::ajax::PgAjax;
-    pub use self::error::{ js_throw, js_option };
+    pub use self::message::Message;
 }
 
 mod webgl {
     pub(crate) mod canvas {
         pub(crate) mod bindery;
+        pub(crate) mod canvasstore;
         pub(crate) mod drawingflats;
         pub(crate) mod flatplotallocator;
         pub(crate) mod flat;
@@ -82,9 +153,9 @@ mod webgl {
     pub(crate) use canvas::weave::CanvasWeave;
     pub(crate) use canvas::flat::Flat;
     pub(crate) use canvas::flatstore::{ FlatId, FlatStore };
-    pub(crate) use canvas::bindery::{ TextureBindery, TextureStore };
-    pub(crate) use canvas::drawingflats::{ DrawingFlats, DrawingFlatsDrawable };
-    pub(crate) use canvas::flatplotallocator::{ FlatPlotAllocator, FlatPlotRequestHandle };
+    pub(crate) use canvas::bindery::{ TextureBindery };
+    pub(crate) use canvas::drawingflats::{ DrawingAllFlats, DrawingAllFlatsBuilder };
+    pub(crate) use canvas::flatplotallocator::{ FlatPositionCampaignHandle };
 
 
     pub(super) mod gpuspec {
@@ -100,6 +171,7 @@ mod webgl {
 
     mod program {
         pub(crate) mod compiler;
+        pub(crate) mod conditional;
         pub(crate) mod texture;
         pub(crate) mod header;
         pub(crate) mod process;
@@ -123,20 +195,23 @@ mod webgl {
     pub(crate) use stanza::array::ProcessStanzaArray;
     pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
     pub(crate) use stanza::stanza::ProcessStanza;
-    pub(crate) use program::program::Program;
-    pub(crate) use program::process::{ ProtoProcess, Process };
-    pub(crate) use program::compiler::WebGlCompiler;
+    pub(crate) use program::program::{ Program, ProgramBuilder };
+    pub(crate) use program::process::{ ProcessBuilder, Process };
+    pub(crate) use program::compiler::make_program;
     pub(crate) use program::header::Header;
-    pub(crate) use program::uniform::{ Uniform, UniformHandle };
-    pub(crate) use program::attribute::{ Attribute, AttribHandle };
+    pub(crate) use program::uniform::{ UniformProto, UniformHandle };
+    pub(crate) use program::attribute::{ Attribute, AttribHandle, AttributeProto };
     pub(crate) use program::varying::Varying;
     pub(crate) use program::session::DrawingSession;
     pub(crate) use program::source::{ SourceInstrs };
-    pub(crate) use program::statement::Statement;
+    pub(crate) use program::conditional::{ Conditional, SetFlag };
+    pub(crate) use program::statement::{ Statement, Declaration };
+    pub(crate) use program::texture::{ Texture, TextureProto };
 
     pub(crate) mod global;
     mod util;
 }
 
-pub use crate::run::{ PeregrineDraw, PeregrineDrawApi };
-pub use self::util::{ js_throw, js_option, PgAjax };
+pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI, PeregrineConfig };
+pub use self::util::{ PgAjax, Message };
+pub use crate::integration::PgCommanderWeb;

@@ -1,0 +1,18 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
+
+data := get_data("self()",endpoint,get_region());
+
+start := delta_seq(data,"contig_starts");
+end := start + delta_seq(data,"contig_lengths");
+sense := positive_seq(data,"sense");
+
+allotment := use_allotment("contig");
+
+neg_colour := simple_colour(direct_colour(128,128,128,255));
+pos_colour := simple_colour(direct_colour(200,200,200,255));
+patina := patina_filled(index(sense,[neg_colour,pos_colour]),0);
+
+rectangle_on_genome(start,end,5,patina,allotment);

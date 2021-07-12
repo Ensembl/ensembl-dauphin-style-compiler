@@ -12,7 +12,7 @@ pub trait KeyedHandle {
 macro_rules! keyed_handle {
     ($name:ident) => {
 
-        #[derive(PartialEq,Eq,Hash)]
+        #[derive(PartialEq,Eq,Hash,Debug)] // XXX debug
         pub struct $name(usize);
 
         impl $crate::KeyedHandle for $name {
@@ -47,12 +47,24 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
         self.0.insert(name.to_string(),key);
     }
 
+    pub fn try_get_handle(&self, name: &str) -> Option<K> {
+        self.0.get(name).map(|h| h.clone_handle())
+    }
+
     pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
-        Ok(self.0.get(name).ok_or_else(|| err!("no such item '{}",name))?.clone_handle())
+        Ok(self.try_get_handle(name).ok_or_else(|| err!("no such item '{}",name))?.clone_handle())
     }
 
     pub fn make_maker<'f,F,U>(&self, template: F) -> KeyedDataMaker<'f,K,U> where F: Fn() -> U + 'f {
         KeyedDataMaker(self.0.len(),Box::new(template),PhantomData)
+    }
+
+    fn map<U>(&self) -> KeyedKeys<K,U> {
+        let mut out = HashMap::new();
+        for (k,v) in self.0.iter() {
+            out.insert(k.clone(),v.clone_handle());
+        }
+        KeyedKeys(out,PhantomData)
     }
 }
 
@@ -97,7 +109,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
 
 pub struct OptionalKeys<'k,K: KeyedHandle,T> {
     keyed_data: &'k KeyedData<K,Option<T>>,
-    index: usize
+    index: Option<usize>
 }
 
 impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
@@ -105,8 +117,8 @@ impl<'k,K: KeyedHandle,T> Iterator for OptionalKeys<'k,K,T> {
 
     fn next(&mut self) -> Option<K> {
         loop {
-            let index = self.index;
-            self.index += 1;
+            let index = self.index.unwrap_or(0);
+            self.index = Some(index+1);
             if index >= self.keyed_data.0.len() {
                 return None;
             }
@@ -125,6 +137,13 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
         self.0[index.get()] = Some(value);
     }
 
+    pub fn try_get(&self, index: &K) -> &Option<T> {
+        if index.get() >= self.0.len() {
+            return &None;
+        }
+        self.get(index)
+    }
+
     pub fn remove(&mut self, index: &K) -> Option<T> {
         self.0[index.get()].take()
     }
@@ -132,26 +151,29 @@ impl<K: KeyedHandle,T> KeyedData<K,Option<T>> {
     pub fn keys<'k>(&'k self) -> OptionalKeys<'k,K,T> {
         OptionalKeys {
             keyed_data: self,
-            index: 0
+            index: None
         }
     }
 }
 
 pub struct KeyedOptionalValues<K: KeyedHandle,T> {
     available: BTreeSet<usize>,
-    entries: KeyedData<K,Option<T>>
+    entries: KeyedData<K,Option<T>>,
+    size: usize
 }
 
 impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
     pub fn new() -> KeyedOptionalValues<K,T> {
         KeyedOptionalValues {
             available: BTreeSet::new(),
-            entries: KeyedData::new()
+            entries: KeyedData::new(),
+            size: 0
         }
 
     }
 
     pub fn add(&mut self, value: T) -> K {
+        self.size += 1;
         if let Some(id) = self.available.range(..).next().cloned() {
             self.available.remove(&id);
             let id = K::new(id);
@@ -162,9 +184,17 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
         }
     }
 
+    pub fn try_get(&self, key: &K) -> Option<&T> {
+        self.entries.get(key).as_ref()
+    }
+
     pub fn get(&self, key: &K) -> anyhow::Result<&T> {
         let out : Option<&T> = self.entries.get(key).into();
         out.ok_or_else(|| err!("invalid id"))
+    }
+
+    pub fn replace(&mut self, key: &K, value: T) -> anyhow::Result<Option<T>> {
+        Ok(self.entries.get_mut(key).replace(value))
     }
 
     pub fn get_mut(&mut self, key: &K) -> anyhow::Result<&mut T> {
@@ -181,9 +211,16 @@ impl<K: KeyedHandle,T> KeyedOptionalValues<K,T> {
     }
 
     pub fn remove(&mut self, key: &K) {
+        self.size -= 1;
         self.entries.remove(key);
         self.available.insert(key.get());
     }
+
+    pub fn keys(&self) -> OptionalKeys<K,T> {
+        self.entries.keys()
+    }
+
+    pub fn size(&self) -> usize { self.size }
 }
 
 pub struct KeyedValues<K: KeyedHandle,T> {
@@ -209,11 +246,18 @@ impl<K: KeyedHandle,T> KeyedValues<K,T> {
         handle
     }
 
-    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> {
-        self.our_keys.get_handle(name)
+    pub fn get_handle(&self, name: &str) -> anyhow::Result<K> { self.our_keys.get_handle(name) }
+    pub fn try_get_handle(&self, name: &str) -> Option<K> { self.our_keys.try_get_handle(name) }
+
+    pub fn map<F,U,E>(&self, f: F) -> Result<KeyedValues<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
+        Ok(KeyedValues {
+            our_keys: self.our_keys.map(),
+            entries: self.entries.map(f)?
+        })
     }
 
     pub fn data(&self) -> &KeyedData<K,T> { &self.entries }
+    pub fn data_mut(&mut self) -> &mut KeyedData<K,T> { &mut self.entries }
 }
 
 // TODO ducument

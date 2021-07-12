@@ -1,0 +1,29 @@
+html, body {
+    padding: 0;
+    margin: 0;
+}
+
+.grid {
+    height: 100vh;
+    display: grid;
+    grid-template: "header header" "viewport sidebar";
+    grid-template-columns: 1fr min-content;
+    grid-template-rows: 100px 1fr;
+    transition: min-width 2s, height 0s;
+}
+
+.other {
+    min-width: 300px;
+}
+
+.other2 {
+    min-width: 50px;
+    transition: min-width 2s, height 0s;
+}
+
+.viewport {
+    grid-area: viewport;
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+}

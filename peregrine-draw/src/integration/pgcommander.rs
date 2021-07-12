@@ -1,4 +1,3 @@
-use anyhow::{ self };
 use blackbox::blackbox_log;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex, MutexGuard };
@@ -7,10 +6,9 @@ use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity,
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use js_sys::Date;
-use crate::util::error::{ js_error, js_option, js_throw };
 use super::bell::{ BellReceiver, make_bell, BellSender };
-use web_sys::{ HtmlElement };
 use peregrine_data::{ Commander, DataMessage };
+use crate::util::message::{ message, Message };
 
 /* The entity relationship here is crazy complex. This is all to allow non-Send methods in Executor. The BellReceiver
  * needs to be able to call schedule and so needs a reference to both the sleep state (to check it) and the executor
@@ -37,76 +35,90 @@ use peregrine_data::{ Commander, DataMessage };
  * world, they would block until schedule exited.
  */
 
+ 
 const MS_PER_TICK : f64 = 7.;
 
+pub fn js_panic(e: Result<(),Message>) {
+    match e {
+        Ok(_) => (),
+        Err(e) => {
+            message(e);
+        }
+    }
+}
+
 struct CommanderSleepState {
-    raf_pending: Option<Closure<dyn Fn()>>,
+    raf_pending: bool,
+    raf_closure: Option<Closure<dyn Fn()>>,
+    timer_closure: Option<Closure<dyn Fn()>>,
     quantity: Arc<Mutex<SleepQuantity>>,
-    timeout: Option<(Closure<dyn Fn()>,i32)>
+    timeout: Option<i32>
 }
 
 #[derive(Clone)]
 struct CommanderState {
     sleep_state: Arc<Mutex<CommanderSleepState>>,
-    executor: Arc<Mutex<Executor>>
+    executor: Arc<Mutex<Executor>>,
 }
 
 impl CommanderState {
+    fn yesterday(&self) {
+        let window = web_sys::window().unwrap(); // XXX errors
+        let mut state = self.sleep_state.lock().unwrap();
+        if let Some(handle) = state.timeout.take() {
+            window.clear_timeout_with_handle(handle);
+        }
+        let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
+        let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),0).ok(); // XXX errors
+        state.timeout = handle;
+    }
+
     fn tick(&self) {
         self.executor.lock().unwrap().tick(MS_PER_TICK);
     }
 
     fn raf_tick(&self) {
-        self.sleep_state.lock().unwrap().raf_pending = None;
+        let mut state = self.sleep_state.lock().unwrap();
+        state.raf_pending = false;
+        drop(state);
         self.tick();
-        js_throw(self.schedule());
+        js_panic(self.schedule());
     }
 
     fn timer_tick(&self) {
-        if let Some((closure,_handle)) = self.sleep_state.lock().unwrap().timeout.take() {
-            drop(closure);
-        }
-        self.sleep_state.lock().unwrap().timeout.take();
+        let mut state = self.sleep_state.lock().unwrap();
+        state.timeout.take();
+        drop(state);
         self.tick();
-        js_throw(self.schedule());
+        js_panic(self.schedule());
     }
 
     fn make_lock(&self) -> Lock { self.executor.lock().unwrap().make_lock() }
     fn identity(&self) -> u64 { self.executor.lock().unwrap().identity() }
 
-    fn schedule(&self) -> anyhow::Result<()> {
-        let window = js_option(web_sys::window(),"cannot get window")?;
+    fn schedule(&self) -> Result<(),Message> {
+        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
         let mut state = self.sleep_state.lock().unwrap();
-        if let Some((_,handle)) = state.timeout.take() {
-            window.clear_timeout_with_handle(handle);
-        }
         let quantity = state.quantity.lock().unwrap().clone();
         match quantity {
             SleepQuantity::Yesterday => {
-                let handle = self.clone();
-                let closure = Closure::wrap(Box::new(move || {
-                    handle.timer_tick();
-                }) as Box<dyn Fn()>);
-                let handle = js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),0))?;
-                state.timeout = Some((closure,handle));
+                drop(state);
+                self.yesterday();
             },
             SleepQuantity::Forever => {},
             SleepQuantity::None => {
-                let handle = self.clone();
-                if state.raf_pending.is_none() {
-                    state.raf_pending = Some(Closure::wrap(Box::new(move || {
-                        handle.raf_tick()
-                    })));
-                    js_error(window.request_animation_frame(state.raf_pending.as_ref().unwrap().as_ref().unchecked_ref()))?;
+                if !state.raf_pending {
+                    state.raf_pending = true;
+                    window.request_animation_frame(state.raf_closure.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback: {:?}",e.as_string())))?;
                 }
             },
             SleepQuantity::Time(t) => {
-                let handle = self.clone();
-                let closure = Closure::wrap(Box::new(move || {
-                    handle.timer_tick()
-                }) as Box<dyn Fn()>);
-                let handle = js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(closure.as_ref().unchecked_ref(),t as i32))?;
-                state.timeout = Some((closure,handle));
+                let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
+                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
+                if let Some(handle) = state.timeout.take() {
+                    window.clear_timeout_with_handle(handle);
+                }        
+                state.timeout = Some(handle);
             }
         }
         Ok(())
@@ -120,14 +132,16 @@ pub struct PgCommanderWeb {
 }
 
 impl PgCommanderWeb {
-    pub fn new(el: &HtmlElement) -> anyhow::Result<PgCommanderWeb> {
+    pub fn new() -> Result<PgCommanderWeb,Message> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
-            raf_pending: None,
+            raf_pending: false,
             quantity: quantity.clone(),
-            timeout: None
+            timeout: None,
+            raf_closure: None,
+            timer_closure: None,
         }));
-        let (bell_sender, bell_receiver) = make_bell(el)?;
+        let (bell_sender, bell_receiver) = make_bell()?;
         let integration = PgIntegration {
             quantity,
             bell_sender
@@ -136,25 +150,26 @@ impl PgCommanderWeb {
             sleep_state,
             executor: Arc::new(Mutex::new(Executor::new(integration)))
         };
+        let state2 = state.clone();
+        state.sleep_state.lock().unwrap().raf_closure = Some(Closure::wrap(Box::new(move || {
+            state2.raf_tick()
+        })));
+        let state2 = state.clone();
+        state.sleep_state.lock().unwrap().timer_closure = Some(Closure::wrap(Box::new(move || {
+            state2.timer_tick()
+        })));
         let mut out = PgCommanderWeb {
             state: state.clone(),
             bell_receiver
         };
         out.bell_receiver.add(move || {
             blackbox_log!("commander-integration","bell received");
-            js_throw(state.schedule());
+            js_panic(state.schedule());
         });
         Ok(out)
     }
-}
 
-// TODO check all add-tasks check result.
-impl Commander for PgCommanderWeb {
-    fn start(&self) {
-        self.state.tick();
-    }
-
-    fn add_task(&self, name: &str, prio: i8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
+    pub fn add<E>(&self, name: &str, prio: u8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),E>> + 'static>>) -> TaskHandle<Result<(),E>> {
         let rc = RunConfig::new(slot,prio,timeout);
         if cdr_in_agent() {
             let agent = cdr_new_agent(Some(rc),name);
@@ -164,6 +179,17 @@ impl Commander for PgCommanderWeb {
             let agent = exe.new_agent(&rc,name);
             exe.add_pin(Box::pin(f),agent)
         }
+    }
+}
+
+// TODO check all add-tasks check result.
+impl Commander for PgCommanderWeb {
+    fn start(&self) {
+        self.state.tick();
+    }
+
+    fn add_task(&self, name: &str, prio: u8, slot: Option<RunSlot>, timeout: Option<f64>, f: Pin<Box<dyn Future<Output=Result<(),DataMessage>> + 'static>>) -> TaskHandle<Result<(),DataMessage>> {
+        self.add(name,prio,slot,timeout,f)
     }
 
     fn make_lock(&self) -> Lock { self.state.make_lock() }
@@ -186,7 +212,7 @@ impl Integration for PgIntegration {
     fn sleep(&self, amount: SleepQuantity) {
         blackbox_log!("commander-integration","setting sleep to {:?}",amount);
         *self.quantity.lock().unwrap() = amount;
-        js_throw(self.bell_sender.ring());
+        js_panic(self.bell_sender.ring());
         blackbox_log!("commander-integration","bell sent");
     }
 }

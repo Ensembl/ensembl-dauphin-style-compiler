@@ -3,6 +3,7 @@ use std::sync::{ Arc, Mutex };
 use std::future::Future;
 use std::pin::Pin;
 use crate::{ Channel, ChannelIntegration, PacketPriority };
+use crate::DataMessage;
 use commander::cdr_timer;
 use serde_cbor::Value as CborValue;
 #[cfg(test)]
@@ -106,7 +107,7 @@ impl TestChannelIntegration {
 }
 
 impl ChannelIntegration for TestChannelIntegration {
-    fn get_sender(&self, _channel: Channel, _prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=anyhow::Result<CborValue>>>> {
+    fn get_sender(&self, _channel: Channel, _prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>> {
         self.requests.lock().unwrap().push(data);
         let resp = self.responses.clone();
         if resp.lock().unwrap().len() == 0 {

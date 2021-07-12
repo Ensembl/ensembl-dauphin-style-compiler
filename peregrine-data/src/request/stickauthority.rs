@@ -1,7 +1,4 @@
-use anyhow::bail;
 use std::any::Any;
-use std::collections::{ HashMap };
-use std::rc::Rc;
 use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId };
@@ -12,8 +9,6 @@ use super::failure::GeneralFailure;
 use crate::index::stickauthority::StickAuthority;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::run::{ PgCommander, PgDauphin };
-use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]
@@ -27,7 +22,7 @@ impl StickAuthorityCommandRequest {
     pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new();
         blackbox_log!("stickauthority","registering authority at {}",channel.to_string());
-        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await.map_err(|e| DataMessage::XXXTmp(e.to_string()))?.map_err(|e| DataMessage::XXXTmp(e.to_string()))?;
+        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name))
     }
 }

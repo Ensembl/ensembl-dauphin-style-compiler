@@ -1,115 +1,79 @@
 use keyed::KeyedData;
-use std::collections::{ HashMap, HashSet };
-use super::packer::allocate_areas;
-use crate::webgl::FlatId;
+use crate::webgl::{FlatId };
 use super::weave::{ CanvasWeave };
-use super::drawingflats::{ DrawingFlatsDrawable };
+use super::drawingflats::{ DrawingAllFlatsBuilder };
 use crate::webgl::global::WebGlGlobal;
 use keyed::keyed_handle;
+use crate::util::message::Message;
 
-keyed_handle!(FlatPlotRequestHandle);
+keyed_handle!(FlatPositionCampaignHandle);
 
-struct WeaveAllocatorData {
+struct Campaign {
     origin: Vec<(u32,u32)>,
     sizes: Vec<(u32,u32)>
 }
 
-struct WeaveAllocator {
-    requests: KeyedData<FlatPlotRequestHandle,Option<WeaveAllocatorData>>,
+pub(crate) struct FlatPositionManager {
+    uniform_name: String,
+    requests: KeyedData<FlatPositionCampaignHandle,Option<Campaign>>,
     weave: CanvasWeave,
     canvas: Option<FlatId>
 }
 
-impl WeaveAllocator {
-    fn new(weave: &CanvasWeave) -> WeaveAllocator {
-        WeaveAllocator {
+impl FlatPositionManager {
+    pub(crate) fn new(weave: &CanvasWeave, uniform_name: &str) -> FlatPositionManager {
+        FlatPositionManager {
+            uniform_name: uniform_name.to_string(),
             weave: weave.clone(),
             requests: KeyedData::new(),
             canvas: None
         }
     }
 
-    fn add(&mut self, id: FlatPlotRequestHandle, sizes: &[(u32,u32)]) {
-        self.requests.insert(&id,WeaveAllocatorData {
+    pub(crate) fn insert(&mut self, sizes: &[(u32,u32)]) -> FlatPositionCampaignHandle {
+        self.requests.add(Some(Campaign {
             sizes: sizes.to_vec(), origin: vec![]
-        });
+        }))
     }
 
-    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingFlatsDrawable) -> anyhow::Result<()> {
+    fn allocate(&mut self, gl: &mut WebGlGlobal, builder: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
         let mut sizes = vec![];
         let ids : Vec<_> = self.requests.keys().collect();
         for req_id in &ids {
             let req = self.requests.get(req_id).as_ref().unwrap();
             sizes.extend(req.sizes.iter());
         }
-        let (mut origins,width,height) = allocate_areas(&sizes,gl.program_store().gpu_spec())?;
+        if sizes.len() == 0 { return Ok(()); }
+        let (mut origins,width,height) = self.weave.pack(&sizes,gl)?;
         let mut origins_iter = origins.drain(..);
         for req_id in &ids {
             let req = self.requests.get_mut(req_id).as_mut().unwrap();
-            for _ in 0..req.sizes.len() {
+            for size in req.sizes.iter_mut() {
                 req.origin.push(origins_iter.next().unwrap());
+                *size = self.weave.expand_size(size,&(width,height));
             }
         }
-        self.canvas = Some(builder.make_canvas(gl,&self.weave,(width,height))?);
+        self.canvas = Some(builder.make_canvas(gl,&self.weave,(width,height),&self.uniform_name)?);
         Ok(())
     }
 
-    fn origins(&self, id: &FlatPlotRequestHandle) -> Vec<(u32,u32)> {
+    pub(crate) fn origins(&self, id: &FlatPositionCampaignHandle) -> Vec<(u32,u32)> {
         self.requests.get(id).as_ref().unwrap().origin.clone()
     }
-}
 
-struct FlatPlotRequest {
-    weave: CanvasWeave,
-    sizes: Vec<(u32,u32)>
-}
-
-pub struct FlatPlotAllocator {
-    uniform_name: String,
-    requests: KeyedData<FlatPlotRequestHandle,FlatPlotRequest>
-}
-
-impl FlatPlotAllocator {
-    pub(crate) fn new(uniform_name: &str) -> FlatPlotAllocator {
-        FlatPlotAllocator {
-            uniform_name: uniform_name.to_string(),
-            requests: KeyedData::new()
-        }
+    pub(crate) fn sizes(&self, id: &FlatPositionCampaignHandle) -> Vec<(u32,u32)> {
+        self.requests.get(id).as_ref().unwrap().sizes.clone()
     }
 
-    pub(crate) fn allocate(&mut self, weave: &CanvasWeave, sizes: &[(u32,u32)]) -> FlatPlotRequestHandle {
-        self.requests.add(FlatPlotRequest {
-            weave: weave.clone(),
-            sizes: sizes.to_vec()
-        })
-    }
+    pub(crate) fn canvas(&self) -> Result<Option<&FlatId>,Message> { Ok(self.canvas.as_ref()) }
 
-    fn all_weaves(&self) -> Vec<CanvasWeave> {
-        let mut out = HashSet::new();
-        for request in self.requests.values() {
-            out.insert(request.weave.clone());
+    pub(crate) fn make(&mut self, gl: &mut WebGlGlobal, drawable: &mut DrawingAllFlatsBuilder) -> Result<(),Message> {
+        self.allocate(gl,drawable)?;
+        for (id,_) in self.requests.items() {
+            if let Some(canvas) = &self.canvas {
+                drawable.add(id,canvas);
+            }
         }
-        out.iter().cloned().collect()
-    }
-
-    pub(crate) fn make(self, gl: &mut WebGlGlobal) -> anyhow::Result<DrawingFlatsDrawable> {
-        let mut weave_allocators = HashMap::new();
-        let all_weaves = self.all_weaves();
-        for weave in all_weaves.iter() {
-            weave_allocators.insert(weave,WeaveAllocator::new(weave));
-        } 
-        for (id,request) in self.requests.items() {
-            weave_allocators.get_mut(&request.weave).unwrap().add(id,&request.sizes);
-        }
-        let mut drawable = DrawingFlatsDrawable::new(&self.uniform_name);
-        for weave_allocator in weave_allocators.values_mut() {
-            weave_allocator.allocate(gl,&mut drawable)?;
-        }
-        for (id,request) in self.requests.items() {
-            let weave_allocator = weave_allocators.get(&request.weave).unwrap();
-            let origins = weave_allocator.origins(&id);
-            drawable.add(id,weave_allocator.canvas.as_ref().unwrap(),origins);
-        }
-        Ok(drawable)
+        Ok(())
     }
 }

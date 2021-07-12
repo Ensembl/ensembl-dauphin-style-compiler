@@ -1,12 +1,15 @@
-use super::core::{ AnchorPair, Patina, SingleAnchor, filter, bulk, Pen, Plotter };
+use super::core::{ Patina, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
+use crate::HoleySpaceBase;
+use crate::HoleySpaceBaseArea;
+use crate::switch::allotment::AllotmentHandle;
+use crate::util::ringarray::DataFilter;
 
 #[derive(Clone,Debug)]
 pub enum Shape {
-    SingleAnchorRect(SingleAnchor,Patina,Vec<String>,Vec<f64>,Vec<f64>),
-    DoubleAnchorRect(AnchorPair,Patina,Vec<String>),
-    Text(SingleAnchor,Pen,Vec<String>,Vec<String>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,String)
+    Text2(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentHandle>)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -14,59 +17,61 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
     let aim_min = if wanted_min < got_min { got_min } else { wanted_min }; // ie invariant: aim_min >= got_min
     let aim_max = if wanted_max > got_max { got_max } else { wanted_max }; // ie invariant: aim_max <= got_max
     let pitch = (got_max-got_min)/(y.len() as f64);
-    let left_truncate = ((aim_min-got_min)/pitch).floor() as usize -1;
-    let right_truncate = ((got_max-aim_max)/pitch).floor() as usize -1;
-    let left = min(max(left_truncate,0),y.len());
-    let right = max(left,min(max(0,y.len()-right_truncate),y.len()));
-    (aim_min,aim_max,y[left..right].to_vec())
+    let left_truncate = ((aim_min-got_min)/pitch).floor() as i64 - 1;
+    let right_truncate = ((got_max-aim_max)/pitch).floor() as i64 - 1;
+    let y_len = y.len() as i64;
+    let left = min(max(left_truncate,0),y_len);
+    let right = max(left,min(max(0,y_len-right_truncate),y_len));
+    (aim_min,aim_max,y[(left as usize)..(right as usize)].to_vec())
 }
 
 impl Shape {
     pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
         match self {
-            Shape::SingleAnchorRect(anchor,patina,allotment,x_size,y_size) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let patina = patina.clone().bulk(count,false);
-                let x_size = bulk(x_size.clone(),count,false);
-                let y_size = bulk(y_size.clone(),count,false);
-                let allotment = bulk(allotment.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::SingleAnchorRect(anchor.filter(&which,true),
-                                        patina.filter(&which,false),
-                                        filter(&allotment,&which,false),
-                                        filter(&x_size,&which,false),
-                                        filter(&y_size,&which,false))
-
+            Shape::SpaceBaseRect(area,patina,allotments) => {
+                let filter = area.make_base_filter(min_value,max_value);
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments))
             },
-            Shape::DoubleAnchorRect(anchor,patina,allotment) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let patina = patina.clone().bulk(count,false);
-                let allotment = bulk(allotment.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::DoubleAnchorRect(anchor.filter(&which,true),
-                                        patina.filter(&which,false),
-                                        filter(&allotment,&which,false))
+            Shape::Text2(position,pen,text,allotments) => {
+                let filter = position.make_base_filter(min_value,max_value);
+                Shape::Text2(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments))
             },
-
-            Shape::Text(anchor,pen,allotment,text) => {
-                let count = anchor.len();
-                let anchor = anchor.clone().bulk(count,true);
-                let pen = pen.clone().bulk(count,false);                
-                let allotment = bulk(allotment.clone(),count,false);
-                let text = bulk(text.clone(),count,false);
-                let which = anchor.matches(min_value,max_value);
-                Shape::Text(anchor.filter(&which,true),
-                            pen.filter(&which,false),
-                            filter(&text,&which,false),
-                            filter(&allotment,&which,false))
-            },
-
             Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
                 Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone())
             }
         }
+    }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Shape::SpaceBaseRect(area,_,_) => area.len(),
+            Shape::Text2(position,_,_,_) => position.len(),
+            Shape::Wiggle(_,y,_,_) => y.len()
+        }
+    }
+
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
+
+    pub fn remove_nulls(self) -> Shape {
+        match self {
+            Shape::SpaceBaseRect(area,patina,allotments) => {
+                let mut allotment_iter = allotments.iter();
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                filter.set_size(area.len());
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments))
+            },
+            Shape::Text2(position,pen,text,allotments) => {
+                let mut allotment_iter = allotments.iter();
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                filter.set_size(position.len());
+                Shape::Text2(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments))
+            },
+            Shape::Wiggle(x,mut y,plotter,allotment) => {
+                if allotment.is_null() { y = vec![]; }
+                Shape::Wiggle(x,y,plotter.clone(),allotment.clone())
+            }
+        }
+
     }
 }

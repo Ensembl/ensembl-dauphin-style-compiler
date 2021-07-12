@@ -1,16 +1,19 @@
-use crate::webgl::{ UniformHandle, AttribHandle, ProtoProcess, ProcessStanzaAddable, Program };
+use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaProgramLink, PatinaYielder};
+use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
-use crate::webgl::TextureBindery;
+use crate::util::message::Message;
+use crate::webgl::canvas::flatstore::FlatStore;
 
-pub struct CanvasTextureAreas {
+#[derive(Debug)]
+pub struct CanvasTextureArea {
     texture_origin: (u32,u32),
     mask_origin: (u32,u32),
     size: (u32,u32)
 }
 
-impl CanvasTextureAreas {
-    pub(crate) fn new(texture_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureAreas {
-        CanvasTextureAreas { texture_origin, mask_origin, size }
+impl CanvasTextureArea {
+    pub(crate) fn new(texture_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> CanvasTextureArea {
+        CanvasTextureArea { texture_origin, mask_origin, size }
     }
 
     pub(crate) fn texture_origin(&self) -> (u32,u32) { self.texture_origin }
@@ -20,49 +23,92 @@ impl CanvasTextureAreas {
 
 #[derive(Clone)]
 pub struct TextureProgram {
-    sampler: UniformHandle,
     texture: AttribHandle,
     mask: AttribHandle
 }
 
 impl TextureProgram {
-    pub(crate) fn new(program: &Program) -> anyhow::Result<TextureProgram> {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TextureProgram,Message> {
         Ok(TextureProgram {
-            sampler: program.get_uniform_handle("uSampler")?,
-            texture: program.get_attrib_handle("vTextureCoord")?,
-            mask: program.get_attrib_handle("vMaskCoord")?,
+            texture: builder.get_attrib_handle("aTextureCoord")?,
+            mask: builder.get_attrib_handle("aMaskCoord")?,
         })
     }
 }
 
 #[derive(Clone)]
-pub struct TextureDraw(TextureProgram);
+pub struct TextureDraw(TextureProgram,bool);
 
 // TODO structify
 // TODO to array utils
 
+fn push(data: &mut Vec<f32>,x: u32, y: u32, size: &(u32,u32)) {
+    data.push((x as f32)/(size.0 as f32));
+    data.push((y as f32)/(size.1 as f32));
+}
+
 impl TextureDraw {
-    pub(crate) fn new(_process: &ProtoProcess, variety: &TextureProgram) -> anyhow::Result<TextureDraw> {
-        Ok(TextureDraw(variety.clone()))
+    pub(crate) fn new(variety: &TextureProgram, free: bool) -> Result<TextureDraw,Message> {
+        Ok(TextureDraw(variety.clone(),free))
     }
 
-    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>)-> anyhow::Result<()> {
+    fn add_rectangle_one(&self, addable: &mut dyn ProcessStanzaAddable, attrib: &AttribHandle, dims: &mut dyn Iterator<Item=((u32,u32),(u32,u32))>, csize: &(u32,u32)) -> Result<(),Message> {
         let mut data = vec![];
         for (origin,size) in dims {
-            data.push(origin.0 as f64); data.push(origin.1 as f64); // (min,min)
-            data.push(origin.0 as f64); data.push((origin.1+size.1) as f64); // (min,max)
-            data.push((origin.0+size.0) as f64); data.push(origin.1 as f64); // (max,min)
-            data.push((origin.0+size.0) as f64); data.push((origin.1+size.1) as f64); // (max,max)
+            let size = if self.1 { (0,0) } else { size };
+            push(&mut data, origin.0,origin.1,&csize);
+            push(&mut data, origin.0,origin.1+size.1,&csize);
+            push(&mut data, origin.0+size.0,origin.1,&csize);
+            push(&mut data, origin.0+size.0,origin.1+size.1,&csize);
         }
-        addable.add_n(attrib,data)?;
+        addable.add_n(attrib,data,2)?;
         Ok(())
     }
 
-    pub(crate) fn add_rectangle(&self, process: &mut ProtoProcess, addable: &mut dyn ProcessStanzaAddable, bindery: &TextureBindery, canvas: &FlatId, dims: &[CanvasTextureAreas]) -> anyhow::Result<()> {
-        let canvas = bindery.gl_index(canvas)?;
-        process.set_uniform(&self.0.sampler,vec![canvas as f64])?;
-        self.add_rectangle_one(addable,&self.0.texture,&mut dims.iter().map(|x| (x.texture_origin(),x.size())))?;
-        self.add_rectangle_one(addable,&self.0.mask,&mut dims.iter().map(|x| (x.mask_origin(),x.size())))?;
+    pub(crate) fn add_rectangle(&self, addable: &mut dyn ProcessStanzaAddable, canvas: &FlatId, dims: &[CanvasTextureArea], flat_store: &FlatStore) -> Result<(),Message> {
+        let size = flat_store.get(canvas)?.size();
+        let mut texture_data = dims.iter()
+            .map(|x| (x.texture_origin(),x.size()));
+        let mut mask_data = dims.iter()
+            .map(|x| (x.mask_origin(),x.size()));
+        self.add_rectangle_one(addable,&self.0.texture,&mut texture_data,size)?;
+        self.add_rectangle_one(addable,&self.0.mask,&mut mask_data,size)?;
+        Ok(())
+    }
+}
+
+pub(crate) struct TextureYielder {
+    patina_process_name: PatinaProcessName,
+    texture: Option<TextureDraw>
+}
+
+impl TextureYielder {
+    pub(crate) fn new(flat_id: &FlatId, free: bool) -> TextureYielder {
+        let patina_process_name = if free { PatinaProcessName::FreeTexture(flat_id.clone()) } else { PatinaProcessName::Texture(flat_id.clone()) };
+        TextureYielder { 
+            texture: None,
+            patina_process_name
+        }
+    }
+
+    pub(crate) fn draw(&self) -> Result<&TextureDraw,Message> {
+        self.texture.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
+    }
+}
+
+impl PatinaYielder for TextureYielder {
+    fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
+
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgramLink,Message> {
+        Ok(PatinaProgramLink::Texture(TextureProgram::new(builder)?))
+    }
+    
+    fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {
+        self.texture = Some(match program {
+            PatinaProcess::FreeTexture(t) => t,
+            PatinaProcess::Texture(t) => t,
+            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: texture")))? }
+        }.clone());
         Ok(())
     }
 }

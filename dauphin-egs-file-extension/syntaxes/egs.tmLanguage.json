@@ -26,7 +26,7 @@
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.egs",
-				"match": "\\b(reserved|struct|enum|func|proc|expr|stmt|inline|import|becomes|mask|stomp|module|use|\\@|\\$)\\b"
+				"match": "\\b(reserved|struct|enum|func|proc|expr|stmt|inline|import|becomes|mask|stomp|module|false|true|use|\\@|\\$)\\b"
 			}]
 		},
 		"types": {

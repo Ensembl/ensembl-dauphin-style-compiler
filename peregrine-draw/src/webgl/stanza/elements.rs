@@ -1,125 +1,158 @@
-use anyhow::{ bail };
 use super::super::program::attribute::{ Attribute, AttribHandle };
+use js_sys::Float32Array;
 use keyed::{ KeyedData, KeyedDataMaker };
-use super::stanza::ProcessStanza;
+use super::stanza::{AttribSource, ProcessStanza};
 use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
 use web_sys::{ WebGlRenderingContext };
 use std::rc::Rc;
 use std::cell::RefCell;
+use crate::util::message::Message;
 
 const LIMIT : usize = 16384;
 
+pub(super) struct ProcessStanzaElementsEntryCursor(KeyedData<AttribHandle,usize>);
+
 pub(super) struct ProcessStanzaElementsEntry {
-    attribs: KeyedData<AttribHandle,Vec<f64>>,
-    index: Vec<u16>
+    attribs: KeyedData<AttribHandle,AttribSource>,
+    index: Vec<u16>,
+    offset: u16
 }
 
 impl ProcessStanzaElementsEntry {
-    pub(super) fn new(maker: &KeyedDataMaker<'static,AttribHandle,Vec<f64>>) -> ProcessStanzaElementsEntry {
+    pub(super) fn new(maker: &KeyedDataMaker<'static,AttribHandle,AttribSource>) -> ProcessStanzaElementsEntry {
         ProcessStanzaElementsEntry {
             attribs: maker.make(),
-            index: vec![]
+            index: vec![],
+            offset: 0
         }
     }
 
-    fn base(&self) -> usize {
-        self.index.len()
+    fn make_cursor(&self) -> Result<ProcessStanzaElementsEntryCursor,Message> {
+        Ok(ProcessStanzaElementsEntryCursor(self.attribs.map(|_,v| Ok(v.len()))?))
     }
 
-    fn space(&self, size: usize) -> usize {
-        (LIMIT - self.index.len()) / size
+    fn space_in_shapes(&self, points_per_shape: usize, index_len_per_shape: usize) -> usize {
+        let index_space = (LIMIT - self.index.len()) / index_len_per_shape;
+        let points_space = (LIMIT - self.offset as usize) /points_per_shape;
+        index_space.min(points_space)
     }
 
-    fn add_indexes(&mut self, indexes: &[u16], count: usize) {
-        for _ in 0..count {
-            self.index.extend_from_slice(indexes);
+    fn add_indexes(&mut self, indexes: &[u16], count: u16) -> Result<ProcessStanzaElementsEntryCursor,Message> {
+        let cursor = self.make_cursor()?;
+        let max_new_index = *(if let Some(x) = indexes.iter().max() { x } else { return Ok(cursor); });
+        for index in 0..count {
+            let offset = index * (max_new_index+1) + self.offset;
+            self.index.extend(indexes.iter().map(|x| *x+offset));
         }
+        self.offset += count * (max_new_index+1);
+        Ok(cursor)
     }
 
-    fn add(&mut self, handle: &AttribHandle, values: &[f64]) {
-        self.attribs.get_mut(handle).extend_from_slice(values);
+    fn add(&mut self, handle: &AttribHandle, cursor: &ProcessStanzaElementsEntryCursor, values: &[f32]) -> Result<(),Message> {
+        let position = *cursor.0.get(handle);
+        let mut target = self.attribs.get_mut(handle).get();
+        if position > target.len() {
+            return Err(Message::CodeInvariantFailed(format!("cursor after end")));
+        } else if position < target.len() {
+            target.splice(position..(position+values.len()),values.iter().cloned());
+        } else {
+            target.extend_from_slice(values);
+        }
+        Ok(())
     }
 
-    pub(super) fn make_stanza(self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext) -> anyhow::Result<Option<ProcessStanza>> {
-        ProcessStanza::new_elements(context,&self.index,values,self.attribs)
+    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
+        let out = ProcessStanza::new_elements(context,aux_array,&self.index,values,&self.attribs)?;
+        Ok(out)
     }
 }
 
 pub struct ProcessStanzaElements {
-    elements: Vec<(Rc<RefCell<ProcessStanzaElementsEntry>>,usize)>,
-    tuple_size: usize,
-    count: usize,
-    active: Rc<RefCell<bool>>
+    elements: Vec<(Rc<RefCell<ProcessStanzaElementsEntry>>,usize,ProcessStanzaElementsEntryCursor)>,
+    points_per_shape: usize,
+    index_len_per_shape: usize,
+    shape_count: usize,
+    active: Rc<RefCell<bool>>,
+    self_active: bool
 }
 
 impl ProcessStanzaElements {
-    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, count: usize, indexes: &[u16]) -> ProcessStanzaElements {
+    pub(super) fn new(stanza_builder: &mut ProcessStanzaBuilder, shape_count: usize, indexes: &[u16]) -> Result<ProcessStanzaElements,Message> {
         let mut out = ProcessStanzaElements {
-            tuple_size: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
+            points_per_shape: indexes.iter().max().map(|x| x+1).unwrap_or(0) as usize,
+            index_len_per_shape: indexes.len(),
             elements: vec![],
-            count,
-            active: stanza_builder.active().clone()
+            shape_count,
+            active: stanza_builder.active().clone(),
+            self_active: false
         };
-        let bases = out.allocate_entries(stanza_builder);
-        out.add_indexes(indexes,&bases);
-        out
+        out.open()?;
+        out.allocate_entries(stanza_builder,indexes)?;
+        Ok(out)
     }
 
-    fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder) -> Vec<usize> {
-        let mut bases = vec![];
-        let mut remaining = self.count;
-        while remaining > 0 {
+    fn allocate_entries(&mut self, stanza_builder: &mut ProcessStanzaBuilder, indexes: &[u16]) -> Result<(),Message> {
+        let mut remaining_shapes = self.shape_count;
+        while remaining_shapes > 0 {
             let entry = stanza_builder.elements().clone();
-            let mut space = entry.borrow().space(self.tuple_size);
-            if space > remaining { space = remaining; }
-            if space > 0 {
-                bases.push(entry.borrow().base());
-                self.elements.push((entry,space));
+            let mut space_in_shapes = entry.borrow().space_in_shapes(self.points_per_shape,self.index_len_per_shape);
+            if space_in_shapes > remaining_shapes { space_in_shapes = remaining_shapes; }
+            if space_in_shapes > 0 {
+                let cursor = entry.borrow_mut().add_indexes(&indexes,space_in_shapes as u16)?;
+                self.elements.push((entry,space_in_shapes,cursor));
             }
-            remaining -= space;
-            if remaining > 0 {
+            remaining_shapes -= space_in_shapes;
+            if remaining_shapes > 0 {
                 stanza_builder.make_elements_entry();
             }
         }
-        bases
+        Ok(())
     }
 
-    fn add_indexes(&mut self, indexes: &[u16], bases: &[usize]) {
-        for (i,(entry,count)) in self.elements.iter().enumerate() {
-            let these_indexes : Vec<u16> = indexes.iter().map(|x| *x+(bases[i] as u16)).collect();
-            entry.borrow_mut().add_indexes(&these_indexes,*count);
+    pub(crate) fn open(&mut self) -> Result<(),Message> {
+        if self.self_active { return Ok(()); }
+        if *self.active.borrow() {
+            return Err(Message::CodeInvariantFailed(format!("can only have one active campaign/array at once")));
         }
+        *self.active.borrow_mut() = true;
+        self.self_active = true;
+        Ok(())
     }
 
-    pub(crate) fn close(&mut self) {
+    pub(crate) fn close(&mut self) -> Result<(),Message> {
+        if !self.self_active {
+            return Err(Message::CodeInvariantFailed(format!("closing unopened campaign/array")));
+        }
+        self.self_active = false;
         *self.active.borrow_mut() = false;
+        Ok(())
     }
 }
 
 impl ProcessStanzaAddable for ProcessStanzaElements {
-    fn add(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
-        let array_size = self.tuple_size * self.count;
+    fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
+        let array_size = self.points_per_shape * self.shape_count * dims;
         if values.len() != array_size {
-            bail!("incorrect array length: expected {} got {}",array_size,values.len());
+            return Err(Message::CodeInvariantFailed(format!("incorrect array length: expected {} got {}",array_size,values.len())));
         }
         let mut offset = 0;
-        for (entry,count) in &mut self.elements {
-            let slice_size = *count*self.tuple_size;
-            entry.borrow_mut().add(handle,&values[offset..(offset+slice_size)]);
+        for (entry,shape_count,cursor) in &mut self.elements {
+            let slice_size = *shape_count*self.points_per_shape*dims;
+            entry.borrow_mut().add(handle,cursor,&values[offset..(offset+slice_size)])?;
             offset += slice_size;
         }
         Ok(())
     }
 
-    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f64>) -> anyhow::Result<()> {
+    fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
         let mut offset = 0;
-        for (entry,count) in &mut self.elements {
-            let mut remaining = *count*self.tuple_size;
+        for (entry,shape_count,cursor) in &mut self.elements {
+            let mut remaining = *shape_count*self.points_per_shape*dims;
             while remaining > 0 {
                 let mut real_count = remaining;
                 if offset+real_count > values_size { real_count = values_size-offset; }
-                entry.borrow_mut().add(handle,&values[offset..(offset+real_count)]);
+                entry.borrow_mut().add(handle,cursor,&values[offset..(offset+real_count)])?;
                 remaining -= real_count;
                 offset += real_count;
                 if offset == values_size { offset = 0; }

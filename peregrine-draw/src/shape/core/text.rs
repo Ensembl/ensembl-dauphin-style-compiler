@@ -1,119 +1,83 @@
-use anyhow::{ anyhow as err };
-use keyed::KeyedData;
 use peregrine_data::{ Pen, DirectColour };
 use keyed::keyed_handle;
-use crate::webgl::{ CanvasWeave, DrawingFlatsDrawable, FlatId, FlatStore, Flat, FlatPlotAllocator, FlatPlotRequestHandle };
+use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
+use crate::webgl::{ CanvasWeave, FlatId, FlatStore, Flat };
 use crate::webgl::global::WebGlGlobal;
-use super::texture::CanvasTextureAreas;
-use std::collections::HashMap;
+use super::flatdrawing::{FlatDrawingItem, FlatDrawingManager};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use crate::util::message::Message;
 
 // TODO padding measurements!
 
 keyed_handle!(TextHandle);
 
-struct Text {
+const PAD : u32 = 4;
+
+fn pad(x: (u32,u32)) -> (u32,u32) {
+    (x.0+PAD,x.1+PAD)
+}
+
+pub(crate) struct Text {
     pen: Pen,
     text: String,
-    text_origin: Option<(u32,u32)>,
-    mask_origin: Option<(u32,u32)>,
-    size: Option<(u32,u32)>,
-    colour: DirectColour
+    colour: DirectColour,
+    background: Option<DirectColour>
 }
 
 impl Text {
-    fn new(pen: &Pen, text: &str, colour: &DirectColour) -> Text {
-        Text { pen: pen.clone(), text: text.to_string(), size: None, colour: colour.clone(), text_origin: None, mask_origin: None }
+    fn new(pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> Text {
+        Text { pen: pen.clone(), text: text.to_string(), colour: colour.clone(), background: background.clone() }
     }
+}
 
-    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
+impl FlatDrawingItem for Text {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
         let document = gl.document().clone();
-        let canvas = gl.canvas_store_mut().scratch(&document,&CanvasWeave::Crisp,(16,16))?;
+        let canvas = gl.flat_store_mut().scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         canvas.set_font(&self.pen)?;
-        self.size = Some(canvas.measure(&self.text)?);
-        Ok(())
+        canvas.measure(&self.text)
     }
 
-    fn build(&mut self, canvas: &Flat, text_origin: (u32,u32), mask_origin: (u32,u32)) -> anyhow::Result<()> {
-        let size = self.size.unwrap();
-        self.text_origin = Some(text_origin);
-        self.mask_origin = Some(mask_origin);
-        canvas.text(&self.text,text_origin,size,&self.colour)?;
-        canvas.text(&self.text,mask_origin,size,&DirectColour(0,0,0))?;
-        Ok(())
+    fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
+
+    fn compute_hash(&self) -> Option<u64> {
+        let mut hasher = DefaultHasher::new();
+        self.pen.hash(&mut hasher);
+        self.text.hash(&mut hasher);
+        self.colour.hash(&mut hasher);
+        Some(hasher.finish())
     }
 
-    pub fn get_texture_areas(&self) -> anyhow::Result<CanvasTextureAreas> {
-        Ok(CanvasTextureAreas::new(
-            self.text_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            self.mask_origin.as_ref().cloned().ok_or_else(|| err!("no origin"))?,
-            self.size.as_ref().cloned().ok_or_else(|| err!("no size"))?
-        ))
+    fn group_hash(&self) -> Option<u64> {
+        Some(self.pen.group_hash())
+    }
+
+    fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
+        canvas.set_font(&self.pen)?;
+        let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,255));
+        canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
+        if self.background.is_some() {
+            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255))?;
+        } else{
+            canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255),&DirectColour(255,255,255,255))?;
+        }
+        Ok(())
     }
 }
 
-pub struct DrawingText {
-    texts: KeyedData<TextHandle,Text>,
-    request: Option<FlatPlotRequestHandle>
-}
+pub struct DrawingText(FlatDrawingManager<TextHandle,Text>);
 
 impl DrawingText {
-    pub fn new() -> DrawingText {
-        DrawingText {
-            texts: KeyedData::new(),
-            request: None
-        }
+    pub fn new() -> DrawingText { DrawingText(FlatDrawingManager::new()) }
+
+    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
+        self.0.add(Text::new(pen,text,colour,background))
     }
 
-    pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour) -> TextHandle {
-        self.texts.add(Text::new(pen,text,colour))
+    pub(crate) fn calculate_requirements(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPositionManager) -> Result<(),Message> {
+        self.0.calculate_requirements(gl,allocator)
     }
 
-    fn calc_sizes(&mut self, gl: &mut WebGlGlobal) -> anyhow::Result<()> {
-        /* All this to minimise font changes (which are slow) */
-        let mut texts_by_pen = HashMap::new();
-        for text in self.texts.values_mut() {
-            texts_by_pen.entry(text.pen.clone()).or_insert_with(|| vec![]).push(text);
-        }
-        for (_,texts) in &mut texts_by_pen {
-            for text in texts.iter_mut() {
-                text.calc_size(gl)?;
-            }
-        }
-        Ok(())
-    }
-
-    pub(crate) fn populate_allocator(&mut self, gl: &mut WebGlGlobal, allocator: &mut FlatPlotAllocator) -> anyhow::Result<()> {
-        self.calc_sizes(gl)?;
-        let mut sizes = vec![];
-        for text in self.texts.values_mut() {
-            let size = text.size.as_mut().unwrap().clone();
-            /* mask and text */
-            sizes.push(size);
-            sizes.push(size);
-        }
-        self.request = Some(allocator.allocate(&CanvasWeave::Crisp,&sizes));
-        Ok(())
-    }
-
-    pub fn build(&mut self, store: &FlatStore, builder: &DrawingFlatsDrawable) -> anyhow::Result<()> {
-        let mut origins = builder.origins(self.request.as_ref().unwrap());
-        let mut origins_iter = origins.drain(..);
-        let canvas_id = builder.canvas(self.request.as_ref().unwrap());
-        let canvas = store.get(&canvas_id)?;
-        for text in self.texts.values_mut() {
-            let mask_origin = origins_iter.next().unwrap();
-            let text_origin = origins_iter.next().unwrap();
-            text.build(canvas,text_origin,mask_origin)?;
-        }
-        Ok(())
-    }
-
-    pub fn canvas_id(&self, builder: &DrawingFlatsDrawable) -> anyhow::Result<FlatId> {
-        let request = self.request.as_ref().cloned().ok_or_else(|| err!("no such id"))?;
-        Ok(builder.canvas(&request))
-    }
-
-    pub fn get_texture_areas(&self, handle: &TextHandle) -> anyhow::Result<CanvasTextureAreas> {
-        self.texts.get(handle).get_texture_areas()
-    }
+    pub(crate) fn manager(&mut self) -> &mut FlatDrawingManager<TextHandle,Text> { &mut self.0 }
 }

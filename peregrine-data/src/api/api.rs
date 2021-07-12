@@ -1,10 +1,6 @@
-use crate::api::PeregrineApiQueue;
-use crate::api::queue::ApiMessage;
-use crate::core::{ Focus, StickId, Track };
-use crate::request::ChannelIntegration;
+use crate::{DataMessage, request::ChannelIntegration};
 use crate::train::{ Carriage };
-use super::PeregrineCore;
-use crate::request::channel::Channel;
+use crate::core::Viewport;
 
 #[derive(Debug,Clone)]
 pub enum CarriageSpeed {
@@ -13,8 +9,8 @@ pub enum CarriageSpeed {
 }
 
 pub trait PeregrineIntegration {
-    fn report_error(&mut self, error: &str);
-    fn set_carriages(&mut self, carriages: &[Carriage], index: u32);
-    fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed);
+    fn set_carriages(&mut self, carriages: &[Carriage], index: u32) -> Result<(),DataMessage>;
+    fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
+    fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }

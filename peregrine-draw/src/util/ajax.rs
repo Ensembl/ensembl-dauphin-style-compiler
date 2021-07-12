@@ -1,14 +1,13 @@
-use anyhow::{ self, Context };
 use wasm_bindgen::{ JsCast, JsValue };
 use js_sys::{ Uint8Array };
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use web_sys;
 use web_sys::{ AbortController, Request, RequestInit, RequestMode, Response };
-use crate::util::error::{ js_option, js_error, display_error };
 use serde_json::Value as JsonValue;
 use url::Url;
 use serde_cbor::Value as CborValue;
+use crate::util::message::Message;
 
 pub struct PgAjax {
     method: String,
@@ -57,22 +56,22 @@ impl PgAjax {
         self.body = Some(body);
     }
 
-    pub fn set_body_cbor(&mut self, value: &CborValue) -> anyhow::Result<()> {
-        self.set_body(serde_cbor::to_vec(&value).context("building trace bytes")?);
+    pub fn set_body_cbor(&mut self, value: &CborValue) -> Result<(),Message> {
+        self.set_body(serde_cbor::to_vec(&value).map_err(|e| Message::SerializationError(e.to_string()))?);
         Ok(())
     }
 
-    fn add_timeout(&self, init: &mut RequestInit, timeout: f64) -> anyhow::Result<()> {
-        let controller = js_error(AbortController::new())?;
+    fn add_timeout(&self, init: &mut RequestInit, timeout: f64) -> Result<(),Message> {
+        let controller = AbortController::new().map_err(|e| Message::ConfusedWebBrowser(format!("Cannot create abort controller: {:?}",e)))?;
         let signal = controller.signal();
         init.signal(Some(&signal));
         let closure = Closure::once_into_js(Box::new(move || controller.abort()) as Box<dyn Fn()>);
-        let window = display_error(web_sys::window().ok_or("cannot get window object"))?;
-        js_error(window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),timeout as i32))?;
+        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window object")))?;
+        window.set_timeout_with_callback_and_timeout_and_arguments_0(&closure.into(),timeout as i32).map_err(|e| Message::ConfusedWebBrowser(format!("Cannot set timeout: {:?}",e)))?;
         Ok(())
     }
 
-    async fn get(&self) -> anyhow::Result<JsValue> {
+    async fn get(&self) -> Result<JsValue,Message> {
         let mut init = RequestInit::new();
         init.method(&self.method).mode(RequestMode::Cors);
         if let Some(body) = &self.body {
@@ -82,30 +81,32 @@ impl PgAjax {
         if let Some(timeout) = self.timeout {
             self.add_timeout(&mut init,timeout)?;
         }
-        let req = js_error(Request::new_with_str_and_init(&self.url,&init))?;
+        let req = Request::new_with_str_and_init(&self.url,&init).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create request: {:?}",e)))?;
         for (k,v) in &self.headers {
-            js_error(req.headers().set(k,v))?;
+            req.headers().set(k,v).map_err(|e| Message::ConfusedWebBrowser(format!("cannot set header {}={}: {:?}",k,v,e)))?;
         }
-        let window = js_option(web_sys::window(),"cannot get window")?;
-        Ok(js_error(JsFuture::from(window.fetch_with_request(&req)).await)?)
+        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
+        JsFuture::from(window.fetch_with_request(&req)).await.map_err(|e| Message::BadBackendConnection(format!("cannot send request: {:?}",e.as_string())))
     }
 
-    pub async fn get_json(&mut self) -> anyhow::Result<JsonValue> {
+    pub async fn get_json(&mut self) -> Result<JsonValue,Message> {
         self.add_request_header("Content-Type","application/json");
         let response = self.get().await?;
-        let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
-        let json = js_error(JsFuture::from(js_error(response.json())?).await)?;
-        let json : JsonValue = display_error(json.into_serde()).context("not JSON")?;
+        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response: {:?}",e.as_string())))?;
+        let json_future = response.json().map_err(|e| Message::BadBackendConnection(format!("expected json: {:?}",e)))?;
+        let json = JsFuture::from(json_future).await.map_err(|e| Message::SerializationError(format!("{:?}",e)))?;
+        let json : JsonValue = json.into_serde().map_err(|e| Message::SerializationError(e.to_string()))?;
         Ok(json)
     }
 
-    pub async fn get_cbor(&mut self) -> anyhow::Result<CborValue> {
+    pub async fn get_cbor(&mut self) -> Result<CborValue,Message> {
         self.add_request_header("Content-Type","application/cbor");
         let response = self.get().await?;
-        let response: Response = js_error(response.dyn_into()).context("response is not a response!")?;
-        let array_buffer_value = js_error(JsFuture::from(js_error(response.array_buffer())?).await)?;
+        let response: Response = response.dyn_into().map_err(|e| Message::ConfusedWebBrowser(format!("cannot cast response to response: {:?}",e.as_string())))?;
+        let ajax_array_buffer = response.array_buffer().map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer: {:?}",e.as_string())))?;
+        let array_buffer_value = JsFuture::from(ajax_array_buffer).await.map_err(|e| Message::ConfusedWebBrowser(format!("cannot get array buffer value: {:?}",e.as_string())))?;
         let buffer: Vec<u8> = typed_array_to_vec_u8(&js_sys::Uint8Array::new(&array_buffer_value));
-        let cbor = serde_cbor::from_slice(&buffer).context("corrupted binary")?;
+        let cbor = serde_cbor::from_slice(&buffer).map_err(|e| Message::SerializationError(e.to_string()))?;
         Ok(cbor)
     }
 }
