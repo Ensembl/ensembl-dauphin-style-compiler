@@ -2,7 +2,7 @@ use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
 use crate::api::{ PeregrineCore, MessageSender };
 use crate::lane::{ ShapeRequest, Region };
-use crate::shape::{ Shape, ShapeListBuilder, ShapeList };
+use crate::shape::{ ShapeListBuilder, ShapeList };
 use super::train::TrainId;
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -21,8 +21,10 @@ impl CarriageId {
         }
     }
 
-    pub fn left(&self) -> f64 {
-        (self.train.scale().bp_in_carriage() * self.index) as f64
+    pub fn left_right(&self) -> (f64,f64) {
+        let bp_in_carriage = self.train.scale().bp_in_carriage() as f64;
+        let index = self.index as f64;
+        (bp_in_carriage*index,bp_in_carriage*(index+1.))
     }
 
     pub fn region(&self) -> Region {

@@ -146,7 +146,7 @@ impl ScreenPosition {
         let eigenpoint_in_bp_from_centre = eigenpoint_in_screenfuls * bp_per_screen;
         //console::log_1(&format!("bp_from_centre {} * {} = {}",eigenpoint_in_screenfuls,bp_per_screen,eigenpoint_in_bp_from_centre).into());
         let centre_bp = eigenpoint_in_bp - eigenpoint_in_bp_from_centre;
-        //console::log_1(&format!("cantre {} - {} = {}",eigenpoint_in_bp,eigenpoint_in_bp_from_centre,centre_bp).into());
+        //console::log_1(&format!("centre {} - {} = {}",eigenpoint_in_bp,eigenpoint_in_bp_from_centre,centre_bp).into());
         ScreenPosition {
             centre_bp,
             bp_per_screen,

@@ -50,6 +50,7 @@ pub trait ReadStageAxis {
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
     fn ready(&self) -> bool;
+    fn left_right(&self) -> Result<(f64,f64),Message>;
 }
 
 pub struct StageAxis {
@@ -122,6 +123,11 @@ impl ReadStageAxis for StageAxis {
     fn size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
     fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
     fn scale_shift(&self) -> Result<(f32,f32),Message> { stage_ok(&self.scale_shift) }
+    fn left_right(&self) -> Result<(f64,f64),Message> {
+        let pos = self.position()?;
+        let bp_per_screen = self.bp_per_screen()?;
+        Ok((pos-bp_per_screen/2.-1.,pos+bp_per_screen/2.+1.))
+    }
 
     // secret clone only accessible via read-only subsets
     fn copy(&self) -> StageAxis {

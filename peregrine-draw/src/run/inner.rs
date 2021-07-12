@@ -38,6 +38,12 @@ fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>)
     inst.merge(inst_data,|e| Message::DataError(e));
 }
 
+fn draw_inst(inst: &mut Instigator<Message>, result: Result<(),Message>) {
+    if let Err(e) = result {
+        inst.error(e);
+    }
+}
+
 #[derive(Clone)]
 pub struct Target {
     viewport: Viewport,
@@ -119,7 +125,8 @@ pub struct PeregrineInnerAPI {
     stage: Arc<Mutex<Stage>>,
     target_manager: Arc<Mutex<TargetManager>>,
     dom: PeregrineDom,
-    spectre_manager: SpectreManager
+    spectre_manager: SpectreManager,
+    input: Input
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -132,6 +139,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub target_manager: &'t mut Arc<Mutex<TargetManager>>,
     pub dom: &'t mut PeregrineDom,
     pub(crate) spectre_manager: &'t mut SpectreManager,
+    pub input: &'t Input,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -172,6 +180,7 @@ impl PeregrineInnerAPI {
             target_manager: &mut self.target_manager,
             dom: &mut self.dom,
             spectre_manager: &mut self.spectre_manager,
+            input: &mut self.input,
             guard
         }
     }
@@ -199,23 +208,29 @@ impl PeregrineInnerAPI {
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let redraw_needed = stage.lock().unwrap().redraw_needed();
+        let mut input = Input::new();
         core.application_ready();
-        Ok(PeregrineInnerAPI {
+        let out = PeregrineInnerAPI {
             config: config.draw.clone(),
             lock: commander.make_lock(),
             messages, message_sender,
-            data_api: core.clone(), commander, trainset, stage, webgl,
+            data_api: core.clone(),
+            commander: commander.clone(),
+            trainset, stage, webgl,
             target_manager,
             dom: dom.clone(),
-            spectre_manager: SpectreManager::new(&config.draw,&redraw_needed)
-        })
+            spectre_manager: SpectreManager::new(&config.draw,&redraw_needed),
+            input: input.clone()
+        };
+        input.set_api(dom,&config.draw,&out,&commander)?;
+        Ok(out)
     }
 
     pub(crate) fn spectres(&self) -> &SpectreManager { &self.spectre_manager }
     pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
 
-    pub(crate) fn set_artificial(&self, name: &str) {
-
+    pub(crate) fn set_artificial(&self, name: &str, start: bool) {
+        self.input.set_artificial(name,start);
     }
 
     pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
@@ -228,7 +243,6 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn clear_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.clear_switch(path));
-
     }
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
@@ -247,7 +261,7 @@ impl PeregrineInnerAPI {
         Ok(())
     }
     
-    pub(super) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {
+    pub(crate) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.set_position(x));
         instigator.done();
     }
@@ -257,8 +271,13 @@ impl PeregrineInnerAPI {
         self.target_manager.lock().unwrap().set_y(y);
     }
 
-    pub(super) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
+    pub(crate) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
         data_inst(instigator,self.data_api.set_bp_per_screen(z));
+        instigator.done();
+    }
+
+    pub(super) fn goto(&mut self, centre: f64, scale: f64, instigator: &mut Instigator<Message>) {
+        draw_inst(instigator,self.input.clone().goto(self,centre,scale));      
         instigator.done();
     }
 
@@ -267,12 +286,12 @@ impl PeregrineInnerAPI {
         instigator.done();
     }
 
-    pub(super) fn debug_action(&self, index: u8) {
-        use web_sys::console;
+    pub(crate) fn debug_action(&self, index: u8) {
         use crate::stage::axis::ReadStageAxis;
         console::log_1(&format!("received debug action {}",index).into());
         if index == 9 {
-            console::log_1(&format!("bp_per_screen {:?}",self.stage.lock().unwrap().x().bp_per_screen()).into());
+            let stage = self.stage.lock().unwrap();
+            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
         }
     }
 }

@@ -70,24 +70,41 @@ pub struct InputEvent {
     pub timestamp_ms: f64
 }
 
+struct InputState {
+    low_level: LowLevelInput,
+    physics: Physics
+}
+
 #[derive(Clone)]
 pub struct Input {
-    low_level: LowLevelInput
+    low_level: Arc<Mutex<Option<InputState>>>
 }
 
 impl Input {
-    pub fn new(dom: &PeregrineDom, config: &PgPeregrineConfig, api: &PeregrineAPI, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb) -> Result<Input,Message> {
-        let spectres = inner_api.spectres();
-        let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
-        Physics::new(config,&mut low_level,api,commander)?;
-        debug_register(config,&mut low_level,api)?;
-        Ok(Input {
-            low_level
-        })
+    pub fn new() ->Input {
+        Input {
+            low_level: Arc::new(Mutex::new(None))
+        }
     }
 
-    pub fn update_stage(&self, stage: &ReadStage) { self.low_level.update_stage(stage); }
-    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.low_level.get_spectres() }
+    fn state<F,T>(&self, f: F) -> T where F: FnOnce(&InputState) -> T { f(self.low_level.lock().unwrap().as_ref().unwrap()) }
 
-    pub fn set_artificial(&self, name: &str, start: bool) { self.low_level.set_artificial(name,start); }
+    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb) -> Result<(),Message> {
+        let spectres = inner_api.spectres();
+        let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
+        let physics = Physics::new(config,&mut low_level,inner_api,commander)?;
+        debug_register(config,&mut low_level,inner_api)?;
+        *self.low_level.lock().unwrap() = Some(InputState {
+            low_level, physics
+        });
+        Ok(())
+    }
+
+    pub fn update_stage(&self, stage: &ReadStage) { self.state(|state| state.low_level.update_stage(stage)); }
+    pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
+    pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
+
+    pub(crate) fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
+        self.state(|state| state.physics.goto(api,centre,scale))
+    }
 }

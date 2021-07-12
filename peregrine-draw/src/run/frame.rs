@@ -48,13 +48,14 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManag
     }
 }
 
-pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom, input: &Input) -> Result<(),Message> {
+pub fn run_animations(web: &mut PeregrineInnerAPI, dom: &PeregrineDom) -> Result<(),Message> {
     let mut other = web.clone();
-    let input = input.clone();
     let dom = dom.clone();
     web.commander().add_task("animator",0,None,None,Box::pin(async move {
         // TODO factor this pattern
         let lweb = other.lock().await;
+        let input = lweb.input.clone();
+        let dom = dom.clone();    
         let message_sender = lweb.message_sender.clone();
         drop(lweb);
         let size_manager = SizeManager::new(&mut other,&dom).await;
