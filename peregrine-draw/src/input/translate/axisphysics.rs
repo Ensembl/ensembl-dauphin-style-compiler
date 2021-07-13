@@ -95,4 +95,5 @@ impl AxisPhysics {
     }
 
     pub(super) fn is_active(&self) -> bool { self.target.is_some() }
+    pub(super) fn get_target(&self) -> Option<f64> { self.target }
 }

@@ -10,17 +10,13 @@ use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
 use crate::run::config::{ PgConfigKey };
-use crate::input::Input;
-use crate::run::inner::Target;
 use super::frame::run_animations;
 
 use std::sync::{ Arc, Mutex };
 
 enum DrawMessage {
     Goto(f64,f64),
-    SetX(f64),
     SetY(f64),
-    SetBpPerScreen(f64),
     SetStick(StickId),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
@@ -36,9 +32,7 @@ impl std::fmt::Debug for DrawMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             DrawMessage::Goto(centre,scale) => write!(f,"Goto({:?},{:?})",centre,scale),
-            DrawMessage::SetX(x) => write!(f,"SetX({:?})",x),
             DrawMessage::SetY(y) => write!(f,"SetY({:?})",y),
-            DrawMessage::SetBpPerScreen(bp)  => write!(f,"SetBpPerScreen({:?})",bp),
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
             DrawMessage::SetSwitch(path) => write!(f,"SetSwitch({:?})",path),
             DrawMessage::ClearSwitch(path)  => write!(f,"ClearSwitch({:?})",path),
@@ -63,12 +57,6 @@ impl DrawMessage {
             DrawMessage::SetArtificial(name,down) => {
                 draw.set_artificial(&name,down);
             }
-            DrawMessage::SetBpPerScreen(bp) => {
-                draw.set_bp_per_screen(bp,&mut instigator);
-            },
-            DrawMessage::SetX(x) => {
-                draw.set_x(x,&mut instigator);
-            },
             DrawMessage::SetY(y) => {
                 draw.set_y(y);
                 instigator.done();
@@ -106,16 +94,14 @@ impl DrawMessage {
 #[derive(Clone)]
 pub struct PeregrineAPI {
     queue: CommanderStream<(DrawMessage,Instigator<Message>)>,
-    stick: Arc<Mutex<Option<String>>>,
-    target: Arc<Mutex<Target>>
+    stick: Arc<Mutex<Option<String>>>
 }
 
 impl PeregrineAPI {
     pub fn new() -> PeregrineAPI {
         PeregrineAPI {
             queue: CommanderStream::new(),
-            stick: Arc::new(Mutex::new(None)),
-            target: Arc::new(Mutex::new(Target::new()))
+            stick: Arc::new(Mutex::new(None))
         }
     }
 
@@ -125,32 +111,10 @@ impl PeregrineAPI {
         progress
     }
 
-    pub fn set_x_internal(&self, x: f64) -> Progress {
-        let (progress,insitgator) = Progress::new();
-        self.queue.add((DrawMessage::SetX(x),insitgator.clone()));
-        progress
-    }
-
-    #[deprecated]
-    pub fn set_x(&self, x: f64) -> Progress {
-        self.set_x_internal(x)
-    }
-
     pub fn set_y(&self, y: f64) -> Progress {
         let (progress,insitgator) = Progress::new();
         self.queue.add((DrawMessage::SetY(y),insitgator.clone()));
         progress
-    }
-
-    pub fn set_bp_per_screen_internal(&self, bp: f64) -> Progress {
-        let (progress,insitgator) = Progress::new();
-        self.queue.add((DrawMessage::SetBpPerScreen(bp),insitgator.clone()));
-        progress
-    }
-
-    #[deprecated]
-    pub fn set_bp_per_screen(&self, bp: f64) -> Progress {
-        self.set_bp_per_screen_internal(bp)
     }
 
     pub fn goto(&self, left: f64, right: f64) -> Progress {
@@ -196,13 +160,12 @@ impl PeregrineAPI {
         self.queue.add((DrawMessage::DebugAction(index),instigator.clone()));
     }
 
-    pub fn x(&self) -> Result<Option<f64>,Message> { self.target.lock().unwrap().x() }
-    pub fn y(&self) -> f64 { self.target.lock().unwrap().y() }
     pub fn stick(&self) -> Option<String> { self.stick.lock().unwrap().as_ref().cloned() }
-    pub fn bp_per_screen(&self) -> Result<Option<f64>,Message> { self.target.lock().unwrap().bp_per_screen() }
-    pub fn size(&self) -> Option<(u32,u32)> { self.target.lock().unwrap().size().cloned() }
 
-    pub fn set_artificial(&self, name: &str, start: bool) {
+    pub fn set_artificial(&self, name: &str, start: bool) -> Progress {
+        let (progress,insitgator) = Progress::new();
+        self.queue.add((DrawMessage::SetArtificial(name.to_string(),start),insitgator.clone()));
+        progress        
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {
@@ -217,12 +180,7 @@ impl PeregrineAPI {
         commander.start();
         let configs = config.build();
         let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander)?;
-        //let input = Input::new(&dom,&configs.draw,&inner,&commander)?;
         run_animations(&mut inner,&dom)?;
-        let self2 = self.clone();
-        inner.add_target_callback(move |p| {
-            *self2.target.lock().unwrap() = p.clone();
-        });
         let self2 = self.clone();
         commander.add("draw-api",15,None,None,Box::pin(async move { self2.step(inner).await }));
         Ok(commander)

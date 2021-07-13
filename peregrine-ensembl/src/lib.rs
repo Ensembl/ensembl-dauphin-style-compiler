@@ -106,26 +106,10 @@ impl GenomeBrowser {
         console::log_1(&format!("{:?}",message).into());
     }
     
-    /*
-    * set_bp_per_screen
-    */
-    pub fn set_bp_per_screen(&self,bp_per_screen: f64) {    
-        let mut p = self.api.set_bp_per_screen(bp_per_screen);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
-        });    
+    pub fn goto(&self, left: f64, right: f64) {
+        self.api.goto(left,right);
     }
-    
-    /*
-    * Set x
-    */
-    pub fn set_x(&self,pos: f64) {
-        let mut p = self.api.set_x(pos);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
-        });
-    }
-    
+
     pub fn set_y(&self,y: f64) {
         self.api.set_y(y);
     }

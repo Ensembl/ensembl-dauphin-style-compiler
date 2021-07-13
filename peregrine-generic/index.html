@@ -24,6 +24,9 @@
         <div>drag <input id="drag" type="checkbox"/></div>
         <button id="goto">goto</button>
         <button id="chr">chr</button>
+        <br/>
+        <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
+        <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
       </div>
     </div>
     <script type="module">
@@ -31,8 +34,16 @@
       init().then(function() {
         let genome_browser = new GenomeBrowser();
         genome_browser.go();
-        genome_browser.set_message_reporter(function(x) {
-          console.error(x);
+        let current_span = document.getElementById("current");
+        let target_span = document.getElementById("target");
+        genome_browser.set_message_reporter(function(kind,...more) {
+          if(kind=="error") {
+              console.error(more[0]);
+          } else if(kind=="current") {
+              current_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
+          } else if(kind=="target") {
+              target_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
+          }
         });
         genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
         genome_browser.set_switch(["track","gene-pc-fwd"]);

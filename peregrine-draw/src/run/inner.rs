@@ -12,6 +12,7 @@ use peregrine_data::{
 };
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::Instigator;
+use super::report::Report;
 use super::{PgPeregrineConfig, frame::run_animations, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
@@ -74,44 +75,6 @@ impl Target {
     pub fn y(&self) -> f64 { self.y }
 }
 
-pub struct TargetManager {
-    target_callbacks: Arc<Mutex<Vec<Box<dyn FnMut(&Target)>>>>,
-    target: Target
-}
-
-impl TargetManager {
-    pub fn new() -> TargetManager {
-        TargetManager {
-            target: Target::new(),
-            target_callbacks: Arc::new(Mutex::new(vec![]))
-        }
-    }
-
-    fn run_callbacks(&self) {
-        for cb in self.target_callbacks.lock().unwrap().iter_mut() {
-            cb(&self.target);
-        }
-    }
-
-    pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
-        self.target_callbacks.lock().unwrap().push(Box::new(cb));
-    }
-
-    pub fn update_size(&mut self, size: (u32,u32)) {
-        self.target.size = Some(size);
-        self.run_callbacks();
-    }
-
-    pub fn update_viewport(&mut self, viewport: &Viewport) {
-        self.target.viewport = viewport.clone();
-        self.run_callbacks();
-    }
-
-    pub fn set_y(&mut self, y: f64) {
-        self.target.y = y;
-    }
-}
-
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
     config: Arc<PgPeregrineConfig>,
@@ -123,10 +86,10 @@ pub struct PeregrineInnerAPI {
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    target_manager: Arc<Mutex<TargetManager>>,
     dom: PeregrineDom,
     spectre_manager: SpectreManager,
-    input: Input
+    input: Input,
+    report: Report
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -136,9 +99,9 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Message>,
-    pub target_manager: &'t mut Arc<Mutex<TargetManager>>,
     pub dom: &'t mut PeregrineDom,
     pub(crate) spectre_manager: &'t mut SpectreManager,
+    pub report: &'t Report,
     pub input: &'t Input,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
@@ -177,10 +140,10 @@ impl PeregrineInnerAPI {
             webgl: &mut self.webgl,
             stage: &mut self.stage,
             message_sender: &mut self.message_sender,
-            target_manager: &mut self.target_manager,
             dom: &mut self.dom,
             spectre_manager: &mut self.spectre_manager,
             input: &mut self.input,
+            report: &mut self.report,
             guard
         }
     }
@@ -198,17 +161,18 @@ impl PeregrineInnerAPI {
         message_register_callback(Some(commander_id),move |message| {
             message_sender2.add(message);            
         });
-        let target_manager = Arc::new(Mutex::new(TargetManager::new()));
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone(),&stage,&target_manager));
+        let report = Report::new(&config.draw,&message_sender)?;
+        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone(),&stage,&report));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let redraw_needed = stage.lock().unwrap().redraw_needed();
         let mut input = Input::new();
+        report.run(&commander);
         core.application_ready();
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -217,12 +181,12 @@ impl PeregrineInnerAPI {
             data_api: core.clone(),
             commander: commander.clone(),
             trainset, stage, webgl,
-            target_manager,
             dom: dom.clone(),
             spectre_manager: SpectreManager::new(&config.draw,&redraw_needed),
-            input: input.clone()
+            input: input.clone(),
+            report: report.clone()
         };
-        input.set_api(dom,&config.draw,&out,&commander)?;
+        input.set_api(dom,&config.draw,&out,&commander,&report)?;
         Ok(out)
     }
 
@@ -231,10 +195,6 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn set_artificial(&self, name: &str, start: bool) {
         self.input.set_artificial(name,start);
-    }
-
-    pub(super) fn add_target_callback<F>(&self, cb: F) where F: FnMut(&Target) + 'static {
-        self.target_manager.lock().unwrap().add_target_callback(cb);
     }
 
     pub(crate) fn set_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
@@ -268,7 +228,6 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_y(&mut self, y: f64) {
         self.stage.lock().unwrap().y_mut().set_position(y);
-        self.target_manager.lock().unwrap().set_y(y);
     }
 
     pub(crate) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {

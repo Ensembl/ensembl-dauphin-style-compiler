@@ -57,30 +57,34 @@ impl<E> Reporter<E> where E: Clone + 'static + Send {
     pub fn error(&self, error: E) { self.0.lock().unwrap().0.error(error); }
 }
 
-pub enum MessageLevel {
-    Notice,
-    Warn,
-    Error
+pub enum MessageKind {
+    Error,
+    Interface
 }
 
-pub enum MessageCategory {
-    BadFrontend,
-    BadCode,
-    BadData,
-    BadBackend,
-    BadInfrastructure,
-    Unknown
+pub enum MessageAction {
+    ImmediateRetry, /* just hit reload */
+    RetrySoon,      /* hand on a bit and try again */
+    OurMistake,     /* we messed up */
+    YourMistake,    /* there's something wrong with your computer */
+    Advisory        /* FYI (porbably drop these except in dev builds) */
+}
+
+pub enum MessageLikelihood {
+    Inevitable,   /* network errors, etc... */
+    Quality,      /* we should have done better, but didn't */
+    Unlikely,     /* these errors shouldn't happen, but it's clear what did */
+    Inconceivable /* how on earth did you get _that_ to happen? */
 }
 
 pub trait PeregrineMessage : Send + Sync {
-    fn level(&self) -> MessageLevel;
-    fn category(&self) -> MessageCategory;
-    fn now_unstable(&self) -> bool;
-    fn degraded_experience(&self) -> bool;
+    fn kind(&self) -> MessageKind;
+    fn action(&self) -> MessageAction;
+    fn likelihood(&self) -> MessageLikelihood;
+    fn knock_on(&self) -> bool;
     fn code(&self) -> (u64,u64);
     fn to_message_string(&self) -> String;
     fn cause_message(&self) -> Option<&(dyn PeregrineMessage + 'static)> { None }
-    fn knock_on(&self) -> bool;
 }
 
 impl fmt::Display for dyn PeregrineMessage {
