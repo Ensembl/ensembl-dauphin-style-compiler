@@ -52,6 +52,7 @@ mod run {
     pub mod inner;
     mod frame;
     pub(crate) mod progress;
+    pub(crate) mod report;
     mod size;
 
     pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };

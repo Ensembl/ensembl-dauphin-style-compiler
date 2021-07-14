@@ -11,18 +11,11 @@ pub(super) fn zpx_to_bp(zpx: f64) -> f64 { 2_f64.powf(zpx/100.) }
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
     MoveX(f64),
-    MoveZ(f64,ZoomCentre),
-    JumpX(f64),
-    JumpZ(f64,ZoomCentre),
+    MoveZ(f64,Option<f64>),
+    JumpX(f64,Option<Box<dyn Fn(f64)>>),
+    JumpZ(f64,Option<f64>,Option<Box<dyn Fn(f64)>>),
     BrakeX,
     BrakeZ
-}
-
-#[derive(Clone)]
-pub(super) enum ZoomCentre {
-    None,
-    StationaryPoint(f64),
-    CentreOfScreen(f64)
 }
 
 pub(super) struct PhysicsRunner {
@@ -33,7 +26,7 @@ pub(super) struct PhysicsRunner {
     z: AxisPhysics,
     animation_queue: VecDeque<QueueEntry>,
     animation_current: Option<QueueEntry>,
-    zoom_centre: ZoomCentre
+    zoom_centre: Option<f64>
 }
 
 
@@ -68,7 +61,7 @@ impl PhysicsRunner {
             z: AxisPhysics::new(z_config),
             animation_queue: VecDeque::new(),
             animation_current: None,
-            zoom_centre: ZoomCentre::None
+            zoom_centre: None
         }
     }
 
@@ -97,19 +90,19 @@ impl PhysicsRunner {
         Ok(())
     }
 
-    fn jump_x(&mut self, inner: &PeregrineInnerAPI, amount_px: f64) -> Result<(),Message> {
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+    fn jump_x(&mut self, inner: &PeregrineInnerAPI, amount_px: f64) -> Result<Option<f64>,Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(None); };
         let current_px = measure.x_bp / measure.bp_per_screen * measure.px_per_screen;
         if !self.x.is_active() {
             self.x.move_to(current_px);
         }
         self.x.move_more(amount_px);
         self.update_needed();
-        Ok(())
+        Ok(self.x.get_target())
     }
 
-    fn jump_z(&mut self, inner: &PeregrineInnerAPI, amount_px: f64, centre: &ZoomCentre) -> Result<(),Message> {
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+    fn jump_z(&mut self, inner: &PeregrineInnerAPI, amount_px: f64, centre: Option<f64>) -> Result<Option<f64>,Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(None); };
         let z_current_px = bp_to_zpx(measure.bp_per_screen);
         if !self.z.is_active() {
             self.zoom_centre = centre.clone();
@@ -117,7 +110,7 @@ impl PhysicsRunner {
         }
         self.z.move_more(amount_px);
         self.update_needed();
-        Ok(())
+        Ok(self.z.get_target())
     }
 
     fn apply_spring_x(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
@@ -162,18 +155,12 @@ impl PhysicsRunner {
         let z_current_px = bp_to_zpx(measure.bp_per_screen);
         if let Some(new_pos_px) = self.z.apply_spring(z_current_px,total_dt) {
             let new_bp_per_screen = zpx_to_bp(new_pos_px);
-            match self.zoom_centre {
-                ZoomCentre::StationaryPoint(stationary) => {
-                    let x_screen = stationary/measure.px_per_screen;
-                    let new_bp_from_middle = (x_screen-0.5)*measure.bp_per_screen;
-                    let x_bp = measure.x_bp + (x_screen - 0.5) * measure.bp_per_screen;
-                    let new_middle = x_bp - new_bp_from_middle;
-                    inner.set_x(new_middle,&mut Instigator::new());
-                },
-                ZoomCentre::CentreOfScreen(centre) => {
-                    inner.set_x(centre,&mut Instigator::new());
-                },
-                ZoomCentre::None => {}
+            if let Some(stationary) = self.zoom_centre {
+                let x_screen = stationary/measure.px_per_screen;
+                let new_bp_from_middle = (x_screen-0.5)*measure.bp_per_screen;
+                let x_bp = measure.x_bp + (x_screen - 0.5) * measure.bp_per_screen;
+                let new_middle = x_bp - new_bp_from_middle;
+                inner.set_x(new_middle,&mut Instigator::new());
             }
             inner.set_bp_per_screen(new_bp_per_screen,&mut Instigator::new());
         }
@@ -215,18 +202,45 @@ impl PhysicsRunner {
                 _ => { self.halt_w(); }
             }
             /* do it */
-            match &self.animation_current {
-                Some(QueueEntry::MoveW(centre,scale)) => { self.jump_w(inner,*centre, *scale)?; },
+            let current = self.animation_current.take();
+            match &current {
+                Some(QueueEntry::MoveW(centre,scale)) => {
+                    self.jump_w(inner,*centre, *scale)?;
+                },
                 Some(QueueEntry::MoveX(amt)) => { 
                     self.x.move_to(*amt);
                 },
-                Some(QueueEntry::MoveZ(amt,centre)) => { self.zoom_centre = centre.clone(); self.z.move_to(*amt); },
-                Some(QueueEntry::JumpX(amt)) => { self.jump_x(inner,*amt)?; },
-                Some(QueueEntry::JumpZ(amt,pos)) => { self.jump_z(inner,*amt,&pos.clone())?; },
-                Some(QueueEntry::BrakeX) => { self.x.brake() },
-                Some(QueueEntry::BrakeZ) => { self.z.brake() },
+                Some(QueueEntry::MoveZ(amt,centre)) => {
+                    self.zoom_centre = centre.clone();
+                    self.z.move_to(*amt);
+                },
+                Some(QueueEntry::JumpX(amt,cb)) => {
+                    let cb = cb.clone();
+                    let target = self.jump_x(inner,*amt)?;
+                    if let Some(target) = target {
+                        if let Some(cb) = cb {
+                            cb(target);
+                        }
+                    }
+                },
+                Some(QueueEntry::JumpZ(amt,pos,cb)) => { 
+                    let cb = cb.clone();
+                    let target = self.jump_z(inner,*amt,pos.clone())?; 
+                    if let Some(target) = target {
+                        if let Some(cb) = cb {
+                            cb(target);
+                        }
+                    }
+                },
+                Some(QueueEntry::BrakeX) => {
+                    self.x.brake() 
+                },
+                Some(QueueEntry::BrakeZ) => { 
+                    self.z.brake() 
+                },
                 _ => {}
-            }    
+            }
+            self.animation_current = current;
         }
         Ok(())
     }

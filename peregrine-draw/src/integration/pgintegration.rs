@@ -2,7 +2,8 @@ use std::sync::{ Arc, Mutex };
 use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration, Viewport };
 use super::pgchannel::PgChannel;
 use blackbox::blackbox_log;
-use crate::{run::inner::TargetManager, train::GlTrainSet};
+use crate::run::report::Report;
+use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
@@ -12,7 +13,7 @@ pub struct PgIntegration {
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    target_manager: Arc<Mutex<TargetManager>>
+    report: Report
 }
 
 impl PeregrineIntegration for PgIntegration {
@@ -41,20 +42,28 @@ impl PeregrineIntegration for PgIntegration {
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool) {
         if !future {
             self.stage.lock().unwrap().notify_current(viewport);
+            if let Ok(layout) = viewport.layout() {
+                let stick = layout.stick();
+                self.report.set_stick(&stick.to_string());
+                if let (Ok(x),Ok(bp)) = (viewport.position(),viewport.bp_per_screen()) {
+                    self.report.set_x_bp(x);
+                    self.report.set_bp_per_screen(bp);    
+                }    
+            }
         } else {
-            self.target_manager.lock().unwrap().update_viewport(viewport);
+            //self.target_manager.lock().unwrap().update_viewport(viewport);
         }
     }
 }
 
 impl PgIntegration {
-    pub fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, target_manager: &Arc<Mutex<TargetManager>>) -> PgIntegration {
+    pub fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,
             webgl,
             stage: stage.clone(),
-            target_manager: target_manager.clone()
+            report: report.clone()
         }
     }
 }

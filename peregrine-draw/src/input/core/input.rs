@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use crate::PeregrineInnerAPI;
+use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
 use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
@@ -89,10 +90,10 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&InputState) -> T { f(self.low_level.lock().unwrap().as_ref().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb) -> Result<(),Message> {
+    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
-        let physics = Physics::new(config,&mut low_level,inner_api,commander)?;
+        let physics = Physics::new(config,&mut low_level,inner_api,commander,report)?;
         debug_register(config,&mut low_level,inner_api)?;
         *self.low_level.lock().unwrap() = Some(InputState {
             low_level, physics

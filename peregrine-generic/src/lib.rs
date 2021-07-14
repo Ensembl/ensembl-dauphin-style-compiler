@@ -1,12 +1,13 @@
 use std::{future::Ready, sync::{ Arc, Mutex }};
 use std::fmt::Debug;
 mod standalonedom;
+use js_sys::Array;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{Executor, cdr_timer};
 use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
 use peregrine_data::{Channel, ChannelLocation, StickId };
-use peregrine_message::PeregrineMessage;
+use peregrine_message::{MessageKind, PeregrineMessage};
 pub use url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{HtmlElement, console };
@@ -46,20 +47,17 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
     api.set_switch(&["track","gene-pc-fwd"]);
     api.set_switch(&["track","gene-nonpc-fwd"]);
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
-    let mut pos = 2500000.;
-    let mut bp_per_screen = 1000000.;
-    api.set_bp_per_screen(bp_per_screen);
+    let mut left = 2500000.;
+    let mut right = 1000000.;
+    api.goto(left,right);
     let mut i = 0_f64;
     loop {
             i += 1.;
-            use std::f64::consts::PI;
 
-            pos = 2500000. + 400000. * (i/50.).sin();
-            bp_per_screen = 1000000. * (2.+0.2*(i/15.).cos());
+            left = 2500000. + 400000. * (i/50.).sin();
+            right = 2500000. + 400000. * (i/15.).cos();
 
-            api.set_x(pos);
-            api.set_bp_per_screen(bp_per_screen);
-            bp_per_screen *= 0.95;
+            api.goto(left,right);
             cdr_timer(1.).await; // Wait one second
     }
     cdr_timer(100.).await;
@@ -159,29 +157,9 @@ impl GenomeBrowser {
     pub fn receive_message(message: &JsValue) {
         console::log_1(&format!("{:?}",message).into());
     }
-    
-    /*
-    * set_bp_per_screen
-    */
-    pub fn set_bp_per_screen(&self,bp_per_screen: f64) {    
-        let mut p = self.api.set_bp_per_screen(bp_per_screen);
-        p.add_callback(move |v| {
-//            console::log_1(&format!("set_bp_per_screen({}) = {:?}",bp_per_screen,v).into());
-        });    
-    }
-    
+        
     pub fn set_artificial(&self, name: &str, start: bool) {
         self.api.set_artificial(name,start);
-    }
-
-    /*
-    * Set x
-    */
-    pub fn set_x(&self,pos: f64) {
-        let mut p = self.api.set_x(pos);
-        p.add_callback(move |v| {
-            console::log_1(&format!("set_x({}) = {:?}",pos,v).into());
-        });
     }
     
     pub fn goto(&self, left: f64, right: f64) {
@@ -213,8 +191,35 @@ impl GenomeBrowser {
             CLOSURE.with(|closure| {
                 if let Some(closure) = &closure.lock().unwrap()[index2] {
                     let this = JsValue::null(); 
-                    let x = JsValue::from(message.to_string().as_str());
-                    let _ = closure.call1(&this, &x);    
+                    match message.kind() {
+                        MessageKind::Error => {
+                            /* func("error",error_as_string) */
+                            let kind = JsValue::from("error");
+                            let msg = JsValue::from(message.to_string().as_str());
+                            let _ = closure.call2(&this,&kind,&msg);            
+                        },
+                        MessageKind::Interface => {
+                            match message {
+                                Message::CurrentLocation(stick,from,to) => {
+                                    let args = Array::new();
+                                    args.set(0,JsValue::from("current"));
+                                    args.set(1,JsValue::from(stick));
+                                    args.set(2,JsValue::from(from));
+                                    args.set(3,JsValue::from(to));
+                                    let _ = closure.apply(&this,&args);                    
+                                }
+                                Message::TargetLocation(stick,from,to) => {
+                                    let args = Array::new();
+                                    args.set(0,JsValue::from("target"));
+                                    args.set(1,JsValue::from(stick));
+                                    args.set(2,JsValue::from(from));
+                                    args.set(3,JsValue::from(to));
+                                    let _ = closure.apply(&this,&args);                    
+                                },
+                                _ => {}
+                            }
+                        }
+                    }
                 }      
             });
         }));
