@@ -84,6 +84,7 @@ impl AxisPhysics {
                 let delta = self.velocity*dt;
                 current += delta;
                 if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
+                    current = target;
                     self.halt();
                     break;
                 }
