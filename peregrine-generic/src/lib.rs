@@ -216,7 +216,10 @@ impl GenomeBrowser {
                                     args.set(3,JsValue::from(to));
                                     let _ = closure.apply(&this,&args);                    
                                 },
-                                _ => {}
+                                x => {
+                                    use web_sys::console;
+                                    console::warn_1(&format!("unexpected information: {}",x.to_string()).into());
+                                }
                             }
                         }
                     }

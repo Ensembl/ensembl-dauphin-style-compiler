@@ -18,6 +18,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 pub enum Message {
     CurrentLocation(String,f64,f64),
     TargetLocation(String,f64,f64),
+    Ready,
     /**/
     CodeInvariantFailed(String),
     DataError(DataMessage),
@@ -37,6 +38,7 @@ impl PeregrineMessage for Message {
         match self {
             Message::CurrentLocation(_,_,_) => MessageKind::Interface,
             Message::TargetLocation(_,_,_) => MessageKind::Interface,
+            Message::Ready => MessageKind::Interface,
             _ => MessageKind::Error
         }
     }
@@ -75,6 +77,7 @@ impl PeregrineMessage for Message {
             Message::BadTemplate(s) => (501,calculate_hash(s)),
             Message::CurrentLocation(_,_,_) => (0,0),
             Message::TargetLocation(_,_,_) => (0,0),
+            Message::Ready => (0,0),
         }
     }
 
@@ -93,6 +96,7 @@ impl PeregrineMessage for Message {
             Message::BadTemplate(s) => format!("bad template: {}",s),
             Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
+            Message::Ready => format!("ready"),
         }
     }
 

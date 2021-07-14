@@ -13,7 +13,7 @@ use peregrine_data::{
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::Instigator;
 use super::report::Report;
-use super::{PgPeregrineConfig, frame::run_animations, globalconfig::CreatedPeregrineConfigs};
+use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use crate::train::GlTrainSet;
@@ -159,7 +159,7 @@ impl PeregrineInnerAPI {
         message_register_default(commander_id);
         let message_sender2 = message_sender.clone();
         message_register_callback(Some(commander_id),move |message| {
-            message_sender2.add(message);            
+            message_sender2.add(message);
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
@@ -174,10 +174,12 @@ impl PeregrineInnerAPI {
         let mut input = Input::new();
         report.run(&commander);
         core.application_ready();
+        message_sender.add(Message::Ready);
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
             lock: commander.make_lock(),
-            messages, message_sender,
+            messages,
+            message_sender: message_sender.clone(),
             data_api: core.clone(),
             commander: commander.clone(),
             trainset, stage, webgl,
@@ -187,6 +189,7 @@ impl PeregrineInnerAPI {
             report: report.clone()
         };
         input.set_api(dom,&config.draw,&out,&commander,&report)?;
+        message_sender.add(Message::Ready);
         Ok(out)
     }
 
@@ -214,6 +217,7 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(Message) + 'static>) {
         *self.messages.lock().unwrap() = Some(callback);
+        self.message_sender.add(Message::Ready);
     }
 
     pub(super) fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
