@@ -16,8 +16,8 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 
 #[derive(Clone,Debug)]
 pub enum Message {
-    CurrentLocation(String,f64,f64),
-    TargetLocation(String,f64,f64),
+    CurrentLocation(String,u64,u64),
+    TargetLocation(String,u64,u64),
     Ready,
     /**/
     CodeInvariantFailed(String),

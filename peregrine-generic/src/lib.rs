@@ -204,16 +204,16 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("current"));
                                     args.set(1,JsValue::from(stick));
-                                    args.set(2,JsValue::from(from));
-                                    args.set(3,JsValue::from(to));
+                                    args.set(2,JsValue::from(from as f64));
+                                    args.set(3,JsValue::from(to as f64));
                                     let _ = closure.apply(&this,&args);                    
                                 }
                                 Message::TargetLocation(stick,from,to) => {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("target"));
                                     args.set(1,JsValue::from(stick));
-                                    args.set(2,JsValue::from(from));
-                                    args.set(3,JsValue::from(to));
+                                    args.set(2,JsValue::from(from as f64));
+                                    args.set(3,JsValue::from(to as f64));
                                     let _ = closure.apply(&this,&args);                    
                                 },
                                 x => {

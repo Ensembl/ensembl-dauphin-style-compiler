@@ -60,6 +60,10 @@ fn extract_coord(stick: &mut Changed<String>, x: &mut Changed<f64>, bp: &mut Cha
     }
 }
 
+fn to_left_right(position: f64, scale: f64) -> (u64,u64) {
+    ((position-scale/2.).floor() as u64, (position+scale/2.).ceil() as u64)
+}
+
 struct ReportData {
     x_bp: Changed<f64>,
     bp_per_screen: Changed<f64>,
@@ -97,10 +101,12 @@ impl ReportData {
     fn build_messages(&mut self) -> Vec<Message> {
         let mut out = vec![];
         if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.stick,&mut self.x_bp,&mut self.bp_per_screen) {
-            out.push(Message::CurrentLocation(stick,current_pos-current_scale/2.,current_pos+current_scale/2.))
+            let (left,right) = to_left_right(current_pos,current_scale);
+            out.push(Message::CurrentLocation(stick,left,right))
         }
         if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.target_stick,&mut self.target_x_bp,&mut self.target_bp_per_screen) {
-            out.push(Message::TargetLocation(stick,current_pos-current_scale/2.,current_pos+current_scale/2.))
+            let (left,right) = to_left_right(current_pos,current_scale);
+            out.push(Message::TargetLocation(stick,left,right))
         }
         out
     }
