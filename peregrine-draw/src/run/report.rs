@@ -2,29 +2,35 @@ use std::{sync::{Arc, Mutex}};
 
 use commander::{CommanderStream, cdr_tick};
 
-use crate::{Message, PgCommanderWeb};
+use crate::{Message, PgCommanderWeb, util::needed::{Needed, NeededLock}};
 
 use super::{PgConfigKey, PgPeregrineConfig};
 
 struct Changed<T: PartialEq> {
     reported: Option<T>,
-    unreported: Option<T>
+    unreported: Option<T>,
+    #[allow(unused)]
+    lock: Option<NeededLock>
 }
 
 impl<T: PartialEq+std::fmt::Debug> Changed<T> where T: PartialEq {
     fn new() -> Changed<T> {
         Changed {
             reported: None,
-            unreported: None
+            unreported: None,
+            lock: None
         }
     }
 
-    fn set(&mut self, value: T) {
-        use web_sys::console;
-        //console::log_1(&format!("set={:?}/{:?}",self.reported,self.unreported).into());    
+    fn set(&mut self, value: T, needed: &Needed) {
         self.unreported = Some(value);
+        self.lock = Some(needed.lock());
     }
-    fn is_changed(&self) -> bool { self.unreported.is_some() && self.unreported != self.reported }
+    fn is_changed(&mut self) -> bool { 
+        let changed = self.unreported.is_some() && self.unreported != self.reported;
+        if !changed { self.lock = None; }
+        changed
+     }
     fn peek(&self) -> Option<&T> { self.unreported.as_ref().or_else(|| self.reported.as_ref()) }
 
     fn report(&mut self, reuse: bool) -> Option<&T> {
@@ -36,6 +42,7 @@ impl<T: PartialEq+std::fmt::Debug> Changed<T> where T: PartialEq {
             }
             self.reported = Some(unreported);
         }
+        self.lock = None;
         if update || reuse {
             self.reported.as_ref()
         } else {
@@ -60,11 +67,12 @@ struct ReportData {
     target_bp_per_screen: Changed<f64>,
     stick: Changed<String>,
     target_stick: Changed<String>,
-    messages: CommanderStream<Message>
+    messages: CommanderStream<Message>,
+    needed: Needed
 }
 
 impl ReportData {
-    fn new(messages: &CommanderStream<Message>) -> ReportData {
+    fn new(messages: &CommanderStream<Message>, needed: &Needed) -> ReportData {
         ReportData {
             x_bp: Changed::new(),
             bp_per_screen: Changed::new(),
@@ -72,15 +80,19 @@ impl ReportData {
             target_bp_per_screen: Changed::new(),
             stick: Changed::new(),
             target_stick: Changed::new(),
-            messages: messages.clone()
+            messages: messages.clone(),
+            needed: needed.clone()
         }
     }
 
-    fn set_stick(&mut self, stick: &str) { self.stick.set(stick.to_string()); self.target_stick.set(stick.to_string()); }
-    fn set_x_bp(&mut self, value: f64) { self.x_bp.set(value); }
-    fn set_bp_per_screen(&mut self, value: f64) { self.bp_per_screen.set(value); }
-    fn set_target_x_bp(&mut self, value: f64) { self.target_x_bp.set(value); }
-    fn set_target_bp_per_screen(&mut self, value: f64) { self.target_bp_per_screen.set(value); }
+    fn set_stick(&mut self, stick: &str) {
+        self.stick.set(stick.to_string(),&self.needed);
+        self.target_stick.set(stick.to_string(),&self.needed);
+    }
+    fn set_x_bp(&mut self, value: f64) { self.x_bp.set(value,&self.needed); }
+    fn set_bp_per_screen(&mut self, value: f64) { self.bp_per_screen.set(value,&self.needed); }
+    fn set_target_x_bp(&mut self, value: f64) { self.target_x_bp.set(value,&self.needed); }
+    fn set_target_bp_per_screen(&mut self, value: f64) { self.target_bp_per_screen.set(value,&self.needed); }
 
     fn build_messages(&mut self) -> Vec<Message> {
         let mut out = vec![];
@@ -104,6 +116,7 @@ impl ReportData {
 #[derive(Clone)]
 pub struct Report {
     data: Arc<Mutex<ReportData>>,
+    needed: Needed,
     update_freq: f64
 }
 
@@ -112,15 +125,17 @@ impl Report {
         loop {
             self.data.lock().unwrap().report_step()?;
             cdr_tick(self.update_freq as u64).await;
-            //self.physics_needed.wait_until_needed().await;
+            self.needed.wait_until_needed().await;
         }
 
     }
 
     pub(crate) fn new(config: &PgPeregrineConfig, messages: &CommanderStream<Message>) -> Result<Report,Message> {
+        let needed = Needed::new();
         Ok(Report {
-            data: Arc::new(Mutex::new(ReportData::new(messages))),
-            update_freq: config.get_f64(&PgConfigKey::ReportUpdateFrequency)?
+            data: Arc::new(Mutex::new(ReportData::new(messages,&needed))),
+            update_freq: config.get_f64(&PgConfigKey::ReportUpdateFrequency)?,
+            needed
         })
     }
 
