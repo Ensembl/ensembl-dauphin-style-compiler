@@ -109,8 +109,6 @@ impl GenomeBrowser {
             let value = jserror_to_message(Reflect::get(config_object,&key))?;
             let key_str = key.as_string().ok_or_else(|| Message::ConfusedWebBrowser("bad key".to_string()))?;
             let value_str = value.as_string().ok_or_else(|| Message::ConfusedWebBrowser("bad value".to_string()))?;
-            use web_sys::console;
-            console::log_1(&format!("key {} value {}",key_str,value_str).into());
             out.insert(key_str,value_str);
         }
         Ok(out)
