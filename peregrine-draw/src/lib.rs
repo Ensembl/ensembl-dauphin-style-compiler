@@ -21,6 +21,9 @@ mod input {
     }
 
     mod translate {
+        pub(super) mod measure;
+        pub(crate) mod animqueue;
+        pub(crate) mod axisphysics;
         pub(crate) mod physics;
         pub(crate) mod debug;
 
@@ -49,6 +52,7 @@ mod run {
     pub mod inner;
     mod frame;
     pub(crate) mod progress;
+    pub(crate) mod report;
     mod size;
 
     pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };

@@ -6,7 +6,7 @@ use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
 use peregrine_data::{ DataMessage };
-use peregrine_message::{ PeregrineMessage, MessageLevel, MessageCategory };
+use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -16,6 +16,10 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
 
 #[derive(Clone,Debug)]
 pub enum Message {
+    CurrentLocation(String,u64,u64),
+    TargetLocation(String,u64,u64),
+    Ready,
+    /**/
     CodeInvariantFailed(String),
     DataError(DataMessage),
     InvalidBackendLocation(String),
@@ -30,10 +34,12 @@ pub enum Message {
 }
 
 impl PeregrineMessage for Message {
-    fn level(&self) -> MessageLevel {
+    fn kind(&self) -> MessageKind {
         match self {
-            Message::DataError(d) => d.level(),
-            _ => MessageLevel::Warn,
+            Message::CurrentLocation(_,_,_) => MessageKind::Interface,
+            Message::TargetLocation(_,_,_) => MessageKind::Interface,
+            Message::Ready => MessageKind::Interface,
+            _ => MessageKind::Error
         }
     }
 
@@ -44,34 +50,14 @@ impl PeregrineMessage for Message {
         }
     }
 
-    fn category(&self) -> MessageCategory {
+    fn action(&self) -> MessageAction {
         match self {
-            Message::CodeInvariantFailed(_) => MessageCategory::BadCode,
-            Message::DataError(d) => d.category(),
-            Message::InvalidBackendLocation(_) => MessageCategory::BadFrontend,
-            Message::ConfusedWebBrowser(_) => MessageCategory::BadFrontend,
-            Message::SerializationError(_) => MessageCategory::BadCode,
-            Message::WebGLFailure(_) => MessageCategory::BadCode,
-            Message::Canvas2DFailure(_) => MessageCategory::BadCode,
-            Message::BadWebGLProgram(_,_) => MessageCategory::BadCode,
-            Message::CannotPackRectangles(_) => MessageCategory::BadCode,
-            Message::BadBackendConnection(_) => MessageCategory::BadBackend,
-            Message::BadTemplate(_) => MessageCategory::BadFrontend,
-        }
-    }
-
-    fn now_unstable(&self) -> bool {
-        match self {
-            Message::DataError(d) => d.now_unstable(),
-            _ => true,
-        }
-    }
-
-    fn degraded_experience(&self) -> bool {
-        if self.now_unstable() { return true; }
-        match self {
-            Message::DataError(d) => d.degraded_experience(),
-            _ => true,
+            Message::DataError(x) => x.action(),
+            Message::ConfusedWebBrowser(_) => MessageAction::YourMistake,
+            Message::WebGLFailure(_) => MessageAction::YourMistake,
+            Message::Canvas2DFailure(_) => MessageAction::YourMistake,
+            Message::BadBackendConnection(_) => MessageAction::RetrySoon,        
+            _ => MessageAction::OurMistake
         }
     }
 
@@ -89,6 +75,9 @@ impl PeregrineMessage for Message {
             Message::CannotPackRectangles(s) => (509,calculate_hash(s)),
             Message::BadBackendConnection(s) => (510,calculate_hash(s)),
             Message::BadTemplate(s) => (501,calculate_hash(s)),
+            Message::CurrentLocation(_,_,_) => (0,0),
+            Message::TargetLocation(_,_,_) => (0,0),
+            Message::Ready => (0,0),
         }
     }
 
@@ -105,6 +94,21 @@ impl PeregrineMessage for Message {
             Message::CannotPackRectangles(s) => format!("cannot pack rectangles: {}",s),
             Message::BadBackendConnection(s) => format!("bad backend connection: {}",s),
             Message::BadTemplate(s) => format!("bad template: {}",s),
+            Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
+            Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
+            Message::Ready => format!("ready"),
+        }
+    }
+
+    fn likelihood(&self) -> MessageLikelihood {
+        match self {
+            Message::DataError(x) => x.likelihood(),
+            Message::ConfusedWebBrowser(_) => MessageLikelihood::Inevitable,
+            Message::WebGLFailure(_) => MessageLikelihood::Inevitable,
+            Message::Canvas2DFailure(_) => MessageLikelihood::Inevitable,
+            Message::CannotPackRectangles(_) => MessageLikelihood::Unlikely,
+            Message::BadBackendConnection(_) => MessageLikelihood::Inevitable,
+            _ => MessageLikelihood::Quality
         }
     }
 }

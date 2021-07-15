@@ -2,13 +2,17 @@ use std::sync::{ Arc, Mutex, Weak };
 use commander::{ cdr_timer };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::util::message::Message;
+use super::needed::{Needed, NeededLock};
 
 struct MonostableState {
+    needed: Needed,
     future: bool,
-    current: bool
+    current: bool,
+    #[allow(unused)]
+    lock: Option<NeededLock>
 }
 
-async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, period_ms: f64, cb: Arc<Box<dyn Fn() + 'static>>) -> Result<(),Message> {
+async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, needed: Needed, period_ms: f64, cb: Arc<Box<dyn Fn() + 'static>>) -> Result<(),Message> {
     loop {
         if let Some(state_lock) = weak_state.upgrade() {
             let mut state = state_lock.lock().unwrap();
@@ -17,10 +21,12 @@ async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, period_ms: f
             }
             state.current = state.future;
             state.future = false;
+            if !state.future && !state.current { state.lock = None; }
             drop(state);
         } else {
             break;
         }
+        needed.wait_until_needed().await;
         cdr_timer(period_ms).await;
     }
     Ok(())
@@ -31,13 +37,16 @@ pub(crate) struct Monostable(Arc<Mutex<MonostableState>>);
 
 impl Monostable {
     pub(crate) fn new<F>(commander: &PgCommanderWeb, period_ms: f64, cb: F) -> Monostable where F: Fn() + 'static {
+        let needed = Needed::new();
         let state = Arc::new(Mutex::new(MonostableState {
+            lock: None,
             future: false,
-            current: false
+            current: false,
+            needed: needed.clone()
         }));
         let weak_state = Arc::downgrade(&state);
         let callback : Arc<Box<dyn Fn() + 'static>> = Arc::new(Box::new(cb));
-        commander.add("monostable",15,None,None,Box::pin(monostable_agent(weak_state,period_ms,callback)));
+        commander.add("monostable",15,None,None,Box::pin(monostable_agent(weak_state,needed,period_ms,callback)));
         Monostable(state)
     }
 
@@ -45,7 +54,10 @@ impl Monostable {
         let mut state = self.0.lock().unwrap();
         state.future = true;
         state.current = true;
+        state.lock = Some(state.needed.lock());
     }
     
-    pub(crate) fn get(&self) -> bool { self.0.lock().unwrap().current }
+    pub(crate) fn get(&self) -> bool { 
+        self.0.lock().unwrap().current
+    }
 }

@@ -7,7 +7,7 @@ use crate::lane::ShapeRequest;
 use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
-use peregrine_message::{ MessageLevel, MessageCategory, PeregrineMessage };
+use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
 use peregrine_config::ConfigError;
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -48,74 +48,40 @@ pub enum DataMessage {
 }
 
 impl PeregrineMessage for DataMessage {
-    fn level(&self) -> MessageLevel {
+    fn kind(&self) -> MessageKind {
         match self {
-            DataMessage::TemporaryBackendFailure(_) => MessageLevel::Warn,
-            _ => MessageLevel::Error
+            _ => MessageKind::Error
         }
     }
 
-    fn category(&self) -> MessageCategory {
+    fn action(&self) -> MessageAction {
         match self {
-            DataMessage::BadDauphinProgram(_) => MessageCategory::BadData,
-            DataMessage::BadBootstrapCannotStart(_,cause) => cause.category(),
-            DataMessage::BackendTimeout(_) => MessageCategory::BadInfrastructure,
-            DataMessage::PacketError(_,_) => MessageCategory::BadBackend,
-            DataMessage::TemporaryBackendFailure(_) => MessageCategory::BadInfrastructure,
-            DataMessage::FatalBackendFailure(_) => MessageCategory::BadInfrastructure,
-            DataMessage::BackendRefused(_,_) => MessageCategory::BadBackend,
-            DataMessage::DataHasNoAssociatedStyle(_) => MessageCategory::BadData,
-            DataMessage::TaskTimedOut(_) => MessageCategory::Unknown,
-            DataMessage::TaskUnexpectedlyCancelled(_) => MessageCategory::BadCode,
-            DataMessage::TaskUnexpectedlySuperfluous(_) => MessageCategory::BadCode,
-            DataMessage::TaskResultMissing(_) => MessageCategory::BadCode,
-            DataMessage::TaskUnexpectedlyOngoing(_) => MessageCategory::BadCode,
-            DataMessage::DataMissing(_) => MessageCategory::Unknown,
-            DataMessage::NoLaneProgram(_) => MessageCategory::BadData,
-            DataMessage::CodeInvariantFailed(_) => MessageCategory::BadCode,
-            DataMessage::StickAuthorityUnavailable(cause) => cause.category(),
-            DataMessage::NoSuchStick(_) => MessageCategory::BadFrontend,
-            DataMessage::CarriageUnavailable(_,_) => MessageCategory::BadInfrastructure,
-            DataMessage::DauphinProgramDidNotLoad(_) => MessageCategory::BadBackend,
-            DataMessage::DauphinIntegrationError(_) => MessageCategory::BadCode,
-            DataMessage::DauphinRunError(_,_) => MessageCategory::BadData,
-            DataMessage::DauphinProgramMissing(_) => MessageCategory::BadData,
-            DataMessage::DataUnavailable(_,_) => MessageCategory::BadInfrastructure,
-            DataMessage::TunnelError(_) => MessageCategory::BadInfrastructure,
-            DataMessage::NoSuchAllotment(_) => MessageCategory::BadData,
-            DataMessage::ConfigError(_) => MessageCategory::BadFrontend,
+            DataMessage::BadBootstrapCannotStart(_,cause) => cause.action(),
+            DataMessage::BackendTimeout(_) => MessageAction::RetrySoon,
+            DataMessage::TemporaryBackendFailure(_) => MessageAction::Advisory,
+            DataMessage::FatalBackendFailure(_) => MessageAction::RetrySoon,
+            DataMessage::TaskTimedOut(_) => MessageAction::YourMistake,
+            DataMessage::TunnelError(cause) => cause.lock().unwrap().action(),
+            _ => MessageAction::OurMistake
         }
     }
 
-    fn now_unstable(&self) -> bool {
+    fn likelihood(&self) -> MessageLikelihood {
         match self {
-            DataMessage::BadBootstrapCannotStart(_,_) => true,
-            DataMessage::TaskTimedOut(_) => true,
-            DataMessage::TaskUnexpectedlyCancelled(_) => true,
-            DataMessage::TaskUnexpectedlySuperfluous(_) => true,
-            DataMessage::TaskResultMissing(_) => true,
-            DataMessage::TaskUnexpectedlyOngoing(_) => true,
-            DataMessage::DauphinProgramDidNotLoad(_) => true,
-            DataMessage::DauphinIntegrationError(_) => true,
-            DataMessage::DauphinProgramMissing(_) => true,
-            DataMessage::NoSuchAllotment(_) => true,
-            DataMessage::TunnelError(e) => e.lock().unwrap().now_unstable(),
-            DataMessage::ConfigError(_) => true,
-            _ => false
-        }
-    }
-
-    fn degraded_experience(&self) -> bool {
-        if self.now_unstable() { return true; }
-        match self {
-            DataMessage::TemporaryBackendFailure(_) => false,
-            DataMessage::TunnelError(e) => e.lock().unwrap().degraded_experience(),
-            _ => true
+            DataMessage::TunnelError(e) => e.lock().unwrap().likelihood(),
+            DataMessage::BackendTimeout(_) => MessageLikelihood::Inevitable,        
+            DataMessage::PacketError(_,_) => MessageLikelihood::Inevitable,
+            DataMessage::TemporaryBackendFailure(_) => MessageLikelihood::Inevitable,
+            DataMessage::FatalBackendFailure(_) => MessageLikelihood::Inevitable,
+            DataMessage::BackendRefused(_,_) => MessageLikelihood::Inevitable,
+            DataMessage::TaskUnexpectedlyCancelled(_) => MessageLikelihood::Unlikely,
+            DataMessage::TaskUnexpectedlySuperfluous(_) => MessageLikelihood::Inconceivable,
+            _ => MessageLikelihood::Quality
         }
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 27; 25 is unused; 499 is last.
+        // Next code is 27; 0 is reserved; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -141,7 +107,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinRunError(p,e) => (23,calculate_hash(&(p,e))),
             DataMessage::DauphinProgramMissing(p) => (24,calculate_hash(p)),
             DataMessage::DataUnavailable(c,e) => (14,calculate_hash(&(c,e.code()))),
-            DataMessage::NoSuchAllotment(a) => (0,calculate_hash(a)),
+            DataMessage::NoSuchAllotment(a) => (25,calculate_hash(a)),
             DataMessage::TunnelError(e) => e.lock().unwrap().code(),
             DataMessage::ConfigError(e) => (17,calculate_hash(e)),
         }

@@ -95,6 +95,7 @@ impl Executor {
     
     pub fn add_timer(&mut self, timeout: f64, callback: Box<dyn FnOnce() + 'static>) {
         self.get_timings_mut().add_standalone_timer(timeout,callback);
+        self.integration.cause_reentry();
     }
 
     fn try_add_task(&mut self, task: Box<dyn ExecutorTaskHandle>, agent: Agent) {

@@ -1,291 +1,152 @@
-use std::sync::{ Arc, Mutex };
+use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
-use crate::{PeregrineAPI, util::needed::{Needed, NeededLock}};
-use crate::run::{ PgPeregrineConfig,  PgConfigKey };
+use js_sys::Date;
+use peregrine_message::Instigator;
+use crate::{ PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, run::report::Report, stage::axis::ReadStageAxis, util::needed::{Needed, NeededLock}};
+use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
+use super::{animqueue::{QueueEntry, zpx_to_bp}, axisphysics::{Puller}};
+use super::animqueue::PhysicsRunner;
 
-pub struct ClosedRamp {
-    start: f64,
-    end: f64,
-    accel: f64,
-    max_speed: f64,
-    total_distance: f64,
-    total_time: f64,
-    neg: f64,
-}
-
-impl ClosedRamp {
-    fn new(accel: f64, speed_limit: f64, start: f64, end: f64) -> ClosedRamp {
-        let total_distance = (end - start).abs();
-        let neg = if end < start { -1. } else { 1. };
-        /* does max_speed need to be reduced due to short distance and so no cruise? */
-        let max_speed = (accel*total_distance).sqrt().min(speed_limit);
-        let total_time = total_distance/max_speed + max_speed/accel;
-        ClosedRamp { accel, max_speed, total_time, total_distance, start, end, neg }    
-    }
-
-    fn position_half(&self, time: f64) -> f64 {
-        let ramp_time = self.max_speed/self.accel;
-        let accel_time = time.min(ramp_time);
-        let cruise_time = (time - accel_time).max(0.);
-        self.accel * accel_time * accel_time / 2.0 + cruise_time * self.max_speed
-    }
-
-    fn position_unit(&self, time: f64) -> f64 {
-        if time > self.total_time / 2. {
-            self.total_distance - self.position_half(self.total_time - time)
-        } else {
-            self.position_half(time)
-        }
-    }
-
-    fn position_linear(&self, time: f64) -> f64 {
-        self.start + self.position_unit(time) * self.neg
-    }
-
-    fn position_exponential(&self, time: f64) -> f64 {
-        self.start*((self.end/self.start).powf(self.position_unit(time)/self.total_distance))
-    }
-
-    fn done(&self, time: f64) -> bool { time > self.total_time }
-}
-
-pub struct OpenRamp {
-    accel: f64,
-    speed_limit: f64,
-    start: f64,
-    negative: bool
-}
-
-impl OpenRamp {
-    fn new(accel: f64, speed_limit: f64, start: f64, negative: bool) -> OpenRamp {
-        OpenRamp { accel, speed_limit, start, negative }
-    }
-
-    fn change(&self, time: f64) -> f64 {
-        let accel_time = time.min(self.speed_limit/self.accel);
-        let cruise_time = (time - self.speed_limit/self.accel).max(0.);
-        let change = self.accel*accel_time*accel_time/2.0 + cruise_time * self.speed_limit;
-        change
-    }
-
-    fn position_linear(&self, time: f64) -> f64 {
-        let dir = if self.negative { -1. } else { 1. };
-        self.start + self.change(time) * dir
-    }
-
-    fn position_exponential(&self, time: f64) -> f64 {
-        let dir = if self.negative { -1. } else { 1. };
-        self.start * (2_f64).powf(self.change(time) * dir)
-    }
-
-    fn negative(&self) -> bool { self.negative }
-}
-
-pub struct OpenRampSwitches {
-    tick: f64,
-    ramp: Option<OpenRamp>,
-    speed_limit: f64,
-    accel: f64,
-}
-
-impl OpenRampSwitches {
-    fn new(accel: f64, speed_limit: f64) -> OpenRampSwitches {
-        OpenRampSwitches { ramp: None, speed_limit, accel, tick: 0. }
-    }
-
-    fn set(&mut self, position: f64, start: bool, negative: bool, scale: f64) {
-        if let Some(ramp) = &self.ramp {
-            if ramp.negative() == negative { /* same direction */
-                if !start {
-                    self.ramp = None;
-                }
-                return;
-            } else { /* opposite direction */
-                if !start { return; }
-            }
-        }
-        self.ramp = Some(OpenRamp::new(self.accel * scale,self.speed_limit * scale,position,negative));
-        self.tick = 0.;
-    }
-
-    fn next_point_linear(&mut self) -> Option<f64> {
-        let tick = self.tick;
-        self.tick += 1.;
-        self.ramp.as_mut().map(|ramp| ramp.position_linear(tick))
-    }
-
-    fn next_point_exponential(&mut self) -> Option<f64> {
-        let tick = self.tick;
-        self.tick += 1.;
-        self.ramp.as_mut().map(|ramp| ramp.position_exponential(tick))
-    }
-
-    fn is_active(&self) -> bool { self.ramp.is_some() }
-    fn clear(&mut self) { 
-        self.ramp = None;
-    }
-}
-
-pub struct ClosedRampTimer {
-    ramp: ClosedRamp,
-    tick: f64
-}
-
-impl ClosedRampTimer {
-    fn new(accel: f64, speed_limit: f64, start: f64, end: f64, scale: f64) -> ClosedRampTimer {
-        ClosedRampTimer {
-            ramp: ClosedRamp::new(accel * scale,speed_limit * scale,start,end),
-            tick: 0.
-        }
-    }
-
-    fn next_point_linear(&mut self) -> Option<f64> {
-        if self.done() { return None; }
-        let tick = self.tick;
-        self.tick += 1.;
-        Some(self.ramp.position_linear(tick))
-    }
-
-    fn next_point_exponential(&mut self) -> Option<f64> {
-        if self.done() { return None; }
-        let tick = self.tick;
-        self.tick += 1.;
-        Some(self.ramp.position_exponential(tick))
-    }
-
-    fn done(&self) -> bool { self.ramp.done(self.tick) }
-}
+const PULL_SPEED : f64 = 2.; // px/ms
 
 pub struct PhysicsState {
-    x_switches: OpenRampSwitches,
-    z_switches: OpenRampSwitches,
-    x_target: Option<ClosedRampTimer>,
-    z_target: Option<ClosedRampTimer>,
-    ready_z_target: Option<ClosedRampTimer>,
-    zoom_px_speed: f64,
+    runner: PhysicsRunner,
+    report: Report,
+    x_puller: Puller,
+    z_puller: Puller,
+    last_update: Option<f64>,
     physics_needed: Needed,
-    physics_lock: Option<NeededLock>,
-    x_accel: f64,
-    x_speed: f64,
-    z_accel: f64,
-    z_speed: f64,
+    physics_lock: Option<NeededLock>
 }
 
 impl PhysicsState {
-    fn new(config: &PgPeregrineConfig, physics_needed: &Needed) -> Result<PhysicsState,Message> {
-        let x_accel = config.get_f64(&PgConfigKey::PullAcceleration)?;
-        let x_speed = config.get_f64(&PgConfigKey::AutomatedPullMaxSpeed)?;
-        let z_accel = config.get_f64(&PgConfigKey::ZoomAcceleration)?;
-        let z_speed = config.get_f64(&PgConfigKey::AutomatedZoomMaxSpeed)?;
+    fn new(_config: &PgPeregrineConfig, report: &Report, physics_needed: &Needed) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
-            x_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::PullAcceleration)?,config.get_f64(&PgConfigKey::PullMaxSpeed)?),
-            z_switches: OpenRampSwitches::new(config.get_f64(&PgConfigKey::ZoomAcceleration)?,config.get_f64(&PgConfigKey::ZoomMaxSpeed)?),
-            x_target: None,
-            z_target: None,
-            ready_z_target: None,
-            zoom_px_speed: config.get_f64(&PgConfigKey::ZoomPixelSpeed)?,
+            runner: PhysicsRunner::new(),
+            report: report.clone(),
+            last_update: None,
+            x_puller: Puller::new(),
+            z_puller: Puller::new(),
             physics_needed: physics_needed.clone(),
-            physics_lock: None,
-            x_accel,
-            x_speed,
-            z_accel,
-            z_speed
+            physics_lock: None
         })
     }
 
-    fn jump(&mut self, api: &PeregrineAPI, amount_px: f64) -> Result<(),Message> {
-        self.x_switches.clear();
-        self.x_target = None;
-        self.z_target = None;
-        let x = api.x()?;
-        let bp_per_screen = api.bp_per_screen()?;
-        let px_per_screen = api.size().map(|x| x.0 as f64);
-        if let (Some(x),Some(bp_per_screen),Some(px_per_screen)) = (x,bp_per_screen,px_per_screen) {
-            let bp_per_px = bp_per_screen/px_per_screen;
-            api.set_x(x + amount_px*bp_per_px);
-        }
-        Ok(())
-    }
-
-    fn zoom(&mut self, api: &PeregrineAPI, amount_px: f64, position: Option<(f64,f64)>) -> Result<(),Message> {
-        self.x_target = None;
-        self.z_target = None;
-        let px_per_screen = api.size().map(|x| x.0 as f64);
-        let bp_per_screen = api.bp_per_screen()?;
-        let x = api.x()?;
-        if let (Some(x),Some(px_per_screen),Some(bp_per_screen)) = (x,px_per_screen,bp_per_screen) {
-            let x_screen = if let Some(position) = position { position.0/px_per_screen } else { 0.5 };
-            let x_bp = x + (x_screen - 0.5) * bp_per_screen;
-            let factor = 2_f64.powf(amount_px/self.zoom_px_speed);
-            let new_bp_per_screen = bp_per_screen*factor;
-            let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
-            let new_middle = x_bp - new_bp_from_middle;
-            api.set_bp_per_screen(new_bp_per_screen);
-            api.set_x(new_middle);
-        }
-        Ok(())
-    }
-
-    fn scale(&mut self, api: &PeregrineAPI, scale: f64, centre: f64, y: f64) {
-        self.x_target = None;
-        self.z_target = None;
-        self.ready_z_target = None;
-        api.set_bp_per_screen(scale);
-        api.set_x(centre);
-        api.set_y(y);
-    }
-
-    fn animate_to(&mut self, api: &PeregrineAPI, scale: f64, centre: f64) -> Result<(),Message> {
-        self.x_switches.clear();
-        self.z_switches.clear();
-        if let (Some(bp_per_screen),Some(x)) = (api.bp_per_screen()?,api.x()?) {
-            self.x_target = Some(ClosedRampTimer::new(self.x_accel,self.x_speed,
-                            x,centre,bp_per_screen));
-            self.ready_z_target = Some(ClosedRampTimer::new(self.z_accel,self.z_speed,
-                bp_per_screen,scale,bp_per_screen));    
-            self.physics_step(api)?;
-        }
-        Ok(())
-    }
-
-    fn get_x_pull(&mut self, api: &PeregrineAPI) -> Result<Option<f64>,Message> {
-        api.x()
-    }
-
-    fn get_z_pull(&mut self, api: &PeregrineAPI) -> Result<Option<f64>,Message> {
-        api.bp_per_screen()
-    }
-
-    fn physics_step(&mut self, api: &PeregrineAPI) -> Result<(),Message> {
-        if let Some(position) = self.x_switches.next_point_linear() {
-            api.set_x(position);
-        }
-        if let Some(position) = self.z_switches.next_point_exponential() {
-            api.set_bp_per_screen(position);
-        }
-        if let Some(position) = self.x_target.as_mut().and_then(|ramp| ramp.next_point_linear()) {
-            api.set_x(position);
+    fn pull_x(&mut self, speed: f64, start: bool) -> Result<(),Message> {
+        if start {
+            self.x_puller.pull(Some(speed));
         } else {
-            self.x_target = None;
+            self.x_puller.pull(None);
+            self.runner.queue_add(QueueEntry::BrakeX);
         }
-        if self.x_target.is_none() && self.z_target.is_none() {
-            self.z_target = self.ready_z_target.take();
-        }
-        if let Some(position) = self.z_target.as_mut().and_then(|ramp| ramp.next_point_exponential()) {
-            api.set_bp_per_screen(position);
+        self.update_needed();
+        Ok(())
+    }
+
+    fn pull_z(&mut self, speed: f64, start: bool) -> Result<(),Message> {
+        if start {
+            self.z_puller.pull(Some(speed));
         } else {
-            self.z_target = None;
+            self.z_puller.pull(None);
+            self.runner.queue_add(QueueEntry::BrakeZ);
         }
-        if self.x_switches.is_active() || self.z_switches.is_active() || self.x_target.is_some() || self.z_target.is_some() {
+        self.update_needed();
+        Ok(())
+    }
+
+    fn scale(&mut self, scale: f64, centre_bp: f64, y: f64) -> Result<(),Message> {
+        self.runner.queue_clear();
+        self.runner.queue_add(QueueEntry::MoveW(centre_bp,scale));
+        self.update_needed();
+        Ok(())
+    }
+
+    fn animate_to(&mut self, inner: &PeregrineInnerAPI, scale: f64, centre: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        self.runner.queue_clear();
+        self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(scale),None));
+        self.update_needed();
+        Ok(())
+    }
+
+    fn apply_ongoing(&mut self, inner: &PeregrineInnerAPI, dt: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        let report = self.report.clone();
+        if let Some(delta) = self.x_puller.tick(dt) {
+            self.runner.queue_add(QueueEntry::JumpX(delta,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+            self.update_needed();
+        }
+        let report = self.report.clone();
+        if let Some(delta) = self.z_puller.tick(dt) {
+            self.runner.queue_add(QueueEntry::JumpZ(delta,None,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));
+            self.update_needed();
+        }
+        Ok(())
+    }
+
+    fn update_needed(&mut self) {
+        if self.runner.update_needed() || self.x_puller.is_active() || self.z_puller.is_active() {
             if self.physics_lock.is_none() {
                 self.physics_lock = Some(self.physics_needed.lock());
             }
         } else {
             self.physics_lock = None;
+            self.last_update = None;
+        }
+    }
+
+    fn physics_step(&mut self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
+        let now = Date::now();
+        if let Some(last_update) = self.last_update {
+            let dt = now - last_update;
+            self.apply_ongoing(inner,dt)?;
+            self.runner.drain_animation_queue(inner)?;
+            self.runner.apply_spring(inner,dt)?;
+        }
+        self.last_update = Some(now);
+        self.update_needed();
+        Ok(())
+    }
+
+    fn goto_not_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        inner.set_x(centre, &mut Instigator::new());
+        inner.set_bp_per_screen(bp_per_screen, &mut Instigator::new());
+        Ok(())
+    }
+
+    fn goto_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        self.runner.queue_clear();
+        /* what should we zoom out to (if at all) to get both on screen? */
+        let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
+        let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
+        let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
+        let mut new_px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        if rightmost-leftmost > measure.bp_per_screen {
+            self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
+            new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
+        }
+        /* shift so item is centralised */
+        self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
+        /* zoom in */
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+        self.update_needed();
+        Ok(())
+    }
+
+    pub fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+        let ready = inner.stage().lock().unwrap().ready();
+        if ready {
+            self.goto_ready(inner,centre,bp_per_screen)?;
+        } else {
+            self.goto_not_ready(inner,centre,bp_per_screen)?;
         }
         Ok(())
     }
@@ -294,38 +155,78 @@ impl PhysicsState {
 #[derive(Clone)]
 pub struct Physics {
     state: Arc<Mutex<PhysicsState>>,
+    report: Report,
     physics_needed: Needed
 }
 
 // XXX blur halt
 
 impl Physics {
-    fn incoming_pull_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        let bp_per_screen = match api.bp_per_screen()? { Some(x) => x, None => { return Ok(()); } };
+    fn incoming_pull_event(&self, event: &InputEvent) -> Result<(),Message> {
         let mut state = self.state.lock().unwrap();
-        let (target,position,scale) = match event.details {
-            InputEventKind::PullLeft | InputEventKind::PullRight => {
-                let position = state.get_x_pull(api)?;
-                (&mut state.x_switches,position,bp_per_screen)
-            },
-            InputEventKind::PullIn | InputEventKind::PullOut => {
-                let position = state.get_z_pull(api)?;
-                (&mut state.z_switches,position,1.)
-            },
-            _ => { return Ok(()); }
-        };
-        let negative = match event.details {
-            InputEventKind::PullLeft | InputEventKind::PullIn => { true },
-            _ => { false }
-        };
-        if let Some(position) = position {
-            target.set(position,event.start,negative,scale);
-            state.physics_step(api)?;
+        match event.details {
+            InputEventKind::PullLeft => state.pull_x(-PULL_SPEED*2.,event.start)?,
+            InputEventKind::PullRight => state.pull_x(PULL_SPEED*2.,event.start)?,
+            InputEventKind::PullIn => state.pull_z(-PULL_SPEED,event.start)?,
+            InputEventKind::PullOut => state.pull_z(PULL_SPEED,event.start)?,
+            _ => {}
         }
         Ok(())
     }
 
-    fn incoming_animate_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_jump_request(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+        if !event.start { return Ok(()); }
+        let mut state = self.state.lock().unwrap();
+        let distance = *event.amount.get(0).unwrap_or(&0.);
+        let pos_x = event.amount.get(1);
+        let pos_y = event.amount.get(2);
+        let mut centre = None;
+        if let Some(x) = pos_x {
+            centre = Some(*x);
+        }
+        let report = self.report.clone();
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        match event.details {
+            InputEventKind::PixelsLeft => {
+                state.runner.queue_add(QueueEntry::JumpX(-distance,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+                state.update_needed();
+            },
+            InputEventKind::PixelsRight => {
+                state.runner.queue_add(QueueEntry::JumpX(distance,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+                state.update_needed();
+            },
+            InputEventKind::PixelsIn => {
+                state.runner.queue_add(QueueEntry::JumpZ(-distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));               
+                state.update_needed();
+            },
+            InputEventKind::PixelsOut => {
+                state.runner.queue_add(QueueEntry::JumpZ(distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));                
+                state.update_needed();
+            },
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn incoming_scale_event(&self, event: &InputEvent) -> Result<(),Message> {
+        if !event.start { return Ok(()); }
+        let mut state = self.state.lock().unwrap();
+        let scale = *event.amount.get(0).unwrap_or(&1.);
+        let centre = *event.amount.get(1).unwrap_or(&0.);
+        let y = *event.amount.get(2).unwrap_or(&0.);
+        match event.details {
+            InputEventKind::SetPosition => {
+                self.report.set_target_x_bp(centre);
+                self.report.set_target_bp_per_screen(scale);        
+                state.scale(scale,centre,0.)?;
+            },
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn incoming_animate_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let scale = *event.amount.get(0).unwrap_or(&1.);
@@ -334,73 +235,50 @@ impl Physics {
         match event.details {
             InputEventKind::AnimatePosition => {
                 // XXX y
-                state.animate_to(api,scale,centre)?;
+                self.report.set_target_x_bp(centre);
+                self.report.set_target_bp_per_screen(scale);        
+                state.animate_to(inner,scale,centre)?;
             },
             _ => {}
         }
         Ok(())
     }
 
-    fn incoming_jump_request(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        if !event.start { return Ok(()); }
-        let mut state = self.state.lock().unwrap();
-        let distance = *event.amount.get(0).unwrap_or(&0.);
-        let pos_x = event.amount.get(1);
-        let pos_y = event.amount.get(2);
-        let pos = if let (Some(x),Some(y)) = (pos_x,pos_y) { Some((*x,*y)) } else { None };
-        match event.details {
-            InputEventKind::PixelsLeft => { state.jump(api,-distance)?; },
-            InputEventKind::PixelsRight => { state.jump(api,distance)?; },
-            InputEventKind::PixelsIn => { state.zoom(api,-distance,pos)?; },
-            InputEventKind::PixelsOut => { state.zoom(api,distance,pos)?; },
-            _ => {}
-        }
+    fn incoming_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+        self.incoming_pull_event(event)?;
+        self.incoming_jump_request(inner,event)?;
+        self.incoming_scale_event(event)?;
+        self.incoming_animate_event(inner,event)?;
         Ok(())
     }
 
-    fn incoming_scale_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        if !event.start { return Ok(()); }
-        let mut state = self.state.lock().unwrap();
-        let scale = *event.amount.get(0).unwrap_or(&1.);
-        let centre = *event.amount.get(1).unwrap_or(&0.);
-        let y = *event.amount.get(2).unwrap_or(&0.);
-        match event.details {
-            InputEventKind::SetPosition => {
-                state.scale(api,scale,centre,0.);
-            },
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn incoming_event(&self, api: &PeregrineAPI, event: &InputEvent) -> Result<(),Message> {
-        self.incoming_pull_event(api,event)?;
-        self.incoming_jump_request(api,event)?;
-        self.incoming_scale_event(api,event)?;
-        self.incoming_animate_event(api,event)?;
-        Ok(())
-    }
-
-    async fn physics_loop(&self, api: &PeregrineAPI) -> Result<(),Message> {
+    async fn physics_loop(&self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
         loop {
-            self.state.lock().unwrap().physics_step(api)?;
+            self.state.lock().unwrap().physics_step(inner)?;
             cdr_tick(1).await;
             self.physics_needed.wait_until_needed().await;
         }
     }
 
-    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, api: &PeregrineAPI, commander: &PgCommanderWeb) -> Result<Physics,Message> {
+    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<Physics,Message> {
         let physics_needed = Needed::new();
         let out = Physics {
-            state: Arc::new(Mutex::new(PhysicsState::new(config,&physics_needed)?)),
+            state: Arc::new(Mutex::new(PhysicsState::new(config,report,&physics_needed)?)),
+            report: report.clone(),
             physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();
-        let api2 = api.clone();
-        low_level.distributor_mut().add(move |e| { out2.incoming_event(&api2,e).ok(); }); // XXX error distribution
+        let inner2 = inner.clone();
+        low_level.distributor_mut().add(move |e| { out2.incoming_event(&inner2,e).ok(); }); // XXX error distribution
         let out2 = out.clone();
-        let api2 = api.clone();
-        commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&api2).await }));
+        let mut inner2 = inner.clone();
+        commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&mut inner2).await }));
         Ok(out)
+    }
+
+    pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
+        self.report.set_target_x_bp(centre);
+        self.report.set_target_bp_per_screen(scale);
+        self.state.lock().unwrap().goto(api,centre,scale)
     }
 }

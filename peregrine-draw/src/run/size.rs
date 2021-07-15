@@ -158,8 +158,8 @@ impl SizeManager {
     }
 
     fn update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI, x: u32, y: u32) -> Result<(),Message> {
-        let x = (x/4)*4;
-        let y = (y/4)*4;
+//        let x = (x/4)*4;
+//        let y = (y/4)*4;
         self.canvas_element.set_width(x);
         self.canvas_element.set_height(y);
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
@@ -182,7 +182,6 @@ impl SizeManager {
             let mut stage = draw.stage.lock().unwrap();
             stage.x_mut().set_drawable_size(drawable.0 as f64);
             stage.y_mut().set_drawable_size(drawable.1 as f64);
-            draw.target_manager.lock().unwrap().update_size((drawable.0,drawable.1));
             state.set_booted();
         }
         Ok(())

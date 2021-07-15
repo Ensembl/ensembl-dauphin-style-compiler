@@ -91,6 +91,7 @@ impl ShapeList {
         }
     }
 
+    pub fn len(&self) -> usize { self.shapes.len() }
     pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
     pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }
 }
