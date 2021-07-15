@@ -1,12 +1,7 @@
 import logging
 import pyBigWig
-import numpy
 import sys
 import time
-
-if not pyBigWig.numpy:
-    logging.error("numpy must be installed before pyBigWig for speed reasons. Please install numpy then reinsall pyBIgWig")
-    sys.exit(1)
 
 def get_bigbed_data(path,chrom,start,end):
     end = min(end,chrom.size)
