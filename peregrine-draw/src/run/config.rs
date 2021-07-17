@@ -122,7 +122,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(50,50,50,100)) },
-            ConfigKeyInfo { key: PgConfigKey::ReportUpdateFrequency, name: "report.update-frequency", default: &PgConfigValue::Float(25.) },
+            ConfigKeyInfo { key: PgConfigKey::ReportUpdateFrequency, name: "report.update-frequency", default: &PgConfigValue::Float(250.) },
         ]};
 }
 

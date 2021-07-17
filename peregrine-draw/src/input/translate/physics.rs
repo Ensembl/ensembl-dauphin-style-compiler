@@ -201,7 +201,7 @@ impl Physics {
                 state.update_needed();
             },
             InputEventKind::PixelsOut => {
-                state.runner.queue_add(QueueEntry::JumpZ(distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));                
+                state.runner.queue_add(QueueEntry::JumpZ(distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));
                 state.update_needed();
             },
             _ => {}

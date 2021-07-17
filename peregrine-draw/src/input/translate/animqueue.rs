@@ -33,21 +33,21 @@ pub(super) struct PhysicsRunner {
 impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
         let w_config = AxisPhysicsConfig {
-            lethargy: 2500., // 2500 for keys & animate, 300 for mouse, 50000 for goto
+            lethargy: 300., // 2500 for keys & animate, 300 for mouse, 50000 for goto
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let x_config = AxisPhysicsConfig {
-            lethargy: 2500.,
+            lethargy: 300.,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let z_config = AxisPhysicsConfig {
-            lethargy: 2500.,
+            lethargy: 300.,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
@@ -157,7 +157,7 @@ impl PhysicsRunner {
             let new_bp_per_screen = zpx_to_bp(new_pos_px);
             if let Some(stationary) = self.zoom_centre {
                 let x_screen = stationary/measure.px_per_screen;
-                let new_bp_from_middle = (x_screen-0.5)*measure.bp_per_screen;
+                let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
                 let x_bp = measure.x_bp + (x_screen - 0.5) * measure.bp_per_screen;
                 let new_middle = x_bp - new_bp_from_middle;
                 inner.set_x(new_middle,&mut Instigator::new());
