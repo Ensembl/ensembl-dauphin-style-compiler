@@ -32,7 +32,6 @@ def process_packet(packet_cbor: Any) -> Any:
     response = []
     bundles = set()
     for p in packet_cbor["requests"]:
-        logging.warn("{0}".format(str(p)))
         (msgid,typ,payload) = p
         r = process_request(channel,typ,payload)
         response.append([msgid,r.typ,r.payload])

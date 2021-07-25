@@ -109,14 +109,13 @@ def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, incl
     if include_exons:
         add_exon_data(out,genes,designated_transcript)
     sequence_blocks(out,chrom,panel,not include_sequence)
-    for (k,v) in out.items():
-        logging.warn("len({}) = {}".format(k,len(v)))
+    #for (k,v) in out.items():
+    #    logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
 def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out = {}
     path = chrom.file_path("genes_and_transcripts","transcripts.bb")
-    #logging.warn("hello from gene panel = {0} path = {1} {2}-{3}".format(str(vars(panel)),path,panel.start,panel.end))
     data = get_bigbed_data(path,chrom,panel.start,panel.end)
     seen_genes = set()
     genes = []

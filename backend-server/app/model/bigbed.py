@@ -19,9 +19,8 @@ def get_bigwig_data(path,chrom,start,end):
     try:
         bw = pyBigWig.open(path)
         out = bw.stats(chrom.name,start,end,nBins=1000) or []
+        bw.close()
     except (RuntimeError,OverflowError) as e:
-        logging.error(e)
         out = []
-    logging.error("{0}bp {1}ms".format(end-start,int((time.time()-start_time)*1000)))
-    bw.close()
+    #logging.error("{0}bp {1}ms".format(end-start,int((time.time()-start_time)*1000)))
     return out

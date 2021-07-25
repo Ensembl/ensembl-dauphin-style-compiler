@@ -54,7 +54,7 @@ print(BEGS_FILES)
 
 # logging configuration
 
-LOGGING_LEVEL = logging.DEBUG if DEBUG else logging.INFO
+LOGGING_LEVEL = logging.DEBUG if DEBUG else logging.WARN
 LOGGERS = ("uvicorn.asgi", "uvicorn.access")
 
 logging.getLogger().handlers = [InterceptHandler()]
