@@ -1,6 +1,5 @@
 use anyhow::{ Context };
 use crate::lock;
-use blackbox::{ blackbox_count, blackbox_log };
 use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
 use std::future::Future;
@@ -72,7 +71,6 @@ impl RequestQueueData {
                 let messages = self.messages.clone();
                 cdr_add_timer(timeout, move || {
                     if stream.add_first(response) {
-                        blackbox_log!(&format!("channel-{}",channel.to_string()),"timeout on channel '{}'",channel.to_string());
                         messages.send(DataMessage::BackendTimeout(channel.clone()));
                     }
                 });
@@ -122,14 +120,12 @@ impl RequestQueue {
 
     async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let pending = lock!(self.0).pending_send.clone();
-        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();
         let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
-            blackbox_count!(&format!("channel-{}",channel.to_string()),"requests",1.);
             channels.insert(r.message_id(),c.clone());
             timeouts.push((r.request().to_failure(),c));
             packet.add(r);
@@ -139,13 +135,9 @@ impl RequestQueue {
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
-        #[cfg(blackbox)]
         let channel = lock!(self.0).channel.clone();
         let sender = lock!(self.0).make_packet_sender(packet)?;
-        blackbox_log!(&format!("channel-{}",channel.to_string()),"sending packet");
-        blackbox_count!(&format!("channel-{}",channel.to_string()),"packets",1.);
         let response = sender.await?;
-        blackbox_log!(&format!("channel-{}",channel.to_string()),"received response");
         let response = lock!(self.0).builder.new_packet(&response).context("Building response packet")?;
         Ok(response)
     }
@@ -167,7 +159,6 @@ impl RequestQueue {
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(stream) = streams.remove(&id) {
-                blackbox_count!(&format!("channel-{}",channel.to_string()),"responses",1.);
                 stream.add(r.into_response());
             }
         }

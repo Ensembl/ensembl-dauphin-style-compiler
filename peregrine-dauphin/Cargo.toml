@@ -33,7 +33,3 @@ path="../dauphin-lib-std"
 [dependencies.dauphin_lib_peregrine]
 version="*"
 path="../dauphin-lib-peregrine"
-
-[dependencies.blackbox]
-version="*"
-path="../blackbox"

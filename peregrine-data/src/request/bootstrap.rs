@@ -1,6 +1,5 @@
 use std::any::Any;
 use anyhow::{ self, };
-use blackbox::{ blackbox_count, blackbox_log };
 use serde_cbor::Value as CborValue;
 use crate::run::pgcommander::{ PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
@@ -36,20 +35,15 @@ impl BootstrapCommandRequest {
     }
 
     async fn execute(self, mut manager: RequestManager) -> Result<(),DataMessage> {
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing bootstrap request");
-        blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-request",1.);
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
         let mut backoff = Backoff::new();
         match backoff.backoff::<BootstrapCommandResponse,_,_>(
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(b) => {
-                blackbox_log!(&format!("channel-{}",self.channel.to_string()),"bootstrap response received");
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-success",1.);
                 Ok(b.bootstrap(&dauphin,&self.queue,&loader,self.instigator).await?)
             }
             Err(e) => {
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"bootstrap-response-fail",1.);
                 Err(DataMessage::BadBootstrapCannotStart(self.channel.clone(),Box::new(e.clone())))
             }
         }
@@ -73,7 +67,6 @@ impl ResponseType for BootstrapCommandResponse {
 
 impl BootstrapCommandResponse {
     async fn bootstrap(&self, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, instigator: Instigator<DataMessage>) -> Result<(),DataMessage> {
-        blackbox_log!("bootstrap","bootstrapping using {}",self.program_name);
         dauphin.run_program(loader,PgDauphinTaskSpec {
             prio: 2,
             slot: None,

@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::collections::{ HashMap };
-use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
 use super::backoff::Backoff;
@@ -50,7 +49,6 @@ struct ProgramCommandRequest {
 
 impl ProgramCommandRequest {
     pub(crate) fn new(program_name: &ProgramName) -> ProgramCommandRequest {
-        blackbox_log!(&format!("channel-{}",program_name.0.to_string()),"requesting program {}",program_name);
         ProgramCommandRequest {
             program_name: program_name.clone()
         }

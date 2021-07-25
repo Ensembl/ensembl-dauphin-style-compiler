@@ -1,6 +1,5 @@
 use anyhow::bail;
 use std::any::Any;
-use blackbox::blackbox_log;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
@@ -19,7 +18,6 @@ struct StickCommandRequest {
 
 impl StickCommandRequest {
     pub(crate) fn new(stick_id: &StickId) -> StickCommandRequest {
-        blackbox_log!("stick","requesting stick {}",stick_id.get_id());
         StickCommandRequest {
             stick_id: stick_id.clone()
         }

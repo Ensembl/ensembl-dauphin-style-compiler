@@ -1,5 +1,4 @@
 use anyhow::bail;
-use blackbox::blackbox_count;
 use commander::cdr_timer;
 use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
@@ -33,7 +32,6 @@ impl Backoff {
             let resp = manager.execute(channel.clone(),prio.clone(),req2).await?;
             match resp.into_any().downcast::<S>() {
                 Ok(s) => {
-                    blackbox_count!(&format!("channel-{}",channel.to_string()),"success",1.);
                     match verify(&s) {
                         Some(_) => { last_error = Some(s as Box<dyn Any>); },
                         None => {
@@ -42,7 +40,6 @@ impl Backoff {
                     }
                 },
                 Err(resp) => {
-                    blackbox_count!(&format!("channel-{}",channel.to_string()),"failure",1.);
                     match resp.downcast::<GeneralFailure>() {
                         Ok(e) => { 
                             manager.message(DataMessage::BackendRefused(channel.clone(),e.message().to_string()));

@@ -134,11 +134,6 @@ impl GenomeBrowser {
          */
         self.commander = Some(self.api.run(config,dom)?);
         /*
-         * In general integrations probably don't want to set up blackbox, but I do here. It's a useful debug and
-         * performance-tweaking tool. Just don't call this if you don't care.
-         */
-        self.api.setup_blackbox("http://localhost:4040/blackbox/data");
-        /*
          * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
          */
         let url = "http://localhost:3333/api/data";

@@ -1,7 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration, Viewport };
 use super::pgchannel::PgChannel;
-use blackbox::blackbox_log;
 use crate::run::report::Report;
 use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
@@ -18,9 +17,7 @@ pub struct PgIntegration {
 
 impl PeregrineIntegration for PgIntegration {
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32) -> Result<(),DataMessage> {
-        #[cfg(blackbox)]
         let carriages_str : Vec<_> = carriages.iter().map(|x| x.id().to_string()).collect();
-        blackbox_log!("uiapi","set_carriages(carriages={:?}({}) index={:?})",carriages_str.join(", "),carriages_str.len(),index);
         let mut webgl = self.webgl.lock().unwrap();
         self.trainset.set_carriages(carriages,&mut webgl,index)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
@@ -32,7 +29,6 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
-        blackbox_log!("uiapi","start_transition(index={} max={} speed={:?})",index,max,speed);
         let webgl = self.webgl.lock().unwrap();
         self.trainset.start_fade(&webgl,index,max,speed)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;

@@ -1,5 +1,4 @@
 use anyhow::{ anyhow as err };
-use blackbox::{ blackbox_log, blackbox_count };
 use std::any::Any;
 use std::collections::HashMap;
 use super::channel::{ Channel, PacketPriority };
@@ -33,18 +32,13 @@ impl DataCommandRequest {
     }
 
     pub async fn execute(self, mut manager: RequestManager) -> Result<Box<DataResponse>,DataMessage> {
-        blackbox_log!(&format!("channel-{}",self.channel.to_string()),"issuing data request");
-        blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-request",1.);
         let mut backoff = Backoff::new();
         match backoff.backoff::<DataResponse,_,_>(
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(d) => {
-                blackbox_log!(&format!("channel-{}",self.channel.to_string()),"data response received");
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-success",1.);
                 Ok(d)
             },
             Err(e) => {
-                blackbox_count!(&format!("channel-{}",self.channel.to_string()),"data-response-fail",1.);
                 // XXX and send via messagesender
                 Err(DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)))
             }

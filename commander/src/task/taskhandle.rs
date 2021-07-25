@@ -157,7 +157,6 @@ impl<R> ExecutorTaskHandle for TaskHandle<R> where R: 'static {
     fn get_priority(&self) -> u8 { self.get_agent().get_config().get_priority() }
 
     fn run(&mut self, tick_index: u64) {
-        blackbox_start!("commander",&self.task_key(),"");
         let mut state = self.0.lock().unwrap();
         let agent = state.agent.clone();
         let mut r = None;
@@ -170,7 +169,6 @@ impl<R> ExecutorTaskHandle for TaskHandle<R> where R: 'static {
             state.finish_flag.satisfy(());
         }
         drop(state);
-        blackbox_end!("commander",&self.task_key(),"");
     }
 
     fn summarize(&self) -> Option<TaskSummary> {

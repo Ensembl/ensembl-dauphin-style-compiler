@@ -1,5 +1,4 @@
 use anyhow::{ self, anyhow as err };
-use blackbox::blackbox_log;
 use crate::lock;
 use commander::{ RunSlot };
 use serde_cbor::Value as CborValue;
@@ -65,10 +64,8 @@ impl PgDauphin {
 
     pub async fn add_programs(&self, channel: &Channel, response: &ResponsePacket) -> anyhow::Result<()> {
         for bundle in response.programs().iter() {
-            blackbox_log!(&format!("channel-{}",channel.to_string()),"registered bundle {}",bundle.bundle_name());
             self.add_binary(channel,bundle.bundle_name(),bundle.program()).await?;
             for (in_channel_name,in_bundle_name) in bundle.name_map() {
-                blackbox_log!(&format!("channel-{}",channel.to_string()),"registered program {}",in_channel_name);
                 self.register(&ProgramName(channel.clone(),in_channel_name.to_string()),&self.binary_name(channel,bundle.bundle_name()),in_bundle_name);
             }
         }

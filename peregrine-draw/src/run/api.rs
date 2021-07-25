@@ -21,7 +21,6 @@ enum DrawMessage {
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
     Bootstrap(Channel),
-    SetupBlackbox(String),
     SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>),
     DebugAction(u8),
     SetArtificial(String,bool)
@@ -37,7 +36,6 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::SetSwitch(path) => write!(f,"SetSwitch({:?})",path),
             DrawMessage::ClearSwitch(path)  => write!(f,"ClearSwitch({:?})",path),
             DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
-            DrawMessage::SetupBlackbox(_)  => write!(f,"SetupBlackbox(...)"),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
             DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start)
@@ -72,11 +70,6 @@ impl DrawMessage {
             },
             DrawMessage::Bootstrap(channel) => {
                 draw.bootstrap(channel.clone(),&mut instigator);
-            },
-            DrawMessage::SetupBlackbox(url) => {
-                let e = draw.setup_blackbox(&url);
-                if let Err(e) = e { instigator.error(e); }
-                instigator.done();
             },
             DrawMessage::SetMessageReporter(cb) => {
                 draw.set_message_reporter(cb);
@@ -140,12 +133,6 @@ impl PeregrineAPI {
         let (progress,insitgator) = Progress::new();
         *self.stick.lock().unwrap() = Some(stick.get_id().to_string()); // XXX not really true yet: have proper ro status via data
         self.queue.add((DrawMessage::SetStick(stick.clone()),insitgator.clone()));
-        progress
-    }
-
-    pub fn setup_blackbox(&self, url: &str) -> Progress {
-        let (progress,insitgator) = Progress::new();
-        self.queue.add((DrawMessage::SetupBlackbox(url.to_string()),insitgator.clone()));
         progress
     }
 

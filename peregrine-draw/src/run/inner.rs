@@ -24,17 +24,6 @@ use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
 use crate::shape::core::spectremanager::SpectreManager;
 
-#[cfg(blackbox)]
-pub fn setup_blackbox(commander: &PgCommanderWeb, url: &str) {
-    use crate::util::pgblackbox::setup_blackbox_real;
-
-    setup_blackbox_real(commander,url);
-}
-
-#[cfg(not(blackbox))]
-pub fn setup_blackbox(_commander: &PgCommanderWeb, _url: &str) {
-}
-
 fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>) {
     inst.merge(inst_data,|e| Message::DataError(e));
 }
@@ -218,11 +207,6 @@ impl PeregrineInnerAPI {
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(Message) + 'static>) {
         *self.messages.lock().unwrap() = Some(callback);
         self.message_sender.add(Message::Ready);
-    }
-
-    pub(super) fn setup_blackbox(&self, url: &str) -> Result<(),Message> {
-        setup_blackbox(&self.commander,url);
-        Ok(())
     }
     
     pub(crate) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {

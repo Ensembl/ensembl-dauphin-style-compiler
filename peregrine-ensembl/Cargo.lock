@@ -62,16 +62,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "blackbox"
-version = "0.0.0"
-dependencies = [
- "hashbrown",
- "lazy_static 1.4.0",
- "owning_ref",
- "serde_json",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,7 +84,6 @@ name = "commander"
 version = "0.0.1"
 dependencies = [
  "binary-heap-plus",
- "blackbox",
  "futures",
  "hashbrown",
  "identitynumber",
@@ -143,7 +132,6 @@ name = "dauphin_lib_peregrine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "blackbox",
  "dauphin_interp",
  "inflate",
  "owning_ref",
@@ -441,7 +429,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "blackbox",
  "commander",
  "dauphin_interp",
  "futures",
@@ -465,7 +452,6 @@ name = "peregrine_dauphin"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "blackbox",
  "commander",
  "dauphin_interp",
  "dauphin_lib_peregrine",
@@ -480,7 +466,6 @@ name = "peregrine_dauphin_queue"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "blackbox",
  "commander",
  "serde_cbor",
 ]
@@ -492,7 +477,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "base64",
- "blackbox",
  "commander",
  "console_error_panic_hook",
  "css-color-parser",

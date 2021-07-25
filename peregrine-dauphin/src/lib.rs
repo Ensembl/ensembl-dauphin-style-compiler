@@ -1,4 +1,3 @@
-use blackbox::blackbox_log;
 use commander::{ CommanderStream, cdr_tick };
 use peregrine_data::{ 
     PgCommander, PgCommanderTaskSpec, InstancePayload, PeregrineCore, DataMessage, add_task
@@ -23,7 +22,6 @@ impl Process {
         let instance = InstancePayload::new(instance);
         let mut more_payloads = HashMap::new();
         more_payloads.insert(("peregrine".to_string(),"instance".to_string()),Box::new(instance) as Box<dyn PayloadFactory>);
-        blackbox_log!("dauphin","process {} {}",binary_name,name);
         Ok(Process {
             instance: Box::new(dauphin.run_stepwise(binary_name,name,&more_payloads)?)
         })
@@ -48,12 +46,10 @@ fn command_suite() -> anyhow::Result<CommandInterpretSuite> {
 }
 
 fn load(dauphin: &mut Dauphin, spec: PgDauphinLoadTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    blackbox_log!("dauphin","load {}",spec.bundle_name);
     stream.add(dauphin.add_binary(&spec.bundle_name,&spec.data));
 }
 
 fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpec, stream: CommanderStream<anyhow::Result<()>>) {
-    blackbox_log!("dauphin","run {} {}",spec.bundle_name,spec.in_bundle_name);
     match Process::new(dauphin,&spec.bundle_name,&spec.in_bundle_name,spec.payloads) {
         Ok(process) => {
             let stream = stream.clone();
@@ -71,7 +67,6 @@ fn run(dauphin: &mut Dauphin, commander: &PgCommander, spec: PgDauphinRunTaskSpe
             add_task(&commander,task);
         },
         Err(e) => {
-            blackbox_log!("dauphin","{} failed {}",spec.in_bundle_name,e.to_string());
             stream.add(Err(e));
         }
     }

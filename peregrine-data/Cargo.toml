@@ -18,10 +18,6 @@ regex="*"
 lazy_static="*"
 # ouroboros="*"
 
-[dependencies.blackbox]
-version="*"
-path="../blackbox"
-
 [dependencies.keyed]
 version="*"
 path="../keyed"

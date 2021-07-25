@@ -100,16 +100,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
-name = "blackbox"
-version = "0.0.0"
-dependencies = [
- "hashbrown",
- "lazy_static",
- "owning_ref",
- "serde_json",
-]
-
-[[package]]
 name = "blake2b_simd"
 version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -183,7 +173,6 @@ name = "commander"
 version = "0.0.1"
 dependencies = [
  "binary-heap-plus",
- "blackbox",
  "futures",
  "hashbrown",
  "identitynumber",
@@ -288,7 +277,6 @@ name = "dauphin_lib_peregrine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "blackbox",
  "dauphin_compile",
  "dauphin_interp",
  "inflate",
@@ -717,7 +705,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "blackbox",
  "commander",
  "dauphin_interp",
  "futures",
@@ -741,7 +728,6 @@ name = "peregrine_dauphin_queue"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "blackbox",
  "commander",
  "serde_cbor",
 ]

@@ -1,4 +1,3 @@
-use blackbox::blackbox_log;
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore };
@@ -185,7 +184,6 @@ impl GlTrainSet {
 
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
         if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
-            blackbox_log!("gltrain","transition_complete()");
             api.transition_complete();
         }
         Ok(())

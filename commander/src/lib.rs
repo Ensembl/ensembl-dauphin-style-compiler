@@ -109,11 +109,6 @@ Because some tasks may spend a long time waiting on some external resource, it c
 summaries. A future exist which wraps an internal, potentially slow future and takes a name. When a task is pending on a
 future inside this wrapper, the name of this wait is included in summary information, for diagnostic purposes.
 
-## Blackbox
-
-Commander is implemented with the blackbox logging and diagnostics system through use of a flag. This allows task
-execution times and invocation and termination to be logged through blackbox.
-
 # Usage
 
 ## Creating an Executor
@@ -280,8 +275,6 @@ mod agent {
     pub(crate) mod taskrun;
 }
 
-#[macro_use]
-extern crate blackbox;
 extern crate futures;
 extern crate hashbrown;
 #[macro_use]

@@ -1,4 +1,3 @@
-use blackbox::blackbox_log;
 use crate::{AgentStore, PeregrineCoreBase, lock};
 use crate::request::{ Channel };
 use super::stickauthority::{ StickAuthority, load_stick_authority };
@@ -18,8 +17,6 @@ impl StickAuthorityStoreData {
     }
 
     fn add(&mut self, stick_authority: StickAuthority) {
-        blackbox_log!("stickauthority","added stick authoritystartup={} lookup={}",
-                        stick_authority.startup_program(),stick_authority.lookup_program());
         self.authorities.push(stick_authority);
     }
 

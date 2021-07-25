@@ -5,7 +5,6 @@ use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
-use blackbox::{ blackbox_log };
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use peregrine_message::{ Instigator, Reporter };
@@ -37,7 +36,6 @@ impl TrainSetData {
     fn promote(&mut self, events: &mut CarriageEvents) {
         if self.wanted.as_ref().map(|x| x.0.train_ready() && !x.0.train_broken()).unwrap_or(false) && self.future.is_none() {
             if let Some((mut wanted,wanted_reporter)) = self.wanted.take() {
-                blackbox_log!("uiapi","TrainSet.promote_future() wanted -> future");
                 let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
                 wanted.set_active(events,self.next_activation,quick,&wanted_reporter);
                 self.next_activation += 1;
@@ -48,7 +46,6 @@ impl TrainSetData {
     }
 
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
-        blackbox_log!("uiapi","TrainSet.new_wanted()");
         self.wanted = Some((Train::new(train_id,events,viewport,&self.messages,reporter)?,reporter.clone()));
         Ok(())
     }
@@ -108,7 +105,6 @@ impl TrainSetData {
     }
 
     fn transition_complete(&mut self, events: &mut CarriageEvents) {
-        blackbox_log!("uiapi","TrainSet.promote_future() future -> current");
         if let Some(mut current) = self.current.take() {
             current.set_inactive();
         }

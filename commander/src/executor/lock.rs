@@ -66,7 +66,6 @@ impl LockManager {
 
 #[cfg(test)]
 mod test {
-    use blackbox::*;
     use futures::future;
     use std::collections::HashSet;
     use std::sync::{ Arc, Mutex };

@@ -131,10 +131,6 @@ mod util {
     #[macro_use]
     pub(crate) mod misc;
     pub(crate) mod needed;
-
-    #[cfg(blackbox)]
-    pub(crate) mod pgblackbox;
-
     pub use self::ajax::PgAjax;
     pub use self::message::Message;
 }

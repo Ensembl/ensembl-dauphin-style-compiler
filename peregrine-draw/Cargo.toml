@@ -25,11 +25,6 @@ features = [
   'serde-serialize'
 ]
 
-[dependencies.blackbox]
-version="*"
-path="../blackbox"
-features=[]
-
 [dependencies.commander]
 version="*"
 path="../commander"

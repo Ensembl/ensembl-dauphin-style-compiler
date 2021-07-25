@@ -1,4 +1,3 @@
-use blackbox::blackbox_log;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex, MutexGuard };
 use std::future::Future;
@@ -163,7 +162,6 @@ impl PgCommanderWeb {
             bell_receiver
         };
         out.bell_receiver.add(move || {
-            blackbox_log!("commander-integration","bell received");
             js_panic(state.schedule());
         });
         Ok(out)
@@ -210,9 +208,7 @@ impl Integration for PgIntegration {
     }
 
     fn sleep(&self, amount: SleepQuantity) {
-        blackbox_log!("commander-integration","setting sleep to {:?}",amount);
         *self.quantity.lock().unwrap() = amount;
         js_panic(self.bell_sender.ring());
-        blackbox_log!("commander-integration","bell sent");
     }
 }

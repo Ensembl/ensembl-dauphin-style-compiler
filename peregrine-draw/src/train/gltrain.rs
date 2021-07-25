@@ -7,8 +7,6 @@ use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
-#[cfg(blackbox)]
-use blackbox::blackbox_log;
 
 pub struct GLTrain {
     carriages: HashMap<CarriageId,GLCarriage>,

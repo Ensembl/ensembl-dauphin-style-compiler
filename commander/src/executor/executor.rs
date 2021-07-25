@@ -37,7 +37,6 @@ impl Executor {
     /// 
     /// Requires an implementation of `Integration` which you supply.
     pub fn new<T>(integration: T) -> Executor where T: Integration + 'static {
-        blackbox_log!("commander","Commander Executor starting");
         let integration = ReenteringIntegration::new(integration);
         let identity = {
             let mut id = NEXT_IDENTITY.lock().unwrap();
@@ -99,7 +98,6 @@ impl Executor {
     }
 
     fn try_add_task(&mut self, task: Box<dyn ExecutorTaskHandle>, agent: Agent) {
-        blackbox_log!("commander","Adding task '{}' to executor",agent.get_name());
         self.next_task_id += 1;
         let id = (self.identity,self.next_task_id);
         let tasks = self.get_tasks_mut(); // shared to avoid race to slot
@@ -109,7 +107,6 @@ impl Executor {
             if !agent.finish_agent().finished() {
                 tasks.start_task(&container_handle);
                 self.integration.cause_reentry();
-                blackbox_start!("commander",&self.task_key(&container_handle.clone()),"");
                 if let Some(timeout) = agent.get_config().get_timeout() {
                     let agent2 = agent.clone();
                     self.get_timings_mut().add_timer(&container_handle,timeout,Box::new(move || agent2.finish(KillReason::Timeout)));
@@ -149,8 +146,6 @@ impl Executor {
                         self.get_tasks_mut().unblock_task(&handle);
                     },
                     (ref handle,Action::Done()) => {
-                        blackbox_log!("commander","Task '{}' finished",self.task_name(handle));
-                        blackbox_end!("commander",&self.task_key(handle),"");
                         self.get_tasks_mut().remove_task(&handle);
                     }
                 }
@@ -211,14 +206,12 @@ impl Executor {
     pub fn tick(&mut self, slice: f64) {
         self.get_timings_mut().advance_tick();
         let now = self.run_one_tick(slice);
-        blackbox_value!("commander","num-running",self.tasks.len() as f64);
         self.integration.sleep(self.calculate_sleep(now));
     }
 }
 
 #[cfg(test)]
 mod test {
-    use blackbox::*;
     use futures::future;
     use std::collections::HashSet;
     use crate::corefutures::promisefuture::PromiseFuture;
@@ -724,52 +717,5 @@ mod test {
         assert_eq!(2,handles[0].summarize().unwrap().identity());
         x.tick(1.);
         assert_eq!(0,x.summarize_all().iter().map(|x| x.identity()).filter(|x| *x==3).count());
-    }
-
-    #[test]
-    pub fn test_blackbox() {
-        /* configure blackbox */
-        if !blackbox_enabled!() { return; }
-        let mut ign = SimpleIntegration::new("commander");
-        blackbox_use_threadlocals(true);
-        blackbox_integration(ign.clone());
-        blackbox_enable("commander");
-        /* on with the test */
-        let integration = TestIntegration::new();
-        let mut ign2 = ign.clone();
-        let mut x = Executor::new(integration.clone());
-        let cfg = RunConfig::new(None,3,None);
-        let agent = x.new_agent(&cfg,"test-task");
-        let agent2 = agent.clone();
-        let step = async move {
-            agent2.tick(1).await;
-            let agent3 = agent2.clone();
-            agent2.named_wait(async move {
-                ign2.tick();
-                agent3.tick(1).await;
-            },"test").await;
-            let agentb = agent2.new_agent(None,"task2");
-            let agentb2 = agentb.clone();
-            agent2.add(async move {
-                agentb2.tick(1).await;
-            },agentb);
-            agent2.tick(3).await;
-        };
-        x.add(step,agent);
-        for _ in 0..10 {
-            x.tick(1.);
-            ign.tick();
-        }
-        let all_lines = blackbox_take_lines().join("\n");
-        assert!(all_lines.contains("Commander Executor starting"));
-        assert!(all_lines.contains("Adding task 'test-task' to executor"));
-        assert!(all_lines.contains("commander-run-task2: num=2"));
-
-        assert!(all_lines.contains("commander-elapsed-test-task: num=1"));
-        assert!(all_lines.contains("commander-elapsed-task2: num=1"));
-        assert!(all_lines.contains("commander-run-test-task: num=4"));
-        assert!(all_lines.contains("num=4 total=1.00units"));
-        assert!(all_lines.contains("num=1 total=6.00units"));
-        assert!(all_lines.contains("[11][commander] commander-run-test-task"));
     }
 }
