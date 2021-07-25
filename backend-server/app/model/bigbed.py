@@ -8,9 +8,9 @@ def get_bigbed_data(path,chrom,start,end):
     try:
         bb = pyBigWig.open(path)
         out = bb.entries(chrom.name,start,end) or []
+        bb.close()
     except (RuntimeError,OverflowError):
         out = []
-    bb.close()
     return out
 
 def get_bigwig_data(path,chrom,start,end):
