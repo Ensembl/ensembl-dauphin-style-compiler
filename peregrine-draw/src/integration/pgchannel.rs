@@ -2,7 +2,7 @@ use js_sys::Date;
 use peregrine_data::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, lock };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
-use url::Url;
+use peregrine_toolkit::url::Url;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -21,14 +21,12 @@ impl PgChannel {
 }
 
 fn add_priority(a: &Url, prio: PacketPriority, cache_buster: &str) -> Result<Url,Message> {
-    let mut z = a.clone();
-    let mut path = z.path_segments_mut().map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
-    path.push(match prio {
+    let z = a.add_path_segment(match prio {
         PacketPriority::RealTime => "hi",
         PacketPriority::Batch => "lo"
-    });
-    drop(path);
-    let queries = z.query_pairs_mut().append_pair("stamp",cache_buster);
+    }).map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
+    let z = z.add_query_parameter(&format!("stemp={}",cache_buster))
+        .map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
     Ok(z)
 }
 

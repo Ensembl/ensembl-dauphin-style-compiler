@@ -179,7 +179,7 @@ impl Switches {
 mod test {
     use super::*;
     use crate::{ Channel, ChannelLocation };
-    use url::Url;
+    use peregrine_toolkit::url::Url;
     use crate::ProgramName;
 
     fn urlc(idx: u32) -> Url {

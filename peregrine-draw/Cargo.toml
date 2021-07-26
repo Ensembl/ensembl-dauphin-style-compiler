@@ -33,6 +33,10 @@ path="../commander"
 version="*"
 path="../peregrine-message"
 
+[dependencies.peregrine_toolkit]
+version="*"
+path="../peregrine-toolkit"
+
 [dependencies.web-sys]
 version = "*"
 features = [

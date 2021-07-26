@@ -489,9 +489,9 @@ dependencies = [
  "peregrine_config",
  "peregrine_dauphin_queue",
  "peregrine_message",
+ "peregrine_toolkit",
  "serde_cbor",
  "serde_json",
- "url",
  "web-sys",
 ]
 
@@ -509,6 +509,13 @@ name = "peregrine_message"
 version = "0.0.0"
 dependencies = [
  "commander",
+]
+
+[[package]]
+name = "peregrine_toolkit"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
 ]
 
 [[package]]

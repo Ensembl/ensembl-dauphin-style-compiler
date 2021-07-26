@@ -9,7 +9,7 @@ use commander::{Executor, cdr_timer};
 use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
 use peregrine_data::{Channel, ChannelLocation, StickId };
 use peregrine_message::{MessageKind, PeregrineMessage};
-pub use url::Url;
+use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{HtmlElement, console };
 use lazy_static::lazy_static;

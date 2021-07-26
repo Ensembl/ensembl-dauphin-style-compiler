@@ -5,7 +5,7 @@ use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
 use anyhow::{ self, Context, anyhow as err };
 use std::sync::Arc;
-use url::Url;
+use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
 use crate::util::message::DataMessage;

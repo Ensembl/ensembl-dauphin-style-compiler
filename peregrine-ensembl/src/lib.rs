@@ -3,7 +3,7 @@ mod standalonedom;
 use wasm_bindgen::prelude::*;
 use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
 use peregrine_data::{Channel, ChannelLocation, StickId };
-pub use url::Url;
+use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{ console };
 use std::sync::{ Arc, Mutex };

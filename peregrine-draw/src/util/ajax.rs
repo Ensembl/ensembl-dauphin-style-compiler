@@ -5,7 +5,7 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys;
 use web_sys::{ AbortController, Request, RequestInit, RequestMode, Response };
 use serde_json::Value as JsonValue;
-use url::Url;
+use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::message::Message;
 
