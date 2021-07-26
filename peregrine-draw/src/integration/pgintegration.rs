@@ -17,7 +17,6 @@ pub struct PgIntegration {
 
 impl PeregrineIntegration for PgIntegration {
     fn set_carriages(&mut self, carriages: &[Carriage], index: u32) -> Result<(),DataMessage> {
-        let carriages_str : Vec<_> = carriages.iter().map(|x| x.id().to_string()).collect();
         let mut webgl = self.webgl.lock().unwrap();
         self.trainset.set_carriages(carriages,&mut webgl,index)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;

@@ -2,7 +2,8 @@
 /// 
 /// Should another task be added with the same RunSlot only one will run. If push is true for the RunSlot, the old task
 /// will be killed. If push is false, the new slot will be killed.
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RunSlot { 
     identity: u64,
     push: bool

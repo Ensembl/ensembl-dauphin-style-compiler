@@ -19,7 +19,7 @@ pub struct ConfigKeyInfo<'a,K,V> {
     pub default: &'a V
 }
 
-pub struct Config<'a,K,V> where K: Debug+PartialEq+Eq+Hash, V: ConfigValue + Clone {
+pub struct Config<'a,K,V> where K: PartialEq+Eq+Hash, V: ConfigValue + Clone {
     str_to_key: HashMap<String,K>,
     key_to_str: HashMap<K,String>,
     defaults: HashMap<K,&'a V>,

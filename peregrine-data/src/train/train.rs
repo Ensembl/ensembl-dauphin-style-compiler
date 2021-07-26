@@ -11,17 +11,20 @@ use crate::PgCommanderTaskSpec;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Hash,PartialEq,Eq)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TrainId {
     layout: Layout,
     scale: Scale
 }
 
+/*
 impl fmt::Display for TrainId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,"TrainId(layout={} scale={})",self.layout,self.scale)
     }
 }
+*/
 
 impl TrainId {
     pub fn new(layout: &Layout, scale: &Scale) -> TrainId {

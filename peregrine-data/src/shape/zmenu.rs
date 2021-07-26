@@ -47,13 +47,15 @@ use std::iter::Peekable;
 use std::str::Chars;
 use crate::util::ringarray::{ UniformData, DataFilter };
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum ZMenuText {
     Fixed(String),
     Template(String)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuItem {
     pub text: ZMenuText,
     pub markup: Vec<String>
@@ -65,7 +67,8 @@ impl ZMenuItem {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuBlock(pub Vec<ZMenuItem>);
 
 #[derive(Clone)]
@@ -170,7 +173,8 @@ impl ZMenuBlock {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum ZMenuSequence {
     Item(ZMenuBlock),
     LineBreak
@@ -198,7 +202,8 @@ fn fmt_zmenu_sequences(spec: &str) -> anyhow::Result<Vec<ZMenuSequence>> {
     Ok(out)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenu(pub Vec<ZMenuSequence>);
 
 impl ZMenu {

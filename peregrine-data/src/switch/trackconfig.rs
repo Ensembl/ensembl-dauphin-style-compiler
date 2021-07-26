@@ -4,7 +4,8 @@ use std::sync::{ Arc };
 use std::collections::HashMap;
 use super::track::Track;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct TrackConfigNode {
     kids: HashMap<String,Box<TrackConfigNode>>
 }
@@ -98,6 +99,7 @@ impl TrackConfig {
     }
 }
 
+#[cfg(debug_assertions)]
 impl fmt::Debug for TrackConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut track_config_list = vec![];

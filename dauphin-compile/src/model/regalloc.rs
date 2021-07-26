@@ -18,7 +18,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use dauphin_interp::runtime::{ Register };
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct RegisterAllocatorImpl {
     index: usize
 }
@@ -36,7 +36,8 @@ impl RegisterAllocatorImpl {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RegisterAllocator(Rc<RefCell<RegisterAllocatorImpl>>);
 
 impl RegisterAllocator {

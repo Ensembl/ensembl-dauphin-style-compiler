@@ -17,7 +17,8 @@
 use std::hash::{ Hash, Hasher };
 use std::num::ParseFloatError;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct DFloat(f64,u64);
 
 impl DFloat {

@@ -5,7 +5,8 @@ use crate::HoleySpaceBaseArea;
 use crate::switch::allotment::AllotmentHandle;
 use crate::util::ringarray::DataFilter;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
     Text2(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),

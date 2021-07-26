@@ -7,7 +7,8 @@ pub trait ParametricType {
     fn replace(&mut self, replace: &[(&Self::Location,Self::Value)]);
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Variable(usize);
 
 #[derive(Clone)]
@@ -16,6 +17,7 @@ pub enum ParameterValue<X: Clone> {
     Variable(Variable,X)
 }
 
+#[cfg(debug_assertions)]
 impl<X: Clone+std::fmt::Debug> std::fmt::Debug for ParameterValue<X> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

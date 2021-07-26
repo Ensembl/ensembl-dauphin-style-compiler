@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
+use peregrine_config::ConfigError;
 use peregrine_data::{ DataMessage };
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
@@ -14,7 +15,8 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
@@ -123,6 +125,13 @@ impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"{}",self.to_message_string())
     }
+}
+
+#[cfg(not(debug_assertions))]
+impl fmt::Debug for Message {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.to_message_string())
+    }    
 }
 
 impl Error for Message {

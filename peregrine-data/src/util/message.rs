@@ -16,7 +16,8 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DataMessage {
     BadDauphinProgram(String),
     BadBootstrapCannotStart(Channel,Box<DataMessage>),
@@ -31,7 +32,7 @@ pub enum DataMessage {
     TaskUnexpectedlySuperfluous(String),
     TaskResultMissing(String),
     TaskUnexpectedlyOngoing(String),
-    NoLaneProgram(ShapeRequest),
+    //NoLaneProgram(ShapeRequest),
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
     StickAuthorityUnavailable(Box<DataMessage>),
@@ -96,7 +97,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskUnexpectedlySuperfluous(s) => (9,calculate_hash(s)),
             DataMessage::TaskResultMissing(s) => (10,calculate_hash(s)),
             DataMessage::TaskUnexpectedlyOngoing(s) => (11,calculate_hash(s)),
-            DataMessage::NoLaneProgram(p) => (12,calculate_hash(p)),
+            //DataMessage::NoLaneProgram(p) => (12,calculate_hash(p)),
             DataMessage::DataMissing(cause) => (13,calculate_hash(&cause.code())),
             DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
             DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
@@ -122,6 +123,7 @@ impl PeregrineMessage for DataMessage {
         }
     }
 
+    #[cfg(debug_assertions)]
     fn to_message_string(&self) -> String {
         match self {
             DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
@@ -139,12 +141,51 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskResultMissing(s) => format!("Task '{}' result unexpectedly missing",s),
             DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
             DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
-            DataMessage::NoLaneProgram(p) => format!("Missing lane program: {:?}",p),
+            //DataMessage::NoLaneProgram(p) => format!("Missing lane program: {}",p),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
             DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::CarriageUnavailable(id,causes) =>
                 format!("carriage {:?} unavilable. causes = [{}]",id,causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
+            DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
+            DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
+            DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
+            DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
+            DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
+            DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
+            DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
+            DataMessage::ConfigError(e) => match e {
+                ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
+                ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),
+                ConfigError::UninitialisedKey(k) => format!("uninitialised config key {}",k),    
+            }
+        }
+    }
+
+    #[cfg(not(debug_assertions))]
+    fn to_message_string(&self) -> String {
+        match self {
+            DataMessage::BadDauphinProgram(s) => format!("Bad Dauphin Program: {}",s),
+            DataMessage::BadBootstrapCannotStart(c,cause) => format!("Bad bootstrap response. Cannot start. channel={}: {}",c,cause),
+            DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
+            DataMessage::PacketError(c,s) => format!("Error sending/receiving packet: '{}' channel={}",s,c),
+            DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
+            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure (retrying) channel={}",c.to_string()),
+            DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
+            DataMessage::DataHasNoAssociatedStyle(tags) => 
+                format!("Data has no associated style: tags={}",tags.join(",")),
+            DataMessage::TaskTimedOut(s) => format!("Task '{}' timed out",s),
+            DataMessage::TaskUnexpectedlyCancelled(s) => format!("Task '{}' unexpectedly cancelled",s),
+            DataMessage::TaskUnexpectedlySuperfluous(s) => format!("Task '{}' unexpectedly superfluous",s),
+            DataMessage::TaskResultMissing(s) => format!("Task '{}' result unexpectedly missing",s),
+            DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
+            DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
+            //DataMessage::NoLaneProgram(p) => format!("Missing lane program: {}",p),
+            DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
+            DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
+            DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
+            DataMessage::CarriageUnavailable(id,causes) =>
+                format!("carriage unavilable. causes = [{}]",causes.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")),
             DataMessage::DauphinProgramDidNotLoad(name) => format!("dauphin program '{}' did not load",name),
             DataMessage::DauphinIntegrationError(message) => format!("dauphin integration error: {}",message),
             DataMessage::DauphinRunError(program,message) => format!("error running dauphin program '{}': {}",program,message),
@@ -185,4 +226,11 @@ impl Error for DataMessage {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.cause().map(|x| x as &dyn Error)
     }
+}
+
+#[cfg(not(debug_assertions))]
+impl fmt::Debug for DataMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.to_message_string())
+    }    
 }

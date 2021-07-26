@@ -105,17 +105,20 @@ impl Pen {
     pub fn group_hash(&self) -> u64 { self.inner.geometry.hash }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Plotter(pub f64, pub DirectColour);
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Colour {
     Direct(DirectColour),
     Stripe(DirectColour,DirectColour,(u32,u32),f64),
     Bar(DirectColour,DirectColour,(u32,u32),f64)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
     Filled(Vec<Colour>,i8),
     Hollow(Vec<Colour>,u32,i8),

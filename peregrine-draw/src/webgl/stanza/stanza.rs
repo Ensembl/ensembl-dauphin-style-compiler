@@ -7,7 +7,8 @@ use crate::webgl::util::handle_context_errors;
 use crate::webgl::Attribute;
 use crate::util::message::Message;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct AttribSource(Arc<Mutex<Vec<f32>>>);
 
 impl AttribSource {

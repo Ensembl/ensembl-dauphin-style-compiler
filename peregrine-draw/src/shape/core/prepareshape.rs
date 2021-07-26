@@ -38,7 +38,8 @@ fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
 }
 
-#[derive(Clone,PartialEq,Eq,Hash,Debug)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum ShapeCategory {
     Solid(i8),
     Heraldry(HeraldryCanvasesUsed,HeraldryScale,i8)

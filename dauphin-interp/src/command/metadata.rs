@@ -4,7 +4,7 @@ use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_map, cbor_string, cbor_option, cbor_int };
 use std::convert::TryInto;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ProgramMetadata {
     name: String,
     user: Option<String>,

@@ -5,7 +5,7 @@ use serde_cbor::Value as CborValue;
 use dauphin_interp::command::ProgramMetadata;
 use dauphin_interp::util::cbor::{ cbor_make_map, cbor_map, cbor_string, cbor_option, cbor_int };
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ProgramMetadataBuilder {
     metadata: ProgramMetadata
 }

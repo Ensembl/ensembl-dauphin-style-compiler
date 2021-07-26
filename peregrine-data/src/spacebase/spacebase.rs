@@ -16,7 +16,7 @@ pub struct SpaceBasePoint<X> {
     tangent: X
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct SpaceBasePointRef<'a,X> {
     pub base: &'a X,
     pub normal: &'a X,
@@ -35,7 +35,7 @@ impl<'a,X: Clone> SpaceBasePointRef<'a,X> {
 
 /* If any are empty, all are empty */
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct SpaceBase<X> {
     pub(super) base: Arc<Vec<X>>,
     pub(super) normal: Arc<Vec<X>>,
@@ -88,7 +88,8 @@ impl<X: Clone> ParametricType for SpaceBase<X> {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HoleySpaceBase {
     Simple(SpaceBase<f64>),
     Parametric(SpaceBase<ParameterValue<f64>>)

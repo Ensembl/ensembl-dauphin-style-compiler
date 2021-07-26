@@ -4,6 +4,7 @@ use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substituti
 
 pub struct SpaceBaseArea<X>(SpaceBase<X>,SpaceBase<X>);
 
+#[cfg(debug_assertions)]
 impl<X: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f,"SpaceBaseArea({:?},{:?})",self.0,self.1)
@@ -41,7 +42,8 @@ impl<X: Clone> ParametricType for SpaceBaseArea<X> {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HoleySpaceBaseArea {
     Simple(SpaceBaseArea<f64>),
     Parametric(SpaceBaseArea<ParameterValue<f64>>)
@@ -124,7 +126,8 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>> SpaceBaseArea<X> {
     pub fn middle_base(&self) -> SpaceBase<X> { self.0.middle_base(&self.1) }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HollowEdge<X> { Top(X), Left(X), Bottom(X), Right(X) }
 
 impl<X: Clone + Add<Output=X> + Sub<Output=X>> SpaceBaseArea<X> {

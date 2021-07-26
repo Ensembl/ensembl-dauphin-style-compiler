@@ -4,7 +4,7 @@ use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct BoundingBox {
     tlbr: (f64,f64,f64,f64)
 }

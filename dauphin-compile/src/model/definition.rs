@@ -28,7 +28,7 @@ pub enum InlineMode {
     Suffix
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Inline {
     symbol: String,
     identifier: IdentifierUse,
@@ -52,7 +52,7 @@ impl Inline {
     pub fn mode(&self) -> &InlineMode { &self.mode }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ExprMacro {
     identifier: Identifier,
     args: Vec<Identifier>,
@@ -71,7 +71,7 @@ impl ExprMacro {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct StmtMacro {
     identifier: Identifier,
     args: Vec<Identifier>,
@@ -90,7 +90,7 @@ impl StmtMacro {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct FuncDecl {
     identifier: Identifier,
     signature: SignatureConstraint
@@ -108,7 +108,7 @@ impl FuncDecl {
     pub fn get_signature(&self) -> &SignatureConstraint { &self.signature }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ProcDecl {
     identifier: Identifier,
     signature: SignatureConstraint

@@ -27,7 +27,8 @@ impl Display for StickId {
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum StickTopology {
     Linear,
     Circular

@@ -21,7 +21,7 @@ use crate::runtime::{ InterpContext, InterpValue, InterpValueIndexes };
 use crate::types::{ VectorSource, VectorRegisters };
 use crate::util::DauphinError;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct SharedVec {
     vr: VectorRegisters,
     structure: Vec<(InterpValueIndexes,InterpValueIndexes)>,

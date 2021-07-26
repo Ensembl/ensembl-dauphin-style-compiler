@@ -72,7 +72,7 @@ impl FileExecutionProfile {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct ExecutionProfiler {
     line: Option<LexerPosition>,
     time: HashMap<LexerPosition,f64>

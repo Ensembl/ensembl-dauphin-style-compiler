@@ -7,7 +7,7 @@ use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 use crate::util::message::DataMessage;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum ApiMessage {
     Ready,
     TransitionComplete,

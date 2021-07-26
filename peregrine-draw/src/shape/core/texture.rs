@@ -4,7 +4,7 @@ use crate::webgl::{ FlatId };
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatStore;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CanvasTextureArea {
     texture_origin: (u32,u32),
     mask_origin: (u32,u32),

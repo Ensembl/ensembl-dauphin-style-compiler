@@ -149,7 +149,7 @@ fn indexes_to_bytes(data: &Vec<usize>) -> anyhow::Result<Vec<Vec<u8>>> {
     }).collect()
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum InterpValue {
     Empty,
     Numbers(Vec<f64>),
@@ -161,7 +161,8 @@ pub enum InterpValue {
 
 macro_rules! interp_value {
     ($type:ident,$branch: tt,$inner:ty) => {
-        #[derive(Clone,Debug)]
+        #[derive(Clone)]
+        #[cfg_attr(debug_assertions,derive(Debug))]
         pub struct $type(Rc<InterpValue>);
 
         impl Deref for $type {
@@ -180,7 +181,8 @@ interp_value!(InterpValueBoolean,Boolean,bool);
 interp_value!(InterpValueStrings,Strings,String);
 interp_value!(InterpValueBytes,Bytes,Vec<u8>);
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum InterpNatural {
     Empty,
     Numbers,

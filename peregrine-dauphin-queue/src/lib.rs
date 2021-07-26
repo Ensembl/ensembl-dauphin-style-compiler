@@ -4,7 +4,7 @@ use serde_cbor::Value as CborValue;
 use std::any::Any;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinRunTaskSpec {
     pub prio: u8, 
     pub slot: Option<RunSlot>, 
@@ -14,7 +14,7 @@ pub struct PgDauphinRunTaskSpec {
     pub payloads: HashMap<String,Box<dyn Any>>
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct PgDauphinLoadTaskSpec {
     pub data: CborValue,
     pub bundle_name: String

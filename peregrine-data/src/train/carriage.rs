@@ -7,7 +7,8 @@ use super::train::TrainId;
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Hash,PartialEq,Eq)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CarriageId {
     train: TrainId,
     index: u64
@@ -32,11 +33,13 @@ impl CarriageId {
     }
 }
 
+/*
 impl Display for CarriageId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f,"CarriageId(train={} index={})",self.train,self.index)
     }
 }
+*/
 
 #[derive(Clone)]
 pub struct Carriage {

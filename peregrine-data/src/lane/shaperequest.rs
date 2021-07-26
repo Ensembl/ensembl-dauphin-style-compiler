@@ -42,7 +42,8 @@ impl Region {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ShapeRequest {
     region: Region,
     track: TrackConfig

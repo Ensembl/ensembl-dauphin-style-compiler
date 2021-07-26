@@ -27,6 +27,7 @@ impl PartialEq for TrackConfigList {
 
 impl Eq for TrackConfigList {}
 
+#[cfg(debug_assertions)]
 impl fmt::Debug for TrackConfigList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for (_,track_config) in self.configs.iter() {

@@ -44,7 +44,8 @@ fn number_reg(state: &mut GenerateState) -> Register {
     out
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct Linearized {
     index: Vec<(Register,Register)>,
     data: Register

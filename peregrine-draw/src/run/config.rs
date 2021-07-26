@@ -1,15 +1,17 @@
 use std::num::{ParseFloatError, ParseIntError};
-use peregrine_data::{DataMessage, DirectColour};
+use peregrine_data::{ConfigKey, DataMessage, DirectColour};
 use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;
 use css_color_parser::Color as CssColor;
+use std::fmt;
 
 // XXX factor with similar in peregrine-data
 // XXX chromosome ned-stops
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum CursorCircumstance {
     Default,
     Drag,
@@ -32,12 +34,14 @@ impl CursorCircumstance {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DebugFlag {
     ShowIncomingMessages
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum PgConfigKey {
     FadeOverlap(bool),
     AnimationFadeRate(bool),
@@ -64,6 +68,13 @@ pub enum PgConfigKey {
     PinchMinScale,
     Spectre(SpectreConfigKey), // various visual properties of spectres
     ReportUpdateFrequency // ms between position reports
+}
+
+#[cfg(not(debug_assertions))]
+impl fmt::Debug for PgConfigKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"*elided*")
+    }
 }
 
 #[derive(Clone)]

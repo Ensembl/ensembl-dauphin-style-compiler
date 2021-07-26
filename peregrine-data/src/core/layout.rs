@@ -2,7 +2,8 @@ use std::fmt::{ self, Display, Formatter };
 use super::stick::StickId;
 use crate::switch::trackconfiglist::TrackConfigList;
 
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Hash,PartialEq,Eq)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Layout {
     stick: StickId,
     tracks: TrackConfigList
@@ -25,11 +26,5 @@ impl Layout {
 
     pub fn set_track_config_list(&mut self, track_config_list: &TrackConfigList) {
         self.tracks = track_config_list.clone();
-    }
-}
-
-impl Display for Layout {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,"Layout(tracks={:?} stick={})",self.tracks,self.stick)
     }
 }

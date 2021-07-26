@@ -22,7 +22,7 @@ use crate::command::Identifier;
 use crate::types::{ FullType, ComplexPath, VectorRegisters };
 use crate::util::DauphinError;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum XStructure<T> {
     Simple(Rc<RefCell<T>>),
     Vector(Rc<XStructure<T>>),
@@ -99,7 +99,7 @@ impl<T> XStructure<T> {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct XPath<T>(Vec<XPathEl>,Rc<RefCell<T>>);
 
 impl<T> Clone for XPath<T> {

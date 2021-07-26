@@ -18,7 +18,8 @@ use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum AllotmentProgramKind {
     Track,
     Overlay(i64),
@@ -26,7 +27,7 @@ pub enum AllotmentProgramKind {
     SpaceLabel
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(Vec<DirectColour>),
     Hollow(Vec<DirectColour>)
@@ -72,7 +73,7 @@ impl<'a> DrawingShapePatina<'a> {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum GLShape {
     Text2(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
     Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>,i8),

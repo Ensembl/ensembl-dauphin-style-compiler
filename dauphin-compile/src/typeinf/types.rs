@@ -134,7 +134,8 @@ pub enum ArgumentConstraint {
     NonReference(ArgumentExpressionConstraint)
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct InstructionConstraint {
     constraints: Vec<(ArgumentConstraint,Register)>
 }

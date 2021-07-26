@@ -20,7 +20,8 @@ use std::collections::HashMap;
 use dauphin_interp::command::{ Identifier };
 use dauphin_interp::util::DauphinError;
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct IdentifierUse(pub Identifier,pub bool);
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -36,7 +37,7 @@ impl std::fmt::Display for IdentifierPattern {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct IdentifierStore<T> where T: Debug {
     store: HashMap<Identifier,T>
 }

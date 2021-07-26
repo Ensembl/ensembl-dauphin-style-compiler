@@ -6,7 +6,7 @@ use crate::typeinf::{ TypeModel, Typing };
 use crate::generate::simplify::SimplifyMapperData;
 use crate::generate::linearize::LinearizeRegsData;
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct CodeGenRegNames {
     output: HashMap<String,Register>,
     input: HashMap<String,Register>

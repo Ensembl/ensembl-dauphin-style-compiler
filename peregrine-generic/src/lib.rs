@@ -262,5 +262,10 @@ pub fn main() -> Result<(), JsValue> {
  */
 #[wasm_bindgen]
 pub fn init_panic_hook() {
+    use std::panic;
+
+    #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
+    #[cfg(not(debug_assertions))]
+    panic::set_hook(Box::new(|_| {}));
 }

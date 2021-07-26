@@ -21,7 +21,8 @@ use crate::command::{ CommandSetId };
 use crate::util::DauphinError;
 use crate::util::cbor::{ cbor_array, cbor_int };
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OpcodeMapping {
     order: Vec<CommandSetId>,
     ready: bool,
