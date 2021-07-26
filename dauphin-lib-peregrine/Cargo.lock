@@ -489,7 +489,6 @@ dependencies = [
  "peregrine_config",
  "peregrine_dauphin_queue",
  "peregrine_message",
- "regex",
  "serde_cbor",
  "serde_json",
  "url",

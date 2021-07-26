@@ -14,7 +14,7 @@ serde_cbor="*"
 serde_json="*"
 url="*"
 futures="*"
-regex="*"
+#regex="*"
 lazy_static="*"
 # ouroboros="*"
 

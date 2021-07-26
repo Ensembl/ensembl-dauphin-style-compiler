@@ -5,14 +5,20 @@ use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
 use anyhow::{ self, Context, anyhow as err };
 use std::sync::Arc;
-use regex::Regex;
 use url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
 use crate::util::message::DataMessage;
 
-lazy_static! {
-    static ref CHANNEL_RE: Regex = Regex::new(r"(.*?)\((.*)\)").unwrap();
+fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
+    if value.ends_with(")") {
+        if let Some(first_idx) = value.find("(") {
+            let mut first = value.to_string();
+            let rest = first.split_off(first_idx)[1..].to_string();
+            return Ok((first,rest))
+        }
+    }
+    bail!("unparsable channel string!");
 }
 
 pub trait ChannelIntegration {
@@ -27,14 +33,11 @@ pub enum ChannelLocation {
 
 impl ChannelLocation {
     pub fn parse(base: &ChannelLocation, value: &str) -> anyhow::Result<ChannelLocation> {
-        if let Some(parsed) = CHANNEL_RE.captures_iter(value).next() {
-            match parsed.get(1).map(|x| x.as_str()) {
-                Some("url") => Ok(ChannelLocation::HttpChannel(Url::parse(parsed.get(1).ok_or(err!("unparsable channel URL"))?.as_str())?)),
-                Some("self") => Ok(base.clone()),
-                _ => bail!("unparsable channel string!")
-            }
-        } else {
-            bail!("unparsable channel string!");
+        let (first,rest) = parse_channel(value)?;
+        match first.as_str() {
+            "url" => Ok(ChannelLocation::HttpChannel(Url::parse(&rest)?)),
+            "self" => Ok(base.clone()),
+            _ => bail!("unparsable channel string!")
         }
     }
 }
