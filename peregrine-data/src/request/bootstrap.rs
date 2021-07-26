@@ -12,24 +12,21 @@ use super::backoff::Backoff;
 use crate::util::message::DataMessage;
 use crate::api::{ PeregrineCoreBase, AgentStore, PeregrineApiQueue, ApiMessage };
 use crate::lane::programname::ProgramName;
-use peregrine_message::Instigator;
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
     dauphin: PgDauphin,
     queue: PeregrineApiQueue,
     loader: ProgramLoader,
-    channel: Channel,
-    instigator: Instigator<DataMessage>
+    channel: Channel
 }
 
 impl BootstrapCommandRequest {
-    fn new(dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, channel: Channel, instigator: Instigator<DataMessage>) -> BootstrapCommandRequest {
+    fn new(dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, channel: Channel) -> BootstrapCommandRequest {
         BootstrapCommandRequest {
             dauphin: dauphin.clone(),
             queue: queue.clone(),
             loader: loader.clone(),
-            instigator: instigator.clone(),
             channel
         }
     }
@@ -41,7 +38,7 @@ impl BootstrapCommandRequest {
         match backoff.backoff::<BootstrapCommandResponse,_,_>(
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(b) => {
-                Ok(b.bootstrap(&dauphin,&self.queue,&loader,self.instigator).await?)
+                Ok(b.bootstrap(&dauphin,&self.queue,&loader).await?)
             }
             Err(e) => {
                 Err(DataMessage::BadBootstrapCannotStart(self.channel.clone(),Box::new(e.clone())))
@@ -66,7 +63,7 @@ impl ResponseType for BootstrapCommandResponse {
 }
 
 impl BootstrapCommandResponse {
-    async fn bootstrap(&self, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, instigator: Instigator<DataMessage>) -> Result<(),DataMessage> {
+    async fn bootstrap(&self, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader) -> Result<(),DataMessage> {
         dauphin.run_program(loader,PgDauphinTaskSpec {
             prio: 2,
             slot: None,
@@ -74,7 +71,7 @@ impl BootstrapCommandResponse {
             program_name: self.program_name.clone(),
             payloads: None
         }).await?;
-        queue.push(ApiMessage::RegeneraateTrackConfig,instigator);
+        queue.push(ApiMessage::RegeneraateTrackConfig);
         Ok(())
     }
 }
@@ -88,7 +85,7 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel, instigator: Instigator<DataMessage>) {
+pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel) {
     let base2 = base.clone();
     let agent_store = agent_store.clone();
     add_task(&base.commander,PgCommanderTaskSpec {
@@ -97,7 +94,7 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
         slot: None,
         timeout: None,
         task: Box::pin(async move {
-            let req = BootstrapCommandRequest::new(&base2.dauphin,&base2.queue,&agent_store.program_loader().await,channel.clone(),instigator);
+            let req = BootstrapCommandRequest::new(&base2.dauphin,&base2.queue,&agent_store.program_loader().await,channel.clone());
             let r = req.execute(base2.manager.clone()).await;
             let r = r.unwrap_or(());
             base2.booted.unlock();
@@ -142,7 +139,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),Instigator::new());
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         h.run(30);
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
@@ -181,7 +178,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),Instigator::new());
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         h.run(30);
         let reqs = h.channel.get_requests();
         print!("{:?}\n",reqs[0]);
@@ -215,7 +212,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),Instigator::new());
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..5 {
             h.run(30);
             h.commander_inner.add_time(100.);
@@ -244,7 +241,7 @@ mod test {
         }
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),Instigator::new());
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..25 {
             h.run(10);
             h.commander_inner.add_time(10000.);
@@ -287,7 +284,7 @@ mod test {
         }
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),Instigator::new());
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
         for _ in 0..50 {
             h.run(10);
             h.commander_inner.add_time(1000.);

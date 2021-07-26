@@ -51,7 +51,6 @@ mod run {
     mod globalconfig;
     pub mod inner;
     mod frame;
-    pub(crate) mod progress;
     pub(crate) mod report;
     mod size;
 

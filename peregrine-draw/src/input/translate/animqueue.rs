@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use peregrine_message::Instigator;
 
 use crate::{Message, PeregrineAPI, PeregrineInnerAPI, stage::axis::ReadStageAxis};
 use super::axisphysics::{AxisPhysics, AxisPhysicsConfig};
@@ -117,7 +116,7 @@ impl PhysicsRunner {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         if let Some(new_pos_px) = self.x.apply_spring(measure.x_bp*px_per_bp,total_dt) {
-            inner.set_x(new_pos_px / px_per_bp,&mut Instigator::new());
+            inner.set_x(new_pos_px / px_per_bp);
         }
         Ok(())
     }
@@ -143,8 +142,8 @@ impl PhysicsRunner {
             let new_left_bp = new_left_px * self.w_scale;
             let new_right_bp = new_right_px * self.w_scale;
             /* compute new position */
-            inner.set_x((new_left_bp+new_right_bp)/2.,&mut Instigator::new());
-            inner.set_bp_per_screen(new_right_bp-new_left_bp,&mut Instigator::new());
+            inner.set_x((new_left_bp+new_right_bp)/2.);
+            inner.set_bp_per_screen(new_right_bp-new_left_bp);
         }
         Ok(())
     }
@@ -160,9 +159,9 @@ impl PhysicsRunner {
                 let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
                 let x_bp = measure.x_bp + (x_screen - 0.5) * measure.bp_per_screen;
                 let new_middle = x_bp - new_bp_from_middle;
-                inner.set_x(new_middle,&mut Instigator::new());
+                inner.set_x(new_middle);
             }
-            inner.set_bp_per_screen(new_bp_per_screen,&mut Instigator::new());
+            inner.set_bp_per_screen(new_bp_per_screen);
         }
         Ok(())
     }

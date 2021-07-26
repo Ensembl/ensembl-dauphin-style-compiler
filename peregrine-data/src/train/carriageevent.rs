@@ -3,14 +3,13 @@ use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::Carriage;
 use crate::train::train::Train;
 use crate::util::message::DataMessage;
-use peregrine_message::{ Reporter };
 use crate::core::Viewport;
 
 enum CarriageEvent {
-    Train(Train,Reporter<DataMessage>),
-    Carriage(Carriage,Reporter<DataMessage>),
-    Set(Vec<Carriage>,u32,Option<Reporter<DataMessage>>),
-    Transition(u32,u64,CarriageSpeed,Reporter<DataMessage>),
+    Train(Train),
+    Carriage(Carriage),
+    Set(Vec<Carriage>,u32),
+    Transition(u32,u64,CarriageSpeed),
     NotifyViewport(Viewport,bool)
 }
 
@@ -22,27 +21,27 @@ impl CarriageEvents {
         CarriageEvents(Arc::new(Mutex::new(vec![])))
     }
 
-    pub(super) fn train(&mut self, train: &Train, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().push(CarriageEvent::Train(train.clone(),reporter.clone()));
+    pub(super) fn train(&mut self, train: &Train) {
+        self.0.lock().unwrap().push(CarriageEvent::Train(train.clone()));
     }
 
-    pub(super) fn carriage(&mut self, carriage: &Carriage, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone(),reporter.clone()));
+    pub(super) fn carriage(&mut self, carriage: &Carriage) {
+        self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone()));
     }
 
-    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32, reporter: Option<&Reporter<DataMessage>>) {
-        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index,reporter.cloned()));
+    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
+        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
     }
 
-    pub(super) fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().push(CarriageEvent::Transition(index,max,speed,reporter.clone()));
+    pub(super) fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
+        self.0.lock().unwrap().push(CarriageEvent::Transition(index,max,speed));
     }
 
     pub(super) fn notify_viewport(&mut self, viewport: &Viewport, future: bool) {
         self.0.lock().unwrap().push(CarriageEvent::NotifyViewport(viewport.clone(),future));
     }
 
-    pub(super) fn run(&mut self, objects: &mut PeregrineCore) -> Vec<(Carriage,Reporter<DataMessage>)> {
+    pub(super) fn run(&mut self, objects: &mut PeregrineCore) -> Vec<Carriage> {
         let events : Vec<CarriageEvent> = self.0.lock().unwrap().drain(..).collect();
         let mut errors = vec![];
         let mut loads = vec![];
@@ -50,28 +49,28 @@ impl CarriageEvents {
         let mut notifications = vec![];
         for e in events {
             match e {
-                CarriageEvent::Set(carriages,index,reporter) => {
+                CarriageEvent::Set(carriages,index) => {
                     let r = objects.integration.lock().unwrap().set_carriages(&carriages,index);
-                    if let Err(r) = r { errors.push((r,reporter)); }
+                    if let Err(r) = r { errors.push(r); }
                 },
-                CarriageEvent::Transition(index,max,speed,reporter) => {
-                    transition = Some((index,max,speed,reporter));
+                CarriageEvent::Transition(index,max,speed) => {
+                    transition = Some((index,max,speed));
                 },
-                CarriageEvent::Carriage(carriage,reporter) => {
-                    loads.push((carriage,reporter));
+                CarriageEvent::Carriage(carriage) => {
+                    loads.push(carriage);
                 },
-                CarriageEvent::Train(train, reporter) => {
-                    train.run_find_max(objects,&reporter);
+                CarriageEvent::Train(train) => {
+                    train.run_find_max(objects);
                 },
                 CarriageEvent::NotifyViewport(viewport, future) => {
                     notifications.push((viewport,future));
                 },
             }
         }
-        if let Some((index,max,speed,reporter)) = transition {
+        if let Some((index,max,speed)) = transition {
             let r = objects.integration.lock().unwrap().start_transition(index,max,speed);
             if let Err(r) = r {
-                errors.push((r,Some(reporter)));
+                errors.push(r);
                 objects.transition_complete();
             }
         }
@@ -79,10 +78,7 @@ impl CarriageEvents {
         for (viewport,future) in notifications.drain(..) {
             integration.notify_viewport(&viewport,future);
         }
-        for (error,reporter) in errors.drain(..) {
-            if let Some(reporter) = reporter {
-                reporter.error(error.clone());
-            }
+        for error in errors.drain(..) {
             objects.base.messages.send(error);
         }
         loads

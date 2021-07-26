@@ -8,7 +8,6 @@ use std::any::Any;
 use crate::util::message::DataMessage;
 use crate::api::{ AgentStore, ApiMessage };
 use crate::lane::programname::ProgramName;
-use peregrine_message::Instigator;
 use crate::util::builder::Builder;
 
 #[derive(Clone)]
@@ -36,7 +35,7 @@ impl StickAuthority {
             program_name: self.startup_program_name.clone(),
             payloads: None
         }).await?;
-        base.queue.push(ApiMessage::RegeneraateTrackConfig,Instigator::new());
+        base.queue.push(ApiMessage::RegeneraateTrackConfig);
         Ok(())
     }
 

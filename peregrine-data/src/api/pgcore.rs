@@ -13,7 +13,6 @@ use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
 use crate::core::{ Focus, StickId };
 use crate::util::message::DataMessage;
-use peregrine_message::Instigator;
 use crate::switch::switch::Switches;
 use crate::switch::allotment::AllotmentPetitioner;
 
@@ -96,72 +95,54 @@ impl PeregrineCore {
     }
 
     pub fn application_ready(&mut self) {
-        let instigator = Instigator::new();
         self.base.queue.clone().run(self);
-        self.base.queue.push(ApiMessage::Ready,instigator);
+        self.base.queue.push(ApiMessage::Ready);
     }
 
-    pub fn bootstrap(&self, channel: Channel) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::Bootstrap(channel),instigator.clone());
-        instigator
+    pub fn bootstrap(&self, channel: Channel) {
+        self.base.queue.push(ApiMessage::Bootstrap(channel));
     }
 
     /* from api */
     pub fn ready(&self, mut core: PeregrineCore) {
-        let instigator = Instigator::new();
         self.base.queue.run(&mut core);
-        self.base.queue.push(ApiMessage::Ready,instigator);
+        self.base.queue.push(ApiMessage::Ready);
     }
 
     /* called after someprograms to refresh state in-case tracks appeared */
-    pub(crate) fn regenerate_track_config(&self, instigator: Instigator<DataMessage>) {
-        self.base.queue.push(ApiMessage::RegeneraateTrackConfig,instigator);
+    pub(crate) fn regenerate_track_config(&self) {
+        self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
     }
 
     pub fn backend_bootstrap(&self, channel: Channel) {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::Bootstrap(channel),instigator);
+        self.base.queue.push(ApiMessage::Bootstrap(channel));
     }
 
     pub fn transition_complete(&self) {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::TransitionComplete,instigator);
+        self.base.queue.push(ApiMessage::TransitionComplete);
     }
 
-    pub fn set_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
-        instigator
+    pub fn set_switch(&self, path: &[&str]) {
+        self.base.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()));
     }
 
-    pub fn clear_switch(&self, path: &[&str]) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()),instigator.clone());
-        instigator
+    pub fn clear_switch(&self, path: &[&str]) {
+        self.base.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()));
     }
 
-    pub fn set_position(&self, pos: f64) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::SetPosition(pos),instigator.clone());
-        instigator
+    pub fn set_position(&self, pos: f64) {
+        self.base.queue.push(ApiMessage::SetPosition(pos));
     }
 
-    pub fn set_bp_per_screen(&self, scale: f64) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::SetBpPerScreen(scale),instigator.clone());
-        instigator
+    pub fn set_bp_per_screen(&self, scale: f64) {
+        self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
     }
 
-    pub fn set_focus(&self, focus: &Focus) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::SetFocus(focus.clone()),instigator.clone());
-        instigator
+    pub fn set_focus(&self, focus: &Focus) {
+        self.base.queue.push(ApiMessage::SetFocus(focus.clone()));
     }
 
-    pub fn set_stick(&self, stick: &StickId) -> Instigator<DataMessage> {
-        let instigator = Instigator::new();
-        self.base.queue.push(ApiMessage::SetStick(stick.clone()),instigator.clone());
-        instigator
+    pub fn set_stick(&self, stick: &StickId) {
+        self.base.queue.push(ApiMessage::SetStick(stick.clone()));
     }
 }

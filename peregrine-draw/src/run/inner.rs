@@ -11,7 +11,6 @@ use peregrine_data::{
     PeregrineCore
 };
 use peregrine_dauphin::peregrine_dauphin;
-use peregrine_message::Instigator;
 use super::report::Report;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
@@ -23,16 +22,6 @@ use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
 use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
 use crate::shape::core::spectremanager::SpectreManager;
-
-fn data_inst(inst: &mut Instigator<Message>, inst_data: Instigator<DataMessage>) {
-    inst.merge(inst_data,|e| Message::DataError(e));
-}
-
-fn draw_inst(inst: &mut Instigator<Message>, result: Result<(),Message>) {
-    if let Err(e) = result {
-        inst.error(e);
-    }
-}
 
 #[derive(Clone)]
 pub struct Target {
@@ -189,19 +178,18 @@ impl PeregrineInnerAPI {
         self.input.set_artificial(name,start);
     }
 
-    pub(crate) fn set_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.set_switch(path));
+    pub(crate) fn set_switch(&self, path: &[&str]) {
+        self.data_api.set_switch(path);
     }
 
-    pub(crate) fn clear_switch(&self, path: &[&str], instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.clear_switch(path));
+    pub(crate) fn clear_switch(&self, path: &[&str]) {
+        self.data_api.clear_switch(path);
     }
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
-    pub(super) fn bootstrap(&self, channel: Channel, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.bootstrap(channel));
-        instigator.done();
+    pub(super) fn bootstrap(&self, channel: Channel) {
+        self.data_api.bootstrap(channel);
     }
 
     pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(Message) + 'static>) {
@@ -209,28 +197,24 @@ impl PeregrineInnerAPI {
         self.message_sender.add(Message::Ready);
     }
     
-    pub(crate) fn set_x(&mut self, x: f64, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.set_position(x));
-        instigator.done();
+    pub(crate) fn set_x(&mut self, x: f64) {
+        self.data_api.set_position(x);
     }
 
     pub(super) fn set_y(&mut self, y: f64) {
         self.stage.lock().unwrap().y_mut().set_position(y);
     }
 
-    pub(crate) fn set_bp_per_screen(&mut self, z: f64, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.set_bp_per_screen(z));
-        instigator.done();
+    pub(crate) fn set_bp_per_screen(&mut self, z: f64) {
+        self.data_api.set_bp_per_screen(z);
     }
 
-    pub(super) fn goto(&mut self, centre: f64, scale: f64, instigator: &mut Instigator<Message>) {
-        draw_inst(instigator,self.input.clone().goto(self,centre,scale));      
-        instigator.done();
+    pub(super) fn goto(&mut self, centre: f64, scale: f64) {
+        self.input.clone().goto(self,centre,scale);      
     }
 
-    pub(super) fn set_stick(&self, stick: &StickId, instigator: &mut Instigator<Message>) {
-        data_inst(instigator,self.data_api.set_stick(stick));
-        instigator.done();
+    pub(super) fn set_stick(&self, stick: &StickId,) {
+        self.data_api.set_stick(stick);
     }
 
     pub(crate) fn debug_action(&self, index: u8) {

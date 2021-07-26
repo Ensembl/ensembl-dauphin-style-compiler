@@ -78,9 +78,6 @@ impl GenomeBrowser {
          */
         let url = "http://localhost:3333/api/data";
         let mut p = self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
-        p.add_callback(move |v| {
-            console::log_1(&format!("bootstrapped").into());
-        });
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
          */

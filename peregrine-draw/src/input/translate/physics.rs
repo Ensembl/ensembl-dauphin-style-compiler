@@ -1,7 +1,6 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
-use peregrine_message::Instigator;
 use crate::{ PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, run::report::Report, stage::axis::ReadStageAxis, util::needed::{Needed, NeededLock}};
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
@@ -116,8 +115,8 @@ impl PhysicsState {
     }
 
     fn goto_not_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
-        inner.set_x(centre, &mut Instigator::new());
-        inner.set_bp_per_screen(bp_per_screen, &mut Instigator::new());
+        inner.set_x(centre);
+        inner.set_bp_per_screen(bp_per_screen);
         Ok(())
     }
 

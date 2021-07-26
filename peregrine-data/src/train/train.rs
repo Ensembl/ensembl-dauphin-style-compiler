@@ -8,7 +8,6 @@ use super::carriageevent::CarriageEvents;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 use crate::PgCommanderTaskSpec;
-use peregrine_message::{ Reporter };
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
@@ -49,7 +48,7 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Result<TrainData,DataMessage> {
+    fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&id.layout,&id.scale);
         let mut out = TrainData {
             broken: false,
@@ -62,16 +61,16 @@ impl TrainData {
             messages: messages.clone(),
             track_configs: train_track_config_list
         };
-        out.set_position(carriage_event,viewport,reporter)?;
+        out.set_position(carriage_event,viewport)?;
         Ok(out)
     }
 
-    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
+    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
         if self.active != Some(index) {
             let speed = if quick { CarriageSpeed::Quick } else { CarriageSpeed::Slow };
             self.active = Some(index);
             self.set_carriages(carriage_event);
-            carriage_event.transition(index,self.max.unwrap(),speed,reporter);
+            carriage_event.transition(index,self.max.unwrap(),speed);
         }
     }
 
@@ -95,10 +94,10 @@ impl TrainData {
     }
 
     // TODO don't always update CarriageSet
-    fn set_position(&mut self, carriage_event: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
+    fn set_position(&mut self, carriage_event: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         self.viewport = viewport.clone();
         let carriage = self.id.scale.carriage(viewport.position()?);
-        let carriages = CarriageSet::new_using(&self.id,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages,reporter);
+        let carriages = CarriageSet::new_using(&self.id,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
         self.carriages = Some(carriages);
         Ok(())
     }
@@ -118,9 +117,8 @@ impl TrainData {
     fn set_carriages(&mut self, events: &mut CarriageEvents) {
         if let Some(carriages) = &mut self.carriages {
             if carriages.ready() {
-                let reporter = carriages.depend();
                 if let Some(index) = self.active {
-                    events.set_carriages(&self.carriages(),index,reporter.as_ref());
+                    events.set_carriages(&self.carriages(),index);
                 }
             }
         }
@@ -132,9 +130,9 @@ impl TrainData {
 pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
 
 impl Train {
-    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender, reporter: &Reporter<DataMessage>) -> Result<Train,DataMessage> {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages,reporter)?)),messages.clone());
-        carriage_event.train(&out,reporter);
+    pub(super) fn new(id: &TrainId, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone());
+        carriage_event.train(&out);
         Ok(out)
     }
 
@@ -143,16 +141,16 @@ impl Train {
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
 
-    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool, reporter: &Reporter<DataMessage>) {
-        self.0.lock().unwrap().set_active(carriage_event,index,quick,reporter);
+    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
+        self.0.lock().unwrap().set_active(carriage_event,index,quick);
     }
 
     pub(super) fn set_inactive(&mut self) {
         self.0.lock().unwrap().set_inactive();
     }
 
-    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, viewport: &Viewport, reporter: &Reporter<DataMessage>) -> Result<(),DataMessage> {
-        self.0.lock().unwrap().set_position(carriage_event,viewport,reporter)?;
+    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+        self.0.lock().unwrap().set_position(carriage_event,viewport)?;
         Ok(())
     }
 
@@ -172,10 +170,9 @@ impl Train {
         self.0.lock().unwrap().set_max(max);
     }
     
-    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore, reporter: &Reporter<DataMessage>) {
+    pub(super) fn run_find_max(&self, objects: &mut PeregrineCore) {
         let self2 = self.clone();
         let mut objects2 = objects.clone();
-        let reporter = reporter.clone();
         let handle = add_task(&objects.base.commander,PgCommanderTaskSpec {
             name: format!("max finder"),
             prio: 1,
@@ -184,7 +181,6 @@ impl Train {
             task: Box::pin(async move {
                 let max = self2.find_max(&mut objects2).await;
                 if let Err(e) = &max { 
-                    reporter.error(e.clone());
                     objects2.base.messages.send(e.clone());
                 }
                 self2.set_max(max);
