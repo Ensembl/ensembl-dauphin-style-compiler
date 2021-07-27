@@ -24,6 +24,7 @@
         <div>drag <input id="drag" type="checkbox"/></div>
         <button id="goto">goto</button>
         <button id="jump">jump</button>
+        <button id="jump-error">jump error</button>
         <button id="chr">chr</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
@@ -84,6 +85,9 @@
         };
         document.getElementById("jump").onclick = function() {
           genome_browser.jump("focus:ENSG00000139618.15");
+        };
+        document.getElementById("jump-error").onclick = function() {
+          genome_browser.jump("focus:xyz");
         };
         document.getElementById("chr").onclick = function() {
           genome_browser.set_stick("homo_sapiens_GCA_000001405_27:2");

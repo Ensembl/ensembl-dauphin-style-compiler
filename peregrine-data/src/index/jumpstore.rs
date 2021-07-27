@@ -1,7 +1,7 @@
 use std::sync::{ Arc };
-use crate::{DataMessage, PgCommanderTaskSpec, StickAuthorityStore, Viewport, add_task, api::ApiMessage, core::stick::{ Stick, StickId }};
+use crate::{DataMessage, PgCommanderTaskSpec, StickAuthorityStore, add_task, api::ApiMessage, async_complete_task, core::stick::{ StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
-use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::api::{ PeregrineCoreBase };
 
 async fn get_jump(stick_authority_store: &StickAuthorityStore, location: &str) -> Result<Option<(String,u64,u64)>,DataMessage> {
     stick_authority_store.try_location(location.clone()).await
@@ -16,7 +16,7 @@ async fn query_jump(stick_authority_store: StickAuthorityStore, location: &str) 
 
 fn make_jump_cache(stick_authority_store: &StickAuthorityStore) -> Memoized<String,Result<Arc<(String,u64,u64)>,DataMessage>> {
     let stick_authority_store = stick_authority_store.clone();
-    Memoized::new(MemoizedType::Cache(128),move |jump_cache,location: &String| {
+    Memoized::new(MemoizedType::Cache(128),move |_,location: &String| {
         let stick_authority_store = stick_authority_store.clone();
         let location = location.clone();
         Box::pin(async move { query_jump(stick_authority_store.clone(),&location).await })
@@ -40,7 +40,7 @@ impl JumpStore {
         let self2 = self.clone();
         let location = location.to_string();
         let queue = self.1.queue.clone();
-        add_task(&self.1.commander,PgCommanderTaskSpec {
+        let handle = add_task(&self.1.commander,PgCommanderTaskSpec {
             name: "jump".to_string(),
             prio: 4,
             timeout: None,
@@ -56,6 +56,7 @@ impl JumpStore {
             }),
             stats: false
         });
+        async_complete_task(&self.1.commander,&self.1.messages,handle, |e| (e,false));
 
     }
 }
