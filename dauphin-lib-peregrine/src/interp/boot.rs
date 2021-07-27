@@ -117,10 +117,11 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     let pc = get_peregrine(context)?;
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let (stick,left,right) = issue_jump_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,location).await?;
-        sticks_out.push(stick);
-        lefts_out.push(left as f64);
-        rights_out.push(right as f64);
+        if let Some((stick,left,right)) = issue_jump_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,location).await? {
+            sticks_out.push(stick);
+            lefts_out.push(left as f64);
+            rights_out.push(right as f64);
+        }
     }
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Strings(sticks_out));
@@ -170,16 +171,18 @@ impl InterpCommand for AddJumpInterpCommand {
         let sticks = registers.get_strings(&self.1)?;
         let lefts = registers.get_numbers(&self.2)?;
         let rights = registers.get_numbers(&self.3)?;
-        let mut sticks = sticks.iter().cycle();
-        let mut lefts = lefts.iter().cycle();
-        let mut rights = rights.iter().cycle();
-        let ids = registers.get_strings(&self.0)?;
         let mut jumps = vec![];
-        for id in ids.iter() {
-            let stick = sticks.next().unwrap();
-            let left = lefts.next().unwrap();
-            let right = rights.next().unwrap();
-            jumps.push((id.clone(),(stick.clone(),*left as u64,*right as u64)));
+        if sticks.len() > 0 {
+            let mut sticks = sticks.iter().cycle();
+            let mut lefts = lefts.iter().cycle();
+            let mut rights = rights.iter().cycle();
+            let ids = registers.get_strings(&self.0)?;
+            for id in ids.iter() {
+                let stick = sticks.next().unwrap();
+                let left = lefts.next().unwrap();
+                let right = rights.next().unwrap();
+                jumps.push((id.clone(),(stick.clone(),*left as u64,*right as u64)));
+            }
         }
         let pg_jumps = get_instance::<Builder<Vec<(String,(String,u64,u64))>>>(context,"jumps")?;
         pg_jumps.lock().append(&mut jumps);

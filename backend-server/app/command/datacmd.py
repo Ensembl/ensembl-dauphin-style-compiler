@@ -45,4 +45,6 @@ class JumpHandler(Handler):
                     "left": jump[1],
                     "right": jump[2]
                 })
-        return Response(1,"Unknown jump {0}".format(location))
+        return Response(6,{
+            "no": True
+        })
