@@ -12,14 +12,12 @@ mod api {
 
 mod core {
     mod config;
-    pub mod focus;
     mod layout;
     mod scale;
     pub mod stick;
     mod viewport;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
-    pub use self::focus::Focus;
     pub use self::layout::Layout;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
@@ -30,6 +28,7 @@ mod index {
     pub(crate) mod stickstore;
     pub(crate) mod stickauthority;
     pub(crate) mod stickauthoritystore;
+    pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
     pub use self::stickauthoritystore::StickAuthorityStore;
 }
@@ -56,6 +55,7 @@ mod request {
     pub(crate) mod channel;
     pub(crate) mod data;
     pub(crate) mod failure;
+    pub(crate) mod jump;
     pub(crate) mod manager;
     pub(crate) mod packet;
     pub(crate) mod queue;
@@ -67,6 +67,7 @@ mod request {
     pub use self::program::{ ProgramLoader };
     pub use self::manager::RequestManager;
     pub use self::stick::issue_stick_request;
+    pub use self::jump::issue_jump_request;
 }
 
 mod run {
@@ -156,11 +157,11 @@ mod test {
 }
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
-pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Focus, Viewport };
+pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request };
+pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request, issue_jump_request };
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,

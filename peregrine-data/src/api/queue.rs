@@ -1,5 +1,5 @@
 use crate::api::PeregrineCore;
-use crate::core::{ Focus, StickId, Viewport };
+use crate::core::{ StickId, Viewport };
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
@@ -13,12 +13,12 @@ pub enum ApiMessage {
     TransitionComplete,
     SetPosition(f64),
     SetBpPerScreen(f64),
-    SetFocus(Focus),
     SetStick(StickId),
     Bootstrap(Channel),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
-    RegeneraateTrackConfig
+    RegeneraateTrackConfig,
+    Jump(String)
 }
 
 struct ApiQueueCampaign {
@@ -47,8 +47,8 @@ impl ApiQueueCampaign {
             ApiMessage::SetBpPerScreen(scale) => {
                 self.viewport = self.viewport.set_bp_per_screen(scale);
             },
-            ApiMessage::SetFocus(focus) => {
-                // XXX currently unimplemented
+            ApiMessage::Jump(location) => {
+                data.agent_store.jump_store.jump(&location);
             },
             ApiMessage::SetStick(stick) => {
                 self.viewport = self.viewport.set_stick(&stick);
@@ -102,43 +102,6 @@ impl PeregrineApiQueue {
         bootstrap(&data.base,&data.agent_store,channel)
     }
 
-    fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
-        match message {
-            ApiMessage::Ready => {
-                data.dauphin_ready();
-            },
-            ApiMessage::TransitionComplete => {
-                let train_set = data.train_set.clone();
-                train_set.transition_complete(data);
-            },
-            ApiMessage::SetPosition(pos) =>{
-                self.update_viewport(data,data.viewport.set_position(pos));
-            },
-            ApiMessage::SetBpPerScreen(scale) => {
-                self.update_viewport(data,data.viewport.set_bp_per_screen(scale));
-            },
-            ApiMessage::SetFocus(focus) => {
-                // XXX currently unimplemented
-            },
-            ApiMessage::SetStick(stick) => {
-                self.update_viewport(data,data.viewport.set_stick(&stick));
-            },
-            ApiMessage::Bootstrap(channel) => {
-                self.bootstrap(data,channel);
-            },
-            ApiMessage::SetSwitch(path) => {
-                data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
-                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()));
-            },
-            ApiMessage::ClearSwitch(path) => {
-                data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
-                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()));
-            },
-            ApiMessage::RegeneraateTrackConfig => {
-                self.update_viewport(data,data.viewport.set_track_config_list(&data.switches.get_track_config_list()));
-            }
-        }
-    }
 
     pub fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();

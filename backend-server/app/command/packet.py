@@ -5,7 +5,7 @@ from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Response, Handler
 from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
-from .datacmd import DataHandler
+from .datacmd import DataHandler, JumpHandler
 
 data_accessor = DataAccessor()        
 
@@ -20,6 +20,8 @@ def type_to_handler(typ: int) -> Any:
         return StickAuthorityHandler()
     elif typ == 4:
         return DataHandler()
+    elif typ == 5:
+        return JumpHandler()
     else:
         return ErrorHandler("unsupported command type ({0})".format(typ))
 

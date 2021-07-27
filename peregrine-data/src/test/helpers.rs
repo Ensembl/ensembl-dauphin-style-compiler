@@ -11,7 +11,7 @@ use crate::util::message::DataMessage;
 use commander::Agent;
 use peregrine_dauphin_queue::PgDauphinQueue;
 use serde_cbor::Value as CborValue;
-use url::Url;
+use peregrine_toolkit::url::Url;
 
 #[derive(Clone)]
 pub struct TestHelpers {
@@ -25,7 +25,6 @@ pub struct TestHelpers {
 
 impl TestHelpers {
     pub(crate) fn new() -> TestHelpers {
-        let mut agent_store = AgentStore::new();
         let console = Arc::new(Mutex::new(vec![]));
         let console2 = console.clone();
         let messages = MessageSender::new(move |msg| {
@@ -49,8 +48,7 @@ impl TestHelpers {
             queue: PeregrineApiQueue::new(),
             allotment_petitioner: AllotmentPetitioner::new()
         };
-        agent_store.set_program_loader(ProgramLoader::new(&base));
-        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));
+        let mut agent_store = AgentStore::new(&base);
         base.manager.add_receiver(Box::new(base.dauphin.clone()));
         TestHelpers {
             console, base, agent_store,

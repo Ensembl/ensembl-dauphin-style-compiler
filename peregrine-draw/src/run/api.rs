@@ -22,7 +22,8 @@ enum DrawMessage {
     Bootstrap(Channel),
     SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>),
     DebugAction(u8),
-    SetArtificial(String,bool)
+    SetArtificial(String,bool),
+    Jump(String)
 }
 
 // XXX conditional
@@ -37,7 +38,8 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
-            DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start)
+            DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start),
+            DrawMessage::Jump(location) => write!(f,"Jump({})",location)
         }
     }
 }
@@ -74,6 +76,9 @@ impl DrawMessage {
             },
             DrawMessage::DebugAction(index) => {
                 draw.debug_action(index);
+            },
+            DrawMessage::Jump(location) => {
+                draw.jump(&location);
             }
         }
         Ok(())
@@ -105,6 +110,10 @@ impl PeregrineAPI {
     pub fn goto(&self, left: f64, right: f64) {
         let (left,right) = (left.min(right),left.max(right));
         self.queue.add(DrawMessage::Goto((left+right)/2.,right-left));
+    }
+
+    pub fn jump(&self, location: &str) {
+        self.queue.add(DrawMessage::Jump(location.to_string()));
     }
 
     pub fn set_switch(&self, path: &[&str]) {

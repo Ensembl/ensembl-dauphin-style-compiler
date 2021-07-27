@@ -20,7 +20,7 @@ use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, StickId, DataMessage, Viewport };
+use peregrine_data::{ Channel, StickId, Viewport };
 use crate::shape::core::spectremanager::SpectreManager;
 
 #[derive(Clone)]
@@ -203,6 +203,10 @@ impl PeregrineInnerAPI {
 
     pub(super) fn set_y(&mut self, y: f64) {
         self.stage.lock().unwrap().y_mut().set_position(y);
+    }
+
+    pub(super) fn jump(&mut self, location: &str) {
+        self.data_api.jump(location);
     }
 
     pub(crate) fn set_bp_per_screen(&mut self, z: f64) {

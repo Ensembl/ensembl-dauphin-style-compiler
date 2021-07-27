@@ -6,6 +6,7 @@ from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDa
 from data.wiggle import WiggleDataHandler
 from data.sequence import ZoomedSeqDataHandler
 from data.contig import ContigDataHandler, ShimmerContigDataHandler
+from data.focusjump import FocusJumpHandler
 
 class DataHandler(Handler):
     def __init__(self):
@@ -27,3 +28,21 @@ class DataHandler(Handler):
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
         return handler.process_data(data_accessor, panel)
+
+class JumpHandler(Handler):
+    def __init__(self):
+        self.handlers = [
+            FocusJumpHandler()
+        ]
+
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+        (location,) = payload
+        for handler in self.handlers:
+            jump = handler.get(data_accessor,location)
+            if jump != None:
+                return Response(6,{
+                    "stick": jump[0],
+                    "left": jump[1],
+                    "right": jump[2]
+                })
+        return Response(1,"Unknown jump {0}".format(location))

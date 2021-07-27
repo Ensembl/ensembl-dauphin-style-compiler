@@ -21,7 +21,7 @@ impl StickAuthorityCommandRequest {
     pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new();
         let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
-        Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name))
+        Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }
 
@@ -38,7 +38,8 @@ impl RequestType for StickAuthorityCommandRequest {
 struct StickAuthorityCommandResponse {
     channel: Channel,
     startup_name: String,
-    lookup_name: String
+    lookup_name: String,
+    jump_name: String
 }
 
 impl ResponseType for StickAuthorityCommandResponse {
@@ -50,14 +51,16 @@ pub struct StickAuthorityResponseBuilderType();
 
 impl ResponseBuilderType for StickAuthorityResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let values = cbor_array(value,3,false)?;
+        let values = cbor_array(value,4,false)?;
         let channel = Channel::deserialize(&values[0])?;
         let startup_name = cbor_string(&values[1])?;
         let lookup_name = cbor_string(&values[2])?;
+        let jump_name = cbor_string(&values[3])?;
         Ok(Box::new(StickAuthorityCommandResponse {
             channel,
             startup_name: startup_name.to_string(),
-            lookup_name: lookup_name.to_string()
+            lookup_name: lookup_name.to_string(),
+            jump_name: jump_name.to_string()
         }))
     }
 }

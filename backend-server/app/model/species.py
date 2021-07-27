@@ -1,6 +1,7 @@
 import re
 import os.path
 from .chromosome import Chromosome
+import logging
 
 class Species(object):
     def __init__(self, files_dir, species_name, species_data):
@@ -9,6 +10,7 @@ class Species(object):
             setattr(self,k,species_data[k])
         self.genome_path = self.genome_id
         self.wire_id = re.sub(r'\W','_',self.genome_id)
+        self.files_dir = files_dir
         hashes = self._load_hashes(files_dir)
         self.chromosomes = {}
         self._load_chromosomes(files_dir,hashes)
@@ -28,3 +30,9 @@ class Species(object):
                 seq_hash = hashes[parts[0]]
                 chrom = Chromosome(files_dir,parts[0],int(parts[1]),seq_hash,self)
                 self.chromosomes[chrom.name] = chrom
+
+    def file_path(self,section,filename):
+        path = os.path.join(self.files_dir,section,self.genome_path,filename)
+        if not os.path.exists(path):
+            logging.warn("Missing file {0}".format(path))
+        return path

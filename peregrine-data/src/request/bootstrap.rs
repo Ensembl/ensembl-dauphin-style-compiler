@@ -94,7 +94,7 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
         slot: None,
         timeout: None,
         task: Box::pin(async move {
-            let req = BootstrapCommandRequest::new(&base2.dauphin,&base2.queue,&agent_store.program_loader().await,channel.clone());
+            let req = BootstrapCommandRequest::new(&base2.dauphin,&base2.queue,&agent_store.program_loader,channel.clone());
             let r = req.execute(base2.manager.clone()).await;
             let r = r.unwrap_or(());
             base2.booted.unlock();
