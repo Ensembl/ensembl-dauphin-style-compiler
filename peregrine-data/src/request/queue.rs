@@ -10,6 +10,7 @@ use crate::api::MessageSender;
 use super::bootstrap::BootstrapResponseBuilderType;
 use super::data::DataResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
+use super::jump::JumpResponseBuilderType;
 use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
@@ -30,6 +31,7 @@ fn register_responses() -> ResponsePacketBuilder {
     rspbb.register(3,Box::new(StickResponseBuilderType()));
     rspbb.register(4,Box::new(StickAuthorityResponseBuilderType()));
     rspbb.register(5,Box::new(DataResponseBuilderType()));
+    rspbb.register(6,Box::new(JumpResponseBuilderType()));
     rspbb.build()
 }
 

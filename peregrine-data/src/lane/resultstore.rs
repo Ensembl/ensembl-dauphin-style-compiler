@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::ProgramLoader;
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };
@@ -10,7 +11,7 @@ use crate::api::{ PeregrineCoreBase, AgentStore };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramLoader, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new());
@@ -18,7 +19,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore,
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
-    base.dauphin.run_program(&agent_store.program_loader().await,PgDauphinTaskSpec {
+    base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
         prio: 1,
         slot: None,
         timeout: None,
@@ -28,15 +29,15 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,agent_store: AgentStore,
     Ok(Arc::new(shapes.build()))
 }
 
-fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
+fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let base2 = base.clone();
-    let agent_store2 = agent_store.clone();
+    let program_loader = program_loader.clone();
     Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
         let base = base2.clone();
-        let agent_store = agent_store2.clone(); 
+        let program_loader = program_loader.clone(); 
         let request2 = request.clone();   
         Box::pin(async move {
-            make_unfiltered_shapes(base,agent_store,request2.clone()).await
+            make_unfiltered_shapes(base,program_loader,request2.clone()).await
         })
     })
 }
@@ -67,9 +68,9 @@ fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<Shap
 pub struct LaneStore(Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>);
 
 impl LaneStore {
-    pub fn new(cache_size: usize, base: &PeregrineCoreBase, agent_store: &AgentStore) -> LaneStore {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(cache_size,base,agent_store);
+        let unfiltered_cache = make_unfiltered_cache(cache_size,base,program_loader);
         let filtered_cache = make_filtered_cache(32,unfiltered_cache);
         LaneStore(filtered_cache)
     }

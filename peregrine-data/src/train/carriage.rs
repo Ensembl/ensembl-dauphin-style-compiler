@@ -86,7 +86,7 @@ impl Carriage {
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
-        let lane_store = data.agent_store.lane_store().await;
+        let lane_store = data.agent_store.lane_store.clone();
         let tracks : Vec<_> = shape_requests.iter().map(|p| lane_store.run(p)).collect();
         let mut new_shapes = ShapeListBuilder::new();
         for future in tracks {

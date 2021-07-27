@@ -2,8 +2,12 @@ use dauphin_compile::command::{
     CompLibRegister
 };
 use dauphin_interp::command::{ CommandSetId };
+use crate::compile::boot::AddJumpCommandType;
 use crate::make_peregrine_interp;
-use super::boot::{ AddStickAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType };
+use super::boot::{
+    AddStickAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
+    GetJumpDataCommandType, GetJumpLocationCommandType
+};
 use super::data::{ GetLaneCommandType, GetDataCommandType, DataStreamCommandType };
 use super::decompress::{
     InflateBytesCommandType, InflateStringCommandType, Lesqlite2CommandType, ZigzagCommandType, DeltaCommandType,
@@ -22,7 +26,7 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
 use super::switch::GetSwitchCommandType;
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(34,0),0xB778FBFFB0386F2E)
+    CommandSetId::new("peregrine",(35,0),0xC164A276D5F156A1)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -66,6 +70,9 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("striped",Some(36),StripedCommandType());
     set.push("barred",Some(37),BarCommandType());
     set.push("base_flip",Some(38),BaseFlipCommandType());
+    set.push("add_jump",Some(39),AddJumpCommandType());
+    set.push("get_jump_data",Some(40),GetJumpDataCommandType());
+    set.push("get_jump_location",Some(41),GetJumpLocationCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

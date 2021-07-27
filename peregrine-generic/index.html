@@ -23,6 +23,7 @@
         <div>flip stick <input id="stick" type="checkbox"/></div>
         <div>drag <input id="drag" type="checkbox"/></div>
         <button id="goto">goto</button>
+        <button id="jump">jump</button>
         <button id="chr">chr</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
@@ -80,6 +81,9 @@
 
         document.getElementById("goto").onclick = function() {
           genome_browser.goto(10000000,10100000);
+        };
+        document.getElementById("jump").onclick = function() {
+          genome_browser.jump("focus:ENSG00000139618.15");
         };
         document.getElementById("chr").onclick = function() {
           genome_browser.set_stick("homo_sapiens_GCA_000001405_27:2");

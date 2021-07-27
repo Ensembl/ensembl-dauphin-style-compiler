@@ -25,7 +25,7 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Reg
 pub struct DataStore(Memoized<(Region,Channel,String),Result<Arc<Box<DataResponse>>,DataMessage>>);
 
 impl DataStore {
-    pub fn new(cache_size: usize, base: &PeregrineCoreBase, _agent_store: &AgentStore) -> DataStore {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase) -> DataStore {
         DataStore(make_data_cache(cache_size,base))
     }
 

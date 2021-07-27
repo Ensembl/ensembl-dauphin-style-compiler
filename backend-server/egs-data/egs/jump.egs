@@ -1,0 +1,6 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+loc := get_jump_location();
+j := get_jump_data("self()",loc);
+add_jump(loc,j);

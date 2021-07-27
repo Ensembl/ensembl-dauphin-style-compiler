@@ -1,4 +1,5 @@
 use crate::core::{ Viewport };
+use crate::index::jumpstore::JumpStore;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
@@ -11,7 +12,7 @@ use crate::{
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
-use crate::core::{ Focus, StickId };
+use crate::core::{ StickId };
 use crate::util::message::DataMessage;
 use crate::switch::switch::Switches;
 use crate::switch::allotment::AllotmentPetitioner;
@@ -54,7 +55,6 @@ pub struct PeregrineCore {
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
-        let mut agent_store = AgentStore::new();
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
@@ -71,15 +71,8 @@ impl PeregrineCore {
             queue: PeregrineApiQueue::new(),
             allotment_petitioner: AllotmentPetitioner::new()
         };
-        agent_store.set_data_store(DataStore::new(32,&base,&agent_store));
-        agent_store.set_program_loader(ProgramLoader::new(&base));
-        agent_store.set_stick_authority_store(StickAuthorityStore::new(&base,&agent_store));
-        agent_store.set_stick_store(StickStore::new(&base,&agent_store));
-        agent_store.set_lane_store(LaneStore::new(128,&base,&agent_store));
+        let mut agent_store = AgentStore::new(&base);
         let train_set = TrainSet::new(&base);
-        if !agent_store.ready() {
-            return Err(DataMessage::CodeInvariantFailed(format!("dependency injection failed")));
-        }
         Ok(PeregrineCore {
             base,
             agent_store,
@@ -122,6 +115,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::TransitionComplete);
     }
 
+    pub fn jump(&self, location: &str) {
+        self.base.queue.push(ApiMessage::Jump(location.to_string()));
+    }
+
     pub fn set_switch(&self, path: &[&str]) {
         self.base.queue.push(ApiMessage::SetSwitch(path.iter().map(|x| x.to_string()).collect()));
     }
@@ -136,10 +133,6 @@ impl PeregrineCore {
 
     pub fn set_bp_per_screen(&self, scale: f64) {
         self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
-    }
-
-    pub fn set_focus(&self, focus: &Focus) {
-        self.base.queue.push(ApiMessage::SetFocus(focus.clone()));
     }
 
     pub fn set_stick(&self, stick: &StickId) {

@@ -153,16 +153,14 @@ impl GenomeBrowser {
         self.clone()
     }
 
-    /*
-    * Set stick
-    */
     pub fn set_stick(&self,stick_id: &str) {
         self.api.set_stick(&StickId::new(&stick_id));
     }
 
-    /*
-    * Receive message
-    */
+    pub fn jump(&self,location: &str) {
+        self.api.jump(location);
+    }
+
     pub fn receive_message(message: &JsValue) {
         console::log_1(&format!("{:?}",message).into());
     }

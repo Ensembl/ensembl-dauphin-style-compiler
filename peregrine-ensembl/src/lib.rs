@@ -107,11 +107,12 @@ impl GenomeBrowser {
         js_throw(self.go_real(config_object));
     }
 
-    /*
-    * Set stick
-    */
     pub fn set_stick(&self,stick_id: &str) {
         self.api.set_stick(&StickId::new(&stick_id));
+    }
+
+    pub fn jump(&self,location: &str) {
+        self.api.jump(location);
     }
 
     /*

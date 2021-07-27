@@ -1,5 +1,8 @@
 use dauphin_interp::command::{ CommandSetId, InterpLibRegister };
-use super::boot::{ AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer };
+use super::boot::{ 
+    AddStickAuthorityDeserializer, GetStickIdDeserializer, GetStickDataDeserializer, AddStickDeserializer,
+    AddJumpDeserializer, GetJumpDataDeserializer, GetJumpLocationDeserializer
+};
 use super::data::{ GetLaneDeserializer, GetDataDeserializer, DataStreamDeserializer };
 use super::decompress::{ 
     InflateBytesDeserializer, InflateStringDeserializer, Lesqlite2Deserializer, ZigzagDeserializer, DeltaDeserializer,
@@ -24,14 +27,16 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(34,0),0xB778FBFFB0386F2E)
+    CommandSetId::new("peregrine",(35,0),0xC164A276D5F156A1)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
     let mut set = InterpLibRegister::new(&std_id());
     set.push(AddStickAuthorityDeserializer());
     set.push(GetStickIdDeserializer());
+    set.push(GetJumpLocationDeserializer());
     set.push(GetStickDataDeserializer());
+    set.push(GetJumpDataDeserializer());
     set.push(AddStickDeserializer());
     set.push(NewLaneDeserializer());
     set.push(AddTagDeserializer());
@@ -68,5 +73,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(StripedDeserializer());
     set.push(BarredDeserializer());
     set.push(BaseFlipDeserializer());
+    set.push(AddJumpDeserializer());
     set
 }

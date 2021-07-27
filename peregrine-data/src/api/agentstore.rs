@@ -1,6 +1,8 @@
 use std::sync::{ Arc, Mutex };
 use commander::PromiseFuture;
 use commander::FusePromise;
+use crate::PeregrineCoreBase;
+use crate::index::jumpstore::JumpStore;
 use crate::{ ProgramLoader, StickAuthorityStore, StickStore, LaneStore, DataStore };
 
 #[derive(Clone)]
@@ -34,41 +36,24 @@ impl<T> DelayedLoader<T> where T: Clone {
 
 #[derive(Clone)]
 pub struct AgentStore {
-    program_loader: DelayedLoader<ProgramLoader>,
-    stick_authority_store: DelayedLoader<StickAuthorityStore>,
-    stick_store: DelayedLoader<StickStore>,
-    lane_store: DelayedLoader<LaneStore>,
-    data_store: DelayedLoader<DataStore>
+    pub program_loader: ProgramLoader,
+    pub stick_authority_store: StickAuthorityStore,
+    pub stick_store: StickStore,
+    pub jump_store: JumpStore,
+    pub lane_store: LaneStore,
+    pub data_store: DataStore
 }
 
 impl AgentStore {
-    pub fn new() -> AgentStore {
+    pub fn new(base: &PeregrineCoreBase) -> AgentStore {
+        let data_store = DataStore::new(32,&base);
+        let program_loader = ProgramLoader::new(&base);
+        let stick_authority_store = StickAuthorityStore::new(&base,&program_loader);
+        let stick_store = StickStore::new(&base,&stick_authority_store);
+        let lane_store = LaneStore::new(128,&base,&program_loader);
+        let jump_store = JumpStore::new(&base,&stick_authority_store);
         AgentStore {
-            program_loader: DelayedLoader::new(),
-            stick_authority_store: DelayedLoader::new(),
-            lane_store: DelayedLoader::new(),
-            stick_store: DelayedLoader::new(),
-            data_store: DelayedLoader::new()
+            program_loader, stick_authority_store, stick_store, jump_store, lane_store, data_store
         }
-    }
-
-    pub fn set_program_loader(&mut self, agent: ProgramLoader) { self.program_loader.set(agent); }
-    pub async fn program_loader(&self) -> ProgramLoader { self.program_loader.get().await }
-
-    pub fn set_stick_authority_store(&mut self, agent: StickAuthorityStore) { self.stick_authority_store.set(agent); }
-    pub async fn stick_authority_store(&self) -> StickAuthorityStore { self.stick_authority_store.get().await }
-
-    pub fn set_lane_store(&mut self, agent: LaneStore) { self.lane_store.set(agent); }
-    pub async fn lane_store(&self) -> LaneStore { self.lane_store.get().await }
-
-    pub fn set_stick_store(&mut self, agent: StickStore) { self.stick_store.set(agent); }
-    pub async fn stick_store(&self) -> StickStore { self.stick_store.get().await }
-
-    pub fn set_data_store(&mut self, agent: DataStore) { self.data_store.set(agent); }
-    pub async fn data_store(&self) -> DataStore { self.data_store.get().await }
-
-    pub fn ready(&self) -> bool {
-        self.program_loader.ready() && self.stick_authority_store.ready() &&
-        self.lane_store.ready() && self.stick_store.ready() && self.data_store.ready()
     }
 }

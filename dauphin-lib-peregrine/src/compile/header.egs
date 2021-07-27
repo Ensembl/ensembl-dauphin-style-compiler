@@ -18,8 +18,18 @@ struct stick {
 
 proc add_stick_authority(string);
 func get_stick_id() becomes string;
+func get_jump_location() becomes string;
 func get_stick_data(string,string) becomes stick;
 proc add_stick(stick);
+
+struct jump {
+    stick: string,
+    start: number,
+    end: number
+};
+
+proc add_jump(string,jump);
+func get_jump_data(string,string) becomes jump;
 
 /* */
 

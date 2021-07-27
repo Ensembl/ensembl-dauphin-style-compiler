@@ -20,9 +20,11 @@ class BegsFiles(object):
         if stick_authority != None:
             self.stickauthority_startup_program = stick_authority["startup"]
             self.stickauthority_lookup_program = stick_authority["lookup"]
+            self.stickauthority_jump_program = stick_authority["jump"]
         else:
             self.stickauthority_startup_program = None
             self.stickauthority_lookup_program = None
+            self.stickauthority_jump_program = None
         self.bundle_contents = {}
         self.program_map = {}
         self.program = {}

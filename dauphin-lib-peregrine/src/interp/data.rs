@@ -39,7 +39,7 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     if let Some(region) = get_region(registers,&cmd)? {
         drop(registers);
         let peregrine = get_peregrine(context)?;
-        let data_store = peregrine.agent_store().data_store().await;
+        let data_store = peregrine.agent_store().data_store.clone();
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
         let result = data_store.get(&region,&channel,prog_name).await?;
         let id = program_data.add(result);
