@@ -20,7 +20,7 @@ enum DrawMessage {
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
     Bootstrap(Channel),
-    SetMessageReporter(Box<dyn FnMut(Message) + 'static + Send>),
+    SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
     SetArtificial(String,bool),
     Jump(String)
@@ -129,7 +129,7 @@ impl PeregrineAPI {
         self.queue.add(DrawMessage::SetStick(stick.clone()));
     }
 
-    pub fn set_message_reporter(&self, callback: Box<dyn FnMut(Message) + 'static + Send>) {
+    pub fn set_message_reporter(&self, callback: Box<dyn FnMut(&Message) + 'static + Send>) {
         self.queue.add(DrawMessage::SetMessageReporter(callback));
     }
 

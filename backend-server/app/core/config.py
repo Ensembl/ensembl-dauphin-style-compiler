@@ -50,7 +50,7 @@ BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(egs_directory,"beg
 DATA_FILES: str = config("DATA_FILES", default=os.path.join(base_directory,"data"))
 BEGS_FILES: str = config("BEGS_FILES", default=os.path.join(base_directory,"egs-data","begs"))
 
-print(BEGS_FILES)
+METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.log"))
 
 # logging configuration
 

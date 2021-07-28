@@ -6,11 +6,14 @@ use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
+use js_sys::Date;
 use peregrine_data::{ 
     Commander,
     PeregrineCore
 };
 use peregrine_dauphin::peregrine_dauphin;
+use peregrine_message::MessageKind;
+use peregrine_toolkit::plumbing::distributor::Distributor;
 use super::report::Report;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
@@ -20,43 +23,16 @@ use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
 use commander::{CommanderStream, Lock, LockGuard, cdr_lock};
-use peregrine_data::{ Channel, StickId, Viewport };
+use peregrine_data::{ Channel, StickId };
 use crate::shape::core::spectremanager::SpectreManager;
+use peregrine_message::PeregrineMessage;
+use js_sys::Math::random;
 
-#[derive(Clone)]
-pub struct Target {
-    viewport: Viewport,
-    size: Option<(u32,u32)>,
-    y: f64
-}
-
-impl Target {
-    pub fn new() -> Target {
-        Target {
-            viewport: Viewport::empty(),
-            size: None,
-            y: 0.
-        }
-    }
-
-    pub fn x(&self) -> Result<Option<f64>,Message> {
-        if !self.viewport.ready() { return Ok(None); }
-        Ok(Some(self.viewport.position().map_err(|e| Message::DataError(e))?))
-    }
-
-    pub fn bp_per_screen(&self) -> Result<Option<f64>,Message> {
-        if !self.viewport.ready() { return Ok(None); }
-        Ok(Some(self.viewport.bp_per_screen().map_err(|e| Message::DataError(e))?))
-    }
-
-    pub fn size(&self) -> Option<&(u32,u32)> { self.size.as_ref() }
-    pub fn y(&self) -> f64 { self.y }
-}
 
 #[derive(Clone)]
 pub struct PeregrineInnerAPI {
     config: Arc<PgPeregrineConfig>,
-    messages: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>,
+    messages: Distributor<Message>,
     message_sender: CommanderStream<Message>,
     lock: Lock,
     commander: PgCommanderWeb,
@@ -88,22 +64,31 @@ pub struct LockedPeregrineInnerAPI<'t> {
 /* There's a separate message sending task so that there's no problems with recursive message sending.
  * their_callback is synchronous so cannot cause this loop to run recursively even if it issues API commands.
  */
-async fn message_sending_task(our_queue: CommanderStream<Message>, their_callback: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>) -> Result<(),Message> {
+async fn message_sending_task(our_queue: CommanderStream<Message>, distributor: Distributor<Message>) -> Result<(),Message> {
     loop {
         let message = our_queue.get().await;
-        let mut callback = their_callback.lock().unwrap();
-        if let Some(callback) = callback.as_mut() {
-            callback(message);
-        }
-        drop(callback);
+        distributor.send(message);
     }
 }
 
-fn setup_message_sending_task(commander: &PgCommanderWeb, their_callback: Arc<Mutex<Option<Box<dyn FnMut(Message)>>>>) -> CommanderStream<Message> {
+fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distributor<Message>) -> CommanderStream<Message> {
     let stream = CommanderStream::new();
-    commander.add("message-sender",10,None,None,Box::pin(message_sending_task(stream.clone(),their_callback)));
+    commander.add("message-sender",10,None,None,Box::pin(message_sending_task(stream.clone(),distributor)));
     // TODO failure handling
     stream
+}
+
+fn send_errors_to_backend(channel: &Channel,data_api: &PeregrineCore) -> impl FnMut(&Message) + 'static {
+    let data_api = data_api.clone();
+    let channel = channel.clone();
+    move |message| {
+        match message.kind() { 
+            MessageKind::Error => {
+                data_api.report_message(&channel,message);
+            },
+            _ => {}
+        }
+    }
 }
 
 // TODO redraw on change (? eh?)
@@ -131,7 +116,7 @@ impl PeregrineInnerAPI {
     pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
-        let messages = Arc::new(Mutex::new(None));
+        let mut messages = Distributor::new();
         let message_sender = setup_message_sending_task(&commander, messages.clone());
         let commander_id = commander.identity();
         message_register_default(commander_id);
@@ -188,12 +173,14 @@ impl PeregrineInnerAPI {
 
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
-    pub(super) fn bootstrap(&self, channel: Channel) {
-        self.data_api.bootstrap(channel);
+    pub(super) fn bootstrap(&mut self, channel: Channel) {
+        let identity = (Date::now() + random()) as u64;
+        self.messages.add(send_errors_to_backend(&channel,&self.data_api));
+        self.data_api.bootstrap(identity,channel);
     }
 
-    pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(Message) + 'static>) {
-        *self.messages.lock().unwrap() = Some(callback);
+    pub(super) fn set_message_reporter(&mut self, callback: Box<dyn FnMut(&Message) + 'static>) {
+        self.messages.add(callback);
         self.message_sender.add(Message::Ready);
     }
     

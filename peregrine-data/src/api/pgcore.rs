@@ -1,13 +1,14 @@
 use crate::core::{ Viewport };
-use crate::index::jumpstore::JumpStore;
+use crate::index::metricreporter::MetricReport;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
+use peregrine_message::PeregrineMessage;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
 use crate::{ 
     PgCommander, PgDauphin, ProgramLoader, RequestManager, StickStore, StickAuthorityStore, Commander,
-    CountingPromise, LaneStore, DataStore
+    CountingPromise
 };
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
@@ -39,7 +40,8 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub allotment_petitioner: AllotmentPetitioner
+    pub allotment_petitioner: AllotmentPetitioner,
+    pub identity: Arc<Mutex<u64>>
 }
 
 #[derive(Clone)]
@@ -69,9 +71,10 @@ impl PeregrineCore {
             manager,
             messages,
             queue: PeregrineApiQueue::new(),
-            allotment_petitioner: AllotmentPetitioner::new()
+            allotment_petitioner: AllotmentPetitioner::new(),
+            identity: Arc::new(Mutex::new(0))
         };
-        let mut agent_store = AgentStore::new(&base);
+        let agent_store = AgentStore::new(&base);
         let train_set = TrainSet::new(&base);
         Ok(PeregrineCore {
             base,
@@ -92,8 +95,8 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Ready);
     }
 
-    pub fn bootstrap(&self, channel: Channel) {
-        self.base.queue.push(ApiMessage::Bootstrap(channel));
+    pub fn bootstrap(&self, identity: u64, channel: Channel) {
+        self.base.queue.push(ApiMessage::Bootstrap(identity,channel));
     }
 
     /* from api */
@@ -105,10 +108,6 @@ impl PeregrineCore {
     /* called after someprograms to refresh state in-case tracks appeared */
     pub(crate) fn regenerate_track_config(&self) {
         self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
-    }
-
-    pub fn backend_bootstrap(&self, channel: Channel) {
-        self.base.queue.push(ApiMessage::Bootstrap(channel));
     }
 
     pub fn transition_complete(&self) {
@@ -137,5 +136,9 @@ impl PeregrineCore {
 
     pub fn set_stick(&self, stick: &StickId) {
         self.base.queue.push(ApiMessage::SetStick(stick.clone()));
+    }
+
+    pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {
+        self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_message(&self.base,message)));
     }
 }

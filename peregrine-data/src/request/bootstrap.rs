@@ -85,7 +85,8 @@ impl ResponseBuilderType for BootstrapResponseBuilderType {
     }
 }
 
-pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel) {
+pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, channel: Channel, identity: u64) {
+    *base.identity.lock().unwrap() = identity;
     let base2 = base.clone();
     let agent_store = agent_store.clone();
     add_task(&base.commander,PgCommanderTaskSpec {
@@ -114,7 +115,7 @@ mod test {
     use crate::test::helpers::{ TestHelpers, urlc };
     use crate::util::miscpromises::CountingPromise;
     use crate::api::MessageSender;
-    use crate::util::cbor::{ cbor_array, cbor_string };
+    use crate::util::cbor::{cbor_string };
 
     #[test]
     fn test_bootstrap() {
@@ -139,7 +140,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),0);
         h.run(30);
         let reqs = h.channel.get_requests();
         assert!(cbor_matches(&json! {
@@ -178,7 +179,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),0);
         h.run(30);
         let reqs = h.channel.get_requests();
         print!("{:?}\n",reqs[0]);
@@ -212,7 +213,7 @@ mod test {
         },vec![]);
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),0);
         for _ in 0..5 {
             h.run(30);
             h.commander_inner.add_time(100.);
@@ -241,7 +242,7 @@ mod test {
         }
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),0);
         for _ in 0..25 {
             h.run(10);
             h.commander_inner.add_time(10000.);
@@ -284,7 +285,7 @@ mod test {
         }
         let booted = CountingPromise::new();
         let messages = MessageSender::new(|w| {});
-        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))));
+        bootstrap(&h.base,&h.agent_store,Channel::new(&ChannelLocation::HttpChannel(urlc(1))),0);
         for _ in 0..50 {
             h.run(10);
             h.commander_inner.add_time(1000.);

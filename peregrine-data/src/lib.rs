@@ -25,6 +25,7 @@ mod core {
 }
 
 mod index {
+    pub(crate) mod metricreporter;
     pub(crate) mod stickstore;
     pub(crate) mod stickauthority;
     pub(crate) mod stickauthoritystore;

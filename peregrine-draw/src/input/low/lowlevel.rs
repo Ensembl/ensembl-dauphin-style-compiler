@@ -10,10 +10,11 @@ use super::modifiers::Modifiers;
 use super::{event::EventSystem, keyboardinput::{KeyboardEventHandler, keyboard_events}, mouseinput::mouse_events};
 use super::mapping::{ InputMapBuilder };
 use super::mouseinput::{ MouseEventHandler };
-use crate::input::{ InputEvent, Distributor };
+use crate::input::{ InputEvent };
 use super::mapping::InputMap;
 use js_sys::Date;
 use peregrine_data::{Commander };
+use peregrine_toolkit::plumbing::distributor::Distributor;
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
