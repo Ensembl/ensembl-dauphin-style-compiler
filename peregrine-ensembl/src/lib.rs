@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 mod standalonedom;
+use js_sys::Reflect;
 use wasm_bindgen::prelude::*;
 use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
 use peregrine_data::{Channel, ChannelLocation, StickId };
@@ -25,6 +27,10 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
             panic!("deliberate panic from js_throw following error. Ignore this trace, see error above.");
         }
     }
+}
+
+fn jserror_to_message<T>(e: Result<T,JsValue>) -> Result<T,Message> {
+    e.map_err(|f| Message::ConfusedWebBrowser(format!("bad config parameter: {}",f.as_string().unwrap_or_else(|| "*anon*".to_string()))))
 }
 
 #[wasm_bindgen]
@@ -53,17 +59,29 @@ impl GenomeBrowser {
         }
     }
 
-    fn go_real(&mut self) -> Result<(),Message> {
+    fn build_config(&self, config_object: &JsValue) -> Result<HashMap<String,String>,Message> {
+        let mut out = HashMap::new();
+        for key in jserror_to_message(Reflect::own_keys(config_object))?.iter() {
+            let value = jserror_to_message(Reflect::get(config_object,&key))?;
+            let key_str = key.as_string().ok_or_else(|| Message::ConfusedWebBrowser("bad key".to_string()))?;
+            let value_str = value.as_string().ok_or_else(|| Message::ConfusedWebBrowser("bad value".to_string()))?;
+            out.insert(key_str,value_str);
+        }
+        Ok(out)
+    }
+
+    fn go_real(&mut self, config_object: &JsValue) -> Result<(),Message> {
+        let config_in = self.build_config(config_object)?;
         /*
          * Set some config options. There aren't many of these yet but there will probably be more. The idea is that
          * things like the speed of changes and positions, colours, cache sizes, etc, can come from the surrounding app.
          * This isn't about the data in the tracks itself but there's probably going to be a whole load of configurable
          * oojimaflips associated with the browser in the end.
          */
-        let mut config = PeregrineConfig::new();
-        //config.set("debug.show-incoming-messages","true");
-        config.set("animate.fade.slow","500");
-        config.set("animate.fade.fast","100");
+         let mut config = PeregrineConfig::new();
+         for (k,v) in config_in.iter() {
+             config.set(k,v)?;
+         }
         /*
          * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
          * use. See that file for details.
@@ -89,8 +107,8 @@ impl GenomeBrowser {
         Ok(())
     }
 
-    pub fn go(&mut self) {
-        js_throw(self.go_real());
+    pub fn go(&mut self, config_object: &JsValue) {
+        js_throw(self.go_real(config_object));
     }
 
     pub fn set_stick(&self,stick_id: &str) {
