@@ -36,6 +36,8 @@ thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 
+exon_gene_id := index(exon_gene_indexes,[gene_id]);
+
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
 exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
@@ -86,6 +88,8 @@ allotments := [use_allotment(tracks_used[])];
 allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
+focus_gene := list_switch(["focus","gene"]);
+allotment_idx#[gene_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
 
 /*
@@ -95,6 +99,7 @@ allotment := index(allotment_idx,allotments);
 exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
+exon_allotment_idx#[exon_gene_id==focus_gene] := 4;
 exon_allotment := index(exon_allotment_idx,allotments);
 thick_exon_allotment := exon_allotment#[thick_exons];
 
@@ -126,19 +131,22 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
 // XXX allow types to overlap with functions/vars
 base_non_pc_colour := direct_colour(200,200,200,255);
 base_pc_colour := direct_colour(128,128,128,255);
+base_focus_colour := direct_colour(39,154,252,255);
 
 dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,5,1,0.25);
 dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.25);
+dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,5,1,0.25);
 non_pc_colour := simple_colour(base_non_pc_colour);
 pc_colour := simple_colour(base_pc_colour);
+focus_colour := simple_colour(base_focus_colour);
 
-under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),-1);
-under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour]),1,-1);
-hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1,0);
-exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
-exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1,0);
+under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),-1);
+under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),1,-1);
+hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1,0);
+exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
+exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1,0);
 white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)),0);
-thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),1);
+thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 text_colour := direct_colour(111,129,144,255);
 text_size := 10;
 

@@ -57,6 +57,9 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
+focus_gene := list_switch(["focus","gene"]);
+allotment_idx#[gene_id==focus_gene] := 4;
+
 allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);
 
@@ -88,7 +91,8 @@ gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_
 // XXX allow types to overlap with functions/vars
 non_pc_colour := simple_colour(direct_colour(200,200,200,255));
 pc_colour := simple_colour(direct_colour(128,128,128,255));
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
+focus_colour := simple_colour(direct_colour(39,154,252,255));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),0);
 
 text_colour := [direct_colour(111,129,144,255),direct_colour(100,100,100,255)][(@==1)==get_switch(["settings","bluer"])];
 text_size := [10,24][(@==1)==get_switch(["settings","bigger"])];
