@@ -171,6 +171,10 @@ impl PeregrineInnerAPI {
         self.data_api.clear_switch(path);
     }
 
+    pub(crate) fn radio_switch(&self, path: &[&str], yn: bool) {
+        self.data_api.radio_switch(path,yn);
+    }
+
     pub(super) fn config(&self) -> &PgPeregrineConfig { &self.config }
 
     pub(super) fn bootstrap(&mut self, channel: Channel) {

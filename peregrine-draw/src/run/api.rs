@@ -19,6 +19,7 @@ enum DrawMessage {
     SetStick(StickId),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
+    RadioSwitch(Vec<String>,bool),
     Bootstrap(Channel),
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
@@ -35,6 +36,7 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::SetStick(stick)  => write!(f,"SetStick({:?})",stick),
             DrawMessage::SetSwitch(path) => write!(f,"SetSwitch({:?})",path),
             DrawMessage::ClearSwitch(path)  => write!(f,"ClearSwitch({:?})",path),
+            DrawMessage::RadioSwitch(path,yn)  => write!(f,"RadioSwitch({:?},{:?})",path,yn),
             DrawMessage::Bootstrap(channel)  => write!(f,"Channel({:?})",channel),
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
@@ -67,6 +69,9 @@ impl DrawMessage {
             },
             DrawMessage::ClearSwitch(path) => {
                 draw.clear_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>());
+            },
+            DrawMessage::RadioSwitch(path,yn) => {
+                draw.radio_switch(&path.iter().map(|x| &x as &str).collect::<Vec<_>>(),yn);
             },
             DrawMessage::Bootstrap(channel) => {
                 draw.bootstrap(channel.clone());
@@ -122,6 +127,10 @@ impl PeregrineAPI {
 
     pub fn clear_switch(&self, path: &[&str]) {
         self.queue.add(DrawMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()));
+    }
+
+    pub fn radio_switch(&self, path: &[&str], yn: bool) {
+        self.queue.add(DrawMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn));
     }
 
     pub fn set_stick(&self, stick: &StickId) {

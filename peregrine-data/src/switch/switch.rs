@@ -55,6 +55,7 @@ impl SwitchOverlay {
 
 pub(crate) struct Switch {
     kids: HashMap<String,Switch>,
+    radio: bool,
     set: bool,
     tracks: Vec<Track>,
     triggers: Vec<Track>
@@ -65,6 +66,7 @@ impl Switch {
         Switch {
             kids: HashMap::new(),
             set: false,
+            radio: false,
             tracks: vec![],
             triggers: vec![]
         }
@@ -84,6 +86,12 @@ impl Switch {
         }
     }
 
+    fn unset_kids(&mut self) {
+        for kid in self.kids.values_mut() {
+            kid.set = false;
+        }
+    }
+
     pub(super) fn get_triggered(&self, out: &mut Vec<Track>) {
         if !self.set { return; }
         out.extend(self.triggers.iter().cloned());
@@ -95,7 +103,7 @@ impl Switch {
     pub(super) fn build_track_config_list<'a>(&'a self, want_track: &Track, out: &mut TrackConfigNode, path: &mut Vec<&'a str>,mut active: bool, overlay: &SwitchOverlay) {
         if self.tracks.contains(want_track) { active = true; }
         if active { out.add_path(path); }
-        let mut kids = self.kids.iter();
+        let kids = self.kids.iter();
         for (kid_name,kid) in kids {
             path.push(kid_name);
             if overlay.apply(path).unwrap_or(kid.set) {
@@ -148,14 +156,29 @@ impl Switches {
     }
 
     pub fn set_switch(&self, path: &[&str]) {
-        let mut data = self.0.lock().unwrap();        
-        data.root.get_target(path).set = true;
+        let mut data = self.0.lock().unwrap();
+        if path.len() > 0 {
+            let parent = data.root.get_target(&path[0..(path.len()-1)]);
+            if parent.radio {
+                parent.unset_kids();
+            }
+        }
+        let target = data.root.get_target(path);
+        target.set = true;
         data.track_config_list = None;
     }
 
     pub fn clear_switch(&self, path: &[&str]) {
         let mut data = self.0.lock().unwrap();
-        data.root.get_target(path).set = false;        
+        let target = data.root.get_target(path);
+        target.set = false;
+        target.unset_kids();
+        data.track_config_list = None;
+    }
+
+    pub fn radio_switch(&self, path: &[&str], yn: bool) {
+        let mut data = self.0.lock().unwrap();
+        data.root.get_target(path).radio = yn;        
         data.track_config_list = None;
     }
 

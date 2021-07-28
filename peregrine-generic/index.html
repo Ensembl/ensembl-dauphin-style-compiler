@@ -23,7 +23,8 @@
         <div>flip stick <input id="stick" type="checkbox"/></div>
         <div>drag <input id="drag" type="checkbox"/></div>
         <button id="goto">goto</button>
-        <button id="jump">jump</button>
+        <button id="jump-brca2">jump brca2</button>
+        <button id="jump-fry">jump fry</button>
         <button id="jump-error">jump error</button>
         <button id="chr">chr</button>
         <br/>
@@ -58,11 +59,6 @@
         genome_browser.set_switch(["track","gc"]);
         genome_browser.set_switch(["track","contig"]);
         genome_browser.goto(2000000,3000000);
-        genome_browser.set_switch(["settings"]);
-
-        genome_browser.set_switch(["focus"]);
-        genome_browser.set_switch(["focus","gene"]);
-        genome_browser.set_switch(["focus","gene","ENSG00000139618.15"]);
 
         function flipper(path,go) {
             let flip = false;
@@ -87,8 +83,15 @@
         document.getElementById("goto").onclick = function() {
           genome_browser.goto(10000000,10100000);
         };
-        document.getElementById("jump").onclick = function() {
+        document.getElementById("jump-brca2").onclick = function() {
+          genome_browser.set_switch(["focus","gene"]);
+          genome_browser.set_switch(["focus","gene","ENSG00000139618.15"]);
           genome_browser.jump("focus:ENSG00000139618.15");
+        };
+        document.getElementById("jump-fry").onclick = function() {
+          genome_browser.set_switch(["focus","gene"]);
+          genome_browser.set_switch(["focus","gene","ENSG00000073910.22"]);
+          genome_browser.jump("focus:ENSG00000073910.22");
         };
         document.getElementById("jump-error").onclick = function() {
           genome_browser.jump("focus:xyz");

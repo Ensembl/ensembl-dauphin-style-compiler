@@ -142,6 +142,11 @@ impl GenomeBrowser {
          * You have to turn on tracks _per se_, but we always want tracks.
          */
         self.api.set_switch(&["track"]);
+        self.api.set_switch(&["focus"]);
+        self.api.set_switch(&["settings"]);
+        self.api.radio_switch(&["focus"],true);
+        self.api.radio_switch(&["focus","gene"],true);
+
         Ok(())
     }
 
@@ -185,6 +190,11 @@ impl GenomeBrowser {
     pub fn clear_switch(&self, path: &JsValue) {
         let path : Vec<String> = path.into_serde().unwrap();
         self.api.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+    }
+
+    pub fn radio_switch(&self, path: &JsValue, yn: bool) {
+        let path : Vec<String> = path.into_serde().unwrap();
+        self.api.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
     }
 
     /* called first time set_message_reporter is called for each object */
