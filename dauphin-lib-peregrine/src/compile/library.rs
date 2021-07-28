@@ -23,10 +23,10 @@ use super::geometry:: {
     BarCommandType
 };
 use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
-use super::switch::GetSwitchCommandType;
+use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(35,0),0xC164A276D5F156A1)
+    CommandSetId::new("peregrine",(36,0),0x92DF473E79DE5770)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -73,6 +73,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("add_jump",Some(39),AddJumpCommandType());
     set.push("get_jump_data",Some(40),GetJumpDataCommandType());
     set.push("get_jump_location",Some(41),GetJumpLocationCommandType());
+    set.push("list_switch",Some(42),ListSwitchCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

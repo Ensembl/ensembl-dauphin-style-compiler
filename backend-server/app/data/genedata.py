@@ -139,6 +139,7 @@ def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
+    out['gene_ids'] = compress("\0".join(genes))
     return Response(5,{ 'data': out })
 
 class TranscriptDataHandler(DataHandler):
