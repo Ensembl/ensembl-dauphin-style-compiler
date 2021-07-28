@@ -7,3 +7,5 @@ use serde_cbor::Value as CborValue;
 use crate::simple_command;
 
 simple_command!(GetSwitchCommand,GetSwitchCommandType,"peregrine","get_switch",4,(0,1,2,3));
+simple_command!(ListSwitchCommand,ListSwitchCommandType,"peregrine","list_switch",4,(0,1,2,3));
+

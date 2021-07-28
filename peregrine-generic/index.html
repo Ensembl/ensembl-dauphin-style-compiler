@@ -60,6 +60,10 @@
         genome_browser.goto(2000000,3000000);
         genome_browser.set_switch(["settings"]);
 
+        genome_browser.set_switch(["focus"]);
+        genome_browser.set_switch(["focus","gene"]);
+        genome_browser.set_switch(["focus","gene","ENSG00000139618.15"]);
+
         function flipper(path,go) {
             let flip = false;
             let out = function() {

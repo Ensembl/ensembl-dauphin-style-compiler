@@ -6,6 +6,7 @@ use serde_cbor::Value as CborValue;
 use crate::util::{ get_instance, get_peregrine };
 
 simple_interp_command!(GetSwitchInterpCommand,GetSwitchDeserializer,32,4,(0,1,2,3));
+simple_interp_command!(ListSwitchInterpCommand,ListSwitchDeserializer,42,4,(0,1,2,3));
 
 impl InterpCommand for GetSwitchInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -23,6 +24,28 @@ impl InterpCommand for GetSwitchInterpCommand {
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Boolean(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for ListSwitchInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let path_data = registers.get_strings(&self.1)?.to_vec();
+        let path_offset = registers.get_indexes(&self.2)?.to_vec();
+        let path_length = registers.get_indexes(&self.3)?.to_vec();
+        drop(registers);
+        let request = get_instance::<ShapeRequest>(context,"request")?;
+        let config = request.track();
+        let mut out = vec![];
+        for (offset,length) in path_offset.iter().zip(path_length.iter().cycle()) {
+            let path = path_data[*offset..(*offset+*length)].iter().map(|x| x.as_str()).collect::<Vec<_>>();
+            if let Some(values) = config.get(&path) {
+                out.extend(values.iter().map(|x| x.to_string()));
+            }
+        }
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Strings(out));
         Ok(CommandResult::SyncResult())
     }
 }

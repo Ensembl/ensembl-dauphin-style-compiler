@@ -70,7 +70,7 @@ impl AxisPhysics {
         if let Some(target) = self.target {
             let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
             while total_dt > 0. {
-                let dt = total_dt.min(1.);
+                let dt = total_dt.min(0.1);
                 total_dt -= dt;
                 let drive = target - current;
                 let mut drive_f = drive/self.config.lethargy;

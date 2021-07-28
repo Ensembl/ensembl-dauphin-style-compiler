@@ -16,6 +16,7 @@ start := delta_seq(data,"starts");
 end := start + delta_seq(data,"lengths");
 gene_biotype := classified_seq(data,"gene_biotypes_keys","gene_biotypes_values");
 strand := positive_seq(data,"strands");
+gene_id := string_seq(data,"gene_ids");
 
 /* 
  * What are the current track settings?
@@ -48,6 +49,9 @@ allotment_idx := len([start]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
+focus_gene := list_switch(["focus","gene"]);
+allotment_idx#[gene_id==focus_gene] := 4;
+
 allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);
 
@@ -59,7 +63,8 @@ allotment := index(allotment_idx,allotments);
 
 non_pc_colour := simple_colour(direct_colour(200,200,200,255));
 pc_colour := simple_colour(direct_colour(128,128,128,255));
-patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour]),0);
+focus_colour := simple_colour(direct_colour(39,154,252,255));
+patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),0);
 
 /*
  * draw everything!

@@ -19,11 +19,13 @@ sequence_scale := 9;
 
 stmt gene_std(p) {
     track_add_tag(p,"local");
+    track_add_trigger(p,["focus","gene"]);
     track_add_trigger(p,["track","gene-pc-fwd"]);
     track_add_trigger(p,["track","gene-pc-rev"]);
     track_add_trigger(p,["track","gene-nonpc-fwd"]);
     track_add_trigger(p,["track","gene-nonpc-rev"]);
     track_add_switch(p,["settings"]);
+    track_add_switch(p,["focus"]);
     track_add_allotment(p,"track:focus",-1000000);
     track_add_allotment(p,"track:gene-pc-rev",-1100);
     track_add_allotment(p,"track:gene-nonpc-rev",-1000);

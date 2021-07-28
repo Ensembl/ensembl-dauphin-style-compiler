@@ -77,6 +77,7 @@ func pen(string,number,directcolour,directcolour,number) becomes penspec;
 func plotter(number,directcolour) becomes plotterspec;
 
 func get_switch(vec(string)) becomes boolean;
+func list_switch(vec(string)) becomes string;
 
 proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc text2(spacebaseid,penspec,string,allotment);

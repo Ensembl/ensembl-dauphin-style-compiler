@@ -43,7 +43,7 @@ exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
 trunc_left := exon_thick_limit_start>exon_start;
 trunc_right := exon_thick_limit_end<exon_end;
 
-/* ... update exons to thivk limit */
+/* ... update exons to thick limit */
 exon_thick_start := exon_start;
 exon_thick_end := exon_end;
 exon_thick_start#[trunc_left] := exon_thick_limit_start#[trunc_left];
