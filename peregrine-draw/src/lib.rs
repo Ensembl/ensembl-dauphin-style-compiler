@@ -30,7 +30,7 @@ mod input {
         pub use self::physics::Physics;
     }
 
-    pub use self::core::input::{ Input, InputEvent, InputEventKind, Distributor };
+    pub use self::core::input::{ Input, InputEvent, InputEventKind };
 }
 
 mod integration {

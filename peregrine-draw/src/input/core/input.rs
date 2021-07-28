@@ -3,32 +3,11 @@ use crate::PeregrineInnerAPI;
 use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
-use crate::{PeregrineAPI, PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
+use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::input::translate::Physics;
 use crate::input::translate::debug::debug_register;
-
-// XXX to  util
-#[derive(Clone)]
-pub struct Distributor<T>(Arc<Mutex<Vec<Box<dyn Fn(&T) + 'static>>>>);
-
-impl<T> Distributor<T> {
-    pub fn new() -> Distributor<T> {
-        Distributor(Arc::new(Mutex::new(vec![])))
-    }
-
-    pub fn add<F>(&mut self, cb: F) where F: Fn(&T) + 'static {
-        self.0.lock().unwrap().push(Box::new(cb));
-    }
-
-    pub fn send(&self, value: T) {
-        let streams = self.0.lock().unwrap();
-        for stream in streams.iter() {
-            stream(&value);
-        }
-    }
-}
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub enum InputEventKind {

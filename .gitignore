@@ -108,3 +108,6 @@ venv.bak/
 
 # blackbox logs
 blackbox-server/src/log
+
+# metric log
+backend-server/metric.log

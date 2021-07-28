@@ -1,5 +1,6 @@
 use crate::api::PeregrineCore;
 use crate::core::{ StickId, Viewport };
+use crate::index::metricreporter::MetricReport;
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::CommanderStream;
@@ -14,11 +15,12 @@ pub enum ApiMessage {
     SetPosition(f64),
     SetBpPerScreen(f64),
     SetStick(StickId),
-    Bootstrap(Channel),
+    Bootstrap(u64,Channel),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
     RegeneraateTrackConfig,
-    Jump(String)
+    Jump(String),
+    ReportMetric(Channel,MetricReport)
 }
 
 struct ApiQueueCampaign {
@@ -53,8 +55,8 @@ impl ApiQueueCampaign {
             ApiMessage::SetStick(stick) => {
                 self.viewport = self.viewport.set_stick(&stick);
             },
-            ApiMessage::Bootstrap(channel) => {
-                bootstrap(&data.base,&data.agent_store,channel);
+            ApiMessage::Bootstrap(identity,channel) => {
+                bootstrap(&data.base,&data.agent_store,channel,identity);
             },
             ApiMessage::SetSwitch(path) => {
                 data.switches.set_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
@@ -66,6 +68,9 @@ impl ApiQueueCampaign {
             },
             ApiMessage::RegeneraateTrackConfig => {
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            },
+            ApiMessage::ReportMetric(channel,metric) => {
+                metric.send(&data.base.commander,&mut data.base.manager,&channel);
             }
         }
     }
@@ -98,10 +103,9 @@ impl PeregrineApiQueue {
         }
     }
 
-    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel) {
-        bootstrap(&data.base,&data.agent_store,channel)
+    fn bootstrap(&mut self, data: &mut PeregrineCore, channel: Channel, identity: u64) {
+        bootstrap(&data.base,&data.agent_store,channel,identity)
     }
-
 
     pub fn run(&self, data: &mut PeregrineCore) {
         let mut self2 = self.clone();

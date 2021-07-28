@@ -46,7 +46,8 @@ impl TestHelpers {
             manager,
             booted,
             queue: PeregrineApiQueue::new(),
-            allotment_petitioner: AllotmentPetitioner::new()
+            allotment_petitioner: AllotmentPetitioner::new(),
+            identity: Arc::new(Mutex::new(0))
         };
         let mut agent_store = AgentStore::new(&base);
         base.manager.add_receiver(Box::new(base.dauphin.clone()));
