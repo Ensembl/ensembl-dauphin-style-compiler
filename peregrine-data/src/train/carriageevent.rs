@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::Carriage;
 use crate::train::train::Train;
-use crate::util::message::DataMessage;
 use crate::core::Viewport;
 
 enum CarriageEvent {

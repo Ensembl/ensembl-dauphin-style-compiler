@@ -31,22 +31,23 @@ pub(super) struct PhysicsRunner {
 
 impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
+        let lethargy = 500.;  // 2500 for keys & animate, 500 for mouse, 50000 for goto
         let w_config = AxisPhysicsConfig {
-            lethargy: 500., // 2500 for keys & animate, 500 for mouse, 50000 for goto
+            lethargy,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let x_config = AxisPhysicsConfig {
-            lethargy: 500.,
+            lethargy,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
             brake_mul: 0.2
         };
         let z_config = AxisPhysicsConfig {
-            lethargy: 500.,
+            lethargy,
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,

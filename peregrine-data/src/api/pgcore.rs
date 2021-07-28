@@ -126,6 +126,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::ClearSwitch(path.iter().map(|x| x.to_string()).collect()));
     }
 
+    pub fn radio_switch(&self, path: &[&str], yn: bool) {
+        self.base.queue.push(ApiMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn));
+    }
+
     pub fn set_position(&self, pos: f64) {
         self.base.queue.push(ApiMessage::SetPosition(pos));
     }

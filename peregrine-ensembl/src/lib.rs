@@ -100,6 +100,10 @@ impl GenomeBrowser {
          * You have to turn on tracks _per se_, but we always want tracks.
          */
         self.api.set_switch(&["track"]);
+        self.api.set_switch(&["focus"]);
+        self.api.set_switch(&["settings"]);
+        self.api.radio_switch(&["focus"],true);
+        self.api.radio_switch(&["focus","gene"],true);
         Ok(())
     }
 

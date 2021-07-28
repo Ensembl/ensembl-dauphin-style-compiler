@@ -24,5 +24,6 @@ for species_part in os.listdir(genes_dir):
                 left = left - pad
                 right = right + pad
                 for id in ids:
+                    #print(id)
                     out["focus:{}".format(id)] = "\t".join([stick,str(left),str(right)])
 out.close()

@@ -45,8 +45,6 @@ impl PeregrineIntegration for PgIntegration {
                     self.report.set_bp_per_screen(bp);    
                 }    
             }
-        } else {
-            //self.target_manager.lock().unwrap().update_viewport(viewport);
         }
     }
 }

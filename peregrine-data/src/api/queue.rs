@@ -18,6 +18,7 @@ pub enum ApiMessage {
     Bootstrap(u64,Channel),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
+    RadioSwitch(Vec<String>,bool),
     RegeneraateTrackConfig,
     Jump(String),
     ReportMetric(Channel,MetricReport)
@@ -64,6 +65,10 @@ impl ApiQueueCampaign {
             },
             ApiMessage::ClearSwitch(path) => {
                 data.switches.clear_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>());
+                self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
+            },
+            ApiMessage::RadioSwitch(path,yn) => {
+                data.switches.radio_switch(&path.iter().map(|x| x.as_str()).collect::<Vec<_>>(),yn);
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::RegeneraateTrackConfig => {
