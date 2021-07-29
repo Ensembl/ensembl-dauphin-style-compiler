@@ -133,18 +133,43 @@ impl PhysicsState {
     fn goto_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.runner.queue_clear();
-        /* what should we zoom out to (if at all) to get both on screen? */
+        /* three strategies:
+         * 1. target is smaller: make short move and then zoom in
+         * 2. target is bigger: zoom out to common scale move and make short move
+         * 3. outzoom to target scale shift and soom in again
+         */
+        if bp_per_screen > measure.bp_per_screen {
+            /* we are getting more bp per screen, ie zooming out: can use strategies 2 or 3 */
+            /* to test if we can use 2: how many screenfuls must we move at the FINAL scale? */
+            let screenful_move = (centre-measure.x_bp).abs() / bp_per_screen;
+            if screenful_move < 2. { // XXX config
+                /* strategy 2 */
+                let px_per_bp = measure.px_per_screen / bp_per_screen;
+                self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+                self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+                self.update_needed();
+                return Ok(());
+            }
+        } else {
+            /* we are getting feswer bp per screen, ie zooming in: can use strategies 1 or 3 */
+            /* to test if we can use 1: how many screenfuls must we move at the ORIGINAL scale? */
+            let screenful_move = (centre-measure.x_bp).abs() / measure.bp_per_screen;
+            if screenful_move < 2. { // XXX config
+                /* strategy 1 */
+                let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+                self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+                self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+                self.update_needed();
+                return Ok(());
+            }
+        }
+        /* strategy 3 */
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
-        let mut new_px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-        if rightmost-leftmost > measure.bp_per_screen {
-            self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
-            new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
-        }
-        /* shift so item is centralised */
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
+        let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
         self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
-        /* zoom in */
         self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
         self.update_needed();
         Ok(())
