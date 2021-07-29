@@ -10,13 +10,12 @@ three_bonds := len([seq_letter]) (*) false;
 three_bonds#[seq_letter=="C"] := true;
 three_bonds#[seq_letter=="G"] := true;
 
-seq_colour := simple_colour(direct_colour(148,160,271,255));
+seq_colour := simple_colour(direct_colour(39,154,252,255));
 patina := patina_hollow(seq_colour,1,0);
 
-text_colour := direct_colour(111,129,244,255);
+text_colour := direct_colour(39,154,252,255);
 text_size := 14;
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][],0);
-
 allotment := use_allotment("contig");
 
 
