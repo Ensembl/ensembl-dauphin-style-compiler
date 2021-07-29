@@ -222,10 +222,6 @@ impl TrainSet {
         events.notify_viewport(viewport,true);
         self.run(events,objects);
         self.state.lock().unwrap().update_visual_lock();
-        let busy = self.state.lock().unwrap().maybe_send_busy();
-        if let Some(yn) = busy {
-            objects.integration.lock().unwrap().busy(yn);
-        }
         Ok(())
     }
 
@@ -234,9 +230,5 @@ impl TrainSet {
         self.state.lock().unwrap().transition_complete(&mut events);
         self.run(events,objects);
         self.state.lock().unwrap().update_visual_lock();
-        let busy = self.state.lock().unwrap().maybe_send_busy();
-        if let Some(yn) = busy {
-            objects.integration.lock().unwrap().busy(yn);
-        }
     }
 }

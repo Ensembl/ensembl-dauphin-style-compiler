@@ -15,5 +15,4 @@ pub trait PeregrineIntegration {
     fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
-    fn busy(&mut self, yn: bool);
 }

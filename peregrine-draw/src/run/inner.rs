@@ -3,7 +3,6 @@ use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
-use crate::integration::busywaiter::BusyWaiter;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
@@ -130,9 +129,8 @@ impl PeregrineInnerAPI {
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
-        let busy_waiter = BusyWaiter::new();
         let mut input = Input::new(queue_blocker);
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),&input,trainset.clone(),webgl.clone(),&stage,&report,&busy_waiter));
+        let integration = Box::new(PgIntegration::new(PgChannel::new(),&input,trainset.clone(),webgl.clone(),&stage,&report));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },queue_blocker).map_err(|e| Message::DataError(e))?;
