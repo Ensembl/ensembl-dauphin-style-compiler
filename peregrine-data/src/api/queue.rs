@@ -3,7 +3,7 @@ use crate::core::{ StickId, Viewport };
 use crate::index::metricreporter::MetricReport;
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
-use commander::CommanderStream;
+use commander::{CommanderStream, PromiseFuture};
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 use crate::util::message::DataMessage;
@@ -20,7 +20,7 @@ pub enum ApiMessage {
     ClearSwitch(Vec<String>),
     RadioSwitch(Vec<String>,bool),
     RegeneraateTrackConfig,
-    Jump(String),
+    Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
     ReportMetric(Channel,MetricReport)
 }
 
@@ -50,8 +50,8 @@ impl ApiQueueCampaign {
             ApiMessage::SetBpPerScreen(scale) => {
                 self.viewport = self.viewport.set_bp_per_screen(scale);
             },
-            ApiMessage::Jump(location) => {
-                data.agent_store.jump_store.jump(&location);
+            ApiMessage::Jump(location,promise) => {
+                data.agent_store.jump_store.jump(&location,promise);
             },
             ApiMessage::SetStick(stick) => {
                 self.viewport = self.viewport.set_stick(&stick);

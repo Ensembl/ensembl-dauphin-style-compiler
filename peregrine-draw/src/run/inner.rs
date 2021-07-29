@@ -3,6 +3,7 @@ use crate::{integration::pgchannel::PgChannel };
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
+use crate::integration::busywaiter::BusyWaiter;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
@@ -128,13 +129,14 @@ impl PeregrineInnerAPI {
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
-        let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),webgl.clone(),&stage,&report));
+        let busy_waiter = BusyWaiter::new();
+        let mut input = Input::new();
+        let integration = Box::new(PgIntegration::new(PgChannel::new(),&input,trainset.clone(),webgl.clone(),&stage,&report,&busy_waiter));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         }).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let redraw_needed = stage.lock().unwrap().redraw_needed();
-        let mut input = Input::new();
         report.run(&commander);
         core.application_ready();
         message_sender.add(Message::Ready);
@@ -197,7 +199,7 @@ impl PeregrineInnerAPI {
     }
 
     pub(super) fn jump(&mut self, location: &str) {
-        self.data_api.jump(location);
+        self.input.jump(&self.data_api,&self.commander,location);
     }
 
     pub(crate) fn set_bp_per_screen(&mut self, z: f64) {
@@ -205,10 +207,10 @@ impl PeregrineInnerAPI {
     }
 
     pub(super) fn goto(&mut self, centre: f64, scale: f64) {
-        self.input.clone().goto(self,centre,scale);      
+        self.input.clone().goto(centre,scale);      
     }
 
-    pub(super) fn set_stick(&self, stick: &StickId,) {
+    pub(crate) fn set_stick(&self, stick: &StickId) {
         self.data_api.set_stick(stick);
     }
 

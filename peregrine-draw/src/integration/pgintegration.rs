@@ -1,6 +1,9 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ CarriageSpeed, PeregrineIntegration, Carriage, ChannelIntegration, Viewport };
+use commander::{FusePromise, PromiseFuture};
+use peregrine_data::{Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, StickId, Viewport};
+use super::busywaiter::BusyWaiter;
 use super::pgchannel::PgChannel;
+use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
@@ -8,10 +11,12 @@ use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
 
 pub struct PgIntegration {
+    busy_waiter: BusyWaiter,
     channel: PgChannel,
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
+    input: Input,
     report: Report
 }
 
@@ -47,15 +52,21 @@ impl PeregrineIntegration for PgIntegration {
             }
         }
     }
+
+    fn busy(&mut self, yn: bool) {
+        self.busy_waiter.set(yn);
+    }
 }
 
 impl PgIntegration {
-    pub fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report) -> PgIntegration {
+    pub(crate) fn new(channel: PgChannel, input: &Input, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report, busy_waiter: &BusyWaiter) -> PgIntegration {
         PgIntegration {
+            busy_waiter: busy_waiter.clone(),
             channel,
             trainset,
             webgl,
             stage: stage.clone(),
+            input: input.clone(),
             report: report.clone()
         }
     }

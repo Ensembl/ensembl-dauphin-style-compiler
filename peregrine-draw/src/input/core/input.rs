@@ -1,4 +1,6 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_data::{PeregrineCore, StickId};
+
 use crate::PeregrineInnerAPI;
 use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
@@ -52,12 +54,14 @@ pub struct InputEvent {
 
 struct InputState {
     low_level: LowLevelInput,
-    physics: Physics
+    physics: Physics,
+    inner_api: PeregrineInnerAPI,
+    stage: Option<ReadStage>
 }
 
 #[derive(Clone)]
 pub struct Input {
-    low_level: Arc<Mutex<Option<InputState>>>
+    low_level: Arc<Mutex<Option<InputState>>>,
 }
 
 impl Input {
@@ -67,7 +71,7 @@ impl Input {
         }
     }
 
-    fn state<F,T>(&self, f: F) -> T where F: FnOnce(&InputState) -> T { f(self.low_level.lock().unwrap().as_ref().unwrap()) }
+    fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.low_level.lock().unwrap().as_mut().unwrap()) }
 
     pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
@@ -75,16 +79,57 @@ impl Input {
         let physics = Physics::new(config,&mut low_level,inner_api,commander,report)?;
         debug_register(config,&mut low_level,inner_api)?;
         *self.low_level.lock().unwrap() = Some(InputState {
-            low_level, physics
+            low_level, physics,
+            inner_api: inner_api.clone(),
+            stage: None
         });
         Ok(())
     }
 
-    pub fn update_stage(&self, stage: &ReadStage) { self.state(|state| state.low_level.update_stage(stage)); }
+    pub fn update_stage(&self, stage: &ReadStage) { 
+        self.state(|state| {
+            state.stage = Some(stage.clone());
+            state.low_level.update_stage(stage)
+        });
+    }
+
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
-    pub(crate) fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state(|state| state.physics.goto(api,centre,scale))
+    pub(crate) fn goto(&self, centre: f64, scale: f64) -> Result<(),Message> {
+        self.state(|state| state.physics.goto(&mut state.inner_api.clone(),centre,scale))
+    }
+
+    async fn jump_task(&self,data_api: PeregrineCore, location: String) -> Result<(),Message> {
+        if let Some((stick,centre,bp_per_screen)) = data_api.jump(&location).await {
+            let slide = self.state(|state| { 
+                let mut slide = false;
+                if let Some(current_stick) = state.stage.as_ref().and_then(|s| s.stick()) {
+                    if current_stick == &stick {
+                        slide = true;
+                    }
+                }
+                slide
+            });
+            if slide {
+                self.goto(centre,bp_per_screen)?;
+            } else {
+                self.state(|state| { 
+                    state.inner_api.set_stick(&stick);
+                    state.inner_api.set_x(centre);
+                    state.inner_api.set_bp_per_screen(bp_per_screen);
+                });
+            }
+        }
+        Ok(())    
+    }
+
+    pub(crate) fn jump(&self, data_api: &PeregrineCore, commander: &PgCommanderWeb, location: &str) {
+        let self2 = self.clone();
+        let data_api = data_api.clone();
+        let location = location.to_string();
+        commander.add("jump-web", 0, None, None, Box::pin(async move {
+            self2.jump_task(data_api.clone(),location).await
+        }));
     }
 }

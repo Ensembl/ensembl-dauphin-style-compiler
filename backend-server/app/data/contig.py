@@ -20,9 +20,9 @@ DOMINO_COUNT = 200
 # into a misleadingly uniform intermediate colour, hiding the variety of densities within.
 def shimmer_push(out_positions: List[List[int]], out_sense: List[bool], start: int, end: int,sense: bool):
     if len(out_sense) > 0 and sense == out_sense[-1] and out_positions[-1][1] == start:
-        out_positions[-1][1] = end
+        out_positions[-1][1] = int(end)
     else:
-        out_positions.append([start,end])
+        out_positions.append([int(start),int(end)])
         out_sense.append(sense)
 
 def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int) -> Tuple[List[Tuple[int,int]],List[int]]:

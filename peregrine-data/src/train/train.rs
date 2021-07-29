@@ -68,9 +68,8 @@ impl TrainData {
         Ok(out)
     }
 
-    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
+    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
         if self.active != Some(index) {
-            let speed = if quick { CarriageSpeed::Quick } else { CarriageSpeed::Slow };
             self.active = Some(index);
             self.set_carriages(carriage_event);
             carriage_event.transition(index,self.max.unwrap(),speed);
@@ -144,8 +143,8 @@ impl Train {
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
 
-    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, quick: bool) {
-        self.0.lock().unwrap().set_active(carriage_event,index,quick);
+    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
+        self.0.lock().unwrap().set_active(carriage_event,index,speed);
     }
 
     pub(super) fn set_inactive(&mut self) {
@@ -157,8 +156,18 @@ impl Train {
         Ok(())
     }
 
-    pub(super) fn compatible_with(&self, other: &Train) -> bool {
-        self.id().layout().stick() == other.id().layout().stick()
+    pub(super) fn speed_limit(&self, other: &Train) -> CarriageSpeed {
+        let same_stick = self.id().layout().stick() == other.id().layout().stick();
+        if same_stick {
+            let same_layout = self.id().layout() == other.id().layout();
+            if same_layout {
+                CarriageSpeed::Quick
+            } else {
+                CarriageSpeed::SlowCrossFade
+            }
+        } else {
+            CarriageSpeed::Slow
+        }
     }
 
     pub(super) fn maybe_ready(&mut self) {

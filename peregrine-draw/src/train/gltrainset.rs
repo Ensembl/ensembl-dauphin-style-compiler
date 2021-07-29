@@ -16,8 +16,10 @@ enum FadeState {
 
 struct GlTrainSetData {
     slow_fade_time: f64,
+    slow_cross_fade_time: f64,
     fast_fade_time: f64,
     slow_fade_overlap_prop: f64,
+    slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
     trains: HashMap<u32,GLTrain>,
     fade_state: FadeState,
@@ -27,10 +29,12 @@ struct GlTrainSetData {
 impl GlTrainSetData {
     fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlTrainSetData,Message> {
         Ok(GlTrainSetData {
-            slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(false))?,
-            fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(true))?,
-            slow_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(false))?,
-            fast_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(true))?,
+            slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow))?,
+            slow_cross_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade))?,
+            fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick))?,
+            slow_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(CarriageSpeed::Slow))?,
+            slow_cross_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade))?,
+            fast_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(CarriageSpeed::Quick))?,
             trains: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
@@ -66,6 +70,7 @@ impl GlTrainSetData {
     fn prop(&self, speed: &CarriageSpeed, elapsed: f64) -> f64 {
         let fade_time = match speed {
             CarriageSpeed::Quick => self.fast_fade_time,
+            CarriageSpeed::SlowCrossFade => self.slow_cross_fade_time,
             CarriageSpeed::Slow => self.slow_fade_time
         };
         elapsed/fade_time
@@ -74,6 +79,7 @@ impl GlTrainSetData {
     fn fade_time(&self, speed: &CarriageSpeed, elapsed: f64, out: bool) -> f64 {
         let factor = match speed {
             CarriageSpeed::Quick => self.fast_fade_overlap_prop,
+            CarriageSpeed::SlowCrossFade => self.slow_cross_fade_overlap_prop,
             CarriageSpeed::Slow => self.slow_fade_overlap_prop
         };
         let prop = self.prop(speed,elapsed).min(1.).max(0.)*(1.+factor.abs());

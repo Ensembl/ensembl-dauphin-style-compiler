@@ -1,5 +1,3 @@
-use std::fs::read;
-
 use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use super::size::SizeManager;
 use commander::{ cdr_tick, cdr_current_time };

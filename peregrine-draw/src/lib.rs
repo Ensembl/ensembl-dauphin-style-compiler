@@ -39,6 +39,7 @@ mod integration {
     pub(crate) mod pgdauphin;
     pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
+    pub(crate) mod busywaiter;
     mod stream;
 
     pub use self::pgcommander::PgCommanderWeb;

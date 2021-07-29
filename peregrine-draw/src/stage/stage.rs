@@ -1,4 +1,4 @@
-use peregrine_data::Viewport;
+use peregrine_data::{StickId, Viewport};
 
 use crate::{util::needed::Needed, webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
@@ -70,17 +70,20 @@ impl ProgramStage {
 
 // TODO greedy canvas size changes
 pub struct Stage {
+    stick: Option<StickId>,
     x: StageAxis,
     y: StageAxis,
     redraw_needed: Needed,
 }
 
 pub struct ReadStage {
+    stick: Option<StickId>,
     x: Box<dyn ReadStageAxis>,
     y: Box<dyn ReadStageAxis>    
 }
 
 impl ReadStage {
+    pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }
     pub fn x(&self) -> &dyn ReadStageAxis { self.x.as_ref() }
     pub fn y(&self) -> &dyn ReadStageAxis { self.y.as_ref() }
     pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
@@ -89,6 +92,7 @@ impl ReadStage {
 impl Clone for ReadStage {
     fn clone(&self) -> Self {
         ReadStage {
+            stick: self.stick.clone(),
             x: Box::new(self.x.copy()),
             y: Box::new(self.y.copy())
         }
@@ -99,6 +103,7 @@ impl Stage {
     pub fn new() -> Stage {
         let redraw_needed = Needed::new();
         let mut out = Stage {
+            stick: None,
             x: StageAxis::new(&redraw_needed),
             y: StageAxis::new(&redraw_needed),
             redraw_needed
@@ -112,6 +117,7 @@ impl Stage {
 
     pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
+    pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }
     pub fn x(&self) -> &StageAxis { &self.x }
     pub fn y(&self) -> &StageAxis { &self.y }
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
@@ -122,10 +128,14 @@ impl Stage {
         let bp_per_pixel = viewport.bp_per_screen().unwrap();        
         self.x_mut().set_position(position);
         self.x_mut().set_bp_per_screen(bp_per_pixel);
+        if let Ok(layout) = viewport.layout() {
+            self.stick = Some(layout.stick().clone());
+        }
     }
 
     pub fn read_stage(&self) -> ReadStage {
         ReadStage {
+            stick: self.stick.clone(),
             x: Box::new(self.x.copy()),
             y: Box::new(self.y.copy())
         }

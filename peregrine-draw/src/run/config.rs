@@ -1,5 +1,5 @@
 use std::num::{ParseFloatError, ParseIntError};
-use peregrine_data::{ConfigKey, DataMessage, DirectColour};
+use peregrine_data::{CarriageSpeed, ConfigKey, DataMessage, DirectColour};
 use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
@@ -43,8 +43,8 @@ pub enum DebugFlag {
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum PgConfigKey {
-    FadeOverlap(bool),
-    AnimationFadeRate(bool),
+    FadeOverlap(CarriageSpeed),
+    AnimationFadeRate(CarriageSpeed),
     KeyBindings(InputEventKind),
     PullMaxSpeed, // screenfulls/frame
     AutomatedPullMaxSpeed, // screenfulls/frame
@@ -90,10 +90,12 @@ pub enum PgConfigValue {
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,PgConfigKey,PgConfigValue>> = {
         vec![
-            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(true), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
-            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(false), name: "animate.fade.slow", default: &PgConfigValue::Float(1000.) },    
-            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(true), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
-            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(false), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade), name: "animate.fade.slow-cross", default: &PgConfigValue::Float(1000.) },    
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow), name: "animate.fade.slow", default: &PgConfigValue::Float(1000.) },    
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Quick), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade), name: "animate.overlap.slow-cross", default: &PgConfigValue::Float(0.) },
+            ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Slow), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Require(drag)-Click[2] Prohibit(drag)-Click[0] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100] Alt-a[1000]") },

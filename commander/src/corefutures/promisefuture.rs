@@ -3,6 +3,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use std::task::Poll;
+use std::fmt;
 
 struct PromiseFutureState<T> {
     taken: bool,
@@ -14,6 +15,13 @@ struct PromiseFutureState<T> {
 /// 
 /// Used internally in many places, but useful outside this crate.
 pub struct PromiseFuture<T>(Arc<Mutex<PromiseFutureState<T>>>);
+
+#[cfg(debug_assertions)]
+impl<T> fmt::Debug for PromiseFuture<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"...PromiseFuture...")
+    }
+}
 
 // Rust bug means dan't derive Clone on polymorphic types
 impl<T> Clone for PromiseFuture<T> {

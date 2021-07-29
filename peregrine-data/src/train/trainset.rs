@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::{PeregrineCoreBase, PgCommanderTaskSpec};
+use crate::{CarriageSpeed, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
 use super::train::{ Train, TrainId };
@@ -18,7 +18,8 @@ pub struct TrainSetData {
     future: Option<Train>,
     wanted: Option<Train>,
     next_activation: u32,
-    messages: MessageSender
+    messages: MessageSender,
+    old_busy: bool
 }
 
 impl TrainSetData {
@@ -28,15 +29,16 @@ impl TrainSetData {
             future: None,
             wanted: None,
             next_activation: 0,
-            messages: messages.clone()
+            messages: messages.clone(),
+            old_busy: false
         }
     }
 
     fn promote(&mut self, events: &mut CarriageEvents) {
         if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                let quick = self.current.as_ref().map(|x| x.compatible_with(&wanted)).unwrap_or(true);
-                wanted.set_active(events,self.next_activation,quick);
+                let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
+                wanted.set_active(events,self.next_activation,speed);
                 self.next_activation += 1;
                 self.future = Some(wanted);
                 self.notify_viewport(events);
@@ -49,7 +51,17 @@ impl TrainSetData {
         Ok(())
     }
 
-    fn quiescent(&self) -> Option<&Train> {
+    fn maybe_send_busy(&mut self) -> Option<bool> {
+        let new_busy = !(self.future.is_none() && self.wanted.is_none());
+        if self.old_busy != new_busy {
+            self.old_busy = new_busy;
+            return Some(new_busy)
+        } else {
+            return None;
+        }
+    }
+
+    fn quiescent_target(&self) -> Option<&Train> {
         /* The quiescent train is the train which, barring this and any future changes will ultimately be displayed. */
         if let Some(wanted) = &self.wanted {
             Some(wanted)
@@ -71,7 +83,7 @@ impl TrainSetData {
     fn maybe_new_wanted(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         let train_id = TrainId::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
-        if let Some(quiescent) = self.quiescent() {
+        if let Some(quiescent) = self.quiescent_target() {
             if quiescent.id() == train_id {
                 new_target_needed = false;
             }
@@ -191,6 +203,10 @@ impl TrainSet {
         }
         events.notify_viewport(viewport,true);
         self.run(events,objects);
+        let busy = self.state.lock().unwrap().maybe_send_busy();
+        if let Some(yn) = busy {
+            objects.integration.lock().unwrap().busy(yn);
+        }
         Ok(())
     }
 
@@ -198,5 +214,9 @@ impl TrainSet {
         let mut events = CarriageEvents::new();
         self.state.lock().unwrap().transition_complete(&mut events);
         self.run(events,objects);
+        let busy = self.state.lock().unwrap().maybe_send_busy();
+        if let Some(yn) = busy {
+            objects.integration.lock().unwrap().busy(yn);
+        }
     }
 }

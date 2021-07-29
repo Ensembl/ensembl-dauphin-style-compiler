@@ -1,4 +1,6 @@
 use std::sync::{ Arc };
+use commander::PromiseFuture;
+
 use crate::{DataMessage, PgCommanderTaskSpec, StickAuthorityStore, add_task, api::ApiMessage, async_complete_task, core::stick::{ StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
@@ -36,10 +38,9 @@ impl JumpStore {
         self.0.get(location).await.as_ref().clone()
     }
 
-    pub(crate) fn jump(&self, location: &str) {
+    pub(crate) fn jump(&self, location: &str, promise: PromiseFuture<Option<(StickId,f64,f64)>>) {
         let self2 = self.clone();
         let location = location.to_string();
-        let queue = self.1.queue.clone();
         let handle = add_task(&self.1.commander,PgCommanderTaskSpec {
             name: "jump".to_string(),
             prio: 4,
@@ -49,9 +50,7 @@ impl JumpStore {
                 let (stick,left,right) = self2.get(&location).await?.as_ref().clone();
                 let left = left as f64;
                 let right = right as f64;
-                queue.push(ApiMessage::SetStick(StickId::new(&stick)));
-                queue.push(ApiMessage::SetPosition((left+right)/2.));
-                queue.push(ApiMessage::SetBpPerScreen(right-left));
+                promise.satisfy(Some((StickId::new(&stick),(left+right)/2.,right-left)));
                 Ok(())
             }),
             stats: false

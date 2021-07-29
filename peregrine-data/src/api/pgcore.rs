@@ -2,6 +2,7 @@ use crate::core::{ Viewport };
 use crate::index::metricreporter::MetricReport;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
+use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use crate::request::channel::Channel;
@@ -114,8 +115,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::TransitionComplete);
     }
 
-    pub fn jump(&self, location: &str) {
-        self.base.queue.push(ApiMessage::Jump(location.to_string()));
+    pub async fn jump(&self, location: &str) -> Option<(StickId,f64,f64)> {
+        let p = PromiseFuture::new();
+        self.base.queue.push(ApiMessage::Jump(location.to_string(),p.clone()));
+        p.await
     }
 
     pub fn set_switch(&self, path: &[&str]) {
