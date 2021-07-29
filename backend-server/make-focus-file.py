@@ -15,7 +15,7 @@ for species_part in os.listdir(genes_dir):
         with open(bed_path) as f:
             for line in f.readlines():
                 parts = line.split("\t")
-                ids = [parts[3],parts[14]]
+                ids = [parts[3].split(".")[0],parts[14].split(".")[0]]
                 stick = "{}:{}".format(species_part,parts[0])
                 stick = stick.replace('.','_')
                 left = int(parts[1])
@@ -24,6 +24,6 @@ for species_part in os.listdir(genes_dir):
                 left = left - pad
                 right = right + pad
                 for id in ids:
-                    #print(id)
+                    # print(id)
                     out["focus:{}".format(id)] = "\t".join([stick,str(left),str(right)])
 out.close()
