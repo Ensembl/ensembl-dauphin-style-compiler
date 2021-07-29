@@ -4,6 +4,7 @@ use crate::index::metricreporter::MetricReport;
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::{CommanderStream, PromiseFuture};
+use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 use crate::util::message::DataMessage;
@@ -85,13 +86,15 @@ impl ApiQueueCampaign {
 
 #[derive(Clone)]
 pub struct PeregrineApiQueue {
-    queue: CommanderStream<ApiMessage>
+    queue: CommanderStream<(ApiMessage,Lockout)>,
+    visual_blocker: Blocker
 }
 
 impl PeregrineApiQueue {
-    pub fn new() -> PeregrineApiQueue {
+    pub fn new(visual_blocker: &Blocker) -> PeregrineApiQueue {
         PeregrineApiQueue {
             queue: CommanderStream::new(),
+            visual_blocker: visual_blocker.clone()
         }
     }
 
@@ -124,10 +127,13 @@ impl PeregrineApiQueue {
                 loop {
                     let mut messages = self2.queue.get_multi().await;
                     let mut campaign = ApiQueueCampaign::new(&data2.viewport);
-                    for message in messages.drain(..) {
+                    let mut lockouts = vec![];
+                    for (message,lockout) in messages.drain(..) {
                         campaign.run_message(&mut data2,message);
+                        lockouts.push(lockout);
                     }
                     self2.update_viewport(&mut data2,campaign.viewport().clone());
+                    drop(lockouts);
                 }
             }),
             stats: false
@@ -135,6 +141,6 @@ impl PeregrineApiQueue {
     }
 
     pub fn push(&self, message: ApiMessage) {
-        self.queue.add(message);
+        self.queue.add((message,self.visual_blocker.lock()));
     }
 }

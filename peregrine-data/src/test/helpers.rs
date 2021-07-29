@@ -10,6 +10,7 @@ use crate::switch::allotment::AllotmentPetitioner;
 use crate::util::message::DataMessage;
 use commander::Agent;
 use peregrine_dauphin_queue::PgDauphinQueue;
+use peregrine_toolkit::sync::blocker::Blocker;
 use serde_cbor::Value as CborValue;
 use peregrine_toolkit::url::Url;
 
@@ -45,7 +46,7 @@ impl TestHelpers {
             commander,
             manager,
             booted,
-            queue: PeregrineApiQueue::new(),
+            queue: PeregrineApiQueue::new(&Blocker::new()),
             allotment_petitioner: AllotmentPetitioner::new(),
             identity: Arc::new(Mutex::new(0))
         };

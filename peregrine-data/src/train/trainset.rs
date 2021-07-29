@@ -1,4 +1,6 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
+
 use crate::{CarriageSpeed, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
@@ -19,18 +21,23 @@ pub struct TrainSetData {
     wanted: Option<Train>,
     next_activation: u32,
     messages: MessageSender,
-    old_busy: bool
+    old_busy: bool,
+    visual_blocker: Blocker,
+    #[allow(unused)]
+    visual_lockout: Option<Lockout>
 }
 
 impl TrainSetData {
-    fn new(messages: &MessageSender) -> TrainSetData {
+    fn new(messages: &MessageSender, visual_blocker: &Blocker) -> TrainSetData {
         TrainSetData {
             current: None,
             future: None,
             wanted: None,
             next_activation: 0,
             messages: messages.clone(),
-            old_busy: false
+            old_busy: false,
+            visual_blocker: visual_blocker.clone(),
+            visual_lockout: None
         }
     }
 
@@ -49,6 +56,17 @@ impl TrainSetData {
     fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, viewport: &Viewport) -> Result<(),DataMessage> {
         self.wanted = Some(Train::new(train_id,events,viewport,&self.messages)?);
         Ok(())
+    }
+
+    fn update_visual_lock(&mut self) {
+        let new_busy = !(self.future.is_none() && self.wanted.is_none());
+        if new_busy {
+            if self.visual_lockout.is_none() {
+                self.visual_lockout = Some(self.visual_blocker.lock());
+            }
+        } else {
+            self.visual_lockout = None;
+        }
     }
 
     fn maybe_send_busy(&mut self) -> Option<bool> {
@@ -145,9 +163,9 @@ pub struct TrainSet {
 }
 
 impl TrainSet {
-    pub fn new(base: &PeregrineCoreBase) -> TrainSet {
+    pub fn new(base: &PeregrineCoreBase,visual_blocker: &Blocker) -> TrainSet {
         TrainSet {
-            state: Arc::new(Mutex::new(TrainSetData::new(&base.messages))),
+            state: Arc::new(Mutex::new(TrainSetData::new(&base.messages,visual_blocker))),
             messages: base.messages.clone()
         }
     }
@@ -203,6 +221,7 @@ impl TrainSet {
         }
         events.notify_viewport(viewport,true);
         self.run(events,objects);
+        self.state.lock().unwrap().update_visual_lock();
         let busy = self.state.lock().unwrap().maybe_send_busy();
         if let Some(yn) = busy {
             objects.integration.lock().unwrap().busy(yn);
@@ -214,6 +233,7 @@ impl TrainSet {
         let mut events = CarriageEvents::new();
         self.state.lock().unwrap().transition_complete(&mut events);
         self.run(events,objects);
+        self.state.lock().unwrap().update_visual_lock();
         let busy = self.state.lock().unwrap().maybe_send_busy();
         if let Some(yn) = busy {
             objects.integration.lock().unwrap().busy(yn);

@@ -135,7 +135,7 @@ impl PeregrineInnerAPI {
         let integration = Box::new(PgIntegration::new(PgChannel::new(),&input,trainset.clone(),webgl.clone(),&stage,&report,&busy_waiter));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
-        }).map_err(|e| Message::DataError(e))?;
+        },queue_blocker).map_err(|e| Message::DataError(e))?;
         peregrine_dauphin(Box::new(PgDauphinIntegrationWeb()),&core);
         let redraw_needed = stage.lock().unwrap().redraw_needed();
         report.run(&commander);

@@ -5,6 +5,7 @@ use crate::api::PeregrineIntegration;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
+use peregrine_toolkit::sync::blocker::Blocker;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
 use crate::{ 
@@ -56,7 +57,7 @@ pub struct PeregrineCore {
 }
 
 impl PeregrineCore {
-    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F) -> Result<PeregrineCore,DataMessage> 
+    pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, visual_blocker: &Blocker) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
@@ -71,12 +72,12 @@ impl PeregrineCore {
             dauphin_queue,
             manager,
             messages,
-            queue: PeregrineApiQueue::new(),
+            queue: PeregrineApiQueue::new(visual_blocker),
             allotment_petitioner: AllotmentPetitioner::new(),
             identity: Arc::new(Mutex::new(0))
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = TrainSet::new(&base);
+        let train_set = TrainSet::new(&base,visual_blocker);
         Ok(PeregrineCore {
             base,
             agent_store,
