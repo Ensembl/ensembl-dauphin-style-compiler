@@ -91,10 +91,11 @@ impl<T> CommanderStream<T> {
     /// Return at least one queue member. Wait if none present. If multiple are present, return all.
     pub async fn get_multi(&self) -> Vec<T> {
         let mut out = Vec::new();
-        while let Some(value) = self.get_nowait() {
-            out.push(value);
-        }
-        if out.len() == 0 {
+        loop {
+            while let Some(value) = self.get_nowait() {
+                out.push(value);
+            }
+            if out.len() != 0 { return out; }
             out.push(self.get().await);
         }
         out

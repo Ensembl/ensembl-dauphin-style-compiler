@@ -104,11 +104,12 @@ impl fmt::Debug for TrackConfig {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut track_config_list = vec![];
         self.list_configs(&mut track_config_list);
-        let track_config_list : Vec<_> = track_config_list.iter().map(|x| {
+        let mut track_config_list : Vec<_> = track_config_list.iter().map(|x| {
             x.join(".")
         }).collect();
+        track_config_list.sort();
         let track_config_list = track_config_list.join(";");
-        write!(f,"{:?}({}) ",self.track,&track_config_list)?;
+        write!(f,"{:?}({}) ",self.track.id(),&track_config_list)?;
         Ok(())
     }
 }
