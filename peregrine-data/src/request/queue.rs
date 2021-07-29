@@ -122,7 +122,6 @@ impl RequestQueue {
 
     async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
         let pending = lock!(self.0).pending_send.clone();
-        let channel = lock!(self.0).channel.clone();
         let mut requests = pending.get_multi().await;
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();
@@ -137,7 +136,6 @@ impl RequestQueue {
     }
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
-        let channel = lock!(self.0).channel.clone();
         let sender = lock!(self.0).make_packet_sender(packet)?;
         let response = sender.await?;
         let response = lock!(self.0).builder.new_packet(&response).context("Building response packet")?;

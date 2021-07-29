@@ -1,5 +1,6 @@
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
+use crate::{PgCommanderTaskSpec, add_task};
 use crate::api::{ PeregrineCore, MessageSender };
 use crate::lane::{ ShapeRequest, Region };
 use crate::shape::{ ShapeListBuilder, ShapeList };
@@ -87,10 +88,24 @@ impl Carriage {
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
         let lane_store = data.agent_store.lane_store.clone();
-        let tracks : Vec<_> = shape_requests.iter().map(|p| lane_store.run(p)).collect();
+        let tracks : Vec<_> = shape_requests.iter().map(|p|{
+            let p = p.clone();
+            let lane_store = lane_store.clone();
+            add_task(&data.base.commander,PgCommanderTaskSpec {
+                name: format!("data program"),
+                prio: 0,
+                slot: None,
+                timeout: None,
+                stats: false,
+                task: Box::pin(async move {
+                    lane_store.run(&p).await.as_ref().clone()
+                })
+            })
+        }).collect();
         let mut new_shapes = ShapeListBuilder::new();
         for future in tracks {
-            match future.await.as_ref() {
+            future.finish_future().await;
+            match future.take_result().as_ref().unwrap() {
                 Ok(zoo) => {
                     new_shapes.append(&zoo);
                 },
