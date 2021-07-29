@@ -1,7 +1,8 @@
 use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
-use crate::{ PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, run::report::Report, stage::axis::ReadStageAxis, util::needed::{Needed, NeededLock}};
+use peregrine_toolkit::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
+use crate::{ PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
@@ -18,12 +19,17 @@ pub struct PhysicsState {
     x_puller: Puller,
     z_puller: Puller,
     last_update: Option<f64>,
+    /* used internally to stop spin-waits */
     physics_needed: Needed,
-    physics_lock: Option<NeededLock>
+    physics_lock: Option<NeededLock>,
+    /* used to implement sync in draw queue */
+    queue_blocker: Blocker,
+    #[allow(unused)]
+    queue_lockout: Option<Lockout>
 }
 
 impl PhysicsState {
-    fn new(_config: &PgPeregrineConfig, report: &Report, physics_needed: &Needed) -> Result<PhysicsState,Message> {
+    fn new(_config: &PgPeregrineConfig, report: &Report, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
             runner: PhysicsRunner::new(),
             report: report.clone(),
@@ -31,7 +37,9 @@ impl PhysicsState {
             x_puller: Puller::new(),
             z_puller: Puller::new(),
             physics_needed: physics_needed.clone(),
-            physics_lock: None
+            physics_lock: None,
+            queue_blocker: queue_blocker.clone(),
+            queue_lockout: None
         })
     }
 
@@ -94,9 +102,11 @@ impl PhysicsState {
         if self.runner.update_needed() || self.x_puller.is_active() || self.z_puller.is_active() {
             if self.physics_lock.is_none() {
                 self.physics_lock = Some(self.physics_needed.lock());
+                self.queue_lockout = Some(self.queue_blocker.lock());
             }
         } else {
             self.physics_lock = None;
+            self.queue_lockout = None;
             self.last_update = None;
         }
     }
@@ -259,10 +269,10 @@ impl Physics {
         }
     }
 
-    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<Physics,Message> {
+    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, queue_blocker: &Blocker) -> Result<Physics,Message> {
         let physics_needed = Needed::new();
         let out = Physics {
-            state: Arc::new(Mutex::new(PhysicsState::new(config,report,&physics_needed)?)),
+            state: Arc::new(Mutex::new(PhysicsState::new(config,report,&physics_needed,queue_blocker)?)),
             report: report.clone(),
             physics_needed: physics_needed.clone()
         };

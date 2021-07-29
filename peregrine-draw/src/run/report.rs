@@ -1,9 +1,7 @@
 use std::{sync::{Arc, Mutex}};
-
 use commander::{CommanderStream, cdr_tick};
-
-use crate::{Message, PgCommanderWeb, util::needed::{Needed, NeededLock}};
-
+use peregrine_toolkit::sync::needed::{Needed, NeededLock};
+use crate::{Message, PgCommanderWeb };
 use super::{PgConfigKey, PgPeregrineConfig};
 
 struct Changed<T: PartialEq> {

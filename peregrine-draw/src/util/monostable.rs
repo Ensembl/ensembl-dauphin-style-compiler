@@ -1,9 +1,8 @@
 use std::sync::{ Arc, Mutex, Weak };
 use commander::{ cdr_timer };
+use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::util::message::Message;
-use super::needed::{Needed, NeededLock};
-
 struct MonostableState {
     needed: Needed,
     future: bool,

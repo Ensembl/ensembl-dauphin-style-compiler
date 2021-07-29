@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::util::needed::Needed;
+use peregrine_toolkit::sync::needed::Needed;
+
 use crate::util::message::Message;
 
 #[derive(Clone)]

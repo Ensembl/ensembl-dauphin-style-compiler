@@ -73,7 +73,7 @@ impl PhysicsRunner {
         self.animation_queue.push_back(entry);
     }
 
-    pub(super) fn update_needed(&mut self)  -> bool{
+    pub(super) fn update_needed(&mut self) -> bool{
         self.w_left.is_active() || self.w_right.is_active() || self.x.is_active() || self.z.is_active() || 
         self.animation_queue.len() !=0 || self.animation_current.is_some()
     }
@@ -97,7 +97,6 @@ impl PhysicsRunner {
             self.x.move_to(current_px);
         }
         self.x.move_more(amount_px);
-        self.update_needed();
         Ok(self.x.get_target())
     }
 
@@ -109,7 +108,6 @@ impl PhysicsRunner {
             self.z.move_to(z_current_px);
         }
         self.z.move_more(amount_px);
-        self.update_needed();
         Ok(self.z.get_target())
     }
 

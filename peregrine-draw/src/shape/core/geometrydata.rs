@@ -1,11 +1,10 @@
 use peregrine_data::{ ZMenuGenerator,Allotment };
-use super::super::util::arrayutil::{ empty_is };
 use super::super::layers::drawingzmenus::{ ZMenuResult };
 use crate::stage::stage::{ ReadStage };
 use crate::util::message::Message;
 
 pub trait GeometryData {
-    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message>;
+    fn iter_screen<'x>(&'x self, stage: &ReadStage) -> Result<Box<dyn Iterator<Item=((f64,f64),(f64,f64))> + 'x>,Message>;
     fn in_bounds(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message>;
 }
 

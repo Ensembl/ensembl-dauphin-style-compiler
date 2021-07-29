@@ -6,3 +6,7 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
+
+[dependencies.commander]
+version="*"
+path="../commander"

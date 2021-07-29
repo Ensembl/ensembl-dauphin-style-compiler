@@ -483,6 +483,7 @@ name = "peregrine_toolkit"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "commander",
 ]
 
 [[package]]

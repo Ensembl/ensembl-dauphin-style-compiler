@@ -166,6 +166,10 @@ impl GenomeBrowser {
         self.api.jump(location);
     }
 
+    pub fn wait(&self) {
+        self.api.wait();
+    }
+
     pub fn receive_message(message: &JsValue) {
         console::log_1(&format!("{:?}",message).into());
     }

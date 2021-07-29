@@ -1,7 +1,8 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
 use peregrine_data::{AllotmentPetitioner, VariableValues};
-use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, util::needed::{Needed, NeededLock}, webgl::{DrawingSession, global::WebGlGlobal}};
+use peregrine_toolkit::sync::needed::{Needed, NeededLock};
+use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]

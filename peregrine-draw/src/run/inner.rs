@@ -15,6 +15,7 @@ use peregrine_data::{
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::plumbing::distributor::Distributor;
+use peregrine_toolkit::sync::blocker::Blocker;
 use super::report::Report;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
@@ -114,7 +115,7 @@ impl PeregrineInnerAPI {
     
     pub fn commander(&self) -> PgCommanderWeb { self.commander.clone() } // XXX
 
-    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb) -> Result<PeregrineInnerAPI,Message> {
+    pub(super) fn new(config: &CreatedPeregrineConfigs, dom: &PeregrineDom, commander: &PgCommanderWeb, queue_blocker: &Blocker) -> Result<PeregrineInnerAPI,Message> {
         let commander = commander.clone();
         // XXX change commander init to allow message init to move to head
         let mut messages = Distributor::new();
@@ -130,7 +131,7 @@ impl PeregrineInnerAPI {
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let busy_waiter = BusyWaiter::new();
-        let mut input = Input::new();
+        let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),&input,trainset.clone(),webgl.clone(),&stage,&report,&busy_waiter));
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))

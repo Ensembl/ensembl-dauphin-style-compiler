@@ -1,6 +1,7 @@
 use peregrine_data::{ Carriage, CarriageId };
+use peregrine_toolkit::sync::needed::Needed;
 use std::collections::{ HashMap, HashSet };
-use crate::{shape::layers::programstore::ProgramStore, util::needed::Needed};
+use crate::{shape::layers::programstore::ProgramStore };
 use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;

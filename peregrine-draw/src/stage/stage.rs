@@ -1,6 +1,7 @@
 use peregrine_data::{StickId, Viewport};
+use peregrine_toolkit::sync::needed::Needed;
 
-use crate::{util::needed::Needed, webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
+use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::util::message::Message;
 use super::axis::{ StageAxis, ReadStageAxis };

@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore };
+use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
-use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage }, util::needed::{Needed, NeededLock}};
+use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::shape::layers::drawingzmenus::ZMenuEvent;

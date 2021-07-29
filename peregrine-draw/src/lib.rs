@@ -130,7 +130,6 @@ mod util {
     pub(crate) mod resizeobserver;
     #[macro_use]
     pub(crate) mod misc;
-    pub(crate) mod needed;
     pub use self::ajax::PgAjax;
     pub use self::message::Message;
 }

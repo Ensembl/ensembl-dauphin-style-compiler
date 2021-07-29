@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{PeregrineCore, StickId};
+use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
 use crate::run::report::Report;
@@ -62,12 +63,14 @@ struct InputState {
 #[derive(Clone)]
 pub struct Input {
     low_level: Arc<Mutex<Option<InputState>>>,
+    queue_blocker: Blocker
 }
 
 impl Input {
-    pub fn new() ->Input {
+    pub fn new(queue_blocker: &Blocker) -> Input {
         Input {
-            low_level: Arc::new(Mutex::new(None))
+            low_level: Arc::new(Mutex::new(None)),
+            queue_blocker: queue_blocker.clone()
         }
     }
 
@@ -76,7 +79,7 @@ impl Input {
     pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
-        let physics = Physics::new(config,&mut low_level,inner_api,commander,report)?;
+        let physics = Physics::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
         debug_register(config,&mut low_level,inner_api)?;
         *self.low_level.lock().unwrap() = Some(InputState {
             low_level, physics,
@@ -100,7 +103,7 @@ impl Input {
         self.state(|state| state.physics.goto(&mut state.inner_api.clone(),centre,scale))
     }
 
-    async fn jump_task(&self,data_api: PeregrineCore, location: String) -> Result<(),Message> {
+    async fn jump_task(&self,data_api: PeregrineCore, location: String, lockout: Lockout) -> Result<(),Message> {
         if let Some((stick,centre,bp_per_screen)) = data_api.jump(&location).await {
             let slide = self.state(|state| { 
                 let mut slide = false;
@@ -121,6 +124,7 @@ impl Input {
                 });
             }
         }
+        drop(lockout);
         Ok(())    
     }
 
@@ -128,8 +132,9 @@ impl Input {
         let self2 = self.clone();
         let data_api = data_api.clone();
         let location = location.to_string();
+        let lockout = self.queue_blocker.lock();
         commander.add("jump-web", 0, None, None, Box::pin(async move {
-            self2.jump_task(data_api.clone(),location).await
+            self2.jump_task(data_api.clone(),location,lockout).await
         }));
     }
 }

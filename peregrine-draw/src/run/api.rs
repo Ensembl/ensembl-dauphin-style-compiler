@@ -1,4 +1,5 @@
 use crate::util::message::{ Message };
+use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
@@ -13,6 +14,40 @@ use super::frame::run_animations;
 
 use std::sync::{ Arc, Mutex };
 
+#[derive(Clone)]
+struct DrawMessageQueue {
+    queue: CommanderStream<DrawMessage>,
+    blocker: Blocker
+}
+
+impl DrawMessageQueue {
+    fn new() -> DrawMessageQueue {
+        let blocker = Blocker::new();
+        blocker.set_freewheel(true);
+        DrawMessageQueue {
+            queue: CommanderStream::new(),
+            blocker
+        }
+    }
+
+    fn blocker(&self) -> &Blocker { &self.blocker }
+
+    fn add(&self, message: DrawMessage) {
+        self.queue.add(message);
+    }
+
+    async fn get(&self) -> DrawMessage {
+        let message = self.queue.get().await;
+        self.blocker.wait().await;
+        self.blocker.set_freewheel(true);
+        message
+    }
+
+    fn sync(&self) {
+        self.blocker.set_freewheel(false);
+    }
+}
+
 enum DrawMessage {
     Goto(f64,f64),
     SetY(f64),
@@ -24,7 +59,8 @@ enum DrawMessage {
     SetMessageReporter(Box<dyn FnMut(&Message) + 'static + Send>),
     DebugAction(u8),
     SetArtificial(String,bool),
-    Jump(String)
+    Jump(String),
+    Sync()
 }
 
 // XXX conditional
@@ -41,13 +77,14 @@ impl std::fmt::Debug for DrawMessage {
             DrawMessage::SetMessageReporter(_) => write!(f,"SetMessageReporter(...)"),
             DrawMessage::DebugAction(index)  => write!(f,"DebugAction({:?})",index),
             DrawMessage::SetArtificial(name,start) => write!(f,"SetArtificial({:?},{:?})",name,start),
-            DrawMessage::Jump(location) => write!(f,"Jump({})",location)
+            DrawMessage::Jump(location) => write!(f,"Jump({})",location),
+            DrawMessage::Sync() => write!(f,"Sync")
         }
     }
 }
 
 impl DrawMessage {
-    fn run(self, draw: &mut PeregrineInnerAPI) -> Result<(),Message> {
+    fn run(self, draw: &mut PeregrineInnerAPI, blocker: &Blocker) -> Result<(),Message> {
         if draw.config().get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages))? {
             console::log_1(&format!("message {:?}",self).into());
         }
@@ -84,6 +121,9 @@ impl DrawMessage {
             },
             DrawMessage::Jump(location) => {
                 draw.jump(&location);
+            },
+            DrawMessage::Sync() => {
+                blocker.set_freewheel(false);
             }
         }
         Ok(())
@@ -92,14 +132,14 @@ impl DrawMessage {
 
 #[derive(Clone)]
 pub struct PeregrineAPI {
-    queue: CommanderStream<DrawMessage>,
+    queue: DrawMessageQueue,
     stick: Arc<Mutex<Option<String>>>
 }
 
 impl PeregrineAPI {
     pub fn new() -> PeregrineAPI {
         PeregrineAPI {
-            queue: CommanderStream::new(),
+            queue: DrawMessageQueue::new(),
             stick: Arc::new(Mutex::new(None))
         }
     }
@@ -119,6 +159,10 @@ impl PeregrineAPI {
 
     pub fn jump(&self, location: &str) {
         self.queue.add(DrawMessage::Jump(location.to_string()));
+    }
+
+    pub fn wait(&self) {
+        self.queue.add(DrawMessage::Sync());
     }
 
     pub fn set_switch(&self, path: &[&str]) {
@@ -152,10 +196,10 @@ impl PeregrineAPI {
         self.queue.add(DrawMessage::SetArtificial(name.to_string(),start));
     }
 
-    async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),()> {
+    async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
         loop {
             let message = self.queue.get().await;
-            message.run(&mut draw);
+            message.run(&mut draw,&self.queue.blocker())?;
         }
     }
 
@@ -163,7 +207,7 @@ impl PeregrineAPI {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander)?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.blocker())?;
         run_animations(&mut inner,&dom)?;
         let self2 = self.clone();
         commander.add("draw-api",15,None,None,Box::pin(async move { self2.step(inner).await }));
