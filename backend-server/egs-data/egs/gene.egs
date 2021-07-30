@@ -12,6 +12,7 @@ data := get_data("self()","gene",get_region());
  * the transforms applied there in reverse order.
  */
 
+focus_id := string_seq(data,"focus_ids");
 gene_id := string_seq(data,"gene_ids");
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
@@ -58,7 +59,7 @@ allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 
 focus_gene := list_switch(["focus","gene"]);
-allotment_idx#[gene_id==focus_gene] := 4;
+allotment_idx#[focus_id==focus_gene] := 4;
 
 allotments := [use_allotment(tracks_used[])];
 allotment := index(allotment_idx,allotments);

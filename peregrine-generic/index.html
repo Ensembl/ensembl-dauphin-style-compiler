@@ -84,16 +84,16 @@
           genome_browser.goto(10000000,10100000);
         };
         document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.jump("focus:ENSG00000139618.15");
+          genome_browser.jump("focus:ENSG00000139618");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","ENSG00000139618.15"]);
+          genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
         };
         document.getElementById("jump-fry").onclick = function() {
-          genome_browser.jump("focus:ENSG00000073910.22");
+          genome_browser.jump("focus:ENSG00000073910");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","ENSG00000073910.22"]);
+          genome_browser.set_switch(["focus","gene","ENSG00000073910"]);
         };
         document.getElementById("jump-error").onclick = function() {
           genome_browser.jump("focus:xyz");

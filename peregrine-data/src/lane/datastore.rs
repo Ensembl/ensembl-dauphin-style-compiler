@@ -9,9 +9,6 @@ use crate::request::data::{ DataCommandRequest, DataResponse };
 // TODO Memoized errors with retry semantics
 
 async fn run(base: PeregrineCoreBase, (region,channel,name): (Region,Channel,String), priority: PacketPriority) -> Result<Arc<Box<DataResponse>>,DataMessage> {
-    use web_sys::console;
-    #[cfg(debug_assertions)]
-    console::log_1(&format!("{:?} {:?}/{:?}",priority,region,name).into());
     DataCommandRequest::new(&channel,&name,&region).execute(base.manager,&priority).await.map(|x| Arc::new(x))
 }
 

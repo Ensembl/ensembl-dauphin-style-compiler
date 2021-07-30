@@ -100,6 +100,7 @@ def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, incl
     out['gene_names'] = compress(gene_names)
     out['gene_descs'] = compress(gene_descs)
     out['gene_ids'] = compress("\0".join(genes))
+    out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
     out['designated_transcript_ids'] = compress("\0".join(designated_transcript_ids))
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     classified_numbers(out,gene_designations,"gene_designations")
@@ -139,7 +140,7 @@ def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
-    out['gene_ids'] = compress("\0".join(genes))
+    out['focus_ids'] = compress("\0".join([x.split('.')[0] for x in genes]))
     return Response(5,{ 'data': out })
 
 class TranscriptDataHandler(DataHandler):

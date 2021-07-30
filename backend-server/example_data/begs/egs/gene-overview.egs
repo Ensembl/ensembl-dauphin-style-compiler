@@ -12,7 +12,7 @@ data := get_data("self()","gene",get_region());
  * the transforms applied there in reverse order.
  */
 
-gene_id := string_seq(data,"gene_ids");
+focus_id := string_seq(data,"focus_ids");
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
 start := delta_seq(data,"starts");

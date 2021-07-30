@@ -12,6 +12,7 @@ data := get_data("self()","transcript",get_region());
  * the transforms applied there in reverse order.
  */
 
+focus_id := string_seq(data,"focus_ids");
 gene_id := string_seq(data,"gene_ids");
 gene_name := string_seq(data,"gene_names");
 gene_desc := string_seq(data,"gene_descs");
@@ -36,7 +37,7 @@ thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 
-exon_gene_id := index(exon_gene_indexes,[gene_id]);
+exon_focus_id := index(exon_gene_indexes,[focus_id]);
 
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
@@ -89,7 +90,7 @@ allotment_idx := len([gene_id]) (*) 0;
 allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
-allotment_idx#[gene_id==focus_gene] := 4;
+allotment_idx#[focus_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
 
 /*
@@ -99,7 +100,7 @@ allotment := index(allotment_idx,allotments);
 exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
-exon_allotment_idx#[exon_gene_id==focus_gene] := 4;
+exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
 exon_allotment := index(exon_allotment_idx,allotments);
 thick_exon_allotment := exon_allotment#[thick_exons];
 
