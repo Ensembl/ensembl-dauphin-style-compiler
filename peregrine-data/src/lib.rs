@@ -108,6 +108,7 @@ pub(crate) mod spacebase {
 }
 
 pub(crate) mod switch {
+    pub(crate) mod allotter;
     pub(crate) mod allotment;
     pub(crate) mod track;
     pub(crate) mod switch;
@@ -169,8 +170,11 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList
 };
+pub use self::switch::allotter::{
+    Allotter
+};
 pub use self::switch::allotment::{ 
-    AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotter, Allotment, OffsetSize, AllotmentPositionKind,
+    AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotment, OffsetSize, AllotmentPositionKind,
     PositionVariant, AllotmentPosition
 };
 pub use self::switch::switch::{ Switches };

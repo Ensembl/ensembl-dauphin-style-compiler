@@ -2,7 +2,8 @@ use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
 use crate::{HoleySpaceBase, HoleySpaceBaseArea, Shape };
-use crate::switch::allotment::{ Allotter, AllotmentHandle, AllotmentPetitioner };
+use crate::switch::allotter::{ Allotter };
+use crate::switch::allotment::{ AllotmentHandle, AllotmentPetitioner };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
