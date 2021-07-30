@@ -16,13 +16,13 @@ impl RequestSorter {
 
     fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) {
         let request = petitioner.get(handle);
-        if request.name() == "" { return; }
+        if request.metadata().is_dustbin() { return; }
         self.requests.push((handle.clone(),request));
     }
 
     fn get(mut self) -> Vec<AllotmentHandle> {
         self.requests.sort_by_cached_key(|(_,r)| {
-            (r.priority(),r.name().to_string())
+            (r.priority(),r.metadata().clone())
         });
         self.requests.iter().map(|(h,_)| h.clone()).collect()
     }
@@ -115,7 +115,7 @@ impl RunningAllotter {
     }
 
     fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) -> Allotment {
-        let position = self.get_allocator(&petitioner.get(handle).kind()).allocate();
+        let position = self.get_allocator(&petitioner.get(handle).metadata().kind()).allocate();
         Allotment::new(position)
     }
 }

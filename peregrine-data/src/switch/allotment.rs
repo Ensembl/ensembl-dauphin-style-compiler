@@ -1,32 +1,27 @@
-use std::collections::HashMap;
 use std::{sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
-use keyed::{ keyed_handle, KeyedValues, KeyedData, KeyedHandle };
-use crate::util::DataMessage;
+use keyed::{ keyed_handle, KeyedValues, KeyedHandle };
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
-pub struct AllotmentRequest {
-    name: String,
-    priority: i64
+pub struct AllotmentMetadata {
+    name: String
 }
 
-impl AllotmentRequest {
-    pub fn new(name: &str, priority: i64) -> AllotmentRequest {
-        AllotmentRequest {
-            name: name.to_string(),
-            priority
+impl AllotmentMetadata {
+    pub fn dustbin() -> AllotmentMetadata {
+        AllotmentMetadata {
+            name: "".to_string()
         }
     }
 
-    pub fn merge(&mut self, other: &AllotmentRequest) {
-        if self.name != other.name { return; }
-        if other.priority < self.priority {
-            self.priority = other.priority;
+    pub fn new(name: &str) -> AllotmentMetadata {
+        AllotmentMetadata {
+            name: name.to_string()
         }
     }
 
-    pub fn priority(&self) -> i64 { self.priority }
     pub fn name(&self) -> &str { &self.name }
+    pub fn is_dustbin(&self) -> bool { self.name == "" }
 
     pub fn kind(&self) -> AllotmentPositionKind { 
         if self.name.starts_with("window:") {
@@ -35,6 +30,31 @@ impl AllotmentRequest {
             AllotmentPositionKind::Track
         }
     }
+}
+
+#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+pub struct AllotmentRequest {
+    metadata: AllotmentMetadata,
+    priority: i64
+}
+
+impl AllotmentRequest {
+    pub fn new(metadata: &AllotmentMetadata, priority: i64) -> AllotmentRequest {
+        AllotmentRequest {
+            metadata: metadata.clone(),
+            priority
+        }
+    }
+
+    pub fn merge(&mut self, other: &AllotmentRequest) {
+        if self.metadata().name() != other.metadata().name() { return; }
+        if other.priority < self.priority {
+            self.priority = other.priority;
+        }
+    }
+
+    pub fn priority(&self) -> i64 { self.priority }
+    pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
 }
 
 
@@ -54,18 +74,18 @@ impl AllotmentPetitioner {
         let mut out = AllotmentPetitioner {
             allotments: Arc::new(Mutex::new(KeyedValues::new()))
         };
-        out.add(AllotmentRequest::new("",0)); // null gets slot 0
+        out.add(AllotmentRequest::new(&AllotmentMetadata::dustbin(),0)); // null gets slot 0
         out
     }
 
     pub fn add(&mut self, request: AllotmentRequest) -> AllotmentHandle {
-        if let Some(handle) = self.lookup(request.name()) {
+        if let Some(handle) = self.lookup(request.metadata().name()) {
             let mut data = self.allotments.lock().unwrap();
             let existing = data.data_mut().get_mut(&handle);
             existing.merge(&request);
             return handle;
         }
-        self.allotments.lock().unwrap().add(request.name(),request.clone())
+        self.allotments.lock().unwrap().add(request.metadata().name(),request.clone())
     }
 
     pub fn lookup(&mut self, name: &str) -> Option<AllotmentHandle> {
