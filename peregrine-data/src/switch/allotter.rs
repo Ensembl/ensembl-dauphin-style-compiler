@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use keyed::KeyedData;
 use crate::{Allotment, AllotmentPetitioner, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
-use super::allotment::{ OffsetSize, AllotmentHandle };
+use super::allotment::{AllotmentHandle, AllotmentStaticMetadata, AllotterMetadata, OffsetSize};
 
 struct RequestSorter {
     requests: Vec<(AllotmentHandle,AllotmentRequest)>
@@ -123,36 +123,37 @@ impl RunningAllotter {
 }
 
 pub struct Allotter {
-    allotments: KeyedData<AllotmentHandle,Option<Allotment>>
+    allotments: KeyedData<AllotmentHandle,Option<Allotment>>,
+    metadata: AllotterMetadata
 }
 
 impl Allotter {
     pub fn empty() -> Allotter {
         Allotter {
-            allotments: KeyedData::new()
+            allotments: KeyedData::new(),
+            metadata: AllotterMetadata::new(vec![])
         }
     }
 
     pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
-        use web_sys::console;
         let mut sorter = RequestSorter::new();
         for handle in handles {
             sorter.add(petitioner,handle);
         }
+        let mut metadata = vec![];
         let mut allotments = KeyedData::new();
         let mut running_allocator = RunningAllotter::new();
         for sorted_handle in sorter.get() {
             let allotment = running_allocator.add(petitioner,&sorted_handle);
-            let metadata = allotment.metadata();
-            console::log_1(&format!("{:?} {:?}",metadata,allotment.position()).into());
+            metadata.push(allotment.metadata().clone());
             allotments.insert(&sorted_handle,allotment);
         }
-        Allotter {
-            allotments
-        }
+        Allotter { allotments, metadata: AllotterMetadata::new(metadata) }
     }
 
     pub fn get(&self, handle: &AllotmentHandle) -> Result<&Allotment,DataMessage> {
         self.allotments.get(handle).as_ref().ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string()))
     }
+
+    pub fn metadata(&self) -> AllotterMetadata { self.metadata.clone() }
 }

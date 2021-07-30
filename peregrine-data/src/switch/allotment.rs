@@ -1,20 +1,20 @@
-use std::{collections::HashMap, sync::{ Arc, Mutex }};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedValues, KeyedHandle };
 
-#[derive(Debug)] // XXX Clone
-pub struct AllotmentMetadata {
+#[derive(Debug)]
+pub struct AllotmentStaticMetadataBuilder {
     name: String,
     pairs: HashMap<String,String>
 }
 
-impl AllotmentMetadata {
-    pub fn dustbin() -> AllotmentMetadata {
-        AllotmentMetadata::new("")
+impl AllotmentStaticMetadataBuilder {
+    pub fn dustbin() -> AllotmentStaticMetadataBuilder {
+        AllotmentStaticMetadataBuilder::new("")
     }
 
-    pub fn new(name: &str) -> AllotmentMetadata {
-        AllotmentMetadata {
+    pub fn new(name: &str) -> AllotmentStaticMetadataBuilder {
+        AllotmentStaticMetadataBuilder {
             name: name.to_string(),
             pairs: HashMap::new()
         }
@@ -24,12 +24,53 @@ impl AllotmentMetadata {
         self.pairs.insert(key.to_string(),value.to_string());
     }
 
-    pub fn name(&self) -> &str { &self.name }
-    pub fn is_dustbin(&self) -> bool { self.name == "" }
+    fn hash_value(&self) -> u64 {
+        let mut state = DefaultHasher::new();
+        self.name.hash(&mut state);
+        let mut pairs_key = self.pairs.keys().collect::<Vec<_>>();
+        pairs_key.sort();
+        for k in pairs_key {
+            k.hash(&mut state);
+            self.pairs.get(k).unwrap().hash(&mut state);
+        }
+        state.finish()
+    }    
+}
+
+#[derive(Clone,Debug)]
+pub struct AllotmentStaticMetadata {
+    metadata: Arc<AllotmentStaticMetadataBuilder>,
+    hash: u64
+}
+
+impl Hash for AllotmentStaticMetadata {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
+
+impl PartialEq for AllotmentStaticMetadata {
+    fn eq(&self, other: &AllotmentStaticMetadata) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for AllotmentStaticMetadata {}
+
+impl AllotmentStaticMetadata {
+    fn new(builder: AllotmentStaticMetadataBuilder) -> AllotmentStaticMetadata {
+        AllotmentStaticMetadata {
+            hash: builder.hash_value(),
+            metadata: Arc::new(builder)
+        }
+    }
+
+    pub fn name(&self) -> &str { &self.metadata.name }
+    pub fn is_dustbin(&self) -> bool { self.metadata.name == "" }
 
     pub fn kind(&self) -> AllotmentPositionKind { 
-        if self.name.starts_with("window:") {
-            AllotmentPositionKind::Overlay(if self.name.ends_with("-over") { 1 } else { 0 })
+        if self.metadata.name.starts_with("window:") {
+            AllotmentPositionKind::Overlay(if self.metadata.name.ends_with("-over") { 1 } else { 0 })
         } else {
             AllotmentPositionKind::Track
         }
@@ -37,15 +78,48 @@ impl AllotmentMetadata {
 }
 
 #[derive(Clone,Debug)]
+pub struct AllotterMetadata {
+    allotments: Arc<Vec<AllotmentStaticMetadata>>,
+    hash: u64
+}
+
+impl Hash for AllotterMetadata {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
+
+impl PartialEq for AllotterMetadata {
+    fn eq(&self, other: &AllotterMetadata) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for AllotterMetadata {}
+
+impl AllotterMetadata {
+    pub fn new(allotments: Vec<AllotmentStaticMetadata>) -> AllotterMetadata {
+        let mut state = DefaultHasher::new();
+        for a in &allotments {
+            a.hash(&mut state);
+        }
+        AllotterMetadata {
+            allotments: Arc::new(allotments),
+            hash: state.finish()
+        }
+    }
+}
+
+#[derive(Clone,Debug)]
 pub struct AllotmentRequest {
-    metadata: Arc<AllotmentMetadata>,
+    metadata: AllotmentStaticMetadata,
     priority: i64
 }
 
 impl AllotmentRequest {
-    pub fn new(metadata: AllotmentMetadata, priority: i64) -> AllotmentRequest {
+    pub fn new(metadata: AllotmentStaticMetadataBuilder, priority: i64) -> AllotmentRequest {
         AllotmentRequest {
-            metadata: Arc::new(metadata),
+            metadata: AllotmentStaticMetadata::new(metadata),
             priority
         }
     }
@@ -58,7 +132,7 @@ impl AllotmentRequest {
     }
 
     pub fn priority(&self) -> i64 { self.priority }
-    pub fn metadata(&self) -> &Arc<AllotmentMetadata> { &self.metadata }
+    pub fn metadata(&self) -> &AllotmentStaticMetadata { &self.metadata }
 }
 
 
@@ -78,7 +152,7 @@ impl AllotmentPetitioner {
         let mut out = AllotmentPetitioner {
             allotments: Arc::new(Mutex::new(KeyedValues::new()))
         };
-        out.add(AllotmentRequest::new(AllotmentMetadata::dustbin(),0)); // null gets slot 0
+        out.add(AllotmentRequest::new(AllotmentStaticMetadataBuilder::dustbin(),0)); // null gets slot 0
         out
     }
 
@@ -150,14 +224,14 @@ impl AllotmentPosition {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Allotment {
     position: AllotmentPosition,
-    metadata: Arc<AllotmentMetadata>
+    metadata: AllotmentStaticMetadata
 }
 
 impl Allotment {
-    pub(super) fn new(position: AllotmentPosition, metadata: &Arc<AllotmentMetadata>) -> Allotment {
+    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentStaticMetadata) -> Allotment {
         Allotment { position, metadata: metadata.clone() }
     }
 
     pub fn position(&self) -> &AllotmentPosition { &self.position }
-    pub fn metadata(&self) -> &Arc<AllotmentMetadata> { &self.metadata }
+    pub fn metadata(&self) -> &AllotmentStaticMetadata { &self.metadata }
 }

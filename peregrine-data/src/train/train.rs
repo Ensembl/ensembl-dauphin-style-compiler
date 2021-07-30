@@ -7,7 +7,7 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::PgCommanderTaskSpec;
+use crate::{AllotmentStaticMetadataBuilder, AllotterMetadata, PgCommanderTaskSpec};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
@@ -47,7 +47,8 @@ struct TrainData {
     max: Option<u64>,
     carriages: Option<CarriageSet>,
     messages: MessageSender,
-    track_configs: TrainTrackConfigList
+    track_configs: TrainTrackConfigList,
+    allotment_metadata: Arc<Vec<Arc<AllotmentStaticMetadataBuilder>>>
 }
 
 impl TrainData {
@@ -62,7 +63,8 @@ impl TrainData {
             carriages: Some(CarriageSet::new()),
             max: None,
             messages: messages.clone(),
-            track_configs: train_track_config_list
+            track_configs: train_track_config_list,
+            allotment_metadata: Arc::new(vec![])
         };
         out.set_position(carriage_event,viewport)?;
         Ok(out)
@@ -76,15 +78,23 @@ impl TrainData {
         }
     }
 
-    fn set_inactive(&mut self) {
-        self.active = None;
-    }
-
-    fn train_track_config_list(&self) -> &TrainTrackConfigList { &self.track_configs }
+    fn set_inactive(&mut self) { self.active = None; }
+    fn is_active(&self) -> bool { self.active.is_some() }
     fn viewport(&self) -> &Viewport { &self.viewport }
     fn id(&self) -> &TrainId { &self.id }
     fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
     fn is_broken(&self) -> bool { self.broken }
+
+    fn allotter_metadata(&self) -> Option<AllotterMetadata> {
+        if let Some(carriages) = &self.carriages {
+            let carriages = carriages.carriages();
+            if carriages.len() > 0 {
+                let central = &carriages[carriages.len()/2];
+                return Some(central.shapes().allotter().metadata().clone());
+            }
+        }
+        None
+    }
 
     fn set_max(&mut self, max: Result<u64,DataMessage>) {
         match max {
@@ -141,9 +151,10 @@ impl Train {
 
     pub fn id(&self) -> TrainId { self.0.lock().unwrap().id().clone() }
     pub fn viewport(&self) -> Viewport { self.0.lock().unwrap().viewport().clone() }
+    pub fn is_active(&self) -> bool { self.0.lock().unwrap().is_active() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
-    pub(super) fn train_track_config_list(&self) -> TrainTrackConfigList { self.0.lock().unwrap().train_track_config_list().clone() }
+    pub(super) fn allotter_metadata(&self) -> Option<AllotterMetadata> { self.0.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
         self.0.lock().unwrap().set_active(carriage_event,index,speed);

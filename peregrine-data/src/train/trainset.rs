@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
-use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
+use crate::{AllotterMetadata, CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
 use super::anticipate::Anticipate;
@@ -24,6 +24,7 @@ pub struct TrainSetData {
     messages: MessageSender,
     anticipate: Anticipate,
     visual_blocker: Blocker,
+    old_metadata: Option<AllotterMetadata>,
     #[allow(unused)]
     visual_lockout: Option<Lockout>
 }
@@ -38,7 +39,22 @@ impl TrainSetData {
             messages: base.messages.clone(),
             anticipate: Anticipate::new(base,result_store),
             visual_blocker: visual_blocker.clone(),
-            visual_lockout: None
+            visual_lockout: None,
+            old_metadata: None
+        }
+    }
+
+    fn maybe_allotment_metadata(&mut self, events: &mut CarriageEvents) {
+        if let Some(quiescent) = self.quiescent_target() {
+            if quiescent.is_active() {
+                if let Some(metadata) = quiescent.allotter_metadata() {
+                    if let Some(old_metadata) = &self.old_metadata {
+                        if &metadata == old_metadata { return; }
+                    }
+                    events.send_allotment_metadata(&metadata);
+                    self.old_metadata = Some(metadata);
+                }
+            }
         }
     }
 
@@ -49,6 +65,7 @@ impl TrainSetData {
                 wanted.set_active(events,self.next_activation,speed);
                 self.next_activation += 1;
                 self.future = Some(wanted);
+                self.maybe_allotment_metadata(events);
                 self.notify_viewport(events);
             }
         }
@@ -146,6 +163,7 @@ impl TrainSetData {
         if let Some(train) = &mut self.current {
             train.set_carriages(&mut events);
         }
+        self.maybe_allotment_metadata(&mut events);
         events
     }
 }
@@ -226,3 +244,22 @@ impl TrainSet {
         self.state.lock().unwrap().update_visual_lock();
     }
 }
+
+/*
+
+        if let Some(carriages) = &mut self.carriages {
+            if carriages.ready() {
+                if let Some(index) = self.active {
+                    let carriages = self.carriages();
+                    if carriages.len() > 0 {
+                        let central = &carriages[carriages.len()/2];
+                        let metadata = central.shapes().allotter().metadata();
+                        events.send_allotment_metadata(&metadata);
+                    }
+                    events.set_carriages(&carriages,index);
+                }
+            }
+        }
+
+
+*/

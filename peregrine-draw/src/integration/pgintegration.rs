@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use commander::{FusePromise, PromiseFuture};
-use peregrine_data::{Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, StickId, Viewport};
+use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, StickId, Viewport};
 use super::pgchannel::PgChannel;
 use crate::input::Input;
 use crate::run::report::Report;
@@ -14,7 +14,6 @@ pub struct PgIntegration {
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    input: Input,
     report: Report
 }
 
@@ -24,6 +23,11 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.set_carriages(carriages,&mut webgl,index)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
+    }
+
+    fn notify_allotment_metadata(&mut self, metadata: &AllotterMetadata) {
+        use web_sys::console;
+        console::log_1(&format!("notify_allotment_metadata({:?})",metadata).into());
     }
 
     fn channel(&self) -> Box<dyn ChannelIntegration> {
@@ -53,13 +57,12 @@ impl PeregrineIntegration for PgIntegration {
 }
 
 impl PgIntegration {
-    pub(crate) fn new(channel: PgChannel, input: &Input, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report) -> PgIntegration {
+    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,
             webgl,
             stage: stage.clone(),
-            input: input.clone(),
             report: report.clone()
         }
     }
