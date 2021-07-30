@@ -46,24 +46,28 @@ impl Region {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ShapeRequest {
     region: Region,
-    track: TrackConfig
+    track: TrackConfig,
+    batch: bool
 }
 
 impl ShapeRequest {
-    pub fn new(region: &Region, track: &TrackConfig) -> ShapeRequest {
+    pub fn new(region: &Region, track: &TrackConfig, batch: bool) -> ShapeRequest {
         ShapeRequest {
             region: region.clone(),
-            track: track.clone()
+            track: track.clone(),
+            batch
         }
     }
 
     pub fn region(&self) -> &Region { &self.region }
     pub fn track(&self) -> &TrackConfig { &self.track }
+    pub fn is_batch(&self) -> bool { self.batch }
 
     pub fn better_request(&self) -> ShapeRequest {
         ShapeRequest {
             region: self.region.best_region(self.track.track()),
-            track: self.track.clone()
+            track: self.track.clone(),
+            batch: self.batch
         }
     }
 }

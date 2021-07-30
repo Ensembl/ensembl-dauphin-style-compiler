@@ -62,7 +62,7 @@ impl AnticipateContext {
             stats: false,
             task: Box::pin(async move {
                 console::log_1(&format!("loading {}/{}",carriage.id().train().scale(),carriage.id().index()).into());
-                carriage.load(&base2,&result_store).await.ok(); // XXX catch errors?
+                carriage.load(&base2,&result_store,true).await.ok(); // XXX catch errors?
                 Ok(())
             })
         });

@@ -31,10 +31,10 @@ impl DataCommandRequest {
         }
     }
 
-    pub async fn execute(self, mut manager: RequestManager) -> Result<Box<DataResponse>,DataMessage> {
+    pub async fn execute(self, mut manager: RequestManager, priority: &PacketPriority) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new();
         match backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
+                                    &mut manager,self.clone(),&self.channel,priority.clone(),|_| None).await? {
             Ok(d) => {
                 Ok(d)
             },

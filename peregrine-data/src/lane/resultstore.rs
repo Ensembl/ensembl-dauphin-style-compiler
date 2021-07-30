@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::ProgramLoader;
+use crate::{PacketPriority, ProgramLoader};
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };
@@ -7,20 +7,22 @@ use crate::shape::ShapeListBuilder;
 use super::shaperequest::ShapeRequest;
 use crate::util::message::DataMessage;
 use crate::util::memoized::{ Memoized, MemoizedType };
-use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramLoader, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
+    let priority = if request.is_batch() { PacketPriority::Batch } else { PacketPriority::RealTime };
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new());
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
+    payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
-        prio: 1,
+        prio: if request.is_batch() { 9 } else { 1 },
         slot: None,
         timeout: None,
         program_name: request.track().track().program_name().clone(),

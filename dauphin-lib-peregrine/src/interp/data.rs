@@ -2,7 +2,7 @@ use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue, RegisterFile };
-use peregrine_data::{ StickId, Region, Channel, Scale, ProgramData, ShapeRequest };
+use peregrine_data::{Channel, PacketPriority, ProgramData, Region, Scale, ShapeRequest, StickId};
 use serde_cbor::Value as CborValue;
 
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
@@ -32,6 +32,7 @@ fn get_region(registers: &RegisterFile, cmd: &GetDataInterpCommand) -> anyhow::R
 async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::Result<()> {
     let self_channel = get_instance::<Channel>(context,"channel")?;
     let program_data = get_instance::<ProgramData>(context,"data")?;
+    let priority = get_instance::<PacketPriority>(context,"priority")?;
     let registers = context.registers_mut();
     let channel_name = registers.get_strings(&cmd.1)?;
     let prog_name = &registers.get_strings(&cmd.2)?[0];
@@ -41,7 +42,7 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
         let peregrine = get_peregrine(context)?;
         let data_store = peregrine.agent_store().data_store.clone();
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
-        let result = data_store.get(&region,&channel,prog_name).await?;
+        let result = data_store.get(&region,&channel,prog_name,&priority).await?;
         let id = program_data.add(result);
         ids.push(id as usize);
     }

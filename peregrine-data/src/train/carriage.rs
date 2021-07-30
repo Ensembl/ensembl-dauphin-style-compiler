@@ -70,14 +70,14 @@ impl Carriage {
         self.shapes.lock().unwrap().is_some()
     }
 
-    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore) -> Result<(),DataMessage> {
+    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore, batch: bool) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut shape_requests = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
         let track_list = self.track_configs.list_tracks();
         for track in track_list {
             if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push(ShapeRequest::new(&self.id.region(),&track_config));
+                shape_requests.push(ShapeRequest::new(&self.id.region(),&track_config,batch));
             }
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
@@ -88,7 +88,7 @@ impl Carriage {
             let lane_store = lane_store.clone();
             add_task(&base.commander,PgCommanderTaskSpec {
                 name: format!("data program"),
-                prio: 0,
+                prio: if batch { 9 } else { 0 },
                 slot: None,
                 timeout: None,
                 stats: false,

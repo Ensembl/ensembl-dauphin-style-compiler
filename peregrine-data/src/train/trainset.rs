@@ -167,7 +167,7 @@ impl TrainSet {
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &mut [Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
-            loads.push(carriage.load(&objects.base,&objects.agent_store.lane_store));
+            loads.push(carriage.load(&objects.base,&objects.agent_store.lane_store,false));
         }
         for future in loads {
             let r = future.await;
