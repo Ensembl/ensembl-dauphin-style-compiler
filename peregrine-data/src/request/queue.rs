@@ -121,8 +121,14 @@ impl RequestQueue {
     }
 
     async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
-        let pending = lock!(self.0).pending_send.clone();
-        let mut requests = pending.get_multi().await;
+        let data = lock!(self.0);
+        let pending = data.pending_send.clone();
+        let priority = data.priority.clone();
+        drop(data);
+        let mut requests = match priority {
+            PacketPriority::RealTime => { pending.get_multi().await },
+            PacketPriority::Batch => { vec![pending.get().await] }
+        };
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();
         let mut timeouts = vec![];

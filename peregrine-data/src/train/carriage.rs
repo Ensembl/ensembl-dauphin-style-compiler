@@ -77,14 +77,14 @@ impl Carriage {
         let track_list = self.track_configs.list_tracks();
         for track in track_list {
             if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push(ShapeRequest::new(&self.id.region(),&track_config,batch));
+                shape_requests.push((ShapeRequest::new(&self.id.region(),&track_config),batch));
             }
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
         let lane_store = result_store.clone();
         let tracks : Vec<_> = shape_requests.iter().map(|p|{
-            let p = p.clone();
+            let (request,batch) = p.clone();
             let lane_store = lane_store.clone();
             add_task(&base.commander,PgCommanderTaskSpec {
                 name: format!("data program"),
@@ -93,10 +93,11 @@ impl Carriage {
                 timeout: None,
                 stats: false,
                 task: Box::pin(async move {
-                    lane_store.run(&p).await.as_ref().clone()
+                    lane_store.run(&request,batch).await.as_ref().clone()
                 })
             })
         }).collect();
+        if batch { return Ok(()); } // TODO actual shape cahceing
         let mut new_shapes = ShapeListBuilder::new();
         for future in tracks {
             future.finish_future().await;

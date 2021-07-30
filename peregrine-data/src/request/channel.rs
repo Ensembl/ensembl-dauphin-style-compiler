@@ -71,6 +71,7 @@ impl Display for Channel {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum PacketPriority {
     RealTime,

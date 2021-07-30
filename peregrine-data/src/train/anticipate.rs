@@ -41,7 +41,6 @@ impl AnticipateContext {
     }
 
     fn derive(&self, new_carriages: &mut AnticipatedCarriages, old_carriages: &AnticipatedCarriages, base: &PeregrineCoreBase, result_store: &LaneStore, scale: &Scale, index: u64) {
-        use web_sys::console;
         let train_id = TrainId::new(&self.layout,&scale);
         let carriage_id = CarriageId::new(&train_id,index);
         if new_carriages.contains(&carriage_id) { return; }
@@ -61,13 +60,10 @@ impl AnticipateContext {
             timeout: None,
             stats: false,
             task: Box::pin(async move {
-                console::log_1(&format!("loading {}/{}",carriage.id().train().scale(),carriage.id().index()).into());
-                carriage.load(&base2,&result_store,true).await.ok(); // XXX catch errors?
+                carriage.load(&base2,&result_store,true).await.ok();
                 Ok(())
             })
         });
-
-
     }
 }
 
@@ -91,12 +87,29 @@ impl AnticipatePosition {
     }
 
     fn derive(&self, new_carriages: &mut AnticipatedCarriages, old_carriages: &AnticipatedCarriages, base: &PeregrineCoreBase, result_store: &LaneStore) {
-        use web_sys::console;
-        console::log_1(&format!("root {:?}",self).into());
+        /* out */
         let mut new_scale = self.scale.clone();
-        for index in 0..10 {
+        for index in 0..5 {
             new_scale = new_scale.next_scale();
-            self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,new_scale.convert_index(&self.scale,self.index));
+            for offset in 0..5 {
+                let delta = (offset as i64)-2;
+                let mut index = new_scale.convert_index(&self.scale,self.index) as i64;
+                index += delta;
+                if index < 0 { continue; }
+                self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,index as u64);
+            }
+        }
+        /* in */
+        let mut new_scale = self.scale.clone();
+        for index in 0..5 {
+            new_scale = new_scale.prev_scale();
+            for offset in 0..5 {
+                let delta = (offset as i64)-2;
+                let mut index = new_scale.convert_index(&self.scale,self.index) as i64;
+                index += delta;
+                if index < 0 { continue; }
+                self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,index as u64);
+            }
         }
     }
 }

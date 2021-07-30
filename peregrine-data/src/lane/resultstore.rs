@@ -11,9 +11,9 @@ use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramLoader, request: ShapeRequest) -> Result<Arc<ShapeListBuilder>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramLoader, request: ShapeRequest, batch: bool) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
-    let priority = if request.is_batch() { PacketPriority::Batch } else { PacketPriority::RealTime };
+    let priority = if batch { PacketPriority::Batch } else { PacketPriority::RealTime };
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new());
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
@@ -22,7 +22,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramL
     payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
     payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
-        prio: if request.is_batch() { 9 } else { 1 },
+        prio: if batch { 9 } else { 1 },
         slot: None,
         timeout: None,
         program_name: request.track().track().program_name().clone(),
@@ -31,15 +31,15 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramL
     Ok(Arc::new(shapes.build()))
 }
 
-fn make_unfiltered_cache(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, batch: bool) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let base2 = base.clone();
     let program_loader = program_loader.clone();
-    Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
+    Memoized::new(kind,move |_,request: &ShapeRequest| {
         let base = base2.clone();
         let program_loader = program_loader.clone(); 
         let request2 = request.clone();   
         Box::pin(async move {
-            make_unfiltered_shapes(base,program_loader,request2.clone()).await
+            make_unfiltered_shapes(base,program_loader,request2.clone(),batch).await
         })
     })
 }
@@ -55,9 +55,9 @@ async fn make_filtered_shapes(unfiltered_shapes_cache: Memoized<ShapeRequest,Res
     Ok(Arc::new(filtered_shapes))
 }
 
-fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
+fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
-    Memoized::new(MemoizedType::Cache(cache_size),move |_,request: &ShapeRequest| {
+    Memoized::new(kind,move |_,request: &ShapeRequest| {
         let unfiltered_shapes_cache = unfiltered_shapes_cache.clone();
         let request2 = request.clone();   
         Box::pin(async move {
@@ -67,17 +67,35 @@ fn make_filtered_cache(cache_size: usize, unfiltered_shapes_cache: Memoized<Shap
 }
 
 #[derive(Clone)]
-pub struct LaneStore(Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>);
+pub struct LaneStore {
+    realtime: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>,
+    batch: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>
+}
 
 impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(cache_size,base,program_loader);
-        let filtered_cache = make_filtered_cache(32,unfiltered_cache);
-        LaneStore(filtered_cache)
+        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,false);
+        let filtered_cache = make_filtered_cache(MemoizedType::Cache(32),unfiltered_cache);
+        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,true);
+        let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
+        LaneStore {
+            realtime: filtered_cache,
+            batch: batch_filtered_cache
+        }
     }
 
-    pub async fn run(&self, lane: &ShapeRequest) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
-        self.0.get(lane).await
+    pub async fn run(&self, lane: &ShapeRequest, batch: bool) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
+        if batch {
+            if let Some(value) = self.realtime.try_get(lane) {
+                value
+            } else {
+                let value = self.batch.get(lane).await;
+                self.realtime.warm(lane,value.as_ref().clone());
+                value
+            }
+        } else {
+            self.realtime.get(lane).await
+        }
     }
 }
