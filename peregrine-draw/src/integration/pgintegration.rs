@@ -26,8 +26,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn notify_allotment_metadata(&mut self, metadata: &AllotterMetadata) {
-        use web_sys::console;
-        console::log_1(&format!("notify_allotment_metadata({:?})",metadata).into());
+        self.report.set_allotter_metadata(metadata);
     }
 
     fn channel(&self) -> Box<dyn ChannelIntegration> {

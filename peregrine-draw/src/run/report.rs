@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick};
+use peregrine_data::AllotterMetadata;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, PgCommanderWeb };
 use super::{PgConfigKey, PgPeregrineConfig};
@@ -109,6 +110,10 @@ impl ReportData {
         out
     }
 
+    pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
+        self.messages.add(Message::AllotterMetadata(metadata.clone()));
+    }
+
     fn report_step(&mut self) -> Result<(),Message> {
         for message in self.build_messages() {
             self.messages.add(message);
@@ -148,6 +153,10 @@ impl Report {
     pub(crate) fn set_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_bp_per_screen(value); }
     pub(crate) fn set_target_x_bp(&self, value: f64) { self.data.lock().unwrap().set_target_x_bp(value); }
     pub(crate) fn set_target_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_target_bp_per_screen(value); }
+
+    pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
+        self.data.lock().unwrap().set_allotter_metadata(metadata);
+    }
 
     pub(crate) fn run(&self, commander: &PgCommanderWeb) {
         let self2 = self.clone();
