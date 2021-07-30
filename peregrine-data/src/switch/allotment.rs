@@ -35,6 +35,10 @@ impl AllotmentStaticMetadataBuilder {
         }
         state.finish()
     }    
+
+    fn summarize(&self) -> HashMap<String,String> {
+        self.pairs.clone()
+    }
 }
 
 #[derive(Clone,Debug)]
@@ -75,11 +79,16 @@ impl AllotmentStaticMetadata {
             AllotmentPositionKind::Track
         }
     }
+
+    pub fn summarize(&self) -> HashMap<String,String> {
+        self.metadata.summarize()
+    }
 }
 
 #[derive(Clone,Debug)]
 pub struct AllotterMetadata {
     allotments: Arc<Vec<AllotmentStaticMetadata>>,
+    summary: Arc<Vec<HashMap<String,String>>>,
     hash: u64
 }
 
@@ -99,15 +108,20 @@ impl Eq for AllotterMetadata {}
 
 impl AllotterMetadata {
     pub fn new(allotments: Vec<AllotmentStaticMetadata>) -> AllotterMetadata {
+        let mut summary = vec![];
         let mut state = DefaultHasher::new();
         for a in &allotments {
+            summary.push(a.summarize());
             a.hash(&mut state);
         }
         AllotterMetadata {
             allotments: Arc::new(allotments),
+            summary: Arc::new(summary),
             hash: state.finish()
         }
     }
+
+    pub fn summarize(&self) -> Arc<Vec<HashMap<String,String>>> { self.summary.clone() }
 }
 
 #[derive(Clone,Debug)]

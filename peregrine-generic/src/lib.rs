@@ -237,6 +237,11 @@ impl GenomeBrowser {
                                     args.set(3,JsValue::from(*to as f64));
                                     let _ = closure.apply(&this,&args);                    
                                 },
+                                Message::Ready => {},
+                                Message::AllotterMetadata(metadata) => {
+                                    use web_sys::console;
+                                    console::log_1(&format!("{:?}",metadata.summarize()).into());
+                                },
                                 x => {
                                     use web_sys::console;
                                     console::warn_1(&format!("unexpected information: {}",x.to_string()).into());
