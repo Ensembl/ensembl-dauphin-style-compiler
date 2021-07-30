@@ -9,7 +9,7 @@ simple_interp_command!(NewLaneInterpCommand,NewLaneDeserializer,4,6,(0,1,2,3,4,5
 simple_interp_command!(AddTagInterpCommand,AddTagDeserializer,5,2,(0,1));
 simple_interp_command!(AddTriggerInterpCommand,AddTriggerDeserializer,6,4,(0,1,2,3));
 simple_interp_command!(AddSwitchInterpCommand,AddSwitchDeserializer,11,4,(0,1,2,3));
-simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,3,(0,1,2));
+simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,7,(0,1,2,3,4,5,6));
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,1,(0));
 simple_interp_command!(SetSwitchInterpCommand,SetSwitchDeserializer,33,4,(0,1,2,3));
 simple_interp_command!(ClearSwitchInterpCommand,ClearSwitchDeserializer,34,4,(0,1,2,3));
@@ -65,11 +65,29 @@ impl InterpCommand for AddAllotmentInterpCommand {
         let track_ids = registers.get_indexes(&self.0)?.to_vec();
         let names = registers.get_strings(&self.1)?.to_vec();
         let prios = registers.get_numbers(&self.2)?.to_vec();
+        let pair_key = registers.get_strings(&self.3)?.to_vec();
+        let pair_value_d = registers.get_strings(&self.4)?.to_vec();
+        let pair_value_a = registers.get_indexes(&self.5)?.to_vec();
+        let pair_value_b = registers.get_indexes(&self.6)?.to_vec();
+        let mut pairs = vec![];
+        let value_pos = pair_value_a.iter().cycle().zip(pair_value_b.iter().cycle());
+        let data = pair_key.iter().zip(value_pos);    
+        for (pair_key,(value_a,value_b)) in data {
+            let values = &pair_value_d[*value_a..(*value_a+*value_b)];
+            let values = values.iter().map(|x| x.clone()).collect::<Vec<_>>();
+            pairs.push((pair_key.clone(),values));
+        }
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let mut petitioner = peregrine.allotments().clone();
-        let allotments = names.iter().zip(prios.iter().cycle()).map(|(name,prio)| {
-            petitioner.add(AllotmentRequest::new(&AllotmentMetadata::new(name),*prio as i64))
+        let allotments = names.iter().zip(prios.iter().cycle()).enumerate().map(|(i,(name,prio))| {
+            let mut metadata = AllotmentMetadata::new(name);
+            for (key,values) in &pairs {
+                if values.len() > 0 {
+                    metadata.add_pair(key,&values[i%values.len()]);
+                }
+            }
+            petitioner.add(AllotmentRequest::new(metadata,*prio as i64))
         }).collect::<Vec<_>>();
         for track_id in &track_ids {
             let track = peregrine.track_builder().get(*track_id)?;

@@ -53,7 +53,7 @@ pub struct StickResponseBuilderType();
 
 fn get_allotment(value: &CborValue) -> anyhow::Result<AllotmentRequest> {
     let parts = cbor_array(value,2,false)?;
-    Ok(AllotmentRequest::new(&AllotmentMetadata::new(&cbor_string(&parts[0])?),cbor_int(&parts[1],None)? as i64))
+    Ok(AllotmentRequest::new(AllotmentMetadata::new(&cbor_string(&parts[0])?),cbor_int(&parts[1],None)? as i64))
 }
 
 impl ResponseBuilderType for StickResponseBuilderType {

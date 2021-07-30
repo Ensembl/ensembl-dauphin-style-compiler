@@ -22,7 +22,7 @@ impl RequestSorter {
 
     fn get(mut self) -> Vec<AllotmentHandle> {
         self.requests.sort_by_cached_key(|(_,r)| {
-            (r.priority(),r.metadata().clone())
+            (r.priority(),r.metadata().name().to_string())
         });
         self.requests.iter().map(|(h,_)| h.clone()).collect()
     }
@@ -115,8 +115,10 @@ impl RunningAllotter {
     }
 
     fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) -> Allotment {
-        let position = self.get_allocator(&petitioner.get(handle).metadata().kind()).allocate();
-        Allotment::new(position)
+        let request = petitioner.get(handle);
+        let metadata = request.metadata();
+        let position = self.get_allocator(&metadata.kind()).allocate();
+        Allotment::new(position,metadata)
     }
 }
 
@@ -132,6 +134,7 @@ impl Allotter {
     }
 
     pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
+        use web_sys::console;
         let mut sorter = RequestSorter::new();
         for handle in handles {
             sorter.add(petitioner,handle);
@@ -139,7 +142,10 @@ impl Allotter {
         let mut allotments = KeyedData::new();
         let mut running_allocator = RunningAllotter::new();
         for sorted_handle in sorter.get() {
-            allotments.insert(&sorted_handle,running_allocator.add(petitioner,&sorted_handle));
+            let allotment = running_allocator.add(petitioner,&sorted_handle);
+            let metadata = allotment.metadata();
+            console::log_1(&format!("{:?} {:?}",metadata,allotment.position()).into());
+            allotments.insert(&sorted_handle,allotment);
         }
         Allotter {
             allotments

@@ -54,7 +54,7 @@ struct datasource { value: number };
 func track_new(string,string,number,number,number) becomes laneid;
 proc track_add_tag(laneid,string);
 proc track_add_trigger(laneid,vec(string));
-proc track_add_allotment(laneid,string,number);
+proc track_add_allotment(laneid,string,number,string,vec(string));
 proc track_add_switch(laneid,vec(string));
 proc track_set_switch(laneid,vec(string));
 proc track_clear_switch(laneid,vec(string));

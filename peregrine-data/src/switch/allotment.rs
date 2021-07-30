@@ -1,23 +1,27 @@
-use std::{sync::{ Arc, Mutex }};
+use std::{collections::HashMap, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedValues, KeyedHandle };
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[derive(Debug)] // XXX Clone
 pub struct AllotmentMetadata {
-    name: String
+    name: String,
+    pairs: HashMap<String,String>
 }
 
 impl AllotmentMetadata {
     pub fn dustbin() -> AllotmentMetadata {
-        AllotmentMetadata {
-            name: "".to_string()
-        }
+        AllotmentMetadata::new("")
     }
 
     pub fn new(name: &str) -> AllotmentMetadata {
         AllotmentMetadata {
-            name: name.to_string()
+            name: name.to_string(),
+            pairs: HashMap::new()
         }
+    }
+
+    pub fn add_pair(&mut self, key: &str, value: &str) {
+        self.pairs.insert(key.to_string(),value.to_string());
     }
 
     pub fn name(&self) -> &str { &self.name }
@@ -32,16 +36,16 @@ impl AllotmentMetadata {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
+#[derive(Clone,Debug)]
 pub struct AllotmentRequest {
-    metadata: AllotmentMetadata,
+    metadata: Arc<AllotmentMetadata>,
     priority: i64
 }
 
 impl AllotmentRequest {
-    pub fn new(metadata: &AllotmentMetadata, priority: i64) -> AllotmentRequest {
+    pub fn new(metadata: AllotmentMetadata, priority: i64) -> AllotmentRequest {
         AllotmentRequest {
-            metadata: metadata.clone(),
+            metadata: Arc::new(metadata),
             priority
         }
     }
@@ -54,7 +58,7 @@ impl AllotmentRequest {
     }
 
     pub fn priority(&self) -> i64 { self.priority }
-    pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
+    pub fn metadata(&self) -> &Arc<AllotmentMetadata> { &self.metadata }
 }
 
 
@@ -66,7 +70,7 @@ impl AllotmentHandle {
 
 #[derive(Clone)]
 pub struct AllotmentPetitioner {
-    allotments: Arc<Mutex<KeyedValues<AllotmentHandle,AllotmentRequest>>>
+    allotments: Arc<Mutex<KeyedValues<AllotmentHandle,AllotmentRequest>>>,
 }
 
 impl AllotmentPetitioner {
@@ -74,7 +78,7 @@ impl AllotmentPetitioner {
         let mut out = AllotmentPetitioner {
             allotments: Arc::new(Mutex::new(KeyedValues::new()))
         };
-        out.add(AllotmentRequest::new(&AllotmentMetadata::dustbin(),0)); // null gets slot 0
+        out.add(AllotmentRequest::new(AllotmentMetadata::dustbin(),0)); // null gets slot 0
         out
     }
 
@@ -145,15 +149,15 @@ impl AllotmentPosition {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Allotment {
-    position: AllotmentPosition
+    position: AllotmentPosition,
+    metadata: Arc<AllotmentMetadata>
 }
 
 impl Allotment {
-    pub(super) fn new(position: AllotmentPosition) -> Allotment {
-        Allotment {
-            position
-        }
+    pub(super) fn new(position: AllotmentPosition, metadata: &Arc<AllotmentMetadata>) -> Allotment {
+        Allotment { position, metadata: metadata.clone() }
     }
 
     pub fn position(&self) -> &AllotmentPosition { &self.position }
+    pub fn metadata(&self) -> &Arc<AllotmentMetadata> { &self.metadata }
 }
