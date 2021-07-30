@@ -77,7 +77,7 @@ impl PeregrineCore {
             identity: Arc::new(Mutex::new(0))
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = TrainSet::new(&base,visual_blocker);
+        let train_set = TrainSet::new(&base,&agent_store.lane_store,visual_blocker);
         Ok(PeregrineCore {
             base,
             agent_store,

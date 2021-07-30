@@ -78,7 +78,8 @@ impl TrackConfigList {
     }
 }
 
-#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq)]
 pub struct TrainTrackConfigList(TrackConfigList);
 
 impl TrainTrackConfigList {

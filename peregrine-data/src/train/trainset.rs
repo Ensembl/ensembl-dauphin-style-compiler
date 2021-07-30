@@ -1,9 +1,10 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
-use crate::{CarriageSpeed, PeregrineCoreBase, PgCommanderTaskSpec};
+use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
+use super::anticipate::Anticipate;
 use super::train::{ Train, TrainId };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
@@ -21,21 +22,21 @@ pub struct TrainSetData {
     wanted: Option<Train>,
     next_activation: u32,
     messages: MessageSender,
-    old_busy: bool,
+    anticipate: Anticipate,
     visual_blocker: Blocker,
     #[allow(unused)]
     visual_lockout: Option<Lockout>
 }
 
 impl TrainSetData {
-    fn new(messages: &MessageSender, visual_blocker: &Blocker) -> TrainSetData {
+    fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker) -> TrainSetData {
         TrainSetData {
             current: None,
             future: None,
             wanted: None,
             next_activation: 0,
-            messages: messages.clone(),
-            old_busy: false,
+            messages: base.messages.clone(),
+            anticipate: Anticipate::new(base,result_store),
             visual_blocker: visual_blocker.clone(),
             visual_lockout: None
         }
@@ -66,16 +67,6 @@ impl TrainSetData {
             }
         } else {
             self.visual_lockout = None;
-        }
-    }
-
-    fn maybe_send_busy(&mut self) -> Option<bool> {
-        let new_busy = !(self.future.is_none() && self.wanted.is_none());
-        if self.old_busy != new_busy {
-            self.old_busy = new_busy;
-            return Some(new_busy)
-        } else {
-            return None;
         }
     }
 
@@ -124,6 +115,9 @@ impl TrainSetData {
     fn set(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
         self.maybe_new_wanted(events,viewport)?;
+        if let Some(train) = self.quiescent_target() {
+            self.anticipate.anticipate(train,viewport.position()?);
+        }
         self.set_train_position(events,self.wanted.as_ref(),viewport)?;
         self.set_train_position(events,self.future.as_ref(),viewport)?;
         self.set_train_position(events,self.current.as_ref(),viewport)?;
@@ -163,9 +157,9 @@ pub struct TrainSet {
 }
 
 impl TrainSet {
-    pub fn new(base: &PeregrineCoreBase,visual_blocker: &Blocker) -> TrainSet {
+    pub fn new(base: &PeregrineCoreBase,result_store: &LaneStore, visual_blocker: &Blocker) -> TrainSet {
         TrainSet {
-            state: Arc::new(Mutex::new(TrainSetData::new(&base.messages,visual_blocker))),
+            state: Arc::new(Mutex::new(TrainSetData::new(base,result_store,visual_blocker))),
             messages: base.messages.clone()
         }
     }
@@ -173,7 +167,7 @@ impl TrainSet {
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &mut [Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
-            loads.push(carriage.load(&objects));
+            loads.push(carriage.load(&objects.base,&objects.agent_store.lane_store));
         }
         for future in loads {
             let r = future.await;

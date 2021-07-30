@@ -80,6 +80,7 @@ impl TrainData {
         self.active = None;
     }
 
+    fn train_track_config_list(&self) -> &TrainTrackConfigList { &self.track_configs }
     fn viewport(&self) -> &Viewport { &self.viewport }
     fn id(&self) -> &TrainId { &self.id }
     fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
@@ -142,6 +143,7 @@ impl Train {
     pub fn viewport(&self) -> Viewport { self.0.lock().unwrap().viewport().clone() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
+    pub(super) fn train_track_config_list(&self) -> TrainTrackConfigList { self.0.lock().unwrap().train_track_config_list().clone() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
         self.0.lock().unwrap().set_active(carriage_event,index,speed);

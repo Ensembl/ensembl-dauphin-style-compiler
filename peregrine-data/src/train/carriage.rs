@@ -1,6 +1,6 @@
 use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
-use crate::{PgCommanderTaskSpec, add_task};
+use crate::{LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task};
 use crate::api::{ PeregrineCore, MessageSender };
 use crate::lane::{ ShapeRequest, Region };
 use crate::shape::{ ShapeListBuilder, ShapeList };
@@ -23,6 +23,9 @@ impl CarriageId {
         }
     }
 
+    pub fn train(&self) -> &TrainId { &self.train }
+    pub fn index(&self) -> u64 { self.index }
+
     pub fn left_right(&self) -> (f64,f64) {
         let bp_in_carriage = self.train.scale().bp_in_carriage() as f64;
         let index = self.index as f64;
@@ -34,31 +37,23 @@ impl CarriageId {
     }
 }
 
-/*
-impl Display for CarriageId {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f,"CarriageId(train={} index={})",self.train,self.index)
-    }
-}
-*/
-
 #[derive(Clone)]
 pub struct Carriage {
     no_shapes: ShapeList, // useful to return ref to sometimes
     id: CarriageId,
     track_configs: TrainTrackConfigList,
     shapes: Arc<Mutex<Option<ShapeList>>>,
-    messages: MessageSender
+    messages: Option<MessageSender>
 }
 
 impl Carriage {
-    pub fn new(id: &CarriageId, configs: &TrainTrackConfigList, messages: &MessageSender) -> Carriage {
+    pub fn new(id: &CarriageId, configs: &TrainTrackConfigList, messages: Option<&MessageSender>) -> Carriage {
         Carriage {
             no_shapes: ShapeList::empty(),
             id: id.clone(),
             shapes: Arc::new(Mutex::new(None)),
             track_configs: configs.clone(),
-            messages: messages.clone()
+            messages: messages.cloned()
         }
     }
 
@@ -75,7 +70,7 @@ impl Carriage {
         self.shapes.lock().unwrap().is_some()
     }
 
-    pub(super) async fn load(&mut self, data: &PeregrineCore) -> Result<(),DataMessage> {
+    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore) -> Result<(),DataMessage> {
         if self.ready() { return Ok(()); }
         let mut shape_requests = vec![];
         let track_config_list = self.id.train.layout().track_config_list();
@@ -87,11 +82,11 @@ impl Carriage {
         }
         // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
         let mut errors = vec![];
-        let lane_store = data.agent_store.lane_store.clone();
+        let lane_store = result_store.clone();
         let tracks : Vec<_> = shape_requests.iter().map(|p|{
             let p = p.clone();
             let lane_store = lane_store.clone();
-            add_task(&data.base.commander,PgCommanderTaskSpec {
+            add_task(&base.commander,PgCommanderTaskSpec {
                 name: format!("data program"),
                 prio: 0,
                 slot: None,
@@ -110,12 +105,14 @@ impl Carriage {
                     new_shapes.append(&zoo);
                 },
                 Err(e) => {
-                    self.messages.send(e.clone());
+                    if let Some(messages) = &self.messages {
+                        messages.send(e.clone());
+                    }
                     errors.push(e.clone());
                 }
             }
         }
-        let shapes = new_shapes.build(&data.base.allotment_petitioner);
+        let shapes = new_shapes.build(&base.allotment_petitioner);
         self.shapes.lock().unwrap().replace(shapes);
         if errors.len() == 0 {
             Ok(())

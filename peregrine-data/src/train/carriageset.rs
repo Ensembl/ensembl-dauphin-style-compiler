@@ -34,7 +34,7 @@ impl CarriageSet {
             carriages.push(if steal {
                 old_carriages.next().unwrap().1
             } else {
-                let out = Carriage::new(&CarriageId::new(train_id,index),configs,messages);
+                let out = Carriage::new(&CarriageId::new(train_id,index),configs,Some(messages));
                 carriage_events.carriage(&out);
                 out
             });
