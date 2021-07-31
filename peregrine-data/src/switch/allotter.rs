@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap};
 use keyed::KeyedData;
 use crate::{Allotment, AllotmentPetitioner, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
 use super::allotment::{AllotmentHandle, AllotmentStaticMetadata, AllotterMetadata, OffsetSize};
@@ -118,7 +118,8 @@ impl RunningAllotter {
         let request = petitioner.get(handle);
         let metadata = request.metadata();
         let position = self.get_allocator(&metadata.kind()).allocate();
-        Allotment::new(position,metadata)
+        let metadata = position.update_metadata(&metadata);
+        Allotment::new(position,&metadata)
     }
 }
 

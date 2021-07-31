@@ -20,6 +20,14 @@ impl AllotmentStaticMetadataBuilder {
         }
     }
 
+    pub fn rebuild(metadata: &AllotmentStaticMetadata) -> AllotmentStaticMetadataBuilder {
+        let pairs = metadata.metadata.pairs.clone();
+        AllotmentStaticMetadataBuilder {
+            name: metadata.metadata.name.clone(),
+            pairs
+        }
+    }
+
     pub fn add_pair(&mut self, key: &str, value: &str) {
         self.pairs.insert(key.to_string(),value.to_string());
     }
@@ -222,6 +230,21 @@ impl AllotmentPosition {
             AllotmentPosition::BaseLabel(p,_) => AllotmentPositionKind::BaseLabel(p.clone()),
             AllotmentPosition::SpaceLabel(p,_) => AllotmentPositionKind::SpaceLabel(p.clone()),
         }
+    }
+
+    pub(super) fn update_metadata(&self, metadata: &AllotmentStaticMetadata) -> AllotmentStaticMetadata {
+        let mut builder = AllotmentStaticMetadataBuilder::rebuild(metadata);
+        match self {
+            AllotmentPosition::Track(offset_size) => {
+                builder.add_pair("type","track");
+                builder.add_pair("offset",&offset_size.0.to_string());
+                builder.add_pair("height",&offset_size.1.to_string());
+            },
+            _ => {
+                builder.add_pair("type","other");
+            }
+        }
+        AllotmentStaticMetadata::new(builder)
     }
 
     pub fn offset(&self) -> i64 { // XXX shouldn't exist. SHould magic shapes instead
