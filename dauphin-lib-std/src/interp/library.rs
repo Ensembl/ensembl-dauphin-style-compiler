@@ -27,7 +27,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(2,0),0xF1E3A5BF97DDBBC2)
+    CommandSetId::new("std",(3,0),0x7462AF65585451CF)
 }
 
 pub struct AssertDeserializer();
@@ -107,6 +107,32 @@ impl InterpCommand for DerunInterpCommand {
     }
 }
 
+pub struct RunDeserializer();
+
+impl CommandDeserializer for RunDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((29,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(RunInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?)))
+    }
+}
+
+pub struct RunInterpCommand(Register,Register);
+
+impl InterpCommand for RunInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let mut out = vec![];
+        let datas = registers.get_indexes(&self.1)?;
+        for len in datas.iter() {
+            for i in 0..*len {
+                out.push(i);
+            }
+        }
+        registers.write(&self.0,InterpValue::Indexes(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
 pub struct ExtractFilterDeserializer();
 
 impl CommandDeserializer for ExtractFilterDeserializer {
@@ -170,5 +196,6 @@ pub fn make_std_interp() -> InterpLibRegister {
     set.push(BytesToBoolDeserializer());
     set.push(DerunDeserializer());
     set.push(ExtractFilterDeserializer());
+    set.push(RunDeserializer());
     set
 }

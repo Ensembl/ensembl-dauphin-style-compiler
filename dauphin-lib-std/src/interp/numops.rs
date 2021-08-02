@@ -22,6 +22,7 @@ use serde_cbor::Value as CborValue;
 pub enum InterpBinNumOp {
     Plus,
     Minus,
+    Multiply,
     Divide
 }
 
@@ -31,6 +32,7 @@ impl InterpBinNumOp {
             InterpBinNumOp::Plus => a + b,
             InterpBinNumOp::Minus => a - b,
             InterpBinNumOp::Divide => a / b,
+            InterpBinNumOp::Multiply => a * b
         }
     }
 
@@ -38,6 +40,7 @@ impl InterpBinNumOp {
         match self {
             InterpBinNumOp::Plus => "plus",
             InterpBinNumOp::Minus => "minus",
+            InterpBinNumOp::Multiply => "multiply",
             InterpBinNumOp::Divide => "divide",
         }
     }
@@ -217,4 +220,5 @@ pub(super) fn library_numops_commands_interp(set: &mut InterpLibRegister) {
     set.push(BinNumDeserializer(InterpBinNumOp::Plus,12));
     set.push(BinNumDeserializer(InterpBinNumOp::Minus,23));
     set.push(BinNumDeserializer(InterpBinNumOp::Divide,24));
+    set.push(BinNumDeserializer(InterpBinNumOp::Multiply,28));
 }

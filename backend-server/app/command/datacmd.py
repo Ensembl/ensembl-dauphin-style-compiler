@@ -4,6 +4,7 @@ from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
 from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
 from data.wiggle import WiggleDataHandler
+from data.variant import VariantDataHandler
 from data.sequence import ZoomedSeqDataHandler
 from data.contig import ContigDataHandler, ShimmerContigDataHandler
 from data.focusjump import FocusJumpHandler
@@ -19,6 +20,7 @@ class DataHandler(Handler):
             "gc": WiggleDataHandler(),
             "contig": ContigDataHandler(),
             "shimmer-contig": ShimmerContigDataHandler(),
+            "variant": VariantDataHandler()
         }
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:

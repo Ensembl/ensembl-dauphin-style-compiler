@@ -298,4 +298,5 @@ pub(super) fn library_numops_commands(set: &mut CompLibRegister) {
     set.push("plus",Some(12),InterpBinNumCommandType::new(InterpBinNumOp::Plus));
     set.push("minus",Some(23),InterpBinNumCommandType::new(InterpBinNumOp::Minus));
     set.push("divide",Some(24),InterpBinNumCommandType::new(InterpBinNumOp::Divide));
+    set.push("multiply",Some(28),InterpBinNumCommandType::new(InterpBinNumOp::Multiply));
 }

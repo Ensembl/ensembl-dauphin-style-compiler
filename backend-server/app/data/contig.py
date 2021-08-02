@@ -3,7 +3,7 @@ import logging
 import random
 from typing import List, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
-from model.bigbed import get_bigbed_data, get_bigwig_data
+from model.bigbed import get_bigbed_data
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .numbers import delta, zigzag, lesqlite2, compress, classify

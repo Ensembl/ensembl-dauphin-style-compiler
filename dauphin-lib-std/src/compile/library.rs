@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(2,0),0xF1E3A5BF97DDBBC2)
+    CommandSetId::new("std",(3,0),0x7462AF65585451CF)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -124,7 +124,7 @@ impl CommandType for DerunCommandType {
 
     fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
         if let InstructionType::Call(_,_,sig,_) = &it.itype {
-            Ok(Box::new(BytesToBoolCommand(it.regs[0].clone(),it.regs[1].clone())))
+            Ok(Box::new(DerunCommand(it.regs[0].clone(),it.regs[1].clone())))
         } else {
             Err(DauphinError::malformed("unexpected instruction"))
         }
@@ -134,6 +134,33 @@ impl CommandType for DerunCommandType {
 pub struct DerunCommand(Register,Register);
 
 impl Command for DerunCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
+    }
+}
+
+pub struct RunCommandType();
+
+impl CommandType for RunCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 2,
+            trigger: CommandTrigger::Command(std("run"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(RunCommand(it.regs[0].clone(),it.regs[1].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct RunCommand(Register,Register);
+
+impl Command for RunCommand {
     fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
         Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
     }
@@ -259,6 +286,7 @@ pub fn make_std() -> CompLibRegister {
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
     set.push("extract_filter",Some(27),ExtractFilterCommandType());
+    set.push("run",Some(29),RunCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

@@ -18,6 +18,9 @@ inline "+" plus left 4;
 func minus(number,number) becomes number;
 inline "-" minus left 4;
 
+func multiply(number,number) becomes number;
+inline "*" multiply left 3;
+
 func divide(number,number) becomes number;
 inline "/" divide left 3;
 
@@ -37,6 +40,7 @@ inline "(+)" extend left 14;
 func repeat(number,_A) becomes _A;
 inline "(*)" repeat left 14;
 
+func run(number) becomes number;
 func derun(number) becomes number;
 
 proc alienate(mask _A);

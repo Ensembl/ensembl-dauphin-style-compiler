@@ -1,7 +1,7 @@
 import collections
 import logging
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
-from model.bigbed import get_bigbed_data, get_bigwig_data
+from model.bigbed import get_bigbed_data, get_bigwig_stats
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .numbers import delta, zigzag, lesqlite2, compress, classify
@@ -10,7 +10,7 @@ SCALE = 4
 
 def get_wiggle(chrom: Chromosome, panel: Panel) -> Response:
     path = chrom.file_path("gc","gc.bw")
-    data = get_bigwig_data(path,chrom,panel.start,panel.end)
+    data = get_bigwig_stats(path,chrom,panel.start,panel.end)
     # Awkwardly, issing data seems tobe treated as 0.0 by the reader.
     # Need also to mask adjacentvalues as averages are affected
     data = [ 0.0 if x is None else x for x in data ]
