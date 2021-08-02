@@ -36,6 +36,7 @@
               <th>track id</th>
               <th>offset</th>
               <th>size</th>
+              <th>labels</th>
             </tr>
           </thead>
           <tbody id="track-metadata">
@@ -43,6 +44,8 @@
         </table>
       </div>
     </div>
+    <script>
+    </script>
     <script type="module">
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
@@ -50,6 +53,18 @@
         genome_browser.go({
           
         });
+        var labels = {};
+        function toggle_label(track_name) {
+          let cur = labels[track_name];
+          if(cur!==true && cur!==false) { cur = true; }
+          let value = !cur;
+          labels[track_name] = value;
+          if(value) {
+            genome_browser.set_switch(["track",track_name,"label"]);
+          } else {
+            genome_browser.clear_switch(["track",track_name,"label"]);
+          }
+        }
         let current_span = document.getElementById("current");
         let target_span = document.getElementById("target");
         genome_browser.set_message_reporter(function(kind,...more) {
@@ -71,12 +86,19 @@
                   td.innerText = text;
                   tr.appendChild(td);
                 }
-                console.log(tr);
+                let td = document.createElement("td");
+                if(track["has-labels"]) {
+                  td.innerHTML = "<a href='#''>toggle</a>";
+                  td.onclick = function() { toggle_label(track['switch-id']) };
+                }
+                tr.appendChild(td);
                 tbody.appendChild(tr);
               }
           }
         });
         genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
+        genome_browser.set_switch(["track","focus"]);
+        genome_browser.set_switch(["track","focus","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd"]);
         genome_browser.set_switch(["track","gene-nonpc-fwd"]);
         genome_browser.set_switch(["track","gene-nonpc-rev"]);
