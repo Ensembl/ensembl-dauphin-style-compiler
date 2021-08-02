@@ -125,7 +125,7 @@ impl PeregrineApiQueue {
             timeout: None,
             task: Box::pin(async move {
                 loop {
-                    let mut messages = self2.queue.get_multi().await;
+                    let mut messages = self2.queue.get_multi(None).await;
                     let mut campaign = ApiQueueCampaign::new(&data2.viewport);
                     let mut lockouts = vec![];
                     for (message,lockout) in messages.drain(..) {

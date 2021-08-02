@@ -71,7 +71,7 @@ track_add_allotment(p,"gc",2000,["switch-id"][],[["track:gc"]][]);
 track_apply(p);
 
 /* variant */
-p := track_new("self()","variant",1,100,5);
+p := track_new("self()","variant",1,100,2);
 track_add_tag(p,"local");
 track_add_trigger(p,["track","variant"]);
 track_add_switch(p,["settings"]);

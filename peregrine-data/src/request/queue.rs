@@ -126,8 +126,8 @@ impl RequestQueue {
         let priority = data.priority.clone();
         drop(data);
         let mut requests = match priority {
-            PacketPriority::RealTime => { pending.get_multi().await },
-            PacketPriority::Batch => { vec![pending.get().await] }
+            PacketPriority::RealTime => { pending.get_multi(None).await },
+            PacketPriority::Batch => { pending.get_multi(Some(10)).await }
         };
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();

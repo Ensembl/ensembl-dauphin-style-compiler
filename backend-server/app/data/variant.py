@@ -43,7 +43,7 @@ def get_variant_exact(chrom: Chromosome, panel: Panel) -> Response:
     return Response(5,{ 'data': out })
 
 def get_variant(chrom: Chromosome, panel: Panel) -> Response:
-    if panel.end-panel.start > 2000:
+    if panel.end-panel.start > 5000:
         return get_variant_stats(chrom,panel)
     else:
         return get_variant_exact(chrom,panel)

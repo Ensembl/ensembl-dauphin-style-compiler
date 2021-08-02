@@ -89,10 +89,13 @@ impl<T> CommanderStream<T> {
     }
 
     /// Return at least one queue member. Wait if none present. If multiple are present, return all.
-    pub async fn get_multi(&self) -> Vec<T> {
+    pub async fn get_multi(&self, limit: Option<usize>) -> Vec<T> {
         let mut out = Vec::new();
         loop {
             while let Some(value) = self.get_nowait() {
+                if let Some(limit) = limit {
+                    if out.len() >= limit { return out; }
+                }
                 out.push(value);
             }
             if out.len() != 0 { return out; }
@@ -191,7 +194,7 @@ mod test {
         smoke2_record(&mut out,start,&agent,s.get_nowait().unwrap());
         assert_eq!(None,s.get_nowait());
         agent.tick(2).await;
-        assert_eq!(vec![10,11],s.get_multi().await);
+        assert_eq!(vec![10,11],s.get_multi(None).await);
         smoke2_record(&mut out,start,&agent,10);
         smoke2_record(&mut out,start,&agent,11);
         agent.tick(1).await;
