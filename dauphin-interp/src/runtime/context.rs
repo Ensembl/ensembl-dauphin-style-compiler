@@ -35,7 +35,8 @@ pub struct InterpContext {
     payloads: HashMap<(String,String),Box<dyn Payload>>,
     filename: String,
     line_number: u32,
-    pause: bool
+    pause: bool,
+    halt: bool
 }
 
 impl InterpContext {
@@ -45,7 +46,8 @@ impl InterpContext {
             payloads: HashMap::new(),
             filename: "**anon**".to_string(),
             line_number: 0,
-            pause: false
+            pause: false,
+            halt: false
         }
     }
 
@@ -62,6 +64,9 @@ impl InterpContext {
             p.finish();
         }
     }
+
+    pub fn do_halt(&mut self) { self.halt = true; }
+    pub fn test_halt(&self) -> bool { self.halt }
 
     pub fn do_pause(&mut self) { self.pause = true; }
     pub fn test_pause(&mut self) -> bool {

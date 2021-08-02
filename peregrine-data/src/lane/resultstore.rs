@@ -21,6 +21,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramL
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
     payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
+    payloads.insert("only_warm".to_string(),Box::new(batch) as Box<dyn Any>);
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
         prio: if batch { 9 } else { 1 },
         slot: None,
@@ -91,7 +92,8 @@ impl LaneStore {
                 value
             } else {
                 let value = self.batch.get(lane).await;
-                self.realtime.warm(lane,value.as_ref().clone());
+                /* Don't warm! Some mayhave short-circuited */
+                //self.realtime.warm(lane,value.as_ref().clone());
                 value
             }
         } else {

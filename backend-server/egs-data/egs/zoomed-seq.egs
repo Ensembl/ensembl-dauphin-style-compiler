@@ -2,6 +2,8 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
 data := get_data("self()","zoomed-seq",get_region());
+halt(only_warm(),[data]);
+
 seq_start := delta_seq(data,"seq_starts");
 seq_end := seq_start + 1;
 seq_letter := classified_seq(data,"seq_keys","seq_values");

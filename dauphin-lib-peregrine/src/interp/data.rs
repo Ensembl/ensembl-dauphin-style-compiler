@@ -8,6 +8,16 @@ use serde_cbor::Value as CborValue;
 simple_interp_command!(GetLaneInterpCommand,GetLaneDeserializer,21,3,(0,1,2));
 simple_interp_command!(GetDataInterpCommand,GetDataDeserializer,22,6,(0,1,2,3,4,5));
 simple_interp_command!(DataStreamInterpCommand,DataStreamDeserializer,23,3,(0,1,2));
+simple_interp_command!(OnlyWarmInterpCommand,OnlyWarmDeserializer,43,1,(0));
+
+impl InterpCommand for OnlyWarmInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let warm = get_instance::<bool>(context,"only_warm")?;
+        let registers = context.registers_mut();
+        registers.write(&self.0,InterpValue::Boolean(vec![warm]));
+        Ok(CommandResult::SyncResult())
+    }
+}
 
 impl InterpCommand for GetLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

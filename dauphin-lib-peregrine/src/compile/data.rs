@@ -11,6 +11,7 @@ use dauphin_interp::types::{ to_xstructure, XStructure, map_xstructure };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
+simple_command!(OnlyWarmCommand,OnlyWarmCommandType,"peregrine","only_warm",1,(0));
 /*                         0: stick 1: index 2: scale */
 pub struct GetLaneCommand(Register,Register,Register);
 

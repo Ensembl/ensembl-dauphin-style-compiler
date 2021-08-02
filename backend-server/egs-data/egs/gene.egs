@@ -6,6 +6,7 @@ import "lib:peregrine"; use "peregrine";
  */
 
 data := get_data("self()","gene",get_region());
+halt(only_warm(),[data]);
 
 /*
  * undo the compression applied by the server basically by applying

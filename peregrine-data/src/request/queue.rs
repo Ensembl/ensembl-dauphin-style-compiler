@@ -1,4 +1,5 @@
 use anyhow::{ Context };
+use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::lock;
 use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
@@ -43,7 +44,9 @@ struct RequestQueueData {
     channel: Channel,
     priority: PacketPriority,
     timeout: Option<f64>,
-    messages: MessageSender
+    messages: MessageSender,
+    realtime_block: Option<Blocker>,
+    realtime_block_check: Option<Blocker>
 }
 
 impl RequestQueueData {
@@ -59,6 +62,16 @@ impl RequestQueueData {
             self.messages.send(DataMessage::PacketError(self.channel.clone(),e.to_string()));
         }
         msg
+    }
+
+    fn acquire_realtime_lock(&self) -> Option<Lockout> {
+        //self.realtime_block.as_ref().map(|x| x.lock())
+        None
+    }
+
+    fn await_realtime_idle(&self) {
+        let lock = self.realtime_block_check.as_ref().map(|x| x.lock());
+        drop(lock);
     }
 
     fn set_timeout(&mut self, timeout: f64) {
@@ -94,10 +107,20 @@ impl RequestQueue {
             channel: channel.clone(),
             priority: priority.clone(),
             timeout: None,
-            messages: messages.clone()
+            messages: messages.clone(),
+            realtime_block: None,
+            realtime_block_check: None
         })));
         out.start(commander)?;
         Ok(out)
+    }
+
+    pub(super) fn set_realtime_block(&mut self, blocker: &Blocker) {
+        self.0.lock().unwrap().realtime_block = Some(blocker.clone());
+    }
+
+    pub(super) fn set_realtime_check(&mut self, blocker: &Blocker) {
+        self.0.lock().unwrap().realtime_block_check = Some(blocker.clone());
     }
 
     pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<Box<dyn ResponseType>>) {
@@ -143,7 +166,10 @@ impl RequestQueue {
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
         let sender = lock!(self.0).make_packet_sender(packet)?;
+        lock!(self.0).await_realtime_idle();
+        let lockout = lock!(self.0).acquire_realtime_lock();
         let response = sender.await?;
+        drop(lockout);
         let response = lock!(self.0).builder.new_packet(&response).context("Building response packet")?;
         Ok(response)
     }

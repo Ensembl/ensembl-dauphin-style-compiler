@@ -6,6 +6,8 @@ import "lib:peregrine"; use "peregrine";
  */
 
 data := get_data("self()","gc",get_region());
+halt(only_warm(),[data]);
+
 values := delta_seq(data,"values");
 present := bool_seq(data,"present");
 values := values / 25;

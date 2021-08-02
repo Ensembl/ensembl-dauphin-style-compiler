@@ -1,5 +1,6 @@
 use crate::lock;
 use commander::{ CommanderStream };
+use peregrine_toolkit::sync::blocker::Blocker;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::future::Future;
@@ -42,6 +43,7 @@ pub struct RequestManagerData {
     commander: PgCommander,
     next_id: u64,
     queues: HashMap<(Channel,PacketPriority),RequestQueue>,
+    real_time_lock: Blocker,
     messages: MessageSender
 }
 
@@ -53,6 +55,7 @@ impl RequestManagerData {
             commander: commander.clone(),
             next_id: 0,
             queues: HashMap::new(),
+            real_time_lock: Blocker::new(),
             messages: messages.clone()
         }
     }
@@ -70,7 +73,16 @@ impl RequestManagerData {
             Entry::Vacant(e) => { 
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                e.insert(RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages)?)
+                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages)?;
+                match priority {
+                    PacketPriority::RealTime => {
+                        queue.set_realtime_block(&self.real_time_lock);
+                    },
+                    _ => {
+                        queue.set_realtime_check(&self.real_time_lock);
+                    }
+                }
+                e.insert(queue)
             },
             Entry::Occupied(e) => { e.into_mut() }
         })

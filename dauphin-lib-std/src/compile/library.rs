@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(3,0),0x7462AF65585451CF)
+    CommandSetId::new("std",(4,0),0xE3EF4ACC9DFD974C)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -239,6 +239,33 @@ impl Command for AssertCommand {
     }
 }
 
+pub struct HaltCommandType();
+
+impl CommandType for HaltCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 1,
+            trigger: CommandTrigger::Command(std("halt"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,_,_) = &it.itype {
+            Ok(Box::new(HaltCommand(it.regs[0].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct HaltCommand(Register);
+
+impl Command for HaltCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize()]))
+    }
+}
+
 pub struct AlienateCommandType();
 
 impl CommandType for AlienateCommandType {
@@ -275,18 +302,20 @@ impl Command for AlienateCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
-    /* next is 28 */
+    /* next is 31 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
     set.push("assert",Some(4),AssertCommandType());
     set.push("alienate",Some(13),AlienateCommandType());
+    set.push("halt",Some(30),HaltCommandType());
     set.push("print",Some(14),PrintCommandType());
     set.push("format",Some(2),FormatCommandType());
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
     set.push("extract_filter",Some(27),ExtractFilterCommandType());
     set.push("run",Some(29),RunCommandType());
+    set.push("halt",Some(30),HaltCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

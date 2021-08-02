@@ -61,6 +61,9 @@ async fn more_internal(commands: &mut CommandGetter, context: &mut InterpContext
             }
         }
         context.registers_mut().commit();
+        if context.test_halt() {
+            return Ok(false);
+        }
         if context.test_pause() {
             return Ok(true);
         }
@@ -150,6 +153,10 @@ impl<'b> DebugInterpretInstance<'b> {
             }
             self.context.registers_mut().commit();
             print!("{}",self.context.registers_mut().dump_many(&regs)?);
+            if self.context.test_halt() {
+                print!("HALT\n");
+                return Ok(false);
+            }
             if self.context.test_pause() {
                 print!("PAUSE\n");
             }

@@ -44,6 +44,7 @@ func run(number) becomes number;
 func derun(number) becomes number;
 
 proc alienate(mask _A);
+proc halt(boolean,vec(_A));
 
 proc print(boolean,number,string);
 stmt notice(text) { print(true,0,text); }
