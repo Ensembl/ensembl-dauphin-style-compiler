@@ -49,5 +49,5 @@ async def data(priority: PacketPriority, request: Request):
     body = b''
     async for chunk in request.stream():
         body += chunk
-    body = cbor2.dumps(process_packet(cbor2.loads(body)))
+    body = cbor2.dumps(process_packet(cbor2.loads(body),priority=="hi"))
     return Response(content=body,media_type="application/cbor")

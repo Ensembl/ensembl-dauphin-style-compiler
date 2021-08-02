@@ -12,7 +12,7 @@ use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{HtmlElement, console };
-use lazy_static::lazy_static;
+use serde::{Serialize, Deserialize};
 
 thread_local!{
     pub static CLOSURE : Arc<Mutex<Vec<Option<js_sys::Function>>>> = Arc::new(Mutex::new(vec![]));
@@ -74,6 +74,11 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
 pub async fn test(api: GenomeBrowser) {
     let pg_api = api.real_api().clone();
     api.commander().unwrap().add("test",100,None,None,Box::pin(async move { test_cdr(&pg_api).await }));
+}
+
+#[derive(Serialize, Deserialize)]
+struct TrackMetadata {
+    summary: Vec<HashMap<String,String>>
 }
 
 #[wasm_bindgen]
@@ -239,8 +244,12 @@ impl GenomeBrowser {
                                 },
                                 Message::Ready => {},
                                 Message::AllotterMetadata(metadata) => {
-                                    use web_sys::console;
-                                    console::log_1(&format!("{:?}",metadata.summarize()).into());
+                                    let args = Array::new();
+                                    args.set(0,JsValue::from("tracks"));
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {
+                                        summary: metadata.summarize().to_vec()
+                                    }))));
+                                    let _ = closure.apply(&this,&args);
                                 },
                                 x => {
                                     use web_sys::console;

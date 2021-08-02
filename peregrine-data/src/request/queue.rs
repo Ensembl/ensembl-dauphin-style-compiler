@@ -65,8 +65,7 @@ impl RequestQueueData {
     }
 
     fn acquire_realtime_lock(&self) -> Option<Lockout> {
-        //self.realtime_block.as_ref().map(|x| x.lock())
-        None
+        self.realtime_block.as_ref().map(|x| x.lock())
     }
 
     fn await_realtime_idle(&self) {

@@ -30,6 +30,17 @@
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
+        <table style="border: 1px">
+          <thead>
+            <tr>
+              <th>track id</th>
+              <th>offset</th>
+              <th>size</th>
+            </tr>
+          </thead>
+          <tbody id="track-metadata">
+          </tbody>
+        </table>
       </div>
     </div>
     <script type="module">
@@ -48,6 +59,21 @@
               current_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
           } else if(kind=="target") {
               target_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
+          } else if(kind=="tracks") {
+            let tbody = document.getElementById("track-metadata");
+            tbody.innerHTML = "";
+            for(const track of more[0].summary) {
+                if(track.type != "track") { continue; } /* don't care */
+                let tr = document.createElement("tr");
+                let data = [track["switch-id"],track.offset,track.height];
+                for(const text of data) {
+                  let td = document.createElement("td");
+                  td.innerText = text;
+                  tr.appendChild(td);
+                }
+                console.log(tr);
+                tbody.appendChild(tr);
+              }
           }
         });
         genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");

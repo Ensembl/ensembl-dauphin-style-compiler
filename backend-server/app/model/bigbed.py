@@ -13,12 +13,12 @@ def get_bigbed_data(path,chrom,start,end):
         out = []
     return out
 
-def get_bigwig_stats(path,chrom,start,end,consolidation="mean"):
+def get_bigwig_stats(path,chrom,start,end,consolidation="mean",nBins=1000):
     end = min(end,chrom.size)
     start_time = time.time()
     try:
         bw = pyBigWig.open(path)
-        out = bw.stats(chrom.name,start,end,nBins=1000,type=consolidation) or []
+        out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
         bw.close()
     except (RuntimeError,OverflowError) as e:
         out = []

@@ -10,7 +10,7 @@ SCALE=1000
 
 def get_variant_stats(chrom: Chromosome, panel: Panel) -> Response:
     path = chrom.file_path("variants","summary.{}.bw".format(chrom.name))
-    data = get_bigwig_stats(path,chrom,panel.start,panel.end,"max")
+    data = get_bigwig_stats(path,chrom,panel.start,panel.end,"max",nBins=250)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:

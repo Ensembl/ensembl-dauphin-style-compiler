@@ -153,8 +153,6 @@ impl InterpCommand for HaltInterpCommand {
             if *yn_this { yn = true; break; }
         }
         if yn {
-            use web_sys::console;
-            console::log_1(&format!("HALT!").into());
             context.do_halt();
         }
         Ok(CommandResult::SyncResult())
