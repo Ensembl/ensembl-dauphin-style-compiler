@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
-from command.coremodel import DataHandler, Panel, Response, DataAccessor
+from command.coremodel import DataHandler, Panel, DataAccessor
+from command.response import Response
 from model.chromosome import Chromosome
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 from .util import classified_numbers

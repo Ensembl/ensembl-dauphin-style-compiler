@@ -2,7 +2,8 @@ import collections
 import logging
 import re
 from typing import Dict, List, Mapping, Tuple
-from command.coremodel import DataHandler, Panel, DataAccessor, Response
+from command.coremodel import DataHandler, Panel, DataAccessor
+from command.response import Response
 from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine

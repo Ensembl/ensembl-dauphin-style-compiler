@@ -21,18 +21,35 @@ from typing import Any
 from enum import Enum
 from fastapi import APIRouter, HTTPException
 from loguru import logger
+from starlette import responses
 from starlette.datastructures import Headers
 from starlette.status import HTTP_404_NOT_FOUND
 from starlette.requests import Request
 from starlette.responses import Response
 import cbor2
+from cbor2 import CBOREncoder
 from command.packet import process_packet
-
+from io import BytesIO
 from core.logging import InterceptHandler
 
 logging.getLogger().handlers = [InterceptHandler()]
 
 router = APIRouter()
+
+# Some of our cbor is from caches and already serialised so we have to build our response ourselves
+def build_response(responses,programs) -> Any:
+    with BytesIO() as fp:
+        encoder = CBOREncoder(fp)
+        encoder.encode_length(5,2)
+        encoder.encode("responses")
+        encoder.encode_length(4,len(responses))
+        for (id,payload) in responses:
+            encoder.encode_length(4,2)
+            encoder.encode(id)
+            encoder.fp.write(payload) # this line is the key swerve
+        encoder.encode("programs")
+        encoder.encode(programs)
+        return fp.getvalue()
 
 class PacketPriority(str, Enum):
     hi = "hi"
@@ -49,5 +66,7 @@ async def data(priority: PacketPriority, request: Request):
     body = b''
     async for chunk in request.stream():
         body += chunk
-    body = cbor2.dumps(process_packet(cbor2.loads(body),priority=="hi"))
+    input_data = cbor2.loads(body)
+    (responses,programs) = process_packet(input_data,priority=="hi")
+    body = build_response(responses,programs)
     return Response(content=body,media_type="application/cbor")

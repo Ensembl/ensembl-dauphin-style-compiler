@@ -42,6 +42,7 @@ ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",
 )
 
+config_directory = config("CONFIG_DIRECTORY", default=os.path.join(base_directory,"config"))
 egs_directory = config("EGS_DIRECTORY", default=os.path.join(base_directory,"egs-data","egs"))
 
 EGS_FILES: str = config("EGS_FILES", default=egs_directory)
@@ -64,6 +65,6 @@ for logger_name in LOGGERS:
 
 logger.configure(handlers=[{"sink": sys.stderr, "level": LOGGING_LEVEL}])
 
-config_directory = config("CONFIG_DIRECTORY", default=os.path.join(base_directory,"config"))
-
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources.toml"))
+
+MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")

@@ -1,6 +1,7 @@
 import collections
 import logging
-from command.coremodel import DataHandler, Panel, DataAccessor, Response
+from command.coremodel import DataHandler, Panel, DataAccessor
+from command.response import Response
 from model.bigbed import get_bigwig_stats
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine

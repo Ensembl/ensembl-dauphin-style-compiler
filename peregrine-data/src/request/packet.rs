@@ -100,11 +100,12 @@ impl ResponsePacket {
     }
 
     fn deserialize_response(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<CommandResponse> {
-        let values = cbor_array(value,3,false)?;
+        let values = cbor_array(value,2,false)?;
         let msgid = cbor_int(&values[0],None)? as u64;
-        let builder = builders.get(&(cbor_int(&values[1],Some(255))? as u8)).ok_or(err!("bad response type"))?;
-        let payload = builder.deserialize(&values[2]).with_context(
-            || format!("deserializing individual response payload (type {})",cbor_int(&values[1],None).unwrap_or(-1))
+        let response = cbor_array(&values[1],2,false)?;
+        let builder = builders.get(&(cbor_int(&response[0],Some(255))? as u8)).ok_or(err!("bad response type"))?;
+        let payload = builder.deserialize(&response[1]).with_context(
+            || format!("deserializing individual response payload (type {})",cbor_int(&response[0],None).unwrap_or(-1))
         )?;
         Ok(CommandResponse::new(msgid,payload))
     }
