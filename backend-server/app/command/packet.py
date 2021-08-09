@@ -35,12 +35,6 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     channel = packet_cbor["channel"]
     response = []
     bundles = set()
-    if high_priority:
-        logging.warn("packet typ={}".format(",".join([str(x[1]) for x in packet_cbor['requests']])))
-        for p in packet_cbor["requests"]:
-            (msgid,typ,payload) = p
-            if typ == 4:
-                logging.warn(payload)
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
         r = process_request(channel,typ,payload)

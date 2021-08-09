@@ -1,4 +1,5 @@
 use crate::switch::allotment::AllotterMetadata;
+use crate::switch::pitch::Pitch;
 use crate::{DataMessage, request::ChannelIntegration};
 use crate::train::{ Carriage };
 use crate::core::Viewport;
@@ -15,5 +16,6 @@ pub trait PeregrineIntegration {
     fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
     fn notify_allotment_metadata(&mut self, metadata: &AllotterMetadata);
+    fn notify_pitch(&mut self, pitch: &Pitch);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }

@@ -110,6 +110,7 @@ pub(crate) mod spacebase {
 pub(crate) mod switch {
     pub(crate) mod allotter;
     pub(crate) mod allotment;
+    pub(crate) mod pitch;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
@@ -178,6 +179,7 @@ pub use self::switch::allotment::{
     PositionVariant, AllotmentPosition, AllotmentStaticMetadataBuilder, AllotterMetadata
 };
 pub use self::switch::switch::{ Switches };
+pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
 pub use self::util::{ CountingPromise, DataMessage, Builder };

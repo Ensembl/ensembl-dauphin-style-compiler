@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex };
 use std::fmt;
 use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
 use crate::core::{ Layout, Scale };
+use crate::switch::pitch::Pitch;
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
@@ -85,15 +86,34 @@ impl TrainData {
     fn train_ready(&self) -> bool { self.data_ready && self.max.is_some() }
     fn is_broken(&self) -> bool { self.broken }
 
-    fn allotter_metadata(&self) -> Option<AllotterMetadata> {
+    fn central_carriage(&self) -> Option<&Carriage> {
         if let Some(carriages) = &self.carriages {
             let carriages = carriages.carriages();
             if carriages.len() > 0 {
                 let central = &carriages[carriages.len()/2];
-                return Some(central.shapes().allotter().metadata().clone());
+                if central.ready() {
+                    return Some(central);
+                }
             }
         }
         None
+    }
+
+    fn allotter_metadata(&self) -> Option<AllotterMetadata> {
+        self.central_carriage().map(|c| c.shapes().allotter().metadata().clone())
+    }
+
+    fn pitch(&self) -> Pitch {
+        let mut pitch = Pitch::new();
+        if let Some(carriages) = &self.carriages {
+            for carriage in carriages.carriages() {
+                if carriage.ready() {
+                    let allotter = carriage.shapes().allotter();
+                    pitch.merge(allotter.pitch());
+                }
+            }
+        }
+        pitch
     }
 
     fn set_max(&mut self, max: Result<u64,DataMessage>) {
@@ -183,9 +203,8 @@ impl Train {
         }
     }
 
-    pub(super) fn maybe_ready(&mut self) {
-        self.0.lock().unwrap().maybe_ready();
-    }
+    pub(super) fn maybe_ready(&mut self) { self.0.lock().unwrap().maybe_ready(); }
+    pub(super) fn pitch(&self) -> Pitch { self.0.lock().unwrap().pitch() }
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
         Ok(data.agent_store.stick_store.get(&self.id().layout().stick()).await?.size())

@@ -2,6 +2,8 @@ use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedValues, KeyedHandle };
 
+use super::pitch::Pitch;
+
 #[derive(Debug)]
 pub struct AllotmentStaticMetadataBuilder {
     name: String,
@@ -254,6 +256,15 @@ impl AllotmentPosition {
             AllotmentPosition::SpaceLabel(_,x) => x.0,
             AllotmentPosition::Overlay(x) => *x,
         }
+    }
+
+    pub fn apply_pitch(&self, pitch: &mut Pitch) {
+        match self {
+            AllotmentPosition::Track(offset_size) => {
+                pitch.set_limit(offset_size.0+offset_size.1);
+            },
+            _ => {}
+        }        
     }
 }
 

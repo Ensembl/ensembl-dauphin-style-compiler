@@ -108,6 +108,7 @@ enabled_labels := get_switch([
     ["track","gene-pc-rev","label"],
     ["track","gene-nonpc-fwd","label"],
     ["track","gene-pc-fwd","label"],
+    ["track","focus","label"],
 ][]);
 
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);

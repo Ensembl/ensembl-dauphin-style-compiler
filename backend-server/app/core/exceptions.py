@@ -1,0 +1,2 @@
+class RequestException(object):
+    pass

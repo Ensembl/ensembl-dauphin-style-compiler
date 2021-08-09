@@ -71,16 +71,19 @@ fn find_class(dollar: &DollarReplace, el: &Element, class: &str) -> Result<Optio
     unique_element(el.get_elements_by_class_name(&dollar.replace(class)))
 }
 
-fn setup_dom(dollar: &DollarReplace, el: &Element, html: &str, css: &str) -> Result<Element,Message> {
+fn setup_dom(dollar: &DollarReplace, el: &Element, html: &str, css: &str) -> Result<(Element,Element),Message> {
     add_css(&el.owner_document().ok_or_else(|| Message::ConfusedWebBrowser(format!("Element has no document")))?,&dollar.replace(css))?;
     el.set_inner_html(&dollar.replace(html));
-    Ok(require(unique_element(el.get_elements_by_class_name(&dollar.replace("$-browser-canvas"))))?)
+    let canvas = require(unique_element(el.get_elements_by_class_name(&dollar.replace("$-browser-canvas"))))?;
+    let container = require(unique_element(el.get_elements_by_class_name(&dollar.replace("$-container"))))?;
+    Ok((canvas,container))
 }
 
 #[derive(Clone)]
 pub struct PeregrineDom {
     canvas: HtmlCanvasElement,
     canvas_frame: HtmlElement,
+    canvas_container: HtmlElement,
     document: Document,
     body: HtmlElement
 }
@@ -88,7 +91,7 @@ pub struct PeregrineDom {
 impl PeregrineDom {
     pub fn new(el: &Element, html: &str, css: &str) -> Result<PeregrineDom,Message> {
         let dollar = DollarReplace::new();
-        let canvas = setup_dom(&dollar,el,html,css)?;
+        let (canvas,container) = setup_dom(&dollar,el,html,css)?;
         let canvas_frame = match find_class(&dollar,&canvas,"$-browser-canvas-frame")? {
             Some(e) => e,
             None => parent(&canvas)?
@@ -97,12 +100,14 @@ impl PeregrineDom {
             document: get_document(&canvas)?,
             body: get_body(&canvas)?,
             canvas: to_canvas(canvas)?,
+            canvas_container: to_html(container)?,
             canvas_frame: to_html(canvas_frame)?
         })
     }
 
     pub(crate) fn canvas(&self) -> &HtmlCanvasElement { &self.canvas }
     pub(crate) fn canvas_frame(&self) -> &HtmlElement { &self.canvas_frame }
+    pub(crate) fn canvas_container(&self) -> &HtmlElement { &self.canvas_container }
     pub(crate) fn document(&self) -> &Document { &self.document }
     pub(crate) fn body(&self) -> &HtmlElement { &self.body }
 }

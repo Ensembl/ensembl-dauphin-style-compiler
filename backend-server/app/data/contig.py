@@ -3,7 +3,7 @@ import logging
 import random
 from typing import List, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
-from model.bigbed import get_bigbed_data
+from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .numbers import delta, zigzag, lesqlite2, compress, classify
@@ -48,9 +48,9 @@ def shimmer(positions: List[Tuple[int]], sense: List[bool], start: int, end: int
             shimmer_push(out_position,out_sense,start_d,end_d,False)
     return (out_position,out_sense)
 
-def get_contig(chrom: Chromosome, panel: Panel, do_shimmer: bool) -> Response:
-    path = chrom.file_path("contigs","contigs.bb")
-    data = get_bigbed_data(path,chrom,panel.start,panel.end)
+def get_contig(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, do_shimmer: bool) -> Response:
+    item = chrom.item_path("contigs")
+    data = get_bigbed(data_accessor,item,panel.start,panel.end)
     positions = []
     senses = []
     for line in data:
@@ -71,11 +71,11 @@ class ContigDataHandler(DataHandler):
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return get_contig(chrom,panel,False)
+        return get_contig(data_accessor,chrom,panel,False)
 
 class ShimmerContigDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return get_contig(chrom,panel,True)
+        return get_contig(data_accessor,chrom,panel,True)

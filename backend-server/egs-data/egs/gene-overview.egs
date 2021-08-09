@@ -29,6 +29,7 @@ enabled_tracks := get_switch([
     ["track","gene-pc-rev"],
     ["track","gene-nonpc-fwd"],
     ["track","gene-pc-fwd"],
+    ["track","focus","label"],
 ][]);
 
 tracks_used := ["","","","","focus"];

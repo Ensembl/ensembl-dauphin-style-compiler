@@ -1,7 +1,7 @@
 use std::{collections::HashMap};
 use keyed::KeyedData;
 use crate::{Allotment, AllotmentPetitioner, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
-use super::allotment::{AllotmentHandle, AllotmentStaticMetadata, AllotterMetadata, OffsetSize};
+use super::{allotment::{AllotmentHandle, AllotterMetadata, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
     requests: Vec<(AllotmentHandle,AllotmentRequest)>
@@ -30,7 +30,7 @@ impl RequestSorter {
 
 fn make_allocator(kind: &AllotmentPositionKind) -> Box<dyn AllotmentPositionAllocator> {
     match kind {
-        AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(64, |index,size| {
+        AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(256, |index,size| {
             AllotmentPosition::Track(OffsetSize(index*size,size))
         })), // XXX size
         AllotmentPositionKind::BaseLabel(priority) => {
@@ -125,18 +125,21 @@ impl RunningAllotter {
 
 pub struct Allotter {
     allotments: KeyedData<AllotmentHandle,Option<Allotment>>,
-    metadata: AllotterMetadata
+    metadata: AllotterMetadata,
+    pitch: Pitch
 }
 
 impl Allotter {
     pub fn empty() -> Allotter {
         Allotter {
             allotments: KeyedData::new(),
-            metadata: AllotterMetadata::new(vec![])
+            metadata: AllotterMetadata::new(vec![]),
+            pitch: Pitch::new()
         }
     }
 
     pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
+        let mut pitch = Pitch::new();
         let mut sorter = RequestSorter::new();
         for handle in handles {
             sorter.add(petitioner,handle);
@@ -146,10 +149,11 @@ impl Allotter {
         let mut running_allocator = RunningAllotter::new();
         for sorted_handle in sorter.get() {
             let allotment = running_allocator.add(petitioner,&sorted_handle);
+            allotment.position().apply_pitch(&mut pitch);
             metadata.push(allotment.metadata().clone());
             allotments.insert(&sorted_handle,allotment);
         }
-        Allotter { allotments, metadata: AllotterMetadata::new(metadata) }
+        Allotter { allotments, metadata: AllotterMetadata::new(metadata), pitch }
     }
 
     pub fn get(&self, handle: &AllotmentHandle) -> Result<&Allotment,DataMessage> {
@@ -157,4 +161,5 @@ impl Allotter {
     }
 
     pub fn metadata(&self) -> AllotterMetadata { self.metadata.clone() }
+    pub fn pitch(&self) -> &Pitch { &self.pitch }
 }

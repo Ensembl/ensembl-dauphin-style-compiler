@@ -1,20 +1,23 @@
 use std::sync::{ Arc, Mutex };
 use commander::{FusePromise, PromiseFuture};
-use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, StickId, Viewport};
+use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, StickId, Viewport};
 use super::pgchannel::PgChannel;
+use crate::PeregrineDom;
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
+use web_sys::CssStyleDeclaration;
 
 pub struct PgIntegration {
     channel: PgChannel,
     trainset: GlTrainSet,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
-    report: Report
+    report: Report,
+    dom: PeregrineDom
 }
 
 impl PeregrineIntegration for PgIntegration {
@@ -53,16 +56,23 @@ impl PeregrineIntegration for PgIntegration {
             }
         }
     }
+
+    fn notify_pitch(&mut self, pitch: &Pitch) {
+        self.dom.canvas_container().style().set_property("height",&format!("{}px",pitch.height())); // XXX errors
+        use web_sys::console;
+        //console::log_1(&format!("pitch {:?}",pitch).into());
+    }
 }
 
 impl PgIntegration {
-    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, report: &Report) -> PgIntegration {
+    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,
             webgl,
             stage: stage.clone(),
-            report: report.clone()
+            report: report.clone(),
+            dom: dom.clone()
         }
     }
 }

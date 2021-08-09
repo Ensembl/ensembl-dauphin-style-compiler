@@ -1,6 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
+use crate::switch::pitch::Pitch;
 use crate::{AllotterMetadata, CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
@@ -23,6 +24,7 @@ pub struct TrainSetData {
     next_activation: u32,
     messages: MessageSender,
     anticipate: Anticipate,
+    pitch: Option<Pitch>,
     visual_blocker: Blocker,
     old_metadata: Option<AllotterMetadata>,
     #[allow(unused)]
@@ -38,6 +40,7 @@ impl TrainSetData {
             next_activation: 0,
             messages: base.messages.clone(),
             anticipate: Anticipate::new(base,result_store),
+            pitch: None,
             visual_blocker: visual_blocker.clone(),
             visual_lockout: None,
             old_metadata: None
@@ -66,6 +69,7 @@ impl TrainSetData {
                 self.next_activation += 1;
                 self.future = Some(wanted);
                 self.maybe_allotment_metadata(events);
+                self.maybe_notify_pitch(events);
                 self.notify_viewport(events);
             }
         }
@@ -149,6 +153,7 @@ impl TrainSetData {
         }
         self.current = self.future.take();
         self.promote(events);
+        self.maybe_notify_pitch(events);
     }
 
     fn update_trains(&mut self) -> CarriageEvents {
@@ -164,7 +169,28 @@ impl TrainSetData {
             train.set_carriages(&mut events);
         }
         self.maybe_allotment_metadata(&mut events);
+        self.maybe_notify_pitch(&mut events);
         events
+    }
+
+    fn maybe_notify_pitch(&mut self, events: &mut CarriageEvents) {
+        let mut pitch = Pitch::new();
+        if let Some(wanted) = &self.wanted {
+            pitch.merge(&wanted.pitch());
+        }
+        if let Some(future) = &self.future {
+            pitch.merge(&future.pitch());
+        }
+        if let Some(current) = &self.current {
+            pitch.merge(&current.pitch());
+        }
+        if let Some(old_pitch) = &self.pitch {
+            if old_pitch == &pitch {
+                return;
+            }
+        }
+        events.update_pitch(&pitch);
+        self.pitch = Some(pitch);
     }
 }
 
@@ -244,22 +270,3 @@ impl TrainSet {
         self.state.lock().unwrap().update_visual_lock();
     }
 }
-
-/*
-
-        if let Some(carriages) = &mut self.carriages {
-            if carriages.ready() {
-                if let Some(index) = self.active {
-                    let carriages = self.carriages();
-                    if carriages.len() > 0 {
-                        let central = &carriages[carriages.len()/2];
-                        let metadata = central.shapes().allotter().metadata();
-                        events.send_allotment_metadata(&metadata);
-                    }
-                    events.set_carriages(&carriages,index);
-                }
-            }
-        }
-
-
-*/

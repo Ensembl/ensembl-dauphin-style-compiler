@@ -1,5 +1,6 @@
 import logging
 import os.path
+from model.datalocator import AccessItem
 
 def chrless(x):
     if x.startswith("chr"):
@@ -29,3 +30,6 @@ class Chromosome(object):
         if not os.path.exists(path):
             logging.warn("Missing file {0}".format(path))
         return path
+
+    def item_path(self,variety):
+        return AccessItem(variety,self.genome_id,self.name)

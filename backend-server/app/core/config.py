@@ -63,3 +63,7 @@ for logger_name in LOGGERS:
     logging_logger.handlers = [InterceptHandler(level=LOGGING_LEVEL)]
 
 logger.configure(handlers=[{"sink": sys.stderr, "level": LOGGING_LEVEL}])
+
+config_directory = config("CONFIG_DIRECTORY", default=os.path.join(base_directory,"config"))
+
+SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources.toml"))

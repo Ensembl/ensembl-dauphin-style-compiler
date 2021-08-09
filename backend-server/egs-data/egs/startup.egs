@@ -34,13 +34,13 @@ stmt gene_std(p) {
     track_add_allotment(p,"track:gene-nonpc-fwd",1100,["switch-id","has-labels"][],[["gene-nonpc-fwd"],["1"]][]);
 }
 
-/* exon-struxcture; labels ; zmenus; sequence blocks */
+/* exon-structure; labels ; zmenus; sequence blocks */
 p := track_new("self()","zoomed-transcript",0,sequence_scale,3);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
 
-/* exon-struxcture; labels ; zmenus; no sequence blocks */
+/* exon-structure; labels ; zmenus; no sequence blocks */
 p := track_new("self()","transcript",sequence_scale,18,3);
 track_add_tag(p,"local");
 gene_std(p);
