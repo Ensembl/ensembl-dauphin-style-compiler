@@ -28,7 +28,6 @@ def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
             _bigwigs[path] = pyBigWig.open(path)
         bw = _bigwigs[path]
         out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
-        bw.close()
     except (RuntimeError,OverflowError) as e:
         out = []
     return out
@@ -41,7 +40,6 @@ def get_bigwig_data(path,chrom,start,end):
             _bigwigs[path] = pyBigWig.open(path)
         bw = _bigwigs[path]
         out = bw.values(chrom.name,start,end) or []
-        bw.close()
     except (RuntimeError,OverflowError) as e:
         out = []
     return out

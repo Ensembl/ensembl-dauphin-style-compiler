@@ -20,6 +20,8 @@ class AccessItem(object):
                 return "/".join(["genes_and_transcripts",self.genome,"transcripts.bb"])
             elif self.variety == "gc":
                 return "/".join(["gc",self.genome,"gc.bw"])
+            elif self.variety == "variant-summary":
+                return "/".join(["variants",self.genome,"variant-summary.bw"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
