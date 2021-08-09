@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Dict, List, Mapping, Tuple
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
-from model.bigbed import get_bigbed_data
+from model.bigbed import get_bigbed
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .util import classified_numbers, starts_and_ends, starts_and_lengths
@@ -53,10 +53,10 @@ def add_exon_data(result: dict, genes: List[str], transcripts: Dict[str,Transcri
     result['exon_strands'] = compress(lesqlite2(strands))
     result['exon_counts'] = compress(lesqlite2(zigzag(delta(exon_counts))))
 
-def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
+def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, include_exons: bool, include_sequence: bool) -> Response:
     out = {}
-    path = chrom.file_path("genes_and_transcripts","transcripts.bb")
-    data = get_bigbed_data(path,chrom,panel.start,panel.end)
+    item = chrom.item_path("transcripts")
+    data = get_bigbed(data_accessor,item,panel.start,panel.end)
     seen_genes = set()
     genes = []
     gene_sizes = {}
@@ -114,10 +114,10 @@ def extract_gene_data(chrom: Chromosome, panel: Panel, include_exons: bool, incl
     #    logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })
 
-def extract_gene_overview_data(chrom: Chromosome, panel: Panel) -> Response:
+def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     out = {}
-    path = chrom.file_path("genes_and_transcripts","transcripts.bb")
-    data = get_bigbed_data(path,chrom,panel.start,panel.end)
+    item = chrom.item_path("transcripts")
+    data = get_bigbed(data_accessor,item,panel.start,panel.end)
     seen_genes = set()
     genes = []
     gene_sizes = {}
@@ -151,18 +151,18 @@ class TranscriptDataHandler(DataHandler):
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(chrom,panel,True,self._seq)
+        return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_data(chrom,panel,False,False)
+        return extract_gene_data(data_accessor,chrom,panel,False,False)
 
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
         chrom = data_accessor.data_model.sticks.get(panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
-        return extract_gene_overview_data(chrom,panel)
+        return extract_gene_overview_data(data_accessor,chrom,panel)

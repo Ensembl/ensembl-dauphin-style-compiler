@@ -16,6 +16,8 @@ class AccessItem(object):
     def item_suffix(self) -> str:
             if self.variety == "contigs":
                 return "/".join(["contigs",self.genome,"contigs.bb"])
+            elif self.variety == "transcripts":
+                return "/".join(["genes_and_transcripts",self.genome,"transcripts.bb"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
