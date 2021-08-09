@@ -3,7 +3,7 @@ import logging
 from .coremodel import Handler, Panel, Response
 from .datasources import DataAccessor
 from data.genedata import GeneDataHandler, GeneOverviewDataHandler, TranscriptDataHandler
-from data.wiggle import WiggleDataHandler
+from data.gc import WiggleDataHandler
 from data.variant import VariantDataHandler
 from data.sequence import ZoomedSeqDataHandler
 from data.contig import ContigDataHandler, ShimmerContigDataHandler

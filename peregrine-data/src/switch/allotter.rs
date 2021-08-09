@@ -30,7 +30,7 @@ impl RequestSorter {
 
 fn make_allocator(kind: &AllotmentPositionKind) -> Box<dyn AllotmentPositionAllocator> {
     match kind {
-        AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(256, |index,size| {
+        AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(64, |index,size| {
             AllotmentPosition::Track(OffsetSize(index*size,size))
         })), // XXX size
         AllotmentPositionKind::BaseLabel(priority) => {

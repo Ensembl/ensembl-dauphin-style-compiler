@@ -1,7 +1,7 @@
 import collections
 import logging
 from command.coremodel import DataHandler, Panel, DataAccessor, Response
-from model.bigbed import get_bigwig_stats, get_bigwig_data
+from model.bigbed import get_bigwig_stats_data, get_bigwig_data
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .numbers import delta, zigzag, lesqlite2, compress, classify
@@ -10,7 +10,7 @@ SCALE=1000
 
 def get_variant_stats(chrom: Chromosome, panel: Panel) -> Response:
     path = chrom.file_path("variants","summary.{}.bw".format(chrom.name))
-    data = get_bigwig_stats(path,chrom,panel.start,panel.end,"max",nBins=250)
+    data = get_bigwig_stats_data(path,chrom,panel.start,panel.end,"max",nBins=250)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:

@@ -7,8 +7,9 @@ from command.datasources import DataAccessor
 from core.exceptions import RequestException
 
 _bigbeds = {}
+_bigwigs = {}
 
-def get_bigbed_data(path,chrom,start,end):
+def _get_bigbed_data(path,chrom,start,end):
     end = min(end,chrom.size)
     try:
         if not (path in _bigbeds):
@@ -19,11 +20,13 @@ def get_bigbed_data(path,chrom,start,end):
         out = []
     return out
 
-def get_bigwig_stats(path,chrom,start,end,consolidation="mean",nBins=1000):
+def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
     end = min(end,chrom.size)
     start_time = time.time()
     try:
-        bw = pyBigWig.open(path)
+        if not (path in _bigwigs):
+            _bigwigs[path] = pyBigWig.open(path)
+        bw = _bigwigs[path]
         out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
         bw.close()
     except (RuntimeError,OverflowError) as e:
@@ -34,7 +37,9 @@ def get_bigwig_data(path,chrom,start,end):
     end = min(end,chrom.size)
     start_time = time.time()
     try:
-        bw = pyBigWig.open(path)
+        if not (path in _bigwigs):
+            _bigwigs[path] = pyBigWig.open(path)
+        bw = _bigwigs[path]
         out = bw.values(chrom.name,start,end) or []
         bw.close()
     except (RuntimeError,OverflowError) as e:
@@ -47,8 +52,32 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
     if accessor == None:
         raise RequestException("Cannot resolve item")
     if accessor.file != None:
-        return get_bigbed_data(accessor.file,chromosome,start,end)
+        return _get_bigbed_data(accessor.file,chromosome,start,end)
     elif accessor.url != None:
-        return get_bigbed_data(accessor.url,chromosome,start,end)
+        return _get_bigbed_data(accessor.url,chromosome,start,end)
+    else:
+        raise RequestException("cannot use accessor to get data")
+
+def get_bigwig(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
+    accessor = data_accessor.resolver.get(item)
+    chromosome = data_accessor.data_model.sticks[item.stick()]
+    if accessor == None:
+        raise RequestException("Cannot resolve item")
+    if accessor.file != None:
+        return get_bigwig_data(accessor.file,chromosome,start,end)
+    elif accessor.url != None:
+        return get_bigwig_data(accessor.url,chromosome,start,end)
+    else:
+        raise RequestException("cannot use accessor to get data")
+
+def get_bigwig_stats(data_accessor: DataAccessor, item: AccessItem, start: int, end: int, consolidation : str  = "mean",nBins : int = 1000):
+    accessor = data_accessor.resolver.get(item)
+    chromosome = data_accessor.data_model.sticks[item.stick()]
+    if accessor == None:
+        raise RequestException("Cannot resolve item")
+    if accessor.file != None:
+        return get_bigwig_stats_data(accessor.file,chromosome,start,end,consolidation=consolidation,nBins=nBins)
+    elif accessor.url != None:
+        return get_bigwig_stats_data(accessor.url,chromosome,start,end,consolidation=consolidation,nBins=nBins)
     else:
         raise RequestException("cannot use accessor to get data")

@@ -18,6 +18,8 @@ class AccessItem(object):
                 return "/".join(["contigs",self.genome,"contigs.bb"])
             elif self.variety == "transcripts":
                 return "/".join(["genes_and_transcripts",self.genome,"transcripts.bb"])
+            elif self.variety == "gc":
+                return "/".join(["gc",self.genome,"gc.bw"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
@@ -41,7 +43,7 @@ class FileAccessMethod(AccessMethod):
         super().__init__()
         if not base_path.endswith("/"):
             base_path += "/"
-        self.url = base_path + item.item_suffix()
+        self.file = base_path + item.item_suffix()
 
 class S3DataSource(object):
     def __init__(self,data):
@@ -60,7 +62,7 @@ class FileDataSource(object):
             logging.critical("File driver config missing root")
 
     def resolve(self, item: AccessItem) -> Optional[AccessMethod]:
-        method = AccessMethod()
+        method = FileAccessMethod(self.root,item)
         return method
 
 class DataSourceResolver(object):
