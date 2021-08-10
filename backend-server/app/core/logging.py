@@ -15,12 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import sys
 import logging
 from types import FrameType
 from typing import cast
-
 from loguru import logger
-
+from core import config
 
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover
@@ -37,3 +37,12 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(
             level, record.getMessage(),
         )
+
+def setup_logging():
+    log_level = "DEBUG" if config.DEBUG else "WARNING"
+    log_to = config.LOG_PATH
+    if log_to == None:
+        log_to = sys.stderr
+
+    logger.remove()
+    logger.add(log_to,level=log_level)

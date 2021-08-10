@@ -37,6 +37,7 @@ API_PREFIX = "/api"
 
 config = Config(".env")
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
+LOG_PATH = config("LOG_PATH",default=None)
 PROJECT_NAME: str = config("PROJECT_NAME", default="Peregrine Data Server")
 ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",

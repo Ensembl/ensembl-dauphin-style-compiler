@@ -30,11 +30,11 @@ import cbor2
 from cbor2 import CBOREncoder
 from command.packet import process_packet
 from io import BytesIO
-from core.logging import InterceptHandler
-
-logging.getLogger().handlers = [InterceptHandler()]
+from core.logging import setup_logging
 
 router = APIRouter()
+
+setup_logging()
 
 # Some of our cbor is from caches and already serialised so we have to build our response ourselves
 def build_response(responses,programs) -> Any:
