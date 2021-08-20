@@ -4,16 +4,16 @@ root = "/home/dan/ensembl-dauphin-style-compiler/backend-server/data"
 
 [source.contigs]
 driver = "s3"
-url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
 
 [source.transcripts]
 driver = "s3"
-url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
 
 [source.gc]
 driver = "s3"
-url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
 
 [source.variant-summary]
 driver = "s3"
-url = "http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"

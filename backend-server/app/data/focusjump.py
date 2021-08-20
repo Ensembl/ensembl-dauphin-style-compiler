@@ -1,20 +1,30 @@
 import logging
 import dbm
 import os.path
+
+from ncd.accessor import NCDFileAccessor
 from command.coremodel import DataAccessor
+from model.datalocator import AccessItem
+from ncd import NCDRead, NCDHttpAccessor, NCDFileAccessor
 
 PREFIX = "focus"
 
 class FocusJumpHandler:
-    def get(self,data_accessor: DataAccessor,location):
+    def __init__(self, data_accessor: DataAccessor):
+        item = AccessItem("jump")
+        accessor = data_accessor.resolver.get(item)
+        if accessor.url != None:
+            accessor = NCDHttpAccessor(accessor.url)
+        if accessor.file != None:
+            accessor = NCDFileAccessor(accessor.file)
+        else:
+            raise Exception("bad accessor for jump file")
+        self._jump_ncd = NCDRead(accessor)
+
+    def get(self,data_accessor: DataAccessor,location: str):
         if location.startswith(PREFIX):
-            jump_file = os.path.join(data_accessor.data_model.files_dir,"jump")
-            jumps = dbm.open(jump_file)
-            try:
-                value = jumps.get(location)
-                if value != None:
-                    parts = value.decode("utf-8").split("\t")
-                    return (parts[0],int(parts[1]),int(parts[2]))
-            finally:
-                jumps.close()
+            value = self._jump_ncd.get(location.encode("utf-8"))
+            if value != None:
+                parts = value.decode("utf-8").split("\t")
+                return (parts[0],int(float(parts[1])),int(float(parts[2])))
         return None

@@ -10,23 +10,21 @@ from .datacmd import DataHandler, JumpHandler
 
 data_accessor = DataAccessor()        
 
+handlers = {
+    0: BootstrapHandler(),
+    1: ProgramHandler(),
+    2: StickHandler(),
+    3: StickAuthorityHandler(),
+    4: DataHandler(),
+    5: JumpHandler(data_accessor),
+    6: FailureHandler()
+}
+
 def type_to_handler(typ: int) -> Any:
-    if typ == 0:
-        return BootstrapHandler()
-    elif typ == 1:
-        return ProgramHandler()
-    elif typ == 2:
-        return StickHandler()
-    elif typ == 3:
-        return StickAuthorityHandler()
-    elif typ == 4:
-        return DataHandler()
-    elif typ == 5:
-        return JumpHandler()
-    elif typ == 6:
-        return FailureHandler()
-    else:
+    handler = handlers.get(typ)
+    if handler == None:
         return ErrorHandler("unsupported command type ({0})".format(typ))
+    return handler
 
 def process_request(channel: Tuple[int,str], typ: int, payload: Any):
     handler = type_to_handler(typ)

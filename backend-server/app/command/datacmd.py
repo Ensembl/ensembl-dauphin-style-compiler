@@ -38,9 +38,9 @@ class DataHandler(Handler):
         return out
 
 class JumpHandler(Handler):
-    def __init__(self):
+    def __init__(self, data_accessor):
         self.handlers = [
-            FocusJumpHandler()
+            FocusJumpHandler(data_accessor)
         ]
 
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:

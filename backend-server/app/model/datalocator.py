@@ -8,7 +8,7 @@ from core.exceptions import RequestException
 AccessItem = namedtuple('AccessItem',['variety','genome','chromosome'])
 
 class AccessItem(object):
-    def __init__(self, variety, genome, chromosome):
+    def __init__(self, variety, genome = None, chromosome = None):
         self.variety = variety
         self.genome = genome
         self.chromosome = chromosome
@@ -22,13 +22,15 @@ class AccessItem(object):
                 return "/".join(["gc",self.genome,"gc.bw"])
             elif self.variety == "variant-summary":
                 return "/".join(["variants",self.genome,"variant-summary.bw"])
+            elif self.variety == "jump":
+                return "/".join(["jump.ncd"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
     def stick(self) -> str:
         return ":".join([self.genome,self.chromosome]).replace('.','_')
 
-class AccessMethod(object):
+class AccessMethod:
     def __init__(self):
         self.url = None
         self.file = None

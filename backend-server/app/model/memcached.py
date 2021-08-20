@@ -27,7 +27,7 @@ class Memcached(object):
         except:
             pass
         if self._available:
-            logging.warn("Memcached has stated. Will use.")
+            logging.warn("Memcached has started. Will use.")
         else:
             logging.warn("No memcached. That's fine but will be slow.")
         return self._available

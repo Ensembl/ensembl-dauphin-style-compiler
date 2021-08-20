@@ -2,6 +2,7 @@ import re
 import os.path
 from .chromosome import Chromosome
 import logging
+from model.datalocator import AccessItem
 
 class Species(object):
     def __init__(self, files_dir, species_name, species_data):
@@ -36,3 +37,6 @@ class Species(object):
         if not os.path.exists(path):
             logging.warn("Missing file {0}".format(path))
         return path
+
+    def item_path(self,variety):
+        return AccessItem(variety,self.genome_id)

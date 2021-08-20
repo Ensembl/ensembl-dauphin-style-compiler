@@ -1,13 +1,17 @@
 {
 	"folders": [
 		{
+			"name": "ncd",
+			"path": "../ncd"
+		},
+		{
+			"path": "../ncd-tools"
+		},
+		{
+			"path": "../ncd-python"
+		},
+		{
 			"path": "."
-		},
-		{
-			"path": "../genome-browser-service"
-		},
-		{
-			"path": "../ensembl-client"
 		}
 	],
 	"settings": {}
