@@ -3,7 +3,7 @@ from model.datamodel import DataModel
 from model.datalocator import DataSourceResolver
 from model.memcached import Memcached
 
-class DataAccessor(object):
+class DataAccessor:
     def __init__(self):
         self.reload()
 

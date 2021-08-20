@@ -69,7 +69,7 @@ class FileDataSource(object):
         method = FileAccessMethod(self.root,item)
         return method
 
-class DataSourceResolver(object):
+class DataSourceResolver:
     def __init__(self):
         self._paths = {}
         self._load(SOURCES_TOML)

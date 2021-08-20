@@ -14,12 +14,12 @@ class FocusJumpHandler:
         item = AccessItem("jump")
         accessor = data_accessor.resolver.get(item)
         if accessor.url != None:
-            accessor = NCDHttpAccessor(accessor.url)
-        if accessor.file != None:
-            accessor = NCDFileAccessor(accessor.file)
+            ncd_accessor = NCDHttpAccessor(accessor.url)
+        elif accessor.file != None:
+            ncd_accessor = NCDFileAccessor(accessor.file)
         else:
             raise Exception("bad accessor for jump file")
-        self._jump_ncd = NCDRead(accessor)
+        self._jump_ncd = NCDRead(ncd_accessor)
 
     def get(self,data_accessor: DataAccessor,location: str):
         if location.startswith(PREFIX):
