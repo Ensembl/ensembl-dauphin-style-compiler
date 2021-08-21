@@ -11,7 +11,7 @@ RUN pip install uvicorn fastapi loguru cbor2 toml pyaml numpy
 # pybigwig needs numpy and curl libs installed before install is attempted
 RUN pip install pybigwig pymemcache
 RUN pip install --upgrade pip
-RUN  pip install git+https://github.com/ens-ds23/ncd-python.git
+RUN pip install git+https://github.com/ens-ds23/ncd-python.git
 
 WORKDIR /app
 RUN rm -rf /app
