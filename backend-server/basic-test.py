@@ -15,8 +15,8 @@ content = cbor2.loads(request.content)
 good = False
 if "responses" in content:
     for response in content["responses"]:
-        if len(response) == 3:
-            if response[0] == 0 and response[1] == 0:
+        if len(response) == 2:
+            if response[0] == 0 and response[1][0] == 0:
                 good = True
 if good:
     print("got boot response. (len={0} bytes). good.".format(len(request.content)))
