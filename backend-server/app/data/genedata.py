@@ -149,21 +149,21 @@ class TranscriptDataHandler(DataHandler):
         self._seq = seq
 
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
-        chrom = data_accessor.data_model.sticks.get(panel.stick)
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,True,self._seq)
 
 class GeneDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
-        chrom = data_accessor.data_model.sticks.get(panel.stick)
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_data(data_accessor,chrom,panel,False,False)
 
 class GeneOverviewDataHandler(DataHandler):
     def process_data(self, data_accessor: DataAccessor, panel: Panel) -> Response:
-        chrom = data_accessor.data_model.sticks.get(panel.stick)
+        chrom = data_accessor.data_model.stick(data_accessor,panel.stick)
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         return extract_gene_overview_data(data_accessor,chrom,panel)

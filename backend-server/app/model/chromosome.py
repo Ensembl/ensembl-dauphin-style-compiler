@@ -21,9 +21,7 @@ class Chromosome(object):
         )
         self.files_dir = files_dir
         self.genome_path = species.genome_id
-        self.aliases = []
-        # HACK this hack must die: get the data correct!
-        self.aliases.append("{0}:{1}".format(species.wire_id,chrless(self.name)))
+        self.wire_id = chrless(self.name)
 
     def file_path(self,section,filename):
         path = os.path.join(self.files_dir,section,self.genome_path,filename)

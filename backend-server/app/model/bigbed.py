@@ -46,7 +46,7 @@ def get_bigwig_data(path,chrom,start,end):
 
 def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
     accessor = data_accessor.resolver.get(item)
-    chromosome = data_accessor.data_model.sticks[item.stick()]
+    chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:
         raise RequestException("Cannot resolve item")
     if accessor.file != None:
@@ -58,7 +58,7 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
 
 def get_bigwig(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
     accessor = data_accessor.resolver.get(item)
-    chromosome = data_accessor.data_model.sticks[item.stick()]
+    chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:
         raise RequestException("Cannot resolve item")
     if accessor.file != None:
@@ -70,7 +70,7 @@ def get_bigwig(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
 
 def get_bigwig_stats(data_accessor: DataAccessor, item: AccessItem, start: int, end: int, consolidation : str  = "mean",nBins : int = 1000):
     accessor = data_accessor.resolver.get(item)
-    chromosome = data_accessor.data_model.sticks[item.stick()]
+    chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:
         raise RequestException("Cannot resolve item")
     if accessor.file != None:

@@ -34,16 +34,16 @@ class ProgramHandler(Handler):
 class StickHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
         (stick_name,) = payload
-        if stick_name in data_accessor.data_model.sticks:
-            chromosome = data_accessor.data_model.sticks[stick_name]
+        chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
+        if chromosome == None:
+            return Response(1,"Unknown stick {0}".format(stick_name))
+        else:
             return Response(3,{
                 "id": stick_name,
                 "size": chromosome.size,
                 "topology": 0 if chromosome.topology == "linear" else 1,
                 "tags": [t for t in chromosome.tags]
             })
-        else:
-            return Response(1,"Unknown stick {0}".format(stick_name))
 
 class StickAuthorityHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:

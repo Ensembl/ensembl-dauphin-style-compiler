@@ -5,6 +5,7 @@ from collections import namedtuple
 from core.config import SOURCES_TOML
 from core.exceptions import RequestException
 import requests
+from ncd import NCDFileAccessor, NCDHttpAccessor
 
 AccessItem = namedtuple('AccessItem',['variety','genome','chromosome'])
 
@@ -27,6 +28,10 @@ class AccessItem(object):
                 return "/".join(["jump.ncd"])
             elif self.variety == "seqs":
                 return "/".join(["seqs",self.genome,self.chromosome])
+            elif self.variety == "chrom-hashes":
+                return "/".join(["common_files",self.genome,"chrom.hashes.ncd"])
+            elif self.variety == "chrom-sizes":
+                return "/".join(["common_files",self.genome,"chrom.sizes.ncd"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
@@ -52,6 +57,9 @@ class UrlAccessMethod(AccessMethod):
             raise RequestException("bad data")
         return r.content
 
+    def ncd(self):
+        return NCDHttpAccessor(self.url)
+
 class FileAccessMethod(AccessMethod):
     def __init__(self, base_path, item: AccessItem):
         super().__init__()
@@ -69,6 +77,9 @@ class FileAccessMethod(AccessMethod):
                     raise RequestException("premature EOF")
                 out += more
             return out
+
+    def ncd(self):
+        return NCDFileAccessor(self.file)
 
 class S3DataSource(object):
     def __init__(self,data):
