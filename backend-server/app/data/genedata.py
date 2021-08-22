@@ -110,7 +110,7 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
     classified_numbers(out,designated_transcript_designations,"designated_transcript_designations")
     if include_exons:
         add_exon_data(out,genes,designated_transcript)
-    sequence_blocks(out,chrom,panel,not include_sequence)
+    sequence_blocks(out,data_accessor,chrom,panel,not include_sequence)
     #for (k,v) in out.items():
     #    logging.warn("len({}) = {}".format(k,len(v)))
     return Response(5,{ 'data': out })

@@ -3,21 +3,22 @@ from typing import Dict
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.chromosome import Chromosome
-from .numbers import delta, zigzag, lesqlite2, compress, classify
+from .numbers import delta, zigzag, lesqlite2, compress
 from .util import classified_numbers
 
+def retrieve_range(data_accessor: DataAccessor,chrom: Chromosome, panel: Panel):
+    item = chrom.item_seq_path("seqs")
+    resolver = data_accessor.resolver.get(item)
+    return resolver.get(panel.start,panel.end-panel.start).decode("utf-8")
 
-def sequence_blocks(out: Dict[str,bytes], chrom: Chromosome, panel: Panel, dummy: bool):
-    file_path = chrom.file_path("seqs",chrom.seq_hash)
+def sequence_blocks(out: Dict[str,bytes], data_accessor: DataAccessor, chrom: Chromosome, panel: Panel, dummy: bool):
     starts = []
     letters = []
     if not dummy:
-        with open(file_path) as f:
-            f.seek(panel.start)
-            sequence = f.read(panel.end-panel.start)
-            for (offset,letter) in enumerate(sequence):
-                starts.append(panel.start+offset)
-                letters.append(letter if letter in "CGAT" else "")
+        sequence = retrieve_range(data_accessor,chrom,panel)
+        for (offset,letter) in enumerate(sequence):
+            starts.append(panel.start+offset)
+            letters.append(letter if letter in "CGAT" else "")
     out['seq_starts'] = compress(lesqlite2(zigzag(delta(starts))))
     classified_numbers(out,letters,"seq")
 
@@ -27,5 +28,5 @@ class ZoomedSeqDataHandler(DataHandler):
         if chrom == None:
             return Response(1,"Unknown chromosome {0}".format(panel.stick))
         out = {}
-        sequence_blocks(out,chrom,panel,False)
+        sequence_blocks(out,data_accessor,chrom,panel,False)
         return Response(5,{ 'data': out })

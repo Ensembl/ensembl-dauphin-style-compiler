@@ -4,6 +4,7 @@ import toml
 from collections import namedtuple
 from core.config import SOURCES_TOML
 from core.exceptions import RequestException
+import requests
 
 AccessItem = namedtuple('AccessItem',['variety','genome','chromosome'])
 
@@ -24,6 +25,8 @@ class AccessItem(object):
                 return "/".join(["variants",self.genome,"variant-summary.bw"])
             elif self.variety == "jump":
                 return "/".join(["jump.ncd"])
+            elif self.variety == "seqs":
+                return "/".join(["seqs",self.genome,self.chromosome])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
@@ -42,12 +45,30 @@ class UrlAccessMethod(AccessMethod):
             base_url += "/"
         self.url = base_url + item.item_suffix()
 
+    def get(self, offset: int, size: int):
+        headers = { "Range": "bytes={0}-{1}".format(offset,offset+size) }
+        r = requests.get(self.url, headers=headers)
+        if r.status_code > 299:
+            raise RequestException("bad data")
+        return r.content
+
 class FileAccessMethod(AccessMethod):
     def __init__(self, base_path, item: AccessItem):
         super().__init__()
         if not base_path.endswith("/"):
             base_path += "/"
         self.file = base_path + item.item_suffix()
+
+    def get(self, offset: int, size: int):
+        with open(self.file,"r") as f:
+            f.seek(0,offset)
+            out = bytearray()
+            while size > 0:
+                more = f.read(size-len(out))
+                if len(more) == 0:
+                    raise RequestException("premature EOF")
+                out += more
+            return out
 
 class S3DataSource(object):
     def __init__(self,data):

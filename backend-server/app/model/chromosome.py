@@ -33,3 +33,6 @@ class Chromosome(object):
 
     def item_path(self,variety):
         return AccessItem(variety,self.genome_id,self.name)
+
+    def item_seq_path(self,variety):
+        return AccessItem(variety,self.genome_id,self.seq_hash)
