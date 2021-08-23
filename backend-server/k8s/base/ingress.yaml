@@ -1,0 +1,15 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: genome-browser-server-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  rules:
+  - host: newgb.review.ensembl.org
+    http:
+      paths:
+      - backend:
+          serviceName: genome-browser-server-svc
+          servicePort: 8000
+        path: /api/data

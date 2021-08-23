@@ -1,0 +1,40 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata: 
+  name: genome-browser-server-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: genome-browser-server
+    spec:
+      imagePullSecrets:
+        - name: ensemblweb-pull-secret
+      #securityContext:
+      #  runAsUser: 3383
+      #  runAsGroup: 1135
+      containers:
+      - name: genome-browser-server
+        image:  dockerhub.ebi.ac.uk/ensembl-web/ensembl-2020-server:new-gb-0.0.2
+        resources:
+          requests:
+            memory: "250Mi"
+          limits:
+            memory: "500Mi"
+        command: ["uvicorn"]
+        args: ["--host=0.0.0.0", "--port=3333", "main:app"]
+        ports:
+        - containerPort: 3333
+        imagePullPolicy: Always
+        envFrom:
+        - configMapRef:
+            name: genome-browser-server-configmap
+        volumeMounts:
+        - mountPath: /usr/data
+          name: genome-browser-server-data-vol
+      volumes:
+        - name: genome-browser-server-data-vol
+          nfs:
+            path: /ifs/public-r/ro/enswbsites
+            server: hx-isi-srv-vlan157.ebi.ac.uk

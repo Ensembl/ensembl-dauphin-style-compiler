@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+  BASE_PATH_PATH: /usr/data/newsite/dev/genome_browser/s3-data
+  EGS_DIRECTORY: /usr/data/newsite/dev/genome_browser/s3-data/egs-data/egs
+  EGS_FILES: /usr/data/newsite/dev/genome_browser/s3-data/egs-data/egs
+  BEGS_FILES: /usr/data/newsite/dev/genome_browser/s3-data/egs-data/begs
+  BEGS_CONFIG: /usr/data/newsite/dev/genome_browser/s3-data/egs-data/egs/begs_config.toml
+  DATA_FILES: /usr/data/newsite/dev/genome_browser/s3-data
+  METRIC_FILE: /usr/src/app/metric.log
+  no_proxy: localhost,.cluster.local
+kind: ConfigMap
+metadata:
+  name: genome-browser-server-configmap

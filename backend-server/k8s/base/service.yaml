@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: genome-browser-server-svc
+  labels:
+    app: genome-browser-server-svc
+spec:
+  selector:
+    app: genome-browser-server
+  type: ClusterIP
+  ports:
+    - port: 8000
+      protocol: TCP
+      targetPort: 3333
