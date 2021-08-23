@@ -10,5 +10,5 @@ class DataAccessor:
     def reload(self):
         self.resolver : DataSourceResolver = DataSourceResolver()
         self.begs_files = BegsFiles()
-        self.data_model = DataModel()
+        self.data_model = DataModel(self.resolver)
         self.cache = Memcached()

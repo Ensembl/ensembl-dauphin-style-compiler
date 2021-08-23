@@ -1,16 +1,15 @@
 import logging
-import os.path
-import yaml
 from core.config import DATA_FILES
 from .species import Species
 from util.string import split_all
+from model.datalocator import AccessItem
 
 class DataModel(object):
-    def __init__(self):
+    def __init__(self, data_accessor):
         self.files_dir = DATA_FILES
         self._species = {}
         self._species_aliases = {}
-        self._load_species()
+        self._load_species(data_accessor)
 
     def stick(self, data_accessor, alias):
         for (prefix,_) in split_all(":",alias):
@@ -19,16 +18,17 @@ class DataModel(object):
                 return self._species[species_name].chromosome(data_accessor,alias)
         return None
 
-    def _species_config(self):
-        genome_info_path = os.path.join(self.files_dir,"common_files","genome_id_info.yml")
-        with open(genome_info_path) as f:
-            return yaml.load(f,Loader=yaml.Loader)
+    def _get_species_list(self, resolver):
+        item = AccessItem("species-list")
+        accessor = resolver.get(item)
+        values = accessor.get().decode("utf-8")
+        return values.splitlines()
 
-    def _load_species(self):
-        species = self._species_config()
-        for (species_name,species_data) in species.items():
+    def _load_species(self, resolver):
+        species_list = self._get_species_list(resolver)
+        for species_name in species_list:
             try:
-                species_object = Species(self.files_dir,species_name,species_data)
+                species_object = Species(self.files_dir,species_name)
                 self._species[species_object.wire_id] = species_object
                 for alias_prefix in species_object.alias_prefixes:
                     self._species_aliases[alias_prefix] = species_object.wire_id

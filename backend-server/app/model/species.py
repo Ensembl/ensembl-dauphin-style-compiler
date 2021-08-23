@@ -7,10 +7,8 @@ from ncd import NCDRead
 from core.exceptions import RequestException
 
 class Species(object):
-    def __init__(self, files_dir, species_name, species_data):
-        for (k,v) in species_data.items():
-            # make contents of config hash available as attirubtes
-            setattr(self,k,species_data[k])
+    def __init__(self, files_dir, genome_id):
+        self.genome_id = genome_id
         self.genome_path = self.genome_id
         self.wire_id = re.sub(r'\W','_',self.genome_id)
         self.files_dir = files_dir

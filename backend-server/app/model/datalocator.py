@@ -32,6 +32,8 @@ class AccessItem(object):
                 return "/".join(["common_files",self.genome,"chrom.hashes.ncd"])
             elif self.variety == "chrom-sizes":
                 return "/".join(["common_files",self.genome,"chrom.sizes.ncd"])
+            elif self.variety == "species-list":
+                return "/".join(["species.txt"])
             else:
                 raise RequestException("unknown variety '{}'".format(self.variety))
 
@@ -50,8 +52,10 @@ class UrlAccessMethod(AccessMethod):
             base_url += "/"
         self.url = base_url + item.item_suffix()
 
-    def get(self, offset: int, size: int):
-        headers = { "Range": "bytes={0}-{1}".format(offset,offset+size) }
+    def get(self, offset: Optional[int] = None, size: Optional[int] = None):
+        headers = {}
+        if offset != None:
+            headers["Range"] = "bytes={0}-{1}".format(offset,offset+size)
         r = requests.get(self.url, headers=headers)
         if r.status_code > 299:
             raise RequestException("bad data")
@@ -67,15 +71,22 @@ class FileAccessMethod(AccessMethod):
             base_path += "/"
         self.file = base_path + item.item_suffix()
 
-    def get(self, offset: int, size: int):
+    def get(self, offset: Optional[int] = None, size: Optional[int] = None):
+        out = bytearray()
         with open(self.file,"r") as f:
-            f.seek(0,offset)
-            out = bytearray()
-            while size > 0:
-                more = f.read(size-len(out))
-                if len(more) == 0:
-                    raise RequestException("premature EOF")
-                out += more
+            if offset != None:
+                f.seek(0,offset)
+                while size > 0:
+                    more = f.read(size-len(out))
+                    if len(more) == 0:
+                        raise RequestException("premature EOF")
+                    out += more
+            else:
+                while True:
+                    more = f.read(4096)
+                    if len(more) == 0:
+                        return out
+                    out += more
             return out
 
     def ncd(self):
