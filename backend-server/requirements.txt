@@ -10,9 +10,8 @@ loguru==0.5.3
 mmh3==3.0.0
 ncd @ git+https://github.com/ens-ds23/ncd-python.git@53b873a55db224ff58c414db92aa2bd5648b532a
 numpy==1.21.2
-pyBigWig==0.3.18
+pyaml==21.8.3
 pydantic==1.8.2
-pymemcache==3.5.0
 PyYAML==5.4.1
 requests==2.26.0
 six==1.16.0

@@ -1,22 +1,22 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:groovy-20210723
+FROM python:3.8
+
+LABEL maintainer="ensembl-webteam@ebi.ac.uk"
+
+ENV PYTHONUNBUFFERED TRUE
+ENV DATA_FILES=/data
 
 RUN apt-get update
-RUN apt-get install -y python3.8-venv pip libcurl4 libcurl4-openssl-dev memcached git
+RUN apt-get install -y libcurl4 libcurl4-openssl-dev memcached git
 
-# need to run everything in venv as debian have disabled self-upgrade pip.
-# we need to upgrade pip due to new git+https: support.
+RUN rm -rf /usr/src/app
+COPY . /usr/src/app
 
-RUN pip install uvicorn fastapi loguru cbor2 toml pyaml numpy
-# pybigwig needs numpy and curl libs installed before install is attempted
-RUN pip install pybigwig pymemcache
-RUN pip install --upgrade pip
-RUN pip install git+https://github.com/ens-ds23/ncd-python.git
+RUN pip3 install --no-cache-dir -r /usr/src/app/requirements.txt
+RUN pip3 install --no-cache-dir -r /usr/src/app/requirements2.txt
 
-WORKDIR /app
-RUN rm -rf /app
-COPY . /app
-RUN python3 -m venv /app/venv
+WORKDIR /usr/src/app/app
 
-ENV DATA_FILES=/data
-CMD . /app/venv/bin/activate && exec ./build.sh
+EXPOSE 3333
+
+CMD uvicorn main:app --host 0.0.0.0 --port 3333 --workers 16

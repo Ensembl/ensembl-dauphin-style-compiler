@@ -1,0 +1,4 @@
+# things in requirements2.txt have optional dependencies on things in requirements.txt. Pip doesn't know that
+# because they work, but less well without them.
+pyBigWig==0.3.18
+pymemcache==3.5.0

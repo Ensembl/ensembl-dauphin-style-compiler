@@ -2,3 +2,38 @@
 driver = "s3"
 url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
 
+[source.contigs]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.transcripts]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.gc]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.variant-summary]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.jump]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.seqs]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.chrom-hashes]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.chrom-sizes]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
+
+[source.species-list]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
