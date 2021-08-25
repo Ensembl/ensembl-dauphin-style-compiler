@@ -101,7 +101,6 @@ impl<T> CommanderStream<T> {
             if out.len() != 0 { return out; }
             out.push(self.get().await);
         }
-        out
     }
 }
 

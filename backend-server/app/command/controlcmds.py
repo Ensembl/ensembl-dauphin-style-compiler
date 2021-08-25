@@ -14,7 +14,11 @@ class ErrorHandler(Handler):
 
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
-        r = Response(0,[channel,data_accessor.begs_files.boot_program])
+        r = Response(0,{
+            "boot": [channel,data_accessor.begs_files.boot_program],
+            "hi":  "url(http://localhost:3333/api/data)",
+            "lo":  "url(http://localhost:3334/api/data)",
+        })
         for b in data_accessor.begs_files.all_bundles():
             r.bundles.add(b)
         return r

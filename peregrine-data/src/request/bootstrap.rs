@@ -1,6 +1,7 @@
 use std::any::Any;
 use anyhow::{ self, };
 use serde_cbor::Value as CborValue;
+use crate::ChannelLocation;
 use crate::run::pgcommander::{ PgCommanderTaskSpec };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec, add_task };
 use super::channel::{ Channel, PacketPriority };
@@ -12,6 +13,7 @@ use super::backoff::Backoff;
 use crate::util::message::DataMessage;
 use crate::api::{ PeregrineCoreBase, AgentStore, PeregrineApiQueue, ApiMessage };
 use crate::lane::programname::ProgramName;
+use crate::util::cbor::{ cbor_map, cbor_string };
 
 #[derive(Clone)]
 pub struct BootstrapCommandRequest {
@@ -38,7 +40,9 @@ impl BootstrapCommandRequest {
         match backoff.backoff::<BootstrapCommandResponse,_,_>(
                                     &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
             Ok(b) => {
-                Ok(b.bootstrap(&dauphin,&self.queue,&loader).await?)
+                manager.set_lo_divert(&b.channel_hi,&b.channel_lo);
+                b.bootstrap(&dauphin,&self.queue,&loader).await?;
+                Ok(())
             }
             Err(e) => {
                 Err(DataMessage::BadBootstrapCannotStart(self.channel.clone(),Box::new(e.clone())))
@@ -54,7 +58,9 @@ impl RequestType for BootstrapCommandRequest {
 }
 
 pub struct BootstrapCommandResponse {
-    program_name: ProgramName
+    program_name: ProgramName,
+    channel_hi: Channel,
+    channel_lo: Channel
 }
 
 impl ResponseType for BootstrapCommandResponse {
@@ -79,8 +85,13 @@ impl BootstrapCommandResponse {
 pub struct BootstrapResponseBuilderType();
 impl ResponseBuilderType for BootstrapResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
+        let values = cbor_map(value,&["boot","hi","lo"])?;
+        let channel_no = Channel::new(&ChannelLocation::None);
+        let channel_hi = Channel::parse(&channel_no,&cbor_string(values[1])?)?;
+        let channel_lo = Channel::parse(&channel_hi,&cbor_string(values[2])?)?;
         Ok(Box::new(BootstrapCommandResponse {
-            program_name: ProgramName::deserialize(&value)?
+            program_name: ProgramName::deserialize(&values[0])?,
+            channel_hi, channel_lo
         }))
     }
 }

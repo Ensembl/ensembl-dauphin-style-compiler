@@ -37,12 +37,17 @@ impl PayloadReceiver for PayloadReceiverCollection {
     }
 }
 
+enum QueueValue {
+    Queue(RequestQueue),
+    Redirect(Channel,PacketPriority)
+}
+
 pub struct RequestManagerData {
     integration: Rc<Box<dyn ChannelIntegration>>,
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
     next_id: u64,
-    queues: HashMap<(Channel,PacketPriority),RequestQueue>,
+    queues: HashMap<(Channel,PacketPriority),QueueValue>,
     real_time_lock: Blocker,
     messages: MessageSender
 }
@@ -68,9 +73,13 @@ impl RequestManagerData {
         lock!(self.receiver.0).push(Rc::new(receiver));
     }
 
-    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<&mut RequestQueue,DataMessage> {
-        Ok(match self.queues.entry((channel.clone(),priority.clone())) {
-            Entry::Vacant(e) => { 
+    fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
+        let mut channel = channel.clone();
+        let mut priority = priority.clone();
+        loop {
+            let key = (channel.clone(),priority.clone());
+            let missing = self.queues.get(&key).is_none();
+            if missing {
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
                 let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages)?;
@@ -82,13 +91,21 @@ impl RequestManagerData {
                         queue.set_realtime_check(&self.real_time_lock);
                     }
                 }
-                e.insert(queue)
-            },
-            Entry::Occupied(e) => { e.into_mut() }
-        })
+                self.queues.insert(key.clone(),QueueValue::Queue(queue));
+            }
+            match self.queues.get_mut(&key).unwrap() {
+                QueueValue::Queue(q) => { 
+                    return Ok(q.clone());
+                },
+                QueueValue::Redirect(new_channel,new_priority) => {
+                    channel = new_channel.clone();
+                    priority = new_priority.clone();
+                }
+            }
+        }
     }
 
-    pub fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
+    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn RequestType>) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
@@ -97,10 +114,14 @@ impl RequestManagerData {
         Ok(response_stream)
     }
 
-    pub fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
+    fn set_timeout(&mut self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {
         self.get_queue(channel,priority)?.set_timeout(timeout);
         self.integration.set_timeout(channel,timeout);
         Ok(())
+    }
+
+    fn set_lo_divert(&mut self, hi: &Channel, lo: &Channel) {
+        self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
     }
 }
 
@@ -110,6 +131,10 @@ pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 impl RequestManager {
     pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender) -> RequestManager {
         RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages))))
+    }
+
+    pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {
+        lock!(self.0).set_lo_divert(channel_hi,channel_lo);
     }
 
     pub fn set_timeout(&self, channel: &Channel, priority: &PacketPriority, timeout: f64) -> anyhow::Result<()> {

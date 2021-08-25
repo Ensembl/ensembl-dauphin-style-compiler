@@ -1,0 +1,13 @@
+version: "3"
+services:
+    backend-hi:
+        environment:
+            - THREADS=16
+
+    backend-lo:
+        environment:
+            - THREADS=4
+
+    memcached:
+        environment:
+            - MEMCACHED_MB=4096

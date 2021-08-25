@@ -19,4 +19,4 @@ WORKDIR /usr/src/app/app
 
 EXPOSE 3333
 
-CMD uvicorn main:app --host 0.0.0.0 --port 3333 --workers 16
+CMD uvicorn main:app --host 0.0.0.0 --port 3333 --workers $THREADS

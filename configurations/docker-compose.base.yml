@@ -1,7 +1,7 @@
-version: "2.2"
+version: "3"
 services:
     backend-hi:
-        build: backend-server
+        build: ../../backend-server
         ports:
             - 3333:3333
         volumes:
@@ -12,10 +12,11 @@ services:
             - LOG_PATH=/logs/backend-hi.log
             - THREADS=16
             - DEBUG
-#        profiles: ["backend"]
+        networks:
+            - default
 
     backend-lo:
-        build: backend-server
+        build: ../../backend-server
         ports:
             - 3334:3333
         volumes:
@@ -26,12 +27,14 @@ services:
             - LOG_PATH=/logs/backend-lo.log
             - DEBUG
             - THREADS=4
-    #        profiles: ["backend"]
+        networks:
+            - default
 
     memcached:
-        build: memcached-container
+        build: ../../memcached-container
         ports:
             - 11211:11211
         environment:
             - MEMCACHED_MB=1024
-#        profiles: ["backend"]
+        networks:
+            - default

@@ -6,4 +6,4 @@ RUN useradd memcached -s /bin/bash -m
 
 WORKDIR /
 
-CMD ["memcached","-u","memcached","-m","512","-p","11211","-l","0.0.0.0"]
+CMD memcached -u memcached -m ${MEMCACHED_MB:-4096} -p 11211 -l 0.0.0.0

@@ -1,16 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "ncd",
-			"path": "../ncd"
-		},
-		{
-			"path": "../ncd-tools"
-		},
-		{
-			"path": "../ncd-python"
-		},
-		{
+			"name": "ensembl-dauphin-style-compiler",
 			"path": "."
 		}
 	],

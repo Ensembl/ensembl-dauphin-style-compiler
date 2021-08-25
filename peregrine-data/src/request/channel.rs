@@ -1,5 +1,4 @@
 use anyhow::bail;
-use lazy_static::lazy_static;
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
@@ -14,7 +13,10 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
         if let Some(first_idx) = value.find("(") {
             let mut first = value.to_string();
-            let rest = first.split_off(first_idx)[1..].to_string();
+            let mut rest = first.split_off(first_idx)[1..].to_string();
+            if rest.len() != 0 {
+                rest = rest[0..(rest.len()-1)].to_string();
+            }
             return Ok((first,rest))
         }
     }
@@ -28,6 +30,7 @@ pub trait ChannelIntegration {
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub enum ChannelLocation {
+    None,
     HttpChannel(Url)
 }
 
@@ -37,6 +40,7 @@ impl ChannelLocation {
         match first.as_str() {
             "url" => Ok(ChannelLocation::HttpChannel(Url::parse(&rest)?)),
             "self" => Ok(base.clone()),
+            "none" => Ok(ChannelLocation::None),
             _ => bail!("unparsable channel string!")
         }
     }
@@ -56,7 +60,8 @@ impl Channel {
 
     pub(crate) fn channel_name(&self) -> String {
         match self.0.as_ref() {
-            ChannelLocation::HttpChannel(url) => format!("url({})",url)
+            ChannelLocation::HttpChannel(url) => format!("url({})",url),
+            ChannelLocation::None => format!("none()")
         }
     }
 
@@ -90,7 +95,8 @@ impl Display for PacketPriority {
 impl Channel {
     pub fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(match self.0.as_ref() {
-            ChannelLocation::HttpChannel(url) => CborValue::Array(vec![CborValue::Integer(0),CborValue::Text(url.to_string())])
+            ChannelLocation::HttpChannel(url) => CborValue::Array(vec![CborValue::Integer(0),CborValue::Text(url.to_string())]),
+            ChannelLocation::None => CborValue::Array(vec![CborValue::Integer(1)])
         })
     }
 
@@ -98,6 +104,7 @@ impl Channel {
         let values = cbor_array(value,2,false)?;
         let data = match cbor_int(&values[0],Some(0))? {
             0 => ChannelLocation::HttpChannel(Url::parse(&cbor_string(&values[1])?).map_err(|e| err!(e.to_string())).context("parsing URL")?),
+            1 => ChannelLocation::None,
             _ => Err(err!("bad channel type in deserialize"))?
         };
         Ok(Channel(Arc::new(data)))

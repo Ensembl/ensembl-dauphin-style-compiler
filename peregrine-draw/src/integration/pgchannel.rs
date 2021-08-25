@@ -40,6 +40,9 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: 
             ajax.set_body_cbor(&data)?;
             let out = ajax.get_cbor().await;
             out
+        },
+        ChannelLocation::None => {
+            return Err(Message::BadBackendConnection(format!("Cannot connect to the none() channel, by definition it deosn't exist")))
         }
     }
 }
