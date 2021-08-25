@@ -3,6 +3,7 @@ services:
     backend-hi:
         environment:
             - THREADS=16
+            - LO_PORT=1
 
     backend-lo:
         environment:

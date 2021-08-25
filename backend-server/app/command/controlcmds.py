@@ -1,9 +1,11 @@
-from core.config import METRIC_FILE
+from core.config import LO_PORT, METRIC_FILE
 from typing import Any
 from .coremodel import Handler
 from .response import Response
 from .datasources import DataAccessor
 import datetime
+import logging
+from urllib.parse import urlparse
 
 class ErrorHandler(Handler):
     def __init__(self, message: str):
@@ -12,12 +14,25 @@ class ErrorHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any,  payload: Any) -> Response:
         return Response(1,self.message)
 
+def lo_port(channel):
+    out = list(channel)
+    if channel[0] == 0: # URL type
+        url = urlparse(channel[1])
+        netloc = url.netloc
+        hostport = netloc.split(':')
+        if len(hostport) > 1:
+            netloc = hostport[0]+':'+str(int(hostport[1])+1)
+        url = url._replace(netloc=netloc)
+        out[1] = url.geturl()
+    return out
+
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+        lo_channel = (lo_port(channel) if LO_PORT else channel)
         r = Response(0,{
             "boot": [channel,data_accessor.begs_files.boot_program],
-            "hi":  "url(http://localhost:3333/api/data)",
-            "lo":  "url(http://localhost:3334/api/data)",
+            "hi":  channel,
+            "lo":  lo_channel,
         })
         for b in data_accessor.begs_files.all_bundles():
             r.bundles.add(b)

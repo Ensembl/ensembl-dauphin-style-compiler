@@ -86,9 +86,8 @@ pub struct BootstrapResponseBuilderType();
 impl ResponseBuilderType for BootstrapResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
         let values = cbor_map(value,&["boot","hi","lo"])?;
-        let channel_no = Channel::new(&ChannelLocation::None);
-        let channel_hi = Channel::parse(&channel_no,&cbor_string(values[1])?)?;
-        let channel_lo = Channel::parse(&channel_hi,&cbor_string(values[2])?)?;
+        let channel_hi = Channel::deserialize(&values[1])?;
+        let channel_lo = Channel::deserialize(&values[2])?;
         Ok(Box::new(BootstrapCommandResponse {
             program_name: ProgramName::deserialize(&values[0])?,
             channel_hi, channel_lo

@@ -2,7 +2,6 @@ use crate::lock;
 use commander::{ CommanderStream };
 use peregrine_toolkit::sync::blocker::Blocker;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -121,7 +120,9 @@ impl RequestManagerData {
     }
 
     fn set_lo_divert(&mut self, hi: &Channel, lo: &Channel) {
-        self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
+        if hi != lo {
+            self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
+        }
     }
 }
 

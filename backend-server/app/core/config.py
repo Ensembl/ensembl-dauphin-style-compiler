@@ -69,3 +69,5 @@ logger.configure(handlers=[{"sink": sys.stderr, "level": LOGGING_LEVEL}])
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources.toml"))
 
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
+
+LO_PORT = config("LO_PORT",default=False)
