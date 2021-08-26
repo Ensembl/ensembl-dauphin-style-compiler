@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Optional
+from types import prepare_class
+from typing import Optional, Tuple
 from core.config import MEMCACHED
 from command.response import Response
 import logging
@@ -74,3 +75,16 @@ class Memcached(object):
         if value == None:
             return None
         return Response(-1,value)
+
+    def get_jump(self, name: str) -> Optional[Tuple[str,int,int]]:
+        if not self._is_available():
+            return None
+        key = self.hashed_key(["jump",name])
+        value = self._client.get(key)
+        return cbor2.loads(value) if value != None else None
+
+    def set_jump(self, name: str, stick: str, start: int, end: int):
+        if not self._is_available():
+            return
+        key = self.hashed_key(["jump",name])
+        self._client.set(key,cbor2.dumps([stick,start,end]))

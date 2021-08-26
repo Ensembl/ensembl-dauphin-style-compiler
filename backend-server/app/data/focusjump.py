@@ -19,8 +19,15 @@ class FocusJumpHandler:
         if location.startswith(PREFIX):
             for (species,chrom) in split_all(":",location[len(PREFIX):]):
                 key = PREFIX + species
+                cached = data_accessor.cache.get_jump(location)
+                if cached != None:
+                    logging.error("using cahed: {0}".format(cached))
+                    return cached
                 value = self._jump_ncd.get(location.encode("utf-8"))
                 if value != None:
                     parts = value.decode("utf-8").split("\t")
-                    return (species+":"+parts[0],int(float(parts[1])),int(float(parts[2])))
+                    out = (species+":"+parts[0],int(float(parts[1])),int(float(parts[2])))
+                    logging.error("using live: {0}".format(cached))
+                    data_accessor.cache.set_jump(location,*out)
+                    return out
         return None
