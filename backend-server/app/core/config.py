@@ -56,7 +56,7 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 
 # logging configuration
 
-SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources.toml"))
+SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources-s3.toml"))
 
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 

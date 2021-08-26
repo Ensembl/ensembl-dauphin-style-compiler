@@ -1,0 +1,3 @@
+[source]
+driver = "s3"
+url="http://nginx/upload-20210808/"

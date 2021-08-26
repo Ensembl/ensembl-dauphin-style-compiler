@@ -1,0 +1,3 @@
+[source]
+driver = "s3"
+url = "https://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/upload-20210808/"
