@@ -50,5 +50,6 @@ services:
             - NGINX_CACHE_SIZE
             - FILE_OWNER
             - FILE_GROUP
+            - NGINX_CACHE_DIR
         volumes:
             - ${NGINX_CACHE_DIR:-.}:/cache

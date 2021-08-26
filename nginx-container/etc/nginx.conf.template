@@ -1,5 +1,4 @@
 worker_processes  5;  ## Default: 1
-error_log  /tmp/error.log;
 pid        /tmp/nginx.pid;
 worker_rlimit_nofile 8192;
 daemon off;
