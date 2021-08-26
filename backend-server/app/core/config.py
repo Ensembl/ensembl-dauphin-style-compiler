@@ -50,7 +50,6 @@ egs_directory = config("EGS_DIRECTORY", default=os.path.join(base_directory,"egs
 EGS_FILES: str = config("EGS_FILES", default=egs_directory)
 EGS_GLOBS: List[str] = ["*.egs"]
 BEGS_CONFIG: str = config("BEGS_CONFIG", default=os.path.join(egs_directory,"begs_config.toml"))
-DATA_FILES: str = config("DATA_FILES", default=os.path.join(base_directory,"data"))
 BEGS_FILES: str = config("BEGS_FILES", default=os.path.join(base_directory,"egs-data","begs"))
 
 METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.log"))

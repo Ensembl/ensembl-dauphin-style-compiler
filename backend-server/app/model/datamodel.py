@@ -1,12 +1,10 @@
 import logging
-from core.config import DATA_FILES
 from .species import Species
 from util.string import split_all
 from model.datalocator import AccessItem
 
 class DataModel(object):
     def __init__(self, data_accessor):
-        self.files_dir = DATA_FILES
         self._species = {}
         self._species_aliases = {}
         self._load_species(data_accessor)
@@ -28,7 +26,7 @@ class DataModel(object):
         species_list = self._get_species_list(resolver)
         for species_name in species_list:
             try:
-                species_object = Species(self.files_dir,species_name)
+                species_object = Species(species_name)
                 self._species[species_object.wire_id] = species_object
                 for alias_prefix in species_object.alias_prefixes:
                     self._species_aliases[alias_prefix] = species_object.wire_id

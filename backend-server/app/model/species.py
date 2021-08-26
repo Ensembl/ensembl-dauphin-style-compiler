@@ -7,11 +7,10 @@ from ncd import NCDRead
 from core.exceptions import RequestException
 
 class Species(object):
-    def __init__(self, files_dir, genome_id):
+    def __init__(self, genome_id):
         self.genome_id = genome_id
         self.genome_path = self.genome_id
         self.wire_id = re.sub(r'\W','_',self.genome_id)
-        self.files_dir = files_dir
         self.chromosomes = {}
         self.alias_prefixes = [self.wire_id]
 
@@ -28,18 +27,12 @@ class Species(object):
         wire_id = total_wire_id[(len(self.wire_id)+1):]
         hash_value = self._load_ncd(data_accessor,"chrom-hashes",wire_id)[0]
         size = int(self._load_ncd(data_accessor,"chrom-sizes",wire_id)[0])
-        return Chromosome(self.files_dir,wire_id,size,hash_value,self)
+        return Chromosome(wire_id,size,hash_value,self)
 
     def chromosome(self, data_accessor, wire_id):
         if not (wire_id in self.chromosomes):
             self.chromosomes[wire_id] = self._load_chromosome(data_accessor,wire_id)
         return self.chromosomes.get(wire_id)
-
-    def file_path(self,section,filename):
-        path = os.path.join(self.files_dir,section,self.genome_path,filename)
-        if not os.path.exists(path):
-            logging.warn("Missing file {0}".format(path))
-        return path
 
     def item_path(self,variety):
         return AccessItem(variety,self.genome_id)
