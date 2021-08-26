@@ -4,7 +4,6 @@ FROM python:3.8
 LABEL maintainer="ensembl-webteam@ebi.ac.uk"
 
 ENV PYTHONUNBUFFERED TRUE
-ENV DATA_FILES=/data
 
 RUN apt-get update
 RUN apt-get install -y libcurl4 libcurl4-openssl-dev memcached git

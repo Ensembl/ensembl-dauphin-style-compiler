@@ -24,3 +24,10 @@ services:
         environment:
             - FILE_OWNER
             - FILE_GROUP
+
+    frontend:
+        build: ../../peregrine-generic
+        ports:
+            - 8080:8000
+        networks:
+            - default
