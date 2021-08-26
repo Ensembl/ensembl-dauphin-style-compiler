@@ -12,3 +12,15 @@ services:
     memcached:
         environment:
             - MEMCACHED_MB=512
+
+    syslog:
+        build: ../../syslog-container
+        ports:
+            - 11601
+        volumes:
+            - ${LOG_DIR:-.}:/logs
+        networks:
+            - default
+        environment:
+            - FILE_OWNER
+            - FILE_GROUP

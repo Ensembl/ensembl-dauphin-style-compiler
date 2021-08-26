@@ -24,7 +24,7 @@ from loguru import logger
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings
 
-from core.logging import InterceptHandler
+from core.logging import InterceptHandler, setup_logging
 from inspect import getsourcefile
 from os.path import abspath
 import os.path
@@ -37,7 +37,8 @@ API_PREFIX = "/api"
 
 config = Config(".env")
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
-LOG_PATH = config("LOG_PATH",default=None)
+LOG_HOST = config("LOG_HOST",default=None)
+LOG_PORT = int(config("LOG_PORT",default=514))
 PROJECT_NAME: str = config("PROJECT_NAME", default="Peregrine Data Server")
 ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",
@@ -56,18 +57,10 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 
 # logging configuration
 
-LOGGING_LEVEL = logging.DEBUG if DEBUG else logging.WARN
-LOGGERS = ("uvicorn.asgi", "uvicorn.access")
-
-logging.getLogger().handlers = [InterceptHandler()]
-for logger_name in LOGGERS:
-    logging_logger = logging.getLogger(logger_name)
-    logging_logger.handlers = [InterceptHandler(level=LOGGING_LEVEL)]
-
-logger.configure(handlers=[{"sink": sys.stderr, "level": LOGGING_LEVEL}])
-
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources.toml"))
 
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 
 LO_PORT = config("LO_PORT",default=False)
+
+setup_logging()

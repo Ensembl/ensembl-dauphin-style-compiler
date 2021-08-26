@@ -1,0 +1,49 @@
+worker_processes  5;  ## Default: 1
+error_log  /tmp/error.log;
+pid        /tmp/nginx.pid;
+worker_rlimit_nofile 8192;
+daemon off;
+user nginx nginx;
+
+events {
+} 
+
+http {
+    include    /etc/nginx/mime.types;
+    index    index.html index.htm index.php;
+
+    slice 32k;
+    proxy_cache       cache;
+    proxy_cache_key   $uri$is_args$args$slice_range;
+    proxy_cache_path   /cache keys_zone=cache:100m max_size=${NGINX_CACHE_SIZE} manager_sleep=30s;
+    proxy_set_header  Range $slice_range;
+    proxy_cache_valid 200 206 1h;
+    proxy_redirect          off;
+    proxy_set_header        Host            $host;
+    proxy_set_header        X-Real-IP       $remote_addr;
+    proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+    client_max_body_size    10m;
+    client_body_buffer_size 128k;
+    proxy_connect_timeout   10s;
+    proxy_send_timeout      10s;
+    proxy_read_timeout      10s;
+    proxy_buffers           32 4k;
+
+  default_type application/octet-stream;
+  log_format upstreamlog '[$time_local] $remote_addr - $remote_user - $server_name $host to: $upstream_addr: $request $status upstream_response_time $upstream_response_time msec $msec request_time $request_time';
+  access_log   syslog:server=${LOG_HOST}:${LOG_PORT}  upstreamlog;
+  error_log syslog:server=${LOG_HOST}:${LOG_PORT} warn;
+  sendfile     on;
+  tcp_nopush   on;
+  server_names_hash_bucket_size 128; # this seems to be required for some vhosts
+
+  server { # simple reverse-proxy
+    listen       80;
+
+    location / {
+         proxy_set_header Host ${UPSTREAM};
+    proxy_set_header  Range $slice_range;
+      proxy_pass     http://${UPSTREAM}:80;
+    }
+  }
+}

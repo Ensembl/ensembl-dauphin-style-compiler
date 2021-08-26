@@ -6,12 +6,12 @@ services:
             - 3333:3333
         volumes:
             - ${DATA_PATH:-.}:/data
-            - ${LOG_DIR:-.}:/logs
         environment:
             - MEMCACHED=memcached:11211
-            - LOG_PATH=/logs/backend-hi.log
             - THREADS=16
             - DEBUG
+            - LOG_HOST
+            - LOG_PORT
         networks:
             - default
 
@@ -21,12 +21,12 @@ services:
             - 3334:3333
         volumes:
             - ${DATA_PATH:-.}:/data
-            - ${LOG_DIR:-.}:/logs
         environment:
             - MEMCACHED=memcached:11211
-            - LOG_PATH=/logs/backend-lo.log
             - DEBUG
             - THREADS=4
+            - LOG_HOST
+            - LOG_PORT
         networks:
             - default
 
@@ -38,3 +38,17 @@ services:
             - MEMCACHED_MB=1024
         networks:
             - default
+
+    nginx:
+        build: ../../nginx-container
+        ports:
+            - 80:80
+        environment:
+            - UPSTREAM=ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com
+            - LOG_HOST
+            - LOG_PORT
+            - NGINX_CACHE_SIZE
+            - FILE_OWNER
+            - FILE_GROUP
+        volumes:
+            - ${NGINX_CACHE_DIR:-.}:/cache

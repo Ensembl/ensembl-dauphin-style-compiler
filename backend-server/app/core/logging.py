@@ -21,6 +21,7 @@ from types import FrameType
 from typing import cast
 from loguru import logger
 from core import config
+from logging.handlers import SysLogHandler
 
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover
@@ -38,11 +39,21 @@ class InterceptHandler(logging.Handler):
             level, record.getMessage(),
         )
 
-def setup_logging():
-    log_level = "DEBUG" if config.DEBUG else "WARNING"
-    log_to = config.LOG_PATH
-    if log_to == None:
-        log_to = sys.stderr
+def get_handler():
+    log_host = config.LOG_HOST
+    log_port = config.LOG_PORT
+    if log_host == None:
+        return sys.stderr
+    else:
+        return SysLogHandler(address=(log_host,log_port))
 
-    logger.remove()
-    logger.add(log_to,level=log_level)
+def setup_logging():
+    LOGGING_LEVEL = logging.DEBUG if config.DEBUG else logging.WARN
+    LOGGERS = ("uvicorn.asgi", "uvicorn.access")
+
+    logging.getLogger().handlers = [InterceptHandler()]
+    for logger_name in LOGGERS:
+        logging_logger = logging.getLogger(logger_name)
+        logging_logger.handlers = [
+            get_handler()
+        ]
