@@ -43,9 +43,18 @@ class Memcached(object):
             self._last_check = now
         return self._available
 
-    def __init__(self):
+    def _get_bump(self):
+        now = time.time()
+        if self._last_bump_check == None or now - self._last_bump_check > 30:
+            self._last_bump_check = now
+            self._bump = self._client.get(self._prefix+":"+"bump")
+
+    def __init__(self,prefix):
         self._start_time = time.time()
         self._last_check = 0
+        self._last_bump_check = None
+        self._bump = None
+        self._prefix = prefix
         self._available = False
         if not PYMEMCACHE_FOUND:
             logging.warn("missing pymemcached. Cannot use memcache")
@@ -57,7 +66,8 @@ class Memcached(object):
 
     def hashed_key(self,parts):
         value = hashlib.sha256()
-        value.update(cbor2.dumps(parts))
+        self._get_bump()
+        value.update(cbor2.dumps([self._prefix,self._bump,parts]))
         return value.hexdigest()
 
     def store_data(self, channel, name, panel, data):

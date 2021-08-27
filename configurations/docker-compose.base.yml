@@ -8,6 +8,7 @@ services:
             - ${DATA_PATH:-.}:/data
         environment:
             - MEMCACHED=memcached:11211
+            - MEMCACHED_PREFIX=gb
             - THREADS=16
             - DEBUG
             - LOG_HOST
@@ -23,6 +24,7 @@ services:
             - ${DATA_PATH:-.}:/data
         environment:
             - MEMCACHED=memcached:11211
+            - MEMCACHED_PREFIX=gb
             - DEBUG
             - THREADS=4
             - LOG_HOST
@@ -58,6 +60,7 @@ services:
         build: ../../bump-container
         environment:
             - MEMCACHED=memcached:11211
+            - MEMCACHED_PREFIX=gb
             - LOG_HOST
             - LOG_PORT
             - BUMP_URL=http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/bump

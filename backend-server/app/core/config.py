@@ -59,6 +59,7 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources-s3.toml"))
 
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
+MEMCACHED_PREFIX = config("MEMCACHED_PREFIX",default="")
 
 LO_PORT = config("LO_PORT",default=False)
 

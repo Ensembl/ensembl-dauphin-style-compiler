@@ -15,4 +15,4 @@ RUN pip install --no-cache-dir -r /usr/local/etc/requirements.txt
 
 WORKDIR /
 
-CMD exec /usr/local/bin/bump-detector.py -s "$LOG_HOST:$LOG_PORT" -r /cache/restart.now -m $MEMCACHED -k bump $BUMP_URL
+CMD exec /usr/local/bin/bump-detector.py -s "$LOG_HOST:$LOG_PORT" -r /cache/restart.now -m $MEMCACHED -k $MEMCACHED_PREFIX:bump $BUMP_URL

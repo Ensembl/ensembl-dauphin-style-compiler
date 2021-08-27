@@ -70,14 +70,15 @@ bump = None
 while True:
     new_bump = get_bump()
     if bump != new_bump and new_bump != None:
-        logging.info("bump file changed was '{0}' now '{1}'".format(bump,new_bump))
         bump = new_bump
-        if args.restart_file:
-            logging.info("scheduling nginx restart")
-            with open(args.restart_file,"w+b") as f:
-                pass
-        if args.memcached_server:
-            logging.info("updating memcached with bump value {0}".format(bump))
+        if bump != None:
+            logging.info("bump file changed was '{0}' now '{1}'".format(bump,new_bump))
+            if args.restart_file:
+                logging.info("scheduling nginx restart")
+                with open(args.restart_file,"w+b") as f:
+                    pass
+            if args.memcached_server:
+                logging.info("updating memcached with bump value {0}".format(bump))
     if args.memcached_server:
         mc = base.Client(args.memcached_server)
         mc.set(args.memcached_key, bump)

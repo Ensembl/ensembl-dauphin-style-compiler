@@ -2,6 +2,7 @@ from .begs import BegsFiles
 from model.datamodel import DataModel
 from model.datalocator import DataSourceResolver
 from model.memcached import Memcached
+from core.config import MEMCACHED_PREFIX
 
 class DataAccessor:
     def __init__(self):
@@ -11,4 +12,4 @@ class DataAccessor:
         self.resolver : DataSourceResolver = DataSourceResolver()
         self.begs_files = BegsFiles()
         self.data_model = DataModel(self.resolver)
-        self.cache = Memcached()
+        self.cache = Memcached(MEMCACHED_PREFIX)

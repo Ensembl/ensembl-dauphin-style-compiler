@@ -49,11 +49,9 @@ def get_handler():
 
 def setup_logging():
     LOGGING_LEVEL = logging.DEBUG if config.DEBUG else logging.WARN
-    LOGGERS = ("uvicorn.asgi", "uvicorn.access")
+    LOGGERS = ("uvicorn.asgi", "uvicorn.access",None)
 
     logging.getLogger().handlers = [InterceptHandler()]
     for logger_name in LOGGERS:
         logging_logger = logging.getLogger(logger_name)
-        logging_logger.handlers = [
-            get_handler()
-        ]
+        logging_logger.handlers = [get_handler()]
