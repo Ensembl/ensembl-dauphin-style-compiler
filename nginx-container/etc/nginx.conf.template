@@ -16,7 +16,7 @@ http {
     proxy_cache_key   $uri$is_args$args$slice_range;
     proxy_cache_path   /cache keys_zone=cache:100m max_size=${NGINX_CACHE_SIZE} manager_sleep=30s;
     proxy_set_header  Range $slice_range;
-    proxy_cache_valid 200 206 1h;
+    proxy_cache_valid 200 206 1d;
     proxy_redirect          off;
     proxy_set_header        Host            $host;
     proxy_set_header        X-Real-IP       $remote_addr;
