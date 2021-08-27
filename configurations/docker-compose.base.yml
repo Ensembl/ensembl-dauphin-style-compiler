@@ -53,3 +53,13 @@ services:
             - NGINX_CACHE_DIR
         volumes:
             - ${NGINX_CACHE_DIR:-.}:/cache
+
+    bump-detector:
+        build: ../../bump-container
+        environment:
+            - MEMCACHED=memcached:11211
+            - LOG_HOST
+            - LOG_PORT
+            - BUMP_URL=http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/bump
+        volumes:
+            - ${NGINX_CACHE_DIR:-.}:/cache

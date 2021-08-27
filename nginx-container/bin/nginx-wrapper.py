@@ -105,4 +105,5 @@ while True:
                 time.sleep(1.)
         run()
         logger.info("restarted, good pid={0}".format(pid))
-    time.sleep(args.check_interval)
+    else:
+        time.sleep(args.check_interval)
