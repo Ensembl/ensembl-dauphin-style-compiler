@@ -157,20 +157,19 @@ level much sooner than hi. In practice 16 threads per container for hi and 4 for
 
 Logging of both access log and error log is via syslog.
 
-### Envorinment
+### Environment
 
  * `DEBUG` -- sets log level between WARN and DEBUG among other things.
  * `THREADS` -- appropriate for the continer use case.
-memcached tenants using same keys.
+ * `SOURCES_TOML` -- toml to use for data from the list of files in `backend-server/config`
+ * `STARTUP_WAIT` -- wait (in seconds) to allow dependent containers to start
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
 | DEBUG    | 0   | 1   | 0      |
 | THREADS  | hi=16 lo=4 | hi=16 lo=4 | hi=16 lo=4 |
-| LOG_HOST | per-k8s setup | "syslog" (from docker-compose) | "syslog" (from docker copose) | 
-| LOG_PORT | per-k8s setup | 11601 (from docker-compose) |"11601 (from docker compose) |
-| MEMCACHED | per-k8s setup | "memcached:11211" (from docker-compose) | "memcached:11211" (from docker-compose) | 
-| MEMCACHED_PREFIX | per-k8s setup | "gb" (from docker-compose) | "gb" (from docker-compose) | 
+| SOURCES_TOML | sources-ebi.toml | sources-s3.toml (or user's fork) | sources-s3.toml (or fork) |
+| STARTUP_WAIT | 2 | 10 | 10 |
 
 ## memcached
 

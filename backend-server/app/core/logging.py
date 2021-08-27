@@ -55,3 +55,4 @@ def setup_logging():
     for logger_name in LOGGERS:
         logging_logger = logging.getLogger(logger_name)
         logging_logger.handlers = [get_handler()]
+        logging_logger.setLevel(LOGGING_LEVEL)

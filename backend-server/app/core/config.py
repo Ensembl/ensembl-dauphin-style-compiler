@@ -19,8 +19,7 @@ import logging
 from os import environ
 import sys
 from typing import List
-
-from loguru import logger
+import time
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings
 
@@ -36,6 +35,11 @@ VERSION = "0.0.0"
 API_PREFIX = "/api"
 
 config = Config(".env")
+
+# startup wait. It could be that containers we need to cnnect to are starting up.
+STARTUP_WAIT = config("STARTUP_WAIT",default=2.0,cast=float)
+time.sleep(STARTUP_WAIT)
+
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
 LOG_HOST = config("LOG_HOST",default=None)
 LOG_PORT = int(config("LOG_PORT",default=514))
@@ -58,9 +62,15 @@ METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.l
 
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources-s3.toml"))
 
+if not os.path.exists(SOURCES_TOML):
+    SOURCES_TOML = os.path.join(config_directory,SOURCES_TOML)
+
 MEMCACHED = config("MEMCACHED", default="127.0.0.1:11211")
 MEMCACHED_PREFIX = config("MEMCACHED_PREFIX",default="")
 
 LO_PORT = config("LO_PORT",default=False)
 
 setup_logging()
+
+config_logger = logging.getLogger("config")
+config_logger.info("configured, toml='{0}'".format(SOURCES_TOML))

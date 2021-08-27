@@ -13,6 +13,8 @@ services:
             - DEBUG
             - LOG_HOST
             - LOG_PORT
+            - SOURCES_TOML
+            - STARTUP_WAIT
         networks:
             - default
         restart: on-failure
@@ -30,6 +32,8 @@ services:
             - THREADS=4
             - LOG_HOST
             - LOG_PORT
+            - SOURCES_TOML
+            - STARTUP_WAIT
         networks:
             - default
         restart: on-failure

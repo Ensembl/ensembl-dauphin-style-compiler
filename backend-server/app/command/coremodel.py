@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List, Optional
 from command.datasources import DataAccessor
 import cbor2
 from .response import Response
@@ -6,6 +6,9 @@ from .response import Response
 class Handler:
     def process(self, data_accessor: DataAccessor, channel: Any,  payload: Any) -> Response:
         raise NotImplementedError("override process!")
+
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return None
 
 class Panel(object):
     def __init__(self, data):

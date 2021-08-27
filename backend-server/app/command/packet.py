@@ -1,6 +1,8 @@
+import collections
 import logging
-import json
-from typing import Any, Tuple
+import cbor2
+import urllib
+from typing import Any, List, Tuple
 from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Handler
@@ -26,7 +28,27 @@ def type_to_handler(typ: int) -> Any:
         return ErrorHandler("unsupported command type ({0})".format(typ))
     return handler
 
-def process_request(channel: Tuple[int,str], typ: int, payload: Any):
+def do_request_remote(url,messages, high_priority: bool):
+    suffix = "hi" if high_priority else "lo"
+    request = cbor2.dumps({
+        "channel": [0,url],
+        "requests": messages
+    })
+    upstream = url + "/" + suffix
+    logging.debug("delegating to {0}",upstream)
+    with urllib.request.urlopen(upstream,data=request) as response:
+        return cbor2.loads(response.read())
+
+def extract_remote_request(channel: Tuple[int,str], typ: int, payload: Any):
+    handler = type_to_handler(typ)
+    prefix = handler.remote_prefix(payload)
+    if prefix != None:
+        override = data_accessor.resolver.find_override(prefix)
+        if override != None:
+            return override
+    return None
+
+def process_local_request(channel: Tuple[int,str], typ: int, payload: Any):
     handler = type_to_handler(typ)
     return handler.process(data_accessor,channel,payload)
 
@@ -34,9 +56,23 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     channel = packet_cbor["channel"]
     response = []
     bundles = set()
+    local_requests = []
+    remote_requests = collections.defaultdict(list)
+    # anything that should be remote
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
-        r = process_request(channel,typ,payload)
+        override = extract_remote_request(channel,typ,payload)
+        if override != None:
+            remote_requests[override].append(p)
+        else:
+            local_requests.append((msgid,typ,payload))
+    for (request,messages) in remote_requests.items():
+        r = do_request_remote(request,messages,high_priority)
+        response += [[x[0],cbor2.dumps(x[1])] for x in r["responses"]]
+        bundles |= set(r["programs"])
+    # local stuff
+    for (msgid,typ,payload) in local_requests:
+        r = process_local_request(channel,typ,payload)
         response.append([msgid,r.payload])
         bundles |= r.bundles
     begs_files = data_accessor.begs_files

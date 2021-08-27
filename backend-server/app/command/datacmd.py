@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 import logging
 from .coremodel import Handler, Panel
 from .response import Response
@@ -37,6 +37,9 @@ class DataHandler(Handler):
         data_accessor.cache.store_data(channel,name,panel,out)
         return out
 
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return ["data",payload[1],payload[2][0]]
+
 class JumpHandler(Handler):
     def __init__(self, data_accessor):
         self.handlers = [
@@ -56,3 +59,6 @@ class JumpHandler(Handler):
         return Response(6,{
             "no": True
         })
+
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return ["jump"]

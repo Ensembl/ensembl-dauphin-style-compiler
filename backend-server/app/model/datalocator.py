@@ -115,6 +115,7 @@ class FileDataSource(object):
 class DataSourceResolver:
     def __init__(self):
         self._paths = {}
+        self._redirect = {}
         self._load(SOURCES_TOML)
 
     def _add_here(self,path,data):
@@ -133,9 +134,17 @@ class DataSourceResolver:
             if type(new_data) is dict:
                 self._add(path+[more_path],new_data)
 
+    def _add_redirect(self,path,data):
+        if "upstream" in data and data["upstream"] and not (type(data["upstream"]) is dict):
+            self._redirect[tuple(path)] = data["upstream"]
+        for (more_path,new_data) in data.items():
+            if type(new_data) is dict:
+                self._add_redirect(path+[more_path],new_data)
+
     def _load(self,source):
         toml_data = toml.load(source)
         self._add([],toml_data.get('source',{}))
+        self._add_redirect([],toml_data.get('redirect',{}))
 
     def get(self, item: AccessItem) -> Optional[AccessMethod]:
         pattern = tuple([item.variety,item.genome,item.chromosome])
@@ -153,4 +162,11 @@ class DataSourceResolver:
         pattern = tuple()
         if pattern in self._paths:
             return self._paths[pattern].resolve(item)
+        return None
+
+    def find_override(self, prefix):
+        for end in range(0,len(prefix)):
+            v = self._redirect.get(tuple(prefix[0:end]),None)
+            if v != None:
+                return v
         return None

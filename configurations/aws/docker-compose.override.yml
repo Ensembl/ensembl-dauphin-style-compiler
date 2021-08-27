@@ -13,6 +13,7 @@ services:
             - DEBUG=1
             - LOG_HOST=syslog
             - LOG_PORT=11601
+            - STARTUP_WAIT=10
         restart: always
 
     backend-lo:
@@ -21,6 +22,7 @@ services:
             - DEBUG=1
             - LOG_HOST=syslog
             - LOG_PORT=11601
+            - STARTUP_WAIT=10
         restart: always
 
     memcached:
