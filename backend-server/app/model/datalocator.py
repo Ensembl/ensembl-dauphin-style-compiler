@@ -168,5 +168,5 @@ class DataSourceResolver:
         for end in range(0,len(prefix)):
             v = self._redirect.get(tuple(prefix[0:end]),None)
             if v != None:
-                return v
+                return v if v else None
         return None
