@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Monitor bump values to allow cache
 
 parser.add_argument('--syslog', '-s', dest='syslog', default=None)
 parser.add_argument('--restart','-r',dest='restart_file', default=None)
-parser.add_argument('--check-interval','-i',dest='check_interval',type=float,default=30.0)
+parser.add_argument('--check-interval','-i',dest='check_interval',type=float,default=300.0)
 parser.add_argument('--memcached-server','-m',dest='memcached_server', default=None)
 parser.add_argument('--memcached-key','-k',dest='memcached_key', default="bump")
 parser.add_argument('bump_file',type=str)

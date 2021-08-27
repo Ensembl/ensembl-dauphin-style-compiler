@@ -65,4 +65,4 @@ services:
             - LOG_PORT
             - BUMP_URL=http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/bump
         volumes:
-            - ${NGINX_CACHE_DIR:-.}:/cache
+            - ${NGINX_CACHE_DIR:-/tmp}:/cache
