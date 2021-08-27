@@ -8,7 +8,6 @@ from logging import StreamHandler
 from pymemcache.client import base
 import time
 import urllib.request
-from pathlib import Path
 
 # Extract and reflect config
 
@@ -56,10 +55,10 @@ def get_bump():
     try:
         if "//" in args.bump_file:
             with urllib.request.urlopen(args.bump_file) as response:
-                return response.readline()
+                return list(response.readline())
         else:
             with open(args.bump_file) as f:
-                return f.readline()
+                return list(f.readline())
     except:
         logging.error("Failed to retrieve bump file")
         return None
@@ -70,7 +69,6 @@ bump = None
 while True:
     new_bump = get_bump()
     if bump != new_bump and new_bump != None:
-        bump = new_bump
         if bump != None:
             logging.info("bump file changed was '{0}' now '{1}'".format(bump,new_bump))
             if args.restart_file:
@@ -79,6 +77,8 @@ while True:
                     pass
             if args.memcached_server:
                 logging.info("updating memcached with bump value {0}".format(bump))
+
+        bump = new_bump
     if args.memcached_server:
         mc = base.Client(args.memcached_server)
         mc.set(args.memcached_key, bump)

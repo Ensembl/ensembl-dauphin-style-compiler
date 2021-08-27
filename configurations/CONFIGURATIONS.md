@@ -106,6 +106,34 @@ If local or nfs disk is in use (eg at EBI) the data files arrows are connected d
 
 # Container List
 
+## Shared environment variables
+
+Some environment variables are used by most containers. They are listed here rather than in each container for brevity.
+
+ * `LOG_HOST` -- syslog hostname
+ * `LOG_PORT` -- syslog hostname
+ * `MEMCACHED` -- hostname:port of memcached host
+ * `MEMCACHED_PREFIX` -- key prefix to use stop multiple memcached tenants using same keys.
+ * `FILE_OWNER` -- user to run nginx as (owns cache files)
+ * `FILE_GROUP` -- group to run nginx as (owns cache files)
+
+| Variable | EBI | dev | ad hoc |
+|----------|-----|-----|--------|
+| LOG_HOST | per-k8s setup | "syslog" (from docker-compose) | "syslog" (from docker copose) | 
+| LOG_PORT | per-k8s setup | 11601 (from docker-compose) |"11601 (from docker compose) |
+| MEMCACHED | per-k8s setup | "memcached:11211" (from docker-compose) | "memcached:11211" (from docker-compose) | 
+| MEMCACHED_PREFIX | per-k8s setup | "gb" (from docker-compose) | "gb" (from docker-compose) | 
+| FILE_OWNER | N/A | eg ubuntu | eg dan |
+| FILE_GROUP | N/A | eg ubuntu | eg dan |
+
+
+| container | LOG_* | MEMCACHED_* | FILE_* |
+|-----------|-------|-------------|--------|
+| hi & lo   |   Y   |     Y       |        |
+| bump det. |   Y   |     Y       |        |
+| nginx     |   Y   |             |   Y    |
+| syslog    |       |             |   Y    |
+
 ## hi and lo (the main backend servers)
 
 hi and lo are identical servers in terms of code and data. By convention and config, the genome browser contacts
@@ -132,11 +160,8 @@ Logging of both access log and error log is via syslog.
 ### Envorinment
 
  * `DEBUG` -- sets log level between WARN and DEBUG among other things.
- * `LOG_HOST` -- syslog hostname
- * `LOG_PORT` -- syslog hostname
  * `THREADS` -- appropriate for the continer use case.
- * `MEMCACHED` -- hostname:port of memcached host
- * `MEMCACHED_PREFIX` -- key prefix to use stop multiple memcached tenants using same keys.
+memcached tenants using same keys.
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
@@ -157,7 +182,7 @@ memcached is required. Even for development the backend server relies on a cache
 
  | Variable       | EBI | dev | ad hoc |
 |-----------------|-----|-----|--------|
-| MEMCACHED_MB    | 8192   | 512   | 8912 |
+| MEMCACHED_MB    | 8192   | 512   | 8192 |
 
 ## bump detector
 
@@ -165,19 +190,12 @@ The bump detector is a script in a tight loop which runs a few times a minute. I
 
 ### Environment
 
- * `LOG_HOST` -- syslog hostname
- * `LOG_PORT` -- syslog hostname
  * `BUMP_URL` -- url (or file path) to check for bump file.
- * `MEMCACHED` -- hostname:port of memcached host
- * `MEMCACHED_PREFIX` -- key prefix to use stop multiple memcached tenants using same keys.
+memcached tenants using same keys.
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
-| LOG_HOST | per-k8s setup | "syslog" (from docker-compose) | "syslog" (from docker copose) | 
-| LOG_PORT | per-k8s setup | 11601 (from docker-compose) |"11601 (from docker compose) |
 | BUMP_URL | disk bump-file location at datafile root | url to s3 bump file | url to s3 bump file |
-| MEMCACHED | per-k8s setup | "memcached:11211" (from docker-compose) | "memcached:11211" (from docker-compose) | 
-| MEMCACHED_PREFIX | per-k8s setup | "gb" (from docker-compose) | "gb" (from docker-compose) | 
 
 ## nginx
 
@@ -187,19 +205,11 @@ The cache should be a sizeable portion of disk for temporary files. nginx is not
 
 ### Environment
 
- * `LOG_HOST` -- syslog hostname
- * `LOG_PORT` -- syslog hostname
  * `NGINX_CACHE_SIZE` -- disk cache size (eg `100m`)
- * `FILE_OWNER` -- user to run nginx as (owns cache files)
- * `FILE_GROUP` -- group to run nginx as (owns cache files)
  * `NGINX_CACHE_DIR` -- dir to use for cache
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
-| LOG_HOST | N/A | "syslog" (from docker-compose) | "syslog" (from docker copose) | 
-| LOG_PORT | N/A | 11601 (from docker-compose) |"11601 (from docker compose) |
-| FILE_OWNER | N/A | eg ubuntu | eg dan |
-| FILE_GROUP | N/A | eg ubuntu | eg dan |
 | NGINX_CACHE_DIR | N/A | eg /home/ubuntu/cache | eg /home/dan/cache |
 | NGINX_CACHE_SIZE | N/A | eg 100m | eg 8000m |
 
@@ -209,14 +219,10 @@ All the other containers use syslog to report their logs. On development systems
 
 ### Environment
 
- * `FILE_OWNER` -- user to run nginx as (owns cache files)
- * `FILE_GROUP` -- group to run nginx as (owns cache files)
  * `LOG_DIR` -- dir for logs
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
-| FILE_OWNER | N/A | eg ubuntu | eg dan |
-| FILE_GROUP | N/A | eg ubuntu | eg dan |
 | LOG_DIR | N/A | eg /home/ubuntu/logs | eg /home/dan/logs |
 
 ## frontend

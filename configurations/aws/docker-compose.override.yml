@@ -1,14 +1,76 @@
+# REMEMBER to create a .env in this idrectory containing your settings. env.sample is a good starting point.
+
 version: "3"
 services:
+    #
+    # New settings for core services
+    #
+
     backend-hi:
         environment:
             - THREADS=16
             - LO_PORT=1
+            - DEBUG=1
+            - LOG_HOST=syslog
+            - LOG_PORT=11601
+        restart: always
 
     backend-lo:
         environment:
             - THREADS=4
+            - DEBUG=1
+            - LOG_HOST=syslog
+            - LOG_PORT=11601
+        restart: always
 
     memcached:
         environment:
-            - MEMCACHED_MB=4096
+            - MEMCACHED_MB=512
+        restart: always
+
+    bump-detector:
+        environment:
+            - LOG_HOST=syslog
+            - LOG_PORT=11601
+        restart: always
+
+    #
+    # Additional services
+    #
+
+    syslog:
+        build: ../../syslog-container
+        ports:
+            - 11601
+        volumes:
+            - ${LOG_DIR:-.}:/logs
+        networks:
+            - default
+        environment:
+            - FILE_OWNER
+            - FILE_GROUP
+        restart: always
+
+    frontend:
+        build: ../../peregrine-generic
+        ports:
+            - 8080:8000
+        networks:
+            - default
+        restart: always
+
+    nginx:
+        build: ../../nginx-container
+        ports:
+            - 80:80
+        environment:
+            - UPSTREAM=ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com
+            - LOG_HOST=syslog
+            - LOG_PORT=11601
+            - NGINX_CACHE_SIZE
+            - FILE_OWNER
+            - FILE_GROUP
+            - NGINX_CACHE_DIR
+        volumes:
+            - ${NGINX_CACHE_DIR:-.}:/cache
+        restart: always

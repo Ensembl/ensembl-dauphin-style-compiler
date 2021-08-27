@@ -25,7 +25,7 @@ fn add_priority(a: &Url, prio: PacketPriority, cache_buster: &str) -> Result<Url
         PacketPriority::RealTime => "hi",
         PacketPriority::Batch => "lo"
     }).map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
-    let z = z.add_query_parameter(&format!("stemp={}",cache_buster))
+    let z = z.add_query_parameter(&format!("stamp={}",cache_buster))
         .map_err(|_| Message::CodeInvariantFailed(format!("cannot manipulate URL")))?;
     Ok(z)
 }

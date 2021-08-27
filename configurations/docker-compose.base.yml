@@ -15,6 +15,7 @@ services:
             - LOG_PORT
         networks:
             - default
+        restart: on-failure
 
     backend-lo:
         build: ../../backend-server
@@ -31,6 +32,7 @@ services:
             - LOG_PORT
         networks:
             - default
+        restart: on-failure
 
     memcached:
         build: ../../memcached-container
@@ -40,21 +42,7 @@ services:
             - MEMCACHED_MB=1024
         networks:
             - default
-
-    nginx:
-        build: ../../nginx-container
-        ports:
-            - 80:80
-        environment:
-            - UPSTREAM=ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com
-            - LOG_HOST
-            - LOG_PORT
-            - NGINX_CACHE_SIZE
-            - FILE_OWNER
-            - FILE_GROUP
-            - NGINX_CACHE_DIR
-        volumes:
-            - ${NGINX_CACHE_DIR:-.}:/cache
+        restart: on-failure
 
     bump-detector:
         build: ../../bump-container
@@ -66,3 +54,4 @@ services:
             - BUMP_URL=http://ensembl-2020-gb-flatfiles.s3.eu-west-2.amazonaws.com/bump
         volumes:
             - ${NGINX_CACHE_DIR:-/tmp}:/cache
+        restart: on-failure

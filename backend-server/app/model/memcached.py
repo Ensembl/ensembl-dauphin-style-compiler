@@ -47,7 +47,9 @@ class Memcached(object):
         now = time.time()
         if self._last_bump_check == None or now - self._last_bump_check > 30:
             self._last_bump_check = now
-            self._bump = self._client.get(self._prefix+":"+"bump")
+            new_value = self._client.get(self._prefix+":"+"bump")
+            if new_value != None:
+                self._bump = new_value
 
     def __init__(self,prefix):
         self._start_time = time.time()
