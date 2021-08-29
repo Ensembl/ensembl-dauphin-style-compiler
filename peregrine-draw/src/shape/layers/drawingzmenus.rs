@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use peregrine_data::{Allotment, ZMenu, ZMenuGenerator };
+use peregrine_data::{Allotment, SpaceBaseArea, ZMenu, ZMenuGenerator};
 use crate::stage::stage::{ ReadStage };
 use peregrine_data::ZMenuFixed;
 use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
@@ -40,6 +40,11 @@ impl DrawingZMenusBuilder {
 
     fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<Allotment>) {
         self.entries.push(ZMenuRectangle::new(generator,region,allotment));
+    }
+
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, zmenu: ZMenu, values: Vec<(String,Vec<String>)>) {
+        use web_sys::console;
+        console::log_1(&format!("zmenu2 area={:?} zmenu={:?} values={:?}",area,zmenu,values).into());
     }
 
     /*/

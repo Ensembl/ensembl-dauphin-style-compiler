@@ -48,7 +48,6 @@ impl<X: PartialOrd + Clone> PartialOrd for ParameterValue<X> {
     }
 }
 
-
 pub trait Flattenable {
     type Location;
     type Target;

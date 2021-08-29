@@ -1,12 +1,11 @@
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
-use crate::webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder};
+use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::{
-    Allotment, AllotmentPosition, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, PositionVariant,
-    SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
+    Allotment, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea,
+    SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
 };
-use super::super::util::arrayutil::rectangle64;
 use super::triangleskind::TrianglesKind;
 use super::trianglesprogramlink::TrianglesProgramLink;
 use super::trianglesyielder::TrackTrianglesYielder;

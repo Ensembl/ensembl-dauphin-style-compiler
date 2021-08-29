@@ -7,6 +7,3 @@ upstream="http://52.56.215.72:3333/api/data"
 
 [redirect.jump]
 upstream="http://52.56.215.72:3333/api/data"
-
-[redirect.data.gene]
-upstream=""

@@ -4,6 +4,7 @@ use peregrine_data::{Allotter, Shape, ShapeList, VariableValues};
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
+use crate::shape::core::drawshape::ShapeToAdd;
 use crate::shape::heraldry::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
@@ -82,7 +83,8 @@ pub(crate) struct DrawingBuilder {
     tools: DrawingTools,
     variables: VariableValues<f64>,
     flats: Option<DrawingAllFlatsBuilder>,
-    dynamic_shapes: Vec<Box<dyn DynamicShape>>
+    dynamic_shapes: Vec<Box<dyn DynamicShape>>,
+    zmenus: DrawingZMenusBuilder
 }
 
 impl DrawingBuilder {
@@ -92,7 +94,8 @@ impl DrawingBuilder {
             tools: DrawingTools::new(),
             flats: None,
             variables: variables.clone(),
-            dynamic_shapes: vec![]
+            dynamic_shapes: vec![],
+            zmenus: DrawingZMenusBuilder::new()
         })
     }
 
@@ -113,8 +116,15 @@ impl DrawingBuilder {
 
     pub(crate) fn add_shape(&mut self, gl: &mut WebGlGlobal, shape: GLShape) -> Result<(),Message> {
         let (layer, tools,) = (&mut self.main_layer,&mut self.tools);
-        let mut dynamic = add_shape_to_layer(layer,gl,tools,shape)?;
-        self.dynamic_shapes.append(&mut dynamic);
+        match add_shape_to_layer(layer,gl,tools,shape)? {
+            ShapeToAdd::Dynamic(dynamic) => {
+                self.dynamic_shapes.push(dynamic);
+            },
+            ShapeToAdd::ZMenu(area,zmenu,values) => {
+                self.zmenus.add_rectangle(area,zmenu,values);
+            },
+            ShapeToAdd::None => {}
+        }
         Ok(())
     }
 

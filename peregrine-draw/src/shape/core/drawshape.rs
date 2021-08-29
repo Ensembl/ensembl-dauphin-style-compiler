@@ -1,7 +1,4 @@
-use peregrine_data::{
-    Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, HoleySpaceBase, HoleySpaceBaseArea, 
-    HollowEdge, Patina, Plotter, PositionVariant
-};
+use peregrine_data::{Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, PositionVariant, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::super::layers::layer::{ Layer };
@@ -30,7 +27,8 @@ pub enum AllotmentProgramKind {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(Vec<DirectColour>),
-    Hollow(Vec<DirectColour>)
+    Hollow(Vec<DirectColour>),
+    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
 fn simplify_colours(mut colours: Vec<Colour>) -> Result<Vec<DirectColour>,Message> {
@@ -47,7 +45,7 @@ impl SimpleShapePatina {
         Ok(match patina {
             Patina::Filled(colours,_) => { SimpleShapePatina::Solid(simplify_colours(colours)?) },
             Patina::Hollow(colours,_,_) => { SimpleShapePatina::Hollow(simplify_colours(colours)?) },
-            _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify nonfill.hollow to colour")))?
+            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu,values) }
         })
     }
 
@@ -55,20 +53,28 @@ impl SimpleShapePatina {
         match self {
             SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c),
             SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c),
+            SimpleShapePatina::ZMenu(zmenu,values) => DrawingShapePatina::ZMenu(zmenu.clone(),values.clone())
         }
     }
 }
 
 enum DrawingShapePatina<'a> {
     Solid(DirectYielder,&'a [DirectColour]),
-    Hollow(DirectYielder,&'a [DirectColour])
+    Hollow(DirectYielder,&'a [DirectColour]),
+    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
+}
+
+enum PatinaTarget<'a> {
+    Visual(&'a mut dyn PatinaYielder),
+    HotSpot(ZMenu,Vec<(String,Vec<String>)>)
 }
 
 impl<'a> DrawingShapePatina<'a> {
-    pub(crate) fn yielder_mut(&mut self) -> &mut PatinaYielder {
+    pub(crate) fn yielder_mut(&mut self) -> PatinaTarget {
         match self {
-            DrawingShapePatina::Solid(dc,_) => dc,
-            DrawingShapePatina::Hollow(dc,_) => dc,
+            DrawingShapePatina::Solid(dc,_) => PatinaTarget::Visual(dc),
+            DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
+            DrawingShapePatina::ZMenu(zmenu,values) => PatinaTarget::HotSpot(zmenu.clone(),values.clone())
         }
     }
 }
@@ -110,7 +116,7 @@ impl AllotmentProgram {
     }
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, simple_shape_patina: &DrawingShapePatina) -> Result<(),Message> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina) -> Result<(),Message> {
     let vertexes = match simple_shape_patina {
         DrawingShapePatina::Solid(_,_) => 4,
         DrawingShapePatina::Hollow(_,_) => 8,
@@ -120,17 +126,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, layer: &mut Layer, simple_
         DrawingShapePatina::Solid(direct,colours) | DrawingShapePatina::Hollow(direct,colours) => {
             direct.draw()?.direct(addable,&colours,vertexes)?;
         },
-        /*
-        Patina::Filled(Colour::Spot(d)) |  Patina::Hollow(Colour::Spot(d)) => {
-            let spot = layer.get_spot(geometry,d)?;
-            let mut process = layer.get_process_mut(geometry,&PatinaProcessName::Spot(d.clone()))?;
-            spot.spot(&mut process)?;
-        }
-        Patina::ZMenu(template,values) => {
-            // XXX ZMenu
-            // tools.zmenus().add_rectangle(layer,zmenu,values,anchor,allotment,x_size,y_size);
-        }
-        */
+        DrawingShapePatina::ZMenu(_,_) => {}
     }
     Ok(())
 }
@@ -195,8 +191,13 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
     Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),allotments,&canvas,&dims,scale.is_free(),edge,priority)?))
 }
 
-pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<Vec<Box<dyn DynamicShape>>,Message> {
-    let mut dynamic : Vec<Box<dyn DynamicShape>> = vec![];
+pub(crate) enum ShapeToAdd {
+    Dynamic(Box<dyn DynamicShape>),
+    ZMenu(SpaceBaseArea<f64>,ZMenu,Vec<(String,Vec<String>)>),
+    None
+}
+
+pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<ShapeToAdd,Message> {
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(height,colour),allotment,prio) => {
             let mut geometry_yielder = WiggleYielder::new(prio);
@@ -205,6 +206,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left)?;
             patina_yielder.draw()?.direct(&mut array,&[colour],1)?;
             array.close()?;
+            Ok(ShapeToAdd::None)
         },
         GLShape::Text2(points,handles,allotments,program_kind,prio) => {
             let kind = to_trianges_kind(&program_kind);
@@ -216,13 +218,15 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let (x_sizes,y_sizes) = dims_to_sizes(&dims);
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
-            dynamic.push(rectangles);
+            Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale,edge,prio) => {
             let kind = to_trianges_kind(&program_kind);
             let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas,&scale,&edge,prio)?;
             if let Some(rectangles) = rectangles {
-                dynamic.push(rectangles);
+                Ok(ShapeToAdd::Dynamic(rectangles))
+            } else {
+                Ok(ShapeToAdd::None)
             }
         },
         GLShape::SpaceBaseRect(area,simple_shape_patina,allotments,allotment_kind,prio) => {
@@ -230,14 +234,20 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let kind = to_trianges_kind(&allotment_kind);
             let mut geometry_yielder = kind.geometry_yielder(prio);
             let left = layer.left();
-            let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
-            let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,drawing_shape_patina.yielder_mut(),&area,&allotments,left,hollow,&kind,&None)?;
-            let campaign = rectangles.elements_mut();
-            add_colour(campaign,layer,&drawing_shape_patina)?;
-            campaign.close()?;
-            dynamic.push(Box::new(rectangles));
+            match drawing_shape_patina.yielder_mut() {
+                PatinaTarget::Visual(patina_yielder) => {
+                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
+                    let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&allotments,left,hollow,&kind,&None)?;
+                    let campaign = rectangles.elements_mut();
+                    add_colour(campaign,&drawing_shape_patina)?;
+                    campaign.close()?;
+                    Ok(ShapeToAdd::Dynamic(Box::new(rectangles)))
+                },
+                PatinaTarget::HotSpot(zmenu,values) => {
+                    let (real_area,_subs) = area.extract();
+                    Ok(ShapeToAdd::ZMenu(real_area,zmenu,values))
+                }
+            }
         }
-        // XXX ZMenus
     }
-    Ok(dynamic)
 }
