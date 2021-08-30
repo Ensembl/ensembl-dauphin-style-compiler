@@ -193,7 +193,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64>,ZMenu,Vec<(String,Vec<String>)>),
+    ZMenu(SpaceBaseArea<f64>,Vec<Allotment>,ZMenu,Vec<(String,Vec<String>)>),
     None
 }
 
@@ -245,7 +245,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
                 },
                 PatinaTarget::HotSpot(zmenu,values) => {
                     let (real_area,_subs) = area.extract();
-                    Ok(ShapeToAdd::ZMenu(real_area,zmenu,values))
+                    Ok(ShapeToAdd::ZMenu(real_area,allotments,zmenu,values))
                 }
             }
         }

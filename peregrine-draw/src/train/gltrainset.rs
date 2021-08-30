@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{ Carriage, CarriageSpeed, PeregrineCore };
+use peregrine_data::{Carriage, CarriageSpeed, PeregrineCore, Scale};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
-use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
 
 #[derive(Clone)]
@@ -49,8 +48,8 @@ impl GlTrainSetData {
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], index: u32) -> Result<(),Message> {
-        self.get_train(gl,index).set_carriages(new_carriages,gl)
+    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], scale: &Scale, index: u32) -> Result<(),Message> {
+        self.get_train(gl,index).set_carriages(scale,new_carriages,gl)
     }
 
     fn set_max(&mut self, gl: &WebGlGlobal, index: u32, len: u64) {
@@ -151,6 +150,7 @@ impl GlTrainSetData {
         Ok(())
     }
 
+    /*
     fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         Ok(match self.fade_state {
             FadeState::Constant(x) => x,
@@ -168,6 +168,7 @@ impl GlTrainSetData {
             self.get_train(gl,id).intersects_fast(stage,mouse)
         }).transpose()?.unwrap_or(false))
     }
+    */
 
     fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for(_,mut train) in self.trains.drain() {
@@ -200,8 +201,8 @@ impl GlTrainSet {
         self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {
-        self.data.lock().unwrap().set_carriages(gl,new_carriages,index)
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], scale: &Scale, gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {
+        self.data.lock().unwrap().set_carriages(gl,new_carriages,scale,index)
     }
 
     pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
@@ -210,6 +211,7 @@ impl GlTrainSet {
         Ok(())
     }
 
+    /*
     pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.data.lock().unwrap().intersects(stage,gl,mouse)
     }
@@ -217,6 +219,7 @@ impl GlTrainSet {
     pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) ->Result<bool,Message> {
         self.data.lock().unwrap().intersects_fast(stage,gl,mouse)
     }
+    */
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.data.lock().unwrap().discard(gl)

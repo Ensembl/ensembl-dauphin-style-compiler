@@ -1,137 +1,173 @@
-use std::collections::HashMap;
-use peregrine_data::{Allotment, SpaceBaseArea, ZMenu, ZMenuGenerator};
-use crate::stage::stage::{ ReadStage };
+use std::{collections::HashMap, rc::Rc, sync::Arc};
+use peregrine_data::{Allotment, Scale, SpaceBaseArea, ZMenu, ZMenuGenerator, SpaceBasePointRef, ZMenuProxy };
+use crate::{stage::stage::{ ReadStage }};
 use peregrine_data::ZMenuFixed;
-use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
+//use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
 
-pub struct ZMenuResult {
-    menu: ZMenuFixed,
-    allotment: Allotment
+const HORIZ_ZONES : u64 = 10;
+const VERT_ZONE_HEIGHT : u64 = 200;
+
+/* A major complication with using zones is dynamic rescaling and the ability for co-ordinates to include both
+ * bp-scaling andpixel co-ordinates, meaning the hotspots can vary in which zones they intersect. Fortunately, as
+ * an exact match is performed within the zones, it's enough to just take the _largest_ space occupiable by a hotspot.
+ *
+ * The zones are stored as fractions of a panel. As a panel corresponds to an exact number of bp, converting the bp
+ * component to a zone is simple: divide by bp_in_carriage.
+ *
+ * An offset in px needs a conversion ratio of px_per_panel, or at least a maximum px_per_panel. This isn't something
+ * that's stored very directly at all. We store bp_per_screen and px_per_screen in the stage. Together these can tell
+ * us px_per_screen. However, that's not the same of px_per_panel: a screen can be composed of multiple or fractional
+ * panels. We can obtain from scale the maximum bp_per_screen for which the drawing will be displayed. Changes to stage
+ * can keep us updated in the number of px_per_screen for which we track the minimum as an order of magnitude. We
+ * recompute when this changes (which should be once in a lbue moon) so for our computation can be considered
+ * constant. Together, max bp_per_screen and min px_per_screen can give us max bp_per_px. We can then convert px into
+ * max bp and use bp_in_carriage to convert to maximum proportion of carriage.
+ */
+
+struct ZMenuUnscaledEntry {
+    generator: ZMenuGenerator,
+    area: SpaceBaseArea<f64>,
+    allotments: Vec<Allotment>
 }
 
-impl ZMenuResult {
-    pub fn new(menu: ZMenuFixed, allotment: Allotment) -> ZMenuResult {
-        ZMenuResult {
-            menu,
-            allotment
-        }
-    }
-}
-
-pub struct ZMenuEvent {
-    menu: ZMenuFixed,
-    pixel: (u32,u32),
-    bp: (f64,u32), // TODO allotment y
-    allotment: Allotment // TODO allotments
+fn order(a: f64, b: f64) -> (f64,f64) {
+    if a < b { (a,b) } else { (b,a) }
 }
 
 pub struct DrawingZMenusBuilder {
-    entries: Vec<ZMenuRectangle>
+    entries: Vec<ZMenuUnscaledEntry>,
+    scale: Option<Scale>,
+    left: f64
 }
 
 impl DrawingZMenusBuilder {
-    pub(crate) fn new() -> DrawingZMenusBuilder {
+    pub(crate) fn new(scale: Option<&Scale>, left: f64) -> DrawingZMenusBuilder {
         DrawingZMenusBuilder {
-            entries: vec![]
+            entries: vec![],
+            scale: scale.cloned(),
+            left
         }
     }
 
-    fn add_region(&mut self, generator: ZMenuGenerator, region: Box<dyn GeometryData>, allotment: Vec<Allotment>) {
-        self.entries.push(ZMenuRectangle::new(generator,region,allotment));
-    }
-
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, zmenu: ZMenu, values: Vec<(String,Vec<String>)>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: Vec<Allotment>, zmenu: ZMenu, values: Vec<(String,Vec<String>)>) {
         use web_sys::console;
         console::log_1(&format!("zmenu2 area={:?} zmenu={:?} values={:?}",area,zmenu,values).into());
+        let mut map_values = HashMap::new();
+        for (k,v) in values {
+            map_values.insert(k,v);
+        }
+        let generator = ZMenuGenerator::new(&zmenu,&map_values); // XXX push up
+        self.entries.push(ZMenuUnscaledEntry { generator, area, allotments });
     }
-
-    /*/
-    pub(crate) fn add_rectangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchor: SingleAnchor, allotment: Vec<Allotment>, x_size: Vec<f64>, y_size: Vec<f64>) {
-        let generator = ZMenuGenerator::new(&zmenu,&values);
-        let region : Box<dyn GeometryData> = match ((anchor.0).0,(anchor.0).1,(anchor.1).0,(anchor.1).1) {
-            (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                Box::new(FixData::add_rectangles(sea_x,sea_y,ship_x,ship_y,x_size,y_size,false))
-            },
-            (SeaEnd::Screen(sea_x),ship_x,SeaEnd::Paper(yy),ship_y) => {
-                Box::new(PageData::add_rectangles(sea_x,yy,ship_x,ship_y,x_size,y_size,false))
-            },
-            (SeaEnd::Paper(xx),ship_x,SeaEnd::Paper(yy),ship_y) => {
-                Box::new(PinData::add_rectangles(layer,xx,yy,ship_x,ship_y,x_size,y_size,false))
-            },
-            (SeaEnd::Paper(xx),ship_x,SeaEnd::Screen(sea_y),ship_y) => {
-                Box::new(TapeData::add_rectangles(layer,xx,sea_y,ship_x,ship_y,x_size,y_size,false))
-            },
-        };
-        self.add_region(generator,region,allotment);
-    }
-
-    pub(crate) fn add_stretchtangle(&mut self, layer: &Layer, zmenu: ZMenu, values: HashMap<String,Vec<String>>, anchors: AnchorPair, allotment: Vec<Allotment>) {
-        let generator = ZMenuGenerator::new(&zmenu,&values);
-        let anchors_x = anchors.0;
-        let anchors_y = anchors.1;
-        let anchor_sea_x = anchors_x.0;
-        let pxx1 = anchors_x.1;
-        let pxx2 = anchors_x.2;
-        let anchor_sea_y = anchors_y.0;
-        let pyy1 = anchors_y.1;
-        let pyy2 = anchors_y.2;
-        let region : Box<dyn GeometryData> = match (anchor_sea_x,anchor_sea_y) {
-            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-                Box::new(FixData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
-            },
-            (SeaEndPair::Screen(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
-                Box::new(PageData::add_stretchtangle(axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
-            },
-            (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Paper(ayy1,ayy2)) => {
-                Box::new(PinData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
-            },
-            (SeaEndPair::Paper(axx1,axx2),SeaEndPair::Screen(ayy1,ayy2)) => {
-                Box::new(TapeData::add_stretchtangle(layer,axx1,ayy1,axx2,ayy2,pxx1,pyy1,pxx2,pyy2,false))
-            }
-        };
-        self.add_region(generator,region,allotment);
-    }
-    */
 
     pub(crate) fn build(mut self) -> DrawingZMenus {
         self.entries.reverse(); // we match top-down!
-        DrawingZMenus::new(self.entries)
+        DrawingZMenus::new(self)
     }
+}
+
+struct ScaledZMenus {
+    min_px_per_screen: f64,
+    bp_in_carriage: f64,
+    left: f64,
+    max_bp_per_px: f64,
+    zmenus: HashMap<u64,Rc<Vec<Rc<ZMenuProxy>>>>,
+    last_lookup: Option<(u64,Rc<Vec<Rc<ZMenuProxy>>>)>
+}
+
+impl ScaledZMenus {
+    fn new(min_px_per_screen: f64, unscaled: &DrawingZMenusBuilder) -> ScaledZMenus {
+        let max_bp_per_screen = unscaled.scale.as_ref().map(|s| s.bp_per_screen_range().1).unwrap_or(1) as f64;
+        let max_bp_per_px = max_bp_per_screen / min_px_per_screen;
+        use web_sys::console;
+        console::log_1(&format!("min_px_per_screen={:?} max_bp_per_screen={:?}",min_px_per_screen,max_bp_per_screen).into());
+        let mut out = ScaledZMenus {
+            min_px_per_screen,
+            bp_in_carriage: unscaled.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1) as f64,
+            max_bp_per_px,
+            left: unscaled.left,
+            zmenus: HashMap::new(),
+            last_lookup: None
+        };
+        out.build_scaled(unscaled);
+        out
+    }
+
+    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
+        let y_position = allotment.position().offset() as f64;
+        /* y-coordinate */
+        let (top_px,bottom_px) = order(top_left.normal + y_position,bottom_right.normal + y_position);
+        /* x-coordinate */
+        let (mut left_bp,mut right_bp) = order(*top_left.base,*bottom_right.base);
+        if *top_left.tangent < 0. { left_bp += *top_left.tangent * self.max_bp_per_px; }
+        if *bottom_right.tangent > 0. { right_bp += *bottom_right.tangent * self.max_bp_per_px; }
+        let left_scr = (left_bp - self.left) / self.bp_in_carriage;
+        let right_scr = (right_bp - self.left) / self.bp_in_carriage;
+        ((left_scr,top_px as u64),(right_scr,(bottom_px+1.) as u64))
+    }
+
+    // TODO no-bp zmenus
+    fn get_zones(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> Vec<u64> {
+        let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right,allotment);
+        let mut out = vec![];
+        for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
+            let left_zone = (left_scr*(HORIZ_ZONES as f64)) as u64;
+            let right_zone = (right_scr*(HORIZ_ZONES as f64)) as u64;
+            for h_zone in left_zone..(right_zone+1) {
+                out.push(v_zone*HORIZ_ZONES+h_zone);
+            }
+        }
+        out
+    }
+
+    fn build_scaled(&mut self, unscaled: &DrawingZMenusBuilder) {
+        let mut building_zmenus = HashMap::new();
+        for entry in &unscaled.entries {
+            let loop_iter = entry.area.iter().zip(entry.allotments.iter().cycle());
+            for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
+                let proxy = Rc::new(entry.generator.make_proxy(i));
+                for zone in self.get_zones(&top_left,&bottom_right,allotment) {
+                    building_zmenus.entry(zone).or_insert_with(|| vec![]).push(proxy.clone());
+                }
+                use web_sys::console;
+                console::log_1(&format!("i={:?} top_left={:?} bottom_right={:?} allotment={:?} zones={:?}",i,top_left,bottom_right,allotment,self.get_zones(&top_left,&bottom_right,allotment)).into());
+            }
+        }
+        self.zmenus = building_zmenus.drain().map(|(k,v)| (k,Rc::new(v))).collect();
+    }
+}
+
+fn rounded_px_per_screen(px_per_screen: f64) -> f64 {
+    let px_per_screen = px_per_screen.round() as u64;
+    (px_per_screen.next_power_of_two() >> 1) as f64
 }
 
 pub struct DrawingZMenus {
-    entries: Vec<ZMenuRectangle>
+    unscaled: Arc<DrawingZMenusBuilder>,
+    min_px_per_screen: Option<f64>,
+    scaled: Option<ScaledZMenus>,
 }
 
 impl DrawingZMenus {
-    fn new(entries: Vec<ZMenuRectangle>) -> DrawingZMenus {
+    fn new(builder: DrawingZMenusBuilder) -> DrawingZMenus {
         DrawingZMenus {
-            entries
+            unscaled: Arc::new(builder),
+            min_px_per_screen: None,
+            scaled: None
         }
     }
 
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        for entry in &self.entries {
-            if let Some(result) = entry.intersects(stage,mouse)? {
-                return Ok(Some(ZMenuEvent {
-                    menu: result.menu,
-                    pixel: mouse,
-                    bp: (stage.x().position()?,0), // TODO allotment y
-                    allotment: result.allotment
-                }));
-            }
+    pub(super) fn set_px_per_screen(&mut self, px_per_screen: f64) {
+        let new_min_px_per_screen = rounded_px_per_screen(px_per_screen);
+        let min_px_per_screen = self.min_px_per_screen
+            .map(|old| old.min(new_min_px_per_screen))
+            .unwrap_or(new_min_px_per_screen);    
+        self.min_px_per_screen = Some(min_px_per_screen);    
+        if let Some(scaled) = &self.scaled {
+            if scaled.min_px_per_screen == min_px_per_screen { return; }
         }
-        Ok(None)
-    }
-
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
-        for entry in &self.entries {
-            if entry.intersects_fast(stage,mouse)? {
-                return Ok(true);
-            }
-        }
-        Ok(false)
+        self.scaled = Some(ScaledZMenus::new(min_px_per_screen,&self.unscaled));
     }
 }

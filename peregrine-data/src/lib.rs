@@ -94,7 +94,7 @@ mod shape {
     pub use self::shape::Shape;
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
-    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator };
+    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy };
 }
 
 pub(crate) mod spacebase {
@@ -103,7 +103,7 @@ pub(crate) mod spacebase {
     pub(crate) mod spacebasearea;
 
     pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
-    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation };
+    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
     pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
 }
 
@@ -169,7 +169,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList
+    ShapeList, ZMenuProxy
 };
 pub use self::switch::allotter::{
     Allotter
@@ -186,7 +186,7 @@ pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::spacebase::{ 
-    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable,
+    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
     SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
     SpaceBaseParameterLocation, HollowEdge, Variable
 };

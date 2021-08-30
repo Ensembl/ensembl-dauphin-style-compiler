@@ -1,4 +1,4 @@
-use peregrine_data::{ Carriage, CarriageId };
+use peregrine_data::{Carriage, CarriageId, Scale};
 use peregrine_toolkit::sync::needed::Needed;
 use std::collections::{ HashMap, HashSet };
 use crate::{shape::layers::programstore::ProgramStore };
@@ -6,7 +6,6 @@ use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
-use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
 
 pub struct GLTrain {
@@ -44,8 +43,8 @@ impl GLTrain {
         }
         Ok(())
     }
-
-    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal) -> Result<(),Message> {
+    
+    pub(super) fn set_carriages(&mut self, scale: &Scale, new_carriages: &[Carriage], gl: &mut WebGlGlobal) -> Result<(),Message> {
         let mut dont_keeps : HashSet<_> = self.carriages.keys().cloned().collect();
         let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.id()).cloned().collect();
         for new in new_carriages {
@@ -65,7 +64,7 @@ impl GLTrain {
         let mut redraw = false;
         for carriage in new_carriages {
             if novels.contains(carriage.id()) {
-                target.insert(carriage.id().clone(),GLCarriage::new(carriage,self.opacity,gl)?);
+                target.insert(carriage.id().clone(),GLCarriage::new(carriage,scale,self.opacity,gl)?);
                 redraw = true;
             }
         }
@@ -76,6 +75,7 @@ impl GLTrain {
         Ok(())
     }
 
+    /*
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         for carriage in self.carriages.values() {
             if let Some(zmenu) = carriage.intersects(stage,mouse)? {
@@ -93,6 +93,7 @@ impl GLTrain {
         }
         Ok(false)
     }
+    */
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         let mut min = 0;

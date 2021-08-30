@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use super::layer::Layer;
-use peregrine_data::{Allotter, Shape, ShapeList, VariableValues};
+use peregrine_data::{Allotter, Scale, Shape, ShapeList, VariableValues};
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
@@ -10,7 +10,7 @@ use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
 use crate::webgl::{CanvasWeave, DrawingAllFlats, DrawingAllFlatsBuilder, DrawingSession, FlatStore, Process};
 use super::super::core::text::DrawingText;
 use crate::webgl::global::WebGlGlobal;
-use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus, ZMenuEvent };
+use super::drawingzmenus::{ DrawingZMenusBuilder, DrawingZMenus };
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
@@ -52,11 +52,11 @@ pub(crate) struct DrawingTools {
 }
 
 impl DrawingTools {
-    fn new() -> DrawingTools {
+    fn new(scale: Option<&Scale>, left: f64) -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
             heraldry: DrawingHeraldry::new(),
-            zmenus: DrawingZMenusBuilder::new()
+            zmenus: DrawingZMenusBuilder::new(scale, left)
         }
     }
 
@@ -83,19 +83,17 @@ pub(crate) struct DrawingBuilder {
     tools: DrawingTools,
     variables: VariableValues<f64>,
     flats: Option<DrawingAllFlatsBuilder>,
-    dynamic_shapes: Vec<Box<dyn DynamicShape>>,
-    zmenus: DrawingZMenusBuilder
+    dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(gl: &WebGlGlobal, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, gl: &WebGlGlobal, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl.program_store(),left)?,
-            tools: DrawingTools::new(),
+            tools: DrawingTools::new(scale,left),
             flats: None,
             variables: variables.clone(),
-            dynamic_shapes: vec![],
-            zmenus: DrawingZMenusBuilder::new()
+            dynamic_shapes: vec![]
         })
     }
 
@@ -120,8 +118,8 @@ impl DrawingBuilder {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },
-            ShapeToAdd::ZMenu(area,zmenu,values) => {
-                self.zmenus.add_rectangle(area,zmenu,values);
+            ShapeToAdd::ZMenu(area,allotments,zmenu,values) => {
+                self.tools.zmenus.add_rectangle(area,allotments,zmenu,values);
             },
             ShapeToAdd::None => {}
         }
@@ -145,9 +143,9 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
-    pub(crate) fn new(shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(gl,variables,left)?;
+        let mut drawing = DrawingBuilder::new(scale,gl,variables,left)?;
         let allotter = shapes.allotter();
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
@@ -189,6 +187,11 @@ impl Drawing {
         Ok(out)
     }
 
+    pub(crate) fn set_zmenu_px_per_screen(&mut self, px_per_screen: f64) {
+        self.zmenus.set_px_per_screen(px_per_screen);
+    }
+
+    /*
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.zmenus.intersects(stage,mouse)
     }
@@ -196,6 +199,7 @@ impl Drawing {
     pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         self.zmenus.intersects_fast(stage,mouse)
     }
+    */
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64, priority: i8) -> Result<(),Message> {
         let recompute =  self.recompute.is_needed();

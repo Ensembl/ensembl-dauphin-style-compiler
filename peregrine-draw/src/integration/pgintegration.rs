@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use commander::{FusePromise, PromiseFuture};
-use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, StickId, Viewport};
+use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport};
 use super::pgchannel::PgChannel;
 use crate::PeregrineDom;
 use crate::input::Input;
@@ -21,9 +21,9 @@ pub struct PgIntegration {
 }
 
 impl PeregrineIntegration for PgIntegration {
-    fn set_carriages(&mut self, carriages: &[Carriage], index: u32) -> Result<(),DataMessage> {
+    fn set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) -> Result<(),DataMessage> {
         let mut webgl = self.webgl.lock().unwrap();
-        self.trainset.set_carriages(carriages,&mut webgl,index)
+        self.trainset.set_carriages(carriages,&scale,&mut webgl,index)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
     }

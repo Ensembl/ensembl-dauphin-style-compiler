@@ -11,7 +11,12 @@ impl Scale {
     }
 
     pub fn new_bp_per_screen(bp_per_screen: f64) -> Scale {
-        Scale(bp_per_screen.log2().round() as u64) // TODO clever maths
+        Scale(bp_per_screen.log2().floor() as u64)
+    }
+
+    pub fn bp_per_screen_range(&self) -> (u64,u64) {
+        let bp_in_carriage = self.bp_in_carriage();
+        (bp_in_carriage,bp_in_carriage*2-1)
     }
 
     pub fn prev_scale(&self) -> Scale {

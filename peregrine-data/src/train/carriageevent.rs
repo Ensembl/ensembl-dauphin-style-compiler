@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::AllotmentStaticMetadataBuilder;
+use crate::{AllotmentStaticMetadataBuilder, Scale};
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::switch::allotment::AllotterMetadata;
 use crate::switch::pitch::Pitch;
@@ -11,7 +11,7 @@ enum CarriageEvent {
     SendAllotmentMetadata(AllotterMetadata),
     Train(Train),
     Carriage(Carriage),
-    Set(Vec<Carriage>,u32),
+    Set(Vec<Carriage>,Scale,u32),
     Transition(u32,u64,CarriageSpeed),
     NotifyViewport(Viewport,bool),
     NotifyPitch(Pitch)
@@ -37,8 +37,8 @@ impl CarriageEvents {
         self.0.lock().unwrap().push(CarriageEvent::Carriage(carriage.clone()));
     }
 
-    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], index: u32) {
-        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),index));
+    pub(super) fn set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) {
+        self.0.lock().unwrap().push(CarriageEvent::Set(carriages.iter().cloned().collect(),scale,index));
     }
 
     pub(super) fn transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
@@ -64,8 +64,8 @@ impl CarriageEvents {
                 CarriageEvent::SendAllotmentMetadata(metadata) => {
                     objects.integration.lock().unwrap().notify_allotment_metadata(&metadata);
                 },
-                CarriageEvent::Set(carriages,index) => {
-                    let r = objects.integration.lock().unwrap().set_carriages(&carriages,index);
+                CarriageEvent::Set(carriages,scale,index) => {
+                    let r = objects.integration.lock().unwrap().set_carriages(&carriages,scale,index);
                     if let Err(r) = r { errors.push(r); }
                 },
                 CarriageEvent::Transition(index,max,speed) => {

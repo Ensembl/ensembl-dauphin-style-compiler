@@ -159,5 +159,5 @@ impl ZMenuGenerator {
     }
 
     pub fn make_proxy(&self, index: usize) -> ZMenuProxy { ZMenuProxy(self.clone(),index) }
-    pub(crate) fn iter(&self) -> ZMenuProxyIter { ZMenuProxyIter(self.clone(),0) }
+    pub fn iter(&self) -> ZMenuProxyIter { ZMenuProxyIter(self.clone(),0) }
 }

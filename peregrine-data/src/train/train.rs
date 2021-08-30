@@ -151,7 +151,7 @@ impl TrainData {
         if let Some(carriages) = &mut self.carriages {
             if carriages.ready() {
                 if let Some(index) = self.active {
-                    events.set_carriages(&self.carriages(),index);
+                    events.set_carriages(&self.carriages(),self.id.scale().clone(),index);
                 }
             }
         }

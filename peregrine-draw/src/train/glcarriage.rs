@@ -1,11 +1,10 @@
-use peregrine_data::{Carriage, CarriageId, VariableValues};
+use peregrine_data::{Carriage, CarriageId, Scale, VariableValues};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
 use std::sync::Mutex;
 use crate::stage::stage::ReadStage;
-use crate::shape::layers::drawingzmenus::ZMenuEvent;
 use crate::util::message::Message;
 
 pub(crate) struct GLCarriage {
@@ -29,11 +28,11 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
+    pub fn new(carriage: &Carriage, scale: &Scale, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
-            drawing: Drawing::new(carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new())?
+            drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new())?
         })
     }
 
@@ -52,6 +51,7 @@ impl GLCarriage {
     }
 
     pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, priority: i8) ->Result<(),Message> {
+        self.drawing.set_zmenu_px_per_screen(stage.x().size()?);
         let opacity = self.opacity.lock().unwrap().clone();
         if self.in_view(stage)? {
             self.drawing.draw(gl,stage,session,opacity,priority)?;
@@ -59,6 +59,7 @@ impl GLCarriage {
         Ok(())
     }
 
+    /*
     pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         self.drawing.intersects(stage,mouse)
     }
@@ -66,6 +67,7 @@ impl GLCarriage {
     pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
         self.drawing.intersects_fast(stage,mouse)
     }
+    */
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.drawing.discard(gl)?;
