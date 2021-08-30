@@ -15,6 +15,7 @@ use super::mapping::InputMap;
 use js_sys::Date;
 use peregrine_data::{Commander };
 use peregrine_toolkit::plumbing::distributor::Distributor;
+use peregrine_toolkit::sync::needed::Needed;
 use super::pointer::cursor::{ Cursor, CursorHandle };
 use crate::run::CursorCircumstance;
 
@@ -28,7 +29,8 @@ pub struct LowLevelState {
     modifiers: Arc<Mutex<Modifiers>>,
     stage: Arc<Mutex<Option<ReadStage>>>,
     cursor: Cursor,
-    spectres: SpectreManager
+    spectres: SpectreManager,
+    pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>
 }
 
 impl LowLevelState {
@@ -45,8 +47,17 @@ impl LowLevelState {
             mapping: mapping.build(),
             modifiers,
             stage: Arc::new(Mutex::new(None)),
-            spectres: spectres.clone()
+            spectres: spectres.clone(),
+            pointer_last_seen: Arc::new(Mutex::new(None))
         },distributor))
+    }
+
+    pub(super) fn set_pointer_last_seen(&mut self, position: (f64,f64)) {
+        *self.pointer_last_seen.lock().unwrap() = Some(position);
+    }
+
+    pub(crate) fn pointer_last_seen(&self) -> Option<(f64,f64)> { 
+        self.pointer_last_seen.lock().unwrap().clone()
     }
 
     fn update_stage(&self, stage: &ReadStage) { *self.stage.lock().unwrap() = Some(stage.clone()); }
@@ -98,15 +109,17 @@ pub struct LowLevelInput {
     keyboard: EventSystem<KeyboardEventHandler>,
     mouse: EventSystem<MouseEventHandler>,
     distributor: Distributor<InputEvent>,
-    state: LowLevelState
+    state: LowLevelState,
+    mouse_moved: Needed
 }
 
 impl LowLevelInput {
     pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
+        let mouse_moved = Needed::new();
         let (state,distributor) = LowLevelState::new(dom,commander,spectres,config)?;
         let keyboard = keyboard_events(&state)?;
-        let mouse = mouse_events(config,&state)?;
-        Ok(LowLevelInput { keyboard, mouse, distributor, state })
+        let mouse = mouse_events(config,&state,&mouse_moved)?;
+        Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved })
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
@@ -115,4 +128,7 @@ impl LowLevelInput {
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state.spectre_manager().get_spectres() }
 
     pub fn set_artificial(&self, name: &str, start: bool) { self.state.set_artificial(name,start); }
+    pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
+
+    pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
 }

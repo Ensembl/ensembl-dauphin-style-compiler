@@ -62,26 +62,26 @@ struct InputState {
 
 #[derive(Clone)]
 pub struct Input {
-    low_level: Arc<Mutex<Option<InputState>>>,
+    state: Arc<Mutex<Option<InputState>>>,
     queue_blocker: Blocker
 }
 
 impl Input {
     pub fn new(queue_blocker: &Blocker) -> Input {
         Input {
-            low_level: Arc::new(Mutex::new(None)),
+            state: Arc::new(Mutex::new(None)),
             queue_blocker: queue_blocker.clone()
         }
     }
 
-    fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.low_level.lock().unwrap().as_mut().unwrap()) }
+    fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
     pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
         let physics = Physics::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
         debug_register(config,&mut low_level,inner_api)?;
-        *self.low_level.lock().unwrap() = Some(InputState {
+        *self.state.lock().unwrap() = Some(InputState {
             low_level, physics,
             inner_api: inner_api.clone(),
             stage: None
@@ -94,6 +94,15 @@ impl Input {
             state.stage = Some(stage.clone());
             state.low_level.update_stage(stage)
         });
+    }
+
+    pub(crate) fn get_pointer_last_seen(&self) -> Option<(f64,f64)> {
+        self.state(|state| state.low_level.pointer_last_seen())
+    }
+
+    pub(crate) async fn wait_for_mouse_move(&self) {
+        let waiter = self.state(|state| state.low_level.get_mouse_move_waiter());
+        waiter.wait_until_needed().await;
     }
 
     pub(crate) fn get_spectres(&self) -> Vec<Spectre> { self.state(|state| state.low_level.get_spectres()) }

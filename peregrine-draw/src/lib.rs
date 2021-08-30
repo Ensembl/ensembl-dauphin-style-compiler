@@ -51,6 +51,7 @@ mod run {
     mod globalconfig;
     pub mod inner;
     mod frame;
+    mod mousemove;
     pub(crate) mod report;
     mod size;
 

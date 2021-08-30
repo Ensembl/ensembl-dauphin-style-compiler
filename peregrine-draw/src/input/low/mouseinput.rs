@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use crate::{run::PgPeregrineConfig };
+use peregrine_toolkit::sync::needed::Needed;
 use web_sys::{Event, MouseEvent, PointerEvent, WheelEvent};
 use crate::util::{ Message };
 use crate::util::error::confused_browser;
@@ -67,7 +68,7 @@ pub(super) struct MouseEventHandler {
     lowlevel: LowLevelState,
     primary: Finger,
     secondary: Finger,
-    config: Arc<PointerConfig>,
+    config: Arc<PointerConfig>
 }
 
 impl MouseEventHandler {
@@ -101,7 +102,9 @@ impl MouseEventHandler {
         }
     }
 
-    fn mouse_event(&mut self, kind: &PointerEventKind, event: &PointerEvent) {
+    fn mouse_event(&mut self, kind: &PointerEventKind, event: &PointerEvent, mouse_moved: &Needed) {
+        mouse_moved.set();
+        self.lowlevel.set_pointer_last_seen(position(&self.lowlevel,event));
         let mut reported_kind = Some(kind.clone());
         if self.primary.mine(event,kind) {
             self.primary.update_position(&self.lowlevel,event,kind);
@@ -138,20 +141,23 @@ impl MouseEventHandler {
     }
 }
 
-pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState) -> Result<EventSystem<MouseEventHandler>,Message> {
+pub(super) fn mouse_events(config: &PgPeregrineConfig, state: &LowLevelState, mouse_moved: &Needed) -> Result<EventSystem<MouseEventHandler>,Message> {
     let mouse_config = Arc::new(PointerConfig::new(config)?);
     let dom = state.dom();
     let canvas = dom.canvas();
     let mut events = EventSystem::new(MouseEventHandler::new(mouse_config,state));
     confused_browser(canvas.style().set_property("touch-action","none"))?;
-    events.add(canvas,"pointerdown", |handler,event: &PointerEvent| {
-        handler.mouse_event(&PointerEventKind::Down,event)
+    let mouse_moved2 = mouse_moved.clone();
+    events.add(canvas,"pointerdown", move |handler,event: &PointerEvent| {
+        handler.mouse_event(&PointerEventKind::Down,event,&mouse_moved2)
     })?;
-    events.add(canvas,"pointerup", |handler,event: &PointerEvent| {
-        handler.mouse_event(&PointerEventKind::Up,event)
+    let mouse_moved2 = mouse_moved.clone();
+    events.add(canvas,"pointerup", move |handler,event: &PointerEvent| {
+        handler.mouse_event(&PointerEventKind::Up,event,&mouse_moved2)
     })?;
-    events.add(canvas,"pointermove", |handler,event: &PointerEvent| {
-        handler.mouse_event(&PointerEventKind::Move,event)
+    let mouse_moved2 = mouse_moved.clone();
+    events.add(canvas,"pointermove", move |handler,event: &PointerEvent| {
+        handler.mouse_event(&PointerEventKind::Move,event,&mouse_moved2)
     })?;
     events.add(canvas,"wheel", |handler,event| {
         handler.wheel_event(event)

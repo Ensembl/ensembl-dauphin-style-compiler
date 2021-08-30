@@ -3,6 +3,7 @@ use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
+use super::mousemove::run_mouse_move;
 use super::{config::DebugFlag };
 use commander::CommanderStream;
 use super::inner::PeregrineInnerAPI;
@@ -209,6 +210,7 @@ impl PeregrineAPI {
         let configs = config.build();
         let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.blocker())?;
         run_animations(&mut inner,&dom)?;
+        run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();
         commander.add("draw-api",15,None,None,Box::pin(async move { self2.step(inner).await }));
         Ok(commander)
