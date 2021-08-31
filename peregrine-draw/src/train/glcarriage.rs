@@ -1,8 +1,9 @@
-use peregrine_data::{Carriage, CarriageId, Scale, VariableValues};
+use peregrine_data::{Carriage, CarriageId, Scale, VariableValues, ZMenuProxy};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use std::hash::{ Hash, Hasher };
+use std::rc::Rc;
 use std::sync::Mutex;
 use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
@@ -59,15 +60,9 @@ impl GLCarriage {
         Ok(())
     }
 
-    /*
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        self.drawing.intersects(stage,mouse)
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        self.drawing.get_hotspot(stage,position)
     }
-
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
-        self.drawing.intersects_fast(stage,mouse)
-    }
-    */
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.drawing.discard(gl)?;

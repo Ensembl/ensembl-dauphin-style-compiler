@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
+use std::rc::Rc;
 use super::layer::Layer;
-use peregrine_data::{Allotter, Scale, Shape, ShapeList, VariableValues};
+use peregrine_data::{Allotter, Scale, Shape, ShapeList, VariableValues, ZMenuProxy};
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
@@ -189,6 +190,10 @@ impl Drawing {
 
     pub(crate) fn set_zmenu_px_per_screen(&mut self, px_per_screen: f64) {
         self.zmenus.set_px_per_screen(px_per_screen);
+    }
+
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        self.zmenus.get_hotspot(stage,position)
     }
 
     /*

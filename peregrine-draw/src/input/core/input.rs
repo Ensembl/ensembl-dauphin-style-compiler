@@ -3,6 +3,7 @@ use peregrine_data::{PeregrineCore, StickId};
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
+use crate::input::translate::translatezmenu::translate_zemnus;
 use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
 use crate::stage::stage::ReadStage;
@@ -25,6 +26,7 @@ pub enum InputEventKind {
     PixelsIn,
     PixelsOut,
     DebugAction,
+    ZMenu,
 }
 
 impl InputEventKind {
@@ -40,7 +42,8 @@ impl InputEventKind {
             InputEventKind::AnimatePosition,
             InputEventKind::PixelsIn,
             InputEventKind::PixelsOut,
-            InputEventKind::DebugAction
+            InputEventKind::DebugAction,
+            InputEventKind::ZMenu,
         ]
     }
 }
@@ -80,6 +83,7 @@ impl Input {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
         let physics = Physics::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
+        translate_zemnus(&mut low_level,commander,&inner_api);
         debug_register(config,&mut low_level,inner_api)?;
         *self.state.lock().unwrap() = Some(InputState {
             low_level, physics,
@@ -87,6 +91,10 @@ impl Input {
             stage: None
         });
         Ok(())
+    }
+
+    pub fn set_hotspot(&self, yn: bool) {
+        self.state(|state| state.low_level.set_hotspot(yn));
     }
 
     pub fn update_stage(&self, stage: &ReadStage) { 

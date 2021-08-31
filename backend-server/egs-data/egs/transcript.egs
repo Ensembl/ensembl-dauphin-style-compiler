@@ -182,6 +182,6 @@ rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotm
 rectangle_on_genome(exon_start,exon_end,6,white_patina,exon_allotment); // exon white box
 rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
 rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box
-//rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
-//rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);

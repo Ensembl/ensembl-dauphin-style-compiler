@@ -18,7 +18,8 @@ pub enum CursorCircumstance {
     Hold,
     Pinch,
     WheelNegative,
-    WheelPositive
+    WheelPositive,
+    Hotspot
 }
 
 impl CursorCircumstance {
@@ -29,7 +30,8 @@ impl CursorCircumstance {
             CursorCircumstance::Hold,
             CursorCircumstance::Pinch,
             CursorCircumstance::WheelNegative,
-            CursorCircumstance::WheelPositive
+            CursorCircumstance::WheelPositive,
+            CursorCircumstance::Hotspot
         ]
     }
 }
@@ -97,7 +99,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade), name: "animate.overlap.slow-cross", default: &PgConfigValue::Float(0.) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Slow), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
-            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Click[1] Require(drag)-Click[2] Prohibit(drag)-Click[0] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Require(drag)-Click[2] Prohibit(drag)-Click[0] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100] Alt-a[1000]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100] Alt-d[1000]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsIn), name: "keys.pixels-in", default: &PgConfigValue::StaticStr("Shift-W[100]") },
@@ -108,6 +110,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PullOut), name: "keys.pull-out", default: &PgConfigValue::StaticStr("s ArrowDown") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::SetPosition), name: "keys.pixels-scale", default: &PgConfigValue::StaticStr("RunningPinch") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::AnimatePosition), name: "keys.animate-position", default: &PgConfigValue::StaticStr("Court") },
+            ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::ZMenu), name: "keys.zmenu", default: &PgConfigValue::StaticStr("Click") },
             ConfigKeyInfo { key: PgConfigKey::DoubleClickTime, name: "mouse.doubleclick-time", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::MouseClickRadius, name: "mouse.click-radius", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::MouseHoldDwell, name: "mouse.hold-dwell", default: &PgConfigValue::Float(1000.) },
@@ -118,6 +121,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Drag), name: "mouse.cursor.drag", default: &PgConfigValue::StaticStr("grabbing") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hold), name: "mouse.cursor.hold", default: &PgConfigValue::StaticStr("crosshair") },
             ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Pinch), name: "mouse.cursor.pinch", default: &PgConfigValue::StaticStr("nsew-resize") },
+            ConfigKeyInfo { key: PgConfigKey::Cursor(CursorCircumstance::Hotspot), name: "mouse.cursor.hotspot", default: &PgConfigValue::StaticStr("pointer") },
             ConfigKeyInfo { key: PgConfigKey::DragCursorDelay, name: "mouse.drag-cursor-delay", default: &PgConfigValue::Float(100.) },
             ConfigKeyInfo { key: PgConfigKey::PullMaxSpeed, name: "pull.max-speed", default: &PgConfigValue::Float(1./40.) },
             ConfigKeyInfo { key: PgConfigKey::AutomatedPullMaxSpeed, name: "pull.max-speed.automated", default: &PgConfigValue::Float(1.) },

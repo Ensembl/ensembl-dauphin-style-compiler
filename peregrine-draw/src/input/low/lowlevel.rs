@@ -110,7 +110,8 @@ pub struct LowLevelInput {
     mouse: EventSystem<MouseEventHandler>,
     distributor: Distributor<InputEvent>,
     state: LowLevelState,
-    mouse_moved: Needed
+    mouse_moved: Needed,
+    hotspot_cursor_handle: Option<Arc<CursorHandle>>
 }
 
 impl LowLevelInput {
@@ -119,7 +120,7 @@ impl LowLevelInput {
         let (state,distributor) = LowLevelState::new(dom,commander,spectres,config)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state,&mouse_moved)?;
-        Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved })
+        Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved, hotspot_cursor_handle: None })
     }
 
     pub fn distributor_mut(&mut self) -> &mut Distributor<InputEvent> { &mut self.distributor }
@@ -131,4 +132,12 @@ impl LowLevelInput {
     pub fn pointer_last_seen(&self) -> Option<(f64,f64)> { self.state.pointer_last_seen() }
 
     pub fn get_mouse_move_waiter(&self) -> Needed { self.mouse_moved.clone() }
+
+    pub fn set_hotspot(&mut self, yn: bool) {
+        if yn {
+            self.hotspot_cursor_handle = Some(Arc::new(self.state.set_cursor(&CursorCircumstance::Hotspot)));
+        } else {
+            self.hotspot_cursor_handle = None;
+        }
+    }
 }

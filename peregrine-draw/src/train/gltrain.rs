@@ -1,6 +1,7 @@
-use peregrine_data::{Carriage, CarriageId, Scale};
+use peregrine_data::{Carriage, CarriageId, Scale, ZMenuProxy};
 use peregrine_toolkit::sync::needed::Needed;
 use std::collections::{ HashMap, HashSet };
+use std::rc::Rc;
 use crate::{shape::layers::programstore::ProgramStore };
 use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
@@ -73,6 +74,14 @@ impl GLTrain {
             self.redraw_needed.set();
         }
         Ok(())
+    }
+
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        let mut out = vec![];
+        for (_,carriage) in self.carriages.iter() {
+            out.append(&mut carriage.get_hotspot(stage,position)?);
+        }
+        Ok(out)
     }
 
     /*

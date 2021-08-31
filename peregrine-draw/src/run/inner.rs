@@ -157,6 +157,7 @@ impl PeregrineInnerAPI {
         Ok(out)
     }
 
+    pub(crate) fn trainset(&self) -> GlTrainSet { self.trainset.clone() }
     pub(crate) fn spectres(&self) -> &SpectreManager { &self.spectre_manager }
     pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
 

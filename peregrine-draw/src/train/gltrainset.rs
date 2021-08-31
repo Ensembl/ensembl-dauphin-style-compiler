@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Carriage, CarriageSpeed, PeregrineCore, Scale};
+use peregrine_data::{Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuFixed, ZMenuProxy};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
@@ -150,6 +151,15 @@ impl GlTrainSetData {
         Ok(())
     }
 
+    pub(crate) fn get_hotspot(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        match self.fade_state {
+            FadeState::Constant(x) => x,
+            FadeState::Fading(_,x,_,_,_) => Some(x)
+        }.map(|id| {
+            self.get_train(gl,id).get_hotspot(stage,position)
+        }).unwrap_or(Ok(vec![]))
+    }
+
     /*
     fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
         Ok(match self.fade_state {
@@ -211,15 +221,9 @@ impl GlTrainSet {
         Ok(())
     }
 
-    /*
-    pub(crate) fn intersects(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        self.data.lock().unwrap().intersects(stage,gl,mouse)
+    pub(crate) fn get_hotspot(&self,gl: &mut WebGlGlobal, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        self.data.lock().unwrap().get_hotspot(gl,stage,position)
     }
-
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) ->Result<bool,Message> {
-        self.data.lock().unwrap().intersects_fast(stage,gl,mouse)
-    }
-    */
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         self.data.lock().unwrap().discard(gl)

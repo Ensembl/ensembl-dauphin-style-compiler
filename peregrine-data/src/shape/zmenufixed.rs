@@ -22,6 +22,7 @@ impl ValueSource {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 enum ZMenuBuildText {
     Fixed(String),
     Template(ZMenuKey)
@@ -43,11 +44,14 @@ impl ZMenuBuildText {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
+
 pub struct ZMenuFixedItem {
     text: String,
     markup: Vec<String>
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct ZMenuBuildItem {
     text: ZMenuBuildText,
     markup: Vec<String>
@@ -69,8 +73,10 @@ impl ZMenuBuildItem {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuFixedBlock(Vec<ZMenuFixedItem>);
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct ZMenuBuildBlock(Vec<ZMenuBuildItem>);
 
 impl ZMenuBuildBlock {
@@ -83,11 +89,14 @@ impl ZMenuBuildBlock {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
+
 pub enum ZMenuFixedSequence {
     Item(ZMenuFixedBlock),
     LineBreak
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 enum ZMenuBuildSequence {
     Item(ZMenuBuildBlock),
     LineBreak
@@ -109,6 +118,7 @@ impl ZMenuBuildSequence {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuFixed(Vec<ZMenuFixedSequence>);
 struct ZMenuBuild(pub Vec<ZMenuBuildSequence>);
 

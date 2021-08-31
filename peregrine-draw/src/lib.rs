@@ -26,6 +26,7 @@ mod input {
         pub(crate) mod axisphysics;
         pub(crate) mod physics;
         pub(crate) mod debug;
+        pub(crate) mod translatezmenu;
 
         pub use self::physics::Physics;
     }
@@ -67,7 +68,6 @@ mod shape {
         pub(crate) mod prepareshape;
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;
-        pub(super) mod geometrydata;
         pub(super) mod spotcolourdraw;
         pub(crate) mod flatdrawing;
         pub(crate) mod spectre;

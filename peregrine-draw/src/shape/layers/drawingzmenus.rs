@@ -1,6 +1,8 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
+use lazy_static::__Deref;
 use peregrine_data::{Allotment, Scale, SpaceBaseArea, ZMenu, ZMenuGenerator, SpaceBasePointRef, ZMenuProxy };
 use crate::{stage::stage::{ ReadStage }};
+use crate::stage::axis::ReadStageAxis;
 use peregrine_data::ZMenuFixed;
 //use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
@@ -52,8 +54,6 @@ impl DrawingZMenusBuilder {
     }
 
     pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: Vec<Allotment>, zmenu: ZMenu, values: Vec<(String,Vec<String>)>) {
-        use web_sys::console;
-        console::log_1(&format!("zmenu2 area={:?} zmenu={:?} values={:?}",area,zmenu,values).into());
         let mut map_values = HashMap::new();
         for (k,v) in values {
             map_values.insert(k,v);
@@ -68,28 +68,45 @@ impl DrawingZMenusBuilder {
     }
 }
 
+struct ZMenuEntry {
+    area: SpaceBaseArea<f64>,
+    allotment: Allotment,
+    index: usize,
+    proxy: Rc<ZMenuProxy>
+}
+
+impl ZMenuEntry {
+    fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
+        if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
+            let y_position = self.allotment.position().offset() as f64;
+            let top_px = y_position + top_left.normal;
+            let bottom_px = y_position + bottom_right.normal;
+            let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
+            let right_px = (bottom_right.base - left) / bp_per_carriage * px_per_carriage + car_px_left + bottom_right.tangent;
+            return x_px >= left_px && x_px <= right_px && y_px >= top_px && y_px < bottom_px;
+        }
+        false
+    }
+}
+
 struct ScaledZMenus {
     min_px_per_screen: f64,
     bp_in_carriage: f64,
     left: f64,
     max_bp_per_px: f64,
-    zmenus: HashMap<u64,Rc<Vec<Rc<ZMenuProxy>>>>,
-    last_lookup: Option<(u64,Rc<Vec<Rc<ZMenuProxy>>>)>
+    zmenus: HashMap<u64,Rc<Vec<ZMenuEntry>>>
 }
 
 impl ScaledZMenus {
     fn new(min_px_per_screen: f64, unscaled: &DrawingZMenusBuilder) -> ScaledZMenus {
         let max_bp_per_screen = unscaled.scale.as_ref().map(|s| s.bp_per_screen_range().1).unwrap_or(1) as f64;
         let max_bp_per_px = max_bp_per_screen / min_px_per_screen;
-        use web_sys::console;
-        console::log_1(&format!("min_px_per_screen={:?} max_bp_per_screen={:?}",min_px_per_screen,max_bp_per_screen).into());
         let mut out = ScaledZMenus {
             min_px_per_screen,
             bp_in_carriage: unscaled.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1) as f64,
             max_bp_per_px,
             left: unscaled.left,
-            zmenus: HashMap::new(),
-            last_lookup: None
+            zmenus: HashMap::new()
         };
         out.build_scaled(unscaled);
         out
@@ -113,8 +130,8 @@ impl ScaledZMenus {
         let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right,allotment);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
-            let left_zone = (left_scr*(HORIZ_ZONES as f64)) as u64;
-            let right_zone = (right_scr*(HORIZ_ZONES as f64)) as u64;
+            let left_zone = (left_scr*(HORIZ_ZONES as f64)).floor() as u64;
+            let right_zone = (right_scr*(HORIZ_ZONES as f64)).floor() as u64;
             for h_zone in left_zone..(right_zone+1) {
                 out.push(v_zone*HORIZ_ZONES+h_zone);
             }
@@ -129,10 +146,14 @@ impl ScaledZMenus {
             for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
                 for zone in self.get_zones(&top_left,&bottom_right,allotment) {
-                    building_zmenus.entry(zone).or_insert_with(|| vec![]).push(proxy.clone());
+                    let entry = ZMenuEntry {
+                        area: entry.area.clone(),
+                        allotment: allotment.clone(),
+                        index: i,
+                        proxy: proxy.clone()
+                    };
+                    building_zmenus.entry(zone).or_insert_with(|| vec![]).push(entry);
                 }
-                use web_sys::console;
-                console::log_1(&format!("i={:?} top_left={:?} bottom_right={:?} allotment={:?} zones={:?}",i,top_left,bottom_right,allotment,self.get_zones(&top_left,&bottom_right,allotment)).into());
             }
         }
         self.zmenus = building_zmenus.drain().map(|(k,v)| (k,Rc::new(v))).collect();
@@ -146,16 +167,23 @@ fn rounded_px_per_screen(px_per_screen: f64) -> f64 {
 
 pub struct DrawingZMenus {
     unscaled: Arc<DrawingZMenusBuilder>,
+    last_lookup: Mutex<Option<(u64,Rc<Vec<ZMenuEntry>>)>>,
     min_px_per_screen: Option<f64>,
     scaled: Option<ScaledZMenus>,
+    bp_in_carriage: u64,
+    left: f64
 }
 
+// TODO mouse move needed set on screen resize
 impl DrawingZMenus {
     fn new(builder: DrawingZMenusBuilder) -> DrawingZMenus {
         DrawingZMenus {
+            left: builder.left,
+            bp_in_carriage: builder.scale.as_ref().map(|s| s.bp_in_carriage()).unwrap_or(1), // XXX unwrap
             unscaled: Arc::new(builder),
             min_px_per_screen: None,
-            scaled: None
+            scaled: None,
+            last_lookup: Mutex::new(None)
         }
     }
 
@@ -169,5 +197,42 @@ impl DrawingZMenus {
             if scaled.min_px_per_screen == min_px_per_screen { return; }
         }
         self.scaled = Some(ScaledZMenus::new(min_px_per_screen,&self.unscaled));
+    }
+
+    pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        let px_per_screen = stage.x().drawable_size()?;
+        let position_x_scr = position_px.0 / px_per_screen;
+        let position_x_bp = (position_x_scr - 0.5) * stage.x().bp_per_screen()? + stage.x().position()?;
+        let bp_from_left = position_x_bp - self.left;
+        if bp_from_left < 0. || bp_from_left >= self.bp_in_carriage as f64 { return Ok(vec![]); }
+        let carriage_prop = bp_from_left / self.bp_in_carriage as f64;
+        let h_zone = (carriage_prop * HORIZ_ZONES as f64).floor() as u64;
+        let v_zone = (position_px.1 / VERT_ZONE_HEIGHT as f64).floor() as u64;
+        let zone = h_zone + (v_zone * HORIZ_ZONES);
+        let bp_per_px = stage.x().bp_per_screen()? / px_per_screen;
+        let px_per_carriage = self.bp_in_carriage as f64 / bp_per_px;
+        let left_bp_right_of_centre = self.left - stage.x().position()?;
+        let left_prop =  left_bp_right_of_centre / stage.x().bp_per_screen()? + 0.5;
+        let left_px = left_prop * px_per_screen;
+        let mut zone_data = None;
+        let mut last_lookup = self.last_lookup.lock().unwrap();
+        if let Some((last_zone,last_zone_data)) = last_lookup.as_ref() {
+            if *last_zone == zone { zone_data = Some(last_zone_data.clone()); }
+        }
+        if zone_data.is_none() {
+            zone_data = self.scaled.as_ref().and_then(|scaled| scaled.zmenus.get(&zone).cloned());
+            if let Some(zone_data) = &zone_data {
+                *last_lookup = Some((zone,zone_data.clone()));
+            }
+        }
+        let mut out = vec![];
+        if let Some(zone_data) = &zone_data {
+            for entry in zone_data.iter() {
+                if entry.is_hotspot(position_px.0,position_px.1,self.left,self.bp_in_carriage as f64,px_per_carriage,left_px) {
+                    out.push(entry.proxy.clone());
+                }
+            }
+        }
+        Ok(out)
     }
 }
