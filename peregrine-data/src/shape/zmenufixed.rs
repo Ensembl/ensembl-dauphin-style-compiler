@@ -47,8 +47,8 @@ impl ZMenuBuildText {
 #[cfg_attr(debug_assertions,derive(Debug))]
 
 pub struct ZMenuFixedItem {
-    text: String,
-    markup: Vec<String>
+    pub text: String,
+    pub markup: Vec<String>
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -74,7 +74,9 @@ impl ZMenuBuildItem {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ZMenuFixedBlock(Vec<ZMenuFixedItem>);
+pub struct ZMenuFixedBlock {
+    pub items: Vec<ZMenuFixedItem>
+}
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct ZMenuBuildBlock(Vec<ZMenuBuildItem>);
@@ -85,7 +87,9 @@ impl ZMenuBuildBlock {
     }
 
     fn value(&self, values: &KeyedValues<ZMenuKey,ValueSource>, index: usize) -> ZMenuFixedBlock {
-        ZMenuFixedBlock(self.0.iter().map(|x| x.value(values,index)).collect())
+        ZMenuFixedBlock {
+            items: self.0.iter().map(|x| x.value(values,index)).collect()
+        }
     }
 }
 
@@ -119,7 +123,10 @@ impl ZMenuBuildSequence {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ZMenuFixed(Vec<ZMenuFixedSequence>);
+pub struct ZMenuFixed {
+    pub sequence: Vec<ZMenuFixedSequence>
+}
+
 struct ZMenuBuild(pub Vec<ZMenuBuildSequence>);
 
 impl ZMenuBuild {
@@ -130,7 +137,9 @@ impl ZMenuBuild {
     }
 
     fn value(&self, values: &KeyedValues<ZMenuKey,ValueSource>, index: usize) -> ZMenuFixed {
-        ZMenuFixed(self.0.iter().map(|x| x.value(values,index)).collect())
+        ZMenuFixed {
+            sequence: self.0.iter().map(|x| x.value(values,index)).collect()
+        }
     }
 }
 

@@ -1,13 +1,47 @@
 use commander::CommanderStream;
+use peregrine_data::ZMenuFixedItem;
+use peregrine_data::{ZMenuFixed, ZMenuFixedBlock, ZMenuFixedSequence};
+use serde_json::Value as JSONValue;
+use serde_json::json;
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlTrainSet};
+
+fn zmenu_item_to_json(zmenu: &ZMenuFixedItem) -> JSONValue {
+    json!({
+        "text": JSONValue::String(zmenu.text.to_string()),
+        "markup": JSONValue::Array(zmenu.markup.iter().map(|x| JSONValue::String(x.to_string())).collect())
+    })
+}
+
+fn zmenu_fixed_block_to_json(zmenu: &ZMenuFixedBlock) -> JSONValue {
+    json!({
+        "type": "block",
+        "items": JSONValue::Array(zmenu.items.iter().map(|z| zmenu_item_to_json(z)).collect())
+    })
+}
+
+fn zmenu_fixed_sequence_to_json(zmenu: &ZMenuFixedSequence) -> JSONValue {
+    match zmenu {
+        ZMenuFixedSequence::Item(block) => zmenu_fixed_block_to_json(block),
+        ZMenuFixedSequence::LineBreak => json!({ "type": "line-break" })
+    }
+}
+
+fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
+    JSONValue::Array(zmenu.sequence.iter().map(|z| zmenu_fixed_sequence_to_json(z)).collect())
+}
+
+fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
+    JSONValue::Array(zmenus.iter().map(|z| zmenu_fixed_to_json(z)).collect())
+}
 
 fn process_zmenu_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Result<(),Message> {
     let mut gl = api.webgl.lock().unwrap();
     let zmenus = api.trainset.get_hotspot(&mut gl,&api.stage.lock().unwrap().read_stage(), (x,y))?;
     let zmenus = zmenus.iter().map(|z| z.value()).collect::<Vec<_>>();
+    let json = zmenu_fixed_vec_to_json(&zmenus);
     use web_sys::console;
-    console::log_1(&format!("{:?}",zmenus).into());
+    console::log_1(&format!("{}",json).into());
     Ok(())
 }
 
