@@ -63,7 +63,6 @@ impl DrawingZMenusBuilder {
     }
 
     pub(crate) fn build(mut self) -> DrawingZMenus {
-        self.entries.reverse(); // we match top-down!
         DrawingZMenus::new(self)
     }
 }
@@ -72,7 +71,8 @@ struct ZMenuEntry {
     area: SpaceBaseArea<f64>,
     allotment: Allotment,
     index: usize,
-    proxy: Rc<ZMenuProxy>
+    proxy: Rc<ZMenuProxy>,
+    order: usize
 }
 
 impl ZMenuEntry {
@@ -140,9 +140,11 @@ impl ScaledZMenus {
     }
 
     fn build_scaled(&mut self, unscaled: &DrawingZMenusBuilder) {
+        let mut order = 0;
         let mut building_zmenus = HashMap::new();
         for entry in &unscaled.entries {
             let loop_iter = entry.area.iter().zip(entry.allotments.iter().cycle());
+            let z = entry.generator.iter().next().unwrap().value();
             for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
                 for zone in self.get_zones(&top_left,&bottom_right,allotment) {
@@ -150,11 +152,13 @@ impl ScaledZMenus {
                         area: entry.area.clone(),
                         allotment: allotment.clone(),
                         index: i,
-                        proxy: proxy.clone()
+                        proxy: proxy.clone(),
+                        order
                     };
                     building_zmenus.entry(zone).or_insert_with(|| vec![]).push(entry);
                 }
             }
+            order += 1;
         }
         self.zmenus = building_zmenus.drain().map(|(k,v)| (k,Rc::new(v))).collect();
     }
@@ -229,10 +233,11 @@ impl DrawingZMenus {
         if let Some(zone_data) = &zone_data {
             for entry in zone_data.iter() {
                 if entry.is_hotspot(position_px.0,position_px.1,self.left,self.bp_in_carriage as f64,px_per_carriage,left_px) {
-                    out.push(entry.proxy.clone());
+                    out.push((entry.order,entry.proxy.clone()));
                 }
             }
         }
-        Ok(out)
+        out.sort_by_cached_key(|v| v.0);
+        Ok(out.drain(..).map(|x| x.1).collect())
     }
 }

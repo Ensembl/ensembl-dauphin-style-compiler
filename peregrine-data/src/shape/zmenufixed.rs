@@ -127,6 +127,7 @@ pub struct ZMenuFixed {
     pub sequence: Vec<ZMenuFixedSequence>
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct ZMenuBuild(pub Vec<ZMenuBuildSequence>);
 
 impl ZMenuBuild {
