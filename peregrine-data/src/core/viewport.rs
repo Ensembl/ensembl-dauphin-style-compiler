@@ -102,6 +102,7 @@ impl Viewport {
 
     pub fn set_bp_per_screen(&self, scale: f64) -> Viewport {
         let mut out = self.clone();
+        //if scale < 30. { return out; }
         out.bp_per_screen = Some(scale);
         out
     }

@@ -19,8 +19,12 @@ impl Scale {
         (bp_in_carriage,bp_in_carriage*2-1)
     }
 
-    pub fn prev_scale(&self) -> Scale {
-        Scale(self.0-1)
+    pub fn prev_scale(&self) -> Option<Scale> {
+        if self.0 > 0 {
+            Some(Scale(self.0-1))
+        } else {
+            None
+        }
     }
 
     pub fn next_scale(&self) -> Scale {
