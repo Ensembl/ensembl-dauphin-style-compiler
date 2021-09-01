@@ -5,6 +5,7 @@ use keyed::{ keyed_handle, KeyedValues };
 
 keyed_handle!(ZMenuKey);
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct ValueSource {
     values: Vec<String>
 }
@@ -124,22 +125,39 @@ impl ZMenuBuildSequence {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuFixed {
-    pub sequence: Vec<ZMenuFixedSequence>
+    pub sequence: Vec<ZMenuFixedSequence>,
+    pub metadata: HashMap<String,String>
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-struct ZMenuBuild(pub Vec<ZMenuBuildSequence>);
+struct ZMenuBuild{
+    data: Vec<ZMenuBuildSequence>,
+    metadata: HashMap<String,ValueSource>
+}
 
 impl ZMenuBuild {
     fn build(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
+        let metadata = data.iter().map(|(k,v)| (k.to_string(),ValueSource::new(k,data))).collect::<HashMap<_,_>>();
         let mut values : KeyedValues<ZMenuKey,ValueSource> = KeyedValues::new();
-        let build = ZMenuBuild(zmenu.0.iter().map(|x| ZMenuBuildSequence::new(x,&mut values,data)).collect());
+        let build = ZMenuBuild {
+            metadata,
+            data: zmenu.0.iter().map(|x| ZMenuBuildSequence::new(x,&mut values,data)).collect()
+        };
         (build,values)
+    }
+
+    fn metadata(&self, index: usize) -> HashMap<String,String> {
+        let mut out = HashMap::new();
+        for (key,value) in self.metadata.iter() {
+            out.insert(key.to_string(),value.value(index));
+        }
+        out
     }
 
     fn value(&self, values: &KeyedValues<ZMenuKey,ValueSource>, index: usize) -> ZMenuFixed {
         ZMenuFixed {
-            sequence: self.0.iter().map(|x| x.value(values,index)).collect()
+            sequence: self.data.iter().map(|x| x.value(values,index)).collect(),
+            metadata: self.metadata(index)
         }
     }
 }

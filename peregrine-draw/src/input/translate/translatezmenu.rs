@@ -2,6 +2,7 @@ use commander::CommanderStream;
 use peregrine_data::ZMenuFixedItem;
 use peregrine_data::{ZMenuFixed, ZMenuFixedBlock, ZMenuFixedSequence};
 use serde_json::Value as JSONValue;
+use serde_json::Map as JSONMap;
 use serde_json::json;
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlTrainSet};
@@ -28,7 +29,14 @@ fn zmenu_fixed_sequence_to_json(zmenu: &ZMenuFixedSequence) -> JSONValue {
 }
 
 fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
-    JSONValue::Array(zmenu.sequence.iter().map(|z| zmenu_fixed_sequence_to_json(z)).collect())
+    let mut metadata = JSONMap::new();
+    for (k,v) in zmenu.metadata.iter() {
+        metadata.insert(k.to_string(),JSONValue::String(v.to_string()));
+    }
+    json!({
+        "metadata": metadata,
+        "data": JSONValue::Array(zmenu.sequence.iter().map(|z| zmenu_fixed_sequence_to_json(z)).collect())
+    })
 }
 
 fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {

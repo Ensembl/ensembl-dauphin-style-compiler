@@ -110,12 +110,12 @@ textpen := pen("'Lato', sans-serif",text_size,text_colour,[][],0);
 
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
-tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
-                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation]][]);
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation","type"],
+                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],["transcript"]][]);
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id]][]);
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","type"],[[gene_name],[gene_id],["gene"]][]);
 
 /*
  * draw everything!

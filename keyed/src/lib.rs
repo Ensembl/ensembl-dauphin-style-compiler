@@ -47,6 +47,10 @@ impl<K: KeyedHandle, T> KeyedKeys<K,T> {
         self.0.insert(name.to_string(),key);
     }
 
+    pub fn iter(&self) -> impl Iterator<Item=(&String,&K)> {
+        self.0.iter()
+    }
+
     pub fn try_get_handle(&self, name: &str) -> Option<K> {
         self.0.get(name).map(|h| h.clone_handle())
     }

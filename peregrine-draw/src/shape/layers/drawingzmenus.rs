@@ -4,7 +4,6 @@ use peregrine_data::{Allotment, Scale, SpaceBaseArea, ZMenu, ZMenuGenerator, Spa
 use crate::{stage::stage::{ ReadStage }};
 use crate::stage::axis::ReadStageAxis;
 use peregrine_data::ZMenuFixed;
-//use crate::shape::core::geometrydata::{ GeometryData, ZMenuRectangle };
 use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
 
