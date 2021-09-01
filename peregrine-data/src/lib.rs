@@ -94,7 +94,7 @@ mod shape {
     pub use self::shape::Shape;
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
-    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy };
+    pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json };
 }
 
 pub(crate) mod spacebase {
@@ -169,7 +169,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList, ZMenuProxy
+    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
 };
 pub use self::switch::allotter::{
     Allotter

@@ -6,7 +6,7 @@ use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
 use peregrine_config::ConfigError;
-use peregrine_data::{AllotmentStaticMetadataBuilder, AllotterMetadata, DataMessage};
+use peregrine_data::{AllotmentStaticMetadataBuilder, AllotterMetadata, DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json};
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -21,6 +21,7 @@ pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
     AllotterMetadata(AllotterMetadata),
+    ZMenuEvent(Vec<ZMenuFixed>),
     Ready,
     /**/
     CodeInvariantFailed(String),
@@ -43,6 +44,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => MessageKind::Interface,
             Message::Ready => MessageKind::Interface,
             Message::AllotterMetadata(_) => MessageKind::Interface,
+            Message::ZMenuEvent(_) => MessageKind::Interface,
             _ => MessageKind::Error
         }
     }
@@ -83,6 +85,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
             Message::AllotterMetadata(_) => (0,0),
+            Message::ZMenuEvent(_) => (0,0),
         }
     }
 
@@ -94,7 +97,7 @@ impl PeregrineMessage for Message {
             Message::ConfusedWebBrowser(s) => format!("confused web browser: {}",s),
             Message::SerializationError(s) => format!("serialization error: {}",s),
             Message::WebGLFailure(s) => format!("WebGL failure: {}",s),
-            Message::Canvas2DFailure(s) => format!("2D canvas failuesL {}",s),
+            Message::Canvas2DFailure(s) => format!("2D canvas failues: {}",s),
             Message::BadWebGLProgram(s,p) => format!("bad Webglprogram '{}' : {}",s,p),
             Message::CannotPackRectangles(s) => format!("cannot pack rectangles: {}",s),
             Message::BadBackendConnection(s) => format!("bad backend connection: {}",s),
@@ -103,6 +106,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
             Message::AllotterMetadata(metadata) => format!("allotment metadata: {:?}",metadata),
+            Message::ZMenuEvent(zmenu) => format!("zmenu event: {}",zmenu_fixed_vec_to_json(zmenu))
         }
     }
 

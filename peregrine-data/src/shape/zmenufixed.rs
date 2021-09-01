@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use super::zmenu::{ ZMenu, ZMenuBlock, ZMenuSequence, ZMenuText, ZMenuItem };
 use keyed::{ keyed_handle, KeyedValues };
+use serde_json::Value as JSONValue;
+use serde_json::Map as JSONMap;
+use serde_json::json;
 
 keyed_handle!(ZMenuKey);
 
@@ -46,7 +49,7 @@ impl ZMenuBuildText {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-
+#[derive(Clone)]
 pub struct ZMenuFixedItem {
     pub text: String,
     pub markup: Vec<String>
@@ -75,6 +78,7 @@ impl ZMenuBuildItem {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
 pub struct ZMenuFixedBlock {
     pub items: Vec<ZMenuFixedItem>
 }
@@ -95,7 +99,7 @@ impl ZMenuBuildBlock {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-
+#[derive(Clone)]
 pub enum ZMenuFixedSequence {
     Item(ZMenuFixedBlock),
     LineBreak
@@ -123,10 +127,47 @@ impl ZMenuBuildSequence {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ZMenuFixed {
     pub sequence: Vec<ZMenuFixedSequence>,
     pub metadata: HashMap<String,String>
+}
+
+fn zmenu_item_to_json(zmenu: &ZMenuFixedItem) -> JSONValue {
+    json!({
+        "text": JSONValue::String(zmenu.text.to_string()),
+        "markup": JSONValue::Array(zmenu.markup.iter().map(|x| JSONValue::String(x.to_string())).collect())
+    })
+}
+
+fn zmenu_fixed_block_to_json(zmenu: &ZMenuFixedBlock) -> JSONValue {
+    json!({
+        "type": "block",
+        "items": JSONValue::Array(zmenu.items.iter().map(|z| zmenu_item_to_json(z)).collect())
+    })
+}
+
+fn zmenu_fixed_sequence_to_json(zmenu: &ZMenuFixedSequence) -> JSONValue {
+    match zmenu {
+        ZMenuFixedSequence::Item(block) => zmenu_fixed_block_to_json(block),
+        ZMenuFixedSequence::LineBreak => json!({ "type": "line-break" })
+    }
+}
+
+fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
+    let mut metadata = JSONMap::new();
+    for (k,v) in zmenu.metadata.iter() {
+        metadata.insert(k.to_string(),JSONValue::String(v.to_string()));
+    }
+    json!({
+        "metadata": metadata,
+        "data": JSONValue::Array(zmenu.sequence.iter().map(|z| zmenu_fixed_sequence_to_json(z)).collect())
+    })
+}
+
+pub fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
+    JSONValue::Array(zmenus.iter().map(|z| zmenu_fixed_to_json(z)).collect())
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]

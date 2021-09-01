@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick};
-use peregrine_data::AllotterMetadata;
+use peregrine_data::{AllotterMetadata, ZMenuFixed};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, PgCommanderWeb };
 use super::{PgConfigKey, PgPeregrineConfig};
@@ -97,6 +97,10 @@ impl ReportData {
     fn set_target_x_bp(&mut self, value: f64) { self.target_x_bp.set(value,&self.needed); }
     fn set_target_bp_per_screen(&mut self, value: f64) { self.target_bp_per_screen.set(value,&self.needed); }
 
+    fn zmenu_event(&self, event: Vec<ZMenuFixed>) {
+        self.messages.add(Message::ZMenuEvent(event));
+    }
+
     fn build_messages(&mut self) -> Vec<Message> {
         let mut out = vec![];
         if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.stick,&mut self.x_bp,&mut self.bp_per_screen) {
@@ -110,7 +114,7 @@ impl ReportData {
         out
     }
 
-    pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
+    fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
         self.messages.add(Message::AllotterMetadata(metadata.clone()));
     }
 
@@ -156,6 +160,10 @@ impl Report {
 
     pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
         self.data.lock().unwrap().set_allotter_metadata(metadata);
+    }
+
+    pub(crate) fn zmenu_event(&self, event: Vec<ZMenuFixed>) {
+        self.data.lock().unwrap().zmenu_event(event);
     }
 
     pub(crate) fn run(&self, commander: &PgCommanderWeb) {

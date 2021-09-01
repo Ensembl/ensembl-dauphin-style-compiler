@@ -7,12 +7,13 @@ use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{Executor, cdr_timer};
 use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
-use peregrine_data::{Channel, ChannelLocation, StickId };
+use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_fixed_vec_to_json};
 use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
 use web_sys::{HtmlElement, console };
 use serde::{Serialize, Deserialize};
+use serde_json::Value as JSONValue;
 
 thread_local!{
     pub static CLOSURE : Arc<Mutex<Vec<Option<js_sys::Function>>>> = Arc::new(Mutex::new(vec![]));
@@ -250,6 +251,13 @@ impl GenomeBrowser {
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {
                                         summary: metadata.summarize().to_vec()
                                     }))));
+                                    let _ = closure.apply(&this,&args);
+                                },
+                                Message::ZMenuEvent(zmenus) => {
+                                    let args = Array::new();
+                                    let json = zmenu_fixed_vec_to_json(zmenus);
+                                    args.set(0,JsValue::from("zmenu"));
+                                    args.set(1,js_throw(JsValue::from_serde(&json)));
                                     let _ = closure.apply(&this,&args);
                                 },
                                 x => {

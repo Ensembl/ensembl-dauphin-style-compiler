@@ -14,6 +14,7 @@ console_error_panic_hook="*"
 url="*"
 lazy_static="*"
 serde={ version="*", features=["derive"] }
+serde_json="*"
 
 [dependencies.commander]
 version="*"
