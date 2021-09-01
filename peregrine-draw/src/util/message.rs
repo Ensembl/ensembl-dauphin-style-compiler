@@ -21,7 +21,7 @@ pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
     AllotterMetadata(AllotterMetadata),
-    ZMenuEvent(Vec<ZMenuFixed>),
+    ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
     Ready,
     /**/
     CodeInvariantFailed(String),
@@ -44,7 +44,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => MessageKind::Interface,
             Message::Ready => MessageKind::Interface,
             Message::AllotterMetadata(_) => MessageKind::Interface,
-            Message::ZMenuEvent(_) => MessageKind::Interface,
+            Message::ZMenuEvent(_,_,_) => MessageKind::Interface,
             _ => MessageKind::Error
         }
     }
@@ -85,7 +85,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
             Message::AllotterMetadata(_) => (0,0),
-            Message::ZMenuEvent(_) => (0,0),
+            Message::ZMenuEvent(_,_,_) => (0,0),
         }
     }
 
@@ -106,7 +106,7 @@ impl PeregrineMessage for Message {
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
             Message::AllotterMetadata(metadata) => format!("allotment metadata: {:?}",metadata),
-            Message::ZMenuEvent(zmenu) => format!("zmenu event: {}",zmenu_fixed_vec_to_json(zmenu))
+            Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y)
         }
     }
 

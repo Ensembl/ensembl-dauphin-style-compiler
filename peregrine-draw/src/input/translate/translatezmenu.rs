@@ -12,7 +12,7 @@ fn process_zmenu_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Result<
     let zmenus = api.trainset.get_hotspot(&mut gl,&api.stage.lock().unwrap().read_stage(), (x,y))?;
     let zmenus = zmenus.iter().map(|z| z.value()).collect::<Vec<_>>();
     let report = api.report;
-    report.zmenu_event(zmenus);
+    report.zmenu_event(x,y,zmenus);
     Ok(())
 }
 

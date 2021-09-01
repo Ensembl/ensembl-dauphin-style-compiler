@@ -96,7 +96,7 @@
               }
           } else if(kind=="zmenu") {
             let zmenu_data = document.getElementById("zmenu-click");
-            zmenu_data.innerText = JSON.stringify(more[0]);
+            zmenu_data.innerText = `(${more[0]},${more[1]}) ${JSON.stringify(more[2])}`;
           }
         });
         genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");

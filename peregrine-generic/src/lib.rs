@@ -253,11 +253,13 @@ impl GenomeBrowser {
                                     }))));
                                     let _ = closure.apply(&this,&args);
                                 },
-                                Message::ZMenuEvent(zmenus) => {
+                                Message::ZMenuEvent(x,y,zmenus) => {
                                     let args = Array::new();
                                     let json = zmenu_fixed_vec_to_json(zmenus);
                                     args.set(0,JsValue::from("zmenu"));
-                                    args.set(1,js_throw(JsValue::from_serde(&json)));
+                                    args.set(1,JsValue::from(*x));
+                                    args.set(2,JsValue::from(*y));
+                                    args.set(3,js_throw(JsValue::from_serde(&json)));
                                     let _ = closure.apply(&this,&args);
                                 },
                                 x => {
