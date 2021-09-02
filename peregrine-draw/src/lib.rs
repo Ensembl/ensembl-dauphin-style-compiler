@@ -27,6 +27,8 @@ mod input {
         pub(crate) mod physics;
         pub(crate) mod debug;
         pub(crate) mod translatezmenu;
+        pub(super) mod dragregime;
+        pub(super) mod windowregime;
 
         pub use self::physics::Physics;
     }

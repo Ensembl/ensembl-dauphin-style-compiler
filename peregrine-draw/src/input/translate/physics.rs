@@ -77,6 +77,7 @@ impl PhysicsState {
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         self.runner.queue_clear();
         self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+        self.runner.queue_add(QueueEntry::Wait);
         self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(scale),None));
         self.update_needed();
         Ok(())
@@ -85,14 +86,12 @@ impl PhysicsState {
     fn apply_ongoing(&mut self, inner: &PeregrineInnerAPI, dt: f64) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-        let report = self.report.clone();
         if let Some(delta) = self.x_puller.tick(dt) {
-            self.runner.queue_add(QueueEntry::JumpX(delta,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+            self.runner.queue_add(QueueEntry::JumpX(delta));
             self.update_needed();
         }
-        let report = self.report.clone();
         if let Some(delta) = self.z_puller.tick(dt) {
-            self.runner.queue_add(QueueEntry::JumpZ(delta,None,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));
+            self.runner.queue_add(QueueEntry::JumpZ(delta,None));
             self.update_needed();
         }
         Ok(())
@@ -111,12 +110,12 @@ impl PhysicsState {
         }
     }
 
-    fn physics_step(&mut self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
+    fn physics_step(&mut self, inner: &mut PeregrineInnerAPI, report: &mut Report) -> Result<(),Message> {
         let now = Date::now();
         if let Some(last_update) = self.last_update {
             let dt = now - last_update;
             self.apply_ongoing(inner,dt)?;
-            self.runner.drain_animation_queue(inner)?;
+            self.runner.drain_animation_queue(inner,report)?;
             self.runner.apply_spring(inner,dt)?;
         }
         self.last_update = Some(now);
@@ -146,6 +145,7 @@ impl PhysicsState {
                 /* strategy 2 */
                 let px_per_bp = measure.px_per_screen / bp_per_screen;
                 self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+                self.runner.queue_add(QueueEntry::Wait);
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
                 self.update_needed();
                 return Ok(());
@@ -158,6 +158,7 @@ impl PhysicsState {
                 /* strategy 1 */
                 let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+                self.runner.queue_add(QueueEntry::Wait);
                 self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
                 self.update_needed();
                 return Ok(());
@@ -167,9 +168,11 @@ impl PhysicsState {
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
-        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
         let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
+        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
+        self.runner.queue_add(QueueEntry::Wait);
         self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
+        self.runner.queue_add(QueueEntry::Wait);
         self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
         self.update_needed();
         Ok(())
@@ -208,7 +211,7 @@ impl Physics {
         Ok(())
     }
 
-    fn incoming_jump_request(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_jump_request(&self, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let distance = *event.amount.get(0).unwrap_or(&0.);
@@ -218,24 +221,21 @@ impl Physics {
         if let Some(x) = pos_x {
             centre = Some(*x);
         }
-        let report = self.report.clone();
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         match event.details {
             InputEventKind::PixelsLeft => {
-                state.runner.queue_add(QueueEntry::JumpX(-distance,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+                state.runner.queue_add(QueueEntry::JumpX(-distance));
                 state.update_needed();
             },
             InputEventKind::PixelsRight => {
-                state.runner.queue_add(QueueEntry::JumpX(distance,Some(Box::new(move |pos| report.set_target_x_bp(pos/px_per_bp)))));
+                state.runner.queue_add(QueueEntry::JumpX(distance));
                 state.update_needed();
             },
             InputEventKind::PixelsIn => {
-                state.runner.queue_add(QueueEntry::JumpZ(-distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));               
+                state.runner.queue_add(QueueEntry::JumpZ(-distance,centre));               
                 state.update_needed();
             },
             InputEventKind::PixelsOut => {
-                state.runner.queue_add(QueueEntry::JumpZ(distance,centre,Some(Box::new(move |pos| report.set_target_bp_per_screen(zpx_to_bp(pos))))));
+                state.runner.queue_add(QueueEntry::JumpZ(distance,centre));
                 state.update_needed();
             },
             _ => {}
@@ -280,15 +280,18 @@ impl Physics {
 
     fn incoming_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event)?;
-        self.incoming_jump_request(inner,event)?;
+        self.incoming_jump_request(event)?;
         self.incoming_scale_event(event)?;
         self.incoming_animate_event(inner,event)?;
         Ok(())
     }
 
     async fn physics_loop(&self, inner: &mut PeregrineInnerAPI) -> Result<(),Message> {
+        let lweb = inner.lock().await;
+        let mut report = lweb.report.clone();
+        drop(lweb);
         loop {
-            self.state.lock().unwrap().physics_step(inner)?;
+            self.state.lock().unwrap().physics_step(inner,&mut report)?;
             cdr_tick(1).await;
             self.physics_needed.wait_until_needed().await;
         }
