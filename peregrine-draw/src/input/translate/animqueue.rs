@@ -132,13 +132,13 @@ impl PhysicsRunner {
         match &entry {
             QueueEntry::Wait => {},
             QueueEntry::MoveW(centre,scale) => {
-                self.regime.regime_w().set(&measure,*centre,*scale);
+                self.regime.regime_w().set(measure,*centre,*scale);
             },
             QueueEntry::MoveX(amt) => {
-                self.regime.regime_drag().jump_x(*amt);
+                self.regime.regime_drag().jump_x(measure,*amt);
             },
             QueueEntry::MoveZ(amt,centre) => {
-                self.regime.regime_drag().jump_z(*amt,centre.clone());
+                self.regime.regime_drag().jump_z(measure,*amt,centre.clone());
             },
             QueueEntry::JumpX(amt) => {
                 self.regime.regime_drag().move_x(&measure,*amt);
@@ -165,18 +165,21 @@ impl PhysicsRunner {
         }
     }
 
+    fn exit_due_to_waiting(&self) -> bool {
+        if let Some(entry) = self.animation_queue.front() {
+            match entry {
+                QueueEntry::Wait => {
+                    if self.regime.is_active() { return true; }
+                },
+                _ => {}
+            }
+        }
+        false
+    }
+
     pub(super) fn drain_animation_queue(&mut self, inner: &PeregrineInnerAPI, report: &mut Report) -> Result<(),Message> {
         loop {
-            /* still ongoing? */
-            if let Some(entry) = self.animation_queue.front() {
-                match entry {
-                    QueueEntry::Wait => {
-                        if self.regime.is_active() { break; }
-                    },
-                    _ => {}
-                }
-            }
-            /* move something from the queue */
+            if self.exit_due_to_waiting() { break; }
             self.animation_current = self.animation_queue.pop_front();
             if self.animation_current.is_none() { break; }
             /* do it */

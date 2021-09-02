@@ -85,7 +85,6 @@ impl PhysicsState {
 
     fn apply_ongoing(&mut self, inner: &PeregrineInnerAPI, dt: f64) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         if let Some(delta) = self.x_puller.tick(dt) {
             self.runner.queue_add(QueueEntry::JumpX(delta));
             self.update_needed();

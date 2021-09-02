@@ -23,22 +23,33 @@ impl PhysicsRunnerDragRegime {
             force_min: 0.00001,
             brake_mul: 0.2
         };
-        PhysicsRunnerDragRegime {
-            x: AxisPhysics::new(x_config),
-            z: AxisPhysics::new(z_config),
-            zoom_centre: None
+        let x =  AxisPhysics::new(x_config);
+        let mut z =  AxisPhysics::new(z_config);
+        z.set_min_value(bp_to_zpx(30.));
+        PhysicsRunnerDragRegime { x, z, zoom_centre: None }
+    }
+
+    fn update_x_limits(&mut self, measure: &Measure) {
+        let target_bp_per_screen = self.z.get_target().map(|z| zpx_to_bp(z)).unwrap_or(measure.bp_per_screen);
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        let x_min_px = target_bp_per_screen*px_per_bp/2.;
+        self.x.set_min_value(x_min_px);
+        if measure.x_bp * px_per_bp < x_min_px {
+            self.x.set(x_min_px);
         }
     }
 
-    pub(crate) fn jump_x(&mut self, x: f64) {
+    pub(crate) fn jump_x(&mut self, measure: &Measure, x: f64) {
         self.x.move_to(x);
+        self.update_x_limits(measure);
     }
 
-    pub(crate) fn jump_z(&mut self, amount: f64, centre: Option<f64>) {
+    pub(crate) fn jump_z(&mut self, measure: &Measure, amount: f64, centre: Option<f64>) {
         self.z.move_to(amount);
         if !self.x.is_active() && centre.is_some() {
             self.x.move_to(centre.unwrap());
         }
+        self.update_x_limits(measure);
     }
 
     pub(crate) fn move_x(&mut self, measure: &Measure, amount_px: f64) {
@@ -47,6 +58,7 @@ impl PhysicsRunnerDragRegime {
             self.x.move_to(current_px);
         }
         self.x.move_more(amount_px);
+        self.update_x_limits(measure);
     }
 
     pub(crate) fn move_z(&mut self, measure: &Measure, amount_px: f64, centre: Option<f64>) {
@@ -56,6 +68,7 @@ impl PhysicsRunnerDragRegime {
             self.z.move_to(z_current_px);
         }
         self.z.move_more(amount_px);
+        self.update_x_limits(measure);
     }
 
     pub(crate) fn brake_x(&mut self) { self.x.brake(); }

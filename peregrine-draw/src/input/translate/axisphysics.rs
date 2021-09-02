@@ -34,8 +34,10 @@ pub struct AxisPhysicsConfig {
 pub(super) struct AxisPhysics {
     config: AxisPhysicsConfig,
     target: Option<f64>,
+    immediate: bool,
     brake: bool,
-    velocity: f64
+    velocity: f64,
+    min_value: Option<f64>
 }
 
 impl AxisPhysics {
@@ -44,7 +46,22 @@ impl AxisPhysics {
             config,
             brake: false,
             target: None,
-            velocity: 0.
+            immediate: false,
+            velocity: 0.,
+            min_value: None
+        }
+    }
+
+    pub(super) fn set_min_value(&mut self, min_value: f64) {
+        self.min_value = Some(min_value);
+        self.apply_limits();
+    }
+
+    fn apply_limits(&mut self) {
+        if let (Some(target),Some(min_value)) = (&mut self.target,self.min_value) {
+            if *target < min_value {
+                *target = min_value;
+            }
         }
     }
 
@@ -55,41 +72,54 @@ impl AxisPhysics {
         self.brake = false;
     }
 
+    pub(super) fn set(&mut self, position: f64) {
+        self.move_to(position);
+        self.immediate = true;
+    }
+
     pub(super) fn move_to(&mut self, position: f64) {
         self.target = Some(position);
+        self.apply_limits();
     }
 
     pub(super) fn move_more(&mut self, amount: f64) {
         if let Some(target) = &mut self.target {
             *target += amount;
         }
+        self.apply_limits();
         self.velocity = 0.;
     }
 
     pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> Option<f64> {
         if let Some(target) = self.target {
-            let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
-            while total_dt > 0. {
-                let dt = total_dt.min(0.1);
-                total_dt -= dt;
-                let drive = target - current;
-                let mut drive_f = drive/self.config.lethargy;
-                let mut friction_f =  self.velocity * crit;
-                if self.brake {
-                    friction_f *= self.config.brake_mul;
-                    drive_f = 0.;
+            if self.immediate {
+                self.immediate = false;
+                self.halt();
+                Some(target)
+            } else {
+                let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
+                while total_dt > 0. {
+                    let dt = total_dt.min(0.1);
+                    total_dt -= dt;
+                    let drive = target - current;
+                    let mut drive_f = drive/self.config.lethargy;
+                    let mut friction_f =  self.velocity * crit;
+                    if self.brake {
+                        friction_f *= self.config.brake_mul;
+                        drive_f = 0.;
+                    }
+                    let force = drive_f-friction_f;
+                    self.velocity += force * dt;
+                    let delta = self.velocity*dt;
+                    current += delta;
+                    if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
+                        current = target;
+                        self.halt();
+                        break;
+                    }
                 }
-                let force = drive_f-friction_f;
-                self.velocity += force * dt;
-                let delta = self.velocity*dt;
-                current += delta;
-                if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
-                    current = target;
-                    self.halt();
-                    break;
-                }
+                Some(current)
             }
-            Some(current)
         } else {
             None
         }
