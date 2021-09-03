@@ -27,8 +27,8 @@ strand := positive_seq(data,"strands");
 designated_transcript_id := string_seq(data,"designated_transcript_ids");
 designated_transcript_biotype := classified_seq(data,"designated_transcript_biotypes_keys","designated_transcript_biotypes_values");
 designated_transcript_designation := classified_seq(data,"designated_transcript_designations_keys","designated_transcript_designations_values");
-strand_string := len([strand]) (*) "negative strand";
-strand_string#[strand>0] := "positive strand";
+strand_string := len([strand]) (*) "reverse strand";
+strand_string#[strand>0] := "forward strand";
 /* exon stuff */
 exon_strand := positive_seq(data,"exon_strands");
 exon_gene_biotype := classified_seq(data,"exon_gene_biotypes_keys","exon_gene_biotypes_values");
