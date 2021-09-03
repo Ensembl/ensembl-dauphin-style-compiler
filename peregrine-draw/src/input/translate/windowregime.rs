@@ -3,7 +3,8 @@ use super::{animqueue::ApplyResult, axisphysics::{AxisPhysics, AxisPhysicsConfig
 pub(super) struct PhysicsRunnerWRegime {
     w_left: AxisPhysics,
     w_right: AxisPhysics,
-    w_scale: f64
+    w_scale: f64,
+    size: Option<f64>
 }
 
 impl PhysicsRunnerWRegime {
@@ -19,10 +20,20 @@ impl PhysicsRunnerWRegime {
         };
         let mut w_left = AxisPhysics::new(w_config.clone());
         w_left.set_min_value(0.);
-        PhysicsRunnerWRegime {
+        let mut out = PhysicsRunnerWRegime {
             w_left,
             w_right: AxisPhysics::new(w_config),
-            w_scale: 1.,            
+            w_scale: 1., 
+            size           
+        };
+        out.set_limits(measure);
+        out
+    }
+
+    fn set_limits(&mut self, measure: &Measure) {
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+        if let Some(size) = &self.size {
+            self.w_right.set_max_value(size*px_per_bp);
         }
     }
 
@@ -30,9 +41,10 @@ impl PhysicsRunnerWRegime {
         let new_left_bp = centre - (scale/2.);
         let new_right_bp = centre + (scale/2.);
         self.w_scale = measure.bp_per_screen / measure.px_per_screen; // bp_per_px
-        self.w_left.move_to(new_left_bp/self.w_scale);
         let min_right_for_zscale = (new_left_bp + 30.)/self.w_scale;
         let right = (new_right_bp/self.w_scale).max(min_right_for_zscale);
+        self.set_limits(measure);
+        self.w_left.move_to(new_left_bp/self.w_scale);
         self.w_right.move_to(right);
     }
 
