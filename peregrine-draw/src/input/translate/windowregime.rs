@@ -1,4 +1,4 @@
-use super::{animqueue::ApplyResult, axisphysics::{AxisPhysics, AxisPhysicsConfig}, measure::Measure};
+use super::{animqueue::ApplyResult, axisphysics::{AxisPhysics, AxisPhysicsConfig, Scaling}, measure::Measure};
 
 pub(super) struct PhysicsRunnerWRegime {
     w_left: AxisPhysics,
@@ -14,7 +14,8 @@ impl PhysicsRunnerWRegime {
             boing: 1.,
             vel_min: 0.0005,
             force_min: 0.00001,
-            brake_mul: 0.2
+            brake_mul: 0.2,
+            scaling: Scaling::Linear(1.)
         };
         PhysicsRunnerWRegime {
             w_left: AxisPhysics::new(w_config.clone()),

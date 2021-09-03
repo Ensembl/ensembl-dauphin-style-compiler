@@ -2,13 +2,13 @@ use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
 use peregrine_toolkit::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
-use crate::{ PeregrineInnerAPI, input::translate::{animqueue::bp_to_zpx, measure::Measure}, run::report::Report };
+use crate::{ PeregrineInnerAPI, input::translate::measure::Measure, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
-use super::{animqueue::{QueueEntry, zpx_to_bp}, axisphysics::{Puller}};
+use super::{animqueue::{QueueEntry}, axisphysics::{Puller}};
 use super::animqueue::PhysicsRunner;
 
 const PULL_SPEED : f64 = 2.; // px/ms
@@ -78,7 +78,7 @@ impl PhysicsState {
         self.runner.queue_clear();
         self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(scale),None));
+        self.runner.queue_add(QueueEntry::MoveZ(scale,None));
         self.update_needed();
         Ok(())
     }
@@ -143,7 +143,7 @@ impl PhysicsState {
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
                 let px_per_bp = measure.px_per_screen / bp_per_screen;
-                self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
                 self.runner.queue_add(QueueEntry::Wait);
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
                 self.update_needed();
@@ -158,7 +158,7 @@ impl PhysicsState {
                 let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
                 self.update_needed();
                 return Ok(());
             }
@@ -168,11 +168,11 @@ impl PhysicsState {
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
         let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
-        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(outzoom_bp_per_screen),None));
+        self.runner.queue_add(QueueEntry::MoveZ(outzoom_bp_per_screen,None));
         self.runner.queue_add(QueueEntry::Wait);
         self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(bp_to_zpx(bp_per_screen),None));
+        self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
         self.update_needed();
         Ok(())
     }

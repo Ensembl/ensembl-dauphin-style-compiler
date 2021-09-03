@@ -6,7 +6,6 @@ use super::measure::Measure;
 use super::windowregime::PhysicsRunnerWRegime;
 
 pub(super) fn bp_to_zpx(bp: f64) -> f64 { bp.log2() * 100. }
-pub(super) fn zpx_to_bp(zpx: f64) -> f64 { 2_f64.powf(zpx/100.) }
 
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
@@ -138,7 +137,8 @@ impl PhysicsRunner {
                 self.regime.regime_drag().jump_x(measure,*amt);
             },
             QueueEntry::MoveZ(amt,centre) => {
-                self.regime.regime_drag().jump_z(measure,*amt,centre.clone());
+                let amt = bp_to_zpx(*amt);
+                self.regime.regime_drag().jump_z(measure,amt,centre.clone());
             },
             QueueEntry::JumpX(amt) => {
                 self.regime.regime_drag().move_x(&measure,*amt);

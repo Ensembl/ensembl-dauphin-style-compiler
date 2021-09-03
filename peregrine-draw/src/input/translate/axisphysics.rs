@@ -1,3 +1,25 @@
+#[derive(Clone)]
+pub enum Scaling {
+    Linear(f64),
+    Logarithmic(f64)
+}
+
+impl Scaling {
+    fn to_internal(&self, value: f64) -> f64 {
+        match self {
+            Scaling::Linear(k) => value * k,
+            Scaling::Logarithmic(k) => value.log2() * k
+        }
+    }
+
+    fn to_external(&self, value: f64) -> f64 {
+        match self {
+            Scaling::Linear(k) => value / k,
+            Scaling::Logarithmic(k) => 2_f64.powf(value/k)
+        }
+    }
+}
+
 pub(super) struct Puller {
     target_speed: Option<f64>,
 }
@@ -28,7 +50,8 @@ pub struct AxisPhysicsConfig {
     pub boing: f64,
     pub vel_min: f64,
     pub force_min: f64,
-    pub brake_mul: f64
+    pub brake_mul: f64,
+    pub scaling: Scaling
 }
 
 pub(super) struct AxisPhysics {
@@ -95,7 +118,7 @@ impl AxisPhysics {
             if self.immediate {
                 self.immediate = false;
                 self.halt();
-                Some(target)
+                Some(self.config.scaling.to_external(target))
             } else {
                 let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
                 while total_dt > 0. {
@@ -118,7 +141,7 @@ impl AxisPhysics {
                         break;
                     }
                 }
-                Some(current)
+                Some(self.config.scaling.to_external(current))
             }
         } else {
             None
@@ -126,5 +149,8 @@ impl AxisPhysics {
     }
 
     pub(super) fn is_active(&self) -> bool { self.target.is_some() }
-    pub(super) fn get_target(&self) -> Option<f64> { self.target }
+
+    pub(super) fn get_target(&self) -> Option<f64> {
+        self.target.map(|pip| self.config.scaling.to_external(pip))
+    }
 }
