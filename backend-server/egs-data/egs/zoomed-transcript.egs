@@ -99,6 +99,8 @@ focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
 
+track_name := index(allotment_idx,potential_tracks);
+
 /*
  * Filter labels by which tracks are configured to have labels
  */
@@ -155,14 +157,14 @@ thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],0);
 
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
-tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation"],
-                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation]][]);
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation","track"],
+                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],[track_name]][]);
 
 /* find thick exon regions */
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
-ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id"],[[gene_name],[gene_id]][]);
+ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","track"],[[gene_name],[gene_id],[track_name]][]);
 
 /* thick letters */
 extract_filter(thick_seq_start,thick_seq_index,thick_seq_exon_index,seq_start,seq_end,exon_thick_start,exon_thick_end);
@@ -188,3 +190,7 @@ thin_seq_allotment := index(thin_seq_gene_index,[allotment]);
 indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,30,thin_seq_patina,thin_seq_allotment);
 coords := spacebase(thin_seq_start + 0.5,8,-4);
 text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
+
+/* zmenus */
+rectangle_on_genome(start,end,32,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,32,ge_zmenu_patina,allotment);
