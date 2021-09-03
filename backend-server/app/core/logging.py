@@ -22,6 +22,7 @@ from typing import cast
 from loguru import logger
 from core import config
 from logging.handlers import SysLogHandler
+from logging import StreamHandler
 
 class InterceptHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:  # pragma: no cover
@@ -43,7 +44,7 @@ def get_handler():
     log_host = config.LOG_HOST
     log_port = config.LOG_PORT
     if log_host == None:
-        return sys.stderr
+        return StreamHandler(sys.stderr)
     else:
         return SysLogHandler(address=(log_host,log_port))
 

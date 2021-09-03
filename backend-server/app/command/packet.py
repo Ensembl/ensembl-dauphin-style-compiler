@@ -35,7 +35,7 @@ def do_request_remote(url,messages, high_priority: bool):
         "requests": messages
     })
     upstream = url + "/" + suffix
-    logging.debug("delegating to {0}",upstream)
+    logging.debug("delegating to {0}".format(upstream))
     with urllib.request.urlopen(upstream,data=request) as response:
         return cbor2.loads(response.read())
 
