@@ -8,7 +8,7 @@ h11==0.12.0
 idna==3.2
 loguru==0.5.3
 mmh3==3.0.0
-ncd @ git+https://github.com/ens-ds23/ncd-python.git@53b873a55db224ff58c414db92aa2bd5648b532a
+ncd @ git+https://github.com/ens-ds23/ncd-python.git@d192f2f128eaad81769362820c63b4ee365cd9a0
 numpy==1.21.2
 pyaml==21.8.3
 pydantic==1.8.2
