@@ -73,7 +73,7 @@ class FileAccessMethod(AccessMethod):
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         out = bytearray()
-        with open(self.file,"r") as f:
+        with open(self.file,"rb") as f:
             if offset != None:
                 f.seek(0,offset)
                 while size > 0:
