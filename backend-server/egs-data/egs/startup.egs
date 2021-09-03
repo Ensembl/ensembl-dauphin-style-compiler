@@ -28,10 +28,10 @@ stmt gene_std(p) {
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
     track_add_allotment(p,"track:focus",-1000000,["switch-id","has-labels"][],[["focus"],["1"]][]);
-    track_add_allotment(p,"track:gene-pc-rev",-1100,["switch-id","has-labels"][],[["gene-pc-rev"],["1"]][]);
-    track_add_allotment(p,"track:gene-nonpc-rev",-1000,["switch-id","has-labels"][],[["gene-nonpc-rev"],["1"]][]);
-    track_add_allotment(p,"track:gene-pc-fwd",1000,["switch-id","has-labels"][],[["gene-pc-fwd"],["1"]][]);
-    track_add_allotment(p,"track:gene-nonpc-fwd",1100,["switch-id","has-labels"][],[["gene-nonpc-fwd"],["1"]][]);
+    track_add_allotment(p,"track:gene-nonpc-fwd",-1100,["switch-id","has-labels"][],[["gene-nonpc-fwd"],["1"]][]);
+    track_add_allotment(p,"track:gene-pc-fwd",-1000,["switch-id","has-labels"][],[["gene-pc-fwd"],["1"]][]);
+    track_add_allotment(p,"track:gene-pc-rev",1100,["switch-id","has-labels"][],[["gene-pc-rev"],["1"]][]);
+    track_add_allotment(p,"track:gene-nonpc-rev",1000,["switch-id","has-labels"][],[["gene-nonpc-rev"],["1"]][]);
 }
 
 /* exon-structure; labels ; zmenus; sequence blocks */
