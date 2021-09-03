@@ -83,8 +83,7 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn apply_ongoing(&mut self, inner: &PeregrineInnerAPI, dt: f64) -> Result<(),Message> {
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+    fn apply_ongoing(&mut self, dt: f64) -> Result<(),Message> {
         if let Some(delta) = self.x_puller.tick(dt) {
             self.runner.queue_add(QueueEntry::JumpX(delta));
             self.update_needed();
@@ -113,7 +112,7 @@ impl PhysicsState {
         let now = Date::now();
         if let Some(last_update) = self.last_update {
             let dt = now - last_update;
-            self.apply_ongoing(inner,dt)?;
+            self.apply_ongoing(dt)?;
             self.runner.drain_animation_queue(inner,report)?;
             self.runner.apply_spring(inner,dt)?;
         }

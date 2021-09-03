@@ -76,7 +76,7 @@ impl AxisPhysics {
     }
 
     pub(super) fn set_min_value(&mut self, min_value: f64) {
-        self.min_value = Some(min_value);
+        self.min_value = Some(self.config.scaling.to_internal(min_value));
         self.apply_limits();
     }
 
@@ -105,6 +105,11 @@ impl AxisPhysics {
         self.apply_limits();
     }
 
+    pub(super) fn move_to2(&mut self, position: f64) {
+        self.target = Some(self.config.scaling.to_internal(position));
+        self.apply_limits();
+    }
+
     pub(super) fn move_more(&mut self, amount: f64) {
         if let Some(target) = &mut self.target {
             *target += amount;
@@ -113,7 +118,8 @@ impl AxisPhysics {
         self.velocity = 0.;
     }
 
-    pub(super) fn apply_spring(&mut self, mut current: f64, mut total_dt: f64) -> Option<f64> {
+    pub(super) fn apply_spring(&mut self, current: f64, mut total_dt: f64) -> Option<f64> {
+        let mut current_px = self.config.scaling.to_internal(current);
         if let Some(target) = self.target {
             if self.immediate {
                 self.immediate = false;
@@ -124,7 +130,7 @@ impl AxisPhysics {
                 while total_dt > 0. {
                     let dt = total_dt.min(0.1);
                     total_dt -= dt;
-                    let drive = target - current;
+                    let drive = target - current_px;
                     let mut drive_f = drive/self.config.lethargy;
                     let mut friction_f =  self.velocity * crit;
                     if self.brake {
@@ -134,14 +140,14 @@ impl AxisPhysics {
                     let force = drive_f-friction_f;
                     self.velocity += force * dt;
                     let delta = self.velocity*dt;
-                    current += delta;
+                    current_px += delta;
                     if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
-                        current = target;
+                        current_px = target;
                         self.halt();
                         break;
                     }
                 }
-                Some(self.config.scaling.to_external(current))
+                Some(self.config.scaling.to_external(current_px))
             }
         } else {
             None

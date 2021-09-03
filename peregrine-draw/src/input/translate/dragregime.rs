@@ -1,4 +1,4 @@
-use super::{animqueue::{ApplyResult, bp_to_zpx}, axisphysics::{AxisPhysics, AxisPhysicsConfig, Scaling}, measure::Measure};
+use super::{animqueue::ApplyResult, axisphysics::{AxisPhysics, AxisPhysicsConfig, Scaling}, measure::Measure};
 
 pub(super) struct PhysicsRunnerDragRegime {
     x: AxisPhysics,
@@ -27,7 +27,7 @@ impl PhysicsRunnerDragRegime {
         };
         let x =  AxisPhysics::new(x_config);
         let mut z =  AxisPhysics::new(z_config);
-        z.set_min_value(bp_to_zpx(30.));
+        z.set_min_value(30.);
         PhysicsRunnerDragRegime { x, z, zoom_centre: None }
     }
 
@@ -47,7 +47,7 @@ impl PhysicsRunnerDragRegime {
     }
 
     pub(crate) fn jump_z(&mut self, measure: &Measure, amount: f64, centre: Option<f64>) {
-        self.z.move_to(amount);
+        self.z.move_to2(amount);
         if !self.x.is_active() && centre.is_some() {
             self.x.move_to(centre.unwrap());
         }
@@ -64,10 +64,9 @@ impl PhysicsRunnerDragRegime {
     }
 
     pub(crate) fn move_z(&mut self, measure: &Measure, amount_px: f64, centre: Option<f64>) {
-        let z_current_px = bp_to_zpx(measure.bp_per_screen);
         if !self.z.is_active() {
             self.zoom_centre = centre.clone();
-            self.z.move_to(z_current_px);
+            self.z.move_to2(measure.bp_per_screen);
         }
         self.z.move_more(amount_px);
         self.update_x_limits(measure);
@@ -86,8 +85,7 @@ impl PhysicsRunnerDragRegime {
             new_x = Some(new_pos/px_per_bp);
         }
         /* z-coordinate */
-        let z_current_px = bp_to_zpx(measure.bp_per_screen);
-        if let Some(new_bp_per_screen) = self.z.apply_spring(z_current_px,total_dt) {
+        if let Some(new_bp_per_screen) = self.z.apply_spring(measure.bp_per_screen,total_dt) {
             if let Some(stationary) = self.zoom_centre {
                 let x_screen = stationary/measure.px_per_screen;
                 let new_bp_from_middle = (x_screen-0.5)*new_bp_per_screen;
