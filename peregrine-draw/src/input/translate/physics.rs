@@ -15,7 +15,6 @@ const PULL_SPEED : f64 = 2.; // px/ms
 
 pub struct PhysicsState {
     runner: PhysicsRunner,
-    report: Report,
     x_puller: Puller,
     z_puller: Puller,
     last_update: Option<f64>,
@@ -29,10 +28,9 @@ pub struct PhysicsState {
 }
 
 impl PhysicsState {
-    fn new(_config: &PgPeregrineConfig, report: &Report, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<PhysicsState,Message> {
+    fn new(_config: &PgPeregrineConfig, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
             runner: PhysicsRunner::new(),
-            report: report.clone(),
             last_update: None,
             x_puller: Puller::new(),
             z_puller: Puller::new(),
@@ -176,7 +174,7 @@ impl PhysicsState {
         Ok(())
     }
 
-    pub fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+    fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         let ready = inner.stage().lock().unwrap().ready();
         if ready {
             self.goto_ready(inner,centre,bp_per_screen)?;
@@ -184,6 +182,10 @@ impl PhysicsState {
             self.goto_not_ready(inner,centre,bp_per_screen)?;
         }
         Ok(())
+    }
+
+    pub fn set_limit(&mut self, limit: f64) {
+        self.runner.queue_add(QueueEntry::Size(limit));
     }
 }
 
@@ -298,7 +300,7 @@ impl Physics {
     pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, queue_blocker: &Blocker) -> Result<Physics,Message> {
         let physics_needed = Needed::new();
         let out = Physics {
-            state: Arc::new(Mutex::new(PhysicsState::new(config,report,&physics_needed,queue_blocker)?)),
+            state: Arc::new(Mutex::new(PhysicsState::new(config,&physics_needed,queue_blocker)?)),
             report: report.clone(),
             physics_needed: physics_needed.clone()
         };
@@ -315,5 +317,9 @@ impl Physics {
         self.report.set_target_x_bp(centre);
         self.report.set_target_bp_per_screen(scale);
         self.state.lock().unwrap().goto(api,centre,scale)
+    }
+
+    pub fn set_limit(&self, limit: f64) {
+        self.state.lock().unwrap().set_limit(limit);
     }
 }

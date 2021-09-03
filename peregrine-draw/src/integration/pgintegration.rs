@@ -14,6 +14,7 @@ use web_sys::CssStyleDeclaration;
 pub struct PgIntegration {
     channel: PgChannel,
     trainset: GlTrainSet,
+    input: Input,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     report: Report,
@@ -38,6 +39,7 @@ impl PeregrineIntegration for PgIntegration {
 
     fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
         let webgl = self.webgl.lock().unwrap();
+        self.input.set_limit(max as f64);
         self.trainset.start_fade(&webgl,index,max,speed)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
@@ -65,14 +67,15 @@ impl PeregrineIntegration for PgIntegration {
 }
 
 impl PgIntegration {
-    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
+    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, input: &Input, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,
             webgl,
             stage: stage.clone(),
             report: report.clone(),
-            dom: dom.clone()
+            dom: dom.clone(),
+            input: input.clone()
         }
     }
 }

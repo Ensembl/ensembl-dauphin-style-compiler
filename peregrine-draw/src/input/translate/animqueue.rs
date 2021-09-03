@@ -13,7 +13,8 @@ pub(super) enum QueueEntry {
     JumpZ(f64,Option<f64>),
     BrakeX,
     BrakeZ,
-    Wait
+    Wait,
+    Size(f64)
 }
 
 pub(super) enum ApplyResult {
@@ -22,72 +23,94 @@ pub(super) enum ApplyResult {
 }
 
 macro_rules! set_regime {
-    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:expr) => {
-        fn $call(&mut self) -> &mut $inner {
-            match self {
-                PhysicsRegime::$branch(out) => { return out; },
+    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:ty) => {
+        fn $call(&mut self, measure: &Measure) -> &mut $inner {
+            let object = &mut self.object;
+            match object {
+                PhysicsRegimeObject::$branch(out) => { return out; },
                 _ => {}
             }
-            *self = PhysicsRegime::$branch($ctor);
-            match self {
-                PhysicsRegime::$branch(out) => { return out; },
+            *object = PhysicsRegimeObject::$branch(<$ctor>::new(measure,self.size));
+            match object {
+                PhysicsRegimeObject::$branch(out) => { return out; },
                 _ => { panic!("impossible regime create") }
             }
         }
 
         #[allow(unused)]
         fn $try_call(&mut self) -> Option<&mut $inner> {
-            match self {
-                PhysicsRegime::$branch(out) => { return Some(out); },
+            match &mut self.object {
+                PhysicsRegimeObject::$branch(out) => { return Some(out); },
                 _ => { return None; }
             }
         }
     };
 }
 
-enum PhysicsRegime {
+enum PhysicsRegimeObject {
     W(PhysicsRunnerWRegime),
     Pull(PhysicsRunnerDragRegime),
     None
 }
 
+struct PhysicsRegime {
+    object: PhysicsRegimeObject,
+    size: Option<f64>
+}
+
 impl PhysicsRegime {
+    fn new() -> PhysicsRegime {
+        PhysicsRegime {
+            object: PhysicsRegimeObject::None,
+            size: None
+        }
+    }
+
     fn is_active(&self) -> bool {
-        match self {
-            PhysicsRegime::None => false,
+        match self.object {
+            PhysicsRegimeObject::None => false,
             _ => true
         }
     }
 
-    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,PhysicsRunnerWRegime::new());
-    set_regime!(regime_drag,try_regime_drag,PhysicsRunnerDragRegime,Pull,PhysicsRunnerDragRegime::new());
+    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,PhysicsRunnerWRegime);
+    set_regime!(regime_drag,try_regime_drag,PhysicsRunnerDragRegime,Pull,PhysicsRunnerDragRegime);
 
     fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> (Option<f64>,Option<f64>) {
-        let result = match self {
-            PhysicsRegime::W(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegime::Pull(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegime::None => ApplyResult::Finished
+        let result = match &mut self.object {
+            PhysicsRegimeObject::W(r) => r.apply_spring(measure,total_dt),
+            PhysicsRegimeObject::Pull(r) => r.apply_spring(measure,total_dt),
+            PhysicsRegimeObject::None => ApplyResult::Finished
         };
         match result {
             ApplyResult::Update(x,bp) => (x,bp),
             ApplyResult::Finished => {
-                *self = PhysicsRegime::None;
+                self.object = PhysicsRegimeObject::None;
                 (None,None)
             }
         }
     }
 
     fn report_target(&self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        match self {
-            PhysicsRegime::W(r) => r.report_target(measure),
-            PhysicsRegime::Pull(r) => r.report_target(measure),
-            PhysicsRegime::None => (None,None)
+        match &self.object {
+            PhysicsRegimeObject::W(r) => r.report_target(measure),
+            PhysicsRegimeObject::Pull(r) => r.report_target(measure),
+            PhysicsRegimeObject::None => (None,None)
         }
+    }
+
+    fn set_size(&mut self, size: f64) {
+        if let Some(old_size) = self.size {
+            if old_size == size { return; }
+        }
+        self.size = Some(size);
+        self.object = PhysicsRegimeObject::None;
     }
 }
 
 pub(super) struct PhysicsRunner {
     regime: PhysicsRegime,
+    size: Option<f64>,
     animation_queue: VecDeque<QueueEntry>,
     animation_current: Option<QueueEntry>
 }
@@ -95,7 +118,8 @@ pub(super) struct PhysicsRunner {
 impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
         PhysicsRunner {
-            regime: PhysicsRegime::None,
+            regime: PhysicsRegime::new(),
+            size: None,
             animation_queue: VecDeque::new(),
             animation_current: None,
         }
@@ -129,25 +153,28 @@ impl PhysicsRunner {
         match &entry {
             QueueEntry::Wait => {},
             QueueEntry::MoveW(centre,scale) => {
-                self.regime.regime_w().set(measure,*centre,*scale);
+                self.regime.regime_w(measure).set(measure,*centre,*scale);
             },
             QueueEntry::MoveX(amt) => {
-                self.regime.regime_drag().jump_x(measure,*amt);
+                self.regime.regime_drag(measure).jump_x(measure,*amt);
             },
             QueueEntry::MoveZ(amt,centre) => {
-                self.regime.regime_drag().jump_z(measure,*amt,centre.clone());
+                self.regime.regime_drag(measure).jump_z(measure,*amt,centre.clone());
             },
             QueueEntry::JumpX(amt) => {
-                self.regime.regime_drag().move_x(&measure,*amt);
+                self.regime.regime_drag(measure).move_x(&measure,*amt);
             },
             QueueEntry::JumpZ(amt,pos) => { 
-                self.regime.regime_drag().move_z(&measure,*amt,pos.clone());
+                self.regime.regime_drag(measure).move_z(&measure,*amt,pos.clone());
             },
             QueueEntry::BrakeX => {
                 if let Some(drag) = self.regime.try_regime_drag() { drag.brake_x(); }
             },
             QueueEntry::BrakeZ => { 
                 if let Some(drag) = self.regime.try_regime_drag() { drag.brake_z(); }
+            },
+            QueueEntry::Size(size) => {
+                self.regime.set_size(*size);
             }
         }
     }

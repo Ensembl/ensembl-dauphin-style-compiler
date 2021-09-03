@@ -7,7 +7,7 @@ pub(super) struct PhysicsRunnerWRegime {
 }
 
 impl PhysicsRunnerWRegime {
-    pub(super) fn new() -> PhysicsRunnerWRegime {
+    pub(super) fn new(measure: &Measure, size: Option<f64>) -> PhysicsRunnerWRegime {
         let lethargy = 500.;  // 2500 for keys & animate, 500 for mouse, 50000 for goto
         let w_config = AxisPhysicsConfig {
             lethargy,

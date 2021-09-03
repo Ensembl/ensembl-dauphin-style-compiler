@@ -60,7 +60,8 @@ pub(super) struct AxisPhysics {
     immediate: bool,
     brake: bool,
     velocity: f64,
-    min_value: Option<f64>
+    min_value: Option<f64>,
+    max_value: Option<f64>
 }
 
 impl AxisPhysics {
@@ -71,7 +72,8 @@ impl AxisPhysics {
             target: None,
             immediate: false,
             velocity: 0.,
-            min_value: None
+            min_value: None,
+            max_value: None
         }
     }
 
@@ -80,10 +82,20 @@ impl AxisPhysics {
         self.apply_limits();
     }
 
+    pub(super) fn set_max_value(&mut self, max_value: f64) {
+        self.max_value = Some(self.config.scaling.to_internal(max_value));
+        self.apply_limits();
+    }
+
     fn apply_limits(&mut self) {
         if let (Some(target),Some(min_value)) = (&mut self.target,self.min_value) {
             if *target < min_value {
                 *target = min_value;
+            }
+        }
+        if let (Some(target),Some(max_value)) = (&mut self.target,self.max_value) {
+            if *target > max_value {
+                *target = max_value;
             }
         }
     }

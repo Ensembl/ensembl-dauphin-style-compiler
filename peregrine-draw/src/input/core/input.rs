@@ -93,6 +93,12 @@ impl Input {
         Ok(())
     }
 
+    pub fn set_limit(&self, limit: f64) {
+        if let Some(state) = self.state.lock().unwrap().as_mut() {
+            state.physics.set_limit(limit);
+        }
+    }
+
     pub fn set_hotspot(&self, yn: bool) {
         self.state(|state| state.low_level.set_hotspot(yn));
     }

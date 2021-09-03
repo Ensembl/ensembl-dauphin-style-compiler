@@ -3,11 +3,13 @@ use super::{animqueue::ApplyResult, axisphysics::{AxisPhysics, AxisPhysicsConfig
 pub(super) struct PhysicsRunnerDragRegime {
     x: AxisPhysics,
     z: AxisPhysics,
-    zoom_centre: Option<f64>
+    zoom_centre: Option<f64>,
+    size: Option<f64>
 }
 
 impl PhysicsRunnerDragRegime {
-    pub(crate) fn new() -> PhysicsRunnerDragRegime {
+    pub(crate) fn new(measure: &Measure, size: Option<f64>) -> PhysicsRunnerDragRegime {
+        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         let lethargy = 500.;  // 2500 for keys & animate, 500 for mouse, 50000 for goto
         let x_config = AxisPhysicsConfig {
             lethargy,
@@ -25,10 +27,15 @@ impl PhysicsRunnerDragRegime {
             brake_mul: 0.2,
             scaling: Scaling::Logarithmic(100.)
         };
-        let x =  AxisPhysics::new(x_config);
+        let mut x =  AxisPhysics::new(x_config);
         let mut z =  AxisPhysics::new(z_config);
         z.set_min_value(30.);
-        PhysicsRunnerDragRegime { x, z, zoom_centre: None }
+        if let Some(size) = size {
+            z.set_max_value(size);
+        }
+        let mut out = PhysicsRunnerDragRegime { x, z, zoom_centre: None, size };
+        out.update_x_limits(measure);
+        out
     }
 
     fn update_x_limits(&mut self, measure: &Measure) {
@@ -36,6 +43,9 @@ impl PhysicsRunnerDragRegime {
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         let x_min_px = target_bp_per_screen*px_per_bp/2.;
         self.x.set_min_value(x_min_px);
+        if let Some(size) = &self.size {
+            self.x.set_max_value(*size * px_per_bp - x_min_px);
+        }
         if measure.x_bp * px_per_bp < x_min_px {
             self.x.set(x_min_px);
         }
@@ -94,6 +104,7 @@ impl PhysicsRunnerDragRegime {
                 if new_x.is_none() { new_x = Some(new_middle); }
             }
             new_bp = Some(new_bp_per_screen);
+            self.update_x_limits(measure);
         }
         /**/
         ApplyResult::Update(new_x,new_bp)
