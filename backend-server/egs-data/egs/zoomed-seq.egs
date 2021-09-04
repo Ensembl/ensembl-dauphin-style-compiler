@@ -37,8 +37,8 @@ stmt bond(start,offset) {
     rectangle(top_left,bottom_right,patina,allotment);
 }
 
-seq_rectangle(seq_start,seq_end,seq_rev_letter,-16);
-seq_rectangle(seq_start,seq_end,seq_letter,16);
+seq_rectangle(seq_start,seq_end,seq_letter,-16);
+seq_rectangle(seq_start,seq_end,seq_rev_letter,16);
 
 bond(seq_start,0.3);
 bond(seq_start,0.7);
