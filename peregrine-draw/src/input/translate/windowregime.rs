@@ -26,11 +26,11 @@ impl PhysicsRunnerWRegime {
             w_scale: 1., 
             size           
         };
-        out.set_limits(measure);
+        out.update_settings(measure);
         out
     }
 
-    fn set_limits(&mut self, measure: &Measure) {
+    pub(super) fn update_settings(&mut self, measure: &Measure) {
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         if let Some(size) = &self.size {
             self.w_right.set_max_value(size*px_per_bp);
@@ -43,9 +43,8 @@ impl PhysicsRunnerWRegime {
         self.w_scale = measure.bp_per_screen / measure.px_per_screen; // bp_per_px
         let min_right_for_zscale = (new_left_bp + 30.)/self.w_scale;
         let right = (new_right_bp/self.w_scale).max(min_right_for_zscale);
-        self.set_limits(measure);
-        self.w_left.move_to(new_left_bp/self.w_scale);
-        self.w_right.move_to(right);
+        self.w_left.move_to2(new_left_bp/self.w_scale);
+        self.w_right.move_to2(right);
     }
 
     pub(super) fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> ApplyResult {

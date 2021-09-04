@@ -76,7 +76,7 @@ impl PhysicsState {
         self.runner.queue_clear();
         self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(scale,None));
+        self.runner.queue_add(QueueEntry::MoveZ(scale));
         self.update_needed();
         Ok(())
     }
@@ -140,7 +140,7 @@ impl PhysicsState {
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
                 let px_per_bp = measure.px_per_screen / bp_per_screen;
-                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
+                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
                 self.runner.queue_add(QueueEntry::Wait);
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
                 self.update_needed();
@@ -155,7 +155,7 @@ impl PhysicsState {
                 let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
                 self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
+                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
                 self.update_needed();
                 return Ok(());
             }
@@ -165,11 +165,11 @@ impl PhysicsState {
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
         let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
-        self.runner.queue_add(QueueEntry::MoveZ(outzoom_bp_per_screen,None));
+        self.runner.queue_add(QueueEntry::MoveZ(outzoom_bp_per_screen));
         self.runner.queue_add(QueueEntry::Wait);
         self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen,None));
+        self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
         self.update_needed();
         Ok(())
     }

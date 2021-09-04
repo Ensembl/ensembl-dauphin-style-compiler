@@ -8,7 +8,7 @@ use super::windowregime::PhysicsRunnerWRegime;
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
     MoveX(f64),
-    MoveZ(f64,Option<f64>),
+    MoveZ(f64),
     JumpX(f64),
     JumpZ(f64,Option<f64>),
     BrakeX,
@@ -25,13 +25,15 @@ pub(super) enum ApplyResult {
 macro_rules! set_regime {
     ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:ty) => {
         fn $call(&mut self, measure: &Measure) -> &mut $inner {
-            let object = &mut self.object;
-            match object {
-                PhysicsRegimeObject::$branch(out) => { return out; },
-                _ => {}
+            let create = match &self.object {
+                PhysicsRegimeObject::$branch(_) => { false },
+                _ => { true }
+            };
+            if create {
+                self.object = PhysicsRegimeObject::$branch(<$ctor>::new(measure,self.size));
             }
-            *object = PhysicsRegimeObject::$branch(<$ctor>::new(measure,self.size));
-            match object {
+            self.update_settings(measure);
+            match &mut self.object {
                 PhysicsRegimeObject::$branch(out) => { return out; },
                 _ => { panic!("impossible regime create") }
             }
@@ -91,11 +93,19 @@ impl PhysicsRegime {
         }
     }
 
-    fn report_target(&self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        match &self.object {
+    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
+        match &mut self.object {
             PhysicsRegimeObject::W(r) => r.report_target(measure),
             PhysicsRegimeObject::Pull(r) => r.report_target(measure),
             PhysicsRegimeObject::None => (None,None)
+        }
+    }
+
+    fn update_settings(&mut self, measure: &Measure) {
+        match &mut self.object {
+            PhysicsRegimeObject::W(r) => r.update_settings(measure),
+            PhysicsRegimeObject::Pull(r) => r.update_settings(measure),
+            PhysicsRegimeObject::None => {}
         }
     }
 
@@ -110,7 +120,6 @@ impl PhysicsRegime {
 
 pub(super) struct PhysicsRunner {
     regime: PhysicsRegime,
-    size: Option<f64>,
     animation_queue: VecDeque<QueueEntry>,
     animation_current: Option<QueueEntry>
 }
@@ -119,7 +128,6 @@ impl PhysicsRunner {
     pub(super) fn new() -> PhysicsRunner {
         PhysicsRunner {
             regime: PhysicsRegime::new(),
-            size: None,
             animation_queue: VecDeque::new(),
             animation_current: None,
         }
@@ -139,6 +147,7 @@ impl PhysicsRunner {
 
     pub(super) fn apply_spring(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+        self.regime.update_settings(&measure);
         let (new_x,new_bp) = self.regime.apply_spring(&measure,total_dt);
         if let Some(new_x) = new_x {
             inner.set_x(new_x);
@@ -150,6 +159,7 @@ impl PhysicsRunner {
     }
 
     fn run_one_step(&mut self, measure: &Measure, entry: &QueueEntry) {
+        self.regime.update_settings(measure);
         match &entry {
             QueueEntry::Wait => {},
             QueueEntry::MoveW(centre,scale) => {
@@ -158,8 +168,8 @@ impl PhysicsRunner {
             QueueEntry::MoveX(amt) => {
                 self.regime.regime_drag(measure).jump_x(measure,*amt);
             },
-            QueueEntry::MoveZ(amt,centre) => {
-                self.regime.regime_drag(measure).jump_z(measure,*amt,centre.clone());
+            QueueEntry::MoveZ(amt) => {
+                self.regime.regime_drag(measure).jump_z(measure,*amt);
             },
             QueueEntry::JumpX(amt) => {
                 self.regime.regime_drag(measure).move_x(&measure,*amt);
@@ -179,7 +189,7 @@ impl PhysicsRunner {
         }
     }
 
-    fn report_targets(&self, measure: &Measure, report: &mut Report) {
+    fn report_targets(&mut self, measure: &Measure, report: &mut Report) {
         let (target_x,target_bp) = self.regime.report_target(&measure);
         if let Some(target_x) = target_x {
             report.set_target_x_bp(target_x);

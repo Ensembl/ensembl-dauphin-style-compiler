@@ -5,17 +5,17 @@ pub enum Scaling {
 }
 
 impl Scaling {
-    fn to_internal(&self, value: f64) -> f64 {
+    fn to_internal(&self, factor: f64, value: f64) -> f64 {
         match self {
-            Scaling::Linear(k) => value * k,
-            Scaling::Logarithmic(k) => value.log2() * k
+            Scaling::Linear(k) => value * k * factor,
+            Scaling::Logarithmic(k) => value.log2() * k * factor
         }
     }
 
-    fn to_external(&self, value: f64) -> f64 {
+    fn to_external(&self, factor: f64, value: f64) -> f64 {
         match self {
-            Scaling::Linear(k) => value / k,
-            Scaling::Logarithmic(k) => 2_f64.powf(value/k)
+            Scaling::Linear(k) => value / k / factor,
+            Scaling::Logarithmic(k) => 2_f64.powf(value/k/factor)
         }
     }
 }
@@ -61,7 +61,8 @@ pub(super) struct AxisPhysics {
     brake: bool,
     velocity: f64,
     min_value: Option<f64>,
-    max_value: Option<f64>
+    max_value: Option<f64>,
+    factor: f64
 }
 
 impl AxisPhysics {
@@ -73,17 +74,22 @@ impl AxisPhysics {
             immediate: false,
             velocity: 0.,
             min_value: None,
-            max_value: None
+            max_value: None,
+            factor: 1.
         }
     }
 
+    pub(super) fn set_factor(&mut self, factor: f64) {
+        self.factor = factor;
+    }
+
     pub(super) fn set_min_value(&mut self, min_value: f64) {
-        self.min_value = Some(self.config.scaling.to_internal(min_value));
+        self.min_value = Some(self.config.scaling.to_internal(self.factor,min_value));
         self.apply_limits();
     }
 
     pub(super) fn set_max_value(&mut self, max_value: f64) {
-        self.max_value = Some(self.config.scaling.to_internal(max_value));
+        self.max_value = Some(self.config.scaling.to_internal(self.factor,max_value));
         self.apply_limits();
     }
 
@@ -107,18 +113,13 @@ impl AxisPhysics {
         self.brake = false;
     }
 
-    pub(super) fn set(&mut self, position: f64) {
-        self.move_to(position);
+    pub(super) fn set2(&mut self, position: f64) {
+        self.move_to2(position);
         self.immediate = true;
     }
 
-    pub(super) fn move_to(&mut self, position: f64) {
-        self.target = Some(position);
-        self.apply_limits();
-    }
-
     pub(super) fn move_to2(&mut self, position: f64) {
-        self.target = Some(self.config.scaling.to_internal(position));
+        self.target = Some(self.config.scaling.to_internal(self.factor,position));
         self.apply_limits();
     }
 
@@ -131,12 +132,12 @@ impl AxisPhysics {
     }
 
     pub(super) fn apply_spring(&mut self, current: f64, mut total_dt: f64) -> Option<f64> {
-        let mut current_px = self.config.scaling.to_internal(current);
+        let mut current_px = self.config.scaling.to_internal(self.factor,current);
         if let Some(target) = self.target {
             if self.immediate {
                 self.immediate = false;
                 self.halt();
-                Some(self.config.scaling.to_external(target))
+                Some(self.config.scaling.to_external(self.factor,target))
             } else {
                 let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
                 while total_dt > 0. {
@@ -159,7 +160,7 @@ impl AxisPhysics {
                         break;
                     }
                 }
-                Some(self.config.scaling.to_external(current_px))
+                Some(self.config.scaling.to_external(self.factor,current_px))
             }
         } else {
             None
@@ -169,6 +170,6 @@ impl AxisPhysics {
     pub(super) fn is_active(&self) -> bool { self.target.is_some() }
 
     pub(super) fn get_target(&self) -> Option<f64> {
-        self.target.map(|pip| self.config.scaling.to_external(pip))
+        self.target.map(|pip| self.config.scaling.to_external(self.factor,pip))
     }
 }
