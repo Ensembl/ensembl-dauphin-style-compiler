@@ -46,30 +46,29 @@ impl PhysicsRunnerDragRegime {
             self.x.set_max_value(*size  - target_bp_per_screen/2.);
         }
         if measure.x_bp < target_bp_per_screen/2. {
-            self.x.set2(target_bp_per_screen/2.);
+            self.x.set(target_bp_per_screen/2.);
         }
     }
 
-    pub(crate) fn jump_x(&mut self, measure: &Measure, x: f64) { // XXX why px?
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-        self.x.move_to2(x / px_per_bp);
+    pub(crate) fn shift_to(&mut self, x: f64) {
+        self.x.move_to(x);
     }
 
-    pub(crate) fn jump_z(&mut self, measure: &Measure, amount: f64) {
-        self.z.move_to2(amount);
+    pub(crate) fn zoom_to(&mut self, amount: f64) {
+        self.z.move_to(amount);
     }
 
-    pub(crate) fn move_x(&mut self, measure: &Measure, amount_px: f64) { // XXX why px
+    pub(crate) fn shift_more(&mut self, measure: &Measure, amount_px: f64) {
         if !self.x.is_active() {
-            self.x.move_to2(measure.x_bp);
+            self.x.set(measure.x_bp);
         }
         self.x.move_more(amount_px);
     }
 
-    pub(crate) fn move_z(&mut self, measure: &Measure, amount_px: f64, centre: Option<f64>) {
+    pub(crate) fn zoom_more(&mut self, measure: &Measure, amount_px: f64, centre: Option<f64>) {
         if !self.z.is_active() {
             self.zoom_centre = centre.clone();
-            self.z.move_to2(measure.bp_per_screen);
+            self.z.set(measure.bp_per_screen);
         }
         self.z.move_more(amount_px);
     }

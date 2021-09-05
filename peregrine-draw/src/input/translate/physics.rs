@@ -74,20 +74,20 @@ impl PhysicsState {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         self.runner.queue_clear();
-        self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+        self.runner.queue_add(QueueEntry::ShiftTo(centre));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(scale));
+        self.runner.queue_add(QueueEntry::ZoomTo(scale));
         self.update_needed();
         Ok(())
     }
 
     fn apply_ongoing(&mut self, dt: f64) -> Result<(),Message> {
         if let Some(delta) = self.x_puller.tick(dt) {
-            self.runner.queue_add(QueueEntry::JumpX(delta));
+            self.runner.queue_add(QueueEntry::ShiftMore(delta));
             self.update_needed();
         }
         if let Some(delta) = self.z_puller.tick(dt) {
-            self.runner.queue_add(QueueEntry::JumpZ(delta,None));
+            self.runner.queue_add(QueueEntry::ZoomMore(delta,None));
             self.update_needed();
         }
         Ok(())
@@ -140,9 +140,9 @@ impl PhysicsState {
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
                 let px_per_bp = measure.px_per_screen / bp_per_screen;
-                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre));
                 self.update_needed();
                 return Ok(());
             }
@@ -153,9 +153,9 @@ impl PhysicsState {
             if screenful_move < 2. { // XXX config
                 /* strategy 1 */
                 let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-                self.runner.queue_add(QueueEntry::MoveX(centre*px_per_bp));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
                 self.update_needed();
                 return Ok(());
             }
@@ -165,11 +165,11 @@ impl PhysicsState {
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
         let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
-        self.runner.queue_add(QueueEntry::MoveZ(outzoom_bp_per_screen));
+        self.runner.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveX(centre*new_px_per_bp));
+        self.runner.queue_add(QueueEntry::ShiftTo(centre));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::MoveZ(bp_per_screen));
+        self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
         self.update_needed();
         Ok(())
     }
@@ -223,19 +223,19 @@ impl Physics {
         }
         match event.details {
             InputEventKind::PixelsLeft => {
-                state.runner.queue_add(QueueEntry::JumpX(-distance));
+                state.runner.queue_add(QueueEntry::ShiftMore(-distance));
                 state.update_needed();
             },
             InputEventKind::PixelsRight => {
-                state.runner.queue_add(QueueEntry::JumpX(distance));
+                state.runner.queue_add(QueueEntry::ShiftMore(distance));
                 state.update_needed();
             },
             InputEventKind::PixelsIn => {
-                state.runner.queue_add(QueueEntry::JumpZ(-distance,centre));               
+                state.runner.queue_add(QueueEntry::ZoomMore(-distance,centre));               
                 state.update_needed();
             },
             InputEventKind::PixelsOut => {
-                state.runner.queue_add(QueueEntry::JumpZ(distance,centre));
+                state.runner.queue_add(QueueEntry::ZoomMore(distance,centre));
                 state.update_needed();
             },
             _ => {}

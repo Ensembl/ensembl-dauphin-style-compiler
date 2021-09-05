@@ -113,12 +113,12 @@ impl AxisPhysics {
         self.brake = false;
     }
 
-    pub(super) fn set2(&mut self, position: f64) {
-        self.move_to2(position);
+    pub(super) fn set(&mut self, position: f64) {
+        self.move_to(position);
         self.immediate = true;
     }
 
-    pub(super) fn move_to2(&mut self, position: f64) {
+    pub(super) fn move_to(&mut self, position: f64) {
         self.target = Some(self.config.scaling.to_internal(self.factor,position));
         self.apply_limits();
     }

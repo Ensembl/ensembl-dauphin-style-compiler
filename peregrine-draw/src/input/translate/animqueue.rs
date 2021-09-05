@@ -7,10 +7,10 @@ use super::windowregime::PhysicsRunnerWRegime;
 
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
-    MoveX(f64),
-    MoveZ(f64),
-    JumpX(f64),
-    JumpZ(f64,Option<f64>),
+    ShiftTo(f64),
+    ZoomTo(f64),
+    ShiftMore(f64),
+    ZoomMore(f64,Option<f64>),
     BrakeX,
     BrakeZ,
     Wait,
@@ -165,17 +165,17 @@ impl PhysicsRunner {
             QueueEntry::MoveW(centre,scale) => {
                 self.regime.regime_w(measure).set(measure,*centre,*scale);
             },
-            QueueEntry::MoveX(amt) => {
-                self.regime.regime_drag(measure).jump_x(measure,*amt);
+            QueueEntry::ShiftTo(amt) => {
+                self.regime.regime_drag(measure).shift_to(*amt);
             },
-            QueueEntry::MoveZ(amt) => {
-                self.regime.regime_drag(measure).jump_z(measure,*amt);
+            QueueEntry::ZoomTo(amt) => {
+                self.regime.regime_drag(measure).zoom_to(*amt);
             },
-            QueueEntry::JumpX(amt) => {
-                self.regime.regime_drag(measure).move_x(&measure,*amt);
+            QueueEntry::ShiftMore(amt) => {
+                self.regime.regime_drag(measure).shift_more(&measure,*amt);
             },
-            QueueEntry::JumpZ(amt,pos) => { 
-                self.regime.regime_drag(measure).move_z(&measure,*amt,pos.clone());
+            QueueEntry::ZoomMore(amt,pos) => { 
+                self.regime.regime_drag(measure).zoom_more(&measure,*amt,pos.clone());
             },
             QueueEntry::BrakeX => {
                 if let Some(drag) = self.regime.try_regime_drag() { drag.brake_x(); }
