@@ -6,7 +6,7 @@ use js_sys::Array;
 use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{Executor, cdr_timer};
-use peregrine_draw::{ PeregrineAPI, Message, PgCommanderWeb, PeregrineConfig };
+use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_fixed_vec_to_json};
 use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::url::Url;
@@ -262,6 +262,22 @@ impl GenomeBrowser {
                                     args.set(3,js_throw(JsValue::from_serde(&json)));
                                     let _ = closure.apply(&this,&args);
                                 },
+                                Message::HitEndstop(endstops) => {
+                                    let args = Array::new();
+                                    let values = Array::new();
+                                    for (i,endstop) in endstops.iter().enumerate() {
+                                        let name = match endstop {
+                                            Endstop::Left => { "left" },
+                                            Endstop::Right => { "right" },
+                                            Endstop::MaxZoomIn => { "in "},
+                                            Endstop::MaxZoomOut => { "out "}
+                                        };
+                                        values.set(i as u32,JsValue::from(name));
+                                    }
+                                    args.set(0,JsValue::from("endstops"));
+                                    args.set(1,JsValue::from(values));
+                                    let _ = closure.apply(&this,&args);
+                                }
                                 x => {
                                     use web_sys::console;
                                     console::warn_1(&format!("unexpected information: {}",x.to_string()).into());
@@ -273,7 +289,7 @@ impl GenomeBrowser {
             });
         }));
     }
-
+    
     pub fn set_message_reporter(&mut self,f: js_sys::Function) {
         CLOSURE.with(move |closure| {
             if self.closure_index.is_none() {

@@ -77,16 +77,13 @@ impl PhysicsRegimeTrait for PhysicsRunnerDragRegime {
         if let Some(size) = &self.size {
             self.x.set_max_value(*size  - target_bp_per_screen/2.);
         }
-        if measure.x_bp < target_bp_per_screen/2. {
-            self.x.set(target_bp_per_screen/2.);
-        }
+        self.x.enforce_limits(measure.x_bp);
     }
 
     fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> ApplyResult {
         if !self.x.is_active() && !self.z.is_active() { return ApplyResult::Finished; }
         let mut new_x = self.x.apply_spring(measure.x_bp,total_dt);
         let mut new_bp = None;
-        /* x-coordinate */
         if let Some(new_bp_per_screen) = self.z.apply_spring(measure.bp_per_screen,total_dt) {
             if let Some(stationary) = self.zoom_centre {
                 let x_screen = stationary/measure.px_per_screen;

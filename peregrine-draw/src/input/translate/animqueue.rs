@@ -1,12 +1,15 @@
 use std::collections::VecDeque;
 use crate::run::{PgConfigKey, PgPeregrineConfig};
 use crate::run::report::Report;
+use crate::util::message::Endstop;
 use crate::{Message, PeregrineInnerAPI };
 use super::axisphysics::{AxisPhysicsConfig, Scaling};
 use super::dragregime::{PhysicsDragRegimeCreator, PhysicsRunnerDragRegime};
 use super::measure::Measure;
 use super::windowregime::{PhysicsRunnerWRegime, PhysicsWRegimeCreator};
+use super::zoomxregime::{PhysicsRunnerZoomXRegime, PhysicsZoomXRegimeCreator};
 
+#[derive(Clone)]
 pub(super) enum Cadence {
     #[allow(unused)]
     UserInput,
@@ -17,6 +20,7 @@ pub(super) enum Cadence {
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
     ShiftTo(f64,Cadence),
+    ShiftByZoomTo(f64,Cadence),
     ZoomTo(f64,Cadence),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
@@ -80,8 +84,10 @@ impl PhysicsRegimeTrait for PhysicsRegimeNone {
 enum PhysicsRegimeObject {
     W(PhysicsRunnerWRegime),
     UserPull(PhysicsRunnerDragRegime),
+    InstructedPull(PhysicsRunnerDragRegime),
     SelfPull(PhysicsRunnerDragRegime),
-    None(PhysicsRegimeNone)
+    None(PhysicsRegimeNone),
+    ZoomX(PhysicsRunnerZoomXRegime)
 }
 
 impl PhysicsRegimeObject {
@@ -89,8 +95,10 @@ impl PhysicsRegimeObject {
         match self {
             PhysicsRegimeObject::W(r) => r,
             PhysicsRegimeObject::UserPull(r) => r,
+            PhysicsRegimeObject::InstructedPull(r) => r,
             PhysicsRegimeObject::SelfPull(r) => r,
-            PhysicsRegimeObject::None(r) => r
+            PhysicsRegimeObject::None(r) => r,
+            PhysicsRegimeObject::ZoomX(r) => r
         }
     }
 }
@@ -101,6 +109,7 @@ struct PhysicsRegime {
     user_drag_creator: PhysicsDragRegimeCreator,
     instructed_drag_creator: PhysicsDragRegimeCreator,
     self_drag_creator: PhysicsDragRegimeCreator,
+    zoomx_creator: PhysicsZoomXRegimeCreator,
     size: Option<f64>
 }
 
@@ -126,23 +135,28 @@ fn make_drag_axis_config(config: &PgPeregrineConfig, lethargy_key: &PgConfigKey)
 impl PhysicsRegime {
     fn new(config: &PgPeregrineConfig) -> Result<PhysicsRegime,Message> {
         let user_drag_config = make_drag_axis_config(config,&PgConfigKey::UserDragLethargy)?;
-        let instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
+        let mut instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
         let self_drag_config = make_drag_axis_config(config,&PgConfigKey::SelfDragLethargy)?;
         let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
+        let zoomx_config = instructed_drag_config.0.clone();
+        instructed_drag_config.0.vel_min *= 100.;
+        instructed_drag_config.0.force_min *= 100.;
         Ok(PhysicsRegime {
             object: PhysicsRegimeObject::None(PhysicsRegimeNone()),
             w_creator: PhysicsWRegimeCreator(w_config),
             user_drag_creator: PhysicsDragRegimeCreator(user_drag_config.0,user_drag_config.1),
             instructed_drag_creator: PhysicsDragRegimeCreator(instructed_drag_config.0,instructed_drag_config.1),
             self_drag_creator: PhysicsDragRegimeCreator(self_drag_config.0,self_drag_config.1),
+            zoomx_creator: PhysicsZoomXRegimeCreator(zoomx_config),
             size: None
         })
     }
 
     set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,w_creator);
     set_regime!(regime_user_drag,try_regime_user_drag,PhysicsRunnerDragRegime,UserPull,user_drag_creator);
-    set_regime!(regime_instructed_drag,try_regime_instructed_drag,PhysicsRunnerDragRegime,UserPull,instructed_drag_creator);
+    set_regime!(regime_instructed_drag,try_regime_instructed_drag,PhysicsRunnerDragRegime,InstructedPull,instructed_drag_creator);
     set_regime!(regime_self_drag,try_regime_self_drag,PhysicsRunnerDragRegime,SelfPull,self_drag_creator);
+    set_regime!(regime_zoomx,try_regime_zoomx,PhysicsRunnerZoomXRegime,ZoomX,zoomx_creator);
 
     fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> (Option<f64>,Option<f64>) {
         match self.object.as_trait_mut().apply_spring(measure,total_dt) {
@@ -178,7 +192,9 @@ impl PhysicsRegime {
 pub(super) struct PhysicsRunner {
     regime: PhysicsRegime,
     animation_queue: VecDeque<QueueEntry>,
-    animation_current: Option<QueueEntry>
+    animation_current: Option<QueueEntry>,
+    size: Option<f64>,
+    max_zoom_in_bp: f64
 }
 
 impl PhysicsRunner {
@@ -187,6 +203,8 @@ impl PhysicsRunner {
             regime: PhysicsRegime::new(config)?,
             animation_queue: VecDeque::new(),
             animation_current: None,
+            size: None,
+            max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?
         })
     }
 
@@ -229,6 +247,9 @@ impl PhysicsRunner {
                     Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).shift_to(*amt); }
                 }
             },
+            QueueEntry::ShiftByZoomTo(amt,_cadence) => {
+                self.regime.regime_zoomx(measure).set(measure,*amt);
+            },
             QueueEntry::ZoomTo(amt,cadence) => {
                 match cadence {
                     Cadence::UserInput => { self.regime.regime_user_drag(measure).zoom_to(*amt); },
@@ -252,8 +273,33 @@ impl PhysicsRunner {
             },
             QueueEntry::Size(size) => {
                 self.regime.set_size(measure,*size);
+                self.size = Some(*size);
             }
         }
+    }
+
+    fn detect_endstops(&self, measure: &Measure) -> Vec<Endstop> {
+        let mut out = vec![];
+        let mut zoom_out = 0;
+        if (measure.x_bp - measure.bp_per_screen/2.) < 0.5 {
+            out.push(Endstop::Left);
+            zoom_out += 1;
+        } else {
+        }
+        if let Some(size) = self.size {
+            if (measure.x_bp + measure.bp_per_screen/2.) > size - 0.5 {
+                out.push(Endstop::Right);
+                zoom_out += 1;
+            }
+        }
+        if zoom_out == 2 {
+            out.push(Endstop::MaxZoomOut);
+        }
+        if measure.bp_per_screen < self.max_zoom_in_bp + 0.5 {
+            out.push(Endstop::MaxZoomIn);
+        }
+        out.sort();
+        out
     }
 
     fn report_targets(&mut self, measure: &Measure, report: &mut Report) {
@@ -264,6 +310,7 @@ impl PhysicsRunner {
         if let Some(target_bp) = target_bp {
             report.set_target_bp_per_screen(target_bp);
         }
+        report.set_endstops(&self.detect_endstops(measure));
     }
 
     fn exit_due_to_waiting(&mut self) -> bool {

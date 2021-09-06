@@ -64,6 +64,7 @@ impl PhysicsRegimeTrait for PhysicsRunnerWRegime {
     fn update_settings(&mut self, measure: &Measure) {
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         if let Some(size) = &self.size {
+            self.w_left.set_max_value(size*px_per_bp);
             self.w_right.set_max_value(size*px_per_bp);
         }
     }

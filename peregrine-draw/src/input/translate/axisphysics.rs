@@ -55,8 +55,15 @@ pub struct AxisPhysicsConfig {
     pub min_bp_per_screen: f64
 }
 
+pub(super) enum Stopped {
+    Nominal,
+    Minimum,
+    Maximum
+}
+
 pub(super) struct AxisPhysics {
     config: AxisPhysicsConfig,
+    stopped: Stopped,
     target: Option<f64>,
     immediate: bool,
     brake: bool,
@@ -70,6 +77,7 @@ impl AxisPhysics {
     pub(super) fn new(config: &AxisPhysicsConfig) -> AxisPhysics {
         AxisPhysics {
             config: config.clone(),
+            stopped: Stopped::Nominal,
             brake: false,
             target: None,
             immediate: false,
@@ -82,31 +90,48 @@ impl AxisPhysics {
 
     pub(super) fn set_factor(&mut self, factor: f64) {
         self.factor = factor;
+        self.apply_limits();
     }
 
     pub(super) fn set_min_value(&mut self, min_value: f64) {
-        self.min_value = Some(self.config.scaling.to_internal(self.factor,min_value));
+        self.min_value = Some(min_value);
         self.apply_limits();
     }
 
     pub(super) fn set_max_value(&mut self, max_value: f64) {
-        self.max_value = Some(self.config.scaling.to_internal(self.factor,max_value));
+        self.max_value = Some(max_value);
         self.apply_limits();
     }
 
-    fn apply_limits(&mut self) {
-        if let (Some(target),Some(min_value)) = (&mut self.target,self.min_value) {
-            if *target < min_value {
-                *target = min_value;
+    pub(super) fn limited_value(&self, mut value: f64) -> (f64,Stopped) {
+        let mut stopped = Stopped::Nominal;
+        if let Some(min_value) = self.min_value {
+            if value < min_value {
+                value = min_value;
+                stopped = Stopped::Minimum;
             }
         }
-        if let (Some(target),Some(max_value)) = (&mut self.target,self.max_value) {
-            if *target > max_value {
-                *target = max_value;
+        if let Some(max_value) = self.max_value {
+            if value > max_value {
+                value = max_value;
+                stopped = Stopped::Maximum;
             }
+        }
+        (value,stopped)
+    }
+
+    fn apply_limits(&mut self) {        
+        let mut limited = None;
+        if let Some(target) = self.target {
+            limited = Some(self.limited_value(target));
+        }
+        if let Some((value,stopped)) = limited {
+            self.target = Some(value);
+            self.stopped = stopped;
         }
     }
 
+    pub(super) fn is_stopped(&self) -> &Stopped { &self.stopped }
     pub(super) fn brake(&mut self) { self.brake = true; }
 
     fn halt(&mut self) {
@@ -114,22 +139,26 @@ impl AxisPhysics {
         self.brake = false;
     }
 
-    pub(super) fn set(&mut self, position: f64) {
-        self.move_to(position);
-        self.immediate = true;
+    pub(super) fn enforce_limits(&mut self, position: f64) {
+        let limited_position = self.limited_value(position).0;
+        if position != limited_position {
+            self.target = Some(limited_position);
+            self.immediate = true;    
+        }
     }
 
     pub(super) fn move_to(&mut self, position: f64) {
-        self.target = Some(self.config.scaling.to_internal(self.factor,position));
+        self.target = Some(position);
         self.apply_limits();
     }
 
     pub(super) fn move_more(&mut self, amount: f64) {
         if let Some(target) = &mut self.target {
-            *target += amount;
+            let mut target_px = self.config.scaling.to_internal(self.factor,*target);
+            target_px += amount;
+            *target = self.config.scaling.to_external(self.factor,target_px);
         }
         self.apply_limits();
-        self.velocity = 0.;
     }
 
     pub(super) fn apply_spring(&mut self, current: f64, mut total_dt: f64) -> Option<f64> {
@@ -138,13 +167,14 @@ impl AxisPhysics {
             if self.immediate {
                 self.immediate = false;
                 self.halt();
-                Some(self.config.scaling.to_external(self.factor,target))
+                Some(target)
             } else {
+                let target_px = self.config.scaling.to_internal(self.factor,target);
                 let crit = (4./self.config.lethargy).sqrt()/self.config.boing; /* critically damped when BOING = 1.0 */
                 while total_dt > 0. {
                     let dt = total_dt.min(0.1);
                     total_dt -= dt;
-                    let drive = target - current_px;
+                    let drive = target_px - current_px;
                     let mut drive_f = drive/self.config.lethargy;
                     let mut friction_f =  self.velocity * crit;
                     if self.brake {
@@ -156,7 +186,7 @@ impl AxisPhysics {
                     let delta = self.velocity*dt;
                     current_px += delta;
                     if self.velocity.abs() < self.config.vel_min && force.abs() < self.config.force_min {
-                        current_px = target;
+                        current_px = target_px;
                         self.halt();
                         break;
                     }
@@ -170,7 +200,5 @@ impl AxisPhysics {
 
     pub(super) fn is_active(&self) -> bool { self.target.is_some() }
 
-    pub(super) fn get_target(&self) -> Option<f64> {
-        self.target.map(|pip| self.config.scaling.to_external(self.factor,pip))
-    }
+    pub(super) fn get_target(&self) -> Option<f64> { self.target }
 }

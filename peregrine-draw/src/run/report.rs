@@ -1,8 +1,8 @@
 use std::{sync::{Arc, Mutex}};
-use commander::{CommanderStream, cdr_tick};
+use commander::{CommanderStream, cdr_tick, cdr_timer };
 use peregrine_data::{AllotterMetadata, ZMenuFixed};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
-use crate::{Message, PgCommanderWeb };
+use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
 
 struct Changed<T: PartialEq> {
@@ -70,6 +70,7 @@ struct ReportData {
     target_bp_per_screen: Changed<f64>,
     stick: Changed<String>,
     target_stick: Changed<String>,
+    endstop: Changed<Vec<Endstop>>,
     messages: CommanderStream<Message>,
     needed: Needed
 }
@@ -83,6 +84,7 @@ impl ReportData {
             target_bp_per_screen: Changed::new(),
             stick: Changed::new(),
             target_stick: Changed::new(),
+            endstop: Changed::new(),
             messages: messages.clone(),
             needed: needed.clone()
         }
@@ -96,20 +98,26 @@ impl ReportData {
     fn set_bp_per_screen(&mut self, value: f64) { self.bp_per_screen.set(value,&self.needed); }
     fn set_target_x_bp(&mut self, value: f64) { self.target_x_bp.set(value,&self.needed); }
     fn set_target_bp_per_screen(&mut self, value: f64) { self.target_bp_per_screen.set(value,&self.needed); }
+    fn set_endstops(&mut self, value: &[Endstop]) { self.endstop.set(value.to_vec(),&self.needed); }
 
     fn zmenu_event(&self, x: f64, y: f64, event: Vec<ZMenuFixed>) {
         self.messages.add(Message::ZMenuEvent(x,y,event));
     }
 
-    fn build_messages(&mut self) -> Vec<Message> {
+    fn build_messages(&mut self, fast: bool) -> Vec<Message> {
         let mut out = vec![];
-        if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.stick,&mut self.x_bp,&mut self.bp_per_screen) {
-            let (left,right) = to_left_right(current_pos,current_scale);
-            out.push(Message::CurrentLocation(stick,left,right))
+        if !fast {
+            if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.stick,&mut self.x_bp,&mut self.bp_per_screen) {
+                let (left,right) = to_left_right(current_pos,current_scale);
+                out.push(Message::CurrentLocation(stick,left,right))
+            }
+            if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.target_stick,&mut self.target_x_bp,&mut self.target_bp_per_screen) {
+                let (left,right) = to_left_right(current_pos,current_scale);
+                out.push(Message::TargetLocation(stick,left,right))
+            }
         }
-        if let Some((stick,current_pos,current_scale)) = extract_coord(&mut self.target_stick,&mut self.target_x_bp,&mut self.target_bp_per_screen) {
-            let (left,right) = to_left_right(current_pos,current_scale);
-            out.push(Message::TargetLocation(stick,left,right))
+        if let Some(endstops) = self.endstop.report(false) {
+            out.push(Message::HitEndstop(endstops.to_vec()));
         }
         out
     }
@@ -118,8 +126,8 @@ impl ReportData {
         self.messages.add(Message::AllotterMetadata(metadata.clone()));
     }
 
-    fn report_step(&mut self) -> Result<(),Message> {
-        for message in self.build_messages() {
+    fn report_step(&mut self, fast: bool) -> Result<(),Message> {
+        for message in self.build_messages(fast) {
             self.messages.add(message);
         }
         Ok(())
@@ -136,8 +144,17 @@ pub struct Report {
 impl Report {
     async fn report_loop(&self) -> Result<(),Message> {
         loop {
-            self.data.lock().unwrap().report_step()?;
-            cdr_tick(self.update_freq as u64).await;
+            self.data.lock().unwrap().report_step(false)?;
+            cdr_timer(self.update_freq).await;
+            self.needed.wait_until_needed().await;
+        }
+
+    }
+
+    async fn fast_report_loop(&self) -> Result<(),Message> {
+        loop {
+            self.data.lock().unwrap().report_step(true)?;
+            cdr_tick(1).await;
             self.needed.wait_until_needed().await;
         }
 
@@ -157,6 +174,7 @@ impl Report {
     pub(crate) fn set_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_bp_per_screen(value); }
     pub(crate) fn set_target_x_bp(&self, value: f64) { self.data.lock().unwrap().set_target_x_bp(value); }
     pub(crate) fn set_target_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_target_bp_per_screen(value); }
+    pub(crate) fn set_endstops(&self,value: &[Endstop]) { self.data.lock().unwrap().set_endstops(value); }
 
     pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
         self.data.lock().unwrap().set_allotter_metadata(metadata);
@@ -169,5 +187,7 @@ impl Report {
     pub(crate) fn run(&self, commander: &PgCommanderWeb) {
         let self2 = self.clone();
         commander.add("report", 0, None, None, Box::pin(async move { self2.report_loop().await }));
+        let self2 = self.clone();
+        commander.add("report-fast", 0, None, None, Box::pin(async move { self2.fast_report_loop().await }));
     }
 }

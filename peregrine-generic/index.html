@@ -74,6 +74,8 @@
               current_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
           } else if(kind=="target") {
               target_span.innerText = `${more[0]}:${more[1]}-${more[2]}`;
+          } else if(kind=="endstops") {
+              console.log("endstops: "+more[0])
           } else if(kind=="tracks") {
             let tbody = document.getElementById("track-metadata");
             tbody.innerHTML = "";

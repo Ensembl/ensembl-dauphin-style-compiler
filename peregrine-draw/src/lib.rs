@@ -29,6 +29,7 @@ mod input {
         pub(crate) mod translatezmenu;
         pub(super) mod dragregime;
         pub(super) mod windowregime;
+        pub(super) mod zoomxregime;
 
         pub use self::physics::Physics;
     }
@@ -133,7 +134,7 @@ mod util {
     #[macro_use]
     pub(crate) mod misc;
     pub use self::ajax::PgAjax;
-    pub use self::message::Message;
+    pub use self::message::{ Message, Endstop };
 }
 
 mod webgl {
@@ -211,5 +212,5 @@ mod webgl {
 }
 
 pub use crate::run::{ PeregrineInnerAPI, PeregrineDom, PeregrineAPI, PeregrineConfig };
-pub use self::util::{ PgAjax, Message };
+pub use self::util::{ PgAjax, Message, Endstop };
 pub use crate::integration::PgCommanderWeb;
