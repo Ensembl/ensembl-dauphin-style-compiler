@@ -108,7 +108,7 @@ impl AxisPhysics {
 
     pub(super) fn brake(&mut self) { self.brake = true; }
 
-    pub(super) fn halt(&mut self) {
+    fn halt(&mut self) {
         self.target = None;
         self.brake = false;
     }

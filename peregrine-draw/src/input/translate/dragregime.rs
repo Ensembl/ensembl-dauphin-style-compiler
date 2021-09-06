@@ -8,8 +8,7 @@ pub(super) struct PhysicsRunnerDragRegime {
 }
 
 impl PhysicsRunnerDragRegime {
-    pub(crate) fn new(measure: &Measure, size: Option<f64>) -> PhysicsRunnerDragRegime {
-        let lethargy = 500.;  // 2500 for keys & animate, 500 for mouse, 50000 for goto
+    pub(crate) fn new(lethargy: f64) -> PhysicsRunnerDragRegime {
         let x_config = AxisPhysicsConfig {
             lethargy,
             boing: 1.,
@@ -26,15 +25,18 @@ impl PhysicsRunnerDragRegime {
             brake_mul: 0.2,
             scaling: Scaling::Logarithmic(100.)
         };
-        let mut x =  AxisPhysics::new(x_config);
+        let x =  AxisPhysics::new(x_config);
         let mut z =  AxisPhysics::new(z_config);
         z.set_min_value(30.);
+        PhysicsRunnerDragRegime { x, z, zoom_centre: None, size: None }
+    }
+
+    pub(super) fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
         if let Some(size) = size {
-            z.set_max_value(size);
+            self.size = Some(size);
+            self.z.set_max_value(size);
         }
-        let mut out = PhysicsRunnerDragRegime { x, z, zoom_centre: None, size };
-        out.update_settings(measure);
-        out
+        self.update_settings(measure);
     }
 
     pub(super) fn update_settings(&mut self, measure: &Measure) {
@@ -60,7 +62,7 @@ impl PhysicsRunnerDragRegime {
 
     pub(crate) fn shift_more(&mut self, measure: &Measure, amount_px: f64) {
         if !self.x.is_active() {
-            self.x.set(measure.x_bp);
+            self.x.move_to(measure.x_bp);
         }
         self.x.move_more(amount_px);
     }
@@ -68,7 +70,7 @@ impl PhysicsRunnerDragRegime {
     pub(crate) fn zoom_more(&mut self, measure: &Measure, amount_px: f64, centre: Option<f64>) {
         if !self.z.is_active() {
             self.zoom_centre = centre.clone();
-            self.z.set(measure.bp_per_screen);
+            self.z.move_to(measure.bp_per_screen);
         }
         self.z.move_more(amount_px);
     }

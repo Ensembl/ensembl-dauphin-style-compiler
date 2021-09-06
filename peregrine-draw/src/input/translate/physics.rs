@@ -8,7 +8,7 @@ use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
-use super::{animqueue::{QueueEntry}, axisphysics::{Puller}};
+use super::{animqueue::{Cadence, QueueEntry}, axisphysics::{Puller}};
 use super::animqueue::PhysicsRunner;
 
 const PULL_SPEED : f64 = 2.; // px/ms
@@ -70,13 +70,11 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn animate_to(&mut self, inner: &PeregrineInnerAPI, scale: f64, centre: f64) -> Result<(),Message> {
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
+    fn animate_to(&mut self, scale: f64, centre: f64) -> Result<(),Message> {
         self.runner.queue_clear();
-        self.runner.queue_add(QueueEntry::ShiftTo(centre));
+        self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::Instructed));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ZoomTo(scale));
+        self.runner.queue_add(QueueEntry::ZoomTo(scale,Cadence::Instructed));
         self.update_needed();
         Ok(())
     }
@@ -139,23 +137,21 @@ impl PhysicsState {
             let screenful_move = (centre-measure.x_bp).abs() / bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
-                let px_per_bp = measure.px_per_screen / bp_per_screen;
-                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::ShiftTo(centre));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
                 self.update_needed();
                 return Ok(());
             }
         } else {
-            /* we are getting feswer bp per screen, ie zooming in: can use strategies 1 or 3 */
+            /* we are getting fewer bp per screen, ie zooming in: can use strategies 1 or 3 */
             /* to test if we can use 1: how many screenfuls must we move at the ORIGINAL scale? */
             let screenful_move = (centre-measure.x_bp).abs() / measure.bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 1 */
-                let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-                self.runner.queue_add(QueueEntry::ShiftTo(centre));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
                 self.update_needed();
                 return Ok(());
             }
@@ -164,12 +160,11 @@ impl PhysicsState {
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
-        let new_px_per_bp = measure.px_per_screen / outzoom_bp_per_screen;
-        self.runner.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen));
+        self.runner.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen,Cadence::SelfPropelled));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ShiftTo(centre));
+        self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen));
+        self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
         self.update_needed();
         Ok(())
     }
@@ -260,7 +255,7 @@ impl Physics {
         Ok(())
     }
 
-    fn incoming_animate_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_animate_event(&self, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let scale = *event.amount.get(0).unwrap_or(&1.);
@@ -271,18 +266,18 @@ impl Physics {
                 // XXX y
                 self.report.set_target_x_bp(centre);
                 self.report.set_target_bp_per_screen(scale);        
-                state.animate_to(inner,scale,centre)?;
+                state.animate_to(scale,centre)?;
             },
             _ => {}
         }
         Ok(())
     }
 
-    fn incoming_event(&self, inner: &PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_event(&self, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event)?;
         self.incoming_jump_request(event)?;
         self.incoming_scale_event(event)?;
-        self.incoming_animate_event(inner,event)?;
+        self.incoming_animate_event(event)?;
         Ok(())
     }
 
@@ -305,8 +300,7 @@ impl Physics {
             physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();
-        let inner2 = inner.clone();
-        low_level.distributor_mut().add(move |e| { out2.incoming_event(&inner2,e).ok(); }); // XXX error distribution
+        low_level.distributor_mut().add(move |e| { out2.incoming_event(e).ok(); }); // XXX error distribution
         let out2 = out.clone();
         let mut inner2 = inner.clone();
         commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&mut inner2).await }));

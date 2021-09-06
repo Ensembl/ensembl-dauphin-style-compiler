@@ -5,10 +5,17 @@ use super::dragregime::PhysicsRunnerDragRegime;
 use super::measure::Measure;
 use super::windowregime::PhysicsRunnerWRegime;
 
+pub(super) enum Cadence {
+    #[allow(unused)]
+    UserInput,
+    Instructed,
+    SelfPropelled
+}
+
 pub(super) enum QueueEntry {
     MoveW(f64,f64),
-    ShiftTo(f64),
-    ZoomTo(f64),
+    ShiftTo(f64,Cadence),
+    ZoomTo(f64,Cadence),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
     BrakeX,
@@ -23,20 +30,15 @@ pub(super) enum ApplyResult {
 }
 
 macro_rules! set_regime {
-    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:ty) => {
+    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:ty,$params:expr) => {
         fn $call(&mut self, measure: &Measure) -> &mut $inner {
-            let create = match &self.object {
-                PhysicsRegimeObject::$branch(_) => { false },
-                _ => { true }
-            };
+            let create = self.$try_call().is_none();
             if create {
-                self.object = PhysicsRegimeObject::$branch(<$ctor>::new(measure,self.size));
+                self.object = PhysicsRegimeObject::$branch(<$ctor>::new($params));
+                self.object.set_size(measure,self.size);
             }
             self.update_settings(measure);
-            match &mut self.object {
-                PhysicsRegimeObject::$branch(out) => { return out; },
-                _ => { panic!("impossible regime create") }
-            }
+            self.$try_call().unwrap()
         }
 
         #[allow(unused)]
@@ -51,8 +53,20 @@ macro_rules! set_regime {
 
 enum PhysicsRegimeObject {
     W(PhysicsRunnerWRegime),
-    Pull(PhysicsRunnerDragRegime),
+    UserPull(PhysicsRunnerDragRegime),
+    SelfPull(PhysicsRunnerDragRegime),
     None
+}
+
+impl PhysicsRegimeObject {
+    fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
+        match self {
+            PhysicsRegimeObject::W(r) => r.set_size(measure,size),
+            PhysicsRegimeObject::UserPull(r) => r.set_size(measure,size),
+            PhysicsRegimeObject::SelfPull(r) => r.set_size(measure,size),
+            PhysicsRegimeObject::None => {}
+        }
+    }
 }
 
 struct PhysicsRegime {
@@ -75,13 +89,16 @@ impl PhysicsRegime {
         }
     }
 
-    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,PhysicsRunnerWRegime);
-    set_regime!(regime_drag,try_regime_drag,PhysicsRunnerDragRegime,Pull,PhysicsRunnerDragRegime);
+    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,PhysicsRunnerWRegime,());
+    set_regime!(regime_user_drag,try_regime_user_drag,PhysicsRunnerDragRegime,UserPull,PhysicsRunnerDragRegime,500.);
+    set_regime!(regime_instructed_drag,try_regime_instructed_drag,PhysicsRunnerDragRegime,UserPull,PhysicsRunnerDragRegime,1000.);
+    set_regime!(regime_self_drag,try_regime_self_drag,PhysicsRunnerDragRegime,SelfPull,PhysicsRunnerDragRegime,25000.);
 
     fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> (Option<f64>,Option<f64>) {
         let result = match &mut self.object {
             PhysicsRegimeObject::W(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegimeObject::Pull(r) => r.apply_spring(measure,total_dt),
+            PhysicsRegimeObject::UserPull(r) => r.apply_spring(measure,total_dt),
+            PhysicsRegimeObject::SelfPull(r) => r.apply_spring(measure,total_dt),
             PhysicsRegimeObject::None => ApplyResult::Finished
         };
         match result {
@@ -96,7 +113,8 @@ impl PhysicsRegime {
     fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
         match &mut self.object {
             PhysicsRegimeObject::W(r) => r.report_target(measure),
-            PhysicsRegimeObject::Pull(r) => r.report_target(measure),
+            PhysicsRegimeObject::UserPull(r) => r.report_target(measure),
+            PhysicsRegimeObject::SelfPull(r) => r.report_target(measure),
             PhysicsRegimeObject::None => (None,None)
         }
     }
@@ -104,17 +122,18 @@ impl PhysicsRegime {
     fn update_settings(&mut self, measure: &Measure) {
         match &mut self.object {
             PhysicsRegimeObject::W(r) => r.update_settings(measure),
-            PhysicsRegimeObject::Pull(r) => r.update_settings(measure),
+            PhysicsRegimeObject::UserPull(r) => r.update_settings(measure),
+            PhysicsRegimeObject::SelfPull(r) => r.update_settings(measure),
             PhysicsRegimeObject::None => {}
         }
     }
 
-    fn set_size(&mut self, size: f64) {
+    fn set_size(&mut self, measure: &Measure, size: f64) {
         if let Some(old_size) = self.size {
             if old_size == size { return; }
         }
         self.size = Some(size);
-        self.object = PhysicsRegimeObject::None;
+        self.object.set_size(measure,self.size);
     }
 }
 
@@ -165,26 +184,36 @@ impl PhysicsRunner {
             QueueEntry::MoveW(centre,scale) => {
                 self.regime.regime_w(measure).set(measure,*centre,*scale);
             },
-            QueueEntry::ShiftTo(amt) => {
-                self.regime.regime_drag(measure).shift_to(*amt);
+            QueueEntry::ShiftTo(amt,cadence) => {
+                match cadence {
+                    Cadence::UserInput => { self.regime.regime_user_drag(measure).shift_to(*amt); },
+                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).shift_to(*amt); },
+                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).shift_to(*amt); }
+                }
             },
-            QueueEntry::ZoomTo(amt) => {
-                self.regime.regime_drag(measure).zoom_to(*amt);
+            QueueEntry::ZoomTo(amt,cadence) => {
+                match cadence {
+                    Cadence::UserInput => { self.regime.regime_user_drag(measure).zoom_to(*amt); },
+                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).zoom_to(*amt); },
+                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).zoom_to(*amt); }
+                }
             },
             QueueEntry::ShiftMore(amt) => {
-                self.regime.regime_drag(measure).shift_more(&measure,*amt);
+                self.regime.regime_user_drag(measure).shift_more(&measure,*amt);
             },
             QueueEntry::ZoomMore(amt,pos) => { 
-                self.regime.regime_drag(measure).zoom_more(&measure,*amt,pos.clone());
+                self.regime.regime_user_drag(measure).zoom_more(&measure,*amt,pos.clone());
             },
             QueueEntry::BrakeX => {
-                if let Some(drag) = self.regime.try_regime_drag() { drag.brake_x(); }
+                if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_x(); }
+                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_x(); }
             },
             QueueEntry::BrakeZ => { 
-                if let Some(drag) = self.regime.try_regime_drag() { drag.brake_z(); }
+                if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_z(); }
+                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_z(); }
             },
             QueueEntry::Size(size) => {
-                self.regime.set_size(*size);
+                self.regime.set_size(measure,*size);
             }
         }
     }

@@ -8,7 +8,7 @@ pub(super) struct PhysicsRunnerWRegime {
 }
 
 impl PhysicsRunnerWRegime {
-    pub(super) fn new(measure: &Measure, size: Option<f64>) -> PhysicsRunnerWRegime {
+    pub(super) fn new(_expr: ()) -> PhysicsRunnerWRegime {
         let lethargy = 500.;  // 2500 for keys & animate, 500 for mouse, 50000 for goto
         let w_config = AxisPhysicsConfig {
             lethargy,
@@ -20,14 +20,19 @@ impl PhysicsRunnerWRegime {
         };
         let mut w_left = AxisPhysics::new(w_config.clone());
         w_left.set_min_value(0.);
-        let mut out = PhysicsRunnerWRegime {
+        PhysicsRunnerWRegime {
             w_left,
             w_right: AxisPhysics::new(w_config),
             w_scale: 1., 
-            size           
-        };
-        out.update_settings(measure);
-        out
+            size: None
+        }
+    }
+
+    pub(super) fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
+        if let Some(size) = size {
+            self.size = Some(size);
+        }
+        self.update_settings(measure);
     }
 
     pub(super) fn update_settings(&mut self, measure: &Measure) {
