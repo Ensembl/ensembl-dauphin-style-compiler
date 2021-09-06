@@ -70,15 +70,6 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn animate_to(&mut self, scale: f64, centre: f64) -> Result<(),Message> {
-        self.runner.queue_clear();
-        self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::Instructed));
-        self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ZoomTo(scale,Cadence::Instructed));
-        self.update_needed();
-        Ok(())
-    }
-
     fn apply_ongoing(&mut self, dt: f64) -> Result<(),Message> {
         if let Some(delta) = self.x_puller.tick(dt) {
             self.runner.queue_add(QueueEntry::ShiftMore(delta));
@@ -123,7 +114,7 @@ impl PhysicsState {
         Ok(())
     }
 
-    fn goto_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+    fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.runner.queue_clear();
         /* three strategies:
@@ -131,15 +122,15 @@ impl PhysicsState {
          * 2. target is bigger: zoom out to common scale move and make short move
          * 3. outzoom to target scale shift and soom in again
          */
-        if bp_per_screen > measure.bp_per_screen {
+         if bp_per_screen > measure.bp_per_screen {
             /* we are getting more bp per screen, ie zooming out: can use strategies 2 or 3 */
             /* to test if we can use 2: how many screenfuls must we move at the FINAL scale? */
             let screenful_move = (centre-measure.x_bp).abs() / bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
-                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
                 self.update_needed();
                 return Ok(());
             }
@@ -149,9 +140,11 @@ impl PhysicsState {
             let screenful_move = (centre-measure.x_bp).abs() / measure.bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 1 */
-                self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
+                self.runner.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
                 self.runner.queue_add(QueueEntry::Wait);
-                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
+                self.runner.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
+                self.runner.queue_add(QueueEntry::Wait);
+                self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
                 self.update_needed();
                 return Ok(());
             }
@@ -160,11 +153,13 @@ impl PhysicsState {
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
-        self.runner.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen,Cadence::SelfPropelled));
+        self.runner.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen,cadence.clone()));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ShiftTo(centre,Cadence::SelfPropelled));
+        self.runner.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
         self.runner.queue_add(QueueEntry::Wait);
-        self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,Cadence::SelfPropelled));
+        self.runner.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
+        self.runner.queue_add(QueueEntry::Wait);
+        self.runner.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
         self.update_needed();
         Ok(())
     }
@@ -172,7 +167,7 @@ impl PhysicsState {
     fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         let ready = inner.stage().lock().unwrap().ready();
         if ready {
-            self.goto_ready(inner,centre,bp_per_screen)?;
+            self.animate_to(inner,centre,bp_per_screen,&Cadence::SelfPropelled)?;
         } else {
             self.goto_not_ready(inner,centre,bp_per_screen)?;
         }
@@ -255,7 +250,7 @@ impl Physics {
         Ok(())
     }
 
-    fn incoming_animate_event(&self, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_animate_event(&self, inner: &mut PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         if !event.start { return Ok(()); }
         let mut state = self.state.lock().unwrap();
         let scale = *event.amount.get(0).unwrap_or(&1.);
@@ -266,18 +261,18 @@ impl Physics {
                 // XXX y
                 self.report.set_target_x_bp(centre);
                 self.report.set_target_bp_per_screen(scale);        
-                state.animate_to(scale,centre)?;
+                state.animate_to(inner,centre,scale,&Cadence::Instructed)?;
             },
             _ => {}
         }
         Ok(())
     }
 
-    fn incoming_event(&self, event: &InputEvent) -> Result<(),Message> {
+    fn incoming_event(&self, inner: &mut PeregrineInnerAPI, event: &InputEvent) -> Result<(),Message> {
         self.incoming_pull_event(event)?;
         self.incoming_jump_request(event)?;
         self.incoming_scale_event(event)?;
-        self.incoming_animate_event(event)?;
+        self.incoming_animate_event(inner,event)?;
         Ok(())
     }
 
@@ -300,7 +295,8 @@ impl Physics {
             physics_needed: physics_needed.clone()
         };
         let out2 = out.clone();
-        low_level.distributor_mut().add(move |e| { out2.incoming_event(e).ok(); }); // XXX error distribution
+        let mut inner2 = inner.clone();
+        low_level.distributor_mut().add(move |e| { out2.incoming_event(&mut inner2,e).ok(); }); // XXX error distribution
         let out2 = out.clone();
         let mut inner2 = inner.clone();
         commander.add("physics", 0, None, None, Box::pin(async move { out2.physics_loop(&mut inner2).await }));
