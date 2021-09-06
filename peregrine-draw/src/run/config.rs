@@ -69,7 +69,16 @@ pub enum PgConfigKey {
     // smaller than 1/(px-of-a-giant-screen), but much bigger than precision of floats
     PinchMinScale,
     Spectre(SpectreConfigKey), // various visual properties of spectres
-    ReportUpdateFrequency // ms between position reports
+    ReportUpdateFrequency, // ms between position reports
+    AnimationBoing, // boing factor during moves
+    AnimationVelocityMin, // velocity at which animation should be considered complete
+    AnimationForceMin, // acceleration at which animation should be considered complete
+    AnimationBrakeMul, // reduction of friction when undriven
+    UserDragLethargy, // lethargy when directly dragged by user
+    InstructedDragLethargy, // lethargy for user-expected but not user-driven moves
+    SelfDragLethargy, // lethargy for unexpected moves
+    WindowLethargy, // lethargy for window moves
+    MinBpPerScreen,
 }
 
 #[cfg(not(debug_assertions))]
@@ -98,7 +107,16 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Quick), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade), name: "animate.overlap.slow-cross", default: &PgConfigValue::Float(0.) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Slow), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
-            ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-peed", default: &PgConfigValue::Float(500.) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationBoing, name: "animate.boing", default: &PgConfigValue::Float(1.) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationVelocityMin, name: "animate.animation-velocity-min", default: &PgConfigValue::Float(0.0005) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationForceMin, name: "animate.animation-force-min", default: &PgConfigValue::Float(0.00001) },
+            ConfigKeyInfo { key: PgConfigKey::AnimationBrakeMul, name: "animate.animation-brake-mul", default: &PgConfigValue::Float(0.2) },
+            ConfigKeyInfo { key: PgConfigKey::ZoomPixelSpeed, name: "animate.zoom-pixel-speed", default: &PgConfigValue::Float(500.) },
+            ConfigKeyInfo { key: PgConfigKey::UserDragLethargy, name: "animate.lethargy.user-dragn", default: &PgConfigValue::Float(500.) },
+            ConfigKeyInfo { key: PgConfigKey::InstructedDragLethargy, name: "animate.lethargy.instruct-drag", default: &PgConfigValue::Float(1000.) },
+            ConfigKeyInfo { key: PgConfigKey::SelfDragLethargy, name: "animate.lethargy.self-drag", default: &PgConfigValue::Float(25000.) },
+            ConfigKeyInfo { key: PgConfigKey::WindowLethargy, name: "animate.lethargy.window", default: &PgConfigValue::Float(500.) },
+            ConfigKeyInfo { key: PgConfigKey::MinBpPerScreen, name: "display.min-bp-per-screen", default: &PgConfigValue::Float(30.) },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::DebugAction), name: "keys.debug-action", default: &PgConfigValue::StaticStr("Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsLeft), name: "keys.pixels-left", default: &PgConfigValue::StaticStr("Shift-A[100] Alt-a[1000]") },
             ConfigKeyInfo { key: PgConfigKey::KeyBindings(InputEventKind::PixelsRight), name: "keys.pixels-right", default: &PgConfigValue::StaticStr("MirrorRunningDrag Shift-D[100] Alt-d[1000]") },

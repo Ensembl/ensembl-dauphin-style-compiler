@@ -1,9 +1,11 @@
 use std::collections::VecDeque;
+use crate::run::{PgConfigKey, PgPeregrineConfig};
 use crate::run::report::Report;
 use crate::{Message, PeregrineInnerAPI };
-use super::dragregime::PhysicsRunnerDragRegime;
+use super::axisphysics::{AxisPhysicsConfig, Scaling};
+use super::dragregime::{PhysicsDragRegimeCreator, PhysicsRunnerDragRegime};
 use super::measure::Measure;
-use super::windowregime::PhysicsRunnerWRegime;
+use super::windowregime::{PhysicsRunnerWRegime, PhysicsWRegimeCreator};
 
 pub(super) enum Cadence {
     #[allow(unused)]
@@ -30,12 +32,12 @@ pub(super) enum ApplyResult {
 }
 
 macro_rules! set_regime {
-    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$ctor:ty,$params:expr) => {
+    ($call:ident,$try_call:ident,$inner:ty,$branch:tt,$creator:tt) => {
         fn $call(&mut self, measure: &Measure) -> &mut $inner {
             let create = self.$try_call().is_none();
             if create {
-                self.object = PhysicsRegimeObject::$branch(<$ctor>::new($params));
-                self.object.set_size(measure,self.size);
+                self.object = PhysicsRegimeObject::$branch(self.$creator.create());
+                self.object.as_trait_mut().set_size(measure,self.size);
             }
             self.update_settings(measure);
             self.$try_call().unwrap()
@@ -51,81 +53,117 @@ macro_rules! set_regime {
     };
 }
 
+pub(super) trait PhysicsRegimeCreator {
+    type Object;
+
+    fn create(&self) -> Self::Object;
+}
+
+pub(super) trait PhysicsRegimeTrait {
+    fn set_size(&mut self, measure: &Measure, size: Option<f64>);
+    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>);
+    fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> ApplyResult;
+    fn update_settings(&mut self, measure: &Measure);
+    fn is_active(&self) -> bool { true }
+}
+
+struct PhysicsRegimeNone();
+
+impl PhysicsRegimeTrait for PhysicsRegimeNone {
+    fn set_size(&mut self, _measure: &Measure, _size: Option<f64>) {}
+    fn report_target(&mut self, _measure: &Measure) -> (Option<f64>,Option<f64>) { (None,None) }
+    fn apply_spring(&mut self, _measure: &Measure, _total_dt: f64) -> ApplyResult { ApplyResult::Finished }
+    fn update_settings(&mut self, _measure: &Measure) {}
+    fn is_active(&self) -> bool { false }
+}
+
 enum PhysicsRegimeObject {
     W(PhysicsRunnerWRegime),
     UserPull(PhysicsRunnerDragRegime),
     SelfPull(PhysicsRunnerDragRegime),
-    None
+    None(PhysicsRegimeNone)
 }
 
 impl PhysicsRegimeObject {
-    fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
+    fn as_trait_mut(&mut self) -> &mut dyn PhysicsRegimeTrait {
         match self {
-            PhysicsRegimeObject::W(r) => r.set_size(measure,size),
-            PhysicsRegimeObject::UserPull(r) => r.set_size(measure,size),
-            PhysicsRegimeObject::SelfPull(r) => r.set_size(measure,size),
-            PhysicsRegimeObject::None => {}
+            PhysicsRegimeObject::W(r) => r,
+            PhysicsRegimeObject::UserPull(r) => r,
+            PhysicsRegimeObject::SelfPull(r) => r,
+            PhysicsRegimeObject::None(r) => r
         }
     }
 }
 
 struct PhysicsRegime {
     object: PhysicsRegimeObject,
+    w_creator: PhysicsWRegimeCreator,
+    user_drag_creator: PhysicsDragRegimeCreator,
+    instructed_drag_creator: PhysicsDragRegimeCreator,
+    self_drag_creator: PhysicsDragRegimeCreator,
     size: Option<f64>
 }
 
+fn make_axis_config(config: &PgPeregrineConfig, lethargy_key: &PgConfigKey) -> Result<AxisPhysicsConfig,Message> {
+    Ok(AxisPhysicsConfig {
+        lethargy: config.get_f64(lethargy_key)?,
+        boing: config.get_f64(&PgConfigKey::AnimationBoing)?,
+        vel_min: config.get_f64(&PgConfigKey::AnimationVelocityMin)?,
+        force_min: config.get_f64(&PgConfigKey::AnimationForceMin)?,
+        brake_mul: config.get_f64(&PgConfigKey::AnimationBrakeMul)?,
+        min_bp_per_screen: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
+        scaling: Scaling::Linear(1.)
+    })
+}
+
+fn make_drag_axis_config(config: &PgPeregrineConfig, lethargy_key: &PgConfigKey) -> Result<(AxisPhysicsConfig,AxisPhysicsConfig),Message> {
+    let x_config = make_axis_config(config,lethargy_key)?;
+    let mut z_config = make_axis_config(config,lethargy_key)?;
+    z_config.scaling = Scaling::Logarithmic(100.);
+    Ok((x_config,z_config))
+}
+
 impl PhysicsRegime {
-    fn new() -> PhysicsRegime {
-        PhysicsRegime {
-            object: PhysicsRegimeObject::None,
+    fn new(config: &PgPeregrineConfig) -> Result<PhysicsRegime,Message> {
+        let user_drag_config = make_drag_axis_config(config,&PgConfigKey::UserDragLethargy)?;
+        let instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
+        let self_drag_config = make_drag_axis_config(config,&PgConfigKey::SelfDragLethargy)?;
+        let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
+        Ok(PhysicsRegime {
+            object: PhysicsRegimeObject::None(PhysicsRegimeNone()),
+            w_creator: PhysicsWRegimeCreator(w_config),
+            user_drag_creator: PhysicsDragRegimeCreator(user_drag_config.0,user_drag_config.1),
+            instructed_drag_creator: PhysicsDragRegimeCreator(instructed_drag_config.0,instructed_drag_config.1),
+            self_drag_creator: PhysicsDragRegimeCreator(self_drag_config.0,self_drag_config.1),
             size: None
-        }
+        })
     }
 
-    fn is_active(&self) -> bool {
-        match self.object {
-            PhysicsRegimeObject::None => false,
-            _ => true
-        }
-    }
-
-    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,PhysicsRunnerWRegime,());
-    set_regime!(regime_user_drag,try_regime_user_drag,PhysicsRunnerDragRegime,UserPull,PhysicsRunnerDragRegime,500.);
-    set_regime!(regime_instructed_drag,try_regime_instructed_drag,PhysicsRunnerDragRegime,UserPull,PhysicsRunnerDragRegime,1000.);
-    set_regime!(regime_self_drag,try_regime_self_drag,PhysicsRunnerDragRegime,SelfPull,PhysicsRunnerDragRegime,25000.);
+    set_regime!(regime_w,try_regime_w,PhysicsRunnerWRegime,W,w_creator);
+    set_regime!(regime_user_drag,try_regime_user_drag,PhysicsRunnerDragRegime,UserPull,user_drag_creator);
+    set_regime!(regime_instructed_drag,try_regime_instructed_drag,PhysicsRunnerDragRegime,UserPull,instructed_drag_creator);
+    set_regime!(regime_self_drag,try_regime_self_drag,PhysicsRunnerDragRegime,SelfPull,self_drag_creator);
 
     fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> (Option<f64>,Option<f64>) {
-        let result = match &mut self.object {
-            PhysicsRegimeObject::W(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegimeObject::UserPull(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegimeObject::SelfPull(r) => r.apply_spring(measure,total_dt),
-            PhysicsRegimeObject::None => ApplyResult::Finished
-        };
-        match result {
+        match self.object.as_trait_mut().apply_spring(measure,total_dt) {
             ApplyResult::Update(x,bp) => (x,bp),
             ApplyResult::Finished => {
-                self.object = PhysicsRegimeObject::None;
+                self.object = PhysicsRegimeObject::None(PhysicsRegimeNone());
                 (None,None)
             }
         }
     }
 
+    fn is_active(&mut self) -> bool {
+        self.object.as_trait_mut().is_active()
+    }
+
     fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        match &mut self.object {
-            PhysicsRegimeObject::W(r) => r.report_target(measure),
-            PhysicsRegimeObject::UserPull(r) => r.report_target(measure),
-            PhysicsRegimeObject::SelfPull(r) => r.report_target(measure),
-            PhysicsRegimeObject::None => (None,None)
-        }
+        self.object.as_trait_mut().report_target(measure)
     }
 
     fn update_settings(&mut self, measure: &Measure) {
-        match &mut self.object {
-            PhysicsRegimeObject::W(r) => r.update_settings(measure),
-            PhysicsRegimeObject::UserPull(r) => r.update_settings(measure),
-            PhysicsRegimeObject::SelfPull(r) => r.update_settings(measure),
-            PhysicsRegimeObject::None => {}
-        }
+        self.object.as_trait_mut().update_settings(measure);
     }
 
     fn set_size(&mut self, measure: &Measure, size: f64) {
@@ -133,7 +171,7 @@ impl PhysicsRegime {
             if old_size == size { return; }
         }
         self.size = Some(size);
-        self.object.set_size(measure,self.size);
+        self.object.as_trait_mut().set_size(measure,self.size);
     }
 }
 
@@ -144,12 +182,12 @@ pub(super) struct PhysicsRunner {
 }
 
 impl PhysicsRunner {
-    pub(super) fn new() -> PhysicsRunner {
-        PhysicsRunner {
-            regime: PhysicsRegime::new(),
+    pub(super) fn new(config: &PgPeregrineConfig) -> Result<PhysicsRunner,Message> {
+        Ok(PhysicsRunner {
+            regime: PhysicsRegime::new(config)?,
             animation_queue: VecDeque::new(),
             animation_current: None,
-        }
+        })
     }
 
     pub(super) fn queue_clear(&mut self) {
@@ -228,7 +266,7 @@ impl PhysicsRunner {
         }
     }
 
-    fn exit_due_to_waiting(&self) -> bool {
+    fn exit_due_to_waiting(&mut self) -> bool {
         if let Some(entry) = self.animation_queue.front() {
             match entry {
                 QueueEntry::Wait => {

@@ -28,9 +28,9 @@ pub struct PhysicsState {
 }
 
 impl PhysicsState {
-    fn new(_config: &PgPeregrineConfig, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<PhysicsState,Message> {
+    fn new(config: &PgPeregrineConfig, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<PhysicsState,Message> {
         Ok(PhysicsState {
-            runner: PhysicsRunner::new(),
+            runner: PhysicsRunner::new(config)?,
             last_update: None,
             x_puller: Puller::new(),
             z_puller: Puller::new(),

@@ -51,7 +51,8 @@ pub struct AxisPhysicsConfig {
     pub vel_min: f64,
     pub force_min: f64,
     pub brake_mul: f64,
-    pub scaling: Scaling
+    pub scaling: Scaling,
+    pub min_bp_per_screen: f64
 }
 
 pub(super) struct AxisPhysics {
@@ -66,9 +67,9 @@ pub(super) struct AxisPhysics {
 }
 
 impl AxisPhysics {
-    pub(super) fn new(config: AxisPhysicsConfig) -> AxisPhysics {
+    pub(super) fn new(config: &AxisPhysicsConfig) -> AxisPhysics {
         AxisPhysics {
-            config,
+            config: config.clone(),
             brake: false,
             target: None,
             immediate: false,
