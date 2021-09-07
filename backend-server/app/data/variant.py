@@ -11,35 +11,35 @@ SCALE=1000
 
 def get_variant_stats(data_accessor : DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
-    data = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=250)
+    (data,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=250)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:
         length = 1
-    step = int((panel.end-panel.start)*SCALE/length)
+    step = int((end-panel.start)*SCALE/length)
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
         "values": compress(lesqlite2(zigzag(delta(data)))),
-        "range": compress(lesqlite2([panel.start,panel.end,step]))
+        "range": compress(lesqlite2([panel.start,end,step]))
     }
     return Response(5,{ 'data': out })
 
 def get_variant_exact(data_accessor : DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
-    data = get_bigwig(data_accessor,item,panel.start,panel.end)
+    (data,end) = get_bigwig(data_accessor,item,panel.start,panel.end)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:
         length = 1
-    step = int((panel.end-panel.start)*SCALE/length)
+    step = int((end-panel.start)*SCALE/length)
     if step == 0:
         step = SCALE
     data = bytearray([round(x) for x in data])
     out = {
         "values": compress(lesqlite2(zigzag(delta(data)))),
-        "range": compress(lesqlite2([panel.start,panel.end,step]))
+        "range": compress(lesqlite2([panel.start,end,step]))
     }
     return Response(5,{ 'data': out })
 

@@ -22,7 +22,8 @@ def _get_bigbed_data(path,chrom,start,end):
 
 def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
     end = min(end,chrom.size)
-    start_time = time.time()
+    if end < start:
+        return ([],start)
     try:
         if not (path in _bigwigs):
             _bigwigs[path] = pyBigWig.open(path)
@@ -30,11 +31,12 @@ def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
         out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
     except (RuntimeError,OverflowError) as e:
         out = []
-    return out
+    return (out,end)
 
 def get_bigwig_data(path,chrom,start,end):
     end = min(end,chrom.size)
-    start_time = time.time()
+    if end < start:
+        return ([],start)
     try:
         if not (path in _bigwigs):
             _bigwigs[path] = pyBigWig.open(path)
@@ -42,7 +44,7 @@ def get_bigwig_data(path,chrom,start,end):
         out = bw.values(chrom.name,start,end) or []
     except (RuntimeError,OverflowError) as e:
         out = []
-    return out
+    return (out,end)
 
 def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
     accessor = data_accessor.resolver.get(item)

@@ -11,7 +11,7 @@ SCALE = 4
 
 def get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("gc")
-    data = get_bigwig_stats(data_accessor,item,panel.start,panel.end)
+    (data,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end)
     # Awkwardly, issing data seems tobe treated as 0.0 by the reader.
     # Need also to mask adjacentvalues as averages are affected
     data = [ 0.0 if x is None else x for x in data ]
@@ -24,7 +24,7 @@ def get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Resp
     out = {
         "values": compress(lesqlite2(zigzag(delta(data)))),
         "present": compress(present),
-        "range": compress(lesqlite2([panel.start,panel.end]))
+        "range": compress(lesqlite2([panel.start,end]))
     }
     return Response(5,{ 'data': out })
 
