@@ -89,12 +89,14 @@ impl AnticipatePosition {
     fn derive(&self, new_carriages: &mut AnticipatedCarriages, old_carriages: &AnticipatedCarriages, base: &PeregrineCoreBase, result_store: &LaneStore) {
         /* out */
         let mut new_scale = self.scale.clone();
-        for index in 0..5 {
+        for index in 0..8 {
             new_scale = new_scale.next_scale();
-            for offset in 0..5 {
-                let delta = (offset as i64)-2;
-                let mut index = new_scale.convert_index(&self.scale,self.index) as i64;
-                index += delta;
+            let wings = if index < 3 { 2 } else { 1 };
+            let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
+            let start = (base_index - wings).max(0);
+            for offset in 0..((2*wings)+1) {
+                let delta = (offset as i64)-wings;
+                let index = start+offset;
                 if index < 0 { continue; }
                 self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,index as u64);
             }
