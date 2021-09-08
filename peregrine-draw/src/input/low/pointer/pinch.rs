@@ -131,22 +131,16 @@ impl ScreenPosition {
             centre_bp: x.position()?,
             bp_per_screen: x.bp_per_screen()?,
             y_pos: y.position()?,
-            screen_x: x.size()?
+            screen_x: x.drawable_size()?
         })
     }
 
     pub(crate) fn transform(start: &ScreenPosition, action: &PixelPinchAction) -> ScreenPosition {
         let bp_per_screen = start.bp_per_screen * action.scale;
         let eigenpoint_in_screenfuls = (action.eigenpoint / start.screen_x)-0.5; // -0.5=left, +0.5=right
-        use web_sys::console;
-        //console::log_1(&format!("eigenpoint {}",action.eigenpoint).into());
-        //console::log_1(&format!("screenfuls {}",eigenpoint_in_screenfuls).into());
         let eigenpoint_in_bp = start.centre_bp + eigenpoint_in_screenfuls * start.bp_per_screen;
-        //console::log_1(&format!("bp {}",eigenpoint_in_bp).into());
         let eigenpoint_in_bp_from_centre = eigenpoint_in_screenfuls * bp_per_screen;
-        //console::log_1(&format!("bp_from_centre {} * {} = {}",eigenpoint_in_screenfuls,bp_per_screen,eigenpoint_in_bp_from_centre).into());
         let centre_bp = eigenpoint_in_bp - eigenpoint_in_bp_from_centre;
-        //console::log_1(&format!("centre {} - {} = {}",eigenpoint_in_bp,eigenpoint_in_bp_from_centre,centre_bp).into());
         ScreenPosition {
             centre_bp,
             bp_per_screen,

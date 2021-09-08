@@ -45,7 +45,7 @@ fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
 pub trait ReadStageAxis {
     fn position(&self) -> Result<f64,Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
-    fn size(&self) -> Result<f64,Message>;
+    fn container_size(&self) -> Result<f64,Message>;
     fn scale_shift(&self) -> Result<(f32,f32),Message>;
     fn drawable_size(&self) -> Result<f64,Message>;   
     fn copy(&self) -> StageAxis;
@@ -121,7 +121,7 @@ impl StageAxis {
 impl ReadStageAxis for StageAxis {
     fn position(&self) -> Result<f64,Message> { stage_ok(&self.position) }
     fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
-    fn size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
+    fn container_size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
     fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
     fn scale_shift(&self) -> Result<(f32,f32),Message> { stage_ok(&self.scale_shift) }
     fn left_right(&self) -> Result<(f64,f64),Message> {

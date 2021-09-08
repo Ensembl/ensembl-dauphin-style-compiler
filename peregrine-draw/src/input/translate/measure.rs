@@ -12,7 +12,7 @@ impl Measure {
         if !stage.ready() { return Ok(None); }
         Ok(Some(Measure {
             bp_per_screen: stage.x().bp_per_screen()?,
-            px_per_screen: stage.x().size()?,
+            px_per_screen: stage.x().drawable_size()?,
             x_bp: stage.x().position()?
         }))
     }

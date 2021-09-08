@@ -234,7 +234,7 @@ impl DragStateData {
         let (a,_,c,_) = (pos_a.0.min(pos_b.0),pos_a.1.min(pos_b.1),
                                               pos_a.0.max(pos_b.0),pos_a.1.max(pos_b.1));
         if let Some(stage) = self.lowlevel.stage() {
-            let width_pixels = stage.x().size()?;
+            let width_pixels = stage.x().drawable_size()?;
             let bp_centre = stage.x().position()?;
             let bp_per_screen = stage.x().bp_per_screen()?;
             let want_bp_per_screen = (c-a)*bp_per_screen/width_pixels;

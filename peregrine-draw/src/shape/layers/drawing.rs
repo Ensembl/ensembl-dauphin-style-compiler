@@ -196,16 +196,6 @@ impl Drawing {
         self.zmenus.get_hotspot(stage,position)
     }
 
-    /*
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        self.zmenus.intersects(stage,mouse)
-    }
-
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
-        self.zmenus.intersects_fast(stage,mouse)
-    }
-    */
-
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, opacity: f64, priority: i8) -> Result<(),Message> {
         let recompute =  self.recompute.is_needed();
         for process in self.processes.get_mut(&priority).unwrap_or(&mut vec![]) {
