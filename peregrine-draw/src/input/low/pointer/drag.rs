@@ -2,8 +2,8 @@ use std::sync::{ Arc, Mutex };
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::modifiers::Modifiers;
+use crate::run::PgConfigKey;
 use crate::shape::core::spectre::AreaVariables;
-use crate::shape::core::spectre::MarchingAnts;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::SpectreHandle;
 use super::pinch::PinchManager;
@@ -92,6 +92,7 @@ pub struct DragStateData {
     mode: DragMode,
     alive: bool,
     hold_vars: AreaVariables,
+    min_hold_drag_size: f64,
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
     #[allow(unused)] // keep as guard
@@ -109,6 +110,7 @@ impl DragStateData {
             mode: DragMode::Unknown,
             alive: true,
             hold_vars: AreaVariables::new(lowlevel.spectre_manager().variables()),
+            min_hold_drag_size: config.min_hold_drag_size,
             cursor: None,
             spectre: None
         };
@@ -242,6 +244,9 @@ impl DragStateData {
             let centroid_scr = centroid_px/width_pixels-0.5; // [-0.5,0.5] screen
             let centroid_bp = centroid_scr*bp_per_screen + bp_centre;
             // XXX y
+            if want_bp_per_screen/bp_per_screen < self.min_hold_drag_size {
+                return Ok(None);
+            }
             Ok(Some((want_bp_per_screen,centroid_bp,0.)))
         } else {
             Ok(None)

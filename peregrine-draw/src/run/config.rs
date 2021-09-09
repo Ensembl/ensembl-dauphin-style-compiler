@@ -79,7 +79,8 @@ pub enum PgConfigKey {
     SelfDragLethargy, // lethargy for unexpected moves
     WindowLethargy, // lethargy for window moves
     MinBpPerScreen,
-    EndstopSound,
+    EndstopSound, // bell or not?
+    MinHoldDragSize, // min bp-per-screen ratio for valid hold-drag
 }
 
 #[cfg(not(debug_assertions))]
@@ -160,7 +161,8 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(50,50,50,100)) },
             ConfigKeyInfo { key: PgConfigKey::ReportUpdateFrequency, name: "report.update-frequency", default: &PgConfigValue::Float(250.) },
             ConfigKeyInfo { key: PgConfigKey::EndstopSound, name: "report.sound.endstop", default: &PgConfigValue::StaticStr("bell") },
-        ]};
+            ConfigKeyInfo { key: PgConfigKey::MinHoldDragSize, name: "animate.min-hold-drag-size", default: &PgConfigValue::Float(0.01) },
+            ]};
 }
 
 fn string_to_float(value_str: &str) -> Result<f64,String> {
