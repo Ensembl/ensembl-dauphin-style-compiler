@@ -11,6 +11,7 @@ mod api {
 }
 
 mod core {
+    pub(crate) mod asset;
     mod config;
     mod layout;
     mod scale;
@@ -21,6 +22,7 @@ mod core {
     pub use self::layout::Layout;
     pub use self::scale::Scale;
     pub use stick::{ StickId, Stick, StickTopology };
+    pub use self::asset::{ Asset, Assets };
     pub use viewport::Viewport;
 }
 
@@ -147,21 +149,8 @@ mod util {
     pub use self::message::DataMessage;
 }
 
-#[cfg(test)]
-mod test {
-    pub(crate) mod integrations {
-        mod channel;
-        mod commander;
-        mod dauphin;
-        pub(crate) use self::channel::{ TestChannelIntegration, cbor_matches, cbor_matches_print };
-        pub(crate) use self::commander::{ TestCommander };
-        pub(crate) use self::dauphin::FakeDauphinReceiver;
-    }
-    pub(crate) mod helpers;
-}
-
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
-pub use self::core::{ PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
+pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
@@ -182,6 +171,7 @@ pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
+pub use self::util::cbor::{ cbor_coerce_string, cbor_bytes };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;

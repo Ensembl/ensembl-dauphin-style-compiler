@@ -19,14 +19,6 @@ pub struct TrainId {
     scale: Scale
 }
 
-/*
-impl fmt::Display for TrainId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,"TrainId(layout={} scale={})",self.layout,self.scale)
-    }
-}
-*/
-
 impl TrainId {
     pub fn new(layout: &Layout, scale: &Scale) -> TrainId {
         TrainId {

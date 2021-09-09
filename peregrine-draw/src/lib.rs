@@ -58,6 +58,7 @@ mod run {
     mod mousemove;
     pub(crate) mod report;
     mod size;
+    pub(crate) mod sound;
 
     pub use self::config::{ PgPeregrineConfig, PgConfigKey, CursorCircumstance };
     pub use self::globalconfig::PeregrineConfig;

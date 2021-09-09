@@ -16,6 +16,7 @@ use peregrine_message::MessageKind;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::sync::blocker::Blocker;
 use super::report::Report;
+use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
@@ -44,7 +45,8 @@ pub struct PeregrineInnerAPI {
     dom: PeregrineDom,
     spectre_manager: SpectreManager,
     input: Input,
-    report: Report
+    report: Report,
+    sound: Sound
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -58,6 +60,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub(crate) spectre_manager: &'t mut SpectreManager,
     pub report: &'t Report,
     pub input: &'t Input,
+    pub sound: &'t mut Sound,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -108,6 +111,7 @@ impl PeregrineInnerAPI {
             spectre_manager: &mut self.spectre_manager,
             input: &mut self.input,
             report: &mut self.report,
+            sound: &mut self.sound,
             guard
         }
     }
@@ -131,6 +135,7 @@ impl PeregrineInnerAPI {
         let report = Report::new(&config.draw,&message_sender)?;
         let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
+        let sound = Sound::new(&commander,dom,integration.assets())?;
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },queue_blocker).map_err(|e| Message::DataError(e))?;
@@ -150,6 +155,7 @@ impl PeregrineInnerAPI {
             dom: dom.clone(),
             spectre_manager: SpectreManager::new(&config.draw,&redraw_needed),
             input: input.clone(),
+            sound: sound.clone(),
             report: report.clone()
         };
         input.set_api(dom,&config.draw,&out,&commander,&report)?;
@@ -214,12 +220,14 @@ impl PeregrineInnerAPI {
         self.data_api.set_stick(stick);
     }
 
-    pub(crate) fn debug_action(&self, index: u8) {
+    pub(crate) fn debug_action(&mut self, index: u8) {
         use crate::stage::axis::ReadStageAxis;
         console::log_1(&format!("received debug action {}",index).into());
         if index == 9 {
             let stage = self.stage.lock().unwrap();
             console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
+        } else if index == 8 {
+            self.sound.play("bell");
         }
     }
 }

@@ -27,6 +27,15 @@ pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> anyhow::Result<i128>  {
     bail!("not an integer");
 }
 
+pub fn cbor_bytes(cbor: &CborValue) -> anyhow::Result<Vec<u8>> {
+    match cbor {
+        CborValue::Bytes(b) => {
+            Ok(b.clone())
+        }
+        _ => bail!("not a string")
+    }
+}
+
 pub fn cbor_string(cbor: &CborValue) -> anyhow::Result<String> {
     match cbor {
         CborValue::Text(x) => Ok(x.to_string()),
@@ -49,6 +58,15 @@ pub fn cbor_map<'a>(cbor: &'a CborValue, keys: &[&str]) -> anyhow::Result<Vec<&'
     Ok(out)
 }
 
+pub fn cbor_map_key<'a>(cbor: &'a CborValue, key: &str) -> anyhow::Result<Option<&'a CborValue>> {
+    match cbor {
+        CborValue::Map(m) => {
+            Ok(m.get(&CborValue::Text(key.to_string())))
+        },
+        _ => { bail!("expected map got {:?}",cbor) }
+    }
+}
+
 pub fn cbor_map_iter(cbor: &CborValue) -> anyhow::Result<impl Iterator<Item=(&CborValue,&CborValue)>> {
     match cbor {
         CborValue::Map(m) => {
@@ -67,9 +85,11 @@ pub fn cbor_bool(cbor: &CborValue) -> anyhow::Result<bool> {
     }
 }
 
-pub fn cbor_bytes(cbor: &CborValue) -> anyhow::Result<&Vec<u8>> {
+pub fn cbor_coerce_string(cbor: &CborValue) -> anyhow::Result<String> {
     match cbor {
-        CborValue::Bytes(b) => Ok(b),
-        _ => bail!("expected bytes")
+        CborValue::Text(t) => { Ok(t.to_string()) },
+        CborValue::Integer(i) => { Ok(i.to_string()) },
+        CborValue::Float(f) => { Ok(f.to_string()) },
+        _ => { bail!("cannot convert to string") }
     }
 }

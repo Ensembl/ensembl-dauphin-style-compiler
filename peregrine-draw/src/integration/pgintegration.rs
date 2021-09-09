@@ -1,15 +1,16 @@
+use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use commander::{FusePromise, PromiseFuture};
-use peregrine_data::{AllotterMetadata, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport};
+use dauphin_interp::util::cbor::{cbor_map_iter, cbor_string };
+use peregrine_data::{AllotterMetadata, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
 use super::pgchannel::PgChannel;
-use crate::PeregrineDom;
+use crate::{Message, PeregrineDom};
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
-use web_sys::CssStyleDeclaration;
+use serde_cbor::Value as CborValue;
 
 pub struct PgIntegration {
     channel: PgChannel,
@@ -18,10 +19,15 @@ pub struct PgIntegration {
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     report: Report,
-    dom: PeregrineDom
+    dom: PeregrineDom,
+    assets: Assets
 }
 
 impl PeregrineIntegration for PgIntegration {
+    fn set_assets(&mut self, mut assets: Assets) {
+        self.assets.add(&mut assets);
+    }
+
     fn set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) -> Result<(),DataMessage> {
         let mut webgl = self.webgl.lock().unwrap();
         self.trainset.set_carriages(carriages,&scale,&mut webgl,index)
@@ -75,7 +81,10 @@ impl PgIntegration {
             stage: stage.clone(),
             report: report.clone(),
             dom: dom.clone(),
-            input: input.clone()
+            input: input.clone(),
+            assets: Assets::empty()
         }
     }
+
+    pub(crate) fn assets(&self) -> &Assets { &self.assets }
 }

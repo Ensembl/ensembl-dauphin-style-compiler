@@ -1,10 +1,11 @@
-from core.config import LO_PORT, METRIC_FILE
+import toml
+import os.path
+from core.config import ASSETS_TOML, LO_PORT, METRIC_FILE, ASSETS_DIR
 from typing import Any
 from .coremodel import Handler
 from .response import Response
 from .datasources import DataAccessor
 import datetime
-import logging
 from urllib.parse import urlparse
 
 class ErrorHandler(Handler):
@@ -26,6 +27,17 @@ def lo_port(channel):
         out[1] = url.geturl()
     return out
 
+def load_assets():
+    assets = {}
+    toml_data = toml.load(ASSETS_TOML)
+    toml_data.get('sources',{})
+    for (name,data) in toml_data.get('sources',{}).items():
+        asset = dict(data)
+        with open(os.path.join(ASSETS_DIR,data["file"]),"rb") as f:
+            asset["data"] = f.read()
+        assets[name] = asset
+    return assets
+
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
         lo_channel = (lo_port(channel) if LO_PORT else channel)
@@ -33,6 +45,7 @@ class BootstrapHandler(Handler):
             "boot": [channel,data_accessor.begs_files.boot_program],
             "hi":  channel,
             "lo":  lo_channel,
+            "assets": load_assets()
         })
         for b in data_accessor.begs_files.all_bundles():
             r.bundles.add(b)

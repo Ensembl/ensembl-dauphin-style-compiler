@@ -58,6 +58,9 @@ BEGS_FILES: str = config("BEGS_FILES", default=os.path.join(base_directory,"egs-
 
 METRIC_FILE = config("METRIC_FILE",default=os.path.join(base_directory,"metric.log"))
 
+ASSETS_DIR = config("ASSETS_DIR",default=os.path.join(base_directory,"assets"))
+ASSETS_TOML = config("ASSETS_TOML",default=os.path.join(config_directory,"assets.toml"))
+
 # logging configuration
 
 SOURCES_TOML: str = config("SOURCES_TOML", default=os.path.join(config_directory,"sources-s3.toml"))

@@ -62,10 +62,10 @@ impl CarriageEvents {
         for e in events {
             match e {
                 CarriageEvent::SendAllotmentMetadata(metadata) => {
-                    objects.integration.lock().unwrap().notify_allotment_metadata(&metadata);
+                    objects.base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
                 },
                 CarriageEvent::Set(carriages,scale,index) => {
-                    let r = objects.integration.lock().unwrap().set_carriages(&carriages,scale,index);
+                    let r = objects.base.integration.lock().unwrap().set_carriages(&carriages,scale,index);
                     if let Err(r) = r { errors.push(r); }
                 },
                 CarriageEvent::Transition(index,max,speed) => {
@@ -81,18 +81,18 @@ impl CarriageEvents {
                     notifications.push((viewport,future));
                 },
                 CarriageEvent::NotifyPitch(pitch) => {
-                    objects.integration.lock().unwrap().notify_pitch(&pitch);
+                    objects.base.integration.lock().unwrap().notify_pitch(&pitch);
                 }
             }
         }
         if let Some((index,max,speed)) = transition {
-            let r = objects.integration.lock().unwrap().start_transition(index,max,speed);
+            let r = objects.base.integration.lock().unwrap().start_transition(index,max,speed);
             if let Err(r) = r {
                 errors.push(r);
                 objects.transition_complete();
             }
         }
-        let mut integration =  objects.integration.lock().unwrap();
+        let mut integration =  objects.base.integration.lock().unwrap();
         for (viewport,future) in notifications.drain(..) {
             integration.notify_viewport(&viewport,future);
         }

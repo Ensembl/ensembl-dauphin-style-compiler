@@ -36,7 +36,7 @@ impl ApiQueueCampaign {
         }
     }
 
-    fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
+    async fn run_message(&mut self, data: &mut PeregrineCore, message: ApiMessage) {
         match message {
             ApiMessage::Ready => {
                 data.dauphin_ready();
@@ -54,8 +54,10 @@ impl ApiQueueCampaign {
             ApiMessage::Jump(location,promise) => {
                 data.agent_store.jump_store.jump(&location,promise);
             },
-            ApiMessage::SetStick(stick) => {
-                self.viewport = self.viewport.set_stick(&stick);
+            ApiMessage::SetStick(stick_id) => {
+                if let Ok(stick) = data.agent_store.stick_store.get(&stick_id).await.as_ref().map(|x| x.as_ref()) { // XXX errors
+                    self.viewport = self.viewport.set_stick(&stick_id,stick.size());
+                }
             },
             ApiMessage::Bootstrap(identity,channel) => {
                 bootstrap(&data.base,&data.agent_store,channel,identity);
@@ -129,7 +131,7 @@ impl PeregrineApiQueue {
                     let mut campaign = ApiQueueCampaign::new(&data2.viewport);
                     let mut lockouts = vec![];
                     for (message,lockout) in messages.drain(..) {
-                        campaign.run_message(&mut data2,message);
+                        campaign.run_message(&mut data2,message).await;
                         lockouts.push(lockout);
                     }
                     self2.update_viewport(&mut data2,campaign.viewport().clone());

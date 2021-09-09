@@ -43,14 +43,14 @@ pub struct PeregrineCoreBase {
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
     pub allotment_petitioner: AllotmentPetitioner,
-    pub identity: Arc<Mutex<u64>>
+    pub identity: Arc<Mutex<u64>>,
+    pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
 }
 
 #[derive(Clone)]
 pub struct PeregrineCore {
     pub base: PeregrineCoreBase,
     pub agent_store: AgentStore,
-    pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub train_set: TrainSet,
     pub viewport: Viewport,
     pub switches: Switches,
@@ -72,6 +72,7 @@ impl PeregrineCore {
             dauphin_queue,
             manager,
             messages,
+            integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
             allotment_petitioner: AllotmentPetitioner::new(),
             identity: Arc::new(Mutex::new(0))
@@ -81,7 +82,6 @@ impl PeregrineCore {
         Ok(PeregrineCore {
             base,
             agent_store,
-            integration: Arc::new(Mutex::new(integration)),
             train_set,
             viewport: Viewport::empty(),
             switches: Switches::new()

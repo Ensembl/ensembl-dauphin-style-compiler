@@ -9,7 +9,7 @@ fn unwrap<T>(x: Option<T>) -> Result<T,DataMessage> {
 #[derive(Clone,PartialEq)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 enum LayoutBuilder {
-    Pending(Option<StickId>,Option<TrackConfigList>),
+    Pending(Option<(StickId,u64)>,Option<TrackConfigList>),
     Finished(Layout)
 }
 
@@ -25,15 +25,15 @@ impl LayoutBuilder {
     fn try_upgrade(&mut self) {
         match self {
             LayoutBuilder::Pending(Some(stick),Some(track_config_list)) => {
-                *self = LayoutBuilder::Finished(Layout::new(stick,track_config_list));
+                *self = LayoutBuilder::Finished(Layout::new(&stick.0,stick.1,track_config_list));
             },
             _ => {}
         }
     }
 
-    pub fn set_stick(&mut self, stick_in: &StickId) {
+    pub fn set_stick(&mut self, stick_in: &StickId, size: u64) {
         match self {
-            LayoutBuilder::Pending(stick,_) => { *stick = Some(stick_in.clone()); },
+            LayoutBuilder::Pending(stick,_) => { *stick = Some((stick_in.clone(),size)); },
             LayoutBuilder::Finished(layout) => { layout.set_stick(stick_in); }
         }
         self.try_upgrade();
@@ -55,6 +55,11 @@ impl LayoutBuilder {
     }
 }
 
+fn limit_value(value: &mut f64, min: f64, max: f64) {
+    if *value < min { *value = min; }
+    if *value > max { *value = max; }
+}
+
 #[derive(Clone,PartialEq)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Viewport {
@@ -64,14 +69,6 @@ pub struct Viewport {
 }
 
 impl Viewport {
-    pub fn new(layout: &Layout, position: f64, bp_per_screen: f64) -> Viewport {
-        Viewport {
-            layout: LayoutBuilder::Finished(layout.clone()),
-            position: Some(position),
-            bp_per_screen: Some(bp_per_screen)
-        }
-    }
-
     pub fn empty() -> Viewport {
         Viewport {
             layout: LayoutBuilder::empty(),
@@ -88,33 +85,48 @@ impl Viewport {
     pub fn position(&self) -> Result<f64,DataMessage> { unwrap(self.position) }
     pub fn bp_per_screen(&self) -> Result<f64,DataMessage> { unwrap(self.bp_per_screen) }
 
+    fn update_by_limits(&mut self) {
+        if let (Ok(size),Some(position),Some(bp_per_screen)) = (
+                                                                    self.layout().map(|x| x.size()),
+                                                                    self.position.as_mut(),
+                                                                    self.bp_per_screen.as_mut()) {
+            limit_value(bp_per_screen,0.,size as f64);
+            limit_value(position,*bp_per_screen/2.,(size as f64)-*bp_per_screen/2.);
+        }
+    }
+
     pub fn new_layout(&self, layout: &Layout) -> Viewport {
         let mut out = self.clone();
         out.layout = LayoutBuilder::filled(layout.clone());
+        out.update_by_limits();
         out
     }
 
     pub fn set_position(&self, position: f64) -> Viewport {
         let mut out = self.clone();
         out.position = Some(position);
+        out.update_by_limits();
         out
     }
 
     pub fn set_bp_per_screen(&self, scale: f64) -> Viewport {
         let mut out = self.clone();
         out.bp_per_screen = Some(scale);
+        out.update_by_limits();
         out
     }
 
-    pub fn set_stick(&self, stick: &StickId) -> Viewport {
+    pub fn set_stick(&self, stick: &StickId, size: u64) -> Viewport {
         let mut out = self.clone();
-        out.layout.set_stick(stick);
+        out.layout.set_stick(stick,size);
+        out.update_by_limits();
         out
     }
 
     pub fn set_track_config_list(&self, track_config_list: &TrackConfigList) -> Viewport {
         let mut out = self.clone();
         out.layout.set_track_config_list(track_config_list);
+        out.update_by_limits();
         out
     }
 }
