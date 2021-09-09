@@ -14,18 +14,10 @@
       <div class="viewport" id="browser">
       </div>
       <div class="other" id="other">
-        <div>go crazy <input id="crazy" type="checkbox"/></div>
-        <div>shy track <input id="track" type="checkbox" checked/></div>
-        <div>bluer text <input id="bluer" type="checkbox" /></div>
         <div>bigger text <input id="bigger" type="checkbox"/></div>
         <div>id labels <input id="id-labels" type="checkbox"/></div>
-        <div>flip stick <input id="stick" type="checkbox"/></div>
-        <div>drag <input id="drag" type="checkbox"/></div>
-        <button id="goto">goto</button>
         <button id="jump-brca2">jump brca2</button>
         <button id="jump-fry">jump fry</button>
-        <button id="jump-error">jump error</button>
-        <button id="chr">chr</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -35,8 +27,8 @@
               <th>track id</th>
               <th>offset</th>
               <th>size</th>
-              <th>track</th>
-              <th>labels</th>
+              <th>on/off</th>
+              <th>on/off</th>
             </tr>
           </thead>
           <tbody id="track-metadata">
@@ -153,14 +145,9 @@
             if(go) { out(); }
             return out;
         }
-        document.getElementById("track").onclick = flipper(["track","gene-pc-rev"],true);
-        document.getElementById("bluer").onclick = flipper(["settings","bluer"],false);
         document.getElementById("bigger").onclick = flipper(["settings","bigger"],false);
         document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
 
-        document.getElementById("goto").onclick = function() {
-          genome_browser.goto(10000000,10100000);
-        };
         document.getElementById("jump-brca2").onclick = function() {
           genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000139618");
           genome_browser.wait();
@@ -172,25 +159,6 @@
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000073910"]);
-        };
-        document.getElementById("jump-error").onclick = function() {
-          genome_browser.jump("focus:xyz");
-        };
-        document.getElementById("chr").onclick = function() {
-          genome_browser.set_stick("homo_sapiens_GCA_000001405_27:2");
-        };
-        document.getElementById("crazy").onclick = function() {
-          test(genome_browser.copy());
-        };
-        let flip = false;
-        document.getElementById("stick").onclick = function() {
-          genome_browser.set_stick(flip?"homo_sapiens_GCA_000001405_27:1":"homo_sapiens_GCA_000001405_27:2");
-          flip = !flip;
-        };
-        let flip2 = false;
-        document.getElementById("drag").onclick = function() {
-          flip2 = !flip2;
-          genome_browser.set_artificial("drag",flip2);
         };
       });
     </script>
