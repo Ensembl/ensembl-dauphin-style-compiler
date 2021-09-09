@@ -172,7 +172,6 @@ impl Switches {
         let mut data = self.0.lock().unwrap();
         let target = data.root.get_target(path);
         target.set = false;
-        target.unset_kids();
         data.track_config_list = None;
     }
 
