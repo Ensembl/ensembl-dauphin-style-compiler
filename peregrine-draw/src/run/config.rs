@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
 use crate::input::InputEventKind;
 use css_color_parser::Color as CssColor;
+#[allow(unused)]
 use std::fmt;
 
 // XXX factor with similar in peregrine-data

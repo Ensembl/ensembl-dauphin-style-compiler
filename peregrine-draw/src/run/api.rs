@@ -12,6 +12,7 @@ use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
 use crate::run::config::{ PgConfigKey };
 use super::frame::run_animations;
+use super::PgPeregrineConfig;
 
 use std::sync::{ Arc, Mutex };
 
@@ -64,7 +65,6 @@ enum DrawMessage {
     Sync()
 }
 
-// XXX conditional
 impl std::fmt::Debug for DrawMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
@@ -84,9 +84,15 @@ impl std::fmt::Debug for DrawMessage {
     }
 }
 
+#[cfg(force_show_incoming)]
+fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { Ok(true) }
+
+#[cfg(not(force_show_incoming))]
+fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { config.get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages)) }
+
 impl DrawMessage {
     fn run(self, draw: &mut PeregrineInnerAPI, blocker: &Blocker) -> Result<(),Message> {
-        if draw.config().get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages))? {
+        if show_incoming(draw.config())? {
             console::log_1(&format!("message {:?}",self).into());
         }
         match self {
@@ -198,6 +204,9 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
+        if show_incoming(draw.config())? {
+            console::log_1(&format!("compilation: git {:?} build time {:?} build host {:?}",env!("GIT_HASH"),env!("BUILD_TIME"),env!("BUILD_HOST")).into());
+        }
         loop {
             let message = self.queue.get().await;
             message.run(&mut draw,&self.queue.blocker())?;

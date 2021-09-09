@@ -77,7 +77,7 @@ impl SoundState {
         let asset = self.assets.get(name);
         if asset.is_none() { return Ok(()); }
         let asset = asset.unwrap();
-        wrap_js_promise_bgd(self.audio_context()?.resume()?); // handle autoplay-protection having stopped earlier sounds
+        wrap_js_promise(self.audio_context()?.resume()?).await.ok(); // handle autoplay-protection having stopped earlier sounds
         let source_node = AudioBufferSourceNode::new(self.audio_context()?)?;
         match self.audio_context()?.state() {
             AudioContextState::Running => {},
@@ -103,6 +103,7 @@ impl SoundState {
         source_node.stop()?;
         source_node.disconnect()?;
         volume_node.disconnect()?;
+        wrap_js_promise(self.audio_context()?.suspend()?).await?;
         Ok(())
     }
 

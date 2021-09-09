@@ -23,15 +23,6 @@ fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
     }).collect()
 }
 
-    /* TODO fix
-fn add_wiggle<'a>(layer: &'a mut Layer, start: f64, end: f64, y: Vec<Option<f64>>, height: f64, patina: &PatinaProcessName, _allotment: Allotment) -> Result<(ProcessStanzaArray,GeometryProgramName),Message> {    
-    let wiggle = layer.get_wiggle(patina)?;
-    let left = layer.left();
-    let process = layer.get_process_mut(&GeometryProgramName::Page,patina)?;
-    let stanza_builder = wiggle.add_wiggle(process,start,end,y,height,left)?;
-    Ok((stanza_builder,GeometryProgramName::Pin))
-}
-*/
 
 // XXX not a new one for each!
 fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec<Allotment>,Message> {
