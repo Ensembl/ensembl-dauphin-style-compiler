@@ -1,17 +1,18 @@
 use peregrine_data::Asset;
 use peregrine_data::Assets;
-use std::{collections::{HashMap, VecDeque, btree_map}, sync::{Arc, Mutex}};
-use js_sys::{ArrayBuffer, Promise, Uint8Array};
+use peregrine_toolkit::plumbing::distributor::Distributor;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use js_sys::{ Promise, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
-use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, GainNode };
+use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
-use web_sys::Element;
 
-use crate::{Message, PeregrineDom, PgCommanderWeb };
+use crate::{Message, PgCommanderWeb };
 
-fn sound_error<T>(value: Result<T,JsValue>) -> Result<T,Message> {
-    value.map_err(|e| Message::ConfusedWebBrowser(format!("sound error: {:?}",e)))
-}
+use super::PgConfigKey;
+use super::PgPeregrineConfig;
 
 async fn wrap_js_promise(promise: Promise) -> Result<JsValue,JsValue> {
     let result = PromiseFuture::new();
@@ -27,13 +28,25 @@ async fn wrap_js_promise(promise: Promise) -> Result<JsValue,JsValue> {
     out
 }
 
+#[derive(Clone)]
+struct PromiseBgd(Arc<Mutex<Option<(Closure<dyn FnMut(JsValue)>,Closure<dyn FnMut(JsValue)>)>>>);
+
+fn wrap_js_promise_bgd(promise: Promise) {
+    let holder = PromiseBgd(Arc::new(Mutex::new(None)));
+    let holder2 = holder.clone();
+    let success = Closure::once(move |v| drop(holder2));
+    let holder2 = holder.clone();
+    let failure = Closure::once(move |v| drop(holder2));
+    let _ = promise.then2(&success,&failure);
+    holder.0.lock().unwrap().replace((success,failure));
+}
+
 enum SoundQueueItem {
     Play(String)
 }
 
 struct SoundState {
     assets: Assets,
-    dom: PeregrineDom,
     audio_context: Option<AudioContext>,
     samples: HashMap<String,Option<AudioBuffer>>
 }
@@ -53,7 +66,6 @@ impl SoundState {
     }
 
     async fn get_source(&mut self, name: &str, asset: &Asset) -> Result<Option<&AudioBuffer>,JsValue> {
-        use web_sys::console;
         if !self.samples.contains_key(name) {
             let source = self.make_source(asset).await?;
             self.samples.insert(name.to_string(),source);
@@ -65,7 +77,12 @@ impl SoundState {
         let asset = self.assets.get(name);
         if asset.is_none() { return Ok(()); }
         let asset = asset.unwrap();
+        wrap_js_promise_bgd(self.audio_context()?.resume()?); // handle autoplay-protection having stopped earlier sounds
         let source_node = AudioBufferSourceNode::new(self.audio_context()?)?;
+        match self.audio_context()?.state() {
+            AudioContextState::Running => {},
+            _ => { return Ok(()); }
+        }
         let audio_buffer = self.get_source(name,&asset).await?;
         if audio_buffer.is_none() { return Ok(()); }
         let audio_buffer = audio_buffer.unwrap();
@@ -94,13 +111,48 @@ impl SoundState {
     }
 }
 
+struct SoundComposer {
+    sound: Sound,
+    dinged: bool,
+    ding_sound: Option<String>
+}
+
+impl SoundComposer {
+    fn new(sound: &Sound, config: &PgPeregrineConfig) -> Result<SoundComposer,Message> {
+        let ding_sound = config.get_str(&PgConfigKey::EndstopSound)?;
+        let ding_sound = if ding_sound.is_empty() { None } else { Some(ding_sound.to_string()) };
+        Ok(SoundComposer {
+            sound: sound.clone(),
+            dinged: false,
+            ding_sound
+        })
+    }
+
+    fn handle_message(&mut self, message: &Message) {
+        match message {
+            Message::HitEndstop(stops) => {
+                if let Some(ding) = &self.ding_sound {
+                    if stops.len() > 0 {
+                        if !self.dinged {
+                            self.sound.play(ding);
+                            self.dinged = true;
+                        }
+                    } else {
+                        self.dinged = false;
+                    }
+                }
+            },
+            _ => {}
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Sound {
     queue: CommanderStream<SoundQueueItem>
 }
 
 impl Sound {
-
     async fn run_loop(&mut self, mut state: SoundState) -> Result<(),Message> {
         loop {
             match self.queue.get().await {
@@ -115,16 +167,18 @@ impl Sound {
         self.queue.add(SoundQueueItem::Play(sound.to_string()))
     }
 
-    pub(crate) fn new(commander: &PgCommanderWeb, dom: &PeregrineDom, assets: &Assets) -> Result<Sound,Message> {
+    pub(crate) fn new(config: &PgPeregrineConfig, commander: &PgCommanderWeb, assets: &Assets, messages: &mut Distributor<Message>) -> Result<Sound,Message> {
         let queue = CommanderStream::new();
         let state = SoundState {
-            assets: assets.clone(), dom: dom.clone(),
+            assets: assets.clone(),
             audio_context: None,
             samples: HashMap::new()
         };
         let out = Sound { queue };
         let mut out2 = out.clone();
         commander.add("sound",15,None,None,Box::pin(async move { out2.run_loop(state).await }));
+        let mut composer = SoundComposer::new(&out,config)?;
+        messages.add(move |m| composer.handle_message(m));
         Ok(out)
     }
 }

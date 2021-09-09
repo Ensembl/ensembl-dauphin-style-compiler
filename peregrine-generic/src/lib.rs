@@ -269,8 +269,8 @@ impl GenomeBrowser {
                                         let name = match endstop {
                                             Endstop::Left => { "left" },
                                             Endstop::Right => { "right" },
-                                            Endstop::MaxZoomIn => { "in "},
-                                            Endstop::MaxZoomOut => { "out "}
+                                            Endstop::MaxZoomIn => { "in" },
+                                            Endstop::MaxZoomOut => { "out" }
                                         };
                                         values.set(i as u32,JsValue::from(name));
                                     }

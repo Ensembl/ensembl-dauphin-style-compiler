@@ -135,7 +135,7 @@ impl PeregrineInnerAPI {
         let report = Report::new(&config.draw,&message_sender)?;
         let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
-        let sound = Sound::new(&commander,dom,integration.assets())?;
+        let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },queue_blocker).map_err(|e| Message::DataError(e))?;
@@ -163,7 +163,6 @@ impl PeregrineInnerAPI {
         Ok(out)
     }
 
-    pub(crate) fn trainset(&self) -> GlTrainSet { self.trainset.clone() }
     pub(crate) fn spectres(&self) -> &SpectreManager { &self.spectre_manager }
     pub(crate) fn stage(&self) -> &Arc<Mutex<Stage>> { &self.stage }
 

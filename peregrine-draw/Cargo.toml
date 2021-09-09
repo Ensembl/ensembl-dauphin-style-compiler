@@ -40,7 +40,7 @@ path="../peregrine-toolkit"
 [dependencies.web-sys]
 version = "*"
 features = [
-  'AbortController', 'AbortSignal', 'AudioContext', 'AudioBufferSourceNode', 'AudioBuffer', 'AudioDestinationNode', 'AudioParam',
+  'AbortController', 'AbortSignal', 'AudioContext', 'AudioBufferSourceNode', 'AudioBuffer', 'AudioDestinationNode', 'AudioParam', 'AudioContextState',
   'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration',
   'Document', 'DomRect',
   'Element',

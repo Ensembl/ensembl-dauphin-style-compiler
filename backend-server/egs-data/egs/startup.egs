@@ -35,7 +35,7 @@ stmt gene_std(p) {
 }
 
 /* exon-structure; labels ; zmenus; sequence blocks */
-p := track_new("self()","zoomed-transcript",0,sequence_scale,3);
+p := track_new("self()","zoomed-transcript",0,sequence_scale,sequence_scale);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
