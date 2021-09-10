@@ -27,7 +27,7 @@ impl StickAuthorityCommandRequest {
 
 impl RequestType for StickAuthorityCommandRequest {
     fn type_index(&self) -> u8 { 3 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Null)
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

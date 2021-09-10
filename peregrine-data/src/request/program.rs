@@ -1,3 +1,4 @@
+use crate::Channel;
 use std::any::Any;
 use std::collections::{ HashMap };
 use serde_cbor::Value as CborValue;
@@ -75,7 +76,7 @@ impl ProgramCommandRequest {
 
 impl RequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage> {
         self.program_name.serialize()
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

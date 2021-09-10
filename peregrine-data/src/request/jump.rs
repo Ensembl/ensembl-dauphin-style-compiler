@@ -30,7 +30,7 @@ impl JumpCommandRequest {
 
 impl RequestType for JumpCommandRequest {
     fn type_index(&self) -> u8 { 5 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![CborValue::Text(self.location.to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

@@ -32,7 +32,7 @@ impl StickCommandRequest {
 
 impl RequestType for StickCommandRequest {
     fn type_index(&self) -> u8 { 2 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![CborValue::Text(self.stick_id.get_id().to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

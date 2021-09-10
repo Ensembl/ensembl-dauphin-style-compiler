@@ -7,7 +7,8 @@ from .datasources import DataAccessor
 from .begs import Bundle
 from .coremodel import Handler
 from .response import Response
-from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler, FailureHandler
+from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
+from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
 
 data_accessor = DataAccessor()        
@@ -19,7 +20,7 @@ handlers = {
     3: StickAuthorityHandler(),
     4: DataHandler(),
     5: JumpHandler(data_accessor),
-    6: FailureHandler()
+    6: MetricHandler()
 }
 
 def type_to_handler(typ: int) -> Any:

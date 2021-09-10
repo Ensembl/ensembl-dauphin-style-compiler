@@ -1,3 +1,4 @@
+use crate::index::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
 use crate::index::metricreporter::MetricReport;
 use crate::train::{ TrainSet };
@@ -36,6 +37,7 @@ impl MessageSender {
 #[derive(Clone)]
 pub struct PeregrineCoreBase {
     pub messages: MessageSender,
+    pub metrics: MetricCollector,
     pub dauphin_queue: PgDauphinQueue,
     pub dauphin: PgDauphin,
     pub commander: PgCommander,
@@ -59,13 +61,15 @@ pub struct PeregrineCore {
 impl PeregrineCore {
     pub fn new<M,F>(integration: Box<dyn PeregrineIntegration>, commander: M, messages: F, visual_blocker: &Blocker) -> Result<PeregrineCore,DataMessage> 
                 where M: Commander + 'static, F: FnMut(DataMessage) + 'static + Send {
+        let commander = PgCommander::new(Box::new(commander));
+        let metrics = MetricCollector::new(&commander);
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
-        let commander = PgCommander::new(Box::new(commander));
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
         let booted = CountingPromise::new();
         let base = PeregrineCoreBase {
+            metrics,
             booted,
             commander,
             dauphin,
@@ -98,6 +102,7 @@ impl PeregrineCore {
     }
 
     pub fn bootstrap(&self, identity: u64, channel: Channel) {
+        self.base.metrics.bootstrap(&channel,identity,&self.base.manager);
         self.base.queue.push(ApiMessage::Bootstrap(identity,channel));
     }
 
@@ -147,6 +152,6 @@ impl PeregrineCore {
     }
 
     pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {
-        self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_message(&self.base,message)));
+        self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_error_message(&self.base,message)));
     }
 }

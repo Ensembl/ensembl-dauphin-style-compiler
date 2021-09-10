@@ -1,3 +1,5 @@
+use crate::index::metricreporter::DatastreamMetric;
+use crate::index::metricreporter::MetricCollector;
 use anyhow::{ anyhow as err };
 use std::any::Any;
 use std::collections::HashMap;
@@ -31,24 +33,28 @@ impl DataCommandRequest {
         }
     }
 
-    pub async fn execute(self, mut manager: RequestManager, priority: &PacketPriority) -> Result<Box<DataResponse>,DataMessage> {
+    fn account(&self, response: &DataResponse, metrics: &MetricCollector) {
+        let mut datapoint = DatastreamMetric::empty(&self.name,self.region.scale().get_index());
+        datapoint.num_events += 1;
+        datapoint.total_size += response.data.iter().map(|(k,v)| k.len()+v.len()).sum::<usize>();
+        metrics.add_datastream(&datapoint);
+    }
+
+    pub async fn execute(self, mut manager: RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new();
-        match backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,priority.clone(),|_| None).await? {
-            Ok(d) => {
-                Ok(d)
-            },
-            Err(e) => {
-                // XXX and send via messagesender
-                Err(DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)))
-            }
+        let out = backoff.backoff::<DataResponse,_,_>(
+                                    &mut manager,self.clone(),&self.channel,priority.clone(),|_| None).await?
+                .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
+        if let Ok(response) = &out {
+            self.account(&response,metrics);
         }
+        out
     }
 }
 
 impl RequestType for DataCommandRequest {
     fn type_index(&self) -> u8 { 4 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.region.serialize()?]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

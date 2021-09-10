@@ -490,7 +490,9 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "serde",
  "serde_cbor",
+ "serde_derive",
  "serde_json",
  "web-sys",
 ]
@@ -613,6 +615,17 @@ checksum = "1e18acfa2f90e8b735b2836ab8d538de304cbb6729a7360729ea5a895d15a622"
 dependencies = [
  "half",
  "serde",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.118"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c84d3526699cd55261af4b941e4e725444df67aa4f9e6a3564f18030d12672df"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

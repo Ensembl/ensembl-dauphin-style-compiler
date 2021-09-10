@@ -17,6 +17,7 @@ limitations under the License.
 
 import sys
 import logging
+import syslog
 from types import FrameType
 from typing import cast
 from loguru import logger
@@ -40,13 +41,15 @@ class InterceptHandler(logging.Handler):
             level, record.getMessage(),
         )
 
-def get_handler():
+def get_handler(facility=None):
+    if facility == None:
+        facility = syslog.LOG_USER
     log_host = config.LOG_HOST
     log_port = config.LOG_PORT
     if log_host == None:
         return StreamHandler(sys.stderr)
     else:
-        return SysLogHandler(address=(log_host,log_port))
+        return SysLogHandler(address=(log_host,log_port),facility=facility)
 
 def setup_logging():
     LOGGING_LEVEL = logging.DEBUG if config.DEBUG else logging.WARN
@@ -57,3 +60,19 @@ def setup_logging():
         logging_logger = logging.getLogger(logger_name)
         logging_logger.handlers = [get_handler()]
         logging_logger.setLevel(LOGGING_LEVEL)
+
+special_loggers = {}
+def get_logger(name,facility=None,level=None):
+    global special_loggers
+
+    LOGGING_LEVEL = logging.DEBUG if config.DEBUG else logging.WARN
+    if name in special_loggers:
+        return special_loggers[name]
+    if level == None:
+        level = LOGGING_LEVEL
+    logger = logging.getLogger(name)
+    logger.handlers = [get_handler(facility)]
+    logger.setLevel(level)
+    logger.propagate = False
+    special_loggers[name] = logger
+    return logger

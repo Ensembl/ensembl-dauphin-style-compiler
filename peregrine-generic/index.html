@@ -18,6 +18,7 @@
         <div>id labels <input id="id-labels" type="checkbox"/></div>
         <button id="jump-brca2">jump brca2</button>
         <button id="jump-fry">jump fry</button>
+        <button id="create-error">create error</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
         <div style="width: 200px; word-break: break-all;">target: <span id="target"></span></div>
@@ -159,6 +160,10 @@
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000073910"]);
+        };
+        document.getElementById("create-error").onclick = function() {
+          genome_browser.jump("focus:none");
+          genome_browser.wait();
         };
       });
     </script>

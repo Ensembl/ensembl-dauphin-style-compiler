@@ -1,3 +1,5 @@
+use crate::index::metricreporter::DatastreamMetric;
+use crate::index::metricreporter::MetricCollector;
 use anyhow::{ Context };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::lock;
@@ -146,6 +148,7 @@ impl RequestQueue {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
+        let channel = data.channel.clone();
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
@@ -156,7 +159,7 @@ impl RequestQueue {
         let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
             channels.insert(r.message_id(),c.clone());
-            timeouts.push((r.request().to_failure(),c));
+            timeouts.push((r.request(&channel).to_failure(),c));
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);
@@ -190,7 +193,8 @@ impl RequestQueue {
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(stream) = streams.remove(&id) {
-                stream.add(r.into_response());
+                let response = r.into_response();
+                stream.add(response);
             }
         }
     }

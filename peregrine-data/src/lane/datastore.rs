@@ -9,7 +9,7 @@ use crate::request::data::{ DataCommandRequest, DataResponse };
 // TODO Memoized errors with retry semantics
 
 async fn run(base: PeregrineCoreBase, (region,channel,name): (Region,Channel,String), priority: PacketPriority) -> Result<Arc<Box<DataResponse>>,DataMessage> {
-    DataCommandRequest::new(&channel,&name,&region).execute(base.manager,&priority).await.map(|x| Arc::new(x))
+    DataCommandRequest::new(&channel,&name,&region).execute(base.manager,&priority,&base.metrics).await.map(|x| Arc::new(x))
 }
 
 fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Region,Channel,String),Result<Arc<Box<DataResponse>>,DataMessage>> {

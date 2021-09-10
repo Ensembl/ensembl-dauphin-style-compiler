@@ -479,7 +479,9 @@ dependencies = [
  "peregrine_dauphin_queue",
  "peregrine_message",
  "peregrine_toolkit",
+ "serde",
  "serde_cbor",
+ "serde_derive",
  "serde_json",
  "web-sys",
 ]

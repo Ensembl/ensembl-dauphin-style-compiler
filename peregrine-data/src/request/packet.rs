@@ -29,7 +29,7 @@ impl RequestPacket {
         let mut map = BTreeMap::new();
         let mut requests = vec![];
         for r in &self.requests {
-            requests.push(r.serialize()?);
+            requests.push(r.serialize(channel)?);
         }
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
         map.insert(CborValue::Text("channel".to_string()),channel.serialize()?);

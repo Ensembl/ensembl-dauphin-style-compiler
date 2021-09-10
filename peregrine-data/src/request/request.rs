@@ -1,5 +1,7 @@
 // TODO tied failures
 
+use crate::index::metricreporter::MetricCollector;
+use crate::Channel;
 use std::any::Any;
 use anyhow::{ self };
 use serde_cbor::Value as CborValue;
@@ -8,7 +10,7 @@ use crate::util::message::DataMessage;
 
 pub trait RequestType {
     fn type_index(&self) -> u8;
-    fn serialize(&self) -> Result<CborValue,DataMessage>;
+    fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage>;
     fn to_failure(&self) -> Box<dyn ResponseType>;
 }
 
@@ -21,14 +23,14 @@ impl CommandRequest {
     }
 
     pub(crate) fn message_id(&self) -> u64 { self.0 }
-    pub(crate) fn request(&self) -> &Box<dyn RequestType> { self.1.as_ref() }
+    pub(crate) fn request(&self, channel: &Channel) -> &Box<dyn RequestType> { self.1.as_ref() }
     pub(crate) fn fail(&self) -> CommandResponse {
         CommandResponse::new(self.0,self.1.to_failure())
     }
 
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
+    pub fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage> {
         let typ = self.1.type_index();
-        Ok(CborValue::Array(vec![CborValue::Integer(self.0 as i128),CborValue::Integer(typ as i128),self.1.serialize()?]))
+        Ok(CborValue::Array(vec![CborValue::Integer(self.0 as i128),CborValue::Integer(typ as i128),self.1.serialize(channel)?]))
     }
 }
 

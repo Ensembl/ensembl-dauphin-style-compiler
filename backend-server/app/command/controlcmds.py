@@ -87,13 +87,3 @@ class StickAuthorityHandler(Handler):
         else:
             return Response(1,"I am not an authority")
         return r
-
-class FailureHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
-        (identity,text,major,minor) = payload
-        now = datetime.datetime.now().replace(microsecond=0).isoformat()
-        with open(METRIC_FILE,"a") as f:
-            parts = [now,hex(identity),major,hex(minor),text]
-            f.write("\t".join([str(x) for x in parts])+"\n")
-        r = Response(2,[])
-        return r

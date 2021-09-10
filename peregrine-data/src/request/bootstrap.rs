@@ -58,7 +58,7 @@ impl BootstrapCommandRequest {
 
 impl RequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> { Ok(CborValue::Null) }
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> { Ok(CborValue::Null) }
     fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
 }
 
