@@ -1,6 +1,6 @@
 use crate::api::PeregrineCore;
 use crate::core::{ StickId, Viewport };
-use crate::index::metricreporter::MetricReport;
+use crate::metric::metricreporter::MetricReport;
 use crate::run::add_task;
 use crate::PgCommanderTaskSpec;
 use commander::{CommanderStream, PromiseFuture};

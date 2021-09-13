@@ -10,6 +10,7 @@ from .response import Response
 from .controlcmds import BootstrapHandler, ProgramHandler, ErrorHandler, StickHandler, StickAuthorityHandler
 from .metriccmd import MetricHandler
 from .datacmd import DataHandler, JumpHandler
+from util.influx import ResponseMetrics
 
 data_accessor = DataAccessor()        
 
@@ -49,17 +50,19 @@ def extract_remote_request(channel: Tuple[int,str], typ: int, payload: Any):
             return override
     return None
 
-def process_local_request(channel: Tuple[int,str], typ: int, payload: Any):
+def process_local_request(channel: Tuple[int,str], typ: int, payload: Any, metrics: ResponseMetrics):
     handler = type_to_handler(typ)
-    return handler.process(data_accessor,channel,payload)
+    return handler.process(data_accessor,channel,payload,metrics)
 
 def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
+    metrics = ResponseMetrics("realtime" if high_priority else "batch")
     channel = packet_cbor["channel"]
     response = []
     bundles = set()
     local_requests = []
     remote_requests = collections.defaultdict(list)
     # anything that should be remote
+    metrics.count_packets += len(packet_cbor["requests"])
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p
         override = extract_remote_request(channel,typ,payload)
@@ -73,8 +76,9 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
         bundles |= set(r["programs"])
     # local stuff
     for (msgid,typ,payload) in local_requests:
-        r = process_local_request(channel,typ,payload)
+        r = process_local_request(channel,typ,payload,metrics)
         response.append([msgid,r.payload])
         bundles |= r.bundles
     begs_files = data_accessor.begs_files
+    metrics.send()
     return (response,[ begs_files.add_bundle(x) for x in bundles ])

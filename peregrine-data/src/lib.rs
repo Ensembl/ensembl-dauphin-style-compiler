@@ -27,7 +27,6 @@ mod core {
 }
 
 mod index {
-    pub(crate) mod metricreporter;
     pub(crate) mod stickstore;
     pub(crate) mod stickauthority;
     pub(crate) mod stickauthoritystore;
@@ -50,6 +49,14 @@ mod lane {
     pub use self::programname::ProgramName;
     pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
     pub use self::resultstore::{ LaneStore };
+}
+
+mod metric {
+    pub(crate) mod datastreammetric;
+    pub(crate) mod errormetric;
+    pub(crate) mod metricreporter;
+    pub(crate) mod metricutil;
+    pub(crate) mod programrunmetric;
 }
 
 mod request {

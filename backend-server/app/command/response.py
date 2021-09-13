@@ -8,3 +8,6 @@ class Response(object):
 
     def add_bundle(self, name: str):
         self.bundles.add(name)
+
+    def len(self):
+        return len(self.payload)

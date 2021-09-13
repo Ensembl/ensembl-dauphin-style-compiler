@@ -1,5 +1,7 @@
-use crate::index::metricreporter::DatastreamMetric;
-use crate::index::metricreporter::MetricCollector;
+use commander::cdr_current_time;
+use crate::metric::datastreammetric::DatastreamMetricKey;
+use crate::metric::datastreammetric::DatastreamMetricValue;
+use crate::metric::metricreporter::MetricCollector;
 use anyhow::{ anyhow as err };
 use std::any::Any;
 use std::collections::HashMap;
@@ -14,7 +16,7 @@ use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
 pub struct DataResponse {
-    data: HashMap<String,Vec<u8>>
+    data: HashMap<String,Vec<u8>>,
 }
 
 #[derive(Clone)]
@@ -33,20 +35,24 @@ impl DataCommandRequest {
         }
     }
 
-    fn account(&self, response: &DataResponse, metrics: &MetricCollector) {
-        let mut datapoint = DatastreamMetric::empty(&self.name,self.region.scale().get_index());
-        datapoint.num_events += 1;
-        datapoint.total_size += response.data.iter().map(|(k,v)| k.len()+v.len()).sum::<usize>();
-        metrics.add_datastream(&datapoint);
+    fn account(&self, response: &DataResponse, metrics: &MetricCollector, priority: &PacketPriority) {
+        for (name,data) in &response.data {
+            let key = DatastreamMetricKey::new(&self.name,name,self.region.scale().get_index(),priority.clone());
+            let mut value = DatastreamMetricValue::empty();
+            value.num_events += 1;
+            value.total_size += data.len();
+            metrics.add_datastream(&key,&value);
+        }
     }
 
     pub async fn execute(self, mut manager: RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
+        let start_time = cdr_current_time();
         let mut backoff = Backoff::new();
-        let out = backoff.backoff::<DataResponse,_,_>(
+        let mut out = backoff.backoff::<DataResponse,_,_>(
                                     &mut manager,self.clone(),&self.channel,priority.clone(),|_| None).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
-        if let Ok(response) = &out {
-            self.account(&response,metrics);
+        if let Ok(response) = &mut out {
+            self.account(&response,metrics,priority);
         }
         out
     }

@@ -94,16 +94,16 @@ impl AnticipatePosition {
             let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
             let start = (base_index - 2).max(0);
             for offset in 0..5 {
-                let delta = (offset as i64)-2;
                 let index = start+offset;
                 if index < 0 { continue; }
                 self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,index as u64);
             }
         }
         /* in */
-        let mut new_scale = self.scale.clone();
-        for index in 0..5 {
-            if let Some(new_scale) = new_scale.prev_scale() {
+        let mut new_scale = Some(self.scale.clone());
+        for _index in 0..5 {
+            new_scale = new_scale.as_ref().and_then(|s| s.prev_scale());
+            if let Some(new_scale) = &new_scale {
                 for offset in 0..5 {
                     let delta = (offset as i64)-2;
                     let mut index = new_scale.convert_index(&self.scale,self.index) as i64;
@@ -112,6 +112,12 @@ impl AnticipatePosition {
                     self.context.derive(new_carriages,old_carriages,base,result_store,&new_scale,index as u64);
                 }
             }
+        }
+        /* left/right */
+        for offset in 2..9 {
+            let index = self.index as i64 + (offset/2) * if offset%2 == 0 { 1 } else { -1 };
+            if index < 0 { continue; }
+            self.context.derive(new_carriages,old_carriages,base,result_store,&self.scale,index as u64);
         }
     }
 }

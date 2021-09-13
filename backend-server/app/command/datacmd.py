@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional
-import logging
+import time
 from .coremodel import Handler, Panel
 from .response import Response
 from .datasources import DataAccessor
@@ -9,6 +9,7 @@ from data.variant import VariantDataHandler
 from data.sequence import ZoomedSeqDataHandler
 from data.contig import ContigDataHandler, ShimmerContigDataHandler
 from data.focusjump import FocusJumpHandler
+from util.influx import ResponseMetrics
 
 class DataHandler(Handler):
     def __init__(self):
@@ -24,16 +25,24 @@ class DataHandler(Handler):
             "variant": VariantDataHandler()
         }
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         (channel,name,panel) = payload
         panel = Panel(panel)
         out = data_accessor.cache.get_data(channel,name,panel)
         if out != None:
+            metrics.cache_hits += 1
+            metrics.cache_hits_bytes += out.len()
             return out
         handler = self.handlers.get(name)
         if handler == None:
             return Response(1,"Unknown data endpoint {0}".format(name))
+        start = time.time()
         out = handler.process_data(data_accessor, panel)
+        time_taken_ms = (time.time() - start) * 1000.0
+        metrics.runtime_num[(name,panel.scale)] += time_taken_ms
+        metrics.runtime_denom[(name,panel.scale)] += 1
+        metrics.cache_misses += 1
+        metrics.cache_misses_bytes += out.len()
         data_accessor.cache.store_data(channel,name,panel,out)
         return out
 
@@ -46,7 +55,7 @@ class JumpHandler(Handler):
             FocusJumpHandler(data_accessor)
         ]
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         (location,) = payload
         for handler in self.handlers:
             jump = handler.get(data_accessor,location)

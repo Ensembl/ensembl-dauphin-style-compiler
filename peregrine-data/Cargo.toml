@@ -14,6 +14,7 @@ serde_cbor="*"
 serde={ version="*", features=["rc"] }
 serde_derive="*"
 serde_json="*"
+serde_tuple="*"
 futures="*"
 #regex="*"
 lazy_static="*"

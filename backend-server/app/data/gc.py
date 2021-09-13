@@ -12,8 +12,8 @@ SCALE = 4
 def get_gc(data_accessor: DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("gc")
     (data,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end)
-    # Awkwardly, issing data seems tobe treated as 0.0 by the reader.
-    # Need also to mask adjacentvalues as averages are affected
+    # Awkwardly, missing data seems tobe treated as 0.0 by the reader.
+    # Need also to mask adjacent values as averages are affected
     data = [ 0.0 if x is None else x for x in data ]
     present = []
     for i in range(0,len(data)):

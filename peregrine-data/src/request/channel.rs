@@ -8,6 +8,7 @@ use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
 use crate::util::message::DataMessage;
+use serde_derive::{ Serialize };
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -77,10 +78,19 @@ impl Display for Channel {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash,Serialize)]
 pub enum PacketPriority {
     RealTime,
     Batch
+}
+
+impl PacketPriority {
+    pub fn index(&self) -> usize {
+        match self {
+            PacketPriority::RealTime => 0,
+            PacketPriority::Batch => 1
+        }
+    }
 }
 
 impl Display for PacketPriority {

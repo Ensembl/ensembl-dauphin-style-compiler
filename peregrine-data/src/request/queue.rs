@@ -1,5 +1,4 @@
-use crate::index::metricreporter::DatastreamMetric;
-use crate::index::metricreporter::MetricCollector;
+use commander::cdr_timer;
 use anyhow::{ Context };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::lock;
@@ -152,7 +151,13 @@ impl RequestQueue {
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
-            PacketPriority::Batch => { pending.get_multi(Some(10)).await }
+            PacketPriority::Batch => { 
+                let first = pending.get().await;
+                cdr_timer(1000.).await;
+                let mut more = pending.get_multi_nowait(Some(30)).await;
+                more.insert(0,first);
+                more
+            }
         };
         let mut packet = RequestPacket::new();
         let mut channels = HashMap::new();

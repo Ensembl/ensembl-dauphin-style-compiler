@@ -88,16 +88,23 @@ impl<T> CommanderStream<T> {
         self.0.lock().unwrap().get_nowait()
     }
 
+    /// Return at upto given number of items. No waiting.
+    pub async fn get_multi_nowait(&self, limit: Option<usize>) -> Vec<T> {
+        let mut out = Vec::new();
+        while let Some(value) = self.get_nowait() {
+            out.push(value);
+            if let Some(limit) = limit {
+                if out.len() >= limit { return out; }
+            }
+        }
+        out
+    }
+
     /// Return at least one queue member. Wait if none present. If multiple are present, return all.
     pub async fn get_multi(&self, limit: Option<usize>) -> Vec<T> {
         let mut out = Vec::new();
         loop {
-            while let Some(value) = self.get_nowait() {
-                if let Some(limit) = limit {
-                    if out.len() >= limit { return out; }
-                }
-                out.push(value);
-            }
+            out.append(&mut self.get_multi_nowait(limit).await);
             if out.len() != 0 { return out; }
             out.push(self.get().await);
         }

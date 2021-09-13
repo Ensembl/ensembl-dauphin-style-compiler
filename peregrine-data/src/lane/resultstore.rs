@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+use commander::cdr_current_time;
 use std::collections::HashMap;
 use crate::{PacketPriority, ProgramLoader};
 use crate::util::builder::Builder;
@@ -16,12 +18,15 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramL
     let priority = if batch { PacketPriority::Batch } else { PacketPriority::RealTime };
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new());
+    let net_ms = Arc::new(Mutex::new(0.));
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("allotments".to_string(),Box::new(base.allotment_petitioner.clone()) as Box<dyn Any>);
     payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
     payloads.insert("only_warm".to_string(),Box::new(batch) as Box<dyn Any>);
+    payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
+    let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
         prio: if batch { 9 } else { 1 },
         slot: None,
@@ -29,6 +34,9 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase,program_loader: ProgramL
         program_name: request.track().track().program_name().clone(),
         payloads: Some(payloads)
     }).await?;
+    let took_ms = cdr_current_time() - start;
+    let net_time_ms = *net_ms.lock().unwrap();
+    base.metrics.program_run(&request.track().track().program_name().1,request.region().scale().get_index(),batch,net_time_ms,took_ms);
     Ok(Arc::new(shapes.build()))
 }
 

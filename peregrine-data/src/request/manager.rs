@@ -1,4 +1,3 @@
-use crate::index::metricreporter::MetricCollector;
 use crate::lock;
 use commander::{ CommanderStream };
 use peregrine_toolkit::sync::blocker::Blocker;

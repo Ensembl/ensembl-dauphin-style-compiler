@@ -1,6 +1,5 @@
 // TODO tied failures
 
-use crate::index::metricreporter::MetricCollector;
 use crate::Channel;
 use std::any::Any;
 use anyhow::{ self };

@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+use std::sync::Arc;
 use crate::simple_interp_command;
 use crate::util::{ get_instance, get_peregrine };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
@@ -47,17 +49,24 @@ async fn get(context: &mut InterpContext, cmd: GetDataInterpCommand) -> anyhow::
     let channel_name = registers.get_strings(&cmd.1)?;
     let prog_name = &registers.get_strings(&cmd.2)?[0];
     let mut ids = vec![];
+    let mut net_time = None;
     if let Some(region) = get_region(registers,&cmd)? {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let data_store = peregrine.agent_store().data_store.clone();
         let channel = Channel::parse(&self_channel,&channel_name[0])?;
-        let result = data_store.get(&region,&channel,prog_name,&priority).await?;
+        let (result,took_ms) = data_store.get(&region,&channel,prog_name,&priority).await?;
+        net_time = Some(took_ms);
         let id = program_data.add(result);
         ids.push(id as usize);
     }
     let registers = context.registers_mut();
     registers.write(&cmd.0,InterpValue::Indexes(ids));
+    if let Some(net_time) = &mut net_time {
+        let total_net_time = get_instance::<Arc<Mutex<f64>>>(context,"net_time")?;
+        let mut total_net_time = total_net_time.lock().unwrap();
+        *total_net_time += *net_time;
+    }
     Ok(())
 }
 

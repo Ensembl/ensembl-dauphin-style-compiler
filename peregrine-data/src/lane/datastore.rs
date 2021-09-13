@@ -1,3 +1,4 @@
+use commander::cdr_current_time;
 use std::sync::{ Arc };
 use crate::api::{ PeregrineCoreBase };
 use crate::util::memoized::{ Memoized, MemoizedType };
@@ -35,9 +36,10 @@ impl DataStore {
         }
     }
 
-    pub async fn get(&self, region: &Region, channel: &Channel, name: &str, priority: &PacketPriority) -> Result<Arc<Box<DataResponse>>,DataMessage> {
+    pub async fn get(&self, region: &Region, channel: &Channel, name: &str, priority: &PacketPriority) -> Result<(Arc<Box<DataResponse>>,f64),DataMessage> {
         let location = (region.clone(),channel.clone(),name.to_string());
-        match priority {
+        let start = cdr_current_time();
+        let response = match priority {
             PacketPriority::RealTime => {
                 self.cache.get(&location).await.as_ref().clone()
             },
@@ -47,6 +49,8 @@ impl DataStore {
                 self.cache.warm(&location,data.clone());
                 data
             }
-        }
+        };
+        let took_ms = cdr_current_time() - start;
+        response.map(|r| (r,took_ms))
     }
 }

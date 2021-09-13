@@ -1,6 +1,6 @@
-use crate::index::metricreporter::MetricCollector;
+use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
-use crate::index::metricreporter::MetricReport;
+use crate::metric::metricreporter::MetricReport;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use commander::PromiseFuture;
@@ -101,7 +101,7 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Ready);
     }
 
-    pub fn bootstrap(&self, identity: u64, channel: Channel) {
+    pub fn bootstrap(&mut self, identity: u64, channel: Channel) {
         self.base.metrics.bootstrap(&channel,identity,&self.base.manager);
         self.base.queue.push(ApiMessage::Bootstrap(identity,channel));
     }

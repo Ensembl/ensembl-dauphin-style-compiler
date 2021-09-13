@@ -7,12 +7,13 @@ from .response import Response
 from .datasources import DataAccessor
 import datetime
 from urllib.parse import urlparse
+from util.influx import ResponseMetrics
 
 class ErrorHandler(Handler):
     def __init__(self, message: str):
         self.message = message
 
-    def process(self, data_accessor: DataAccessor, channel: Any,  payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any,  payload: Any, metrics: ResponseMetrics) -> Response:
         return Response(1,self.message)
 
 def lo_port(channel):
@@ -39,7 +40,7 @@ def load_assets():
     return assets
 
 class BootstrapHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         lo_channel = (lo_port(channel) if LO_PORT else channel)
         r = Response(0,{
             "boot": [channel,data_accessor.begs_files.boot_program],
@@ -52,7 +53,7 @@ class BootstrapHandler(Handler):
         return r
 
 class ProgramHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         (want_channel, name) = payload
         if want_channel != channel:
             return Response(1,"Only know of programs in my own channel")
@@ -64,7 +65,7 @@ class ProgramHandler(Handler):
         return r
 
 class StickHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         (stick_name,) = payload
         chromosome = data_accessor.data_model.stick(data_accessor,stick_name)
         if chromosome == None:
@@ -78,7 +79,7 @@ class StickHandler(Handler):
             })
 
 class StickAuthorityHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
         sa_start_prog = data_accessor.begs_files.stickauthority_startup_program
         sa_lookup_prog = data_accessor.begs_files.stickauthority_lookup_program
         sa_jump_prog = data_accessor.begs_files.stickauthority_jump_program
