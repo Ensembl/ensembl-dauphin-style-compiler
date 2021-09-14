@@ -94,7 +94,7 @@ impl GenomeBrowser {
         /*
          * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
          */
-        let url = "http://localhost:3333/api/data";
+        let url = config_in.get("backend_url").unwrap().as_str();
         let mut p = self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
