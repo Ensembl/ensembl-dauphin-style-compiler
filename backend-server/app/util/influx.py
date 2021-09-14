@@ -2,6 +2,7 @@ from logging import log
 import logging
 import socket
 import collections
+from core.config import TELEGRAF_HOST, TELEGRAF_PORT
 
 class ResponseMetrics:
     def __init__(self,priority):
@@ -15,6 +16,8 @@ class ResponseMetrics:
         self.priority = priority
 
     def send(self):
+        if TELEGRAF_HOST == None:
+            return
         cache_total = self.cache_misses + self.cache_hits
         cache_total_bytes= self.cache_misses_bytes + self.cache_hits_bytes
         lines = ""
@@ -32,7 +35,13 @@ class ResponseMetrics:
         send_to_telegraf(lines)
 
 def send_to_telegraf(lines):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('172.17.0.1',8094))
-    s.sendall(lines.encode("utf-8"))
-    s.close()
+    if TELEGRAF_HOST == None:
+        return
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((TELEGRAF_HOST,int(TELEGRAF_PORT)))
+        s.settimeout(1)
+        s.sendall(lines.encode("utf-8"))
+        s.close()
+    except:
+        logging.warn("discarded stats: could not contact telegraf")

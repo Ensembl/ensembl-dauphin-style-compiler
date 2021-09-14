@@ -41,8 +41,13 @@ STARTUP_WAIT = config("STARTUP_WAIT",default=2.0,cast=float)
 time.sleep(STARTUP_WAIT)
 
 DEBUG: bool = config("DEBUG", cast=bool, default=False)
+
 LOG_HOST = config("LOG_HOST",default=None)
 LOG_PORT = int(config("LOG_PORT",default=514))
+
+TELEGRAF_HOST = config("TELEGRAF_HOST",default=None)
+TELEGRAF_PORT = config("TELEGRAF_PORT",default=8094)
+
 PROJECT_NAME: str = config("PROJECT_NAME", default="Peregrine Data Server")
 ALLOWED_HOSTS: List[str] = config(
     "ALLOWED_HOSTS", cast=CommaSeparatedStrings, default="*",

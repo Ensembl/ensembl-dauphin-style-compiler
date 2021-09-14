@@ -164,6 +164,11 @@ impl MetricCollector {
         self.data.lock().unwrap().datastream.add(key,value);
     }
 
+    #[cfg(debug_assertions)]
+    pub fn program_run(&self, _name: &str, _scale: u64, _only_warm: bool, _net_ms: f64, _took_ms: f64) {
+    }
+
+    #[cfg(not(debug_assertions))]
     pub fn program_run(&self, name: &str, scale: u64, only_warm: bool, net_ms: f64, took_ms: f64) {
         self.data.lock().unwrap().program_run.add(name,scale,only_warm,net_ms,took_ms);
     }
