@@ -14,8 +14,7 @@ services:
             - LOG_HOST=syslog
             - LOG_PORT=11601
             - STARTUP_WAIT=10
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
+            - TELEGRAF_HOST=telegraf
 
     backend-lo:
         environment:
@@ -24,8 +23,7 @@ services:
             - LOG_HOST=syslog
             - LOG_PORT=11601
             - STARTUP_WAIT=10
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
+            - TELEGRAF_HOST=telegraf
 
     memcached:
         environment:
@@ -66,3 +64,17 @@ services:
             - NGINX_CACHE_DIR
         volumes:
             - ${NGINX_CACHE_DIR:-.}:/cache
+
+    telegraf:
+        build: ../../telegraf-container
+        ports:
+            - 8094:8094
+        environment:
+            - INFLUX_TOKEN
+            - INFLUX_URL
+            - INFLUX_ORG
+            - INFLUX_BUCKET
+            - LOG_HOST=syslog
+            - LOG_PORT=11601
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
