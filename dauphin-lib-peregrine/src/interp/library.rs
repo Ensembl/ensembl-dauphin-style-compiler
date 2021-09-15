@@ -19,7 +19,7 @@ use super::geometry::{
     StripedDeserializer, BarredDeserializer
 };
 use super::shape::{
-    WiggleDeserializer, RectangleDeserializer, Text2Deserializer
+    WiggleDeserializer, RectangleDeserializer, Text2Deserializer, ImageDeserializer,
 };
 
 use super::switch::{
@@ -27,7 +27,7 @@ use super::switch::{
 };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(38,0),0x83A6B4F41FEAD34A)
+    CommandSetId::new("peregrine",(39,0),0x323CE87649A951CE)
 }
 
 pub fn make_peregrine_interp() -> InterpLibRegister {
@@ -76,5 +76,6 @@ pub fn make_peregrine_interp() -> InterpLibRegister {
     set.push(AddJumpDeserializer());
     set.push(ListSwitchDeserializer());
     set.push(OnlyWarmDeserializer());
+    set.push(ImageDeserializer());
     set
 }

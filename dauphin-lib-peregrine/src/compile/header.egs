@@ -84,10 +84,16 @@ func only_warm() becomes boolean;
 proc rectangle(spacebaseid,spacebaseid,patina,allotment);
 proc text2(spacebaseid,penspec,string,allotment);
 proc wiggle(number,number,plotterspec,number,boolean,allotment);
+proc draw_image(spacebaseid,string,allotment);
 
 stmt text_underneath(x,y,penspec,writing,allt) {
     x := spacebase(x,y,0);
     text2(x,penspec,writing,allt);
+}
+
+stmt image_underneath(x,y,name,allt) {
+    sb := spacebase(x,y,0);
+    draw_image(sb,name,allt);
 }
 
 stmt rectangle_on_genome(start,end,height,patina,allt) {

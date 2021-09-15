@@ -188,3 +188,4 @@ rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_ex
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);
+image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-right",allotment);

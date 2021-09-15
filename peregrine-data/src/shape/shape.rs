@@ -8,7 +8,8 @@ use crate::util::ringarray::DataFilter;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text2(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
+    Image(HoleySpaceBase,Vec<String>,Vec<AllotmentHandle>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
     SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentHandle>)
 }
@@ -33,9 +34,13 @@ impl Shape {
                 let filter = area.make_base_filter(min_value,max_value);
                 Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments))
             },
-            Shape::Text2(position,pen,text,allotments) => {
+            Shape::Text(position,pen,text,allotments) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Text2(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments))
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments))
+            },
+            Shape::Image(position,asset,allotments) => {
+                let filter = position.make_base_filter(min_value,max_value);
+                Shape::Image(position.filter(&filter),filter.filter(asset),filter.filter(allotments))
             },
             Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
@@ -47,7 +52,8 @@ impl Shape {
     pub fn len(&self) -> usize {
         match self {
             Shape::SpaceBaseRect(area,_,_) => area.len(),
-            Shape::Text2(position,_,_,_) => position.len(),
+            Shape::Text(position,_,_,_) => position.len(),
+            Shape::Image(position,_,_) => position.len(),
             Shape::Wiggle(_,y,_,_) => y.len()
         }
     }
@@ -62,11 +68,17 @@ impl Shape {
                 filter.set_size(area.len());
                 Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments))
             },
-            Shape::Text2(position,pen,text,allotments) => {
+            Shape::Text(position,pen,text,allotments) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
                 filter.set_size(position.len());
-                Shape::Text2(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments))
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments))
+            },
+            Shape::Image(position,asset,allotments) => {
+                let mut allotment_iter = allotments.iter();
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                filter.set_size(position.len());
+                Shape::Image(position.filter(&filter),filter.filter(&asset),filter.filter(&allotments))
             },
             Shape::Wiggle(x,mut y,plotter,allotment) => {
                 if allotment.is_null() { y = vec![]; }

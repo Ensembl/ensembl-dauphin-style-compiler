@@ -462,6 +462,7 @@ dependencies = [
  "serde_cbor",
  "serde_derive",
  "serde_json",
+ "serde_tuple",
  "web-sys",
 ]
 
@@ -515,7 +516,6 @@ dependencies = [
  "peregrine_toolkit",
  "serde_cbor",
  "serde_json",
- "serde_tuple",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",

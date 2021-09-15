@@ -44,8 +44,12 @@ impl ShapeListBuilder {
         self.push(Shape::SpaceBaseRect(area,patina,allotments));
     }
 
-    pub fn add_text2(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
-        self.push(Shape::Text2(position,pen,text,allotments));
+    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+        self.push(Shape::Text(position,pen,text,allotments));
+    }
+
+    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentHandle>) {
+        self.push(Shape::Image(position,images,allotments));
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {

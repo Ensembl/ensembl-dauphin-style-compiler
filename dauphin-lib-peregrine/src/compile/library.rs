@@ -22,11 +22,11 @@ use super::geometry:: {
     PlotterCommandType, UseAllotmentCommandType, SpaceBaseCommandType, SimpleColourCommandType, StripedCommandType,
     BarCommandType
 };
-use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType };
+use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, ImageCommandType };
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(38,0),0x83A6B4F41FEAD34A)
+    CommandSetId::new("peregrine",(39,0),0x323CE87649A951CE)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
@@ -75,6 +75,7 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("get_jump_location",Some(41),GetJumpLocationCommandType());
     set.push("list_switch",Some(42),ListSwitchCommandType());
     set.push("only_warm",Some(43),OnlyWarmCommandType());
+    set.push("draw_image",Some(44),ImageCommandType());
     set.add_header("peregrine",include_str!("header.egs"));
     set
 }

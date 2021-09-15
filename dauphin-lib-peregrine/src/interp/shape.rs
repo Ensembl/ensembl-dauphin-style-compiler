@@ -8,6 +8,7 @@ use crate::util::{ get_instance, get_peregrine };
 simple_interp_command!(Text2InterpCommand,Text2Deserializer,19,4,(0,1,2,3));
 simple_interp_command!(WiggleInterpCommand,WiggleDeserializer,7,6,(0,1,2,3,4,5));
 simple_interp_command!(RectangleInterpCommand,RectangleDeserializer,20,4,(0,1,2,3));
+simple_interp_command!(ImageInterpCommand,ImageDeserializer,44,3,(0,1,2));
 
 impl InterpCommand for RectangleInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -49,7 +50,27 @@ impl InterpCommand for Text2InterpCommand {
             allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
         }
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_text2(HoleySpaceBase::Simple(spacebase),pen,text,allotments);
+        zoo.lock().add_text(HoleySpaceBase::Simple(spacebase),pen,text,allotments);
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for ImageInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let spacebase_id = registers.get_indexes(&self.0)?.to_vec();
+        let images = registers.get_strings(&self.1)?.to_vec();
+        let allotment_id = registers.get_indexes(&self.2)?.to_vec();
+        drop(registers);
+        let peregrine = get_peregrine(context)?;
+        let geometry = peregrine.geometry_builder();
+        let spacebase = geometry.spacebase(spacebase_id[0] as u32)?.as_ref().clone();
+        let mut allotments = vec![];
+        for id in &allotment_id {
+            allotments.push(geometry.allotment(*id as u32)?.as_ref().clone());
+        }
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        zoo.lock().add_image(HoleySpaceBase::Simple(spacebase),images,allotments);
         Ok(CommandResult::SyncResult())
     }
 }
