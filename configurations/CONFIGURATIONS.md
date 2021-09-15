@@ -23,10 +23,15 @@ There are the following docker containers used in these various configurations:
  * syslog
  * frontend
  * nginx
+ * telegraf
 
 hi and lo are the backend servers and should always be running. Even when developing the backend, it is simplest to
 run them inside containers on your machine. memcached is also vital for everywhere a backend server is run, even in
 development.
+
+telegraf is vital if you want to collect stats in InfluxDB but isn't strictly necessary. The downstream InfluxDB is
+not containerised. You can use host.docker.internal as a hosname to your localhost if that is where you have
+InfluxDB installed.
 
 nginx is vital if you are using HTTP-served datafiles, meaning dev or ad-hoc installs. It is not necessary for EBI
 installs. syslog is vital unless you have a good syslog setup of your own, meaning it's not needed for EBI installs,
@@ -43,10 +48,13 @@ that it can be seen by people who don't have therust tool chain.
 | hi        | Y   | Y   | Y      |
 | lo        | Y   | Y   | Y      |
 | memcached | Y   | Y   | Y      |
+| telegraf  | Y   | Y?  | Y      |
 | bump-det. | Y   | Y   | Y      |
 | nginx     |     | Y   | Y      |
 | syslogd   |     | Y   | Y      |
 | frontend  |     |     | Y      |
+
+Y? = you probably want this, but not strictly necessary.
 
 You should use docker-compose to start the containers to wire through volumes, environment variables, etc.
 
@@ -77,7 +85,14 @@ asssets              |   |
 every-   local   | nginx     |
 where     disk   +-----------+<----cache-----> local disk
                   |      |
-              remote souce (eg s3)
++-----------+   remote souce (eg s3)
+| telegraf  |
++-----------+
+  ^^^      |
+  |||      v
+every-  InfluxDB
+where
+
 ```
 
 Production setup:
@@ -90,13 +105,13 @@ Production setup:
                      hi  lo
                      |   |
                      |   |
-                 +----+ +----+
-                 | hi | | lo |
-                 +----+ +----+                +-----------+
-                  ^ ^    ^ ^---pre-prepared-->| memcached |
-                  |  `---|--------output----->+-----------+
-                  |      |                          |
-                 cluster disk                 +-------------+
++----------+     +----+ +----+
+| telegraf |     | hi | | lo |
++----------+     +----+ +----+                +-----------+
+ ^^^     |        ^ ^    ^ ^---pre-prepared-->| memcached |
+ |||     v        |  `---|--------output----->+-----------+
+every- InfluxDB   |      |                          |
+where            cluster disk                 +-------------+
                                               | bump-detect |
                                               +-------------+
 ```
@@ -132,6 +147,7 @@ Some environment variables are used by most containers. They are listed here rat
 | hi & lo   |   Y   |     Y       |        |
 | bump det. |   Y   |     Y       |        |
 | nginx     |   Y   |             |   Y    |
+| telegraf  |   Y   |             |        |
 | syslog    |       |             |   Y    |
 
 ## hi and lo (the main backend servers)
@@ -163,6 +179,8 @@ Logging of both access log and error log is via syslog.
  * `THREADS` -- appropriate for the continer use case.
  * `SOURCES_TOML` -- toml to use for data from the list of files in `backend-server/config`
  * `STARTUP_WAIT` -- wait (in seconds) to allow dependent containers to start
+ * `TELEGRAF_HOST` -- hostname of telegraf instance
+ * `TELEGRAF_PORT` -- port number of telegraf instance (default 80940)
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
@@ -170,6 +188,8 @@ Logging of both access log and error log is via syslog.
 | THREADS  | hi=16 lo=4 | hi=16 lo=4 | hi=16 lo=4 |
 | SOURCES_TOML | sources-ebi.toml | sources-s3.toml (or user's fork) | sources-s3.toml (or fork) |
 | STARTUP_WAIT | 2 | 10 | 10 |
+| TELEGRAF_HOST | telegraf | telegraf | telegraf |
+| TELEGRAF_PORT | 8094 (default) | 8094 (default) | 8094 (default) |
 
 ## memcached
 
@@ -179,9 +199,20 @@ memcached is required. Even for development the backend server relies on a cache
 
  * `MEMCACHED_MB` -- size of cache.
 
- | Variable       | EBI | dev | ad hoc |
+| Variable       | EBI | dev | ad hoc |
 |-----------------|-----|-----|--------|
 | MEMCACHED_MB    | 8192   | 512   | 8192 |
+
+## telegraf
+
+The telegraf instance collects stats from the containers and forwards them to an external influxdb. It's poeeible that it should actually be implemented as a sidecar of instances which need to use it ... but it isn't (simpler not to).
+
+### Environment
+
+* `INFLUX_ORG` -- organisation name in your upstream influx instance (eg `ensembl`)
+* `INFLUX_BUCKET` -- bucket name in your upstream influx instance (eg `e2020-gb-me`)
+* `INFLUX_URL`  -- URL of upstream influx instance (eg `http://host.docker.internal:8086`)
+* `INFLUX_TOKEN` -- token supplied by InfluxDB for access (as provided by InfluxDB)
 
 ## bump detector
 
