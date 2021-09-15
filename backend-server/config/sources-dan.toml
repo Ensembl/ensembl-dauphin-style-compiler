@@ -2,8 +2,11 @@
 driver = "s3"
 url="http://nginx/upload-20210808/"
 
-#[redirect.data]
-#upstream="http://52.56.215.72:3333/api/data"
+[redirect.data]
+upstream="http://52.56.215.72:3333/api/data"
 
-#[redirect.jump]
-#upstream="http://52.56.215.72:3333/api/data"
+[redirect.jump]
+upstream="http://52.56.215.72:3333/api/data"
+
+[redirect.metric]
+upstream="http://52.56.215.72:3333/api/data"

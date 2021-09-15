@@ -1,6 +1,6 @@
 from .coremodel import Handler
 from .datasources import DataAccessor
-from typing import Any
+from typing import Any, List, Optional
 from core.config import METRIC_FILE
 from .response import Response
 import datetime
@@ -107,3 +107,6 @@ class MetricHandler(Handler):
             handler.process_metric(message_type,payload)
         r = Response(2,[])
         return r
+
+    def remote_prefix(self, payload: Any) -> Optional[List[str]]:
+        return ["metric"]

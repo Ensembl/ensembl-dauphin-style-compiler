@@ -165,7 +165,7 @@ class DataSourceResolver:
         return None
 
     def find_override(self, prefix):
-        for end in range(0,len(prefix)):
+        for end in range(0,len(prefix)+1):
             v = self._redirect.get(tuple(prefix[0:end]),None)
             if v != None:
                 return v if v else None
