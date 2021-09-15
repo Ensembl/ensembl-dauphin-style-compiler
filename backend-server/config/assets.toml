@@ -1,3 +1,9 @@
 [sources.bell]
 volume=0.1
 file="bell.ogg"
+
+[sources.chevron-left]
+file="chevron-left.png"
+
+[sources.chevron-right]
+file="chevron-right.png"
