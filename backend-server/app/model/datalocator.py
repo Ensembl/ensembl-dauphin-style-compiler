@@ -69,25 +69,29 @@ class FileAccessMethod(AccessMethod):
         super().__init__()
         if not base_path.endswith("/"):
             base_path += "/"
+        self.base = base_path
         self.file = base_path + item.item_suffix()
 
     def get(self, offset: Optional[int] = None, size: Optional[int] = None):
         out = bytearray()
-        with open(self.file,"rb") as f:
-            if offset != None:
-                f.seek(0,offset)
-                while size > 0:
-                    more = f.read(size-len(out))
-                    if len(more) == 0:
-                        raise RequestException("premature EOF")
-                    out += more
-            else:
-                while True:
-                    more = f.read(4096)
-                    if len(more) == 0:
-                        return out
-                    out += more
-            return out
+        try:
+            with open(self.file,"rb") as f:
+                if offset != None:
+                    f.seek(0,offset)
+                    while size > 0:
+                        more = f.read(size-len(out))
+                        if len(more) == 0:
+                            raise RequestException("premature EOF")
+                        out += more
+                else:
+                    while True:
+                        more = f.read(4096)
+                        if len(more) == 0:
+                            return out
+                        out += more
+                return out
+        except Exception as e:
+            raise RequestException("Error accessing {0} (base={1}): {2}".format(self.file,self.base,e))
 
     def ncd(self):
         return NCDFileAccessor(self.file)
