@@ -32,11 +32,11 @@ strand_string#[strand>0] := "forward strand";
  * What are the current track settings?
  */
 
-potential_tracks := ["track:gene-nonpc-rev","track:gene-pc-rev","track:gene-nonpc-fwd","track:gene-pc-fwd","track:focus"];
+potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
 enabled_tracks := get_switch([
-    ["track","gene-nonpc-rev"],
+    ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
-    ["track","gene-nonpc-fwd"],
+    ["track","gene-other-fwd"],
     ["track","gene-pc-fwd"],
     ["track","focus"]
 ][]);
@@ -73,9 +73,9 @@ track_name := index(allotment_idx,potential_tracks);
  */
 
 enabled_labels := get_switch([
-    ["track","gene-nonpc-rev","label"],
+    ["track","gene-other-rev","label"],
     ["track","gene-pc-rev","label"],
-    ["track","gene-nonpc-fwd","label"],
+    ["track","gene-other-fwd","label"],
     ["track","gene-pc-fwd","label"],
     ["track","focus","label"],
 ][]);
