@@ -49,8 +49,9 @@ impl AllotmentRequestBuilder {
         }
         self.priority.hash(&mut state);
         state.finish()
-    }    
+    }
 
+    fn is_dustbin(&self) -> bool { self.name == "" }
     fn priority(&self) -> i64 { self.priority }
     fn summarize(&self) -> HashMap<String,String> { self.pairs.clone() }
 }
@@ -76,7 +77,7 @@ impl PartialEq for AllotmentRequest {
 impl Eq for AllotmentRequest {}
 
 impl AllotmentRequest {
-    pub fn new(builder: AllotmentRequestBuilder) -> AllotmentRequest {
+    pub(super) fn new(builder: AllotmentRequestBuilder) -> AllotmentRequest {
         AllotmentRequest {
             hash: builder.hash_value(),
             metadata: Arc::new(builder)

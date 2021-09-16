@@ -11,7 +11,7 @@ fn draw_spectres(gl: &mut WebGlGlobal, allotment_petitioner: &mut AllotmentPetit
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_petitioner)?;
     }
-    Drawing::new(None,shapes.build(allotment_petitioner),gl,0.,variables)
+    Drawing::new(None,shapes.build(),gl,0.,variables)
 }
 
 #[derive(Clone)]

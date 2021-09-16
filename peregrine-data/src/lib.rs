@@ -172,7 +172,7 @@ pub use self::switch::allotter::{
     Allotter
 };
 pub use self::switch::allotment::{ 
-    AllotmentPetitioner, AllotmentHandle, Allotment, OffsetSize, AllotmentPositionKind,
+    AllotmentPetitioner, Allotment, OffsetSize, AllotmentPositionKind,
     PositionVariant, AllotmentPosition, AllotterMetadata
 };
 pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentRequestBuilder };

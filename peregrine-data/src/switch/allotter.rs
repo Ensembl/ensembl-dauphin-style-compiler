@@ -1,10 +1,9 @@
 use std::{collections::HashMap};
-use keyed::KeyedData;
-use crate::{Allotment, AllotmentPetitioner, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
-use super::{allotment::{AllotmentHandle, AllotterMetadata, OffsetSize}, pitch::Pitch};
+use crate::{Allotment, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
+use super::{allotment::{AllotterMetadata, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
-    requests: Vec<(AllotmentHandle,AllotmentRequest)>
+    requests: Vec<AllotmentRequest>
 }
 
 impl RequestSorter {
@@ -14,17 +13,16 @@ impl RequestSorter {
         }
     }
 
-    fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) {
-        let request = petitioner.get(handle);
+    fn add(&mut self, request: &AllotmentRequest) {
         if request.is_dustbin() { return; }
-        self.requests.push((handle.clone(),request));
+        self.requests.push(request.clone());
     }
 
-    fn get(mut self) -> Vec<AllotmentHandle> {
-        self.requests.sort_by_cached_key(|(_,r)| {
+    fn get(mut self) -> Vec<AllotmentRequest> {
+        self.requests.sort_by_cached_key(|r| {
             (r.priority(),r.name().to_string())
         });
-        self.requests.iter().map(|(h,_)| h.clone()).collect()
+        self.requests.iter().cloned().collect()
     }
 }
 
@@ -114,8 +112,7 @@ impl RunningAllotter {
         })
     }
 
-    fn add(&mut self, petitioner: &AllotmentPetitioner, handle: &AllotmentHandle) -> Allotment {
-        let request = petitioner.get(handle);
+    fn add(&mut self, request: &AllotmentRequest) -> Allotment {
         let position = self.get_allocator(&request.kind()).allocate();
         let metadata = position.update_metadata(&request);
         Allotment::new(position,&metadata)
@@ -123,7 +120,7 @@ impl RunningAllotter {
 }
 
 pub struct Allotter {
-    allotments: KeyedData<AllotmentHandle,Option<Allotment>>,
+    allotments: HashMap<AllotmentRequest,Allotment>,
     metadata: AllotterMetadata,
     pitch: Pitch
 }
@@ -131,32 +128,32 @@ pub struct Allotter {
 impl Allotter {
     pub fn empty() -> Allotter {
         Allotter {
-            allotments: KeyedData::new(),
+            allotments: HashMap::new(),
             metadata: AllotterMetadata::new(vec![]),
             pitch: Pitch::new()
         }
     }
 
-    pub fn new(petitioner: &AllotmentPetitioner, handles: &[AllotmentHandle]) -> Allotter {
+    pub fn new(requests: &[AllotmentRequest]) -> Allotter {
         let mut pitch = Pitch::new();
         let mut sorter = RequestSorter::new();
-        for handle in handles {
-            sorter.add(petitioner,handle);
+        for request in requests {
+            sorter.add(request);
         }
         let mut metadata = vec![];
-        let mut allotments = KeyedData::new();
+        let mut allotments = HashMap::new();
         let mut running_allocator = RunningAllotter::new();
-        for sorted_handle in sorter.get() {
-            let allotment = running_allocator.add(petitioner,&sorted_handle);
+        for sorted_request in sorter.get() {
+            let allotment = running_allocator.add(&sorted_request);
             allotment.position().apply_pitch(&mut pitch);
             metadata.push(allotment.metadata().clone());
-            allotments.insert(&sorted_handle,allotment);
+            allotments.insert(sorted_request,allotment);
         }
         Allotter { allotments, metadata: AllotterMetadata::new(metadata), pitch }
     }
 
-    pub fn get(&self, handle: &AllotmentHandle) -> Result<&Allotment,DataMessage> {
-        self.allotments.get(handle).as_ref().ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string()))
+    pub fn get(&self, handle: &AllotmentRequest) -> Result<Allotment,DataMessage> {
+        self.allotments.get(handle).ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string())).map(|r| r.clone())
     }
 
     pub fn metadata(&self) -> AllotterMetadata { self.metadata.clone() }

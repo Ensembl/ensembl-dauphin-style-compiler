@@ -113,7 +113,7 @@ impl Carriage {
                 }
             }
         }
-        let shapes = new_shapes.build(&base.allotment_petitioner);
+        let shapes = new_shapes.build();
         self.shapes.lock().unwrap().replace(shapes);
         if errors.len() == 0 {
             Ok(())

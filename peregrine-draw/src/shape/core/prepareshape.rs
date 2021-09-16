@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use peregrine_data::{Allotment, AllotmentHandle, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, AllotmentRequest, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
@@ -8,24 +6,9 @@ use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed, HeraldryS
 use crate::util::message::Message;
 use super::drawshape::{ GLShape, AllotmentProgram };
 
-fn apply_allotments(y: &[f64], allotment: &[Allotment]) -> Vec<f64> {
-    // XXX yuk!
-    let len = if y.len() != allotment.len() {
-        y.len() * allotment.len()
-    } else {
-        y.len()
-    };
-    let mut iter = allotment.iter().cycle().zip(y.iter().cycle());
-    (0..len).map(|_| {
-        let (allotment,y) = iter.next().unwrap();
-        let offset = allotment.position().offset() as f64;
-        *y+offset
-    }).collect()
-}
-
 
 // XXX not a new one for each!
-fn allotments(allotter: &Allotter, allotments: &[AllotmentHandle]) -> Result<Vec<Allotment>,Message> {
+fn allotments(allotter: &Allotter, allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
     allotments.iter().map(|handle| {
         allotter.get(handle).map(|a| a.clone())
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
@@ -51,7 +34,7 @@ fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
     }
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentHandle>) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentRequest>) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(allotter,&allotment)?;
     let mut demerge = DataFilter::demerge(&allotment,|allotment| {
         AllotmentProgram::new(&allotment.position().kind()).kind()

@@ -1,17 +1,17 @@
 use super::core::{ Patina, filter, bulk, Pen, Plotter };
 use std::cmp::{ max, min };
+use crate::AllotmentRequest;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
-use crate::switch::allotment::AllotmentHandle;
 use crate::util::ringarray::DataFilter;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentHandle>),
-    Image(HoleySpaceBase,Vec<String>,Vec<AllotmentHandle>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentHandle),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentHandle>)
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>),
+    Image(HoleySpaceBase,Vec<String>,Vec<AllotmentRequest>),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest),
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -64,24 +64,24 @@ impl Shape {
         match self {
             Shape::SpaceBaseRect(area,patina,allotments) => {
                 let mut allotment_iter = allotments.iter();
-                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(area.len());
                 Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments))
             },
             Shape::Text(position,pen,text,allotments) => {
                 let mut allotment_iter = allotments.iter();
-                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
                 Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments))
             },
             Shape::Image(position,asset,allotments) => {
                 let mut allotment_iter = allotments.iter();
-                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_null());
+                let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
                 Shape::Image(position.filter(&filter),filter.filter(&asset),filter.filter(&allotments))
             },
             Shape::Wiggle(x,mut y,plotter,allotment) => {
-                if allotment.is_null() { y = vec![]; }
+                if allotment.is_dustbin() { y = vec![]; }
                 Shape::Wiggle(x,y,plotter.clone(),allotment.clone())
             }
         }

@@ -176,18 +176,18 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
         let mut allotment_petitioner = peregrine.allotments().clone();
-        let handles = name.drain(..).map(|name| {
+        let requests = name.drain(..).map(|name| {
             Ok(allotment_petitioner.lookup(&name).ok_or_else(||
                 DataMessage::NoSuchAllotment(name)
             )?)
         }).collect::<Result<Vec<_>,DataMessage>>()?;
-        let ids = handles.iter().map(|handle| {
-            geometry_builder.add_allotment(handle.clone()) as usize           
+        let ids = requests.iter().map(|request| {
+            geometry_builder.add_allotment(request.clone()) as usize           
         }).collect();
         drop(peregrine);
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        for handle in &handles {
-            zoo.lock().add_allotment(handle);
+        for request in &requests {
+            zoo.lock().add_allotment(request);
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));

@@ -2,7 +2,7 @@ use crate::AllotmentRequestBuilder;
 use crate::AllotmentRequest;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
-use keyed::{ keyed_handle, KeyedValues, KeyedHandle };
+use keyed::{ keyed_handle, KeyedHandle };
 use super::pitch::Pitch;
 
 #[derive(Clone,Debug)]
@@ -44,40 +44,32 @@ impl AllotterMetadata {
     pub fn summarize(&self) -> Arc<Vec<HashMap<String,String>>> { self.summary.clone() }
 }
 
-keyed_handle!(AllotmentHandle);
-
-impl AllotmentHandle {
-    pub fn is_null(&self) -> bool { self.get() == 0 }
-}
-
 #[derive(Clone)]
 pub struct AllotmentPetitioner {
-    allotments: Arc<Mutex<KeyedValues<AllotmentHandle,AllotmentRequest>>>,
+    allotments: Arc<Mutex<HashMap<String,AllotmentRequest>>>,
 }
 
 impl AllotmentPetitioner {
     pub fn new() -> AllotmentPetitioner {
         let mut out = AllotmentPetitioner {
-            allotments: Arc::new(Mutex::new(KeyedValues::new()))
+            allotments: Arc::new(Mutex::new(HashMap::new()))
         };
-        out.add(AllotmentRequest::new(AllotmentRequestBuilder::dustbin())); // null gets slot 0
+        out.add(AllotmentRequestBuilder::dustbin()); // null gets slot 0
         out
     }
 
-    pub fn add(&mut self, request: AllotmentRequest) -> AllotmentHandle {
-        if let Some(handle) = self.lookup(request.name()) {
-            let mut data = self.allotments.lock().unwrap();
-            return handle;
+    pub fn add(&mut self, builder: AllotmentRequestBuilder) -> AllotmentRequest {
+        let request = AllotmentRequest::new(builder);
+        let mut allotments = self.allotments.lock().unwrap();
+        if let Some(request) = allotments.get(request.name()) {
+            return request.clone();
         }
-        self.allotments.lock().unwrap().add(request.name(),request.clone())
+        allotments.insert(request.name().to_string(),request.clone());
+        return request
     }
 
-    pub fn lookup(&mut self, name: &str) -> Option<AllotmentHandle> {
-        self.allotments.lock().unwrap().get_handle(name).ok()
-    }
-
-    pub fn get(&self, handle: &AllotmentHandle) -> AllotmentRequest {
-        self.allotments.lock().unwrap().data().get(handle).clone()
+    pub fn lookup(&mut self, name: &str) -> Option<AllotmentRequest> {
+        self.allotments.lock().unwrap().get(name).cloned()
     }
 }
 

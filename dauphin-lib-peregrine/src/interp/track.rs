@@ -87,7 +87,7 @@ impl InterpCommand for AddAllotmentInterpCommand {
                     metadata.add_pair(key,&values[i%values.len()]);
                 }
             }
-            petitioner.add(AllotmentRequest::new(metadata))
+            petitioner.add(metadata)
         }).collect::<Vec<_>>();
         for track_id in &track_ids {
             let track = peregrine.track_builder().get(*track_id)?;

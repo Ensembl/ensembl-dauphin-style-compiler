@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{HoleySpaceBase, HoleySpaceBaseArea, Shape };
+use crate::{AllotmentRequest, HoleySpaceBase, HoleySpaceBaseArea, Shape};
 use crate::switch::allotter::{ Allotter };
-use crate::switch::allotment::{ AllotmentHandle, AllotmentPetitioner };
+use crate::switch::allotment::{ AllotmentPetitioner };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
-    allotments: HashSet<AllotmentHandle>
+    allotments: HashSet<AllotmentRequest>
 }
 
 impl ShapeListBuilder {
@@ -34,25 +34,25 @@ impl ShapeListBuilder {
         out
     }
 
-    pub fn add_allotment(&mut self, allotment: &AllotmentHandle) {
-        if !allotment.is_null() {
+    pub fn add_allotment(&mut self, allotment: &AllotmentRequest) {
+        if !allotment.is_dustbin() {
             self.allotments.insert(allotment.clone());
         }
     }
 
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentHandle>) {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
         self.push(Shape::SpaceBaseRect(area,patina,allotments));
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentHandle>) {
+    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentRequest>) {
         self.push(Shape::Text(position,pen,text,allotments));
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentHandle>) {
+    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentRequest>) {
         self.push(Shape::Image(position,images,allotments));
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentHandle) {
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {
         self.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }
 
@@ -69,8 +69,8 @@ impl ShapeListBuilder {
         self.allotments = self.allotments.union(&more.allotments).cloned().collect();
     }
 
-    pub fn build(self, petitioner: &AllotmentPetitioner) -> ShapeList {
-        ShapeList::new(self,petitioner)
+    pub fn build(self) -> ShapeList {
+        ShapeList::new(self)
     }
 }
 
@@ -88,11 +88,11 @@ impl ShapeList {
         }
     }
 
-    fn new(builder: ShapeListBuilder, petitioner: &AllotmentPetitioner) -> ShapeList {
+    fn new(builder: ShapeListBuilder) -> ShapeList {
         let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
         ShapeList {
             shapes: Arc::new(builder.shapes),
-            allotter: Arc::new(Allotter::new(petitioner,&handles))
+            allotter: Arc::new(Allotter::new(&handles))
         }
     }
 
