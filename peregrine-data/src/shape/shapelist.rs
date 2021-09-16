@@ -1,9 +1,8 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentRequest, HoleySpaceBase, HoleySpaceBaseArea, Shape};
+use crate::{AllotmentRequest, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
 use crate::switch::allotter::{ Allotter };
-use crate::switch::allotment::{ AllotmentPetitioner };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -41,15 +40,24 @@ impl ShapeListBuilder {
     }
 
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
-        self.push(Shape::SpaceBaseRect(area,patina,allotments));
+        for (kind,mut filter) in DataFilter::demerge(&allotments, |x| { x.kind() }) {
+            filter.set_size(area.len());
+            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotments),kind));
+        }
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        self.push(Shape::Text(position,pen,text,allotments));
+        for (kind,mut filter) in DataFilter::demerge(&allotments, |x| { x.kind() }) {
+            filter.set_size(position.len());
+            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),kind));
+        }
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        self.push(Shape::Image(position,images,allotments));
+        for (kind,mut filter) in DataFilter::demerge(&allotments, |x| { x.kind() }) {
+            filter.set_size(position.len());
+            self.push(Shape::Image(position.filter(&filter),filter.filter(&images),filter.filter(&allotments),kind));
+        }
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {

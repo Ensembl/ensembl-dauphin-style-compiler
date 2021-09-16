@@ -1,5 +1,6 @@
 use crate::AllotmentRequestBuilder;
 use crate::AllotmentRequest;
+use crate::Track;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use keyed::{ keyed_handle, KeyedHandle };
@@ -85,6 +86,17 @@ pub enum AllotmentPositionKind {
     Overlay(i64),
     BaseLabel(PositionVariant),
     SpaceLabel(PositionVariant)
+}
+
+impl AllotmentPositionKind {
+    pub(crate) fn base_filter(&self) -> bool {
+        match self {
+            AllotmentPositionKind::Track => true,
+            AllotmentPositionKind::Overlay(_) => false,
+            AllotmentPositionKind::BaseLabel(_) => true,
+            AllotmentPositionKind::SpaceLabel(_) => false
+        }
+    }
 }
 
 #[derive(Clone)]

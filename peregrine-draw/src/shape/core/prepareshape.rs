@@ -130,7 +130,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let allotment = allotments(allotter,&[allotment])?;
             vec![GLShape::Wiggle(range,y,plotter,allotment[0].clone(),0)]
         },
-        Shape::Text(spacebase,pen,texts,allotment) => {
+        Shape::Text(spacebase,pen,texts,allotment,kind) => {
             let allotment = allotments(allotter,&allotment)?;
             let demerge = DataFilter::demerge(&allotment,|allotment| {
                 AllotmentProgram::new(&allotment.position().kind()).kind()
@@ -145,13 +145,13 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             }
             out
         },
-        Shape::Image(spacebase,images,allotment) => {
+        Shape::Image(spacebase,images,allotment,kind) => {
             use web_sys::console;
             #[cfg(debug_assertions)]
             console::log_1(&format!("image spacevase={:?} images={:?} allotment={:?}",spacebase,images,allotment).into());
             vec![]
         },
-        Shape::SpaceBaseRect(area,patina,allotment) => {
+        Shape::SpaceBaseRect(area,patina,allotment,kind) => {
             split_spacebaserect(tools,allotter,area,patina,allotment)?
         }
     })
