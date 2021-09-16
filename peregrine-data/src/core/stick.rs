@@ -4,7 +4,7 @@ use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
 use std::sync::Arc;
 use crate::util::message::DataMessage;
-use crate::switch::allotment::{ AllotmentRequest };
+use crate::switch::allotmentrequest::{ AllotmentRequest };
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
 

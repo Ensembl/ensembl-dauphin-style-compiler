@@ -8,7 +8,7 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{AllotmentStaticMetadataBuilder, AllotterMetadata, PgCommanderTaskSpec};
+use crate::{AllotmentRequestBuilder, AllotterMetadata, PgCommanderTaskSpec};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
@@ -41,7 +41,7 @@ struct TrainData {
     carriages: Option<CarriageSet>,
     messages: MessageSender,
     track_configs: TrainTrackConfigList,
-    allotment_metadata: Arc<Vec<Arc<AllotmentStaticMetadataBuilder>>>
+    allotment_metadata: Arc<Vec<Arc<AllotmentRequestBuilder>>>
 }
 
 impl TrainData {

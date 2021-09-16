@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use crate::{AllotmentStaticMetadataBuilder, Scale};
+use crate::{AllotmentRequestBuilder, Scale};
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::switch::allotment::AllotterMetadata;
 use crate::switch::pitch::Pitch;

@@ -119,13 +119,14 @@ pub(crate) mod spacebase {
 pub(crate) mod switch {
     pub(crate) mod allotter;
     pub(crate) mod allotment;
+    pub(crate) mod allotmentrequest;
     pub(crate) mod pitch;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
 
-    pub use self::allotment::AllotmentRequest;
+    pub use self::allotmentrequest::AllotmentRequest;
 }
 
 mod train {
@@ -171,9 +172,10 @@ pub use self::switch::allotter::{
     Allotter
 };
 pub use self::switch::allotment::{ 
-    AllotmentRequest, AllotmentPetitioner, AllotmentHandle, Allotment, OffsetSize, AllotmentPositionKind,
-    PositionVariant, AllotmentPosition, AllotmentStaticMetadataBuilder, AllotterMetadata
+    AllotmentPetitioner, AllotmentHandle, Allotment, OffsetSize, AllotmentPositionKind,
+    PositionVariant, AllotmentPosition, AllotterMetadata
 };
+pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentRequestBuilder };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

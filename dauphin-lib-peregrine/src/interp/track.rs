@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{ Channel, AllotmentRequest, AllotmentStaticMetadataBuilder };
+use peregrine_data::{ Channel, AllotmentRequest, AllotmentRequestBuilder };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -81,13 +81,13 @@ impl InterpCommand for AddAllotmentInterpCommand {
         let peregrine = get_peregrine(context)?;
         let mut petitioner = peregrine.allotments().clone();
         let allotments = names.iter().zip(prios.iter().cycle()).enumerate().map(|(i,(name,prio))| {
-            let mut metadata = AllotmentStaticMetadataBuilder::new(name);
+            let mut metadata = AllotmentRequestBuilder::new(name,*prio as i64);
             for (key,values) in &pairs {
                 if values.len() > 0 {
                     metadata.add_pair(key,&values[i%values.len()]);
                 }
             }
-            petitioner.add(AllotmentRequest::new(metadata,*prio as i64))
+            petitioner.add(AllotmentRequest::new(metadata))
         }).collect::<Vec<_>>();
         for track_id in &track_ids {
             let track = peregrine.track_builder().get(*track_id)?;
