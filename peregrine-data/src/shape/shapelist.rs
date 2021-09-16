@@ -53,10 +53,10 @@ impl ShapeListBuilder {
         }
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentRequest>) {
+    pub fn add_image(&mut self, position: HoleySpaceBase, depth: i8,images: Vec<String>, allotments: Vec<AllotmentRequest>) {
         for (kind,mut filter) in DataFilter::demerge(&allotments, |x| { x.kind() }) {
             filter.set_size(position.len());
-            self.push(Shape::Image(position.filter(&filter),filter.filter(&images),filter.filter(&allotments),kind));
+            self.push(Shape::Image(position.filter(&filter),depth,filter.filter(&images),filter.filter(&allotments),kind));
         }
     }
 

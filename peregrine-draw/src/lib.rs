@@ -69,6 +69,7 @@ mod run {
 
 mod shape {
     pub(crate) mod core {
+        pub(crate) mod bitmap;
         pub(crate) mod prepareshape;
         pub(crate) mod drawshape;
         pub(super) mod directcolourdraw;

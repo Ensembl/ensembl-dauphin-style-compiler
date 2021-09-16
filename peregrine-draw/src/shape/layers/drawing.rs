@@ -5,6 +5,7 @@ use peregrine_data::{Allotter, Scale, Shape, ShapeList, VariableValues, ZMenuPro
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
+use crate::shape::core::bitmap::DrawingBitmap;
 use crate::shape::core::drawshape::ShapeToAdd;
 use crate::shape::heraldry::heraldry::DrawingHeraldry;
 use crate::webgl::canvas::flatplotallocator::FlatPositionManager;
@@ -48,6 +49,7 @@ impl ToolPreparations {
 
 pub(crate) struct DrawingTools {
     text: DrawingText,
+    bitmap: DrawingBitmap,
     heraldry: DrawingHeraldry,
     zmenus: DrawingZMenusBuilder
 }
@@ -56,12 +58,14 @@ impl DrawingTools {
     fn new(scale: Option<&Scale>, left: f64) -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
+            bitmap: DrawingBitmap::new(),
             heraldry: DrawingHeraldry::new(),
             zmenus: DrawingZMenusBuilder::new(scale, left)
         }
     }
 
     pub(crate) fn text(&mut self) -> &mut DrawingText { &mut self.text }
+    pub(crate) fn bitmap(&mut self) -> &mut DrawingBitmap { &mut self.bitmap }
     pub(crate) fn heraldry(&mut self) -> &mut DrawingHeraldry { &mut self.heraldry }
     pub(crate) fn zmenus(&mut self) -> &mut DrawingZMenusBuilder { &mut self.zmenus }
 

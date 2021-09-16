@@ -10,7 +10,7 @@ use crate::util::ringarray::DataFilter;
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
     Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,AllotmentPositionKind),
-    Image(HoleySpaceBase,Vec<String>,Vec<AllotmentRequest>,AllotmentPositionKind),
+    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,AllotmentPositionKind),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest),
     SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,AllotmentPositionKind)
 }
@@ -42,9 +42,9 @@ impl Shape {
                 let filter = position.make_base_filter(min_value,max_value);
                 Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments),kind.clone())
             },
-            Shape::Image(position,asset,allotments,kind) => {
+            Shape::Image(position,depth,asset,allotments,kind) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Image(position.filter(&filter),filter.filter(asset),filter.filter(allotments),kind.clone())
+                Shape::Image(position.filter(&filter),*depth,filter.filter(asset),filter.filter(allotments),kind.clone())
             },
             Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
@@ -57,7 +57,7 @@ impl Shape {
         match self {
             Shape::SpaceBaseRect(_,_,_,kind) => kind.clone(),
             Shape::Text(_,_,_,_,kind) => kind.clone(),
-            Shape::Image(_,_,_,kind) => kind.clone(),
+            Shape::Image(_,_,_,_,kind) => kind.clone(),
             Shape::Wiggle(_,_,_,allotment) => allotment.kind()
         }
     }
@@ -66,7 +66,7 @@ impl Shape {
         match self {
             Shape::SpaceBaseRect(area,_,_,_) => area.len(),
             Shape::Text(position,_,_,_,_) => position.len(),
-            Shape::Image(position,_,_,_) => position.len(),
+            Shape::Image(position,_,_,_,_) => position.len(),
             Shape::Wiggle(_,y,_,_) => y.len()
         }
     }
@@ -87,11 +87,11 @@ impl Shape {
                 filter.set_size(position.len());
                 Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),kind)
             },
-            Shape::Image(position,asset,allotments,kind) => {
+            Shape::Image(position,depth,asset,allotments,kind) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
-                Shape::Image(position.filter(&filter),filter.filter(&asset),filter.filter(&allotments),kind)
+                Shape::Image(position.filter(&filter),depth,filter.filter(&asset),filter.filter(&allotments),kind)
             },
             Shape::Wiggle(x,mut y,plotter,allotment) => {
                 if allotment.is_dustbin() { y = vec![]; }

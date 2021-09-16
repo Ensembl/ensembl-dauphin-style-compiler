@@ -51,7 +51,7 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
     api.set_switch(&["track"]);
     api.set_switch(&["track","gene-pc-fwd"]);
-    api.set_switch(&["track","gene-nonpc-fwd"]);
+    api.set_switch(&["track","gene-other-fwd"]);
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut left = 2500000.;
     let mut right = 1000000.;

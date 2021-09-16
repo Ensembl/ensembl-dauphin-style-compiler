@@ -132,24 +132,17 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
         },
         Shape::Text(spacebase,pen,texts,allotment,kind) => {
             let allotment = allotments(allotter,&allotment)?;
-            let demerge = DataFilter::demerge(&allotment,|allotment| {
-                AllotmentProgram::new(&allotment.position().kind()).kind()
-            });
             let drawing_text = tools.text();
             let colours_iter = pen.colours().iter().cycle();
             let background = pen.background();
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
-            let mut out = vec![];
-            for (kind,filter) in &demerge {
-                out.push(GLShape::Text2(spacebase.filter(filter),filter.filter(&handles),filter.filter(&allotment),kind.clone(),pen.depth()));
-            }
-            out
+            vec![GLShape::Text(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),pen.depth())]
         },
-        Shape::Image(spacebase,images,allotment,kind) => {
-            use web_sys::console;
-            #[cfg(debug_assertions)]
-            console::log_1(&format!("image spacevase={:?} images={:?} allotment={:?}",spacebase,images,allotment).into());
-            vec![]
+        Shape::Image(spacebase,depth,images,allotment,kind) => {
+            let allotment = allotments(allotter,&allotment)?;
+            let drawing_bitmap = tools.bitmap();
+            let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Vec<_>>();
+            vec![GLShape::Image(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),depth)]
         },
         Shape::SpaceBaseRect(area,patina,allotment,kind) => {
             split_spacebaserect(tools,allotter,area,patina,allotment)?

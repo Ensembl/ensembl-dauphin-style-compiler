@@ -1,6 +1,7 @@
 use peregrine_data::{Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, PositionVariant, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
+use super::bitmap::BitmapHandle;
 use super::super::layers::layer::{ Layer };
 use super::texture::{CanvasTextureArea, TextureYielder};
 use crate::shape::core::wigglegeometry::{WiggleYielder, make_wiggle};
@@ -81,7 +82,8 @@ impl<'a> DrawingShapePatina<'a> {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum GLShape {
-    Text2(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
+    Text(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
+    Image(HoleySpaceBase,Vec<BitmapHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
     Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>,i8),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment,i8),
     SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind,i8),
@@ -208,7 +210,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             array.close()?;
             Ok(ShapeToAdd::None)
         },
-        GLShape::Text2(points,handles,allotments,program_kind,prio) => {
+        GLShape::Text(points,handles,allotments,program_kind,prio) => {
             let kind = to_trianges_kind(&program_kind);
             // TODO factor
             let text = tools.text();
@@ -219,6 +221,9 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
+        },
+        GLShape::Image(_,_,_,_,_) => {
+            Ok(ShapeToAdd::None)
         },
         GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale,edge,prio) => {
             let kind = to_trianges_kind(&program_kind);
