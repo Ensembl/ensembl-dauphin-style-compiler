@@ -23,11 +23,11 @@ focus_id := string_seq(data,"focus_ids");
  * What are the current track settings?
  */
 
-potential_tracks := ["track:gene-nonpc-rev","track:gene-pc-rev","track:gene-nonpc-fwd","track:gene-pc-fwd","track:focus"];
+potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
 enabled_tracks := get_switch([
-    ["track","gene-nonpc-rev"],
+    ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
-    ["track","gene-nonpc-fwd"],
+    ["track","gene-other-fwd"],
     ["track","gene-pc-fwd"],
     ["track","focus","label"],
     ["track","focus"]
