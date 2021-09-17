@@ -1,10 +1,6 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use lazy_static::__Deref;
 use peregrine_data::{Allotment, Scale, SpaceBaseArea, ZMenu, ZMenuGenerator, SpaceBasePointRef, ZMenuProxy };
 use crate::{stage::stage::{ ReadStage }};
-use crate::stage::axis::ReadStageAxis;
-use peregrine_data::ZMenuFixed;
-use super::super::layers::layer::{ Layer };
 use crate::util::message::Message;
 
 const HORIZ_ZONES : u64 = 10;

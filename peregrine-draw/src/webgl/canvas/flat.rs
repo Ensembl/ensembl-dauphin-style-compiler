@@ -1,9 +1,10 @@
-use wasm_bindgen::JsCast;
-use web_sys::{ Document, HtmlCanvasElement, CanvasRenderingContext2d };
+use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
+use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ Pen, DirectColour };
 use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, weave::CanvasWeave};
 use crate::util::message::Message;
 use super::canvasstore::CanvasStore;
+use peregrine_toolkit::js::exception::js_result_to_option_console;
 
 fn pen_to_font(pen: &Pen) -> String {
     format!("{}px {}",pen.size(),pen.name())
@@ -11,6 +12,11 @@ fn pen_to_font(pen: &Pen) -> String {
 
 fn colour_to_css(c: &DirectColour) -> String {
     format!("rgb({},{},{})",c.0,c.1,c.2)
+}
+
+fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, origin: (u32,u32), size: (u32,u32)) -> Result<(),JsValue> {
+    context.draw_image_with_html_image_element_and_dw_and_dh(&el,origin.0 as f64,origin.1 as f64,size.0 as f64,size.1 as f64)?;
+    Ok(())
 }
 
 pub(crate) struct Flat {
@@ -73,6 +79,25 @@ impl Flat {
         let context = self.context()?;
         context.set_fill_style(&colour_to_css(colour).into()); // TODO background colours for pen
         context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
+        Ok(())
+    }
+
+    fn draw_png_real(&self, context: CanvasRenderingContext2d, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),JsValue> {
+        let ascii_data = base64::encode(data);
+        let img = HtmlImageElement::new()?;
+        let img2 = img.clone();
+        img.set_src(&format!("data:image/png;base64,{0}",ascii_data));
+        let closure = Closure::once_into_js(move || {
+            js_result_to_option_console(draw_png_onload(context,img2.clone(),origin,size));
+        });
+        img.set_onload(Some(&closure.as_ref().unchecked_ref()));
+        Ok(())
+    }    
+
+    pub(crate) fn draw_png(&self, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Message> {
+        if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
+        let context = self.context()?.clone();
+        self.draw_png_real(context,origin,size,data).map_err(|_| Message::Canvas2DFailure("cannot carate png".to_string()))?;
         Ok(())
     }
 

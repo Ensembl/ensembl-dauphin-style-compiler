@@ -544,7 +544,7 @@ dependencies = [
  "hostname",
  "js-sys",
  "keyed",
- "lazy_static 1.4.0",
+ "lazy_static 0.1.16",
  "once_cell",
  "owning_ref",
  "peregrine_config",
@@ -574,6 +574,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "commander",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

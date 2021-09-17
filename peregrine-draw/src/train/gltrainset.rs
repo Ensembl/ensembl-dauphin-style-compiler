@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuFixed, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuFixed, ZMenuProxy};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
@@ -49,8 +49,8 @@ impl GlTrainSetData {
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, gl: &mut WebGlGlobal, new_carriages: &[Carriage], scale: &Scale, index: u32) -> Result<(),Message> {
-        self.get_train(gl,index).set_carriages(scale,new_carriages,gl)
+    fn set_carriages(&mut self, gl: &mut WebGlGlobal, assets: &Assets, new_carriages: &[Carriage], scale: &Scale, index: u32) -> Result<(),Message> {
+        self.get_train(gl,index).set_carriages(scale,new_carriages,gl,assets)
     }
 
     fn set_max(&mut self, gl: &WebGlGlobal, index: u32, len: u64) {
@@ -211,8 +211,8 @@ impl GlTrainSet {
         self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], scale: &Scale, gl: &mut WebGlGlobal, index: u32) -> Result<(),Message> {
-        self.data.lock().unwrap().set_carriages(gl,new_carriages,scale,index)
+    pub fn set_carriages(&mut self, new_carriages: &[Carriage], scale: &Scale, gl: &mut WebGlGlobal, assets: &Assets, index: u32) -> Result<(),Message> {
+        self.data.lock().unwrap().set_carriages(gl,assets,new_carriages,scale,index)
     }
 
     pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {

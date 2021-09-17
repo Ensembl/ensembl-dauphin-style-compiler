@@ -7,10 +7,7 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 
 use js_sys::Date;
-use peregrine_data::{ 
-    Commander,
-    PeregrineCore
-};
+use peregrine_data::{Assets, Commander, PeregrineCore};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::plumbing::distributor::Distributor;
@@ -46,7 +43,8 @@ pub struct PeregrineInnerAPI {
     spectre_manager: SpectreManager,
     input: Input,
     report: Report,
-    sound: Sound
+    sound: Sound,
+    assets: Assets
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -61,6 +59,7 @@ pub struct LockedPeregrineInnerAPI<'t> {
     pub report: &'t Report,
     pub input: &'t Input,
     pub sound: &'t mut Sound,
+    pub assets: &'t Assets,
     #[allow(unused)] // it's the drop we care about
     guard: LockGuard<'t>
 }
@@ -112,6 +111,7 @@ impl PeregrineInnerAPI {
             input: &mut self.input,
             report: &mut self.report,
             sound: &mut self.sound,
+            assets: &mut self.assets,
             guard
         }
     }
@@ -136,6 +136,7 @@ impl PeregrineInnerAPI {
         let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
+        let assets = integration.assets().clone();
         let mut core = PeregrineCore::new(integration,commander.clone(),move |e| {
             routed_message(Some(commander_id),Message::DataError(e))
         },queue_blocker).map_err(|e| Message::DataError(e))?;
@@ -156,7 +157,8 @@ impl PeregrineInnerAPI {
             spectre_manager: SpectreManager::new(&config.draw,&redraw_needed),
             input: input.clone(),
             sound: sound.clone(),
-            report: report.clone()
+            report: report.clone(),
+            assets
         };
         input.set_api(dom,&config.draw,&out,&commander,&report)?;
         message_sender.add(Message::Ready);

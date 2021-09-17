@@ -1,3 +1,6 @@
+pub mod js {
+    pub mod exception;
+}
 pub mod sync {
     pub mod blocker;
     pub mod needed;

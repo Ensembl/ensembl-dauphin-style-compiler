@@ -141,7 +141,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
             for (text,boundary) in self.texts.values_mut() {
                 let mask_origin = origins_iter.next().unwrap();
                 let text_origin = origins_iter.next().unwrap();
-                let size = sizes_iter.next().unwrap();
+                let _size = sizes_iter.next().unwrap();
                 let size = sizes_iter.next().unwrap(); // XXX assumes always the same
                 boundary.set_origin(text_origin,mask_origin);
                 boundary.update_padded_size(size);

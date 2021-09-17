@@ -44,6 +44,7 @@ pub enum Message {
     CannotPackRectangles(String),
     BadBackendConnection(String),
     BadTemplate(String),
+    BadAsset(String)
 }
 
 impl PeregrineMessage for Message {
@@ -78,7 +79,7 @@ impl PeregrineMessage for Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // allowed 500-999; next is 511
+        // allowed 500-999; next is 512
         match self {
             Message::CodeInvariantFailed(s) => (503,calculate_hash(s)),
             Message::DataError(d) => d.code(),
@@ -91,6 +92,7 @@ impl PeregrineMessage for Message {
             Message::CannotPackRectangles(s) => (509,calculate_hash(s)),
             Message::BadBackendConnection(s) => (510,calculate_hash(s)),
             Message::BadTemplate(s) => (501,calculate_hash(s)),
+            Message::BadAsset(s) => (511,calculate_hash(s)),
             Message::CurrentLocation(_,_,_) => (0,0),
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
@@ -113,6 +115,7 @@ impl PeregrineMessage for Message {
             Message::CannotPackRectangles(s) => format!("cannot pack rectangles: {}",s),
             Message::BadBackendConnection(s) => format!("bad backend connection: {}",s),
             Message::BadTemplate(s) => format!("bad template: {}",s),
+            Message::BadAsset(s) => format!("bad asset: {}",s),
             Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),

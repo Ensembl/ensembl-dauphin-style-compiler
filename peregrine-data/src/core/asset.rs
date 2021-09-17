@@ -48,7 +48,7 @@ impl Assets {
 }
 
 pub struct Asset {
-    bytes: Option<Vec<u8>>,
+    bytes: Option<Arc<Vec<u8>>>,
     metadata: HashMap<String,String>
 }
 
@@ -58,7 +58,7 @@ impl Asset {
         let mut bytes = None;
         for (key,value) in cbor_map_iter(cbor)? {
             match cbor_string(key)?.as_str() {
-                "data" => { bytes = Some(cbor_bytes(value)?); },
+                "data" => { bytes = Some(Arc::new(cbor_bytes(value)?)); },
                 key => {
                     metadata.insert(key.to_string(),cbor_coerce_string(value)?);
                 }
@@ -67,6 +67,6 @@ impl Asset {
         Ok(Asset { bytes, metadata })
     }
 
-    pub fn bytes(&self) -> Option<&[u8]> { self.bytes.as_ref().map(|x| x.as_ref()) }
+    pub fn bytes(&self) -> Option<Arc<Vec<u8>>> { self.bytes.as_ref().map(|x| x.clone()) }
     pub fn metadata(&self, key: &str) -> Option<&str> { self.metadata.get(key).map(|x| x.as_str()) }
 }

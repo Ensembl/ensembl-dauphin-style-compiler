@@ -30,7 +30,7 @@ impl PeregrineIntegration for PgIntegration {
 
     fn set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) -> Result<(),DataMessage> {
         let mut webgl = self.webgl.lock().unwrap();
-        self.trainset.set_carriages(carriages,&scale,&mut webgl,index)
+        self.trainset.set_carriages(carriages,&scale,&mut webgl,&self.assets,index)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
     }

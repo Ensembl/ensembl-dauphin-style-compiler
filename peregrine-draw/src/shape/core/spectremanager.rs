@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
-use peregrine_data::{AllotmentPetitioner, VariableValues};
+use peregrine_data::{AllotmentPetitioner, Assets, VariableValues};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
@@ -115,9 +115,9 @@ impl SpectreManager {
         self.state.lock().unwrap().get_spectres()        
     }
 
-    pub(crate) fn draw(&mut self, allotment_petitioner: &mut AllotmentPetitioner, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, allotment_petitioner: &mut AllotmentPetitioner, gl: &mut WebGlGlobal, assets: &Assets, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if self.state.lock().unwrap().new_shapes() {
-            self.drawing.set(gl,allotment_petitioner,&self.get_spectres())?;
+            self.drawing.set(gl,assets,allotment_petitioner,&self.get_spectres())?;
         }
         self.drawing.draw(gl,stage,session)
     }

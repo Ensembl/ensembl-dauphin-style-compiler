@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::rc::Rc;
 use super::layer::Layer;
-use peregrine_data::{Allotter, Scale, Shape, ShapeList, VariableValues, ZMenuProxy};
+use peregrine_data::{Allotter, Assets, Scale, Shape, ShapeList, VariableValues, ZMenuProxy};
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
@@ -55,10 +55,10 @@ pub(crate) struct DrawingTools {
 }
 
 impl DrawingTools {
-    fn new(scale: Option<&Scale>, left: f64) -> DrawingTools {
+    fn new(assets: &Assets, scale: Option<&Scale>, left: f64) -> DrawingTools {
         DrawingTools {
             text: DrawingText::new(),
-            bitmap: DrawingBitmap::new(),
+            bitmap: DrawingBitmap::new(assets),
             heraldry: DrawingHeraldry::new(),
             zmenus: DrawingZMenusBuilder::new(scale, left)
         }
@@ -72,12 +72,14 @@ impl DrawingTools {
     pub(crate) fn start_preparation(&mut self, gl: &mut WebGlGlobal) -> Result<ToolPreparations,Message> {
         let mut preparations = ToolPreparations::new();
         self.text.calculate_requirements(gl,&mut preparations.crisp)?;
+        self.bitmap.calculate_requirements(gl, &mut preparations.crisp)?;
         self.heraldry.calculate_requirements(gl,&mut preparations)?;
         Ok(preparations)
     }
 
     pub(crate) fn finish_preparation(&mut self, canvas_store: &mut FlatStore, mut preparations: ToolPreparations) -> Result<(),Message> {
         self.text.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
+        self.bitmap.manager().draw_at_locations(canvas_store,&mut preparations.crisp)?;
         self.heraldry.draw_at_locations(canvas_store,&mut preparations)?;
         Ok(())
     }
@@ -92,10 +94,10 @@ pub(crate) struct DrawingBuilder {
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(scale: Option<&Scale>, gl: &WebGlGlobal, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, gl: &WebGlGlobal, assets: &Assets, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl.program_store(),left)?,
-            tools: DrawingTools::new(scale,left),
+            tools: DrawingTools::new(assets,scale,left),
             flats: None,
             variables: variables.clone(),
             dynamic_shapes: vec![]
@@ -148,9 +150,9 @@ pub(crate) struct Drawing {
 }
 
 impl Drawing {
-    pub(crate) fn new(scale: Option<&Scale>, shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(scale,gl,variables,left)?;
+        let mut drawing = DrawingBuilder::new(scale,gl,assets,variables,left)?;
         let allotter = shapes.allotter();
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s,&allotter)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */

@@ -141,7 +141,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
         Shape::Image(spacebase,depth,images,allotment,kind) => {
             let allotment = allotments(allotter,&allotment)?;
             let drawing_bitmap = tools.bitmap();
-            let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Vec<_>>();
+            let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
             vec![GLShape::Image(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),depth)]
         },
         Shape::SpaceBaseRect(area,patina,allotment,kind) => {

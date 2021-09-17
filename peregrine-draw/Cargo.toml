@@ -52,7 +52,7 @@ features = [
   'Document', 'DomRect',
   'Element',
   'GainNode',
-  'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection',
+  'HtmlElement', 'Headers', 'HtmlCanvasElement', 'HtmlCollection', 'HtmlImageElement',
   'KeyboardEvent',
   'MouseEvent',
   'Node',

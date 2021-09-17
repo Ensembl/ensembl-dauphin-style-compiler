@@ -1,4 +1,4 @@
-use peregrine_data::{Carriage, CarriageId, Scale, VariableValues, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageId, Scale, VariableValues, ZMenuProxy};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -29,11 +29,11 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(carriage: &Carriage, scale: &Scale, opacity: f64, gl: &mut WebGlGlobal) -> Result<GLCarriage,Message> {
+    pub fn new(carriage: &Carriage, scale: &Scale, opacity: f64, gl: &mut WebGlGlobal, assets: &Assets) -> Result<GLCarriage,Message> {
         Ok(GLCarriage {
             id: carriage.id().clone(),
             opacity: Mutex::new(opacity),
-            drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new())?
+            drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new(),assets)?
         })
     }
 

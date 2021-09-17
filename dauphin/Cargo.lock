@@ -747,6 +747,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "commander",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

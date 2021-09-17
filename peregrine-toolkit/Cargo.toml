@@ -6,7 +6,13 @@ edition = "2018"
 
 [dependencies]
 anyhow="*"
+js-sys="*"
+wasm-bindgen="*"
 
 [dependencies.commander]
 version="*"
 path="../commander"
+
+[dependencies.web-sys]
+version="*"
+features=["console"]
