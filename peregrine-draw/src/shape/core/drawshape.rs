@@ -222,8 +222,17 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Image(_,_,_,_,_) => {
-            Ok(ShapeToAdd::None)
+        GLShape::Image(points,handles,allotments,program_kind,prio) => {
+            let kind = to_trianges_kind(&program_kind);
+            // TODO factor
+            let bitmap = tools.bitmap();
+            let dims = handles.iter()
+                .map(|handle| bitmap.manager().get_texture_areas(handle))
+                .collect::<Result<Vec<_>,_>>()?;
+            let (x_sizes,y_sizes) = dims_to_sizes(&dims);
+            let canvas = bitmap.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
+            let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
+            Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale,edge,prio) => {
             let kind = to_trianges_kind(&program_kind);
