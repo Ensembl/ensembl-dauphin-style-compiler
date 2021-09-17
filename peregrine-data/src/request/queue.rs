@@ -69,9 +69,8 @@ impl RequestQueueData {
         self.realtime_block.as_ref().map(|x| x.lock())
     }
 
-    fn await_realtime_idle(&self) {
-        let lock = self.realtime_block_check.as_ref().map(|x| x.lock());
-        drop(lock);
+    fn get_blocker(&self) -> Option<Blocker> {
+        self.realtime_block_check.as_ref().cloned()
     }
 
     fn set_timeout(&mut self, timeout: f64) {
@@ -154,7 +153,7 @@ impl RequestQueue {
             PacketPriority::Batch => { 
                 let first = pending.get().await;
                 cdr_timer(1000.).await;
-                let mut more = pending.get_multi_nowait(Some(30)).await;
+                let mut more = pending.get_multi_nowait(Some(20)).await;
                 more.insert(0,first);
                 more
             }
@@ -173,7 +172,9 @@ impl RequestQueue {
 
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
         let sender = lock!(self.0).make_packet_sender(packet)?;
-        lock!(self.0).await_realtime_idle();
+        if let Some(blocker) = lock!(self.0).get_blocker() {
+            blocker.wait().await;
+        }
         let lockout = lock!(self.0).acquire_realtime_lock();
         let response = sender.await?;
         drop(lockout);
