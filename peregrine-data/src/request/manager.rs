@@ -1,4 +1,4 @@
-use crate::lock;
+use peregrine_toolkit::lock;
 use commander::{ CommanderStream };
 use peregrine_toolkit::sync::blocker::Blocker;
 use std::collections::HashMap;

@@ -50,8 +50,9 @@ pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut WiggleYielde
                     start: f64, end: f64, yy: Vec<Option<f64>>, height: f64,
                     allotment: &Allotment, left: f64)-> Result<ProcessStanzaArray,Message> {
     let process = layer.draw(geometry_yielder,patina_yielder)?.get_process_mut();
-    let delta = allotment.position().offset() as f64;
-    let array = geometry_yielder.link()?.add_wiggle(process,start,end,yy,delta,height,left)?;
+    let yy = yy.iter().map(|y| y.map(|y| (1.-y*height))).collect::<Vec<_>>();
+    let yy = allotment.transform_yy(&yy);
+    let array = geometry_yielder.link()?.add_wiggle(process,start,end,yy,height,left)?;
     Ok(array)
 }
 
@@ -67,14 +68,13 @@ impl WiggleProgramLink {
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, delta: f64, height: f64, left: f64) -> Result<ProcessStanzaArray,Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64) -> Result<ProcessStanzaArray,Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
                 x_step: (end-start)/(yy.len() as f64),
                 x_pos: start,
                 y_height: height,
-                y_delta: delta,
                 x: vec![],
                 y: vec![]
             };
@@ -102,7 +102,6 @@ struct WigglePusher {
     prev_active: bool,
     x_step: f64,
     y_height: f64,
-    y_delta: f64,
     x_pos: f64,
     x: Vec<f64>,
     y: Vec<f64>
@@ -117,17 +116,16 @@ impl WigglePusher {
     }
 
     fn active(&mut self, y: f64) {
-        let y = (1.-y)*self.y_height;
         if !self.prev_active {
             self.cap();
         }
         self.x.push(self.x_pos);
-        self.y.push(y-THICKNESS+self.y_delta);
+        self.y.push(y-THICKNESS);
         if !self.prev_active {
             self.cap();
         }
         self.x.push(self.x_pos);
-        self.y.push(y+THICKNESS+self.y_delta);
+        self.y.push(y+THICKNESS);
         self.x_pos += self.x_step;
         self.prev_active = true;
     }

@@ -16,6 +16,7 @@ inflate="*"
 
 dauphin_interp = { path = "../dauphin-interp" }
 dauphin_compile = { path = "../dauphin-compile", optional = true }
+peregrine_toolkit = { path = "../peregrine-toolkit" }
 
 [dev-dependencies]
 dauphin_compile = { path = "../dauphin-compile" }

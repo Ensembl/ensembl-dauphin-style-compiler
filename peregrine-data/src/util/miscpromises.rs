@@ -1,4 +1,4 @@
-use crate::lock;
+use peregrine_toolkit::lock;
 use std::sync::{ Arc, Mutex };
 use commander::{ PromiseFuture, FusePromise };
 

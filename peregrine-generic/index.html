@@ -38,14 +38,13 @@
         <div id="zmenu-click" style="width: 200px; word-break: break-all; font-size: 10px"></div>
       </div>
     </div>
-    <script>
-    </script>
     <script type="module">
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
         let genome_browser = new GenomeBrowser();
         genome_browser.go({
-          backend_url: "http://52.56.215.72:3333/api/data"
+          //backend_url: "http://52.56.215.72:3333/api/data"
+          backend_url: "http://127.0.0.1:3333/api/data"
         });
         var labels = {};
         var tracks_on = {};

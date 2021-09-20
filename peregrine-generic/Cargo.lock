@@ -145,6 +145,7 @@ dependencies = [
  "inflate",
  "owning_ref",
  "peregrine_data",
+ "peregrine_toolkit",
  "serde_cbor",
  "url",
  "web-sys",

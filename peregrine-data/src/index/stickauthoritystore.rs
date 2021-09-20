@@ -1,9 +1,10 @@
-use crate::{AgentStore, PeregrineCoreBase, ProgramLoader, lock};
+use crate::{PeregrineCoreBase, ProgramLoader };
 use crate::request::{ Channel };
 use super::stickauthority::{ StickAuthority, load_stick_authority };
 use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };
 use crate::util::message::DataMessage;
+use peregrine_toolkit::lock;
 
 struct StickAuthorityStoreData {
     authorities: Vec<StickAuthority>

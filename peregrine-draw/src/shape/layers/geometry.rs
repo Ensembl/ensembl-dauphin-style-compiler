@@ -56,7 +56,7 @@ impl GeometryProgramName {
                             (base.x -uStageHpos) * uStageZoom + 
                                         delta.x / uSize.x,
                             1.0 - (base.y - uStageVpos + delta.y) / uSize.y, 
-                            0.0, 1.0);                      
+                            0.0, 1.0);
                     }
                 "),
                 Statement::new_vertex("

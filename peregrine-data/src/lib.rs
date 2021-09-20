@@ -149,7 +149,6 @@ mod util {
     pub mod message;
     pub mod miscpromises;
     pub mod ringarray;
-    pub mod unlock;
     pub mod vecutils;
 
     pub use self::builder::Builder;
@@ -172,8 +171,8 @@ pub use self::switch::allotter::{
     Allotter
 };
 pub use self::switch::allotment::{ 
-    AllotmentPetitioner, Allotment, OffsetSize, AllotmentPositionKind,
-    PositionVariant, AllotmentPosition, AllotterMetadata
+    AllotmentPetitioner, Allotment, OffsetSize, AllotmentGroup,
+    AllotmentDirection, AllotmentPosition, AllotterMetadata
 };
 pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentRequestBuilder };
 pub use self::switch::switch::{ Switches };

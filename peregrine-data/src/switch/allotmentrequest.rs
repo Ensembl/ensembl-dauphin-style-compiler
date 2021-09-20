@@ -1,4 +1,4 @@
-use crate::AllotmentPositionKind;
+use crate::AllotmentGroup;
 use std::hash::Hasher;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -88,11 +88,11 @@ impl AllotmentRequest {
     pub fn priority(&self) -> i64 { self.metadata.priority }
     pub fn is_dustbin(&self) -> bool { self.metadata.name == "" }
 
-    pub fn kind(&self) -> AllotmentPositionKind { 
+    pub fn allotment_group(&self) -> AllotmentGroup { 
         if self.metadata.name.starts_with("window:") {
-            AllotmentPositionKind::Overlay(if self.metadata.name.ends_with("-over") { 1 } else { 0 })
+            AllotmentGroup::Overlay(if self.metadata.name.ends_with("-over") { 1 } else { 0 })
         } else {
-            AllotmentPositionKind::Track
+            AllotmentGroup::Track
         }
     }
 

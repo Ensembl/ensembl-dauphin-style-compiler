@@ -1,5 +1,5 @@
 use anyhow::{ self, anyhow as err };
-use crate::lock;
+use peregrine_toolkit::lock;
 use commander::{ RunSlot };
 use serde_cbor::Value as CborValue;
 use std::any::Any;

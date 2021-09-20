@@ -1,7 +1,8 @@
-use peregrine_data::{ AllotmentRequest, Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track, lock};
+use peregrine_data::{ AllotmentRequest, Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::lock;
 
 pub(crate) struct TrackBuilder {
     track: Track,
