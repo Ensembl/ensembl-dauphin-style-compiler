@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
-use crate::{Allotment, AllotmentPosition, AllotmentPositionKind, AllotmentRequest, DataMessage};
-use super::{allotment::{AllotterMetadata, OffsetSize}, pitch::Pitch};
+use crate::{Allotment, AllotmentPosition, AllotmentGroup, AllotmentRequest, DataMessage};
+use super::{allotment::{AllotterMetadata, AllotmentImpl, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
     requests: Vec<AllotmentRequest>
@@ -26,24 +26,24 @@ impl RequestSorter {
     }
 }
 
-fn make_allocator(kind: &AllotmentPositionKind) -> Box<dyn AllotmentPositionAllocator> {
+fn make_allocator(kind: &AllotmentGroup) -> Box<dyn AllotmentPositionAllocator> {
     match kind {
-        AllotmentPositionKind::Track => Box::new(LinearAllotmentPositionAllocator::new(64, |index,size| {
+        AllotmentGroup::Track => Box::new(LinearAllotmentPositionAllocator::new(64, |index,size| {
             AllotmentPosition::Track(OffsetSize(index*size,size))
         })), // XXX size
-        AllotmentPositionKind::BaseLabel(priority) => {
+        AllotmentGroup::BaseLabel(priority) => {
             let priority = priority.clone();
             Box::new(LinearAllotmentPositionAllocator::new(64, move |index,size| {
                 AllotmentPosition::BaseLabel(priority.clone(),OffsetSize(index*size,size))
             }))
         }, // XXX size
-        AllotmentPositionKind::SpaceLabel(priority) => {
+        AllotmentGroup::SpaceLabel(priority) => {
             let priority = priority.clone();
             Box::new(LinearAllotmentPositionAllocator::new(64, move |index,size| {
                 AllotmentPosition::SpaceLabel(priority.clone(),OffsetSize(index*size,size))
             }))
         }, // XXX size
-        AllotmentPositionKind::Overlay(p) => {
+        AllotmentGroup::Overlay(p) => {
             Box::new(OverlayAllotmentPositionAllocator::new(*p)) as Box<dyn AllotmentPositionAllocator>
         }
     }
@@ -96,7 +96,7 @@ impl AllotmentPositionAllocator for OverlayAllotmentPositionAllocator {
 }
 
 struct RunningAllotter {
-    allocators: HashMap<AllotmentPositionKind,Box<dyn AllotmentPositionAllocator>>
+    allocators: HashMap<AllotmentGroup,Box<dyn AllotmentPositionAllocator>>
 }
 
 impl RunningAllotter {
@@ -106,14 +106,14 @@ impl RunningAllotter {
         }
     }
 
-    fn get_allocator(&mut self, kind: &AllotmentPositionKind) -> &mut Box<dyn AllotmentPositionAllocator> {
+    fn get_allocator(&mut self, kind: &AllotmentGroup) -> &mut Box<dyn AllotmentPositionAllocator> {
         self.allocators.entry(kind.clone()).or_insert_with(|| {
             make_allocator(kind)
         })
     }
 
     fn add(&mut self, request: &AllotmentRequest) -> Allotment {
-        let position = self.get_allocator(&request.kind()).allocate();
+        let position = self.get_allocator(&request.allotment_group()).allocate();
         let metadata = position.update_metadata(&request);
         Allotment::new(position,&metadata)
     }
@@ -145,7 +145,7 @@ impl Allotter {
         let mut running_allocator = RunningAllotter::new();
         for sorted_request in sorter.get() {
             let allotment = running_allocator.add(&sorted_request);
-            allotment.position().apply_pitch(&mut pitch);
+            allotment.apply_pitch(&mut pitch);
             metadata.push(allotment.metadata().clone());
             allotments.insert(sorted_request,allotment);
         }

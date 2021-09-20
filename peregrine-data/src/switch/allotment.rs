@@ -160,7 +160,7 @@ impl AllotmentPosition {
 pub trait AllotmentImpl {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
-    fn direction(&self) -> &AllotmentDirection;    
+    fn direction(&self) -> AllotmentDirection;    
     fn apply_pitch(&self, pitch: &mut Pitch);
     fn metadata(&self) -> &AllotmentRequest;
 }
@@ -189,17 +189,39 @@ impl AllotmentImpl for GeneralAllotment {
         values.iter().map(|x| x.map(|y| y+offset)).collect()
     }
 
-    fn direction(&self) -> &AllotmentDirection {
+    fn direction(&self) -> AllotmentDirection {
         match &self.position {
-            AllotmentPosition::BaseLabel(p,_) => p,
-            AllotmentPosition::SpaceLabel(p,_) => p,
-            _ => &AllotmentDirection::Forward
+            AllotmentPosition::BaseLabel(p,_) => p.clone(),
+            AllotmentPosition::SpaceLabel(p,_) => p.clone(),
+            _ => AllotmentDirection::Forward
         }
     }
     
     fn apply_pitch(&self, pitch: &mut Pitch) {
         self.position.apply_pitch(pitch);
     }
+
+    fn metadata(&self) -> &AllotmentRequest { &self.metadata }
+}
+
+pub struct AllAllotment {
+    metadata: AllotmentRequest
+}
+
+impl AllotmentImpl for AllAllotment {
+    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+        input.make() // XXX
+    }
+
+    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
+        values.to_vec() // XXX
+    }
+
+    fn direction(&self) -> AllotmentDirection {
+        AllotmentDirection::Forward
+    }
+
+    fn apply_pitch(&self, pitch: &mut Pitch) {}
 
     fn metadata(&self) -> &AllotmentRequest { &self.metadata }
 }

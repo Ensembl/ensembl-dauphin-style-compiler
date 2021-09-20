@@ -1,15 +1,11 @@
-use peregrine_data::{Allotment, AllotmentPosition, PositionVariant, SpaceBase, SpaceBaseArea};
+use peregrine_data::{Allotment, AllotmentDirection, SpaceBase, SpaceBaseArea};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
 
 fn flip(allotment: &Allotment) -> f64 {
-    match  match allotment.position() {
-        AllotmentPosition::BaseLabel(p,_) => p,
-        AllotmentPosition::SpaceLabel(p,_) => p,
-        _ => &PositionVariant::HighPriority
-    } {
-        PositionVariant::HighPriority => 1.,
-        PositionVariant::LowPriority => -1.
+    match allotment.direction() {
+        AllotmentDirection::Forward => 1.,
+        AllotmentDirection::Reverse => -1.
     }
 }
 
@@ -51,24 +47,26 @@ impl TrianglesKind {
         match self {
             TrianglesKind::Track => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                    let base_y = allotment.position().offset() as f64;
-                    rectangle64(&mut base, *top_left.base-left, base_y, *bottom_right.base-left,base_y,base_width);
-                    rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    let top_left = allotment.transform_spacebase(&top_left);
+                    let bottom_right = allotment.transform_spacebase(&bottom_right);
+                    rectangle64(&mut base, top_left.base-left, 0., bottom_right.base-left,0.,base_width);
+                    rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
                 }
             },
             TrianglesKind::Base => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                    let flip_y = flip(allotment);
+                    let flip_y = flip(&allotment);
                     rectangle64(&mut base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
-                }        
+                }
             },
             TrianglesKind::Space => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_x = flip(allotment);
-                    let base_y = allotment.position().offset() as f64;
-                    rectangle64(&mut base, flip_x, base_y, flip_x,base_y,base_width);
-                    rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    let top_left = allotment.transform_spacebase(&top_left);
+                    let bottom_right = allotment.transform_spacebase(&bottom_right);
+                    rectangle64(&mut base, flip_x, 0., flip_x,0.,base_width);
+                    rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
                 }
             },
             TrianglesKind::Window(_) => {

@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentPositionKind, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, PositionVariant, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, AllotmentDirection, AllotmentGroup, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::bitmap::BitmapHandle;
@@ -80,7 +80,6 @@ impl<'a> DrawingShapePatina<'a> {
     }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum GLShape {
     Text(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
     Image(HoleySpaceBase,Vec<BitmapHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
@@ -92,8 +91,8 @@ pub(crate) enum GLShape {
 pub enum AllotmentProgram {
     Track,
     Overlay(i64),
-    BaseLabel(PositionVariant),
-    SpaceLabel(PositionVariant)
+    BaseLabel(AllotmentDirection),
+    SpaceLabel(AllotmentDirection)
 }
 
 impl AllotmentProgram {
@@ -108,12 +107,12 @@ impl AllotmentProgram {
 }
 
 impl AllotmentProgram {
-    pub(super) fn new(allotment: &AllotmentPositionKind) -> AllotmentProgram {
+    pub(super) fn new(allotment: &AllotmentGroup) -> AllotmentProgram {
         match allotment {
-            AllotmentPositionKind::Track => AllotmentProgram::Track,
-            AllotmentPositionKind::Overlay(p) => AllotmentProgram::Overlay(*p),
-            AllotmentPositionKind::SpaceLabel(x) => AllotmentProgram::SpaceLabel(x.clone()),
-            AllotmentPositionKind::BaseLabel(x) => AllotmentProgram::BaseLabel(x.clone())
+            AllotmentGroup::Track => AllotmentProgram::Track,
+            AllotmentGroup::Overlay(p) => AllotmentProgram::Overlay(*p),
+            AllotmentGroup::SpaceLabel(x) => AllotmentProgram::SpaceLabel(x.clone()),
+            AllotmentGroup::BaseLabel(x) => AllotmentProgram::BaseLabel(x.clone())
         }
     }
 }

@@ -1,7 +1,7 @@
 use commander::cdr_timer;
 use anyhow::{ Context };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
-use crate::lock;
+use peregrine_toolkit::lock;
 use commander::{ CommanderStream, cdr_add_timer };
 use std::collections::HashMap;
 use std::future::Future;
@@ -170,9 +170,13 @@ impl RequestQueue {
         (packet,channels)
     }
 
+    fn get_blocker(&self) -> Option<Blocker> {
+        lock!(self.0).get_blocker()
+    }
+
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
         let sender = lock!(self.0).make_packet_sender(packet)?;
-        if let Some(blocker) = lock!(self.0).get_blocker() {
+        if let Some(blocker) = self.get_blocker() {
             blocker.wait().await;
         }
         let lockout = lock!(self.0).acquire_realtime_lock();

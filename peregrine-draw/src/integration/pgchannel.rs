@@ -1,5 +1,5 @@
 use js_sys::Date;
-use peregrine_data::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration, lock };
+use peregrine_data::{ Channel, ChannelLocation, PacketPriority, ChannelIntegration };
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
@@ -9,6 +9,7 @@ use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
 use peregrine_data::DataMessage;
+use peregrine_toolkit::lock;
 
 #[derive(Clone)]
 pub struct PgChannel(Arc<Mutex<HashMap<Channel,Option<f64>>>>,String);

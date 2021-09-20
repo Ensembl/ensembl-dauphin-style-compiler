@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err };
 use crate::request::data::DataResponse;
-use crate::lock;
+use peregrine_toolkit::lock;
 use std::sync::{ Arc, Mutex };
 
 pub struct ProgramDataData {

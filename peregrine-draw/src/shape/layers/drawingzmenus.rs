@@ -73,9 +73,10 @@ struct ZMenuEntry {
 impl ZMenuEntry {
     fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
         if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
-            let y_position = self.allotment.position().offset() as f64;
-            let top_px = y_position + top_left.normal;
-            let bottom_px = y_position + bottom_right.normal;
+            let top_left = self.allotment.transform_spacebase(&top_left);
+            let bottom_right = self.allotment.transform_spacebase(&bottom_right);
+            let top_px = top_left.normal;
+            let bottom_px = bottom_right.normal;
             let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
             let right_px = (bottom_right.base - left) / bp_per_carriage * px_per_carriage + car_px_left + bottom_right.tangent;
             return x_px >= left_px && x_px <= right_px && y_px >= top_px && y_px < bottom_px;
@@ -108,13 +109,14 @@ impl ScaledZMenus {
     }
 
     fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
-        let y_position = allotment.position().offset() as f64;
+        let top_left = allotment.transform_spacebase(top_left);
+        let bottom_right = allotment.transform_spacebase(bottom_right);
         /* y-coordinate */
-        let (top_px,bottom_px) = order(top_left.normal + y_position,bottom_right.normal + y_position);
+        let (top_px,bottom_px) = order(top_left.normal,bottom_right.normal);
         /* x-coordinate */
-        let (mut left_bp,mut right_bp) = order(*top_left.base,*bottom_right.base);
-        if *top_left.tangent < 0. { left_bp += *top_left.tangent * self.max_bp_per_px; }
-        if *bottom_right.tangent > 0. { right_bp += *bottom_right.tangent * self.max_bp_per_px; }
+        let (mut left_bp,mut right_bp) = order(top_left.base,bottom_right.base);
+        if top_left.tangent < 0. { left_bp += top_left.tangent * self.max_bp_per_px; }
+        if bottom_right.tangent > 0. { right_bp += bottom_right.tangent * self.max_bp_per_px; }
         let left_scr = (left_bp - self.left) / self.bp_in_carriage;
         let right_scr = (right_bp - self.left) / self.bp_in_carriage;
         ((left_scr,top_px as u64),(right_scr,(bottom_px+1.) as u64))
@@ -142,7 +144,7 @@ impl ScaledZMenus {
             let z = entry.generator.iter().next().unwrap().value();
             for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
-                for zone in self.get_zones(&top_left,&bottom_right,allotment) {
+                for zone in self.get_zones(&top_left,&bottom_right,&allotment) {
                     let entry = ZMenuEntry {
                         area: entry.area.clone(),
                         allotment: allotment.clone(),

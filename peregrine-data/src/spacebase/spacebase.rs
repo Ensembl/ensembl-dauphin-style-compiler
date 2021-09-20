@@ -1,5 +1,5 @@
 use std::{ops::{Add, Div}, sync::{Arc}};
-use crate::{/*SpaceBaseSized,*/ util::ringarray::{ DataFilter }};
+use crate::{ util::ringarray::{ DataFilter }};
 
 use super::parametric::{Flattenable, ParameterValue, ParametricType, Substitutions};
 
@@ -11,9 +11,19 @@ fn average<X: Clone + Add<Output=X> + Div<f64,Output=X>>(a: &[X], b: &[X]) -> Ve
     a.iter().zip(b.iter().cycle()).map(|(a,b)| (a.clone()+b.clone())/2.).collect()
 }
 pub struct SpaceBasePoint<X> {
-    base: X,
-    normal: X,
-    tangent: X
+    pub base: X,
+    pub normal: X,
+    pub tangent: X
+}
+
+impl<X> SpaceBasePoint<X> {
+    pub fn as_ref(&self) -> SpaceBasePointRef<X> {
+        SpaceBasePointRef {
+            base: &self.base,
+            normal: &self.normal,
+            tangent: &self.tangent
+        }
+    }
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -24,7 +34,7 @@ pub struct SpaceBasePointRef<'a,X> {
 }
 
 impl<'a,X: Clone> SpaceBasePointRef<'a,X> {
-    fn make(&self) -> SpaceBasePoint<X> {
+    pub fn make(&self) -> SpaceBasePoint<X> {
         SpaceBasePoint {
             base: self.base.clone(),
             normal: self.normal.clone(),

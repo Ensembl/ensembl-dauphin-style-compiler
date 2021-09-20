@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::pin::Pin;
 use commander::{ FusePromise, PromiseFuture };
 use super::lrucache::Cache;
-use crate::lock;
+use peregrine_toolkit::lock;
 
 pub enum MemoizedType {
     Store,

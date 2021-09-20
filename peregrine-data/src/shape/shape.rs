@@ -1,6 +1,6 @@
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
-use crate::AllotmentPositionKind;
+use crate::AllotmentGroup;
 use crate::AllotmentRequest;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
@@ -9,10 +9,10 @@ use crate::util::ringarray::DataFilter;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,AllotmentPositionKind),
-    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,AllotmentPositionKind),
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
+    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,AllotmentPositionKind)
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,AllotmentGroup)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -30,7 +30,7 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 
 impl Shape {
     pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
-        if self.kind().base_filter() {
+        if self.allotment_group().base_filter() {
             return self.clone();
         }
         match self {
@@ -53,12 +53,12 @@ impl Shape {
         }
     }
 
-    fn kind(&self) -> AllotmentPositionKind {
+    fn allotment_group(&self) -> AllotmentGroup {
         match self {
             Shape::SpaceBaseRect(_,_,_,kind) => kind.clone(),
             Shape::Text(_,_,_,_,kind) => kind.clone(),
             Shape::Image(_,_,_,_,kind) => kind.clone(),
-            Shape::Wiggle(_,_,_,allotment) => allotment.kind()
+            Shape::Wiggle(_,_,_,allotment) => allotment.allotment_group()
         }
     }
 
