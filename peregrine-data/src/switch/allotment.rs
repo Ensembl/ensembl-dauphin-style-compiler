@@ -1,10 +1,11 @@
 use crate::AllotmentRequestBuilder;
 use crate::AllotmentRequest;
-use crate::Track;
+use crate::SpaceBasePointRef;
+use crate::spacebase::spacebase::SpaceBasePoint;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
-use keyed::{ keyed_handle, KeyedHandle };
 use super::pitch::Pitch;
+use peregrine_toolkit::lock;
 
 #[derive(Clone,Debug)]
 pub struct AllotterMetadata {
@@ -75,26 +76,26 @@ impl AllotmentPetitioner {
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub enum PositionVariant {
-    HighPriority,
-    LowPriority
+pub enum AllotmentDirection {
+    Forward,
+    Reverse
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub enum AllotmentPositionKind {
+pub enum AllotmentGroup {
     Track,
     Overlay(i64),
-    BaseLabel(PositionVariant),
-    SpaceLabel(PositionVariant)
+    BaseLabel(AllotmentDirection),
+    SpaceLabel(AllotmentDirection)
 }
 
-impl AllotmentPositionKind {
+impl AllotmentGroup {
     pub(crate) fn base_filter(&self) -> bool {
         match self {
-            AllotmentPositionKind::Track => true,
-            AllotmentPositionKind::Overlay(_) => false,
-            AllotmentPositionKind::BaseLabel(_) => true,
-            AllotmentPositionKind::SpaceLabel(_) => false
+            AllotmentGroup::Track => true,
+            AllotmentGroup::Overlay(_) => false,
+            AllotmentGroup::BaseLabel(_) => true,
+            AllotmentGroup::SpaceLabel(_) => false
         }
     }
 }
@@ -108,17 +109,17 @@ pub struct OffsetSize(pub i64,pub(super) i64);
 pub enum AllotmentPosition {
     Track(OffsetSize),
     Overlay(i64),
-    BaseLabel(PositionVariant,OffsetSize),
-    SpaceLabel(PositionVariant,OffsetSize)
+    BaseLabel(AllotmentDirection,OffsetSize),
+    SpaceLabel(AllotmentDirection,OffsetSize)
 }
 
 impl AllotmentPosition {
-    pub fn kind(&self) -> AllotmentPositionKind {
+    pub fn allotment_group(&self) -> AllotmentGroup {
         match self {
-            AllotmentPosition::Track(_) => AllotmentPositionKind::Track,
-            AllotmentPosition::Overlay(p) => AllotmentPositionKind::Overlay(*p),
-            AllotmentPosition::BaseLabel(p,_) => AllotmentPositionKind::BaseLabel(p.clone()),
-            AllotmentPosition::SpaceLabel(p,_) => AllotmentPositionKind::SpaceLabel(p.clone()),
+            AllotmentPosition::Track(_) => AllotmentGroup::Track,
+            AllotmentPosition::Overlay(p) => AllotmentGroup::Overlay(*p),
+            AllotmentPosition::BaseLabel(p,_) => AllotmentGroup::BaseLabel(p.clone()),
+            AllotmentPosition::SpaceLabel(p,_) => AllotmentGroup::SpaceLabel(p.clone()),
         }
     }
 
@@ -156,18 +157,78 @@ impl AllotmentPosition {
     }
 }
 
-#[derive(Clone)]
+pub trait AllotmentImpl {
+    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
+    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
+    fn direction(&self) -> &AllotmentDirection;    
+    fn apply_pitch(&self, pitch: &mut Pitch);
+    fn metadata(&self) -> &AllotmentRequest;
+}
+
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct Allotment {
+pub struct GeneralAllotment {
     position: AllotmentPosition,
     metadata: AllotmentRequest
 }
 
-impl Allotment {
-    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentRequest) -> Allotment {
-        Allotment { position, metadata: metadata.clone() }
+impl GeneralAllotment {
+    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentRequest) -> GeneralAllotment {
+        GeneralAllotment { position, metadata: metadata.clone() }
+    }
+}
+
+impl AllotmentImpl for GeneralAllotment {
+    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+        let mut output = input.make();
+        output.normal += self.position.offset() as f64;
+        output
     }
 
-    pub fn position(&self) -> &AllotmentPosition { &self.position }
-    pub fn metadata(&self) -> &AllotmentRequest { &self.metadata }
+    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
+        let offset = self.position.offset() as f64;
+        values.iter().map(|x| x.map(|y| y+offset)).collect()
+    }
+
+    fn direction(&self) -> &AllotmentDirection {
+        match &self.position {
+            AllotmentPosition::BaseLabel(p,_) => p,
+            AllotmentPosition::SpaceLabel(p,_) => p,
+            _ => &AllotmentDirection::Forward
+        }
+    }
+    
+    fn apply_pitch(&self, pitch: &mut Pitch) {
+        self.position.apply_pitch(pitch);
+    }
+
+    fn metadata(&self) -> &AllotmentRequest { &self.metadata }
+}
+
+#[derive(Clone)]
+pub struct Allotment(Arc<Mutex<dyn AllotmentImpl>>);
+
+impl Allotment {
+    pub fn new(position: AllotmentPosition, metadata: &AllotmentRequest) -> Allotment { // XXX
+        Allotment(Arc::new(Mutex::new(GeneralAllotment::new(position,metadata))))
+    }
+
+    pub fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+        lock!(self.0).transform_spacebase(input)
+    }
+
+    pub fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
+        lock!(self.0).transform_yy(values)
+    }
+
+    pub fn direction(&self) -> AllotmentDirection {
+        lock!(self.0).direction().clone()
+    }
+
+    pub fn apply_pitch(&self, pitch: &mut Pitch) {
+        lock!(self.0).apply_pitch(pitch)
+    }
+
+    pub fn metadata(&self) -> AllotmentRequest {
+        lock!(self.0).metadata().clone()
+    }
 }
