@@ -51,7 +51,7 @@ pub async fn test_cdr(api: &PeregrineAPI) -> anyhow::Result<()> {
     let el = document.get_element_by_id("other").unwrap().dyn_into::<HtmlElement>().ok().unwrap();
     api.set_switch(&["track"]);
     api.set_switch(&["track","gene-pc-fwd"]);
-    api.set_switch(&["track","gene-nonpc-fwd"]);
+    api.set_switch(&["track","gene-other-fwd"]);
     api.set_stick(&StickId::new("homo_sapiens_GCA_000001405_27:1"));
     let mut left = 2500000.;
     let mut right = 1000000.;
@@ -148,7 +148,8 @@ impl GenomeBrowser {
          * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
          * use. See that file for details.
          */
-        let dom = make_dom()?;
+        let target_element_id = config_in.get("target_element_id").unwrap().as_str();
+        let dom = make_dom(target_element_id)?;
         /*
          * Create a genome browser object.
          */
@@ -278,6 +279,7 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     let json = zmenu_fixed_vec_to_json(zmenus);
                                     args.set(0,JsValue::from("zmenu"));
+                                    
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&ZmenuData {
                                         x: *x as f64,
                                         y: *y as f64,

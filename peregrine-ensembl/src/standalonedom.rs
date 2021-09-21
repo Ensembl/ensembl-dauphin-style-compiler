@@ -4,7 +4,7 @@ use peregrine_draw::{ Message, PeregrineDom };
 
 const HTML : &str = r#"
     <div class="$-container">
-        <div class="$-sticky"><canvas width="1500" height="1500" class="$-browser-canvas"></canvas></div>
+        <div class="$-sticky"><canvas class="$-browser-canvas"></canvas></div>
         <div class="$-browser"></div>
     </div>
 "#;
@@ -22,9 +22,9 @@ const CSS : &str = r#"
     }
 "#;
 
-pub(crate) fn make_dom() -> Result<PeregrineDom,Message> {
+pub(crate) fn make_dom( target_element_id: &str ) -> Result<PeregrineDom,Message> {
     let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
     let document = window.document().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get document")))?;
-    let browser_el = document.get_element_by_id("browser").ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get canvas")))?;
+    let browser_el = document.get_element_by_id(target_element_id).ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get canvas")))?;
     PeregrineDom::new(&browser_el,&HTML,&CSS)
 }
