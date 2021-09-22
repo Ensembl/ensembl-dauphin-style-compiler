@@ -77,7 +77,7 @@ class FileAccessMethod(AccessMethod):
         try:
             with open(self.file,"rb") as f:
                 if offset != None:
-                    f.seek(0,offset)
+                    f.seek(offset,0)
                     while size > 0:
                         more = f.read(size-len(out))
                         if len(more) == 0:
