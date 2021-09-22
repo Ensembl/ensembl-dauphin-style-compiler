@@ -78,7 +78,7 @@ class FileAccessMethod(AccessMethod):
             with open(self.file,"rb") as f:
                 if offset != None:
                     f.seek(offset,0)
-                    while size > 0:
+                    while size-len(out) > 0:
                         more = f.read(size-len(out))
                         if len(more) == 0:
                             raise RequestException("premature EOF")
