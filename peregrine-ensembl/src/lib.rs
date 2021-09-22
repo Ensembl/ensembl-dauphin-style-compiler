@@ -82,6 +82,20 @@ struct TrackMetadata {
     summary: Vec<HashMap<String,String>>
 }
 
+#[derive(Serialize, Deserialize)]
+struct LocationData {
+    stick: String,
+    start: f64,
+    end: f64
+}
+
+#[derive(Serialize, Deserialize)]
+struct ZmenuData {
+    x: f64,
+    y: f64,
+    content: serde_json::Value
+}
+
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct GenomeBrowser {
@@ -143,7 +157,6 @@ impl GenomeBrowser {
          * Ok, we're ready to go. Bootstrapping causes the genome browser to go to the backend and configure itself.
          */
         let url = config_in.get("backend_url").unwrap().as_str();
-        
         let mut p = self.api.bootstrap(&Channel::new(&ChannelLocation::HttpChannel(js_throw(Url::parse(url)))));
         /*
          * You have to turn on tracks _per se_, but we always want tracks.
@@ -228,26 +241,34 @@ impl GenomeBrowser {
                         },
                         MessageKind::Interface => {
                             match message {
-                                Message::CurrentLocation(stick,from,to) => {
+                                Message::CurrentLocation(stick,start,end) => {
                                     let args = Array::new();
-                                    args.set(0,JsValue::from("current"));
-                                    args.set(1,JsValue::from(stick));
-                                    args.set(2,JsValue::from(*from as f64));
-                                    args.set(3,JsValue::from(*to as f64));
+                                    args.set(0,JsValue::from("current_position"));
+
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
+                                        stick: stick.to_string(),
+                                        start: *start as f64,
+                                        end: *end as f64
+                                    }))));
+
                                     let _ = closure.apply(&this,&args);                    
                                 }
-                                Message::TargetLocation(stick,from,to) => {
+                                Message::TargetLocation(stick,start,end) => {
                                     let args = Array::new();
-                                    args.set(0,JsValue::from("target"));
-                                    args.set(1,JsValue::from(stick));
-                                    args.set(2,JsValue::from(*from as f64));
-                                    args.set(3,JsValue::from(*to as f64));
+                                    args.set(0,JsValue::from("target_position"));
+
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&LocationData {
+                                        stick: stick.to_string(),
+                                        start: *start as f64,
+                                        end: *end as f64
+                                    }))));
+                                    
                                     let _ = closure.apply(&this,&args);                    
                                 },
                                 Message::Ready => {},
                                 Message::AllotterMetadata(metadata) => {
                                     let args = Array::new();
-                                    args.set(0,JsValue::from("tracks"));
+                                    args.set(0,JsValue::from("track_summary"));
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {
                                         summary: metadata.summarize().to_vec()
                                     }))));
@@ -257,9 +278,12 @@ impl GenomeBrowser {
                                     let args = Array::new();
                                     let json = zmenu_fixed_vec_to_json(zmenus);
                                     args.set(0,JsValue::from("zmenu"));
-                                    args.set(1,JsValue::from(*x));
-                                    args.set(2,JsValue::from(*y));
-                                    args.set(3,js_throw(JsValue::from_serde(&json)));
+                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&ZmenuData {
+                                        x: *x as f64,
+                                        y: *y as f64,
+                                        content: json
+                                    }))));
+
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::HitEndstop(endstops) => {
