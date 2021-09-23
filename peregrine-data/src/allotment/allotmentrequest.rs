@@ -2,9 +2,7 @@ use std::hash::Hash;
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentGroup, AllotmentMetadata, AllotmentMetadataStore, AllotmentPosition };
-
-use super::allotment::AllotmentImpl;
+use crate::{AllotmentGroup, AllotmentMetadata, AllotmentMetadataStore };
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct AllotmentRequestData {
@@ -16,14 +14,6 @@ impl AllotmentRequestImpl for AllotmentRequestData {
     fn allotment_group(&self) -> AllotmentGroup { self.metadata.allotment_group() }
     fn is_dustbin(&self) -> bool { self.metadata.is_dustbin() }
     fn priority(&self) -> i64 { self.metadata.priority() }
-    fn metadata(&self) -> AllotmentMetadata { self.metadata.clone() }
-
-    fn update_metadata(&self, position: &AllotmentPosition) -> AllotmentRequest {
-        let metadata = self.metadata.clone().update_metadata(position);
-        AllotmentRequest(Arc::new(Mutex::new(Box::new(AllotmentRequestData {
-            metadata
-        }))))
-    }
 }
 
 impl Hash for AllotmentRequest {
@@ -47,8 +37,6 @@ pub trait AllotmentRequestImpl {
     fn allotment_group(&self) -> AllotmentGroup;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
-    fn metadata(&self) -> AllotmentMetadata; // XXX temporary
-    fn update_metadata(&self, position: &AllotmentPosition) -> AllotmentRequest; // XXX ???
     //    fn make_allotment(&self) -> Box<dyn AllotmentImpl>;
 }
 
@@ -68,10 +56,6 @@ impl AllotmentRequest {
     pub fn allotment_group(&self) -> AllotmentGroup { lock!(self.0).allotment_group() }
     pub fn is_dustbin(&self) -> bool { lock!(self.0).is_dustbin() }
     pub fn priority(&self) -> i64 { lock!(self.0).priority() }
-    pub fn metadata(&self) -> AllotmentMetadata { lock!(self.0).metadata().clone() }
-    pub fn update_metadata(&self, position: &AllotmentPosition) -> AllotmentRequest {
-        lock!(self.0).update_metadata(position)
-    }
 }
 
 #[cfg(debug_assertions)]

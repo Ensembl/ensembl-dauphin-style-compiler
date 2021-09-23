@@ -1,5 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use std::fmt;
+use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
 use crate::core::{ Layout, Scale };
 use crate::switch::pitch::Pitch;
@@ -8,7 +9,7 @@ use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{AllotterMetadata, PgCommanderTaskSpec};
+use crate::{PgCommanderTaskSpec};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
@@ -89,8 +90,8 @@ impl TrainData {
         None
     }
 
-    fn allotter_metadata(&self) -> Option<AllotterMetadata> {
-        self.central_carriage().map(|c| c.shapes().allotter().metadata().clone())
+    fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> {
+        self.central_carriage().map(|c| c.shapes().universe().make_metadata_report().clone())
     }
 
     fn pitch(&self) -> Pitch {
@@ -164,7 +165,7 @@ impl Train {
     pub fn is_active(&self) -> bool { self.0.lock().unwrap().is_active() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
-    pub(super) fn allotter_metadata(&self) -> Option<AllotterMetadata> { self.0.lock().unwrap().allotter_metadata() }
+    pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.0.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
         self.0.lock().unwrap().set_active(carriage_event,index,speed);

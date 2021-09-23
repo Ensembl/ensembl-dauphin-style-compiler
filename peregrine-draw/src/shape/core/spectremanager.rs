@@ -119,7 +119,7 @@ impl SpectreManager {
         self.state.lock().unwrap().get_spectres()        
     }
 
-    pub(crate) fn draw(&mut self, allotment_metadata: &mut AllotmentMetadataStore, gl: &mut WebGlGlobal, assets: &Assets, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, assets: &Assets, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if self.state.lock().unwrap().new_shapes() {
             self.drawing.set(gl,assets,&self.universe,&self.allotment_metadata,&self.get_spectres())?;
         }

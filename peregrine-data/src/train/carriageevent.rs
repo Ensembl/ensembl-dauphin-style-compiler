@@ -1,14 +1,14 @@
 use std::sync::{ Arc, Mutex };
+use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::{Scale};
 use crate::api::{ CarriageSpeed, PeregrineCore };
-use crate::switch::allotment::AllotterMetadata;
 use crate::switch::pitch::Pitch;
 use crate::train::Carriage;
 use crate::train::train::Train;
 use crate::core::Viewport;
 
 enum CarriageEvent {
-    SendAllotmentMetadata(AllotterMetadata),
+    SendAllotmentMetadata(AllotmentMetadataReport),
     Train(Train),
     Carriage(Carriage),
     Set(Vec<Carriage>,Scale,u32),
@@ -29,7 +29,7 @@ impl CarriageEvents {
         self.0.lock().unwrap().push(CarriageEvent::Train(train.clone()));
     }
 
-    pub(super) fn send_allotment_metadata(&mut self, metadata: &AllotterMetadata) {
+    pub(super) fn send_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
         self.0.lock().unwrap().push(CarriageEvent::SendAllotmentMetadata(metadata.clone()));
     }
 

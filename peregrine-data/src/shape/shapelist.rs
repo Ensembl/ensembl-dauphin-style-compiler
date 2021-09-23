@@ -78,6 +78,7 @@ impl ShapeListBuilder {
     pub fn append(&mut self, more: &ShapeListBuilder) {
         self.shapes.extend(more.shapes.iter().cloned());
         self.allotments = self.allotments.union(&more.allotments).cloned().collect();
+        self.universe.union(&more.universe);
     }
 
     pub fn build(self) -> ShapeList {
@@ -110,6 +111,7 @@ impl ShapeList {
         }
     }
 
+    pub fn universe(&self) -> &UniverseAllotmentRequest { &self.universe }
     pub fn len(&self) -> usize { self.shapes.len() }
     pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
     pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }

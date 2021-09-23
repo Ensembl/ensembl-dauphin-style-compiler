@@ -176,11 +176,13 @@ pub use self::switch::allotter::{
 };
 pub use self::switch::allotment::{ 
     OffsetSize, AllotmentGroup,
-    AllotmentDirection, AllotmentPosition, AllotterMetadata
+    AllotmentDirection, AllotmentPosition
 };
 pub use self::allotment::allotment::Allotment;
 pub use self::allotment::allotmentrequest::AllotmentRequest;
-pub use self::allotment::allotmentmetadata::{ AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest };
+pub use self::allotment::allotmentmetadata::{
+    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
+};
 pub use self::allotment::universeallotmentrequest::UniverseAllotmentRequest;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;

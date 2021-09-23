@@ -1,50 +1,8 @@
-use crate::AllotmentMetadata;
 use crate::SpaceBasePointRef;
 use crate::allotment::allotment::AllotmentImpl;
 use crate::spacebase::spacebase::SpaceBasePoint;
-use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
 use super::pitch::Pitch;
-use peregrine_toolkit::lock;
-
-#[derive(Clone,Debug)]
-pub struct AllotterMetadata {
-    allotments: Arc<Vec<AllotmentMetadata>>,
-    summary: Arc<Vec<HashMap<String,String>>>,
-    hash: u64
-}
-
-impl Hash for AllotterMetadata {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.hash.hash(state);
-    }
-}
-
-impl PartialEq for AllotterMetadata {
-    fn eq(&self, other: &AllotterMetadata) -> bool {
-        self.hash == other.hash
-    }
-}
-
-impl Eq for AllotterMetadata {}
-
-impl AllotterMetadata {
-    pub fn new(allotments: Vec<AllotmentMetadata>) -> AllotterMetadata {
-        let mut summary = vec![];
-        let mut state = DefaultHasher::new();
-        for a in &allotments {
-            summary.push(a.summarize());
-            a.hash(&mut state);
-        }
-        AllotterMetadata {
-            allotments: Arc::new(allotments),
-            summary: Arc::new(summary),
-            hash: state.finish()
-        }
-    }
-
-    pub fn summarize(&self) -> Arc<Vec<HashMap<String,String>>> { self.summary.clone() }
-}
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum AllotmentDirection {
@@ -115,13 +73,12 @@ impl AllotmentPosition {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct GeneralAllotment {
-    position: AllotmentPosition,
-    metadata: AllotmentMetadata
+    position: AllotmentPosition
 }
 
 impl GeneralAllotment {
-    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentMetadata) -> GeneralAllotment {
-        GeneralAllotment { position, metadata: metadata.clone() }
+    pub(super) fn new(position: AllotmentPosition) -> GeneralAllotment {
+        GeneralAllotment { position }
     }
 }
 
@@ -148,7 +105,5 @@ impl AllotmentImpl for GeneralAllotment {
     fn apply_pitch(&self, pitch: &mut Pitch) {
         self.position.apply_pitch(pitch);
     }
-
-    fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
 }
 

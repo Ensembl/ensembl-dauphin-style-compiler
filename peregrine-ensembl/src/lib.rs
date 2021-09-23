@@ -245,7 +245,7 @@ impl GenomeBrowser {
                                     let _ = closure.apply(&this,&args);                    
                                 },
                                 Message::Ready => {},
-                                Message::AllotterMetadata(metadata) => {
+                                Message::AllotmentMetadataReport(metadata) => {
                                     let args = Array::new();
                                     args.set(0,JsValue::from("tracks"));
                                     args.set(1,JsValue::from(js_throw(JsValue::from_serde(&TrackMetadata {

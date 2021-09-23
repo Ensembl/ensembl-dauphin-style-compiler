@@ -2,14 +2,13 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentDirection, AllotmentMetadata, Pitch, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
+use crate::{AllotmentDirection, Pitch, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
 pub trait AllotmentImpl {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
     fn direction(&self) -> AllotmentDirection;    
     fn apply_pitch(&self, pitch: &mut Pitch);
-    fn metadata(&self) -> &AllotmentMetadata;
 }
 
 #[derive(Clone)]
@@ -34,9 +33,5 @@ impl Allotment {
 
     pub fn apply_pitch(&self, pitch: &mut Pitch) {
         lock!(self.0).apply_pitch(pitch)
-    }
-
-    pub fn metadata(&self) -> AllotmentMetadata {
-        lock!(self.0).metadata().clone()
     }
 }

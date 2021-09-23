@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
-use crate::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentPosition, AllotmentRequest, DataMessage};
-use super::{allotment::{AllotterMetadata, GeneralAllotment, OffsetSize}, pitch::Pitch};
+use crate::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentPosition, AllotmentRequest, DataMessage, allotment::allotmentmetadata::AllotmentMetadataReport};
+use super::{allotment::{GeneralAllotment, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
     requests: Vec<AllotmentRequest>
@@ -114,14 +114,12 @@ impl RunningAllotter {
 
     fn add(&mut self, request: &AllotmentRequest) -> Allotment {
         let position = self.get_allocator(&request.allotment_group()).allocate();
-        let request = request.update_metadata(&position);
-        Allotment::new(Box::new(GeneralAllotment::new(position,&request.metadata())))
+        Allotment::new(Box::new(GeneralAllotment::new(position)))
     }
 }
 
 pub struct Allotter {
     allotments: HashMap<AllotmentRequest,Allotment>,
-    metadata: AllotterMetadata,
     pitch: Pitch
 }
 
@@ -129,7 +127,6 @@ impl Allotter {
     pub fn empty() -> Allotter {
         Allotter {
             allotments: HashMap::new(),
-            metadata: AllotterMetadata::new(vec![]),
             pitch: Pitch::new()
         }
     }
@@ -140,22 +137,18 @@ impl Allotter {
         for request in requests {
             sorter.add(request);
         }
-        let mut metadata = vec![];
         let mut allotments = HashMap::new();
         let mut running_allocator = RunningAllotter::new();
         for sorted_request in sorter.get() {
             let allotment = running_allocator.add(&sorted_request);
             allotment.apply_pitch(&mut pitch);
-            metadata.push(allotment.metadata().clone());
             allotments.insert(sorted_request, allotment);
         }
-        Allotter { allotments, metadata: AllotterMetadata::new(metadata), pitch }
+        Allotter { allotments, pitch }
     }
 
     pub fn get(&self, handle: &AllotmentRequest) -> Result<Allotment,DataMessage> {
         self.allotments.get(handle).ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string())).map(|r| r.clone())
     }
-
-    pub fn metadata(&self) -> AllotterMetadata { self.metadata.clone() }
     pub fn pitch(&self) -> &Pitch { &self.pitch }
 }

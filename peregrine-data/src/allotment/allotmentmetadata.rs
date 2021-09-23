@@ -9,7 +9,7 @@ pub struct AllotmentMetadataStore {
 
 impl AllotmentMetadataStore {
     pub fn new() -> AllotmentMetadataStore {
-        let mut out = AllotmentMetadataStore {
+        let out = AllotmentMetadataStore {
             metadata: Arc::new(Mutex::new(HashMap::new()))
         };
         out.add(AllotmentMetadataRequest::new("",0));
@@ -108,21 +108,6 @@ impl AllotmentMetadata {
         }
     }
 
-    pub fn update_metadata(&self, position: &AllotmentPosition) -> AllotmentMetadata {
-        let mut builder = AllotmentMetadataRequest::rebuild(self);
-        match position {
-            AllotmentPosition::Track(offset_size) => {
-                builder.add_pair("type","track");
-                builder.add_pair("offset",&offset_size.0.to_string());
-                builder.add_pair("height",&offset_size.1.to_string());
-            },
-            _ => {
-                builder.add_pair("type","other");
-            }
-        }
-        AllotmentMetadata::new(builder)
-    }
-
     pub fn name(&self) -> &str { &self.metadata.name }
     pub fn priority(&self) -> i64 { self.metadata.priority }
     pub fn is_dustbin(&self) -> bool { self.metadata.name == "" }
@@ -138,4 +123,43 @@ impl AllotmentMetadata {
     pub fn summarize(&self) -> HashMap<String,String> {
         self.metadata.summarize()
     }
+}
+
+#[derive(Clone,Debug)]
+pub struct AllotmentMetadataReport {
+    allotments: Arc<Vec<AllotmentMetadata>>,
+    summary: Arc<Vec<HashMap<String,String>>>,
+    hash: u64
+}
+
+impl Hash for AllotmentMetadataReport {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
+
+impl PartialEq for AllotmentMetadataReport {
+    fn eq(&self, other: &AllotmentMetadataReport) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for AllotmentMetadataReport {}
+
+impl AllotmentMetadataReport {
+    pub fn new(allotments: Vec<AllotmentMetadata>) -> AllotmentMetadataReport {
+        let mut summary = vec![];
+        let mut state = DefaultHasher::new();
+        for a in &allotments {
+            summary.push(a.summarize());
+            a.hash(&mut state);
+        }
+        AllotmentMetadataReport {
+            allotments: Arc::new(allotments),
+            summary: Arc::new(summary),
+            hash: state.finish()
+        }
+    }
+
+    pub fn summarize(&self) -> Arc<Vec<HashMap<String,String>>> { self.summary.clone() }
 }
