@@ -6,28 +6,28 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct AllotmentRequestBuilder {
+pub struct AllotmentMetadata {
     name: String,
     priority: i64,
     pairs: HashMap<String,String>
 }
 
-impl AllotmentRequestBuilder {
-    pub fn dustbin() -> AllotmentRequestBuilder {
-        AllotmentRequestBuilder::new("",0)
+impl AllotmentMetadata {
+    pub fn dustbin() -> AllotmentMetadata {
+        AllotmentMetadata::new("",0)
     }
 
-    pub fn new(name: &str, priority: i64) -> AllotmentRequestBuilder {
-        AllotmentRequestBuilder {
+    pub fn new(name: &str, priority: i64) -> AllotmentMetadata {
+        AllotmentMetadata {
             name: name.to_string(),
             priority,
             pairs: HashMap::new()
         }
     }
 
-    pub fn rebuild(metadata: &AllotmentRequest) -> AllotmentRequestBuilder {
+    pub fn rebuild(metadata: &AllotmentRequest) -> AllotmentMetadata {
         let pairs = metadata.metadata.pairs.clone();
-        AllotmentRequestBuilder {
+        AllotmentMetadata {
             name: metadata.metadata.name.clone(),
             priority: metadata.metadata.priority,
             pairs
@@ -58,7 +58,7 @@ impl AllotmentRequestBuilder {
 
 #[derive(Clone,Debug)]
 pub struct AllotmentRequest {
-    metadata: Arc<AllotmentRequestBuilder>,
+    metadata: Arc<AllotmentMetadata>,
     hash: u64
 }
 
@@ -77,7 +77,7 @@ impl PartialEq for AllotmentRequest {
 impl Eq for AllotmentRequest {}
 
 impl AllotmentRequest {
-    pub(super) fn new(builder: AllotmentRequestBuilder) -> AllotmentRequest {
+    pub(super) fn new(builder: AllotmentMetadata) -> AllotmentRequest {
         AllotmentRequest {
             hash: builder.hash_value(),
             metadata: Arc::new(builder)

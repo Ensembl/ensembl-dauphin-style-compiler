@@ -171,10 +171,10 @@ pub use self::switch::allotter::{
     Allotter
 };
 pub use self::switch::allotment::{ 
-    AllotmentPetitioner, Allotment, OffsetSize, AllotmentGroup,
+    AllAllotmentsRequest, Allotment, OffsetSize, AllotmentGroup,
     AllotmentDirection, AllotmentPosition, AllotterMetadata
 };
-pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentRequestBuilder };
+pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentMetadata };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

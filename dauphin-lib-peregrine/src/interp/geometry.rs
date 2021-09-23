@@ -187,7 +187,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
         drop(peregrine);
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         for request in &requests {
-            zoo.lock().add_allotment(request);
+            zoo.lock().use_allotment(request);
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));

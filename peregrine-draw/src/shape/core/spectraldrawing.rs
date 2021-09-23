@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_data::{AllotmentPetitioner, Assets, ShapeListBuilder, VariableValues};
+use peregrine_data::{AllAllotmentsRequest, Assets, ShapeListBuilder, VariableValues};
 
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 
 use super::spectre::Spectre;
 
-fn draw_spectres(gl: &mut WebGlGlobal, assets: &Assets, allotment_petitioner: &mut AllotmentPetitioner, variables: &VariableValues<f64>, spectres: &[Spectre]) -> Result<Drawing,Message> {
+fn draw_spectres(gl: &mut WebGlGlobal, assets: &Assets, allotment_petitioner: &mut AllAllotmentsRequest, variables: &VariableValues<f64>, spectres: &[Spectre]) -> Result<Drawing,Message> {
     let mut shapes = ShapeListBuilder::new();
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_petitioner)?;
@@ -22,7 +22,7 @@ impl SpectralDrawing {
         SpectralDrawing(Arc::new(Mutex::new(None)),variables.clone())
     }
 
-    pub(crate) fn set(&self, gl: &mut WebGlGlobal, assets: &Assets, allotment_petitioner: &mut AllotmentPetitioner, spectres: &[Spectre]) -> Result<(),Message> {
+    pub(crate) fn set(&self, gl: &mut WebGlGlobal, assets: &Assets, allotment_petitioner: &mut AllAllotmentsRequest, spectres: &[Spectre]) -> Result<(),Message> {
         let mut drawing_holder = self.0.lock().unwrap();
         if let Some(drawing_holder) = drawing_holder.as_mut() {
             drawing_holder.discard(gl)?;

@@ -19,7 +19,7 @@ use crate::api::AgentStore;
 use crate::core::{ StickId };
 use crate::util::message::DataMessage;
 use crate::switch::switch::Switches;
-use crate::switch::allotment::AllotmentPetitioner;
+use crate::switch::allotment::AllAllotmentsRequest;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -44,7 +44,7 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub allotment_petitioner: AllotmentPetitioner,
+    pub allotment_petitioner: AllAllotmentsRequest,
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
 }
@@ -78,7 +78,7 @@ impl PeregrineCore {
             messages,
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
-            allotment_petitioner: AllotmentPetitioner::new(),
+            allotment_petitioner: AllAllotmentsRequest::new(),
             identity: Arc::new(Mutex::new(0))
         };
         let agent_store = AgentStore::new(&base);

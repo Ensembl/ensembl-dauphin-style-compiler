@@ -1,4 +1,4 @@
-use peregrine_data::{ AllotmentRequestBuilder, AllotmentPetitioner, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
+use peregrine_data::{AllAllotmentsRequest, AllotmentMetadata, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -58,10 +58,10 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequestBuilder::new("window:origin-over",0));
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllAllotmentsRequest) -> Result<(),Message> {
+        let window_origin = allotment_petitioner.add(AllotmentMetadata::new("window:origin-over",0));
         let pos = self.area.tlbr().clone();
-        shapes.add_allotment(&window_origin);
+        shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
             vec![ParameterValue::Constant(0.)],
             vec![ParameterValue::Variable(pos.0,0.)],
@@ -94,9 +94,9 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequestBuilder::new("window:origin",-1));
-        shapes.add_allotment(&window_origin);
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllAllotmentsRequest) -> Result<(),Message> {
+        let window_origin = allotment_petitioner.add(AllotmentMetadata::new("window:origin",-1));
+        shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
@@ -155,7 +155,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllAllotmentsRequest) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes,allotment_petitioner)?,
             Spectre::Stain(a) => a.draw(shapes,allotment_petitioner)?,

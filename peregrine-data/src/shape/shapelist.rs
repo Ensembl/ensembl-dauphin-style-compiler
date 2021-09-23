@@ -1,8 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentRequest, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
-use crate::switch::allotter::{ Allotter };
+use crate::{AllotmentRequest, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -33,12 +32,12 @@ impl ShapeListBuilder {
         out
     }
 
-    pub fn add_allotment(&mut self, allotment: &AllotmentRequest) {
+    pub fn use_allotment(&mut self, allotment: &AllotmentRequest) {
         if !allotment.is_dustbin() {
             self.allotments.insert(allotment.clone());
         }
     }
-
+    
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
         for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
             filter.set_size(area.len());

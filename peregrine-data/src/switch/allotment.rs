@@ -1,9 +1,9 @@
-use crate::AllotmentRequestBuilder;
 use crate::AllotmentRequest;
 use crate::SpaceBasePointRef;
 use crate::spacebase::spacebase::SpaceBasePoint;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
+use super::allotmentrequest::AllotmentMetadata;
 use super::pitch::Pitch;
 use peregrine_toolkit::lock;
 
@@ -47,21 +47,21 @@ impl AllotterMetadata {
 }
 
 #[derive(Clone)]
-pub struct AllotmentPetitioner {
+pub struct AllAllotmentsRequest {
     allotments: Arc<Mutex<HashMap<String,AllotmentRequest>>>,
 }
 
-impl AllotmentPetitioner {
-    pub fn new() -> AllotmentPetitioner {
-        let mut out = AllotmentPetitioner {
+impl AllAllotmentsRequest {
+    pub fn new() -> AllAllotmentsRequest {
+        let mut out = AllAllotmentsRequest {
             allotments: Arc::new(Mutex::new(HashMap::new()))
         };
-        out.add(AllotmentRequestBuilder::dustbin()); // null gets slot 0
+        out.add(AllotmentMetadata::dustbin()); // null gets slot 0
         out
     }
 
-    pub fn add(&mut self, builder: AllotmentRequestBuilder) -> AllotmentRequest {
-        let request = AllotmentRequest::new(builder);
+    pub fn add(&mut self, metadata: AllotmentMetadata) -> AllotmentRequest {
+        let request = AllotmentRequest::new(metadata);
         let mut allotments = self.allotments.lock().unwrap();
         if let Some(request) = allotments.get(request.name()) {
             return request.clone();
@@ -124,7 +124,7 @@ impl AllotmentPosition {
     }
 
     pub(super) fn update_metadata(&self, metadata: &AllotmentRequest) -> AllotmentRequest {
-        let mut builder = AllotmentRequestBuilder::rebuild(metadata);
+        let mut builder = AllotmentMetadata::rebuild(metadata);
         match self {
             AllotmentPosition::Track(offset_size) => {
                 builder.add_pair("type","track");
