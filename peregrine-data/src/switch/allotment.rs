@@ -54,20 +54,19 @@ pub struct AllAllotmentsRequest {
 impl AllAllotmentsRequest {
     pub fn new() -> AllAllotmentsRequest {
         let mut out = AllAllotmentsRequest {
-            allotments: Arc::new(Mutex::new(HashMap::new()))
+            allotments: Arcuse_allotment::new(Mutex::new(HashMap::new()))
         };
         out.add(AllotmentMetadata::dustbin()); // null gets slot 0
         out
     }
 
-    pub fn add(&mut self, metadata: AllotmentMetadata) -> AllotmentRequest {
+    pub fn add(&mut self, metadata: AllotmentMetadata) {
         let request = AllotmentRequest::new(metadata);
         let mut allotments = self.allotments.lock().unwrap();
-        if let Some(request) = allotments.get(request.name()) {
-            return request.clone();
+        if allotments.get(request.name()).is_some() {
+            return;
         }
         allotments.insert(request.name().to_string(),request.clone());
-        return request
     }
 
     pub fn lookup(&mut self, name: &str) -> Option<AllotmentRequest> {
