@@ -1,4 +1,5 @@
 mod allotment {
+    pub(crate) mod allotment;
     pub(crate) mod allotmentmetadata;
     pub(crate) mod allotmentrequest;
     pub(crate) mod universeallotmentrequest;
@@ -174,11 +175,13 @@ pub use self::switch::allotter::{
     Allotter
 };
 pub use self::switch::allotment::{ 
-    AllAllotmentsRequest, Allotment, OffsetSize, AllotmentGroup,
+    OffsetSize, AllotmentGroup,
     AllotmentDirection, AllotmentPosition, AllotterMetadata
 };
+pub use self::allotment::allotment::Allotment;
 pub use self::allotment::allotmentrequest::AllotmentRequest;
 pub use self::allotment::allotmentmetadata::{ AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest };
+pub use self::allotment::universeallotmentrequest::UniverseAllotmentRequest;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

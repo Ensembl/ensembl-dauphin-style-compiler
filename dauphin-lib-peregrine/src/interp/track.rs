@@ -79,7 +79,6 @@ impl InterpCommand for AddAllotmentInterpCommand {
         }
         drop(registers);
         let peregrine = get_peregrine(context)?;
-        let mut petitioner = peregrine.allotments().clone();
         let mut allotment_metadata = peregrine.allotment_metadata().clone();
         for (i,(name,prio)) in names.iter().zip(prios.iter().cycle()).enumerate() {
             let mut metadata = AllotmentMetadataRequest::new(name,*prio as i64);

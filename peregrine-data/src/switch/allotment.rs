@@ -1,5 +1,6 @@
 use crate::AllotmentMetadata;
 use crate::SpaceBasePointRef;
+use crate::allotment::allotment::AllotmentImpl;
 use crate::spacebase::spacebase::SpaceBasePoint;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
@@ -43,23 +44,6 @@ impl AllotterMetadata {
     }
 
     pub fn summarize(&self) -> Arc<Vec<HashMap<String,String>>> { self.summary.clone() }
-}
-
-#[derive(Clone)]
-pub struct AllAllotmentsRequest {
-    allotments: Arc<Mutex<HashMap<String,AllotmentMetadata>>>,
-}
-
-impl AllAllotmentsRequest {
-    pub fn new() -> AllAllotmentsRequest {
-        AllAllotmentsRequest {
-            allotments: Arc::new(Mutex::new(HashMap::new()))
-        }
-    }
-
-    pub fn lookup(&mut self, name: &str) -> Option<AllotmentMetadata> {
-        self.allotments.lock().unwrap().get(name).cloned()
-    }
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
@@ -129,14 +113,6 @@ impl AllotmentPosition {
     }
 }
 
-pub trait AllotmentImpl {
-    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
-    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
-    fn direction(&self) -> AllotmentDirection;    
-    fn apply_pitch(&self, pitch: &mut Pitch);
-    fn metadata(&self) -> &AllotmentMetadata;
-}
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct GeneralAllotment {
     position: AllotmentPosition,
@@ -176,53 +152,3 @@ impl AllotmentImpl for GeneralAllotment {
     fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
 }
 
-pub struct AllAllotment {
-    metadata: AllotmentMetadata
-}
-
-impl AllotmentImpl for AllAllotment {
-    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
-        input.make() // XXX
-    }
-
-    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
-        values.to_vec() // XXX
-    }
-
-    fn direction(&self) -> AllotmentDirection {
-        AllotmentDirection::Forward
-    }
-
-    fn apply_pitch(&self, pitch: &mut Pitch) {}
-
-    fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
-}
-
-#[derive(Clone)]
-pub struct Allotment(Arc<Mutex<dyn AllotmentImpl>>);
-
-impl Allotment {
-    pub fn new(position: AllotmentPosition, metadata: &AllotmentMetadata) -> Allotment { // XXX
-        Allotment(Arc::new(Mutex::new(GeneralAllotment::new(position,metadata))))
-    }
-
-    pub fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
-        lock!(self.0).transform_spacebase(input)
-    }
-
-    pub fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
-        lock!(self.0).transform_yy(values)
-    }
-
-    pub fn direction(&self) -> AllotmentDirection {
-        lock!(self.0).direction().clone()
-    }
-
-    pub fn apply_pitch(&self, pitch: &mut Pitch) {
-        lock!(self.0).apply_pitch(pitch)
-    }
-
-    pub fn metadata(&self) -> AllotmentMetadata {
-        lock!(self.0).metadata().clone()
-    }
-}

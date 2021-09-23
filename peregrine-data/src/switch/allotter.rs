@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 use crate::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentPosition, AllotmentRequest, DataMessage};
-use super::{allotment::{AllotterMetadata, AllotmentImpl, OffsetSize}, pitch::Pitch};
+use super::{allotment::{AllotterMetadata, GeneralAllotment, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
     requests: Vec<AllotmentRequest>
@@ -115,7 +115,7 @@ impl RunningAllotter {
     fn add(&mut self, request: &AllotmentRequest) -> Allotment {
         let position = self.get_allocator(&request.allotment_group()).allocate();
         let request = request.update_metadata(&position);
-        Allotment::new(position,&request.metadata())
+        Allotment::new(Box::new(GeneralAllotment::new(position,&request.metadata())))
     }
 }
 
