@@ -85,16 +85,20 @@ impl SpectreState {
 pub(crate) struct SpectreManager {
     state: Arc<Mutex<SpectreState>>,
     drawing: SpectralDrawing,
-    config: Arc<PgPeregrineConfig>
+    config: Arc<PgPeregrineConfig>,
+    universe: UniverseAllotmentRequest,
+    allotment_metadata: AllotmentMetadataStore
 }
 
 impl SpectreManager {
-    pub(crate) fn new(config: &Arc<PgPeregrineConfig>, redraw_needed: &Needed) -> SpectreManager {
+    pub(crate) fn new(config: &Arc<PgPeregrineConfig>, allotment_metadata: &AllotmentMetadataStore, redraw_needed: &Needed) -> SpectreManager {
         let variables = VariableValues::new();
         SpectreManager {
             state: Arc::new(Mutex::new(SpectreState::new(redraw_needed))),
             drawing: SpectralDrawing::new(&variables),
-            config: config.clone()
+            config: config.clone(),
+            universe: UniverseAllotmentRequest::new(allotment_metadata),
+            allotment_metadata: allotment_metadata.clone()
         }
     }
 
@@ -115,9 +119,9 @@ impl SpectreManager {
         self.state.lock().unwrap().get_spectres()        
     }
 
-    pub(crate) fn draw(&mut self, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore, gl: &mut WebGlGlobal, assets: &Assets, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, allotment_metadata: &mut AllotmentMetadataStore, gl: &mut WebGlGlobal, assets: &Assets, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if self.state.lock().unwrap().new_shapes() {
-            self.drawing.set(gl,assets,universe,allotment_metadata,&self.get_spectres())?;
+            self.drawing.set(gl,assets,&self.universe,&self.allotment_metadata,&self.get_spectres())?;
         }
         self.drawing.draw(gl,stage,session)
     }

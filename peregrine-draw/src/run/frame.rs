@@ -22,7 +22,7 @@ fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager,
         let mut session = DrawingSession::new();
         session.begin(gl)?;
         web.trainset.draw_animate_tick(read_stage,gl,&session)?;
-        web.spectre_manager.draw(&mut web.data_api.base.universe,&mut web.data_api.base.allotment_metadata, gl,&assets,read_stage,&session)?;
+        web.spectre_manager.draw(&mut web.data_api.base.allotment_metadata, gl,&assets,read_stage,&session)?;
         session.finish()?;
     }
     Ok(())

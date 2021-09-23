@@ -58,9 +58,9 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &UniverseAllotmentRequest, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin-over",0));
-        let window_origin = universe.get("window:origin-over").unwrap(); // XXX
+        let window_origin = universe.make_request("window:origin-over").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
@@ -95,9 +95,9 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &UniverseAllotmentRequest, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin",-1));
-        let window_origin = universe.get("window:origin").unwrap(); // XXX
+        let window_origin = universe.make_request("window:origin").unwrap(); // XXX
         shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         if self.invert {
@@ -157,7 +157,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, universe: &UniverseAllotmentRequest, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes,universe,allotment_metadata)?,
             Spectre::Stain(a) => a.draw(shapes,universe,allotment_metadata)?,

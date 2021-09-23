@@ -1,20 +1,24 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentMetadata, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, allotment::allotmentrequest::AllotmentRequest};
+use crate::{AllotmentMetadataStore, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, UniverseAllotmentRequest, allotment::allotmentrequest::AllotmentRequest};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
-    allotments: HashSet<AllotmentRequest>
+    allotments: HashSet<AllotmentRequest>,
+    universe: UniverseAllotmentRequest
 }
 
 impl ShapeListBuilder {
-    pub fn new() -> ShapeListBuilder {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> ShapeListBuilder {
         ShapeListBuilder {
             shapes: vec![],
-            allotments: HashSet::new()
+            allotments: HashSet::new(),
+            universe: UniverseAllotmentRequest::new(allotment_metadata)
         }
     }
+
+    pub fn universe(&self) -> &UniverseAllotmentRequest { &self.universe }
 
     fn push(&mut self, shape: Shape) {
         let shape =shape.remove_nulls();
@@ -68,7 +72,7 @@ impl ShapeListBuilder {
         for shape in self.shapes.iter() {
             shapes.push(shape.filter(min_value,max_value));
         }
-        ShapeListBuilder { shapes, allotments: self.allotments.clone() }
+        ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone() }
     }
 
     pub fn append(&mut self, more: &ShapeListBuilder) {
@@ -84,20 +88,23 @@ impl ShapeListBuilder {
 #[derive(Clone)]
 pub struct ShapeList {
     shapes: Arc<Vec<Shape>>,
-    allotter: Arc<Allotter>
+    allotter: Arc<Allotter>,
+    universe: UniverseAllotmentRequest
 }
 
 impl ShapeList {
     pub fn empty() -> ShapeList {
         ShapeList {
             shapes: Arc::new(vec![]),
-            allotter: Arc::new(Allotter::empty())
+            allotter: Arc::new(Allotter::empty()),
+            universe: UniverseAllotmentRequest::new(&AllotmentMetadataStore::new())
         }
     }
 
     fn new(builder: ShapeListBuilder) -> ShapeList {
         let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
         ShapeList {
+            universe: builder.universe.clone(),
             shapes: Arc::new(builder.shapes),
             allotter: Arc::new(Allotter::new(&handles))
         }

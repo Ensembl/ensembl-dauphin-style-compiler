@@ -16,7 +16,7 @@ impl AllotmentMetadataStore {
         out
     }
 
-    pub fn add(&mut self, metadata: AllotmentMetadataRequest) {
+    pub fn add(&self, metadata: AllotmentMetadataRequest) {
         let mut allotments = self.metadata.lock().unwrap();
         if allotments.get(metadata.name()).is_none() {
             allotments.insert(metadata.name().to_string(),AllotmentMetadata::new(metadata));

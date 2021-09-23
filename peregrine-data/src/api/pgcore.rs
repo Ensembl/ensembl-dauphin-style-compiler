@@ -40,7 +40,6 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub universe: UniverseAllotmentRequest,
     pub allotment_metadata: AllotmentMetadataStore,
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
@@ -76,7 +75,6 @@ impl PeregrineCore {
             messages,
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
-            universe: UniverseAllotmentRequest::new(&allotment_metadata),
             allotment_metadata,
             identity: Arc::new(Mutex::new(0))
         };

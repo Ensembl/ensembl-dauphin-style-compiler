@@ -6,8 +6,8 @@ use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, w
 
 use super::spectre::Spectre;
 
-fn draw_spectres(gl: &mut WebGlGlobal, assets: &Assets, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore, variables: &VariableValues<f64>, spectres: &[Spectre]) -> Result<Drawing,Message> {
-    let mut shapes = ShapeListBuilder::new();
+fn draw_spectres(gl: &mut WebGlGlobal, assets: &Assets, universe: &UniverseAllotmentRequest, allotment_metadata: &AllotmentMetadataStore, variables: &VariableValues<f64>, spectres: &[Spectre]) -> Result<Drawing,Message> {
+    let mut shapes = ShapeListBuilder::new(&allotment_metadata);
     for spectre in spectres {
         spectre.draw(&mut shapes,universe,allotment_metadata)?;
     }
@@ -22,7 +22,7 @@ impl SpectralDrawing {
         SpectralDrawing(Arc::new(Mutex::new(None)),variables.clone())
     }
 
-    pub(crate) fn set(&self, gl: &mut WebGlGlobal, assets: &Assets, universe: &mut UniverseAllotmentRequest, allotment_metadata: &mut AllotmentMetadataStore, spectres: &[Spectre]) -> Result<(),Message> {
+    pub(crate) fn set(&self, gl: &mut WebGlGlobal, assets: &Assets, universe: &UniverseAllotmentRequest, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<(),Message> {
         let mut drawing_holder = self.0.lock().unwrap();
         if let Some(drawing_holder) = drawing_holder.as_mut() {
             drawing_holder.discard(gl)?;
