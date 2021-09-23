@@ -25,7 +25,7 @@ impl InterpCommand for RectangleInterpCommand {
         let patina = geometry.patina(patina_id[0] as u32)?.as_ref().clone();
         let allotments = allotment_id.iter().map(|id| {
             Ok(geometry.allotment(*id as u32)?.as_ref().clone())
-        }).collect::<anyhow::Result<Vec<_>>>()?;        
+        }).collect::<anyhow::Result<Vec<_>>>()?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         let area = SpaceBaseArea::new(top_left,bottom_right);
         zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,allotments);

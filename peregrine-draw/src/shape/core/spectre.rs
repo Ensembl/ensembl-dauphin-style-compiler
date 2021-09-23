@@ -1,4 +1,4 @@
-use peregrine_data::{AllAllotmentsRequest, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentMetadata, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
+use peregrine_data::{AllAllotmentsRequest, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -60,7 +60,7 @@ impl MarchingAnts {
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllAllotmentsRequest, allotment_metadata: &mut AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin-over",0));
-        let window_origin = allotment_metadata.get("window:origin-over").unwrap(); // XXX
+        let window_origin = AllotmentRequest::new(allotment_metadata,"window:origin-over").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
@@ -97,7 +97,7 @@ impl Stain {
     
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllAllotmentsRequest, allotment_metadata: &mut AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin",-1));
-        let window_origin = allotment_metadata.get("window:origin").unwrap(); // XXX
+        let window_origin = AllotmentRequest::new(allotment_metadata,"window:origin").unwrap(); // XXX
         shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         if self.invert {

@@ -1,5 +1,7 @@
 mod allotment {
     pub(crate) mod allotmentmetadata;
+    pub(crate) mod allotmentrequest;
+    pub(crate) mod universeallotmentrequest;
 }
 
 mod api {
@@ -175,6 +177,7 @@ pub use self::switch::allotment::{
     AllAllotmentsRequest, Allotment, OffsetSize, AllotmentGroup,
     AllotmentDirection, AllotmentPosition, AllotterMetadata
 };
+pub use self::allotment::allotmentrequest::AllotmentRequest;
 pub use self::allotment::allotmentmetadata::{ AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;

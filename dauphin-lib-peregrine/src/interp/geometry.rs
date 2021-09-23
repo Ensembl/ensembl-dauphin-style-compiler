@@ -1,7 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{
-     Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage, Builder, ShapeListBuilder, SpaceBase
-};
+use peregrine_data::{AllotmentRequest, Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, SpaceBase, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -178,9 +176,9 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let mut allotment_petitioner = peregrine.allotments().clone();
         let allotment_metadata = peregrine.allotment_metadata().clone();
         let requests = name.drain(..).map(|name| {
-            Ok(allotment_metadata.get(&name).ok_or_else(||
+            AllotmentRequest::new(&allotment_metadata,&name).ok_or_else(||
                 DataMessage::NoSuchAllotment(name)
-            )?)
+            )
         }).collect::<Result<Vec<_>,DataMessage>>()?;
         let ids = requests.iter().map(|request| {
             geometry_builder.add_allotment(request.clone()) as usize           
