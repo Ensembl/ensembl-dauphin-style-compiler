@@ -1,9 +1,9 @@
 use std::{collections::HashMap};
-use crate::{Allotment, AllotmentPosition, AllotmentGroup, AllotmentRequest, DataMessage};
+use crate::{Allotment, AllotmentPosition, AllotmentGroup, AllotmentMetadata, DataMessage};
 use super::{allotment::{AllotterMetadata, AllotmentImpl, OffsetSize}, pitch::Pitch};
 
 struct RequestSorter {
-    requests: Vec<AllotmentRequest>
+    requests: Vec<AllotmentMetadata>
 }
 
 impl RequestSorter {
@@ -13,12 +13,12 @@ impl RequestSorter {
         }
     }
 
-    fn add(&mut self, request: &AllotmentRequest) {
+    fn add(&mut self, request: &AllotmentMetadata) {
         if request.is_dustbin() { return; }
         self.requests.push(request.clone());
     }
 
-    fn get(mut self) -> Vec<AllotmentRequest> {
+    fn get(mut self) -> Vec<AllotmentMetadata> {
         self.requests.sort_by_cached_key(|r| {
             (r.priority(),r.name().to_string())
         });
@@ -112,15 +112,15 @@ impl RunningAllotter {
         })
     }
 
-    fn add(&mut self, request: &AllotmentRequest) -> Allotment {
+    fn add(&mut self, request: &AllotmentMetadata) -> Allotment {
         let position = self.get_allocator(&request.allotment_group()).allocate();
-        let metadata = position.update_metadata(&request);
+        let metadata = request.update_metadata(&position);
         Allotment::new(position,&metadata)
     }
 }
 
 pub struct Allotter {
-    allotments: HashMap<AllotmentRequest,Allotment>,
+    allotments: HashMap<AllotmentMetadata,Allotment>,
     metadata: AllotterMetadata,
     pitch: Pitch
 }
@@ -134,7 +134,7 @@ impl Allotter {
         }
     }
 
-    pub fn new(requests: &[AllotmentRequest]) -> Allotter {
+    pub fn new(requests: &[AllotmentMetadata]) -> Allotter {
         let mut pitch = Pitch::new();
         let mut sorter = RequestSorter::new();
         for request in requests {
@@ -152,7 +152,7 @@ impl Allotter {
         Allotter { allotments, metadata: AllotterMetadata::new(metadata), pitch }
     }
 
-    pub fn get(&self, handle: &AllotmentRequest) -> Result<Allotment,DataMessage> {
+    pub fn get(&self, handle: &AllotmentMetadata) -> Result<Allotment,DataMessage> {
         self.allotments.get(handle).ok_or_else(|| DataMessage::NoSuchAllotment("request for unallocated allotment".to_string())).map(|r| r.clone())
     }
 

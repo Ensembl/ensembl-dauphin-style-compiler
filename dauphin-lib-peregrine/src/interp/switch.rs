@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{ Channel, AllotmentRequest, ShapeRequest };
+use peregrine_data::{ Channel, ShapeRequest };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;

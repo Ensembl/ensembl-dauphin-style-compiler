@@ -176,8 +176,9 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
         let mut allotment_petitioner = peregrine.allotments().clone();
+        let allotment_metadata = peregrine.allotment_metadata().clone();
         let requests = name.drain(..).map(|name| {
-            Ok(allotment_petitioner.lookup(&name).ok_or_else(||
+            Ok(allotment_metadata.get(&name).ok_or_else(||
                 DataMessage::NoSuchAllotment(name)
             )?)
         }).collect::<Result<Vec<_>,DataMessage>>()?;

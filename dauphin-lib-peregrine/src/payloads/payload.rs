@@ -17,7 +17,7 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_data::{ RequestManager, CountingPromise, AgentStore, Switches, AllAllotmentsRequest, PeregrineCoreBase };
+use peregrine_data::{AgentStore, AllAllotmentsRequest, AllotmentMetadataStore, CountingPromise, PeregrineCoreBase, RequestManager, Switches};
 use super::trackbuilder::AllTracksBuilder;
 use super::geometrybuilder::GeometryBuilder;
 
@@ -28,6 +28,7 @@ pub struct PeregrinePayload {
     track_builder: AllTracksBuilder,
     geometry_builder: GeometryBuilder,
     allotment_petitioner: AllAllotmentsRequest,
+    allotment_metadata: AllotmentMetadataStore,
     switches: Switches
 }
 
@@ -38,7 +39,7 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(agent_store: &AgentStore, manager: &RequestManager, booted: &CountingPromise, switches: &Switches, allotments: &AllAllotmentsRequest) -> PeregrinePayload {
+    fn new(agent_store: &AgentStore, manager: &RequestManager, booted: &CountingPromise, switches: &Switches, allotments: &AllAllotmentsRequest, allotment_metadata: &AllotmentMetadataStore) -> PeregrinePayload {
         PeregrinePayload {
             booted: booted.clone(),
             agent_store: agent_store.clone(),
@@ -46,7 +47,8 @@ impl PeregrinePayload {
             track_builder: AllTracksBuilder::new(),
             geometry_builder: GeometryBuilder::new(),
             switches: switches.clone(),
-            allotment_petitioner: allotments.clone()
+            allotment_petitioner: allotments.clone(),
+            allotment_metadata: allotment_metadata.clone(),
         }
     }
 
@@ -57,6 +59,7 @@ impl PeregrinePayload {
     pub fn track_builder(&self) -> &AllTracksBuilder { &self.track_builder }
     pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
     pub fn allotments(&self) -> &AllAllotmentsRequest { &self.allotment_petitioner }
+    pub fn allotment_metadata(&self) -> &AllotmentMetadataStore { &self.allotment_metadata }
 }
 
 #[derive(Clone)]
@@ -65,7 +68,8 @@ pub struct PeregrinePayloadFactory {
     agent_store: AgentStore,
     booted: CountingPromise,
     switches: Switches,
-    allotments: AllAllotmentsRequest
+    allotments: AllAllotmentsRequest,
+    allotment_metadata: AllotmentMetadataStore,
 }
 
 impl PeregrinePayloadFactory {
@@ -76,13 +80,14 @@ impl PeregrinePayloadFactory {
             agent_store: agent_store.clone(),
             switches: switches.clone(),
             allotments: base.allotment_petitioner.clone(),
+            allotment_metadata: base.allotment_metadata.clone()
         }
     }
 }
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.agent_store,&self.manager,&self.booted,&self.switches,&self.allotments))
+        Box::new(PeregrinePayload::new(&self.agent_store,&self.manager,&self.booted,&self.switches,&self.allotments,&self.allotment_metadata))
     }
 }
 

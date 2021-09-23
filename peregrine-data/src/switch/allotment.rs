@@ -1,15 +1,14 @@
-use crate::AllotmentRequest;
+use crate::AllotmentMetadata;
 use crate::SpaceBasePointRef;
 use crate::spacebase::spacebase::SpaceBasePoint;
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::Hasher, sync::{ Arc, Mutex }};
 use std::hash::{ Hash };
-use super::allotmentrequest::AllotmentMetadata;
 use super::pitch::Pitch;
 use peregrine_toolkit::lock;
 
 #[derive(Clone,Debug)]
 pub struct AllotterMetadata {
-    allotments: Arc<Vec<AllotmentRequest>>,
+    allotments: Arc<Vec<AllotmentMetadata>>,
     summary: Arc<Vec<HashMap<String,String>>>,
     hash: u64
 }
@@ -29,7 +28,7 @@ impl PartialEq for AllotterMetadata {
 impl Eq for AllotterMetadata {}
 
 impl AllotterMetadata {
-    pub fn new(allotments: Vec<AllotmentRequest>) -> AllotterMetadata {
+    pub fn new(allotments: Vec<AllotmentMetadata>) -> AllotterMetadata {
         let mut summary = vec![];
         let mut state = DefaultHasher::new();
         for a in &allotments {
@@ -48,28 +47,17 @@ impl AllotterMetadata {
 
 #[derive(Clone)]
 pub struct AllAllotmentsRequest {
-    allotments: Arc<Mutex<HashMap<String,AllotmentRequest>>>,
+    allotments: Arc<Mutex<HashMap<String,AllotmentMetadata>>>,
 }
 
 impl AllAllotmentsRequest {
     pub fn new() -> AllAllotmentsRequest {
-        let mut out = AllAllotmentsRequest {
-            allotments: Arcuse_allotment::new(Mutex::new(HashMap::new()))
-        };
-        out.add(AllotmentMetadata::dustbin()); // null gets slot 0
-        out
-    }
-
-    pub fn add(&mut self, metadata: AllotmentMetadata) {
-        let request = AllotmentRequest::new(metadata);
-        let mut allotments = self.allotments.lock().unwrap();
-        if allotments.get(request.name()).is_some() {
-            return;
+        AllAllotmentsRequest {
+            allotments: Arc::new(Mutex::new(HashMap::new()))
         }
-        allotments.insert(request.name().to_string(),request.clone());
     }
 
-    pub fn lookup(&mut self, name: &str) -> Option<AllotmentRequest> {
+    pub fn lookup(&mut self, name: &str) -> Option<AllotmentMetadata> {
         self.allotments.lock().unwrap().get(name).cloned()
     }
 }
@@ -101,7 +89,7 @@ impl AllotmentGroup {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct OffsetSize(pub i64,pub(super) i64);
+pub struct OffsetSize(pub i64,pub i64);
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -120,21 +108,6 @@ impl AllotmentPosition {
             AllotmentPosition::BaseLabel(p,_) => AllotmentGroup::BaseLabel(p.clone()),
             AllotmentPosition::SpaceLabel(p,_) => AllotmentGroup::SpaceLabel(p.clone()),
         }
-    }
-
-    pub(super) fn update_metadata(&self, metadata: &AllotmentRequest) -> AllotmentRequest {
-        let mut builder = AllotmentMetadata::rebuild(metadata);
-        match self {
-            AllotmentPosition::Track(offset_size) => {
-                builder.add_pair("type","track");
-                builder.add_pair("offset",&offset_size.0.to_string());
-                builder.add_pair("height",&offset_size.1.to_string());
-            },
-            _ => {
-                builder.add_pair("type","other");
-            }
-        }
-        AllotmentRequest::new(builder)
     }
 
     pub fn offset(&self) -> i64 { // XXX shouldn't exist. SHould magic shapes instead
@@ -161,17 +134,17 @@ pub trait AllotmentImpl {
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
     fn direction(&self) -> AllotmentDirection;    
     fn apply_pitch(&self, pitch: &mut Pitch);
-    fn metadata(&self) -> &AllotmentRequest;
+    fn metadata(&self) -> &AllotmentMetadata;
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct GeneralAllotment {
     position: AllotmentPosition,
-    metadata: AllotmentRequest
+    metadata: AllotmentMetadata
 }
 
 impl GeneralAllotment {
-    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentRequest) -> GeneralAllotment {
+    pub(super) fn new(position: AllotmentPosition, metadata: &AllotmentMetadata) -> GeneralAllotment {
         GeneralAllotment { position, metadata: metadata.clone() }
     }
 }
@@ -200,11 +173,11 @@ impl AllotmentImpl for GeneralAllotment {
         self.position.apply_pitch(pitch);
     }
 
-    fn metadata(&self) -> &AllotmentRequest { &self.metadata }
+    fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
 }
 
 pub struct AllAllotment {
-    metadata: AllotmentRequest
+    metadata: AllotmentMetadata
 }
 
 impl AllotmentImpl for AllAllotment {
@@ -222,14 +195,14 @@ impl AllotmentImpl for AllAllotment {
 
     fn apply_pitch(&self, pitch: &mut Pitch) {}
 
-    fn metadata(&self) -> &AllotmentRequest { &self.metadata }
+    fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
 }
 
 #[derive(Clone)]
 pub struct Allotment(Arc<Mutex<dyn AllotmentImpl>>);
 
 impl Allotment {
-    pub fn new(position: AllotmentPosition, metadata: &AllotmentRequest) -> Allotment { // XXX
+    pub fn new(position: AllotmentPosition, metadata: &AllotmentMetadata) -> Allotment { // XXX
         Allotment(Arc::new(Mutex::new(GeneralAllotment::new(position,metadata))))
     }
 
@@ -249,7 +222,7 @@ impl Allotment {
         lock!(self.0).apply_pitch(pitch)
     }
 
-    pub fn metadata(&self) -> AllotmentRequest {
+    pub fn metadata(&self) -> AllotmentMetadata {
         lock!(self.0).metadata().clone()
     }
 }

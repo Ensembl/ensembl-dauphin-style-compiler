@@ -1,3 +1,7 @@
+mod allotment {
+    pub(crate) mod allotmentmetadata;
+}
+
 mod api {
     mod api;
     mod agentstore;
@@ -119,14 +123,11 @@ pub(crate) mod spacebase {
 pub(crate) mod switch {
     pub(crate) mod allotter;
     pub(crate) mod allotment;
-    pub(crate) mod allotmentrequest;
     pub(crate) mod pitch;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
-
-    pub use self::allotmentrequest::AllotmentRequest;
 }
 
 mod train {
@@ -174,7 +175,7 @@ pub use self::switch::allotment::{
     AllAllotmentsRequest, Allotment, OffsetSize, AllotmentGroup,
     AllotmentDirection, AllotmentPosition, AllotterMetadata
 };
-pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentMetadata };
+pub use self::allotment::allotmentmetadata::{ AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

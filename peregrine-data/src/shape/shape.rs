@@ -1,7 +1,7 @@
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::AllotmentGroup;
-use crate::AllotmentRequest;
+use crate::AllotmentMetadata;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
 use crate::util::ringarray::DataFilter;
@@ -9,10 +9,10 @@ use crate::util::ringarray::DataFilter;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
-    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,AllotmentGroup)
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentMetadata>,AllotmentGroup),
+    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentMetadata>,AllotmentGroup),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentMetadata),
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentMetadata>,AllotmentGroup)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {

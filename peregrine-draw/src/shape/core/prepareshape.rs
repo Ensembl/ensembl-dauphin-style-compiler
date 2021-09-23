@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentGroup, AllotmentRequest, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, AllotmentGroup, AllotmentMetadata, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
@@ -8,7 +8,7 @@ use super::drawshape::{ GLShape, AllotmentProgram };
 
 
 // XXX not a new one for each!
-fn allotments(allotter: &Allotter, allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
+fn allotments(allotter: &Allotter, allotments: &[AllotmentMetadata]) -> Result<Vec<Allotment>,Message> {
     allotments.iter().map(|handle| {
         allotter.get(handle).map(|a| a.clone())
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
@@ -34,7 +34,7 @@ fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
     }
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentRequest>, group: &AllotmentGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentMetadata>, group: &AllotmentGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(allotter,&allotment)?;
     let kind = AllotmentProgram::new(group).kind();
     let mut out = vec![];

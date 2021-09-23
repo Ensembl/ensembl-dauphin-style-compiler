@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentRequest, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
+use crate::{AllotmentMetadata, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
-    allotments: HashSet<AllotmentRequest>
+    allotments: HashSet<AllotmentMetadata>
 }
 
 impl ShapeListBuilder {
@@ -32,34 +32,34 @@ impl ShapeListBuilder {
         out
     }
 
-    pub fn use_allotment(&mut self, allotment: &AllotmentRequest) {
+    pub fn use_allotment(&mut self, allotment: &AllotmentMetadata) {
         if !allotment.is_dustbin() {
             self.allotments.insert(allotment.clone());
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentMetadata>) {
         for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
             filter.set_size(area.len());
             self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotments),group));
         }
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentRequest>) {
+    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentMetadata>) {
         for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
             filter.set_size(position.len());
             self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),group));
         }
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, depth: i8,images: Vec<String>, allotments: Vec<AllotmentRequest>) {
+    pub fn add_image(&mut self, position: HoleySpaceBase, depth: i8,images: Vec<String>, allotments: Vec<AllotmentMetadata>) {
         for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
             filter.set_size(position.len());
             self.push(Shape::Image(position.filter(&filter),depth,filter.filter(&images),filter.filter(&allotments),group));
         }
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentMetadata) {
         self.push(Shape::Wiggle((min,max),values,plotter,allotment))
     }
 
