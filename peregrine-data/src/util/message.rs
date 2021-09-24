@@ -45,6 +45,7 @@ pub enum DataMessage {
     DataUnavailable(Channel,Box<DataMessage>),
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
     NoSuchAllotment(String),
+    AllotmentNotCreated(String),
     ConfigError(ConfigError)
 }
 
@@ -82,7 +83,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 27; 0 is reserved; 499 is last.
+        // Next code is 28; 0 is reserved; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -111,6 +112,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::NoSuchAllotment(a) => (25,calculate_hash(a)),
             DataMessage::TunnelError(e) => e.lock().unwrap().code(),
             DataMessage::ConfigError(e) => (17,calculate_hash(e)),
+            DataMessage::AllotmentNotCreated(e) => (27,calculate_hash(e)),
         }
     }
 
@@ -153,6 +155,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
+            DataMessage::AllotmentNotCreated(allotment) => format!("allotment not created '{}'",allotment),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
@@ -192,6 +195,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DauphinProgramMissing(program) => format!("dauphin program '{}' missing",program),
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
+            DataMessage::AllotmentNotCreated(allotment) => format!("allotment not created '{}'",allotment),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),

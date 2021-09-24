@@ -99,8 +99,9 @@ impl TrainData {
         if let Some(carriages) = &self.carriages {
             for carriage in carriages.carriages() {
                 if carriage.ready() {
-                    let allotter = carriage.shapes().allotter();
-                    pitch.merge(allotter.pitch());
+                    let shapes = carriage.shapes();
+                    let universe = shapes.universe();
+                    universe.apply_pitch(&mut pitch);
                 }
             }
         }

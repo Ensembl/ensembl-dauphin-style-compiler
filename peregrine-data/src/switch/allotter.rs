@@ -1,3 +1,4 @@
+/*
 use std::{collections::HashMap};
 use crate::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentPosition, AllotmentRequest, DataMessage, allotment::allotmentmetadata::AllotmentMetadataReport};
 use super::{allotment::{GeneralAllotment, OffsetSize}, pitch::Pitch};
@@ -152,3 +153,4 @@ impl Allotter {
     }
     pub fn pitch(&self) -> &Pitch { &self.pitch }
 }
+*/

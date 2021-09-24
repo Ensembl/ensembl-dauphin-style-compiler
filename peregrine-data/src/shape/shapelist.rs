@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentMetadataStore, Allotter, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, UniverseAllotmentRequest, allotment::allotmentrequest::AllotmentRequest};
+use crate::{AllotmentMetadataStore, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, UniverseAllotmentRequest, allotment::allotmentrequest::AllotmentRequest};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -89,7 +89,6 @@ impl ShapeListBuilder {
 #[derive(Clone)]
 pub struct ShapeList {
     shapes: Arc<Vec<Shape>>,
-    allotter: Arc<Allotter>,
     universe: UniverseAllotmentRequest
 }
 
@@ -97,22 +96,19 @@ impl ShapeList {
     pub fn empty() -> ShapeList {
         ShapeList {
             shapes: Arc::new(vec![]),
-            allotter: Arc::new(Allotter::empty()),
             universe: UniverseAllotmentRequest::new(&AllotmentMetadataStore::new())
         }
     }
 
     fn new(builder: ShapeListBuilder) -> ShapeList {
-        let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
+        builder.universe.allot();
         ShapeList {
             universe: builder.universe.clone(),
-            shapes: Arc::new(builder.shapes),
-            allotter: Arc::new(Allotter::new(&handles))
+            shapes: Arc::new(builder.shapes)
         }
     }
 
     pub fn universe(&self) -> &UniverseAllotmentRequest { &self.universe }
     pub fn len(&self) -> usize { self.shapes.len() }
     pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
-    pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }
 }

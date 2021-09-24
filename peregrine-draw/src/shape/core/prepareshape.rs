@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentRequest, Allotter, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentRequest, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::SimpleShapePatina;
@@ -8,9 +8,9 @@ use super::drawshape::{ GLShape, AllotmentProgram };
 
 
 // XXX not a new one for each!
-fn allotments(allotter: &Allotter, allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
+fn allotments(allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
     allotments.iter().map(|handle| {
-        allotter.get(handle).map(|a| a.clone())
+        handle.allotment().map(|a| a.clone())
     }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
 }
 
@@ -34,8 +34,8 @@ fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
     }
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, allotter: &Allotter, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentRequest>, group: &AllotmentGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = allotments(allotter,&allotment)?;
+fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentRequest>, group: &AllotmentGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = allotments(&allotment)?;
     let kind = AllotmentProgram::new(group).kind();
     let mut out = vec![];
     match extract_patina(&patina) {
@@ -115,14 +115,14 @@ fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
     Ok(handles)
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape, allotter: &Allotter) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
     Ok(match shape {
         Shape::Wiggle(range,y,plotter,allotment) => {
-            let allotment = allotments(allotter,&[allotment])?;
+            let allotment = allotments(&[allotment])?;
             vec![GLShape::Wiggle(range,y,plotter,allotment[0].clone(),0)]
         },
         Shape::Text(spacebase,pen,texts,allotment,kind) => {
-            let allotment = allotments(allotter,&allotment)?;
+            let allotment = allotments(&allotment)?;
             let drawing_text = tools.text();
             let colours_iter = pen.colours().iter().cycle();
             let background = pen.background();
@@ -130,13 +130,13 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             vec![GLShape::Text(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),pen.depth())]
         },
         Shape::Image(spacebase,depth,images,allotment,kind) => {
-            let allotment = allotments(allotter,&allotment)?;
+            let allotment = allotments(&allotment)?;
             let drawing_bitmap = tools.bitmap();
             let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
             vec![GLShape::Image(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),depth)]
         },
         Shape::SpaceBaseRect(area,patina,allotment,group) => {
-            split_spacebaserect(tools,allotter,area,patina,allotment,&group)?
+            split_spacebaserect(tools,area,patina,allotment,&group)?
         }
     })
 }

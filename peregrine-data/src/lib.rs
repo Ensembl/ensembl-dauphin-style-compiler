@@ -171,9 +171,11 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
 };
+/* 
 pub use self::switch::allotter::{
     Allotter
 };
+*/
 pub use self::switch::allotment::{ 
     OffsetSize, AllotmentGroup,
     AllotmentDirection, AllotmentPosition

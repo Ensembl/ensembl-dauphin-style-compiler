@@ -27,6 +27,14 @@ impl AllotmentGroup {
             AllotmentGroup::SpaceLabel(_) => false
         }
     }
+
+    pub fn direction(&self) -> AllotmentDirection {
+        match self {
+            AllotmentGroup::BaseLabel(d) => d.clone(),
+            AllotmentGroup::SpaceLabel(d) => d.clone(),
+            _ => AllotmentDirection::Forward
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -100,9 +108,5 @@ impl AllotmentImpl for GeneralAllotment {
             AllotmentPosition::SpaceLabel(p,_) => p.clone(),
             _ => AllotmentDirection::Forward
         }
-    }
-    
-    fn apply_pitch(&self, pitch: &mut Pitch) {
-        self.position.apply_pitch(pitch);
-    }
+    }    
 }
