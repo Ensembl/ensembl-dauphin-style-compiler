@@ -106,4 +106,3 @@ impl AllotmentImpl for GeneralAllotment {
         self.position.apply_pitch(pitch);
     }
 }
-
