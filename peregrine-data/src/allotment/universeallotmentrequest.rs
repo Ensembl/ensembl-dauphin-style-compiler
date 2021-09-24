@@ -37,6 +37,12 @@ impl LinearAllotment {
     }
 
     fn max(&self) -> i64 { self.offset+self.size }
+
+    fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
+        full_metadata.add_pair("type","track");
+        full_metadata.add_pair("offset",&self.offset.to_string());
+        full_metadata.add_pair("height",&self.size.to_string());
+    }
 }
 
 impl AllotmentImpl for LinearAllotment {
@@ -70,6 +76,10 @@ impl LinearAllotmentRequest {
 
     pub fn make(&self, offset: i64, size: i64) {
         *self.allotment.lock().unwrap() = Some(Arc::new(LinearAllotment::new(&self,offset,size)));
+    }
+
+    pub fn linear_allotment(&self) -> Option<Arc<LinearAllotment>> {
+        self.allotment.lock().unwrap().as_ref().cloned()
     }
 }
 
@@ -117,10 +127,9 @@ impl LinearRequestGroup {
         for (_,request) in self.requests.iter() {
             if let Some(this_metadata) = allotment_metadata.get(&request.name()) {
                 let mut full_metadata = AllotmentMetadataRequest::rebuild(&this_metadata);
-                /* XXX */
-                full_metadata.add_pair("type","track");
-                full_metadata.add_pair("offset","-1");
-                full_metadata.add_pair("height","-1");
+                if let Some(allotment) = request.linear_allotment() {
+                    allotment.add_metadata(&mut full_metadata);
+                }
                 out.push(AllotmentMetadata::new(full_metadata));
             }
         }
