@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{ Hash, Hasher }, sync::{Arc, Mutex}};
 
-use crate::{AllotmentGroup, AllotmentPosition};
+use crate::{AllotmentGroup};
 
 #[derive(Clone)]
 pub struct AllotmentMetadataStore {

@@ -1,7 +1,10 @@
 mod allotment {
     pub(crate) mod allotment;
+    pub(crate) mod allotmentgroup;
     pub(crate) mod allotmentmetadata;
     pub(crate) mod allotmentrequest;
+    pub(crate) mod dustbinallotment;
+    pub(crate) mod linearallotment;
     pub(crate) mod universeallotmentrequest;
 }
 
@@ -124,8 +127,6 @@ pub(crate) mod spacebase {
 }
 
 pub(crate) mod switch {
-    pub(crate) mod allotter;
-    pub(crate) mod allotment;
     pub(crate) mod pitch;
     pub(crate) mod track;
     pub(crate) mod switch;
@@ -171,15 +172,7 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
 };
-/* 
-pub use self::switch::allotter::{
-    Allotter
-};
-*/
-pub use self::switch::allotment::{ 
-    OffsetSize, AllotmentGroup,
-    AllotmentDirection, AllotmentPosition
-};
+pub use self::allotment::allotmentgroup::{  AllotmentGroup, AllotmentDirection };
 pub use self::allotment::allotment::Allotment;
 pub use self::allotment::allotmentrequest::AllotmentRequest;
 pub use self::allotment::allotmentmetadata::{
