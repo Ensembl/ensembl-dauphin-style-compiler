@@ -1,32 +1,39 @@
 use std::{collections::{HashMap}, sync::{Arc, Mutex}};
 
-use crate::{ AllotmentGroup, AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, Pitch};
+use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, Pitch};
 use peregrine_toolkit::lock;
 
-use super::{allotmentrequest::{AllotmentRequestImpl}, dustbinallotment::DustbinAllotmentRequest, linearallotment::LinearAllotmentRequest};
+use super::{dustbinallotment::DustbinAllotmentRequest, linearallotment::LinearRequestGroupName};
 use super::linearallotment::LinearRequestGroup;
 
-struct UniverseLinearAllotmentRequest {
+struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
-    requests: HashMap<AllotmentGroup,LinearRequestGroup>
+    requests: HashMap<LinearRequestGroupName,LinearRequestGroup>
 }
 
-impl UniverseLinearAllotmentRequest {
+impl UniverseData {
+    fn group(&self, name: &str) -> LinearRequestGroupName {
+        if name.starts_with("window:") {
+            LinearRequestGroupName::Screen(if name.ends_with("-over") { 1 } else { 0 })
+        } else {
+            LinearRequestGroupName::Track
+        }
+    }
+
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
         } else {
             let metadata = allotment_metadata.get(name);
             if metadata.is_none() { return None; }
-            let xxx = LinearAllotmentRequest::new(&metadata.unwrap()); // XXX
-            let group = xxx.allotment_group();
-            self.requests.entry(group).or_insert_with(|| LinearRequestGroup::new()).make_request(allotment_metadata,name)
+            let group = self.group(name);
+            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(&group)).make_request(allotment_metadata,name)
         }
     }
 
-    fn union(&mut self, other: &UniverseLinearAllotmentRequest) {
+    fn union(&mut self, other: &UniverseData) {
         for (group_type,other_group) in other.requests.iter() {
-            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new());
+            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(group_type));
             self_group.union(other_group);
         }
     }
@@ -44,22 +51,22 @@ impl UniverseLinearAllotmentRequest {
     }
 
     pub fn apply_pitch(&self, pitch: &mut Pitch) {
-        if let Some(group) = self.requests.get(&AllotmentGroup::Track) {
+        if let Some(group) = self.requests.get(&LinearRequestGroupName::Track) {
             group.apply_pitch(pitch);
         }
     }
 }
 
 #[derive(Clone)]
-pub struct UniverseAllotmentRequest {
-    data: Arc<Mutex<UniverseLinearAllotmentRequest>>,
+pub struct Universe {
+    data: Arc<Mutex<UniverseData>>,
     allotment_metadata: AllotmentMetadataStore
 }
 
-impl UniverseAllotmentRequest {
-    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> UniverseAllotmentRequest {
-        UniverseAllotmentRequest {
-            data: Arc::new(Mutex::new(UniverseLinearAllotmentRequest {
+impl Universe {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
+        Universe {
+            data: Arc::new(Mutex::new(UniverseData {
                 requests: HashMap::new(),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),
@@ -77,7 +84,7 @@ impl UniverseAllotmentRequest {
         lock!(self.data).make_request(&self.allotment_metadata,name)
     }
 
-    pub fn union(&mut self, other: &UniverseAllotmentRequest) {
+    pub fn union(&mut self, other: &Universe) {
         if Arc::ptr_eq(&self.data,&other.data) { return; }
         let mut self_data = lock!(self.data);
         let other_data = lock!(other.data);

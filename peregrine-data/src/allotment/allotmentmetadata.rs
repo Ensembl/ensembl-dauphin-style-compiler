@@ -1,7 +1,5 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{ Hash, Hasher }, sync::{Arc, Mutex}};
 
-use crate::{AllotmentGroup};
-
 #[derive(Clone)]
 pub struct AllotmentMetadataStore {
     metadata: Arc<Mutex<HashMap<String,AllotmentMetadata>>>
@@ -110,15 +108,6 @@ impl AllotmentMetadata {
 
     pub fn name(&self) -> &str { &self.metadata.name }
     pub fn priority(&self) -> i64 { self.metadata.priority }
-    pub fn is_dustbin(&self) -> bool { self.metadata.name == "" }
-
-    pub fn allotment_group(&self) -> AllotmentGroup { 
-        if self.metadata.name.starts_with("window:") {
-            AllotmentGroup::Overlay(if self.metadata.name.ends_with("-over") { 1 } else { 0 })
-        } else {
-            AllotmentGroup::Track
-        }
-    }
 
     pub fn summarize(&self) -> HashMap<String,String> {
         self.metadata.summarize()

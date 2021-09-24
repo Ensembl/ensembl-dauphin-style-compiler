@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, SpaceBase, UniverseAllotmentRequest, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, SpaceBase, Universe, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;

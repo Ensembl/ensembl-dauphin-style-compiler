@@ -5,7 +5,8 @@ mod allotment {
     pub(crate) mod allotmentrequest;
     pub(crate) mod dustbinallotment;
     pub(crate) mod linearallotment;
-    pub(crate) mod universeallotmentrequest;
+    pub(crate) mod offsetallotment;
+    pub(crate) mod universe;
 }
 
 mod api {
@@ -178,7 +179,7 @@ pub use self::allotment::allotmentrequest::AllotmentRequest;
 pub use self::allotment::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
 };
-pub use self::allotment::universeallotmentrequest::UniverseAllotmentRequest;
+pub use self::allotment::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

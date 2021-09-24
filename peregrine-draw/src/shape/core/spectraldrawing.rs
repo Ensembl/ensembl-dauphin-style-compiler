@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, UniverseAllotmentRequest, VariableValues};
+use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, Universe, VariableValues};
 
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 

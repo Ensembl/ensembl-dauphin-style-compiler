@@ -17,7 +17,7 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_data::{AgentStore, AllotmentMetadataStore, CountingPromise, PeregrineCoreBase, RequestManager, Switches, UniverseAllotmentRequest};
+use peregrine_data::{AgentStore, AllotmentMetadataStore, CountingPromise, PeregrineCoreBase, RequestManager, Switches, Universe};
 use super::trackbuilder::AllTracksBuilder;
 use super::geometrybuilder::GeometryBuilder;
 

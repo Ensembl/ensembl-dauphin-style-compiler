@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
-use peregrine_data::{AllotmentMetadataStore, Assets, UniverseAllotmentRequest, VariableValues};
+use peregrine_data::{AllotmentMetadataStore, Assets, Universe, VariableValues};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
