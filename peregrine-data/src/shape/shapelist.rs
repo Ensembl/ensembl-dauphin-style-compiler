@@ -1,21 +1,24 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentRequest, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape};
-use crate::switch::allotter::{ Allotter };
+use crate::{AllotmentMetadataStore, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, UniverseAllotmentRequest, allotment::allotmentrequest::AllotmentRequest};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
-    allotments: HashSet<AllotmentRequest>
+    allotments: HashSet<AllotmentRequest>,
+    universe: UniverseAllotmentRequest
 }
 
 impl ShapeListBuilder {
-    pub fn new() -> ShapeListBuilder {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> ShapeListBuilder {
         ShapeListBuilder {
             shapes: vec![],
-            allotments: HashSet::new()
+            allotments: HashSet::new(),
+            universe: UniverseAllotmentRequest::new(allotment_metadata)
         }
     }
+
+    pub fn universe(&self) -> &UniverseAllotmentRequest { &self.universe }
 
     fn push(&mut self, shape: Shape) {
         let shape =shape.remove_nulls();
@@ -33,12 +36,12 @@ impl ShapeListBuilder {
         out
     }
 
-    pub fn add_allotment(&mut self, allotment: &AllotmentRequest) {
+    pub fn use_allotment(&mut self, allotment: &AllotmentRequest) {
         if !allotment.is_dustbin() {
             self.allotments.insert(allotment.clone());
         }
     }
-
+    
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
         for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
             filter.set_size(area.len());
@@ -69,12 +72,13 @@ impl ShapeListBuilder {
         for shape in self.shapes.iter() {
             shapes.push(shape.filter(min_value,max_value));
         }
-        ShapeListBuilder { shapes, allotments: self.allotments.clone() }
+        ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone() }
     }
 
     pub fn append(&mut self, more: &ShapeListBuilder) {
         self.shapes.extend(more.shapes.iter().cloned());
         self.allotments = self.allotments.union(&more.allotments).cloned().collect();
+        self.universe.union(&more.universe);
     }
 
     pub fn build(self) -> ShapeList {
@@ -85,26 +89,26 @@ impl ShapeListBuilder {
 #[derive(Clone)]
 pub struct ShapeList {
     shapes: Arc<Vec<Shape>>,
-    allotter: Arc<Allotter>
+    universe: UniverseAllotmentRequest
 }
 
 impl ShapeList {
     pub fn empty() -> ShapeList {
         ShapeList {
             shapes: Arc::new(vec![]),
-            allotter: Arc::new(Allotter::empty())
+            universe: UniverseAllotmentRequest::new(&AllotmentMetadataStore::new())
         }
     }
 
     fn new(builder: ShapeListBuilder) -> ShapeList {
-        let handles = builder.allotments.iter().cloned().collect::<Vec<_>>();
+        builder.universe.allot();
         ShapeList {
-            shapes: Arc::new(builder.shapes),
-            allotter: Arc::new(Allotter::new(&handles))
+            universe: builder.universe.clone(),
+            shapes: Arc::new(builder.shapes)
         }
     }
 
+    pub fn universe(&self) -> &UniverseAllotmentRequest { &self.universe }
     pub fn len(&self) -> usize { self.shapes.len() }
     pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
-    pub fn allotter(&self) -> Arc<Allotter> { self.allotter.clone() }
 }

@@ -9,17 +9,13 @@ use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
-use crate::{ 
-    PgCommander, PgDauphin, ProgramLoader, RequestManager, StickStore, StickAuthorityStore, Commander,
-    CountingPromise
-};
+use crate::{AllotmentMetadataStore, Commander, CountingPromise, PgCommander, PgDauphin, ProgramLoader, RequestManager, StickAuthorityStore, StickStore, UniverseAllotmentRequest};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
 use crate::core::{ StickId };
 use crate::util::message::DataMessage;
 use crate::switch::switch::Switches;
-use crate::switch::allotment::AllotmentPetitioner;
 
 #[derive(Clone)]
 pub struct MessageSender(Arc<Mutex<Box<dyn FnMut(DataMessage) + 'static + Send>>>);
@@ -44,7 +40,7 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub allotment_petitioner: AllotmentPetitioner,
+    pub allotment_metadata: AllotmentMetadataStore,
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
 }
@@ -68,6 +64,7 @@ impl PeregrineCore {
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
         let booted = CountingPromise::new();
+        let allotment_metadata = AllotmentMetadataStore::new();
         let base = PeregrineCoreBase {
             metrics,
             booted,
@@ -78,7 +75,7 @@ impl PeregrineCore {
             messages,
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
-            allotment_petitioner: AllotmentPetitioner::new(),
+            allotment_metadata,
             identity: Arc::new(Mutex::new(0))
         };
         let agent_store = AgentStore::new(&base);

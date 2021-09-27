@@ -1,3 +1,13 @@
+mod allotment {
+    pub(crate) mod allotment;
+    pub(crate) mod allotmentgroup;
+    pub(crate) mod allotmentmetadata;
+    pub(crate) mod allotmentrequest;
+    pub(crate) mod dustbinallotment;
+    pub(crate) mod linearallotment;
+    pub(crate) mod universeallotmentrequest;
+}
+
 mod api {
     mod api;
     mod agentstore;
@@ -117,16 +127,11 @@ pub(crate) mod spacebase {
 }
 
 pub(crate) mod switch {
-    pub(crate) mod allotter;
-    pub(crate) mod allotment;
-    pub(crate) mod allotmentrequest;
     pub(crate) mod pitch;
     pub(crate) mod track;
     pub(crate) mod switch;
     pub(crate) mod trackconfig;
     pub(crate) mod trackconfiglist;
-
-    pub use self::allotmentrequest::AllotmentRequest;
 }
 
 mod train {
@@ -167,14 +172,13 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
 };
-pub use self::switch::allotter::{
-    Allotter
+pub use self::allotment::allotmentgroup::{  AllotmentGroup, AllotmentDirection };
+pub use self::allotment::allotment::Allotment;
+pub use self::allotment::allotmentrequest::AllotmentRequest;
+pub use self::allotment::allotmentmetadata::{
+    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
 };
-pub use self::switch::allotment::{ 
-    AllotmentPetitioner, Allotment, OffsetSize, AllotmentGroup,
-    AllotmentDirection, AllotmentPosition, AllotterMetadata
-};
-pub use self::switch::allotmentrequest::{ AllotmentRequest, AllotmentRequestBuilder };
+pub use self::allotment::universeallotmentrequest::UniverseAllotmentRequest;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::pitch::Pitch;
 pub use self::switch::track::Track;

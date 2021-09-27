@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex, MutexGuard };
 use identitynumber::{ identitynumber, hashable, orderable };
 use lazy_static::lazy_static;
-use crate::{AllotmentRequest, ProgramName};
+use crate::{ProgramName};
 use crate::core::{ Layout, Scale };
 use super::switch::SwitchOverlay;
 
@@ -16,7 +16,6 @@ pub struct Track {
     scale_jump: u64,
     program_name: ProgramName,
     tags: Vec<String>,
-    allotments: Vec<AllotmentRequest>,
     switch_overlay: Arc<Mutex<SwitchOverlay>>
 }
 
@@ -30,13 +29,10 @@ impl Track {
             min_scale, max_scale, scale_jump,
             program_name: program_name.clone(),
             tags: vec![],
-            allotments: vec![],
             switch_overlay: Arc::new(Mutex::new(SwitchOverlay::new()))
         }
     }
 
-    pub fn add_allotment_request(&mut self, allotment: AllotmentRequest) { self.allotments.push(allotment); }
-    pub fn allotments(&self) -> &[AllotmentRequest] { &self.allotments }
     pub fn add_tag(&mut self, tag: &str) { self.tags.push(tag.to_string()); }
 
     pub fn add_switch(&mut self, path: &[&str], yn: bool) {

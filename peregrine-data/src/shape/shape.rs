@@ -1,9 +1,10 @@
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::AllotmentGroup;
-use crate::AllotmentRequest;
+use crate::AllotmentMetadata;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
+use crate::allotment::allotmentrequest::AllotmentRequest;
 use crate::util::ringarray::DataFilter;
 
 #[derive(Clone)]

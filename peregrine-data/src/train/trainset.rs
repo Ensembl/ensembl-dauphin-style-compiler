@@ -1,8 +1,9 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
+use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::switch::pitch::Pitch;
-use crate::{AllotterMetadata, CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
+use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
 use super::anticipate::Anticipate;
@@ -26,7 +27,7 @@ pub struct TrainSetData {
     anticipate: Anticipate,
     pitch: Option<Pitch>,
     visual_blocker: Blocker,
-    old_metadata: Option<AllotterMetadata>,
+    old_metadata: Option<AllotmentMetadataReport>,
     #[allow(unused)]
     visual_lockout: Option<Lockout>
 }

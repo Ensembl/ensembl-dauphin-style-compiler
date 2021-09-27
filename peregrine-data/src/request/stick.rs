@@ -8,7 +8,6 @@ use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
-use crate::switch::allotmentrequest::{AllotmentRequestBuilder, AllotmentRequest };
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]

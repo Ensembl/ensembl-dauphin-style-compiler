@@ -1,4 +1,4 @@
-use peregrine_data::{ AllotmentRequestBuilder, AllotmentPetitioner, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Variable, VariableValues};
+use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Colour, DirectColour, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, UniverseAllotmentRequest, Variable, VariableValues};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -58,10 +58,11 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequestBuilder::new("window:origin-over",0));
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin-over",0));
+        let window_origin = shapes.universe().make_request("window:origin-over").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
-        shapes.add_allotment(&window_origin);
+        shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
             vec![ParameterValue::Constant(0.)],
             vec![ParameterValue::Variable(pos.0,0.)],
@@ -94,9 +95,10 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
-        let window_origin = allotment_petitioner.add(AllotmentRequestBuilder::new("window:origin",-1));
-        shapes.add_allotment(&window_origin);
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin",-1));
+        let window_origin = shapes.universe().make_request("window:origin").unwrap(); // XXX
+        shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
@@ -155,13 +157,13 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_petitioner: &mut AllotmentPetitioner) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         match self {
-            Spectre::MarchingAnts(a) => a.draw(shapes,allotment_petitioner)?,
-            Spectre::Stain(a) => a.draw(shapes,allotment_petitioner)?,
+            Spectre::MarchingAnts(a) => a.draw(shapes,allotment_metadata)?,
+            Spectre::Stain(a) => a.draw(shapes,allotment_metadata)?,
             Spectre::Compound(spectres) => {
                 for spectre in spectres {
-                    spectre.draw(shapes,allotment_petitioner)?;
+                    spectre.draw(shapes,allotment_metadata)?;
                 }
             }
         }

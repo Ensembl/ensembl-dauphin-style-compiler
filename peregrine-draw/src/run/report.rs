@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
-use peregrine_data::{AllotterMetadata, ZMenuFixed};
+use peregrine_data::{AllotmentMetadataReport, ZMenuFixed};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};
@@ -122,8 +122,8 @@ impl ReportData {
         out
     }
 
-    fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
-        self.messages.add(Message::AllotterMetadata(metadata.clone()));
+    fn set_allotter_metadata(&self, metadata: &AllotmentMetadataReport) {
+        self.messages.add(Message::AllotmentMetadataReport(metadata.clone()));
     }
 
     fn report_step(&mut self, fast: bool) -> Result<(),Message> {
@@ -176,7 +176,7 @@ impl Report {
     pub(crate) fn set_target_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_target_bp_per_screen(value); }
     pub(crate) fn set_endstops(&self,value: &[Endstop]) { self.data.lock().unwrap().set_endstops(value); }
 
-    pub(crate) fn set_allotter_metadata(&self, metadata: &AllotterMetadata) {
+    pub(crate) fn set_allotter_metadata(&self, metadata: &AllotmentMetadataReport) {
         self.data.lock().unwrap().set_allotter_metadata(metadata);
     }
 

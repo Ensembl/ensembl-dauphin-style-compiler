@@ -5,8 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
-use peregrine_config::ConfigError;
-use peregrine_data::{AllotterMetadata, DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json};
+use peregrine_data::{AllotmentMetadataReport, DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json};
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -28,7 +27,7 @@ pub enum Endstop {
 pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
-    AllotterMetadata(AllotterMetadata),
+    AllotmentMetadataReport(AllotmentMetadataReport),
     ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
     HitEndstop(Vec<Endstop>),
     Ready,
@@ -53,7 +52,7 @@ impl PeregrineMessage for Message {
             Message::CurrentLocation(_,_,_) => MessageKind::Interface,
             Message::TargetLocation(_,_,_) => MessageKind::Interface,
             Message::Ready => MessageKind::Interface,
-            Message::AllotterMetadata(_) => MessageKind::Interface,
+            Message::AllotmentMetadataReport(_) => MessageKind::Interface,
             Message::ZMenuEvent(_,_,_) => MessageKind::Interface,
             Message::HitEndstop(_) => MessageKind::Interface,
             _ => MessageKind::Error
@@ -96,7 +95,7 @@ impl PeregrineMessage for Message {
             Message::CurrentLocation(_,_,_) => (0,0),
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
-            Message::AllotterMetadata(_) => (0,0),
+            Message::AllotmentMetadataReport(_) => (0,0),
             Message::ZMenuEvent(_,_,_) => (0,0),
             Message::HitEndstop(_) => (0,0),
         }
@@ -119,7 +118,7 @@ impl PeregrineMessage for Message {
             Message::CurrentLocation(stick,left,right) => format!("current location: {}:{}-{}",stick,left,right),
             Message::TargetLocation(stick,left,right) => format!("target location: {}:{}-{}",stick,left,right),
             Message::Ready => format!("ready"),
-            Message::AllotterMetadata(metadata) => format!("allotment metadata: {:?}",metadata),
+            Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", "))
         }

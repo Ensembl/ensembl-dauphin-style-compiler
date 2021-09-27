@@ -46,7 +46,8 @@ impl Region {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ShapeRequest {
     region: Region,
-    track: TrackConfig}
+    track: TrackConfig
+}
 
 impl ShapeRequest {
     pub fn new(region: &Region, track: &TrackConfig) -> ShapeRequest {

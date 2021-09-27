@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use dauphin_interp::util::cbor::{cbor_map_iter, cbor_string };
-use peregrine_data::{AllotterMetadata, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
+use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
 use super::pgchannel::PgChannel;
 use crate::{Message, PeregrineDom};
 use crate::input::Input;
@@ -10,7 +10,6 @@ use crate::train::GlTrainSet;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
-use serde_cbor::Value as CborValue;
 
 pub struct PgIntegration {
     channel: PgChannel,
@@ -35,7 +34,7 @@ impl PeregrineIntegration for PgIntegration {
         Ok(())
     }
 
-    fn notify_allotment_metadata(&mut self, metadata: &AllotterMetadata) {
+    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
         self.report.set_allotter_metadata(metadata);
     }
 

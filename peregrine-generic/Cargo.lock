@@ -545,7 +545,7 @@ dependencies = [
  "hostname",
  "js-sys",
  "keyed",
- "lazy_static 0.1.16",
+ "lazy_static 1.4.0",
  "once_cell",
  "owning_ref",
  "peregrine_config",

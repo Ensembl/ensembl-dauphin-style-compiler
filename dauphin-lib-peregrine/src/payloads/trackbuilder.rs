@@ -1,4 +1,4 @@
-use peregrine_data::{ AllotmentRequest, Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
+use peregrine_data::{ AllotmentMetadata, Channel, ProgramName, ProgramRegion, ProgramRegionBuilder, Switches, Track };
 use anyhow::{ anyhow as err };
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
@@ -21,10 +21,6 @@ impl TrackBuilder {
 
     pub(crate) fn add_tag(&mut self, tag: &str) { self.track.add_tag(tag); }
     pub(crate) fn add_switch(&mut self, path: &[&str], yn: bool) { self.track.add_switch(path,yn); }
-
-    pub(crate) fn add_allotment_request(&mut self, allotment: AllotmentRequest) {
-        self.track.add_allotment_request(allotment);
-    }
 
     pub(crate) fn track(&self) -> &Track { &self.track }
 

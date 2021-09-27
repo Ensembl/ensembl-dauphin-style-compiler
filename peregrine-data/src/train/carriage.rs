@@ -98,7 +98,7 @@ impl Carriage {
             })
         }).collect();
         if batch { return Ok(()); } // TODO actual shape cahceing
-        let mut new_shapes = ShapeListBuilder::new();
+        let mut new_shapes = ShapeListBuilder::new(&base.allotment_metadata);
         for future in tracks {
             future.finish_future().await;
             match future.take_result().as_ref().unwrap() {

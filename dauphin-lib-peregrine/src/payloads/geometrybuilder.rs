@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{AllotmentRequest, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu };
+use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu};
 use owning_ref::ArcRef;
 use peregrine_toolkit::lock;
 

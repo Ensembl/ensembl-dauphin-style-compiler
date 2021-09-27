@@ -1,7 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{
-     Colour, DirectColour, Patina, ZMenu, Pen, Plotter, DataMessage, Builder, ShapeListBuilder, SpaceBase
-};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, SpaceBase, UniverseAllotmentRequest, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -173,21 +171,23 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let registers = context.registers_mut();
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
+        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        let universe = zoo.lock().universe().clone();
+        let requests = name.drain(..).map(|name| {
+            universe.make_request(&name).ok_or_else(||
+                DataMessage::NoSuchAllotment(name)
+            )
+        }).collect::<Result<Vec<_>,DataMessage>>()?;
+        drop(universe);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
-        let mut allotment_petitioner = peregrine.allotments().clone();
-        let requests = name.drain(..).map(|name| {
-            Ok(allotment_petitioner.lookup(&name).ok_or_else(||
-                DataMessage::NoSuchAllotment(name)
-            )?)
-        }).collect::<Result<Vec<_>,DataMessage>>()?;
         let ids = requests.iter().map(|request| {
             geometry_builder.add_allotment(request.clone()) as usize           
         }).collect();
         drop(peregrine);
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         for request in &requests {
-            zoo.lock().add_allotment(request);
+            zoo.lock().use_allotment(request);
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));
