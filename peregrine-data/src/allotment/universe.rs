@@ -3,12 +3,12 @@ use std::{collections::{HashMap}, sync::{Arc, Mutex}};
 use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, Pitch};
 use peregrine_toolkit::lock;
 
-use super::{dustbinallotment::DustbinAllotmentRequest, linearallotment::LinearRequestGroupName};
-use super::linearallotment::LinearRequestGroup;
+use super::{dustbinallotment::DustbinAllotmentRequest, lineargroup::{LinearRequestGroupName}, offsetallotment::OffsetAllotmentRequestCreator};
+use super::lineargroup::LinearRequestGroup;
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
-    requests: HashMap<LinearRequestGroupName,LinearRequestGroup>
+    requests: HashMap<LinearRequestGroupName,LinearRequestGroup<OffsetAllotmentRequestCreator>>
 }
 
 impl UniverseData {
@@ -27,13 +27,13 @@ impl UniverseData {
             let metadata = allotment_metadata.get(name);
             if metadata.is_none() { return None; }
             let group = self.group(name);
-            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(&group)).make_request(allotment_metadata,name)
+            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(&group,OffsetAllotmentRequestCreator())).make_request(allotment_metadata,name)
         }
     }
 
     fn union(&mut self, other: &UniverseData) {
         for (group_type,other_group) in other.requests.iter() {
-            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(group_type));
+            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(group_type,OffsetAllotmentRequestCreator()));
             self_group.union(other_group);
         }
     }
