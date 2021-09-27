@@ -8,20 +8,12 @@ pub trait AllotmentImpl {
     fn direction(&self) -> AllotmentDirection;    
 }
 
-pub trait AsAllotmentImpl {
-    fn as_allotment_impl<'a>(self: Arc<Self>) -> Arc<dyn AllotmentImpl + 'a> where Self: 'a;
-}
-
-impl<T: AllotmentImpl + Sized> AsAllotmentImpl for T {
-    fn as_allotment_impl<'a>(self: Arc<Self>) -> Arc<dyn AllotmentImpl + 'a> where Self: 'a { self }
-}
-
 #[derive(Clone)]
 pub struct Allotment(Arc<dyn AllotmentImpl>);
 
 impl Allotment {
-    pub fn new<T>(allotment_impl: Arc<T>) -> Allotment where T: AsAllotmentImpl + 'static {
-        Allotment(allotment_impl.as_allotment_impl())
+    pub fn new(allotment_impl: Arc<dyn AllotmentImpl>) -> Allotment {
+        Allotment(allotment_impl)
     }
 
     pub fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {

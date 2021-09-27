@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use peregrine_toolkit::{refs::{Upcast, UpcastFrom}, upcast};
+
 use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
 use super::{allotment::AllotmentImpl, allotmentrequest::BaseAllotmentRequest};
@@ -11,6 +13,8 @@ pub struct OffsetAllotment {
     offset: i64,
     size: i64
 }
+
+upcast!(OffsetAllotment,dyn AllotmentImpl);
 
 impl OffsetAllotment {
     fn new(request: &OffsetAllotmentRequest, offset: i64, size: i64) -> OffsetAllotment {

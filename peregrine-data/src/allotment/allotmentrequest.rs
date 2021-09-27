@@ -1,8 +1,10 @@
 use std::hash::Hash;
 use std::sync::{Arc, Mutex};
+use peregrine_toolkit::refs::Upcast;
+
 use crate::{Allotment, AllotmentDirection, AllotmentGroup, AllotmentMetadata, DataMessage};
 
-use super::allotment::AsAllotmentImpl;
+use super::allotment::AllotmentImpl;
 
 impl Hash for AllotmentRequest {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -20,14 +22,6 @@ impl PartialEq for AllotmentRequest {
 
 impl Eq for AllotmentRequest {}
 
-pub trait AsAllotmentRequestImpl {
-    fn as_allotment_request_impl<'a>(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl + 'a> where Self: 'a;
-}
-
-impl<T: AllotmentRequestImpl + Sized> AsAllotmentRequestImpl for T {
-    fn as_allotment_request_impl<'a>(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl + 'a> where Self: 'a { self }
-}
-
 pub trait AllotmentRequestImpl {
     fn name(&self) -> String;
     fn allotment_group(&self) -> AllotmentGroup;
@@ -40,8 +34,8 @@ pub trait AllotmentRequestImpl {
 pub struct AllotmentRequest(Arc<dyn AllotmentRequestImpl>);
 
 impl AllotmentRequest {
-    pub(super) fn upcast<T>(request: Arc<T>) -> AllotmentRequest where T: AsAllotmentRequestImpl + 'static {
-        AllotmentRequest(request.as_allotment_request_impl())
+    pub(super) fn upcast(request: Arc<dyn AllotmentRequestImpl>) -> AllotmentRequest {
+        AllotmentRequest(request)
     }
 
     pub fn name(&self) -> String { self.0.name().to_string() }
@@ -58,13 +52,13 @@ impl std::fmt::Debug for AllotmentRequest {
     }
 }
 
-pub struct BaseAllotmentRequest<T: AsAllotmentImpl> {
+pub struct BaseAllotmentRequest<T: Upcast<dyn AllotmentImpl>> {
     metadata: AllotmentMetadata,
     allotment: Mutex<Option<Arc<T>>>,
     group: AllotmentGroup
 }
 
-impl<T: AsAllotmentImpl> BaseAllotmentRequest<T> {
+impl<T: Upcast<dyn AllotmentImpl>> BaseAllotmentRequest<T> {
     pub fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup) -> BaseAllotmentRequest<T> {
         BaseAllotmentRequest { metadata: metadata.clone(), allotment: Mutex::new(None), group: group.clone() }
     }
@@ -81,14 +75,15 @@ impl<T: AsAllotmentImpl> BaseAllotmentRequest<T> {
     }
 }
 
-impl<T: AsAllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
+impl<T: Upcast<dyn AllotmentImpl>> AllotmentRequestImpl for BaseAllotmentRequest<T> {
     fn name(&self) -> String { self.metadata.name().to_string() }
     fn allotment_group(&self) -> AllotmentGroup { self.group.clone() }
     fn is_dustbin(&self) -> bool { false }
     fn priority(&self) -> i64 { self.metadata.priority() }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
-        Ok(Allotment::new(self.allotment.lock().unwrap().clone()
+        let allotment : Option<Arc<dyn AllotmentImpl>> = self.allotment.lock().unwrap().clone().map(|x| Upcast::up_arc(x));
+        Ok(Allotment::new(allotment
             .ok_or_else(|| DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name())))?))
     }
 }
