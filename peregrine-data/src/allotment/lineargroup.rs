@@ -28,14 +28,16 @@ impl LinearRequestGroupName {
 }
 
 pub trait LinearAllotmentImpl : AllotmentImpl {
-    fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest);
     fn max(&self) -> i64;
     fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl>;
 }
 
-pub trait LinearAllotmentRequestImpl : AllotmentRequestImpl {
-    fn linear_allotment_impl(&self) -> Option<Arc<dyn LinearAllotmentImpl>>;
+pub trait LinearGroupEntry {
+    fn add_metadata(&self) -> AllotmentMetadataRequest;
     fn make(&self, offset: i64, size: i64);
+    fn max(&self) -> i64;
+    fn priority(&self) -> i64;
+    fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
 
 pub trait AsAllotmentRequestImpl {
@@ -43,11 +45,11 @@ pub trait AsAllotmentRequestImpl {
 }
 
 pub trait LinearAllotmentRequestCreatorImpl {
-    fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearAllotmentRequestImpl>;
+    fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(super) struct LinearRequestGroup<C> {
-    requests: HashMap<String,Arc<dyn LinearAllotmentRequestImpl>>,
+    requests: HashMap<String,Arc<dyn LinearGroupEntry>>,
     group: AllotmentGroup,
     creator: Box<C>
 }
@@ -67,7 +69,10 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
             let request = self.creator.make(&metadata,&self.group);
             self.requests.insert(name.to_string(),request);
         }
-        Some(AllotmentRequest::upcast(self.requests.get(name).unwrap().clone()))
+        let entry = self.requests.get(name);
+        if entry.is_none() { return None; }
+        let entry = entry.unwrap();
+        entry.make_request(allotment_metadata,name)
     }
 
     pub(super) fn union(&mut self, other: &LinearRequestGroup<C>) {
@@ -80,21 +85,13 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
 
     pub(super) fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         for (_,request) in self.requests.iter() {
-            if let Some(this_metadata) = allotment_metadata.get(&request.name()) {
-                let mut full_metadata = AllotmentMetadataRequest::rebuild(&this_metadata);
-                if let Some(allotment) = request.linear_allotment_impl() {
-                    allotment.add_metadata(&mut full_metadata);
-                }
-                out.push(AllotmentMetadata::new(full_metadata));
-            }
+            out.push(AllotmentMetadata::new(request.add_metadata()));
         }
     }
 
     pub(super) fn apply_pitch(&self, pitch: &mut Pitch) {
         for (_,request) in &self.requests {
-            if let Some(allotment) = request.linear_allotment_impl() {
-                pitch.set_limit(allotment.max());
-            }
+            pitch.set_limit(request.max());
         }
     }
 
