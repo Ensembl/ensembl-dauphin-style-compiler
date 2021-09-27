@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc}};
-use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Pitch, spacebase::spacebase::SpaceBasePoint};
+use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Pitch};
 
-use super::{allotment::AllotmentImpl, allotmentrequest::{AllotmentRequestImpl, BaseAllotmentRequest}, offsetallotment::{OffsetAllotment}};
+use super::{allotment::AllotmentImpl, allotmentrequest::{AllotmentRequestImpl}};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub(super) enum LinearRequestGroupName {
@@ -30,62 +30,21 @@ impl LinearRequestGroupName {
 pub trait LinearAllotmentImpl : AllotmentImpl {
     fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest);
     fn max(&self) -> i64;
-}
-
-pub struct LinearAllotment(pub Arc<dyn LinearAllotmentImpl>);
-
-impl LinearAllotmentImpl for LinearAllotment {
-    fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
-        self.0.add_metadata(full_metadata);
-    }
-
-    fn max(&self) -> i64 { self.0.max() }
-}
-
-impl AllotmentImpl for LinearAllotment {
-    fn transform_spacebase(&self, input: &crate::SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
-        self.0.transform_spacebase(input)
-    }
-
-    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
-        self.0.transform_yy(values)
-    }
-
-    fn direction(&self) -> AllotmentDirection {
-        self.0.direction()
-    }
+    fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl>;
 }
 
 pub trait LinearAllotmentRequestImpl : AllotmentRequestImpl {
-    fn linear_allotment(&self) -> Option<Arc<LinearAllotment>>;
+    fn linear_allotment_impl(&self) -> Option<Arc<dyn LinearAllotmentImpl>>;
     fn make(&self, offset: i64, size: i64);
-}
-
-pub struct LinearAllotmentRequest(Box<dyn LinearAllotmentRequestImpl>);
-
-impl AllotmentRequestImpl for LinearAllotmentRequest {
-    fn name(&self) -> String { self.0.name() }
-    fn allotment_group(&self) -> AllotmentGroup { self.0.allotment_group() }
-    fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
-    fn priority(&self) -> i64 { self.0.priority() }
-    fn allotment(&self) -> Result<crate::Allotment,crate::DataMessage> { self.0.allotment() }
 }
 
 pub trait AsAllotmentRequestImpl {
     fn up(value: Arc<Self>) -> Arc<dyn AllotmentRequestImpl>;
 }
 
-impl LinearAllotmentRequestImpl for LinearAllotmentRequest {
-    fn linear_allotment(&self) -> Option<Arc<LinearAllotment>> { self.0.linear_allotment() }
-    fn make(&self, offset: i64, size: i64) { self.0.make(offset,size); }
-}
-
 pub trait LinearAllotmentRequestCreatorImpl {
     fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearAllotmentRequestImpl>;
 }
-
-#[derive(Clone)]
-pub struct AllotmentRequestContainer(Arc<dyn LinearAllotmentRequestImpl>);
 
 pub(super) struct LinearRequestGroup<C> {
     requests: HashMap<String,Arc<dyn LinearAllotmentRequestImpl>>,
@@ -123,7 +82,7 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         for (_,request) in self.requests.iter() {
             if let Some(this_metadata) = allotment_metadata.get(&request.name()) {
                 let mut full_metadata = AllotmentMetadataRequest::rebuild(&this_metadata);
-                if let Some(allotment) = request.linear_allotment() {
+                if let Some(allotment) = request.linear_allotment_impl() {
                     allotment.add_metadata(&mut full_metadata);
                 }
                 out.push(AllotmentMetadata::new(full_metadata));
@@ -133,7 +92,7 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
 
     pub(super) fn apply_pitch(&self, pitch: &mut Pitch) {
         for (_,request) in &self.requests {
-            if let Some(allotment) = request.linear_allotment() {
+            if let Some(allotment) = request.linear_allotment_impl() {
                 pitch.set_limit(allotment.max());
             }
         }

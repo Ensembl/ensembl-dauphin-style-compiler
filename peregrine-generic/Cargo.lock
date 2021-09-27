@@ -26,17 +26,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28ae2b3dec75a406790005a200b1bd89785afc02517a00ca99ecfe093ee9e6cf"
 
 [[package]]
-name = "as-dyn-trait"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c10e6725b3055c298c14e70a059d1d0fee82147fa4b6100fa063c4aebb2e711"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.51"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -496,7 +485,6 @@ name = "peregrine_data"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "as-dyn-trait",
  "async-trait",
  "commander",
  "dauphin_interp",

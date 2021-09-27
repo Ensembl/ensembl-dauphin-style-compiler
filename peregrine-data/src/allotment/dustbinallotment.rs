@@ -1,6 +1,7 @@
+use std::sync::Arc;
 use crate::{Allotment, AllotmentGroup, DataMessage};
 
-use super::allotmentrequest::AllotmentRequestImpl;
+use super::allotmentrequest::{AllotmentRequestImpl};
 
 pub struct DustbinAllotmentRequest();
 
@@ -13,4 +14,5 @@ impl AllotmentRequestImpl for DustbinAllotmentRequest {
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         Err(DataMessage::AllotmentNotCreated(format!("attempt to display the dustbin!")))
     }
+    fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl> { self }
 }

@@ -73,8 +73,6 @@ impl AllotmentMetadataRequest {
     }
 
     pub fn name(&self) -> &str { &self.name }
-    fn is_dustbin(&self) -> bool { self.name == "" }
-    fn priority(&self) -> i64 { self.priority }
     fn summarize(&self) -> HashMap<String,String> { self.pairs.clone() }
 }
 

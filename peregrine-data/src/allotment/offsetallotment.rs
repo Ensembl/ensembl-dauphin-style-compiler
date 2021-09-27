@@ -1,10 +1,6 @@
-use std::{fmt::Alignment, sync::Arc};
-
-use peregrine_toolkit::{refs::{Upcast, UpcastFrom}, upcast};
-
+use std::{sync::Arc};
 use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-
-use super::{allotment::AllotmentImpl, allotmentrequest::BaseAllotmentRequest, lineargroup::{LinearAllotment, LinearAllotmentImpl, LinearAllotmentRequest, LinearAllotmentRequestCreatorImpl, LinearAllotmentRequestImpl}};
+use super::{allotment::AllotmentImpl, baseallotmentrequest::BaseAllotmentRequest, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearAllotmentRequestImpl}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
@@ -13,8 +9,6 @@ pub struct OffsetAllotment {
     offset: i64,
     size: i64
 }
-
-upcast!(OffsetAllotment,dyn AllotmentImpl);
 
 impl OffsetAllotment {
     pub(crate) fn new(metadata: &AllotmentMetadata, direction: &AllotmentDirection, offset: i64, size: i64) -> OffsetAllotment {
@@ -34,6 +28,8 @@ impl LinearAllotmentImpl for OffsetAllotment {
         full_metadata.add_pair("offset",&self.offset.to_string());
         full_metadata.add_pair("height",&self.size.to_string());
     }
+
+    fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl> { self }
 }
 
 impl AllotmentImpl for OffsetAllotment {
@@ -54,8 +50,8 @@ impl AllotmentImpl for OffsetAllotment {
 pub type OffsetAllotmentRequest = BaseAllotmentRequest<OffsetAllotment>;
 
 impl LinearAllotmentRequestImpl for OffsetAllotmentRequest {
-    fn linear_allotment(&self) -> Option<Arc<LinearAllotment>> {
-        self.base_allotment().map(|x| Arc::new(LinearAllotment(x)))
+    fn linear_allotment_impl<'a> (&'a self) -> Option<Arc<dyn LinearAllotmentImpl>> {
+        self.base_allotment().map(|x| x.clone().up())
     }
 
     fn make(&self, offset: i64, size: i64) {

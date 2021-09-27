@@ -3,6 +3,7 @@ mod allotment {
     pub(crate) mod allotmentgroup;
     pub(crate) mod allotmentmetadata;
     pub(crate) mod allotmentrequest;
+    pub(crate) mod baseallotmentrequest;
     pub(crate) mod dustbinallotment;
     pub(crate) mod lineargroup;
     pub(crate) mod offsetallotment;
