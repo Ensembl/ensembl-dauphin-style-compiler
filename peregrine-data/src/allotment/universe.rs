@@ -3,11 +3,12 @@ use std::{collections::{HashMap}, sync::{Arc, Mutex}};
 use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, Pitch};
 use peregrine_toolkit::lock;
 
-use super::{dustbinallotment::DustbinAllotmentRequest, lineargroup::{LinearRequestGroupName}, offsetallotment::OffsetAllotmentRequestCreator};
+use super::{dustbinallotment::DustbinAllotmentRequest, lineargroup::{LinearRequestGroupName}, maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
 use super::lineargroup::LinearRequestGroup;
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
+    main: LinearRequestGroup<MainTrackRequestCreator>,
     requests: HashMap<LinearRequestGroupName,LinearRequestGroup<OffsetAllotmentRequestCreator>>
 }
 
@@ -23,6 +24,10 @@ impl UniverseData {
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
+        } else if name.starts_with("track:") {
+            let metadata = allotment_metadata.get(name);
+            if metadata.is_none() { return None; }
+            self.main.make_request(allotment_metadata,name)
         } else {
             let metadata = allotment_metadata.get(name);
             if metadata.is_none() { return None; }
@@ -36,24 +41,25 @@ impl UniverseData {
             let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(group_type,OffsetAllotmentRequestCreator()));
             self_group.union(other_group);
         }
+        self.main.union(&other.main);
     }
 
     fn get_all_metadata(&self,allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         for (_,group) in self.requests.iter() {
             group.get_all_metadata(allotment_metadata,out);
         }
+        self.main.get_all_metadata(allotment_metadata,out);
     }
 
     fn allot(&mut self) {
         for (_,group) in self.requests.iter_mut() {
             group.allot();
         }
+        self.main.allot();
     }
 
     pub fn apply_pitch(&self, pitch: &mut Pitch) {
-        if let Some(group) = self.requests.get(&LinearRequestGroupName::Track) {
-            group.apply_pitch(pitch);
-        }
+        self.main.apply_pitch(pitch);
     }
 }
 
@@ -68,6 +74,7 @@ impl Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
                 requests: HashMap::new(),
+                main: LinearRequestGroup::new(&LinearRequestGroupName::Track,MainTrackRequestCreator()),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),
             allotment_metadata: allotment_metadata.clone()

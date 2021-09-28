@@ -33,7 +33,7 @@ pub trait LinearAllotmentImpl : AllotmentImpl {
 }
 
 pub trait LinearGroupEntry {
-    fn add_metadata(&self) -> AllotmentMetadataRequest;
+    fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
     fn make(&self, offset: i64, size: i64);
     fn max(&self) -> i64;
     fn priority(&self) -> i64;
@@ -85,7 +85,7 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
 
     pub(super) fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         for (_,request) in self.requests.iter() {
-            out.push(AllotmentMetadata::new(request.add_metadata()));
+            request.get_all_metadata(allotment_metadata,out);
         }
     }
 

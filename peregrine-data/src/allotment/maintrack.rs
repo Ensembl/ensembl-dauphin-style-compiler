@@ -48,34 +48,53 @@ impl AllotmentImpl for OffsetAllotment {
 }
 
 #[derive(Clone)]
-pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>);
+pub struct MainTrackRequest {
+    main: Arc<BaseAllotmentRequest<OffsetAllotment>>,
+    wallpaper: Arc<BaseAllotmentRequest<OffsetAllotment>>
+}
 
-impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, offset: i64, size: i64) {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.direction(),offset,size)));
-    }
-
-    fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
-        let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.0.metadata());
-        if let Some(allotment) = self.0.base_allotment() {
-            allotment.add_metadata(&mut full_metadata);
+impl MainTrackRequest {
+    fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup) -> MainTrackRequest {
+        let main = Arc::new(BaseAllotmentRequest::new(metadata,group));
+        let wallpaper = Arc::new(BaseAllotmentRequest::new(metadata,group));
+        MainTrackRequest {
+            main, wallpaper
         }
-        out.push(AllotmentMetadata::new(full_metadata));
-    }
-
-    fn max(&self) -> i64 { self.0.base_allotment().map(|x| x.max()).unwrap_or(0) }
-    fn priority(&self) -> i64 { self.0.metadata().priority() }
-
-    fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
-        Some(AllotmentRequest::upcast(self.0.clone()))
     }
 }
 
-pub struct OffsetAllotmentRequestCreator();
+impl LinearGroupEntry for MainTrackRequest {
+    fn make(&self, offset: i64, size: i64) {
+        self.main.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&self.main.direction(),offset,size)));
+        self.wallpaper.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&self.main.direction(),offset,size)));
+    }
 
-impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
+    fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+        let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.main.metadata());
+        if let Some(allotment) = self.main.base_allotment() {
+            allotment.add_metadata(&mut full_metadata);
+        }
+        out.push(AllotmentMetadata::new(full_metadata));
+        // XXX wallpaper metadata
+    }
+
+    fn max(&self) -> i64 { self.main.base_allotment().map(|x| x.max()).unwrap_or(0) }
+
+    fn priority(&self) -> i64 { self.main.metadata().priority() }
+
+    fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
+        if name.ends_with(":wallpaper") {
+            Some(AllotmentRequest::upcast(self.wallpaper.clone()))
+        } else {
+            Some(AllotmentRequest::upcast(self.main.clone()))
+        }
+    }
+}
+
+pub struct MainTrackRequestCreator();
+
+impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
     fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry> {
-        let r = Arc::new(BaseAllotmentRequest::new(metadata,group));
-        Arc::new(OffsetAllotmentRequest(r))
+        Arc::new(MainTrackRequest::new(metadata,group))
     }
 }

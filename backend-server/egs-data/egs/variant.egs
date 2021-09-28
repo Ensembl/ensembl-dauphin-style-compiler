@@ -7,7 +7,7 @@ halt(only_warm(),[data]);
 values := delta_seq(data,"values");
 x_range := [positive_seq(data,"range")];
 
-allotment := use_allotment("variant");
+allotment := use_allotment("track:variant");
 
 colours := [
     simple_colour(direct_colour(255,255,255,255)), // white = 0

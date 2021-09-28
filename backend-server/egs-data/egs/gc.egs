@@ -14,4 +14,4 @@ values := values / 25;
 x_range := [positive_seq(data,"range")];
 colour := direct_colour(255,0,0,255);
 p := plotter(32,colour);
-wiggle(x_range[@==0],x_range[@==1],p,values,present,use_allotment("gc"));
+wiggle(x_range[@==0],x_range[@==1],p,values,present,use_allotment("track:gc"));

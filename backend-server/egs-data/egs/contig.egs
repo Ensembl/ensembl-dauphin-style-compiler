@@ -10,7 +10,7 @@ start := delta_seq(data,"contig_starts");
 end := start + delta_seq(data,"contig_lengths");
 sense := positive_seq(data,"sense");
 
-allotment := use_allotment("contig");
+allotment := use_allotment("track:contig");
 
 neg_colour := simple_colour(direct_colour(128,128,128,255));
 pos_colour := simple_colour(direct_colour(200,200,200,255));

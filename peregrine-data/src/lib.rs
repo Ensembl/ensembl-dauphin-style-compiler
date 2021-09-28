@@ -6,6 +6,7 @@ mod allotment {
     pub(crate) mod baseallotmentrequest;
     pub(crate) mod dustbinallotment;
     pub(crate) mod lineargroup;
+    pub(crate) mod maintrack;
     pub(crate) mod offsetallotment;
     pub(crate) mod universe;
 }
