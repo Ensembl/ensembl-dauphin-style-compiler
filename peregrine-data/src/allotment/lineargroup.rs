@@ -36,6 +36,7 @@ pub trait LinearGroupEntry {
     fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
     fn make(&self, offset: i64, size: i64);
     fn max(&self) -> i64;
+    fn name(&self) -> &str;
     fn priority(&self) -> i64;
     fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
@@ -45,11 +46,12 @@ pub trait AsAllotmentRequestImpl {
 }
 
 pub trait LinearAllotmentRequestCreatorImpl {
+    fn hash(&self, name: &str) -> u64;
     fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(super) struct LinearRequestGroup<C> {
-    requests: HashMap<String,Arc<dyn LinearGroupEntry>>,
+    requests: HashMap<u64,Arc<dyn LinearGroupEntry>>,
     group: AllotmentGroup,
     creator: Box<C>
 }
@@ -64,21 +66,22 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
     }
 
     pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
-        if !self.requests.contains_key(name) {
+        let hash = self.creator.hash(name);
+        if !self.requests.contains_key(&hash) {
             let metadata = allotment_metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
             let request = self.creator.make(&metadata,&self.group);
-            self.requests.insert(name.to_string(),request);
+            self.requests.insert(hash,request);
         }
-        let entry = self.requests.get(name);
+        let entry = self.requests.get(&hash);
         if entry.is_none() { return None; }
         let entry = entry.unwrap();
         entry.make_request(allotment_metadata,name)
     }
 
     pub(super) fn union(&mut self, other: &LinearRequestGroup<C>) {
-        for (name,request) in other.requests.iter() {
-            if !self.requests.contains_key(name) {
-                self.requests.insert(name.to_string(),request.clone());
+        for (hash,request) in other.requests.iter() {
+            if !self.requests.contains_key(hash) {
+                self.requests.insert(*hash,request.clone());
             }
         }
     }

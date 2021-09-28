@@ -25,12 +25,8 @@ impl UniverseData {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
         } else if name.starts_with("track:") {
-            let metadata = allotment_metadata.get(name);
-            if metadata.is_none() { return None; }
             self.main.make_request(allotment_metadata,name)
         } else {
-            let metadata = allotment_metadata.get(name);
-            if metadata.is_none() { return None; }
             let group = self.group(name);
             self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(&group,OffsetAllotmentRequestCreator())).make_request(allotment_metadata,name)
         }

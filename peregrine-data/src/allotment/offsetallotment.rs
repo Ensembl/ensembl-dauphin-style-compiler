@@ -1,4 +1,4 @@
-use std::{sync::Arc};
+use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}, sync::Arc};
 use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 use super::{allotment::AllotmentImpl, baseallotmentrequest::BaseAllotmentRequest, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry}};
 
@@ -64,6 +64,7 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
     }
 
     fn max(&self) -> i64 { self.0.base_allotment().map(|x| x.max()).unwrap_or(0) }
+    fn name(&self) -> &str { self.0.metadata().name() }
     fn priority(&self) -> i64 { self.0.metadata().priority() }
 
     fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
@@ -75,7 +76,12 @@ pub struct OffsetAllotmentRequestCreator();
 
 impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
     fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry> {
-        let r = Arc::new(BaseAllotmentRequest::new(metadata,group));
-        Arc::new(OffsetAllotmentRequest(r))
+        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,group))))
+    }
+
+    fn hash(&self, name: &str) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        hasher.finish()
     }
 }
