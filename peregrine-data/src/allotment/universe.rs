@@ -28,13 +28,15 @@ impl UniverseData {
             self.main.make_request(allotment_metadata,name)
         } else {
             let group = self.group(name);
-            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(&group,OffsetAllotmentRequestCreator())).make_request(allotment_metadata,name)
+            let allotment_group = group.to_allotment_group();
+            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(allotment_group))).make_request(allotment_metadata,name)
         }
     }
 
     fn union(&mut self, other: &UniverseData) {
         for (group_type,other_group) in other.requests.iter() {
-            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(group_type,OffsetAllotmentRequestCreator()));
+            let allotment_group = group_type.to_allotment_group();
+            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(allotment_group)));
             self_group.union(other_group);
         }
         self.main.union(&other.main);
@@ -70,7 +72,7 @@ impl Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
                 requests: HashMap::new(),
-                main: LinearRequestGroup::new(&LinearRequestGroupName::Track,MainTrackRequestCreator()),
+                main: LinearRequestGroup::new(MainTrackRequestCreator()),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),
             allotment_metadata: allotment_metadata.clone()

@@ -105,7 +105,6 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
-allotment_wallpaper := index(allotment_idx,allotments_wallpaper);
 
 /*
  * Exon allotments
@@ -200,4 +199,7 @@ rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
 text_underneath(start,8,textpen,gene_labels,text_allotment);
 
-image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-right",allotment_wallpaper);
+image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-right",allotments_wallpaper[@==0]);
+image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-right",allotments_wallpaper[@==1]);
+image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-left",allotments_wallpaper[@==2]);
+image_underneath([0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][],8,"chevron-left",allotments_wallpaper[@==3]);

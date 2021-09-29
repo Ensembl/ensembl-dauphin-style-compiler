@@ -11,10 +11,10 @@ pub struct OffsetAllotment {
 }
 
 impl OffsetAllotment {
-    pub(crate) fn new(metadata: &AllotmentMetadata, direction: &AllotmentDirection, offset: i64, size: i64) -> OffsetAllotment {
+    pub(crate) fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup, offset: i64, size: i64) -> OffsetAllotment {
         OffsetAllotment {
             metadata: metadata.clone(),
-            direction: direction.clone(),
+            direction: group.direction().clone(),
             offset,size
         }
     }
@@ -54,9 +54,9 @@ pub struct MainTrackRequest {
 }
 
 impl MainTrackRequest {
-    fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup) -> MainTrackRequest {
-        let main = Arc::new(BaseAllotmentRequest::new(metadata,group));
-        let wallpaper = Arc::new(BaseAllotmentRequest::new(metadata,group));
+    fn new(metadata: &AllotmentMetadata) -> MainTrackRequest {
+        let main = Arc::new(BaseAllotmentRequest::new(metadata,&AllotmentGroup::Track));
+        let wallpaper = Arc::new(BaseAllotmentRequest::new(metadata,&AllotmentGroup::SpaceLabel(AllotmentDirection::Forward)));
         MainTrackRequest {
             main, wallpaper
         }
@@ -67,8 +67,8 @@ const WALLPAPER : &str = ":wallpaper";
 
 impl LinearGroupEntry for MainTrackRequest {
     fn make(&self, offset: i64, size: i64) {
-        self.main.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&self.main.direction(),offset,size)));
-        self.wallpaper.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&self.main.direction(),offset,size)));
+        self.main.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&AllotmentGroup::Track,offset,size)));
+        self.wallpaper.set_allotment(Arc::new(OffsetAllotment::new(&self.main.metadata(),&AllotmentGroup::SpaceLabel(AllotmentDirection::Forward),offset,size)));
     }
 
     fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
@@ -96,8 +96,8 @@ impl LinearGroupEntry for MainTrackRequest {
 pub struct MainTrackRequestCreator();
 
 impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry> {
-        Arc::new(MainTrackRequest::new(metadata,group))
+    fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry> {
+        Arc::new(MainTrackRequest::new(metadata))
     }
 
     fn hash(&self, name: &str) -> u64 {

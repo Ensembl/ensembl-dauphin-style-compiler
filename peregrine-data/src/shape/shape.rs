@@ -31,7 +31,7 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 
 impl Shape {
     pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
-        if self.allotment_group().base_filter() {
+        if !self.allotment_group().base_filter() {
             return self.clone();
         }
         match self {

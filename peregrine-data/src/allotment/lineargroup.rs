@@ -14,7 +14,7 @@ pub(super) enum LinearRequestGroupName {
 }
 
 impl LinearRequestGroupName {
-    fn to_allotment_group(&self) -> AllotmentGroup {
+    pub(crate) fn to_allotment_group(&self) -> AllotmentGroup {
         match self {
             LinearRequestGroupName::Track => AllotmentGroup::Track,
             LinearRequestGroupName::OverlayTop => AllotmentGroup::BaseLabel(AllotmentDirection::Forward),
@@ -22,7 +22,6 @@ impl LinearRequestGroupName {
             LinearRequestGroupName::OverlayLeft => AllotmentGroup::SpaceLabel(AllotmentDirection::Forward),
             LinearRequestGroupName::OverlayRight => AllotmentGroup::SpaceLabel(AllotmentDirection::Reverse),
             LinearRequestGroupName::Screen(i) => AllotmentGroup::Overlay(*i as i64)
-
         }
     }
 }
@@ -47,20 +46,18 @@ pub trait AsAllotmentRequestImpl {
 
 pub trait LinearAllotmentRequestCreatorImpl {
     fn hash(&self, name: &str) -> u64;
-    fn make(&self, metadata: &AllotmentMetadata, group: &AllotmentGroup) -> Arc<dyn LinearGroupEntry>;
+    fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(super) struct LinearRequestGroup<C> {
     requests: HashMap<u64,Arc<dyn LinearGroupEntry>>,
-    group: AllotmentGroup,
     creator: Box<C>
 }
 
 impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
-    pub(super) fn new(group: &LinearRequestGroupName, creator: C) -> LinearRequestGroup<C> {
+    pub(super) fn new(creator: C) -> LinearRequestGroup<C> {
         LinearRequestGroup {
             requests: HashMap::new(),
-            group: group.to_allotment_group(),
             creator: Box::new(creator)
         }
     }
@@ -69,7 +66,7 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         let hash = self.creator.hash(name);
         if !self.requests.contains_key(&hash) {
             let metadata = allotment_metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-            let request = self.creator.make(&metadata,&self.group);
+            let request = self.creator.make(&metadata);
             self.requests.insert(hash,request);
         }
         let entry = self.requests.get(&hash);

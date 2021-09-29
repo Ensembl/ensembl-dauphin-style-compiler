@@ -62,11 +62,16 @@ impl TrianglesKind {
             },
             TrianglesKind::Space => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                    let flip_x = flip(allotment);
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
-                    rectangle64(&mut base, flip_x, 0., flip_x,0.,base_width);
-                    rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
+                    let (mut x0,mut y0,mut x1,mut y1) = (top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal);
+                    let (mut bx0,mut by0,mut bx1,mut by1) = (top_left.base,0.,bottom_right.base,0.);
+                    if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
+                    if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
+                    if x1 < 0. { x1 = -x1-1.; bx1 = 1.; }
+                    if y1 < 0. { y1 = -y1-1.; by1 = 1.; }
+                    rectangle64(&mut base, bx0,by0, bx1,by1,base_width);
+                    rectangle64(&mut delta, x0,y0,x1,y1,width);
                 }
             },
             TrianglesKind::Window(_) => {
