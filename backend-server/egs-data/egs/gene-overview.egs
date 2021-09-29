@@ -24,6 +24,12 @@ focus_id := string_seq(data,"focus_ids");
  */
 
 potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
+potential_tracks_wallpaper := [
+    "track:gene-other-rev:wallpaper","track:gene-pc-rev:wallpaper",
+    "track:gene-other-fwd:wallpaper","track:gene-pc-fwd:wallpaper",
+    "track:focus:wallpaper"
+];
+
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -35,6 +41,9 @@ enabled_tracks := get_switch([
 
 tracks_used := ["","","","",""];
 tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+
+tracks_used_wallpaper := ["","","","",""];
+tracks_used_wallpaper[enabled_tracks] := potential_tracks_wallpaper[enabled_tracks];
 
 /*
  * Which allotment and track does data go into?
@@ -56,6 +65,8 @@ focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 
 allotments := [use_allotment(tracks_used[])];
+allotments_wallpaper := [use_allotment(tracks_used_wallpaper[])];
+
 allotment := index(allotment_idx,allotments);
 
 /*
@@ -73,5 +84,11 @@ patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colo
  * draw everything!
  */
 
-//rectangle_on_genome(start,end,5,patina,allotment);
 rectangle_on_genome(start,end,5,patina,allotment);
+
+chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];
+
+image_underneath(chevron_spacing,8,"chevron-left",allotments_wallpaper[@==0]);
+image_underneath(chevron_spacing,8,"chevron-left",allotments_wallpaper[@==1]);
+image_underneath(chevron_spacing,8,"chevron-right",allotments_wallpaper[@==2]);
+image_underneath(chevron_spacing,8,"chevron-right",allotments_wallpaper[@==3]);
