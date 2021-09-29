@@ -78,8 +78,8 @@ impl PatinaProgramName {
                 ],
                 PatinaProgramName::Texture => vec![
                     TextureProto::new("uSampler","uSamplerSize"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     UniformProto::new_fragment(PR_DEF,GLArity::Vec2,"uSize"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),

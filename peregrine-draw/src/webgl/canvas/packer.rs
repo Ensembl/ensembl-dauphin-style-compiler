@@ -110,12 +110,12 @@ impl Bin {
     }
 
     fn allocate(&mut self, width: u32, height: u32) -> (u32,u32) {
-        let out = if let Some(offset) = self.allocate_on_existing_shelf(width,height) {
+        let out = if let Some(offset) = self.allocate_on_existing_shelf(width+1,height+1) {
             offset
         } else {
-            (0,self.create_new_shelf(width,height))
+            (0,self.create_new_shelf(width+1,height+1))
         };
-        self.add_subshelves(height);
+        self.add_subshelves(height+1);
         out
     }
 
