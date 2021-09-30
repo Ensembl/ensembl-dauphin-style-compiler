@@ -1,7 +1,8 @@
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::AllotmentGroup;
-use crate::AllotmentMetadata;
+use crate::Assets;
+use crate::Flattenable;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
 use crate::allotment::allotmentrequest::AllotmentRequest;
@@ -30,6 +31,37 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 }
 
 impl Shape {
+    pub fn register_space(&self, assets: &Assets) {
+        match self {
+            Shape::SpaceBaseRect(area,_,allotments,_) => {
+                let (area,_) = area.extract();
+                for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+                    allotment.register_usage(top_left.normal.ceil() as i64);
+                    allotment.register_usage(bottom_right.normal.ceil() as i64);
+                }
+            },
+            Shape::Text(position,pen,_,allotments,_) => {
+                let (position,_) = position.extract();
+                for (position,allotment) in position.iter().zip(allotments.iter()) {
+                    allotment.register_usage((*position.normal + pen.size() as f64).ceil() as i64);
+                }
+            },
+            Shape::Image(position,_,asset,allotments,_) => {
+                let (position,_) = position.extract();
+                for (position,(allotment,asset_name)) in position.iter().zip(allotments.iter().cycle().zip(asset.iter().cycle())) {
+                    if let Some(asset) = assets.get(asset_name) {
+                        if let Some(height) = asset.metadata_u32("height") {
+                            allotment.register_usage((position.normal + (height as f64)).ceil() as i64);
+                        }
+                    }
+                }
+            },
+            Shape::Wiggle(_,_,plotter,allotment) => {
+                allotment.register_usage(plotter.0 as i64);
+            }
+        }
+    }
+
     pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
         if !self.allotment_group().base_filter() {
             return self.clone();
@@ -99,6 +131,5 @@ impl Shape {
                 Shape::Wiggle(x,y,plotter.clone(),allotment.clone())
             }
         }
-
     }
 }

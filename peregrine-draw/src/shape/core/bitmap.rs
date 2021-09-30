@@ -26,15 +26,11 @@ pub(crate) struct Bitmap {
     bytes: Arc<Vec<u8>>
 }
 
-fn metadata_u32(asset: &Asset, key: &str) -> Option<u32> {
-    asset.metadata(key).map(|v| v.parse::<u32>().ok()).flatten()
-}
-
 impl Bitmap {
     fn set_from_asset(&mut self, asset: &Asset, name: &str) -> Result<(),Message> {
         self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
-        self.width = metadata_u32(&asset,"width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?;
-        self.height = metadata_u32(&asset,"height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?;
+        self.width = asset.metadata_u32("width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?;
+        self.height = asset.metadata_u32("height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?;
         Ok(())
     }
 

@@ -33,7 +33,7 @@ pub trait LinearAllotmentImpl : AllotmentImpl {
 
 pub trait LinearGroupEntry {
     fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn make(&self, offset: i64, size: i64);
+    fn make(&self, offset: i64);
     fn max(&self) -> i64;
     fn name(&self) -> &str;
     fn priority(&self) -> i64;
@@ -100,8 +100,8 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         sorted_requests.sort_by_cached_key(|r| r.priority());
         let mut offset = 0;
         for request in sorted_requests {
-            request.make(offset,64);
-            offset += 64; // XXX
+            request.make(offset);
+            offset = request.max();
         }
     }
 }

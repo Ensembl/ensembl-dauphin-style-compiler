@@ -10,6 +10,7 @@ impl AllotmentRequestImpl for DustbinAllotmentRequest {
     fn allotment_group(&self) -> AllotmentGroup { AllotmentGroup::Track }
     fn is_dustbin(&self) -> bool { true }
     fn priority(&self) -> i64 { 0 }
+    fn register_usage(&self, _max: i64) {}    
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         Err(DataMessage::AllotmentNotCreated(format!("attempt to display the dustbin!")))

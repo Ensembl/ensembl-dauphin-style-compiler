@@ -84,6 +84,7 @@ impl BootstrapCommandResponse {
             payloads: None
         }).await?;
         integration.lock().unwrap().set_assets(self.assets.clone()); // XXX don't clone
+        queue.push(ApiMessage::SetAssets(self.assets.clone()));
         queue.push(ApiMessage::RegeneraateTrackConfig);
         Ok(())
     }

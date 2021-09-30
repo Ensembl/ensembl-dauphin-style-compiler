@@ -1,13 +1,10 @@
 use std::sync::{Arc, Mutex};
-
-use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, Universe, VariableValues};
-
+use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, VariableValues};
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
-
 use super::spectre::Spectre;
 
 fn draw_spectres(gl: &mut WebGlGlobal, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, variables: &VariableValues<f64>, spectres: &[Spectre]) -> Result<Drawing,Message> {
-    let mut shapes = ShapeListBuilder::new(&allotment_metadata);
+    let mut shapes = ShapeListBuilder::new(&allotment_metadata,&Assets::empty());
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_metadata)?;
     }

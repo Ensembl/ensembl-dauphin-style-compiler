@@ -1,18 +1,20 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentMetadataStore, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest};
+use crate::{AllotmentMetadataStore, Assets, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
     allotments: HashSet<AllotmentRequest>,
+    assets: Assets,
     universe: Universe
 }
 
 impl ShapeListBuilder {
-    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> ShapeListBuilder {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore, assets: &Assets) -> ShapeListBuilder {
         ShapeListBuilder {
             shapes: vec![],
+            assets: assets.clone(),
             allotments: HashSet::new(),
             universe: Universe::new(allotment_metadata)
         }
@@ -23,6 +25,7 @@ impl ShapeListBuilder {
     fn push(&mut self, shape: Shape) {
         let shape =shape.remove_nulls();
         if !shape.is_empty() {
+            shape.register_space(&self.assets);
             self.shapes.push(shape);
         }
     }
@@ -72,7 +75,7 @@ impl ShapeListBuilder {
         for shape in self.shapes.iter() {
             shapes.push(shape.filter(min_value,max_value));
         }
-        ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone() }
+        ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone(), assets: self.assets.clone() }
     }
 
     pub fn append(&mut self, more: &ShapeListBuilder) {

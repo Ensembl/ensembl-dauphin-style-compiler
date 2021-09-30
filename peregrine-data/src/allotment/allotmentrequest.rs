@@ -26,6 +26,7 @@ pub trait AllotmentRequestImpl {
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl>;
+    fn register_usage(&self, max: i64);
 }
 
 #[derive(Clone)]
@@ -41,6 +42,7 @@ impl AllotmentRequest {
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
+    pub fn register_usage(&self, max: i64) { self.0.register_usage(max); }
 }
 
 #[cfg(debug_assertions)]

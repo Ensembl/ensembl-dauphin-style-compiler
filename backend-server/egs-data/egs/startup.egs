@@ -17,6 +17,13 @@ import "lib:peregrine"; use "peregrine";
 
 sequence_scale := 9;
 
+stmt new_allotment(p,name,prio,switch_id,has_labels) {
+    meta_keys := ["switch-id","has-labels","padding","min-height"];
+    meta_values := [[switch_id],[has_labels],["10"],["40"]];
+
+    track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
+}
+
 stmt gene_std(p) {
     track_add_tag(p,"local");
     track_add_trigger(p,["track","gene-pc-fwd"]);
@@ -27,79 +34,80 @@ stmt gene_std(p) {
     track_add_switch(p,["settings"]);
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
-    track_add_allotment(p,"track:focus",-1000000,["switch-id","has-labels"][],[["focus"],["1"]][]);
-    track_add_allotment(p,"track:gene-other-fwd",-1100,["switch-id","has-labels"][],[["gene-other-fwd"],["1"]][]);
-    track_add_allotment(p,"track:gene-pc-fwd",-1000,["switch-id","has-labels"][],[["gene-pc-fwd"],["1"]][]);
-    track_add_allotment(p,"track:gene-pc-rev",1100,["switch-id","has-labels"][],[["gene-pc-rev"],["1"]][]);
-    track_add_allotment(p,"track:gene-other-rev",1000,["switch-id","has-labels"][],[["gene-other-rev"],["1"]][]);
+    new_allotment(p,"track:focus",-1000000,"focus","1");
+    new_allotment(p,"track:gene-other-fwd",-1100,"gene-other-fwd","1");
+    new_allotment(p,"track:gene-pc-fwd",-1000,"gene-pc-fwd","1");
+    new_allotment(p,"track:gene-pc-rev",1100,"gene-pc-rev","1");
+    new_allotment(p,"track:gene-other-rev",1000,"gene-other-rev","1");
 }
 
+/* GENES & TRANSCRIPTS */
 /* exon-structure; labels ; zmenus; sequence blocks */
 p := track_new("self()","zoomed-transcript",0,sequence_scale,sequence_scale);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
-
 /* exon-structure; labels ; zmenus; no sequence blocks */
 p := track_new("self()","transcript",sequence_scale,18,3);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
-
 /* no exon-structure; labels; zmenus */
 p := track_new("self()","gene",18,21,4);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
-
 /* no exon-structure; no labels; zmenus */
 p := track_new("self()","gene",21,23,3);
 gene_std(p);
 track_set_switch(p,["scale","no-labels"]);
 track_apply(p);
-
 /* no exon-struxcture; no labels ; no-zmenus */
 p := track_new("self()","gene-overview",23,100,6);
 gene_std(p);
 track_apply(p);
 
-/* gc */
+
+/* GC */
 p := track_new("self()","gc",1,100,5);
+new_allotment(p,"track:gc",2000,"gc","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gc"]);
 track_add_switch(p,["settings"]);
-track_add_allotment(p,"track:gc",2000,["switch-id"][],[["gc"]][]);
 track_apply(p);
 
-/* variant */
+
+/* VARIANT */
 p := track_new("self()","variant",1,100,2);
+new_allotment(p,"track:variant",3000,"variant","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","variant"]);
 track_add_switch(p,["settings"]);
-track_add_allotment(p,"track:variant",3000,["switch-id"][],[["variant"]][]);
 track_apply(p);
 
-/* shimmer contigs */
+
+/* CONTIGS */
+/* shimmer */
 p := track_new("self()","contig",26,200,3);
+new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
-track_add_allotment(p,"track:contig",0,["switch-id"][],[["contig"]][]);
 track_set_switch(p,["scale","shimmer"]);
 track_apply(p);
-
-/* contigs */
+/* regular */
 p := track_new("self()","contig",sequence_scale,26,3);
+new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
-track_add_allotment(p,"track:contig",0,["switch-id"][],[["contig"]][]);
 track_apply(p);
 
-/* sequence */
+
+/* SEQUENCE */
 p := track_new("self()","zoomed-seq",0,sequence_scale,3);
+new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
-track_add_allotment(p,"track:contig",0,["switch-id"][],[["contig"]][]);
 track_apply(p);

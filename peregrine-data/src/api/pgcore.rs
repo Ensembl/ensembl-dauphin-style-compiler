@@ -9,7 +9,7 @@ use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
-use crate::{AllotmentMetadataStore, Commander, CountingPromise, PgCommander, PgDauphin, ProgramLoader, RequestManager, StickAuthorityStore, StickStore, Universe};
+use crate::{AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, ProgramLoader, RequestManager, StickAuthorityStore, StickStore, Universe};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
@@ -43,6 +43,7 @@ pub struct PeregrineCoreBase {
     pub allotment_metadata: AllotmentMetadataStore,
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
+    pub assets: Arc<Mutex<Assets>>,
 }
 
 #[derive(Clone)]
@@ -76,7 +77,8 @@ impl PeregrineCore {
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
             allotment_metadata,
-            identity: Arc::new(Mutex::new(0))
+            identity: Arc::new(Mutex::new(0)),
+            assets: Arc::new(Mutex::new(Assets::empty()))
         };
         let agent_store = AgentStore::new(&base);
         let train_set = TrainSet::new(&base,&agent_store.lane_store,visual_blocker);

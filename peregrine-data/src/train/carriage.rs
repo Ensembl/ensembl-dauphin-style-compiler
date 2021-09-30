@@ -1,7 +1,8 @@
-use std::fmt::{ self, Display, Formatter };
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::lock;
+
 use crate::{LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task};
-use crate::api::{ PeregrineCore, MessageSender };
+use crate::api::{ MessageSender };
 use crate::lane::{ ShapeRequest, Region };
 use crate::shape::{ ShapeListBuilder, ShapeList };
 use super::train::TrainId;
@@ -98,7 +99,7 @@ impl Carriage {
             })
         }).collect();
         if batch { return Ok(()); } // TODO actual shape cahceing
-        let mut new_shapes = ShapeListBuilder::new(&base.allotment_metadata);
+        let mut new_shapes = ShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets));
         for future in tracks {
             future.finish_future().await;
             match future.take_result().as_ref().unwrap() {

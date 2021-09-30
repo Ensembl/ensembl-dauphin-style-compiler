@@ -141,7 +141,7 @@ text_underneath(start,8,textpen,gene_labels,text_allotment);
 
 chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];
 
-image_underneath(chevron_spacing,8,"chevron-left",allotments_wallpaper[@==0]);
-image_underneath(chevron_spacing,8,"chevron-left",allotments_wallpaper[@==1]);
-image_underneath(chevron_spacing,8,"chevron-right",allotments_wallpaper[@==2]);
-image_underneath(chevron_spacing,8,"chevron-right",allotments_wallpaper[@==3]);
+image_underneath(chevron_spacing,0,"chevron-left",allotments_wallpaper[@==0]);
+image_underneath(chevron_spacing,0,"chevron-left",allotments_wallpaper[@==1]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_wallpaper[@==2]);
+image_underneath(chevron_spacing,0,"chevron-right",allotments_wallpaper[@==3]);

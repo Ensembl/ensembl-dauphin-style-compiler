@@ -50,7 +50,7 @@ pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut WiggleYielde
                     start: f64, end: f64, yy: Vec<Option<f64>>, height: f64,
                     allotment: &Allotment, left: f64)-> Result<ProcessStanzaArray,Message> {
     let process = layer.draw(geometry_yielder,patina_yielder)?.get_process_mut();
-    let yy = yy.iter().map(|y| y.map(|y| (1.-y*height))).collect::<Vec<_>>();
+    let yy = yy.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>();
     let yy = allotment.transform_yy(&yy);
     let array = geometry_yielder.link()?.add_wiggle(process,start,end,yy,height,left)?;
     Ok(array)

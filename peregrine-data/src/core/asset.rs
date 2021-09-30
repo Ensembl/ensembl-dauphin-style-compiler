@@ -69,4 +69,5 @@ impl Asset {
 
     pub fn bytes(&self) -> Option<Arc<Vec<u8>>> { self.bytes.as_ref().map(|x| x.clone()) }
     pub fn metadata(&self, key: &str) -> Option<&str> { self.metadata.get(key).map(|x| x.as_str()) }
+    pub fn metadata_u32(&self, key: &str) -> Option<u32> { self.metadata(key).map(|v| v.parse::<u32>().ok()).flatten() }
 }

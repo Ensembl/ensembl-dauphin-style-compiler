@@ -15,11 +15,11 @@ impl OffsetAllotment {
         OffsetAllotment {
             metadata: metadata.clone(),
             group: group.clone(),
-            offset,size
+            offset, size
         }
     }
 
-    fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
+    pub(super) fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
         full_metadata.add_pair("type","track");
         full_metadata.add_pair("offset",&self.offset.to_string());
         full_metadata.add_pair("height",&self.size.to_string());
@@ -28,7 +28,6 @@ impl OffsetAllotment {
 
 impl LinearAllotmentImpl for OffsetAllotment {
     fn max(&self) -> i64 { self.offset+self.size }
-
     fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl> { self }
 }
 
@@ -51,8 +50,8 @@ impl AllotmentImpl for OffsetAllotment {
 pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>);
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, offset: i64, size: i64) {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.allotment_group(),offset,size)));
+    fn make(&self, offset: i64) {
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.allotment_group(),self.0.best_offset(offset),self.0.best_height())));
     }
 
     fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {

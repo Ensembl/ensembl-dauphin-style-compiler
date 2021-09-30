@@ -160,26 +160,6 @@ impl GlTrainSetData {
         }).unwrap_or(Ok(vec![]))
     }
 
-    /*
-    fn intersects(&mut self, stage: &ReadStage,  gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        Ok(match self.fade_state {
-            FadeState::Constant(x) => x,
-            FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.map(|id| {
-            self.get_train(gl,id).intersects(stage,mouse)
-        }).transpose()?.flatten())
-    }
-
-    fn intersects_fast(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, mouse: (u32,u32)) -> Result<bool,Message> {
-        Ok(match self.fade_state {
-            FadeState::Constant(x) => x,
-            FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.map(|id| {
-            self.get_train(gl,id).intersects_fast(stage,mouse)
-        }).transpose()?.unwrap_or(false))
-    }
-    */
-
     fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         for(_,mut train) in self.trains.drain() {
             train.discard(gl)?;

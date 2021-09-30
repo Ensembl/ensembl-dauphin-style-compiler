@@ -2,14 +2,14 @@ use crate::api::PeregrineCore;
 use crate::core::{ StickId, Viewport };
 use crate::metric::metricreporter::MetricReport;
 use crate::run::add_task;
-use crate::PgCommanderTaskSpec;
+use crate::{Assets, PgCommanderTaskSpec};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::request::channel::Channel;
 use crate::request::bootstrap::bootstrap;
 use crate::util::message::DataMessage;
 
-#[cfg_attr(debug_assertions,derive(Debug))]
+//#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum ApiMessage {
     Ready,
     TransitionComplete,
@@ -22,7 +22,8 @@ pub enum ApiMessage {
     RadioSwitch(Vec<String>,bool),
     RegeneraateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
-    ReportMetric(Channel,MetricReport)
+    ReportMetric(Channel,MetricReport),
+    SetAssets(Assets)
 }
 
 struct ApiQueueCampaign {
@@ -79,6 +80,9 @@ impl ApiQueueCampaign {
             },
             ApiMessage::ReportMetric(channel,metric) => {
                 metric.send(&data.base.commander,&mut data.base.manager,&channel);
+            },
+            ApiMessage::SetAssets(assets) => {
+                *data.base.assets.lock().unwrap() = assets;
             }
         }
     }

@@ -10,15 +10,19 @@ html, body {
     grid-template-columns: 1fr min-content;
     grid-template-rows: 100px 1fr;
     transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
+    background: #EBCF1C;
 }
 
 .other {
     min-width: 300px;
+    background: #B5938A;
+    grid-row: 1/3;
 }
 
 .other2 {
     min-width: 50px;
     transition: min-width 1s cubic-bezier(0.64, 0, 0.78, 0), height 0s cubic-bezier(0.64, 0, 0.78, 0);
+    background: #B5938A;
 }
 
 .viewport {
@@ -26,6 +30,7 @@ html, body {
     position: relative;
     height: 100%;
     overflow-y: auto;
+    background: #0B8899;
 }
 
 input {

@@ -12,12 +12,13 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
+use peregrine_toolkit::lock;
 
 async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, batch: bool) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
     let priority = if batch { PacketPriority::Batch } else { PacketPriority::RealTime };
     let mut payloads = HashMap::new();
-    let shapes = Builder::new(ShapeListBuilder::new(&base.allotment_metadata));
+    let shapes = Builder::new(ShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets)));
     let net_ms = Arc::new(Mutex::new(0.));
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);

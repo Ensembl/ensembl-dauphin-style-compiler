@@ -107,6 +107,9 @@ impl AllotmentMetadata {
     pub fn name(&self) -> &str { &self.metadata.name }
     pub fn priority(&self) -> i64 { self.metadata.priority }
 
+    pub fn get(&self, name: &str) -> Option<&String> { self.metadata.pairs.get(name) }
+    pub fn get_i64(&self, name: &str) -> Option<i64> { self.get(name).map(|x| x.parse().ok()).flatten() }
+
     pub fn summarize(&self) -> HashMap<String,String> {
         self.metadata.summarize()
     }
