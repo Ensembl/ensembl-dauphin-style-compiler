@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentDirection, AllotmentGroup, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::bitmap::BitmapHandle;

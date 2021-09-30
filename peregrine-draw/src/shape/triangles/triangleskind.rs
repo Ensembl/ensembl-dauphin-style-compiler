@@ -22,14 +22,14 @@ pub enum TrianglesKind {
     Track,
     Base,
     Space,
-    Window(i64)
+    Window
 }
 
 impl TrianglesKind {
     pub(crate) fn new(allotment: &AllotmentGroup) -> TrianglesKind {
         match allotment {
             AllotmentGroup::Track => TrianglesKind::Track,
-            AllotmentGroup::Overlay(p) => TrianglesKind::Window(*p),
+            AllotmentGroup::Overlay(p) => TrianglesKind::Window,
             AllotmentGroup::SpaceLabel(_) => TrianglesKind::Space,
             AllotmentGroup::BaseLabel(_) => TrianglesKind::Base
         }
@@ -45,7 +45,7 @@ impl TrianglesKind {
             TrianglesKind::Track => TrianglesProgramKind::Track,
             TrianglesKind::Base => TrianglesProgramKind::Base,
             TrianglesKind::Space => TrianglesProgramKind::Space,
-            TrianglesKind::Window(_) => TrianglesProgramKind::Window
+            TrianglesKind::Window => TrianglesProgramKind::Window
         }
     }
 
@@ -83,7 +83,7 @@ impl TrianglesKind {
                     rectangle64(&mut delta, x0,y0,x1,y1,width);
                 }
             },
-            TrianglesKind::Window(_) => {
+            TrianglesKind::Window => {
                 for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
                     let (mut x0,mut y0,mut x1,mut y1) = (*top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal);
                     let (mut bx0,mut by0,mut bx1,mut by1) = (0.,0.,0.,0.);
