@@ -8,6 +8,7 @@ services:
 
     backend-hi:
         environment:
+            - BEGS_FILES=/begs
             - THREADS=16
             - LO_PORT=1
             - DEBUG=1
@@ -15,15 +16,20 @@ services:
             - LOG_PORT=11601
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
+        volumes:
+            - ${BEGS_PATH:-.}:/begs
 
     backend-lo:
         environment:
+            - BEGS_FILES=/begs
             - THREADS=4
             - DEBUG=1
             - LOG_HOST=syslog
             - LOG_PORT=11601
             - STARTUP_WAIT=10
             - TELEGRAF_HOST=telegraf
+        volumes:
+            - ${BEGS_PATH:-.}:/begs
 
     memcached:
         environment:

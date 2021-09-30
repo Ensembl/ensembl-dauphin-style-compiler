@@ -7,6 +7,7 @@ services:
         volumes:
             - ${DATA_PATH:-.}:/data
         environment:
+            - BEGS_FILES
             - MEMCACHED=memcached:11211
             - MEMCACHED_PREFIX=gb
             - THREADS=16
@@ -28,6 +29,7 @@ services:
         volumes:
             - ${DATA_PATH:-.}:/data
         environment:
+            - BEGS_FILES
             - MEMCACHED=memcached:11211
             - MEMCACHED_PREFIX=gb
             - DEBUG

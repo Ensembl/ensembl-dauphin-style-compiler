@@ -181,6 +181,7 @@ Logging of both access log and error log is via syslog.
  * `STARTUP_WAIT` -- wait (in seconds) to allow dependent containers to start
  * `TELEGRAF_HOST` -- hostname of telegraf instance
  * `TELEGRAF_PORT` -- port number of telegraf instance (default 80940)
+ * `BEGS_FILES` -- location of begs data files if not in container
 
 | Variable | EBI | dev | ad hoc |
 |----------|-----|-----|--------|
@@ -190,6 +191,7 @@ Logging of both access log and error log is via syslog.
 | STARTUP_WAIT | 2 | 10 | 10 |
 | TELEGRAF_HOST | telegraf | telegraf | telegraf |
 | TELEGRAF_PORT | 8094 (default) | 8094 (default) | 8094 (default) |
+| BEGS_FILES | path to besgs files |  path to besgs files |  path to besgs files |
 
 ## memcached
 
