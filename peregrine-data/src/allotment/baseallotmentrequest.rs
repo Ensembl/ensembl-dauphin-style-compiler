@@ -26,14 +26,17 @@ impl<T> BaseAllotmentRequest<T> {
     pub fn max_used(&self) -> i64 { *self.max.lock().unwrap() }
 
     pub fn best_offset(&self, offset: i64) -> i64 {
-        let padding = self.metadata.get_i64("padding").unwrap_or(0);
-        offset + padding
+        let padding_top = self.metadata.get_i64("padding-top").unwrap_or(0);
+        offset + padding_top
     }
 
     pub fn best_height(&self) -> i64 {
         let mut height = self.max_used().max(0);
-        if let Some(padding) = self.metadata.get_i64("padding") {
-            height += 2*padding;
+        if let Some(padding_top) = self.metadata.get_i64("padding-top") {
+            height += padding_top;
+        }
+        if let Some(padding_bottom) = self.metadata.get_i64("padding-bottom") {
+            height += padding_bottom;
         }
         if let Some(min_height) = self.metadata.get_i64("min-height") {
             if height < min_height {

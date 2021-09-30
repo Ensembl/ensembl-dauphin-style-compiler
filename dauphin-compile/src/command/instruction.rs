@@ -106,7 +106,7 @@ impl InstructionSuperType {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub enum InstructionType {
     Pause(bool),
     Nil,

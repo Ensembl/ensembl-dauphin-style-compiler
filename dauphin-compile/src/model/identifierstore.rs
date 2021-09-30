@@ -37,12 +37,11 @@ impl std::fmt::Display for IdentifierPattern {
     }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub struct IdentifierStore<T> where T: Debug {
+pub struct IdentifierStore<T> {
     store: HashMap<Identifier,T>
 }
 
-impl<T> IdentifierStore<T> where T: Debug {
+impl<T> IdentifierStore<T> {
     pub fn new() -> IdentifierStore<T> {
         IdentifierStore {
             store: HashMap::new()

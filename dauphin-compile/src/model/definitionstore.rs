@@ -27,7 +27,6 @@ use crate::parser::parse_error;
 use crate::lexer::Lexer;
 use dauphin_interp::command::Identifier;
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum IdentifierValue {
     Expr(Rc<ExprMacro>),
     Stmt(Rc<StmtMacro>),
@@ -37,7 +36,6 @@ pub enum IdentifierValue {
     Enum(Rc<EnumDef>)
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct DefStore {
     identifiers: IdentifierStore<IdentifierValue>,
     inlines_binary: HashMap<String,Inline>,

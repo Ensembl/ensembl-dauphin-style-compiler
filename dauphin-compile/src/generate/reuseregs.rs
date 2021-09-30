@@ -27,7 +27,7 @@ struct UnknownValue {
     position: usize
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 struct KnownValue {
     itype: InstructionType,
     line: Option<usize>,
@@ -63,7 +63,7 @@ impl ValueStore {
     }
 }
 
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Clone,PartialEq,Eq,Hash)]
 enum SavedValue {
     Known(KnownValue),
     UnknownValue(UnknownValue)
