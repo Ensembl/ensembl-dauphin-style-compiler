@@ -61,6 +61,7 @@ impl ProcessStanzaAddable for ProcessStanzaArray {
 
     fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
+        if values_size == 0 { return Ok(()); }
         let mut offset = 0;
         let mut remaining = self.len * dims;
         while remaining > 0 {

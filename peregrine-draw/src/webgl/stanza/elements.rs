@@ -146,6 +146,7 @@ impl ProcessStanzaAddable for ProcessStanzaElements {
 
     fn add_n(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message> {
         let values_size = values.len();
+        if values_size == 0 { return Ok(()); }
         let mut offset = 0;
         for (entry,shape_count,cursor) in &mut self.elements {
             let mut remaining = *shape_count*self.points_per_shape*dims;
