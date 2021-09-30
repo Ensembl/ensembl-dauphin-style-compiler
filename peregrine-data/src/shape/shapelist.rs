@@ -46,34 +46,34 @@ impl ShapeListBuilder {
     }
     
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
-        for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
+        for (filter_min_max,mut filter) in DataFilter::demerge(&allotments, |x| { x.filter_min_max() }) {
             filter.set_size(area.len());
-            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotments),group));
+            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotments),filter_min_max));
         }
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
+        for (filter_min_max,mut filter) in DataFilter::demerge(&allotments, |x| { x.filter_min_max() }) {
             filter.set_size(position.len());
-            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),group));
+            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),filter_min_max));
         }
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase, depth: i8,images: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        for (group,mut filter) in DataFilter::demerge(&allotments, |x| { x.allotment_group() }) {
+        for (filter_min_max,mut filter) in DataFilter::demerge(&allotments, |x| { x.filter_min_max() }) {
             filter.set_size(position.len());
-            self.push(Shape::Image(position.filter(&filter),depth,filter.filter(&images),filter.filter(&allotments),group));
+            self.push(Shape::Image(position.filter(&filter),depth,filter.filter(&images),filter.filter(&allotments),filter_min_max));
         }
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {
-        self.push(Shape::Wiggle((min,max),values,plotter,allotment))
+        self.push(Shape::Wiggle((min,max),values,plotter,allotment.clone(),allotment.filter_min_max()))
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
         let mut shapes = vec![];
         for shape in self.shapes.iter() {
-            shapes.push(shape.filter(min_value,max_value));
+            shapes.push(shape.filter_min_max(min_value,max_value));
         }
         ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone(), assets: self.assets.clone() }
     }

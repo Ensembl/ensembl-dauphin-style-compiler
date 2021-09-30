@@ -105,7 +105,7 @@ mod run {
 
 mod shape {
     mod core;
-    mod shape;
+    pub(crate) mod shape;
     mod shapelist;
     mod zmenu;
     mod zmenufixed;

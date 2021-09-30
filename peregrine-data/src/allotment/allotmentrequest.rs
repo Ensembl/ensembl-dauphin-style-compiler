@@ -1,7 +1,7 @@
 use std::hash::Hash;
 use std::sync::Arc;
-
 use crate::{Allotment, AllotmentGroup, DataMessage};
+use crate::shape::shape::FilterMinMax;
 
 impl Hash for AllotmentRequest {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -27,6 +27,7 @@ pub trait AllotmentRequestImpl {
     fn allotment(&self) -> Result<Allotment,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl>;
     fn register_usage(&self, max: i64);
+    fn filter_min_max(&self) -> FilterMinMax;
 }
 
 #[derive(Clone)]
@@ -42,6 +43,7 @@ impl AllotmentRequest {
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
+    pub fn filter_min_max(&self) -> FilterMinMax { self.0.filter_min_max() }
     pub fn register_usage(&self, max: i64) { self.0.register_usage(max); }
 }
 

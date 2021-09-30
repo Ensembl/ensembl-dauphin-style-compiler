@@ -1,5 +1,5 @@
 use peregrine_data::{Allotment, AllotmentDirection, AllotmentGroup, SpaceBase, SpaceBaseArea};
-use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
+use crate::shape::{layers::geometry::{CoordinateSystem, GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
 
 fn flip(allotment: &Allotment) -> f64 {
@@ -9,29 +9,21 @@ fn flip(allotment: &Allotment) -> f64 {
     }
 }
 
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub enum TrianglesProgramKind {
-    Track,
-    Base,
-    Space,
-    Window
+#[derive(Debug,Clone,PartialEq,Eq,Hash)]
+pub struct DrawGroup {
+    coord_system: CoordinateSystem
 }
 
-#[derive(Debug,Clone)]
-pub enum TrianglesKind {
-    Track,
-    Base,
-    Space,
-    Window
-}
-
-impl TrianglesKind {
-    pub(crate) fn new(allotment: &AllotmentGroup) -> TrianglesKind {
-        match allotment {
-            AllotmentGroup::Track => TrianglesKind::Track,
-            AllotmentGroup::Overlay => TrianglesKind::Window,
-            AllotmentGroup::SpaceLabel(_) => TrianglesKind::Space,
-            AllotmentGroup::BaseLabel(_) => TrianglesKind::Base
+impl DrawGroup {
+    pub(crate) fn new(allotment: &AllotmentGroup) -> DrawGroup {
+        let coord_system = match allotment {
+            AllotmentGroup::Track => CoordinateSystem::Track,
+            AllotmentGroup::Overlay => CoordinateSystem::Window,
+            AllotmentGroup::SpaceLabel(_) => CoordinateSystem::Space,
+            AllotmentGroup::BaseLabel(_) => CoordinateSystem::Base
+        };
+        DrawGroup {
+            coord_system
         }
     }
 
@@ -40,21 +32,14 @@ impl TrianglesKind {
         self.add_spacebase_area(&area,allotments,left,width)
     }
 
-    pub(super) fn to_program_kind(&self) -> TrianglesProgramKind {
-        match self {
-            TrianglesKind::Track => TrianglesProgramKind::Track,
-            TrianglesKind::Base => TrianglesProgramKind::Base,
-            TrianglesKind::Space => TrianglesProgramKind::Space,
-            TrianglesKind::Window => TrianglesProgramKind::Window
-        }
-    }
+    pub(super) fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 
     pub(super) fn add_spacebase_area(&self, area: &SpaceBaseArea<f64>, allotments: &[Allotment], left: f64, width: Option<f64>)-> (Vec<f32>,Vec<f32>) {
         let mut base = vec![];
         let mut delta = vec![];
         let base_width = if width.is_some() { Some(0.) } else { None };
-        match self {
-            TrianglesKind::Track => {
+        match self.coord_system() {
+            CoordinateSystem::Track => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
@@ -62,14 +47,14 @@ impl TrianglesKind {
                     rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
                 }
             },
-            TrianglesKind::Base => {
+            CoordinateSystem::Base => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let flip_y = flip(&allotment);
                     rectangle64(&mut base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }
             },
-            TrianglesKind::Space => {
+            CoordinateSystem::Space => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
@@ -83,7 +68,7 @@ impl TrianglesKind {
                     rectangle64(&mut delta, x0,y0,x1,y1,width);
                 }
             },
-            TrianglesKind::Window => {
+            CoordinateSystem::Window => {
                 for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
                     let (mut x0,mut y0,mut x1,mut y1) = (*top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal);
                     let (mut bx0,mut by0,mut bx1,mut by1) = (0.,0.,0.,0.);
@@ -100,7 +85,7 @@ impl TrianglesKind {
     }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
-        let program = GeometryProgramName::Triangles(self.to_program_kind());
+        let program = GeometryProgramName::Triangles(self.coord_system());
         GeometryProcessName::new(program)
     }
 

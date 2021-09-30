@@ -1,10 +1,23 @@
 use std::sync::{Arc, Mutex};
-
 use peregrine_toolkit::lock;
-
-use crate::{Allotment, AllotmentGroup, AllotmentMetadata, DataMessage};
-
+use crate::{Allotment, AllotmentGroup, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
 use super::{allotment::AllotmentImpl, allotmentrequest::{AllotmentRequestImpl}};
+
+pub(super) fn remove_depth(spec: &mut String) -> i8 {
+    let mut depth = 0;
+    if let Some(start) = spec.find("[") {
+        if let Some(end) = spec[start..].find("]").map(|x| x+start) {
+            if let Some(new_depth) = spec[(start+1)..end].parse::<i8>().ok() {
+                depth = new_depth;
+                let mut new_spec = spec[0..start].to_string();
+                new_spec.push_str(&spec[end+1..].to_string());
+                *spec = new_spec;
+            }
+        }
+    }
+    depth
+}
+
 
 pub struct BaseAllotmentRequest<T> {
     metadata: AllotmentMetadata,
@@ -70,4 +83,11 @@ impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T
     }
 
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl> { self }
+
+    fn filter_min_max(&self) -> FilterMinMax {
+        match self.allotment_group() {
+            AllotmentGroup::Track => FilterMinMax::Base,
+            _ => FilterMinMax::None
+        }
+    }
 }

@@ -1,12 +1,18 @@
 use super::super::core::wigglegeometry::WiggleProgramLink;
-use crate::shape::layers::consts::PR_DEF;
-use crate::shape::triangles::triangleskind::TrianglesProgramKind;
+use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::trianglesprogramlink::TrianglesProgramLink;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
-use super::consts::{ PR_LOW };
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
+
+#[derive(Clone,Hash,PartialEq,Eq,Debug)]
+pub enum CoordinateSystem {
+    Track,
+    Base,
+    Space,
+    Window
+}
 
 #[derive(Clone)]
 pub(crate) enum GeometryProgramLink {
@@ -21,16 +27,16 @@ pub(crate) trait GeometryYielder {
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub(crate) enum GeometryProgramName { Wiggle, Triangles(TrianglesProgramKind) }
+pub(crate) enum GeometryProgramName { Wiggle, Triangles(CoordinateSystem) }
 
 impl EnumerableKey for GeometryProgramName {
     fn enumerable(&self) -> Enumerable {
         Enumerable(match self {
             GeometryProgramName::Wiggle => 0,
-            GeometryProgramName::Triangles(TrianglesProgramKind::Track) => 1,
-            GeometryProgramName::Triangles(TrianglesProgramKind::Base) => 2,
-            GeometryProgramName::Triangles(TrianglesProgramKind::Space) => 3,
-            GeometryProgramName::Triangles(TrianglesProgramKind::Window) => 4,
+            GeometryProgramName::Triangles(CoordinateSystem::Track) => 1,
+            GeometryProgramName::Triangles(CoordinateSystem::Base) => 2,
+            GeometryProgramName::Triangles(CoordinateSystem::Space) => 3,
+            GeometryProgramName::Triangles(CoordinateSystem::Window) => 4,
         },5)
     }
 }
@@ -45,7 +51,7 @@ impl GeometryProgramName {
 
     pub(crate) fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
-            GeometryProgramName::Triangles(TrianglesProgramKind::Track) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::Track) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -72,7 +78,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(TrianglesProgramKind::Base) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::Base) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -99,7 +105,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(TrianglesProgramKind::Space) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::Space) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -123,7 +129,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(TrianglesProgramKind::Window) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),

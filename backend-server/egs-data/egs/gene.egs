@@ -41,9 +41,9 @@ enabled_tracks := get_switch([
     ["track","focus"]
 ][]);
 potential_tracks_wallpaper := [
-    "track:gene-other-rev:wallpaper","track:gene-pc-rev:wallpaper",
-    "track:gene-other-fwd:wallpaper","track:gene-pc-fwd:wallpaper",
-    "track:focus:wallpaper"
+    "track:gene-other-rev:wallpaper[-2]","track:gene-pc-rev:wallpaper[-2]",
+    "track:gene-other-fwd:wallpaper[-2]","track:gene-pc-fwd:wallpaper[-2]",
+    "track:focus:wallpaper[-2]"
 ];
 
 tracks_used := ["","","","",""];

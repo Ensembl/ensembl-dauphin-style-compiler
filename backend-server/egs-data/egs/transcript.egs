@@ -64,13 +64,6 @@ exon_thick_end := exon_thick_end#[thick_exons];
  * What are the current track settings?
  */
 
-potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
-potential_tracks_wallpaper := [
-    "track:gene-other-rev:wallpaper","track:gene-pc-rev:wallpaper",
-    "track:gene-other-fwd:wallpaper","track:gene-pc-fwd:wallpaper",
-    "track:focus:wallpaper"
-];
-
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -79,14 +72,37 @@ enabled_tracks := get_switch([
     ["track","focus"]
 ][]);
 
-tracks_used := ["","","","",""];
-tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
+    tracks_used := ["","","","",""];
+    tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+    our_allotments := [use_allotment(tracks_used[])];
+}
 
-tracks_used_wallpaper := ["","","","",""];
-tracks_used_wallpaper[enabled_tracks] := potential_tracks_wallpaper[enabled_tracks];
+potential_tracks := [
+    "track:gene-other-rev","track:gene-pc-rev",
+    "track:gene-other-fwd","track:gene-pc-fwd",
+    "track:focus"
+];
+use_allotments(allotments,enabled_tracks,potential_tracks);
 
-allotments := [use_allotment(tracks_used[])];
-allotments_wallpaper := [use_allotment(tracks_used_wallpaper[])];
+use_allotments(allotments_under,enabled_tracks,[
+    "track:gene-other-rev[-1]","track:gene-pc-rev[-1]",
+    "track:gene-other-fwd[-1]","track:gene-pc-fwd[-1]",
+    "track:focus[-1]"
+]);
+
+use_allotments(allotments_over,enabled_tracks,[
+    "track:gene-other-rev[1]","track:gene-pc-rev[1]",
+    "track:gene-other-fwd[1]","track:gene-pc-fwd[1]",
+    "track:focus[1]"
+]);
+
+
+use_allotments(allotments_wallpaper,enabled_tracks,[
+    "track:gene-other-rev:wallpaper[-2]","track:gene-pc-rev:wallpaper[-2]",
+    "track:gene-other-fwd:wallpaper[-2]","track:gene-pc-fwd:wallpaper[-2]",
+    "track:focus:wallpaper[-2]"
+]);
 
 /*
  * Which allotment and track does data go into?
@@ -104,7 +120,9 @@ allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
+
 allotment := index(allotment_idx,allotments);
+allotment_under := index(allotment_idx,allotments_under);
 
 /*
  * Exon allotments
@@ -114,7 +132,7 @@ exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
-exon_allotment := index(exon_allotment_idx,allotments);
+exon_allotment := index(exon_allotment_idx,allotments_over);
 thick_exon_allotment := exon_allotment#[thick_exons];
 
 /*
@@ -190,8 +208,8 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","track"],[[gene_name],
 
 rectangle_on_genome(start,start,6,hollow_patina,allotment); // left stop
 rectangle_on_genome(end,end,6,hollow_patina,allotment); // right stop
-rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment,3); // central dotted line
-rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment,3); // central line
+rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment_under,3); // central dotted line
+rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment_under,3); // central line
 rectangle_on_genome(exon_start,exon_end,6,white_patina,exon_allotment); // exon white box
 rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
 rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box

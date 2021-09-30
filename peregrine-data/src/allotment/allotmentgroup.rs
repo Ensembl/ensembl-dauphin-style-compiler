@@ -15,15 +15,6 @@ pub enum AllotmentGroup {
 }
 
 impl AllotmentGroup {
-    pub(crate) fn base_filter(&self) -> bool {
-        match self {
-            AllotmentGroup::Track => true,
-            AllotmentGroup::Overlay => false,
-            AllotmentGroup::BaseLabel(_) => true,
-            AllotmentGroup::SpaceLabel(_) => false
-        }
-    }
-
     pub fn direction(&self) -> AllotmentDirection {
         match self {
             AllotmentGroup::BaseLabel(d) => d.clone(),

@@ -15,7 +15,7 @@ struct UniverseData {
 impl UniverseData {
     fn group(&self, name: &str) -> LinearRequestGroupName {
         if name.starts_with("window:") {
-            LinearRequestGroupName::Screen(if name.ends_with("-over") { 1 } else { 0 })
+            LinearRequestGroupName::Screen(if name.ends_with("[1]") { 1 } else { 0 })
         } else {
             LinearRequestGroupName::Track
         }

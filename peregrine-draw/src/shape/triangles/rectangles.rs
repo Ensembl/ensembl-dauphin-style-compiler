@@ -6,7 +6,7 @@ use peregrine_data::{
     Allotment, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea,
     SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
 };
-use super::triangleskind::TrianglesKind;
+use super::drawgroup::DrawGroup;
 use super::trianglesprogramlink::TrianglesProgramLink;
 use super::trianglesyielder::TrackTrianglesYielder;
 use crate::util::message::Message;
@@ -53,23 +53,23 @@ pub(crate) struct Rectangles {
     allotments: Vec<Allotment>,
     left: f64,
     width: Option<f64>,
-    kind: TrianglesKind  
+    kind: DrawGroup  
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,subs,edge.clone());
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,subs,x_sizes,y_sizes);
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)
     }
 
-    fn real_new(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &[Allotment], left: f64, hollow: bool, kind: &TrianglesKind)-> Result<Rectangles,Message> {
+    fn real_new(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let builder = layer.draw(geometry_yielder,patina_yielder)?.get_process_mut();
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]

@@ -33,7 +33,7 @@ mod input {
 
         pub use self::physics::Physics;
     }
-
+    
     pub use self::core::input::{ Input, InputEvent, InputEventKind };
 }
 
@@ -85,7 +85,7 @@ mod shape {
 
     pub(crate) mod triangles {
         pub(crate) mod trianglesyielder;
-        pub(crate) mod triangleskind;
+        pub(crate) mod drawgroup;
         pub(crate) mod trianglesprogramlink;
         pub(crate) mod rectangles;
     }

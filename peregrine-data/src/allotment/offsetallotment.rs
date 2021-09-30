@@ -1,21 +1,22 @@
 use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}, sync::Arc};
 use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::AllotmentImpl, allotmentrequest::AllotmentRequestImpl, baseallotmentrequest::BaseAllotmentRequest, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry}};
+use super::{allotment::AllotmentImpl, allotmentrequest::AllotmentRequestImpl, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
     metadata: AllotmentMetadata,
     group: AllotmentGroup,
     offset: i64,
-    size: i64
+    size: i64,
+    depth: i8
 }
 
 impl OffsetAllotment {
-    pub(crate) fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup, offset: i64, size: i64) -> OffsetAllotment {
+    pub(crate) fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup, offset: i64, size: i64, depth: i8) -> OffsetAllotment {
         OffsetAllotment {
             metadata: metadata.clone(),
             group: group.clone(),
-            offset, size
+            offset, size, depth
         }
     }
 
@@ -43,15 +44,18 @@ impl AllotmentImpl for OffsetAllotment {
         values.iter().map(|x| x.map(|y| y+offset)).collect()
     }
 
+    fn allotment_group(&self) -> AllotmentGroup { self.group.clone() }
     fn direction(&self) -> AllotmentDirection { self.group.direction() }
+    fn depth(&self) -> i8 { self.depth }
 }
 
 #[derive(Clone)]
-pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>);
+pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8);
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, offset: i64) {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.allotment_group(),self.0.best_offset(offset),self.0.best_height())));
+    fn make(&self, offset: i64) -> i64 {
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.allotment_group(),self.0.best_offset(offset),self.0.best_height(),self.1)));
+        self.0.max_used()
     }
 
     fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
@@ -62,7 +66,6 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
         out.push(AllotmentMetadata::new(full_metadata));
     }
 
-    fn max(&self) -> i64 { self.0.base_allotment().map(|x| x.max()).unwrap_or(0) }
     fn name(&self) -> &str { self.0.metadata().name() }
     fn priority(&self) -> i64 { self.0.metadata().priority() }
 
@@ -75,7 +78,9 @@ pub struct OffsetAllotmentRequestCreator(pub AllotmentGroup);
 
 impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
     fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry> {
-        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,&self.0))))
+        let mut name = metadata.name().to_string();
+        let depth = remove_depth(&mut name);
+        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,&self.0)),depth))
     }
 
     fn hash(&self, name: &str) -> u64 {

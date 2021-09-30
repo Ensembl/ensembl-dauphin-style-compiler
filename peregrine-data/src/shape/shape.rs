@@ -1,6 +1,6 @@
+use std::hash::Hash;
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
-use crate::AllotmentGroup;
 use crate::Assets;
 use crate::Flattenable;
 use crate::HoleySpaceBase;
@@ -8,13 +8,20 @@ use crate::HoleySpaceBaseArea;
 use crate::allotment::allotmentrequest::AllotmentRequest;
 use crate::util::ringarray::DataFilter;
 
+#[derive(Clone,Hash,PartialEq,Eq)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub enum FilterMinMax {
+    Base,
+    None
+}
+
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
-    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,AllotmentGroup),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,AllotmentGroup)
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,FilterMinMax),
+    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,FilterMinMax),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,FilterMinMax),
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,FilterMinMax)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -56,51 +63,87 @@ impl Shape {
                     }
                 }
             },
-            Shape::Wiggle(_,_,plotter,allotment) => {
+            Shape::Wiggle(_,_,plotter,allotment,_) => {
                 allotment.register_usage(plotter.0 as i64);
             }
         }
     }
 
-    pub fn filter(&self, min_value: f64, max_value: f64) -> Shape {
-        if !self.allotment_group().base_filter() {
+    fn test_filter_base(&self) -> bool {
+        let filter = match self {
+            Shape::SpaceBaseRect(_,_,_,filter_min_max) => filter_min_max,
+            Shape::Text(_,_,_,_,filter_min_max) => filter_min_max,
+            Shape::Image(_,_,_,_,filter_min_max) => filter_min_max,
+            Shape::Wiggle(_,_,_,_,filter_min_max) => filter_min_max
+        };
+        match filter {
+            FilterMinMax::Base => true,
+            FilterMinMax::None => false
+        }
+    }
+
+    pub fn filter_min_max(&self, min_value: f64, max_value: f64) -> Shape {
+        if !self.test_filter_base() {
             return self.clone();
         }
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,kind) => {
+            Shape::SpaceBaseRect(area,patina,allotments,filter_min_max) => {
                 let filter = area.make_base_filter(min_value,max_value);
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments),kind.clone())
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments),filter_min_max.clone())
             },
-            Shape::Text(position,pen,text,allotments,kind) => {
+            Shape::Text(position,pen,text,allotments,filter_min_max) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments),kind.clone())
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments),filter_min_max.clone())
             },
-            Shape::Image(position,depth,asset,allotments,kind) => {
+            Shape::Image(position,depth,asset,allotments,filter_min_max) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Image(position.filter(&filter),*depth,filter.filter(asset),filter.filter(allotments),kind.clone())
+                Shape::Image(position.filter(&filter),*depth,filter.filter(asset),filter.filter(allotments),filter_min_max.clone())
             },
-            Shape::Wiggle((x_start,x_end),y,plotter,allotment) => {
+            Shape::Wiggle((x_start,x_end),y,plotter,allotment,filter_min_max) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
-                Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone())
+                Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone(),filter_min_max.clone())
             }
         }
     }
 
-    fn allotment_group(&self) -> AllotmentGroup {
+    pub fn demerge_by_allotment<X: Hash + PartialEq + Eq,T>(self, cb: T) -> Vec<(X,Shape)> where T: Fn(&AllotmentRequest) -> X {
+        let mut out = vec![];
         match self {
-            Shape::SpaceBaseRect(_,_,_,kind) => kind.clone(),
-            Shape::Text(_,_,_,_,kind) => kind.clone(),
-            Shape::Image(_,_,_,_,kind) => kind.clone(),
-            Shape::Wiggle(_,_,_,allotment) => allotment.allotment_group()
+            Shape::Wiggle(range,y,plotter,allotment,filter_min_max) => {
+                let group = cb(&allotment);
+                out.push((group,Shape::Wiggle(range,y,plotter.clone(),allotment.clone(),filter_min_max)));
+            },
+            Shape::Text(spacebase,pen,texts,allotment,filter_min_max) => {
+                let demerge = DataFilter::demerge(&allotment, cb);
+                for (draw_group,mut filter) in demerge {
+                    filter.set_size(spacebase.len());
+                    out.push((draw_group,Shape::Text(spacebase.filter(&filter),pen.filter(&filter),filter.filter(&texts),filter.filter(&allotment),filter_min_max.clone())));
+                }
+            },
+            Shape::Image(spacebase,depth,images,allotment,filter_min_max) => {
+                let demerge = DataFilter::demerge(&allotment, cb);
+                for (draw_group,mut filter) in demerge {
+                    filter.set_size(spacebase.len());
+                    out.push((draw_group,Shape::Image(spacebase.filter(&filter),depth,filter.filter(&images),filter.filter(&allotment),filter_min_max.clone())));
+                }
+            },
+            Shape::SpaceBaseRect(area,patina,allotment,filter_min_max) => {
+                let demerge = DataFilter::demerge(&allotment, cb);
+                for (draw_group,mut filter) in demerge {
+                    filter.set_size(area.len());
+                    out.push((draw_group,Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotment),filter_min_max.clone())));
+                }
+            }
         }
+        out
     }
-
+    
     pub fn len(&self) -> usize {
         match self {
             Shape::SpaceBaseRect(area,_,_,_) => area.len(),
             Shape::Text(position,_,_,_,_) => position.len(),
             Shape::Image(position,_,_,_,_) => position.len(),
-            Shape::Wiggle(_,y,_,_) => y.len()
+            Shape::Wiggle(_,y,_,_,_) => y.len()
         }
     }
 
@@ -108,27 +151,27 @@ impl Shape {
 
     pub fn remove_nulls(self) -> Shape {
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,kind) => {
+            Shape::SpaceBaseRect(area,patina,allotments,filter_min_max) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(area.len());
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments),kind)
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments),filter_min_max)
             },
-            Shape::Text(position,pen,text,allotments,kind) => {
+            Shape::Text(position,pen,text,allotments,filter_min_max) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),kind)
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),filter_min_max)
             },
-            Shape::Image(position,depth,asset,allotments,kind) => {
+            Shape::Image(position,depth,asset,allotments,filter_min_max) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
-                Shape::Image(position.filter(&filter),depth,filter.filter(&asset),filter.filter(&allotments),kind)
+                Shape::Image(position.filter(&filter),depth,filter.filter(&asset),filter.filter(&allotments),filter_min_max)
             },
-            Shape::Wiggle(x,mut y,plotter,allotment) => {
+            Shape::Wiggle(x,mut y,plotter,allotment,filter_min_max) => {
                 if allotment.is_dustbin() { y = vec![]; }
-                Shape::Wiggle(x,y,plotter.clone(),allotment.clone())
+                Shape::Wiggle(x,y,plotter.clone(),allotment.clone(),filter_min_max)
             }
         }
     }
