@@ -1,10 +1,10 @@
-use peregrine_data::{Allotment, AllotmentGroup, AllotmentMetadata, AllotmentRequest, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, AllotmentGroup, AllotmentRequest, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, Shape, SpaceBaseArea, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
-use crate::shape::core::drawshape::SimpleShapePatina;
+use crate::shape::core::drawshape::{AllotmentProgramKind, SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed, HeraldryScale};
 use crate::util::message::Message;
-use super::drawshape::{ GLShape, AllotmentProgram };
+use super::drawshape::{ GLShape };
 
 
 // XXX not a new one for each!
@@ -36,7 +36,7 @@ fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
 
 fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patina:Patina, allotment: Vec<AllotmentRequest>, group: &AllotmentGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(&allotment)?;
-    let kind = AllotmentProgram::new(group).kind();
+    let kind = AllotmentProgramKind::new(group);
     let mut out = vec![];
     match extract_patina(&patina) {
         PatinaExtract::Visual(colours,width,prio) => {
@@ -127,13 +127,13 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             let colours_iter = pen.colours().iter().cycle();
             let background = pen.background();
             let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
-            vec![GLShape::Text(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),pen.depth())]
+            vec![GLShape::Text(spacebase,handles,allotment,AllotmentProgramKind::new(&kind),pen.depth())]
         },
         Shape::Image(spacebase,depth,images,allotment,kind) => {
             let allotment = allotments(&allotment)?;
             let drawing_bitmap = tools.bitmap();
             let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
-            vec![GLShape::Image(spacebase,handles,allotment,AllotmentProgram::new(&kind).kind(),depth)]
+            vec![GLShape::Image(spacebase,handles,allotment,AllotmentProgramKind::new(&kind),depth)]
         },
         Shape::SpaceBaseRect(area,patina,allotment,group) => {
             split_spacebaserect(tools,area,patina,allotment,&group)?

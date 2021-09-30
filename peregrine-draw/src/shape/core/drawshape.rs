@@ -25,6 +25,17 @@ pub enum AllotmentProgramKind {
     SpaceLabel
 }
 
+impl AllotmentProgramKind {
+    pub(super) fn new(allotment: &AllotmentGroup) -> AllotmentProgramKind {
+        match allotment {
+            AllotmentGroup::Track => AllotmentProgramKind::Track,
+            AllotmentGroup::Overlay(p) => AllotmentProgramKind::Overlay(*p),
+            AllotmentGroup::SpaceLabel(x) => AllotmentProgramKind::SpaceLabel,
+            AllotmentGroup::BaseLabel(x) => AllotmentProgramKind::BaseLabel
+        }
+    }
+}
+
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(Vec<DirectColour>),
@@ -86,35 +97,6 @@ pub(crate) enum GLShape {
     Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>,i8),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment,i8),
     SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind,i8),
-}
-
-pub enum AllotmentProgram {
-    Track,
-    Overlay(i64),
-    BaseLabel(AllotmentDirection),
-    SpaceLabel(AllotmentDirection)
-}
-
-impl AllotmentProgram {
-    pub(super) fn kind(&self) -> AllotmentProgramKind {
-        match self {
-            AllotmentProgram::Track => AllotmentProgramKind::Track,
-            AllotmentProgram::Overlay(p) => AllotmentProgramKind::Overlay(*p),
-            AllotmentProgram::SpaceLabel(_) => AllotmentProgramKind::SpaceLabel,
-            AllotmentProgram::BaseLabel(_) => AllotmentProgramKind::BaseLabel
-        }        
-    }
-}
-
-impl AllotmentProgram {
-    pub(super) fn new(allotment: &AllotmentGroup) -> AllotmentProgram {
-        match allotment {
-            AllotmentGroup::Track => AllotmentProgram::Track,
-            AllotmentGroup::Overlay(p) => AllotmentProgram::Overlay(*p),
-            AllotmentGroup::SpaceLabel(x) => AllotmentProgram::SpaceLabel(x.clone()),
-            AllotmentGroup::BaseLabel(x) => AllotmentProgram::BaseLabel(x.clone())
-        }
-    }
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina) -> Result<(),Message> {
