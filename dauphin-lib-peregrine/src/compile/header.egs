@@ -93,7 +93,7 @@ stmt text_underneath(x,y,penspec,writing,allt) {
 
 stmt image_underneath(x,y,name,allt) {
     sb := spacebase(x,y,0);
-    draw_image(sb,name,-1,allt);
+    draw_image(sb,name,-2,allt);
 }
 
 stmt rectangle_on_genome(start,end,height,patina,allt) {

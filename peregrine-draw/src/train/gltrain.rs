@@ -84,26 +84,6 @@ impl GLTrain {
         Ok(out)
     }
 
-    /*
-    pub(crate) fn intersects(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<Option<ZMenuEvent>,Message> {
-        for carriage in self.carriages.values() {
-            if let Some(zmenu) = carriage.intersects(stage,mouse)? {
-                return Ok(Some(zmenu));
-            }
-        }
-        Ok(None)
-    }
-
-    pub(crate) fn intersects_fast(&self, stage: &ReadStage, mouse: (u32,u32)) -> Result<bool,Message> {
-        for carriage in self.carriages.values() {
-            if carriage.intersects_fast(stage,mouse)? {
-                return Ok(true);
-            }
-        }
-        Ok(false)
-    }
-    */
-
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         let mut min = 0;
         let mut max = 0;
