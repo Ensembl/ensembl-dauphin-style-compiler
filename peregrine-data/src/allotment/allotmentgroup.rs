@@ -9,7 +9,7 @@ pub enum AllotmentDirection {
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum AllotmentGroup {
     Track,
-    Overlay(i64),
+    Overlay,
     BaseLabel(AllotmentDirection),
     SpaceLabel(AllotmentDirection)
 }
@@ -18,7 +18,7 @@ impl AllotmentGroup {
     pub(crate) fn base_filter(&self) -> bool {
         match self {
             AllotmentGroup::Track => true,
-            AllotmentGroup::Overlay(_) => false,
+            AllotmentGroup::Overlay => false,
             AllotmentGroup::BaseLabel(_) => true,
             AllotmentGroup::SpaceLabel(_) => false
         }

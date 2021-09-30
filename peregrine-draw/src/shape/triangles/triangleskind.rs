@@ -29,7 +29,7 @@ impl TrianglesKind {
     pub(crate) fn new(allotment: &AllotmentGroup) -> TrianglesKind {
         match allotment {
             AllotmentGroup::Track => TrianglesKind::Track,
-            AllotmentGroup::Overlay(p) => TrianglesKind::Window,
+            AllotmentGroup::Overlay => TrianglesKind::Window,
             AllotmentGroup::SpaceLabel(_) => TrianglesKind::Space,
             AllotmentGroup::BaseLabel(_) => TrianglesKind::Base
         }

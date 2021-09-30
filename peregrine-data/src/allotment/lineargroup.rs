@@ -21,7 +21,7 @@ impl LinearRequestGroupName {
             LinearRequestGroupName::OverlayBottom => AllotmentGroup::BaseLabel(AllotmentDirection::Reverse),
             LinearRequestGroupName::OverlayLeft => AllotmentGroup::SpaceLabel(AllotmentDirection::Forward),
             LinearRequestGroupName::OverlayRight => AllotmentGroup::SpaceLabel(AllotmentDirection::Reverse),
-            LinearRequestGroupName::Screen(i) => AllotmentGroup::Overlay(*i as i64)
+            LinearRequestGroupName::Screen(i) => AllotmentGroup::Overlay
         }
     }
 }
