@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentDirection, SpaceBase, SpaceBaseArea};
+use peregrine_data::{Allotment, AllotmentDirection, AllotmentGroup, SpaceBase, SpaceBaseArea};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
 
@@ -26,6 +26,15 @@ pub enum TrianglesKind {
 }
 
 impl TrianglesKind {
+    pub(crate) fn new(allotment: &AllotmentGroup) -> TrianglesKind {
+        match allotment {
+            AllotmentGroup::Track => TrianglesKind::Track,
+            AllotmentGroup::Overlay(p) => TrianglesKind::Window(*p),
+            AllotmentGroup::SpaceLabel(_) => TrianglesKind::Space,
+            AllotmentGroup::BaseLabel(_) => TrianglesKind::Base
+        }
+    }
+
     pub(super) fn add_spacebase(&self, point: &SpaceBase<f64>, allotments: &[Allotment], left: f64, width: Option<f64>) -> (Vec<f32>,Vec<f32>) {
         let area = SpaceBaseArea::new(point.clone(),point.clone());
         self.add_spacebase_area(&area,allotments,left,width)

@@ -16,25 +16,6 @@ use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
 
-#[derive(Clone,PartialEq,Eq,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum AllotmentProgramKind {
-    Track,
-    Overlay(i64),
-    BaseLabel,
-    SpaceLabel
-}
-
-impl AllotmentProgramKind {
-    pub(super) fn new(allotment: &AllotmentGroup) -> AllotmentProgramKind {
-        match allotment {
-            AllotmentGroup::Track => AllotmentProgramKind::Track,
-            AllotmentGroup::Overlay(p) => AllotmentProgramKind::Overlay(*p),
-            AllotmentGroup::SpaceLabel(x) => AllotmentProgramKind::SpaceLabel,
-            AllotmentGroup::BaseLabel(x) => AllotmentProgramKind::BaseLabel
-        }
-    }
-}
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
@@ -92,11 +73,11 @@ impl<'a> DrawingShapePatina<'a> {
 }
 
 pub(crate) enum GLShape {
-    Text(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
-    Image(HoleySpaceBase,Vec<BitmapHandle>,Vec<Allotment>,AllotmentProgramKind,i8),
-    Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,AllotmentProgramKind,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>,i8),
+    Text(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,TrianglesKind,i8),
+    Image(HoleySpaceBase,Vec<BitmapHandle>,Vec<Allotment>,TrianglesKind,i8),
+    Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,TrianglesKind,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>,i8),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment,i8),
-    SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,Vec<Allotment>,AllotmentProgramKind,i8),
+    SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,Vec<Allotment>,TrianglesKind,i8),
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina) -> Result<(),Message> {
@@ -112,15 +93,6 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
         DrawingShapePatina::ZMenu(_,_) => {}
     }
     Ok(())
-}
-
-fn to_trianges_kind(program_kind: &AllotmentProgramKind) -> TrianglesKind {
-    match program_kind {
-        AllotmentProgramKind::Track => TrianglesKind::Track,
-        AllotmentProgramKind::BaseLabel => TrianglesKind::Base,
-        AllotmentProgramKind::SpaceLabel => TrianglesKind::Space,
-        AllotmentProgramKind::Overlay(p) => TrianglesKind::Window(*p)
-    }
 }
 
 fn dims_to_sizes(areas: &[CanvasTextureArea]) -> (Vec<f64>,Vec<f64>) {
@@ -191,8 +163,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             array.close()?;
             Ok(ShapeToAdd::None)
         },
-        GLShape::Text(points,handles,allotments,program_kind,prio) => {
-            let kind = to_trianges_kind(&program_kind);
+        GLShape::Text(points,handles,allotments,kind,prio) => {
             // TODO factor
             let text = tools.text();
             let dims = handles.iter()
@@ -203,8 +174,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Image(points,handles,allotments,program_kind,prio) => {
-            let kind = to_trianges_kind(&program_kind);
+        GLShape::Image(points,handles,allotments,kind,prio) => {
             // TODO factor
             let bitmap = tools.bitmap();
             let dims = handles.iter()
@@ -215,8 +185,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false,prio)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Heraldry(area,handles,allotments,program_kind,heraldry_canvas,scale,edge,prio) => {
-            let kind = to_trianges_kind(&program_kind);
+        GLShape::Heraldry(area,handles,allotments,kind,heraldry_canvas,scale,edge,prio) => {
             let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas,&scale,&edge,prio)?;
             if let Some(rectangles) = rectangles {
                 Ok(ShapeToAdd::Dynamic(rectangles))
@@ -224,9 +193,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
                 Ok(ShapeToAdd::None)
             }
         },
-        GLShape::SpaceBaseRect(area,simple_shape_patina,allotments,allotment_kind,prio) => {
+        GLShape::SpaceBaseRect(area,simple_shape_patina,allotments,kind,prio) => {
             let mut drawing_shape_patina = simple_shape_patina.build();
-            let kind = to_trianges_kind(&allotment_kind);
             let mut geometry_yielder = kind.geometry_yielder(prio);
             let left = layer.left();
             match drawing_shape_patina.yielder_mut() {
