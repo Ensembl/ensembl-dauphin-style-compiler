@@ -51,6 +51,8 @@ struct region {
 
 struct datasource { value: number };
 
+func bp_range() becomes number;
+
 func track_new(string,string,number,number,number) becomes laneid;
 proc track_add_tag(laneid,string);
 proc track_add_trigger(laneid,vec(string));

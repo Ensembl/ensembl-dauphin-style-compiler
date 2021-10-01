@@ -27,13 +27,13 @@ use serde_cbor::Value as CborValue;
 use super::numops::{ library_numops_commands };
 use super::eq::{ library_eq_command };
 use super::assign::{ library_assign_commands };
-use super::print::{ PrintCommandType, FormatCommandType };
+use super::print::{ PrintCommandType, FormatCommandType, CommaFormatCommandType };
 use super::vector::{ library_vector_commands };
 use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(4,0),0xE3EF4ACC9DFD974C)
+    CommandSetId::new("std",(7,0),0x3E2979E227570A0D)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -301,8 +301,62 @@ impl Command for AlienateCommand {
     }
 }
 
+pub struct RulerIntervalCommandType();
+
+impl CommandType for RulerIntervalCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 3,
+            trigger: CommandTrigger::Command(Identifier::new("std","ruler_interval"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,_sig,_) = &it.itype {
+            Ok(Box::new(RulerIntervalCommand(it.regs[0],it.regs[1],it.regs[2])))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }    
+}
+
+pub struct RulerIntervalCommand(Register,Register,Register);
+
+impl Command for RulerIntervalCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
+    }    
+}
+
+pub struct RulerMarkingsCommandType();
+
+impl CommandType for RulerMarkingsCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 4,
+            trigger: CommandTrigger::Command(Identifier::new("std","ruler_markings"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,_sig,_) = &it.itype {
+            Ok(Box::new(RulerMarkingsCommand(it.regs[0],it.regs[1],it.regs[2],it.regs[3])))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }    
+}
+
+pub struct RulerMarkingsCommand(Register,Register,Register,Register);
+
+impl Command for RulerMarkingsCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize(),self.3.serialize()]))
+    }    
+}
+
 pub fn make_std() -> CompLibRegister {
-    /* next is 31 */
+    /* next is 34 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -316,6 +370,9 @@ pub fn make_std() -> CompLibRegister {
     set.push("extract_filter",Some(27),ExtractFilterCommandType());
     set.push("run",Some(29),RunCommandType());
     set.push("halt",Some(30),HaltCommandType());
+    set.push("ruler_interval",Some(31),RulerIntervalCommandType());
+    set.push("ruler_markings",Some(32),RulerMarkingsCommandType());
+    set.push("comma_format",Some(33),CommaFormatCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

@@ -24,6 +24,13 @@ stmt new_allotment(p,name,prio,switch_id,has_labels) {
     track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
 }
 
+stmt new_thin_allotment(p,name,prio,switch_id,has_labels) {
+    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height"];
+    meta_values := [[switch_id],[has_labels],["0"],["0"],["20"]];
+
+    track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
+}
+
 stmt gene_std(p) {
     track_add_tag(p,"local");
     track_add_trigger(p,["track","gene-pc-fwd"]);
@@ -67,6 +74,13 @@ p := track_new("self()","gene-overview",23,100,6);
 gene_std(p);
 track_apply(p);
 
+/* RULER */
+p := track_new("self()","ruler",1,100,1);
+new_thin_allotment(p,"track:ruler-top",-2000000,"ruler-top","");
+new_thin_allotment(p,"track:ruler-bottom",2000000,"ruler-bottom","");
+track_add_trigger(p,["ruler"]);
+track_add_switch(p,["settings"]);
+track_apply(p);
 
 /* GC */
 p := track_new("self()","gc",1,100,3);

@@ -1,0 +1,23 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+min_max := bp_range();
+min := [min_max][@==0];
+max := [min_max][@==1];
+
+interval := ruler_interval(max - min,10);
+markings := ruler_markings(interval,min,max);
+
+allotment_top := use_allotment("track:ruler-top");
+allotment_bottom := use_allotment("track:ruler-bottom");
+
+/* markers */
+marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1,0);
+rectangle_on_genome(markings,markings,16,marker_patina,allotment_top);
+rectangle_on_genome(markings,markings,16,marker_patina,allotment_bottom);
+
+/* text */
+textpen := pen("'Lato', sans-serif",12,direct_colour(120,120,120,255),[][],0);
+text_position := spacebase(markings,2,4);
+text2(text_position,textpen,comma_format(markings),allotment_top);
+text2(text_position,textpen,comma_format(markings),allotment_bottom);

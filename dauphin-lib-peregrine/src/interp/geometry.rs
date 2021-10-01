@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, SpaceBase, Universe, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -18,6 +18,21 @@ simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
 simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,5));
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
+simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
+
+impl InterpCommand for BpRangeInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let peregrine = get_peregrine(context)?;
+        let shape = get_instance::<ShapeRequest>(context,"request")?;
+        let region = shape.region();
+        let registers = context.registers_mut();
+        let scale = region.scale().bp_in_carriage();
+        let min = region.min_value();
+        let max = region.max_value();
+        registers.write(&self.0,InterpValue::Numbers(vec![min as f64, max as f64]));
+        Ok(CommandResult::SyncResult())
+    }
+}
 
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

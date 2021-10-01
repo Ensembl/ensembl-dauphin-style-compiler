@@ -31,6 +31,8 @@ proc incr(mask number, number);
 inline "(+=)" incr left 14;
 
 func len(vec(_)) becomes number;
+func ruler_interval(number,number) becomes number;
+func ruler_markings(number,number,number) becomes number;
 
 proc assert(boolean,boolean);
 
@@ -52,6 +54,7 @@ stmt warn(text) { print(true,1,text); }
 stmt error(text) { print(true,2,text); }
 
 func format(_) becomes string;
+func comma_format(number) becomes string;
 
 expr push(list,item) [list[] (+) item];
 expr append(list,items) [list[] (+) items[]];

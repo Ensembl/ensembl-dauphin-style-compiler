@@ -49,6 +49,33 @@ impl Command for FormatCommand {
     }
 }
 
+pub struct CommaFormatCommandType();
+
+impl CommandType for CommaFormatCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 2,
+            trigger: CommandTrigger::Command(Identifier::new("std","comma_format"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,_sig,_) = &it.itype {
+            Ok(Box::new(CommaFormatCommand(it.regs[0],it.regs[1])))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }    
+}
+
+pub struct CommaFormatCommand(Register,Register);
+
+impl Command for CommaFormatCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize()]))
+    }    
+}
+
 pub struct PrintCommandType();
 
 impl CommandType for PrintCommandType {

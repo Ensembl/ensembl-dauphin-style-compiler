@@ -93,13 +93,14 @@ impl Flat {
         }
         let ascii_data = base64::encode(data);
         let img = HtmlImageElement::new()?;
-        if let Some(name) = &name {
-            self.png_cache.set(name,img.clone());
-        }
         let img2 = img.clone();
         img.set_src(&format!("data:image/png;base64,{0}",ascii_data));
+        let png_cache = self.png_cache.clone();
         let closure = Closure::once_into_js(move || {
             js_result_to_option_console(draw_png_onload(context,img2.clone(),origin,size));
+            if let Some(name) = &name {
+                png_cache.set(name,img2.clone());
+            }    
         });
         img.set_onload(Some(&closure.as_ref().unchecked_ref()));
         Ok(())

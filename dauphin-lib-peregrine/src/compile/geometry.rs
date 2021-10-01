@@ -23,6 +23,7 @@ simple_command!(SpaceBaseCommand,SpaceBaseCommandType,"peregrine","spacebase",4,
 simple_command!(SimpleColourCommand,SimpleColourCommandType,"peregrine","simple_colour",2,(0,1));
 simple_command!(StripedCommand,StripedCommandType,"peregrine","striped",6,(0,1,2,3,4,5));
 simple_command!(BarCommand,BarCommandType,"peregrine","barred",6,(0,1,2,3,4,5));
+simple_command!(BpRangeCommand,BpRangeCommandType,"peregrine","bp_range",1,(0));
 
 /* 0: out/patina  1: zmenu  2: key/D  3: key/A  4: key/B  5: value/D  6: value/A  7: value/B */
 pub struct PatinaZMenuCommand(Register,Register,Register,Register,Register,Register,Register,Register);

@@ -167,8 +167,44 @@ impl CommandDeserializer for PrintDeserializer {
         Ok(Box::new(PrintInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?,Register::deserialize(value[2])?)))
     }
 }
+pub struct CommaFormatDeserializer();
+
+impl CommandDeserializer for CommaFormatDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((33,2))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(CommaFormatInterpCommand(Register::deserialize(value[0])?,Register::deserialize(value[1])?)))
+    }
+}
+
+fn format_number(number: f64) -> String {
+    let mut number = number.round() as i64;
+    let mut out = vec![];
+    while number > 1000 {
+        out.push(format!("{0:0<3}",number%1000));
+        number /= 1000;
+    }
+    out.push(number.to_string());
+    out.reverse();
+    out.join(",")
+}
+
+pub struct CommaFormatInterpCommand(Register,Register);
+
+impl InterpCommand for CommaFormatInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let numbers = registers.get_numbers(&self.1)?;
+        let mut out = vec![];
+        for number in numbers.iter() {
+            out.push(format_number(*number));
+        }
+        registers.write(&self.0,InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
+    }
+}
 
 pub(super) fn library_print_commands_interp(set: &mut InterpLibRegister) {
     set.push(PrintDeserializer());
     set.push(FormatDeserializer());
+    set.push(CommaFormatDeserializer());
 }

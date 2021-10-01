@@ -15,7 +15,7 @@ serde_cbor = "*"
 anyhow="*"
 dauphin_interp = { path = "../dauphin-interp" }
 dauphin_compile = { path = "../dauphin-compile", optional = true }
-web-sys="*"
+web-sys={ version="*", features = ["console"] }
 
 [dev-dependencies]
 dauphin_compile = { path = "../dauphin-compile" }
