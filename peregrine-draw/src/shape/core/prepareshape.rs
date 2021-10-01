@@ -117,7 +117,7 @@ fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
 
 fn split_on_draw_group(shape: Shape) -> Vec<(DrawGroup,Shape)> {
     shape.demerge_by_allotment(|allotment| {
-        DrawGroup::new(&allotment.allotment_group())
+        DrawGroup::new(&allotment.coord_system())
     })
 }
 

@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
-use crate::{Allotment, AllotmentGroup, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
-use super::{allotment::AllotmentImpl, allotmentrequest::{AllotmentRequestImpl}};
+use crate::{Allotment, AllotmentDirection, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
 pub(super) fn remove_depth(spec: &mut String) -> i8 {
     let mut depth = 0;
@@ -22,13 +22,20 @@ pub(super) fn remove_depth(spec: &mut String) -> i8 {
 pub struct BaseAllotmentRequest<T> {
     metadata: AllotmentMetadata,
     allotment: Mutex<Option<Arc<T>>>,
-    group: AllotmentGroup,
+    coord_system: CoordinateSystem,
+    direction: AllotmentDirection,
     max: Mutex<i64>
 }
 
 impl<T> BaseAllotmentRequest<T> {
-    pub fn new(metadata: &AllotmentMetadata, group: &AllotmentGroup) -> BaseAllotmentRequest<T> {
-        BaseAllotmentRequest { metadata: metadata.clone(), allotment: Mutex::new(None), group: group.clone(), max: Mutex::new(0) }
+    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, direction: &AllotmentDirection) -> BaseAllotmentRequest<T> {
+        BaseAllotmentRequest {
+            metadata: metadata.clone(),
+            allotment: Mutex::new(None),
+            direction: direction.clone(),
+            coord_system: coord_system.clone(),
+            max: Mutex::new(0)
+        }
     }
 
     pub fn set_allotment(&self, value: Arc<T>) {
@@ -66,7 +73,7 @@ impl<T> BaseAllotmentRequest<T> {
 
 impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
     fn name(&self) -> String { self.metadata.name().to_string() }
-    fn allotment_group(&self) -> AllotmentGroup { self.group.clone() }
+    fn direction(&self) -> AllotmentDirection { self.direction.clone() }
     fn is_dustbin(&self) -> bool { false }
     fn priority(&self) -> i64 { self.metadata.priority() }
 
@@ -84,10 +91,5 @@ impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T
 
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl> { self }
 
-    fn filter_min_max(&self) -> FilterMinMax {
-        match self.allotment_group() {
-            AllotmentGroup::Track => FilterMinMax::Base,
-            _ => FilterMinMax::None
-        }
-    }
+    fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }

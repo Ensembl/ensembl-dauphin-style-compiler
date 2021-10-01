@@ -175,6 +175,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Image(points,handles,allotments,kind,prio) => {
+            use web_sys::console;
+            console::log_1(&format!("image kind={:?} points={} prio={}",kind,points.len(),prio).into());
             // TODO factor
             let bitmap = tools.bitmap();
             let dims = handles.iter()

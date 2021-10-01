@@ -1,7 +1,8 @@
 use std::hash::Hash;
 use std::sync::Arc;
-use crate::{Allotment, AllotmentGroup, DataMessage};
-use crate::shape::shape::FilterMinMax;
+use crate::{Allotment, AllotmentDirection, DataMessage};
+
+use super::allotment::CoordinateSystem;
 
 impl Hash for AllotmentRequest {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -21,13 +22,13 @@ impl Eq for AllotmentRequest {}
 
 pub trait AllotmentRequestImpl {
     fn name(&self) -> String;
-    fn allotment_group(&self) -> AllotmentGroup;
+    fn direction(&self) -> AllotmentDirection;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl>;
     fn register_usage(&self, max: i64);
-    fn filter_min_max(&self) -> FilterMinMax;
+    fn coord_system(&self) -> CoordinateSystem;
 }
 
 #[derive(Clone)]
@@ -39,11 +40,11 @@ impl AllotmentRequest {
     }
 
     pub fn name(&self) -> String { self.0.name().to_string() }
-    pub fn allotment_group(&self) -> AllotmentGroup { self.0.allotment_group() }
+    pub fn direction(&self) -> AllotmentDirection { self.0.direction() }
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
-    pub fn filter_min_max(&self) -> FilterMinMax { self.0.filter_min_max() }
+    pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
     pub fn register_usage(&self, max: i64) { self.0.register_usage(max); }
 }
 

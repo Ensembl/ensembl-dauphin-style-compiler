@@ -5,14 +5,7 @@ use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
-
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub enum CoordinateSystem {
-    Track,
-    Base,
-    Space,
-    Window
-}
+use peregrine_data::CoordinateSystem;
 
 #[derive(Clone)]
 pub(crate) enum GeometryProgramLink {

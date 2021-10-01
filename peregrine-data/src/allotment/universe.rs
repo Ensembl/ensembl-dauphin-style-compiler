@@ -28,15 +28,13 @@ impl UniverseData {
             self.main.make_request(allotment_metadata,name)
         } else {
             let group = self.group(name);
-            let allotment_group = group.to_allotment_group();
-            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(allotment_group))).make_request(allotment_metadata,name)
+            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(group.coord_system(),group.direction()))).make_request(allotment_metadata,name)
         }
     }
 
     fn union(&mut self, other: &UniverseData) {
         for (group_type,other_group) in other.requests.iter() {
-            let allotment_group = group_type.to_allotment_group();
-            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(allotment_group)));
+            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(group_type.coord_system(),group_type.direction())));
             self_group.union(other_group);
         }
         self.main.union(&other.main);

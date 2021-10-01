@@ -1,6 +1,5 @@
 mod allotment {
     pub(crate) mod allotment;
-    pub(crate) mod allotmentgroup;
     pub(crate) mod allotmentmetadata;
     pub(crate) mod allotmentrequest;
     pub(crate) mod baseallotmentrequest;
@@ -175,8 +174,8 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
 };
-pub use self::allotment::allotmentgroup::{  AllotmentGroup, AllotmentDirection };
-pub use self::allotment::allotment::Allotment;
+pub use self::allotment::allotment::{ AllotmentDirection };
+pub use self::allotment::allotment::{ Allotment, CoordinateSystem };
 pub use self::allotment::allotmentrequest::AllotmentRequest;
 pub use self::allotment::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport

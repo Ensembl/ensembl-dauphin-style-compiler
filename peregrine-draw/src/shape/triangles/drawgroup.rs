@@ -1,5 +1,5 @@
-use peregrine_data::{Allotment, AllotmentDirection, AllotmentGroup, SpaceBase, SpaceBaseArea};
-use crate::shape::{layers::geometry::{CoordinateSystem, GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
+use peregrine_data::{Allotment, AllotmentDirection, CoordinateSystem, SpaceBase, SpaceBaseArea};
+use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
 
 fn flip(allotment: &Allotment) -> f64 {
@@ -15,15 +15,9 @@ pub struct DrawGroup {
 }
 
 impl DrawGroup {
-    pub(crate) fn new(allotment: &AllotmentGroup) -> DrawGroup {
-        let coord_system = match allotment {
-            AllotmentGroup::Track => CoordinateSystem::Track,
-            AllotmentGroup::Overlay => CoordinateSystem::Window,
-            AllotmentGroup::SpaceLabel(_) => CoordinateSystem::Space,
-            AllotmentGroup::BaseLabel(_) => CoordinateSystem::Base
-        };
+    pub(crate) fn new(coord_system: &CoordinateSystem) -> DrawGroup {
         DrawGroup {
-            coord_system
+            coord_system: coord_system.clone()
         }
     }
 

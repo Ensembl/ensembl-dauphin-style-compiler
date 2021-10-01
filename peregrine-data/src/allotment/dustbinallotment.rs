@@ -1,17 +1,17 @@
 use std::sync::Arc;
-use crate::{Allotment, AllotmentGroup, DataMessage, shape::shape::FilterMinMax};
+use crate::{Allotment, AllotmentDirection, DataMessage, shape::shape::FilterMinMax};
 
-use super::allotmentrequest::{AllotmentRequestImpl};
+use super::{allotment::CoordinateSystem, allotmentrequest::{AllotmentRequestImpl}};
 
 pub struct DustbinAllotmentRequest();
 
 impl AllotmentRequestImpl for DustbinAllotmentRequest {
     fn name(&self) -> String { "".to_string() }
-    fn allotment_group(&self) -> AllotmentGroup { AllotmentGroup::Track }
+    fn direction(&self) -> AllotmentDirection { AllotmentDirection::Forward }
     fn is_dustbin(&self) -> bool { true }
     fn priority(&self) -> i64 { 0 }
     fn register_usage(&self, _max: i64) {}    
-    fn filter_min_max(&self) -> FilterMinMax { FilterMinMax::None }
+    fn coord_system(&self) -> CoordinateSystem { CoordinateSystem::Window }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         Err(DataMessage::AllotmentNotCreated(format!("attempt to display the dustbin!")))

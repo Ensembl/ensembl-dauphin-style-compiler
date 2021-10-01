@@ -5,6 +5,7 @@ use crate::Assets;
 use crate::Flattenable;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
+use crate::allotment::allotment::CoordinateSystem;
 use crate::allotment::allotmentrequest::AllotmentRequest;
 use crate::util::ringarray::DataFilter;
 
@@ -18,10 +19,10 @@ pub enum FilterMinMax {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,FilterMinMax),
-    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,FilterMinMax),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,FilterMinMax),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,FilterMinMax)
+    Text(HoleySpaceBase,Pen,Vec<String>,Vec<AllotmentRequest>,CoordinateSystem),
+    Image(HoleySpaceBase,i8,Vec<String>,Vec<AllotmentRequest>,CoordinateSystem),
+    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,CoordinateSystem),
+    SpaceBaseRect(HoleySpaceBaseArea,Patina,Vec<AllotmentRequest>,CoordinateSystem)
 }
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
@@ -70,19 +71,21 @@ impl Shape {
     }
 
     fn test_filter_base(&self) -> bool {
-        let filter = match self {
-            Shape::SpaceBaseRect(_,_,_,filter_min_max) => filter_min_max,
-            Shape::Text(_,_,_,_,filter_min_max) => filter_min_max,
-            Shape::Image(_,_,_,_,filter_min_max) => filter_min_max,
-            Shape::Wiggle(_,_,_,_,filter_min_max) => filter_min_max
+        let coord_system = match self {
+            Shape::SpaceBaseRect(_,_,_,coord_system) => coord_system,
+            Shape::Text(_,_,_,_,coord_system) => coord_system,
+            Shape::Image(_,_,_,_,coord_system) => coord_system,
+            Shape::Wiggle(_,_,_,_,coord_system) => coord_system
         };
-        match filter {
+        match coord_system.filter_min_max() {
             FilterMinMax::Base => true,
             FilterMinMax::None => false
         }
     }
 
     pub fn filter_min_max(&self, min_value: f64, max_value: f64) -> Shape {
+        use web_sys::console;
+        console::log_1(&format!("filter={:?}",self.test_filter_base()).into());
         if !self.test_filter_base() {
             return self.clone();
         }

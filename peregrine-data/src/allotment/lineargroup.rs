@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc}};
-use crate::{AllotmentDirection, AllotmentGroup, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Pitch};
+use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Pitch, shape::shape::FilterMinMax};
 
-use super::{allotment::AllotmentImpl, allotmentrequest::{AllotmentRequestImpl}};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub(super) enum LinearRequestGroupName {
@@ -14,14 +14,25 @@ pub(super) enum LinearRequestGroupName {
 }
 
 impl LinearRequestGroupName {
-    pub(crate) fn to_allotment_group(&self) -> AllotmentGroup {
+    pub(crate) fn direction(&self) -> AllotmentDirection {
         match self {
-            LinearRequestGroupName::Track => AllotmentGroup::Track,
-            LinearRequestGroupName::OverlayTop => AllotmentGroup::BaseLabel(AllotmentDirection::Forward),
-            LinearRequestGroupName::OverlayBottom => AllotmentGroup::BaseLabel(AllotmentDirection::Reverse),
-            LinearRequestGroupName::OverlayLeft => AllotmentGroup::SpaceLabel(AllotmentDirection::Forward),
-            LinearRequestGroupName::OverlayRight => AllotmentGroup::SpaceLabel(AllotmentDirection::Reverse),
-            LinearRequestGroupName::Screen(i) => AllotmentGroup::Overlay
+            LinearRequestGroupName::Track => AllotmentDirection::Forward,
+            LinearRequestGroupName::OverlayTop => AllotmentDirection::Forward,
+            LinearRequestGroupName::OverlayBottom => AllotmentDirection::Reverse,
+            LinearRequestGroupName::OverlayLeft => AllotmentDirection::Forward,
+            LinearRequestGroupName::OverlayRight => AllotmentDirection::Reverse,
+            LinearRequestGroupName::Screen(i) => AllotmentDirection::Forward
+        }
+    }
+
+    pub(crate) fn coord_system(&self) -> CoordinateSystem {
+        match self {
+            LinearRequestGroupName::Track => CoordinateSystem::Track,
+            LinearRequestGroupName::OverlayTop => CoordinateSystem::Space,
+            LinearRequestGroupName::OverlayBottom => CoordinateSystem::Space,
+            LinearRequestGroupName::OverlayLeft => CoordinateSystem::Base,
+            LinearRequestGroupName::OverlayRight => CoordinateSystem::Base,
+            LinearRequestGroupName::Screen(i) => CoordinateSystem::Window
         }
     }
 }
