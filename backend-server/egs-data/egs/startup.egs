@@ -69,7 +69,7 @@ track_apply(p);
 
 
 /* GC */
-p := track_new("self()","gc",1,100,5);
+p := track_new("self()","gc",1,100,3);
 new_allotment(p,"track:gc",2000,"gc","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gc"]);

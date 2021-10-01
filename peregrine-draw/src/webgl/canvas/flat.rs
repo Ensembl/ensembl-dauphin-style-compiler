@@ -1,7 +1,7 @@
 use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement, HtmlImageElement };
 use peregrine_data::{ Pen, DirectColour };
-use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, weave::CanvasWeave};
+use super::{bindery::SelfManagedWebGlTexture, canvasstore::HtmlFlatCanvas, pngcache::PngCache, weave::CanvasWeave};
 use crate::util::message::Message;
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::js::exception::js_result_to_option_console;
@@ -28,11 +28,12 @@ pub(crate) struct Flat {
     size: (u32,u32),
     discarded: bool,
     gl_texture: Option<SelfManagedWebGlTexture>,
-    is_active: bool
+    is_active: bool,
+    png_cache: PngCache
 }
 
 impl Flat {
-    pub(super) fn new(canvas_store: &mut CanvasStore, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
+    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
         let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
         let context = el.element()
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
@@ -47,7 +48,8 @@ impl Flat {
             font_height: None,
             discarded: false,
             gl_texture: None,
-            is_active: false
+            is_active: false,
+            png_cache: png_cache.clone()
         })
     }
 
@@ -82,9 +84,18 @@ impl Flat {
         Ok(())
     }
 
-    fn draw_png_real(&self, context: CanvasRenderingContext2d, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),JsValue> {
+    fn draw_png_real(&self, context: CanvasRenderingContext2d, name: Option<String>, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),JsValue> {
+        if let Some(name) = &name {
+            if let Some(el) = self.png_cache.get(name) {
+                draw_png_onload(context,el,origin,size)?;
+                return Ok(());
+            }
+        }
         let ascii_data = base64::encode(data);
         let img = HtmlImageElement::new()?;
+        if let Some(name) = &name {
+            self.png_cache.set(name,img.clone());
+        }
         let img2 = img.clone();
         img.set_src(&format!("data:image/png;base64,{0}",ascii_data));
         let closure = Closure::once_into_js(move || {
@@ -94,10 +105,10 @@ impl Flat {
         Ok(())
     }    
 
-    pub(crate) fn draw_png(&self, origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Message> {
+    pub(crate) fn draw_png(&self,  name: Option<String>,origin: (u32,u32), size: (u32,u32), data: &[u8]) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?.clone();
-        self.draw_png_real(context,origin,size,data).map_err(|_| Message::Canvas2DFailure("cannot carate png".to_string()))?;
+        self.draw_png_real(context,name,origin,size,data).map_err(|_| Message::Canvas2DFailure("cannot carate png".to_string()))?;
         Ok(())
     }
 
@@ -107,7 +118,6 @@ impl Flat {
         context.clear_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
         Ok(())
     }
-
 
     pub(crate) fn path(&self, origin: (u32,u32), path: &[(u32,u32)], colour: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }

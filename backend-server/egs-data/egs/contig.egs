@@ -4,7 +4,7 @@ import "lib:peregrine"; use "peregrine";
 endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
 
 data := get_data("self()",endpoint,get_region());
-halt(only_warm(),[data]);
+//halt(only_warm(),[data]);
 
 start := delta_seq(data,"contig_starts");
 end := start + delta_seq(data,"contig_lengths");

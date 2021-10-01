@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use crate::{Carriage, CarriageId, LaneStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, StickId, add_task, core::Layout, switch::trackconfiglist::TrainTrackConfigList};
+use crate::{Carriage, CarriageId, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, switch::trackconfiglist::TrainTrackConfigList};
 use super::train::{Train, TrainId};
 
 #[derive(Clone)]
@@ -86,10 +86,10 @@ impl AnticipatePosition {
         }
     }
 
-    fn derive(&self, new_carriages: &mut AnticipatedCarriages, old_carriages: &AnticipatedCarriages, base: &PeregrineCoreBase, result_store: &LaneStore) {
+    fn derive(&self, new_carriages: &mut AnticipatedCarriages, old_carriages: &AnticipatedCarriages, base: &PeregrineCoreBase, result_store: &LaneStore, limit: i64) {
         /* out */
         let mut new_scale = self.scale.clone();
-        for index in 0..12 {
+        for index in 0..12.min(limit) {
             new_scale = new_scale.next_scale();
             let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
             let start = (base_index - 2).max(0);
@@ -101,7 +101,7 @@ impl AnticipatePosition {
         }
         /* in */
         let mut new_scale = Some(self.scale.clone());
-        for _index in 0..5 {
+        for _index in 0..5.min(limit) {
             new_scale = new_scale.as_ref().and_then(|s| s.prev_scale());
             if let Some(new_scale) = &new_scale {
                 for offset in 0..5 {
@@ -114,7 +114,7 @@ impl AnticipatePosition {
             }
         }
         /* left/right */
-        for offset in 2..9 {
+        for offset in 2..9.min(limit) {
             let index = self.index as i64 + (offset/2) * if offset%2 == 0 { 1 } else { -1 };
             if index < 0 { continue; }
             self.context.derive(new_carriages,old_carriages,base,result_store,&self.scale,index as u64);
@@ -146,7 +146,8 @@ impl Anticipate {
             old_carriages = carriages.clone();
         }
         let mut carriages = AnticipatedCarriages::new();
-        new_position.derive(&mut carriages,&old_carriages,&self.base,&self.result_store);
+        new_position.derive(&mut carriages,&old_carriages,&self.base,&self.result_store,4);
+        new_position.derive(&mut carriages,&old_carriages,&self.base,&self.result_store,100);
         *self.root.lock().unwrap() = Some((new_position,carriages));
     }
 }

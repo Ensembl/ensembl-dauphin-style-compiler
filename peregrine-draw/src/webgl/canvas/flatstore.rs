@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::weave::CanvasWeave;
+use super::{pngcache::PngCache, weave::CanvasWeave};
 use keyed::KeyedOptionalValues;
 use web_sys::{ Document };
 use super::flat::Flat;
@@ -15,7 +15,8 @@ keyed_handle!(FlatId);
 pub(crate) struct FlatStore {
     canvas_store: CanvasStore,
     scratch: HashMap<CanvasWeave,Flat>,
-    main_canvases: KeyedOptionalValues<FlatId,Flat>
+    main_canvases: KeyedOptionalValues<FlatId,Flat>,
+    png_cache: PngCache
 }
 
 impl FlatStore {
@@ -23,7 +24,8 @@ impl FlatStore {
         FlatStore {
             canvas_store: CanvasStore::new(),
             scratch: HashMap::new(),
-            main_canvases: KeyedOptionalValues::new()
+            main_canvases: KeyedOptionalValues::new(),
+            png_cache: PngCache::new()
         }
     }
 
@@ -36,14 +38,14 @@ impl FlatStore {
             }
         }
         if !use_cached {
-            let canvas = Flat::new(&mut self.canvas_store,document,&CanvasWeave::Crisp,size)?;
+            let canvas = Flat::new(&mut self.canvas_store,&self.png_cache,document,&CanvasWeave::Crisp,size)?;
             self.scratch.insert(weave.clone(),canvas);
         }
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
     pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
-        Ok(self.main_canvases.add(Flat::new(&mut self.canvas_store,document,weave,size)?))
+        Ok(self.main_canvases.add(Flat::new(&mut self.canvas_store,&self.png_cache,document,weave,size)?))
     }
 
     pub(crate) fn get(&self, id: &FlatId) -> Result<&Flat,Message> {

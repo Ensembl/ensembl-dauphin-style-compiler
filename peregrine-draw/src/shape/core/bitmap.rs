@@ -62,7 +62,7 @@ impl FlatDrawingItem for Bitmap {
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
         canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0,255))?;
-        canvas.draw_png(pad(text_origin),size,&self.bytes)?;
+        canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }
 }

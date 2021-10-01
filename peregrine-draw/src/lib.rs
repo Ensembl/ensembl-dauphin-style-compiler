@@ -33,7 +33,7 @@ mod input {
 
         pub use self::physics::Physics;
     }
-    
+
     pub use self::core::input::{ Input, InputEvent, InputEventKind };
 }
 
@@ -145,6 +145,7 @@ mod webgl {
         pub(crate) mod canvasstore;
         pub(crate) mod drawingflats;
         pub(crate) mod flatplotallocator;
+        pub(crate) mod pngcache;
         pub(crate) mod flat;
         pub(crate) mod packer;
         pub(crate) mod flatstore;
