@@ -18,19 +18,19 @@ fn allotments(allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message>
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum ShapeCategory {
-    Solid(i8),
-    Heraldry(HeraldryCanvasesUsed,HeraldryScale,i8)
+    Solid(),
+    Heraldry(HeraldryCanvasesUsed,HeraldryScale)
 }
 
 enum PatinaExtract<'a> {
-    Visual(&'a [Colour],Option<u32>,i8),
+    Visual(&'a [Colour],Option<u32>),
     ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
 fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
     match &patina {
-        Patina::Filled(c,prio) => PatinaExtract::Visual(c,None,*prio),
-        Patina::Hollow(c,w,prio) => PatinaExtract::Visual(c,Some(*w),*prio),
+        Patina::Filled(c) => PatinaExtract::Visual(c,None),
+        Patina::Hollow(c,w) => PatinaExtract::Visual(c,Some(*w)),
         Patina::ZMenu(zmenu,values) => PatinaExtract::ZMenu(zmenu.clone(),values.clone())
     }
 }
@@ -39,29 +39,29 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
     let allotment = allotments(&allotment)?;
     let mut out = vec![];
     match extract_patina(&patina) {
-        PatinaExtract::Visual(colours,width,prio) => {
+        PatinaExtract::Visual(colours,width) => {
             let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
                 if let Some(heraldry) = colour_to_heraldry(colour,width.is_some()) {
-                    ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale(),prio)                                
+                    ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
                 } else {
-                    ShapeCategory::Solid(prio)
+                    ShapeCategory::Solid()
                 }
             });
             for (pkind,filter) in &mut demerge_colour {
                 filter.set_size(area.len());
                 match pkind {
-                    ShapeCategory::Solid(prio) => {
-                        out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),draw_group.clone(),*prio));
+                    ShapeCategory::Solid() => {
+                        out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),draw_group.clone()));
                     },
-                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale,prio) => {
+                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                         let heraldry_tool = tools.heraldry();
                         let mut heraldry = make_heraldry(patina.filter(filter))?;
                         let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
                         let area = area.filter(filter);
                         let allotment = filter.filter(&allotment);
-                        out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None,*prio));
+                        out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
                     },
-                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale,prio) => {
+                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                         let width = width.unwrap_or(0) as f64;
                         let heraldry_tool = tools.heraldry();
                         let mut heraldry = make_heraldry(patina.filter(filter))?;
@@ -69,16 +69,16 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                         let area = area.filter(filter);
                         let allotment = filter.filter(allotment.as_ref());
                         // XXX too much cloning, at least Arc them
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width)),*prio));
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width)),*prio));
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width)),*prio));
-                        out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width)),*prio));
+                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
+                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
+                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
+                        out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
                     }
                 }
             }        
         },
         PatinaExtract::ZMenu(zmenu,values) => {
-            out.push(GLShape::SpaceBaseRect(area,SimpleShapePatina::ZMenu(zmenu,values),allotment,draw_group.clone(),0));
+            out.push(GLShape::SpaceBaseRect(area,SimpleShapePatina::ZMenu(zmenu,values),allotment,draw_group.clone()));
         }
     }
     Ok(out)
@@ -102,8 +102,8 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
 
 fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
     let (colours,hollow) = match patina {
-        Patina::Filled(c,_) => (c,false),
-        Patina::Hollow(c,_,_) => (c,true),
+        Patina::Filled(c) => (c,false),
+        Patina::Hollow(c,_) => (c,true),
         _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non filled/hollow")))?
     };
     let mut handles = vec![];
@@ -117,7 +117,7 @@ fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
 
 fn split_on_draw_group(shape: Shape) -> Vec<(DrawGroup,Shape)> {
     shape.demerge_by_allotment(|allotment| {
-        DrawGroup::new(&allotment.coord_system())
+        DrawGroup::new(&allotment.coord_system(),allotment.depth())
     })
 }
 
@@ -135,13 +135,13 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 let colours_iter = pen.colours().iter().cycle();
                 let background = pen.background();
                 let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
-                out.push(GLShape::Text(spacebase,handles,allotment,draw_group,pen.depth()));
+                out.push(GLShape::Text(spacebase,handles,allotment,draw_group));
             },
-            Shape::Image(spacebase,depth,images,allotment,_) => {
+            Shape::Image(spacebase,images,allotment,_) => {
                 let allotment = allotments(&allotment)?;
                 let drawing_bitmap = tools.bitmap();
                 let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
-                out.push(GLShape::Image(spacebase,handles,allotment,draw_group,depth));
+                out.push(GLShape::Image(spacebase,handles,allotment,draw_group));
             },
             Shape::SpaceBaseRect(area,patina,allotment,_) => {
                 out.append(&mut split_spacebaserect(tools,area,patina,allotment,&draw_group)?);

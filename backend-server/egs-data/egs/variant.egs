@@ -20,7 +20,7 @@ colours := [
 
 neg_colour := simple_colour(direct_colour(128,128,128,255));
 pos_colour := simple_colour(direct_colour(200,200,200,255));
-patina := patina_filled(index(values,colours),0);
+patina := patina_filled(index(values,colours));
 
 start := x_range[@==0];
 end := x_range[@==1];

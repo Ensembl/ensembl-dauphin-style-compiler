@@ -24,15 +24,17 @@ pub struct BaseAllotmentRequest<T> {
     allotment: Mutex<Option<Arc<T>>>,
     coord_system: CoordinateSystem,
     direction: AllotmentDirection,
+    depth: i8,
     max: Mutex<i64>
 }
 
 impl<T> BaseAllotmentRequest<T> {
-    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, direction: &AllotmentDirection) -> BaseAllotmentRequest<T> {
+    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, direction: &AllotmentDirection, depth: i8) -> BaseAllotmentRequest<T> {
         BaseAllotmentRequest {
             metadata: metadata.clone(),
             allotment: Mutex::new(None),
             direction: direction.clone(),
+            depth,
             coord_system: coord_system.clone(),
             max: Mutex::new(0)
         }
@@ -76,6 +78,7 @@ impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T
     fn direction(&self) -> AllotmentDirection { self.direction.clone() }
     fn is_dustbin(&self) -> bool { false }
     fn priority(&self) -> i64 { self.metadata.priority() }
+    fn depth(&self) -> i8 { self.depth }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         let allotment = self.allotment.lock().unwrap().clone();

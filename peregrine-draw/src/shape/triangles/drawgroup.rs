@@ -11,13 +11,15 @@ fn flip(allotment: &Allotment) -> f64 {
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
-    coord_system: CoordinateSystem
+    coord_system: CoordinateSystem,
+    depth: i8
 }
 
 impl DrawGroup {
-    pub(crate) fn new(coord_system: &CoordinateSystem) -> DrawGroup {
+    pub(crate) fn new(coord_system: &CoordinateSystem, depth: i8) -> DrawGroup {
         DrawGroup {
-            coord_system: coord_system.clone()
+            coord_system: coord_system.clone(),
+            depth
         }
     }
 
@@ -83,7 +85,9 @@ impl DrawGroup {
         GeometryProcessName::new(program)
     }
 
-    pub(crate) fn geometry_yielder(&self, priority: i8) -> TrackTrianglesYielder {
-        TrackTrianglesYielder::new(&self.geometry_process_name(),priority)
+    pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {
+        TrackTrianglesYielder::new(&self.geometry_process_name(),self.depth())
     }
+
+    pub fn depth(&self) -> i8 { self.depth }
 }

@@ -13,11 +13,11 @@ simple_command!(PinStartCommand,PinStartCommandType,"peregrine","pin_start",2,(0
 simple_command!(PinCentreCommand,PinCentreCommandType,"peregrine","pin_centre",2,(0,1));
 simple_command!(PinEndCommand,PinEndCommandType,"peregrine","pin_end",2,(0,1));
 simple_command!(ZMenuCommand,ZMenuCommandType,"peregrine","zmenu",2,(0,1));
-simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",3,(0,1,2));
-simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",4,(0,1,2,3));
+simple_command!(PatinaFilledCommand,PatinaFilledCommandType,"peregrine","patina_filled",2,(0,1));
+simple_command!(PatinaHollowCommand,PatinaHollowCommandType,"peregrine","patina_hollow",3,(0,1,2));
 simple_command!(DirectColourCommand,DirectColourCommandType,"peregrine","direct_colour",5,(0,1,2,3,4));
 simple_command!(UseAllotmentCommand,UseAllotmentCommandType,"peregrine","use_allotment",2,(0,1));
-simple_command!(PenCommand,PenCommandType,"peregrine","pen",6,(0,1,2,3,4,5));
+simple_command!(PenCommand,PenCommandType,"peregrine","pen",5,(0,1,2,3,4));
 simple_command!(PlotterCommand,PlotterCommandType,"peregrine","plotter",3,(0,1,2));
 simple_command!(SpaceBaseCommand,SpaceBaseCommandType,"peregrine","spacebase",4,(0,1,2,3));
 simple_command!(SimpleColourCommand,SimpleColourCommandType,"peregrine","simple_colour",2,(0,1));

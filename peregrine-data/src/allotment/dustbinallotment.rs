@@ -12,6 +12,7 @@ impl AllotmentRequestImpl for DustbinAllotmentRequest {
     fn priority(&self) -> i64 { 0 }
     fn register_usage(&self, _max: i64) {}    
     fn coord_system(&self) -> CoordinateSystem { CoordinateSystem::Window }
+    fn depth(&self) -> i8 { 0 }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         Err(DataMessage::AllotmentNotCreated(format!("attempt to display the dustbin!")))

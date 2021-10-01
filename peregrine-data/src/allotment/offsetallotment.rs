@@ -84,7 +84,7 @@ impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
     fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry> {
         let mut name = metadata.name().to_string();
         let depth = remove_depth(&mut name);
-        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,&self.0,&self.1)),depth))
+        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,&self.0,&self.1,depth)),depth))
     }
 
     fn hash(&self, name: &str) -> u64 {

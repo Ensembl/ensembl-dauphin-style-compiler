@@ -29,6 +29,7 @@ pub trait AllotmentRequestImpl {
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl>;
     fn register_usage(&self, max: i64);
     fn coord_system(&self) -> CoordinateSystem;
+    fn depth(&self) -> i8;
 }
 
 #[derive(Clone)]
@@ -43,6 +44,7 @@ impl AllotmentRequest {
     pub fn direction(&self) -> AllotmentDirection { self.0.direction() }
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
+    pub fn depth(&self) -> i8 { self.0.depth() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
     pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
     pub fn register_usage(&self, max: i64) { self.0.register_usage(max); }

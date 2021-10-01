@@ -45,6 +45,7 @@ impl MTSpecifier {
     }
 
     fn direction(&self) -> AllotmentDirection { AllotmentDirection::Forward }
+    fn depth(&self) -> i8 { self.depth }
 
     fn coord_system(&self) -> CoordinateSystem {
         match self.variety {
@@ -105,7 +106,7 @@ impl LinearGroupEntry for MainTrackRequest {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
-            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(),&specifier.direction()))
+            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(),&specifier.direction(),specifier.depth()))
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }

@@ -52,8 +52,7 @@ impl PenGeometry {
 struct PenInner {
     geometry: Arc<PenGeometry>,
     colours: Vec<DirectColour>,
-    background: Option<DirectColour>,
-    depth: i8
+    background: Option<DirectColour>
 }
 
 #[derive(Clone,Debug,PartialEq,Eq)]
@@ -69,12 +68,11 @@ impl Hash for Pen {
 }
 
 impl Pen {
-    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour], background: &Option<DirectColour>, depth: i8) -> Pen {
+    fn new_real(geometry: &Arc<PenGeometry>, colours: &[DirectColour], background: &Option<DirectColour>) -> Pen {
         let inner = PenInner {
             geometry: geometry.clone(),
             colours: colours.to_vec(),
-            background: background.clone(),
-            depth
+            background: background.clone()
         };
         let mut h = DefaultHasher::new();
         inner.hash(&mut h);
@@ -84,22 +82,21 @@ impl Pen {
         }
     }
 
-    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<DirectColour>, depth: i8) -> Pen {
-        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours,background,depth)
+    pub fn new(name: &str, size: u32, colours: &[DirectColour], background: &Option<DirectColour>) -> Pen {
+        Pen::new_real(&Arc::new(PenGeometry::new(name,size)), colours,background)
     }
 
     pub fn name(&self) -> &str { &self.inner.geometry.name }
     pub fn size(&self) -> u32 { self.inner.geometry.size }
-    pub fn depth(&self) -> i8{ self.inner.depth }
     pub fn colours(&self) -> &[DirectColour] { &self.inner.colours }
     pub fn background(&self) -> &Option<DirectColour> { &self.inner.background }
 
     pub fn bulk(self, len: usize, primary: bool) -> Pen {
-        Pen::new_real(&self.inner.geometry,&bulk(self.inner.colours.to_vec(),len,primary),&self.inner.background,self.inner.depth)
+        Pen::new_real(&self.inner.geometry,&bulk(self.inner.colours.to_vec(),len,primary),&self.inner.background)
     }
 
     pub fn filter(&self, filter: &DataFilter) -> Pen {
-        Pen::new_real(&self.inner.geometry,&filter.filter(&self.inner.colours),&self.inner.background,self.inner.depth)
+        Pen::new_real(&self.inner.geometry,&filter.filter(&self.inner.colours),&self.inner.background)
     }
 
     pub fn group_hash(&self) -> u64 { self.inner.geometry.hash }
@@ -120,8 +117,8 @@ pub enum Colour {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
-    Filled(Vec<Colour>,i8),
-    Hollow(Vec<Colour>,u32,i8),
+    Filled(Vec<Colour>),
+    Hollow(Vec<Colour>,u32),
     ZMenu(ZMenu,Vec<(String,Vec<String>)>)
 }
 
@@ -136,8 +133,8 @@ fn filter_zmenu(h : &Vec<(String,Vec<String>)>, filter: &DataFilter) -> Vec<(Str
 impl Patina {
     pub fn bulk(self, len: usize, primary: bool) -> Patina {
         match self {
-            Patina::Filled(c,prio) => Patina::Filled(bulk(c,len,primary),prio),
-            Patina::Hollow(c,w,prio) => Patina::Hollow(bulk(c,len,primary),w,prio),
+            Patina::Filled(c) => Patina::Filled(bulk(c,len,primary)),
+            Patina::Hollow(c,w) => Patina::Hollow(bulk(c,len,primary),w),
             Patina::ZMenu(z,mut h) => {
                 let mut new_h  = h.clone();
                 for (k,v) in h.drain(..) {
@@ -150,8 +147,8 @@ impl Patina {
 
     pub fn filter(&self, filter: &DataFilter) -> Patina {
         match self {
-            Patina::Filled(c,prio) => Patina::Filled(filter.filter(c),*prio),
-            Patina::Hollow(c,w,prio) => Patina::Hollow(filter.filter(c),*w,*prio),
+            Patina::Filled(c) => Patina::Filled(filter.filter(c)),
+            Patina::Hollow(c,w) => Patina::Hollow(filter.filter(c),*w),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }

@@ -144,11 +144,11 @@ thick_colour := index(allotment_idx,[normal_thick_colour,normal_thick_colour,nor
 
 thick_seq_colour := simple_colour(thick_colour);
 thin_seq_colour := simple_colour(text_colour);
-thick_seq_patina := patina_filled(thick_seq_colour,0);
-thin_seq_patina := patina_hollow(thin_seq_colour,1,0);
+thick_seq_patina := patina_filled(thick_seq_colour);
+thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
-thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour,1);
-thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][],0);
+thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
+thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][]);
 
 /*
  * prepare the zmenus

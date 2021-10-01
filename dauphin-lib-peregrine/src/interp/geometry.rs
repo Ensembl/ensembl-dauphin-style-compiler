@@ -9,10 +9,10 @@ use crate::util::{ get_peregrine, get_instance };
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
 simple_interp_command!(UseAllotmentInterpCommand,UseAllotmentDeserializer,12,2,(0,1));
-simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,3,(0,1,2));
-simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,4,(0,1,2,3));
+simple_interp_command!(PatinaFilledInterpCommand,PatinaFilledDeserializer,29,2,(0,1));
+simple_interp_command!(PatinaHollowInterpCommand,PatinaHollowDeserializer,9,3,(0,1,2));
 simple_interp_command!(DirectColourInterpCommand,DirectColourDeserializer,13,5,(0,1,2,3,4));
-simple_interp_command!(PenInterpCommand,PenDeserializer,16,6,(0,1,2,3,4,5));
+simple_interp_command!(PenInterpCommand,PenDeserializer,16,5,(0,1,2,3,4));
 simple_interp_command!(PlotterInterpCommand,PlotterDeserializer,18,3,(0,1,2));
 simple_interp_command!(SpaceBaseInterpCommand,SpaceBaseDeserializer,17,4,(0,1,2,3));
 simple_interp_command!(SimpleColourInterpCommand,SimpleColourDeserializer,35,2,(0,1));
@@ -51,11 +51,10 @@ impl InterpCommand for SpaceBaseInterpCommand {
     }
 }
 
-fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, priority: &Register,  cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Vec<Colour>,i8) -> Patina {
+fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
+        where F: FnOnce(Vec<Colour>) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
-    let priority = registers.get_numbers(priority)?.to_vec()[0] as i8;
     drop(registers);
     let peregrine = get_peregrine(context)?;
     let geometry_builder = peregrine.geometry_builder();
@@ -64,7 +63,7 @@ fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Regist
         colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
     }
     drop(peregrine);
-    let patina = cb(colours,priority);
+    let patina = cb(colours);
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -212,7 +211,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
 
 impl InterpCommand for PatinaFilledInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, &self.2,|c,p| Patina::Filled(c,p))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Filled(c))?;
         Ok(CommandResult::SyncResult())
     }
 }
@@ -222,7 +221,7 @@ impl InterpCommand for PatinaHollowInterpCommand {
         let registers = context.registers_mut();
         let width = *registers.get_numbers(&self.2)?.to_vec().get(0).unwrap_or(&1.);
         drop(registers);    
-        patina_colour(context,&self.0,&self.1, &self.3,|c,p| Patina::Hollow(c,width as u32,p))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Hollow(c,width as u32))?;
         Ok(CommandResult::SyncResult())
     }
 }
@@ -296,14 +295,13 @@ impl InterpCommand for PenInterpCommand {
         let size = registers.get_numbers(&self.2)?[0];
         let colour_ids = registers.get_indexes(&self.3)?;
         let background_id = registers.get_indexes(&self.4)?.get(0).cloned();
-        let depth = registers.get_numbers(&self.5)?[0] as i8;
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
         let colours : anyhow::Result<Vec<_>> = colour_ids.iter().map(|id| geometry_builder.direct_colour(*id as u32)).collect();
         let colours : Vec<DirectColour> = colours?.iter().map(|x| x.as_ref().clone()).collect();
         let background = background_id.map(|id| geometry_builder.direct_colour(id as u32)).transpose()?.map(|x| x.as_ref().clone());
-        let pen = Pen::new(&font,size as u32,&colours,&background,depth);
+        let pen = Pen::new(&font,size as u32,&colours,&background);
         let id = geometry_builder.add_pen(pen);
         drop(peregrine);
         let registers = context.registers_mut();
