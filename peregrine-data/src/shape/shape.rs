@@ -84,8 +84,6 @@ impl Shape {
     }
 
     pub fn filter_min_max(&self, min_value: f64, max_value: f64) -> Shape {
-        use web_sys::console;
-        console::log_1(&format!("filter={:?}",self.test_filter_base()).into());
         if !self.test_filter_base() {
             return self.clone();
         }

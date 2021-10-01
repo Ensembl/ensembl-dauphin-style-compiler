@@ -6,23 +6,24 @@ use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::Allo
 pub struct OffsetAllotment {
     metadata: AllotmentMetadata,
     direction: AllotmentDirection,
+    top: i64,
     offset: i64,
     size: i64,
     depth: i8
 }
 
 impl OffsetAllotment {
-    pub(crate) fn new(metadata: &AllotmentMetadata, direction: &AllotmentDirection, offset: i64, size: i64, depth: i8) -> OffsetAllotment {
+    pub(crate) fn new(metadata: &AllotmentMetadata, direction: &AllotmentDirection, top: i64, offset: i64, size: i64, depth: i8) -> OffsetAllotment {
         OffsetAllotment {
             metadata: metadata.clone(),
             direction: direction.clone(),
-            offset, size, depth
+            top, offset, size, depth
         }
     }
 
     pub(super) fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
         full_metadata.add_pair("type","track");
-        full_metadata.add_pair("offset",&self.offset.to_string());
+        full_metadata.add_pair("offset",&self.top.to_string());
         full_metadata.add_pair("height",&self.size.to_string());
     }
 }
@@ -53,7 +54,7 @@ pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8)
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
     fn make(&self, offset: i64) -> i64 {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.direction(),self.0.best_offset(offset),self.0.best_height(),self.1)));
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),&self.0.direction(),offset,self.0.best_offset(offset),self.0.best_height(),self.1)));
         self.0.max_used()
     }
 

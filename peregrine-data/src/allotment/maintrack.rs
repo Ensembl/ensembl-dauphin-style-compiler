@@ -80,7 +80,7 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),&specifier.direction(),best_offset,best_height,specifier.depth)));
+            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),&specifier.direction(),offset,best_offset,best_height,specifier.depth)));
         }
         best_height
     }
