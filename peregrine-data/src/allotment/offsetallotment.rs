@@ -9,22 +9,26 @@ pub struct OffsetAllotment {
     top: i64,
     offset: i64,
     size: i64,
-    depth: i8
+    depth: i8,
+    secret: bool
 }
 
 impl OffsetAllotment {
     pub(crate) fn new(metadata: &AllotmentMetadata, direction: &AllotmentDirection, top: i64, offset: i64, size: i64, depth: i8) -> OffsetAllotment {
+        let secret = metadata.get_i64("secret-track").unwrap_or(0) != 0;
         OffsetAllotment {
             metadata: metadata.clone(),
             direction: direction.clone(),
-            top, offset, size, depth
+            top, offset, size, depth, secret
         }
     }
 
     pub(super) fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
-        full_metadata.add_pair("type","track");
-        full_metadata.add_pair("offset",&self.top.to_string());
-        full_metadata.add_pair("height",&self.size.to_string());
+        if !self.secret {
+            full_metadata.add_pair("type","track");
+            full_metadata.add_pair("offset",&self.top.to_string());
+            full_metadata.add_pair("height",&self.size.to_string());
+        }
     }
 }
 

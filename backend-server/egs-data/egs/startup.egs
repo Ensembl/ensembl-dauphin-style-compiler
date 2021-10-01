@@ -25,8 +25,8 @@ stmt new_allotment(p,name,prio,switch_id,has_labels) {
 }
 
 stmt new_thin_allotment(p,name,prio,switch_id,has_labels) {
-    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height"];
-    meta_values := [[switch_id],[has_labels],["0"],["0"],["20"]];
+    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height","secret-track"];
+    meta_values := [[switch_id],[has_labels],["0"],["0"],["20"],["1"]];
 
     track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
 }

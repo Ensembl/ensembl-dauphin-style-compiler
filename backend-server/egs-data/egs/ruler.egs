@@ -5,7 +5,7 @@ min_max := bp_range();
 min := [min_max][@==0];
 max := [min_max][@==1];
 
-interval := ruler_interval(max - min,10);
+interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
 
 allotment_top := use_allotment("track:ruler-top");
