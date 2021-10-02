@@ -19,7 +19,7 @@ sequence_scale := 9;
 
 stmt new_allotment(p,name,prio,switch_id,has_labels) {
     meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height"];
-    meta_values := [[switch_id],[has_labels],["18"],["6"],["42"]];
+    meta_values := [[switch_id],[has_labels],["30"],["16"],["64"]];
 
     track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
 }

@@ -31,6 +31,7 @@
               <th>size</th>
               <th>on/off</th>
               <th>on/off</th>
+              <th>on/off</th>
             </tr>
           </thead>
           <tbody id="track-metadata">
@@ -69,6 +70,17 @@
             genome_browser.set_switch(["track",track_name,"label"]);
           } else {
             genome_browser.clear_switch(["track",track_name,"label"]);
+          }
+        }
+        function toggle_name(track_name) {
+          let cur = labels[track_name];
+          if(cur!==true && cur!==false) { cur = true; }
+          let value = !cur;
+          labels[track_name] = value;
+          if(value) {
+            genome_browser.set_switch(["track",track_name,"name"]);
+          } else {
+            genome_browser.clear_switch(["track",track_name,"name"]);
           }
         }
         let all_tracks = {};
@@ -110,8 +122,12 @@
                   td2.innerHTML = "<a href='#''>labels</a>";
                   td2.onclick = function() { toggle_label(track['switch-id']) };
                 }
+                let td3 = document.createElement("td");
+                td3.innerHTML = "<a href='#''>name</a>";
+                td3.onclick = function() { toggle_name(track['switch-id']) };
                 tr.appendChild(td1);
                 tr.appendChild(td2);
+                tr.appendChild(td3);
                 tbody.appendChild(tr);
               }
           } else if(kind=="zmenu") {
@@ -126,11 +142,15 @@
         genome_browser.set_switch(["track","gene-pc-fwd"]);
         genome_browser.set_switch(["track","gene-pc-rev"]);
         genome_browser.set_switch(["track","gene-pc-fwd","label"]);
+        genome_browser.set_switch(["track","gene-pc-fwd","name"]);
         genome_browser.set_switch(["track","gene-pc-rev","label"]);
+        genome_browser.set_switch(["track","gene-pc-rev","name"]);
         genome_browser.set_switch(["track","gene-other-fwd"]);
         genome_browser.set_switch(["track","gene-other-rev"]);
         genome_browser.set_switch(["track","gene-other-fwd","label"]);
+        genome_browser.set_switch(["track","gene-other-fwd","name"]);
         genome_browser.set_switch(["track","gene-other-rev","label"]);
+        genome_browser.set_switch(["track","gene-other-rev","name"]);
         genome_browser.set_switch(["track","gc"]);
         genome_browser.set_switch(["track","contig"]);
         genome_browser.set_switch(["track","variant"]);

@@ -103,7 +103,7 @@ gene.start$$ := gene.start$$[nice??];
 gene.end$$   := gene.end$$[nice??];
 ```
 
-Arrays are always passed by reference despite function argument mode, though it remains conventional to give the correct sigil (eg `<>`) for clarity. The `copy()` buitin creates an independent copy of an array.
+The `copy()` buitin creates an independent copy of an array, as does passing the array to a function using _in_ mode. All copies are lazy, and therefore efficient if the variable is unchanged.
 
 ## Iterators
 
