@@ -169,6 +169,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let dims = handles.iter()
                 .map(|handle| text.manager().get_texture_areas(handle))
                 .collect::<Result<Vec<_>,_>>()?;
+            if dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&dims);
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
             let rectangles = draw_points_from_canvas(layer,gl,&draw_group,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false)?;
@@ -180,7 +181,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let dims = handles.iter()
                 .map(|handle| bitmap.manager().get_texture_areas(handle))
                 .collect::<Result<Vec<_>,_>>()?;
-            let (x_sizes,y_sizes) = dims_to_sizes(&dims);
+            if dims.len() == 0 { return Ok(ShapeToAdd::None); }
+                let (x_sizes,y_sizes) = dims_to_sizes(&dims);
             let canvas = bitmap.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
             let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
