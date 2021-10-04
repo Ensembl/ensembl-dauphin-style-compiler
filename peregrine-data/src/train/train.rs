@@ -3,7 +3,6 @@ use std::fmt;
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
 use crate::core::{ Layout, Scale };
-use crate::switch::pitch::Pitch;
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
 use super::carriageevent::CarriageEvents;
@@ -94,18 +93,18 @@ impl TrainData {
         self.central_carriage().map(|c| c.shapes().universe().make_metadata_report().clone())
     }
 
-    fn pitch(&self) -> Pitch {
-        let mut pitch = Pitch::new();
+    fn height(&self) -> i64 {
+        let mut height = 0;
         if let Some(carriages) = &self.carriages {
             for carriage in carriages.carriages() {
                 if carriage.ready() {
                     let shapes = carriage.shapes();
                     let universe = shapes.universe();
-                    universe.apply_pitch(&mut pitch);
+                    height = height.max(universe.height());
                 }
             }
         }
-        pitch
+        height
     }
 
     fn set_max(&mut self, max: Result<u64,DataMessage>) {
@@ -196,7 +195,7 @@ impl Train {
     }
 
     pub(super) fn maybe_ready(&mut self) { self.0.lock().unwrap().maybe_ready(); }
-    pub(super) fn pitch(&self) -> Pitch { self.0.lock().unwrap().pitch() }
+    pub(super) fn height(&self) -> i64 { self.0.lock().unwrap().height() }
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
         Ok(data.agent_store.stick_store.get(&self.id().layout().stick()).await?.size())

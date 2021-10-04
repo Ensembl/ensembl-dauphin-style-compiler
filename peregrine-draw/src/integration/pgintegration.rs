@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use dauphin_interp::util::cbor::{cbor_map_iter, cbor_string };
-use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Pitch, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
+use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
 use super::pgchannel::PgChannel;
 use crate::{Message, PeregrineDom};
 use crate::input::Input;
@@ -64,10 +64,8 @@ impl PeregrineIntegration for PgIntegration {
         }
     }
 
-    fn notify_pitch(&mut self, pitch: &Pitch) {
-        self.dom.canvas_container().style().set_property("height",&format!("{}px",pitch.height())); // XXX errors
-        use web_sys::console;
-        //console::log_1(&format!("pitch {:?}",pitch).into());
+    fn set_height(&mut self, height: i64) {
+        self.dom.canvas_container().style().set_property("height",&format!("{}px",height)); // XXX errors
     }
 }
 

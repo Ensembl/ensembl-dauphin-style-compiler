@@ -137,7 +137,7 @@ loop name$ from (names$$) {
 
 Parentheses are mandatory as they may contain an arbitrary expression.
 
-## Literals
+## Literals and Construction
 
 XXX
 
@@ -167,7 +167,7 @@ function add_two(input%, >half_way%) -> % {
 
 Function and procedure implementations must be unique with respect to the type of their in and in/out parameters.
 
-Bulk-agrument syntax allows all variables defined up to a perion (`.`) to be passed as arguments. The sigil is a suffixed `..`. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
+Bulk-agrument syntax allows all variables defined up to a perion (`.`) to be passed as arguments. The sigil is a suffixed `..`. Bulk-argument syntax cannot be used in return types for functions. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
 
 ```
 procedure only_nice_genes(<>data..) {
@@ -209,135 +209,47 @@ filter_genes(<>gene.., gene.is_nice$$=="y");
 
 ## Imports
 
-## Multi-dimensional Arrays
+XXX
 
-Multi-dimensional arrays are represented using one-dimensional arrays plus two extra structuring variables -- offset and length -- for each extra dimension (conventionally named `.a` and `.b`) in addition to the actual data (conventionally named `.d`). Further levels index into the lower level offset and length arrays, and so on. This is efficient but awkward. Fortunately, multi-dimensional data is rare in our domain. The extra effort of this approach is generally paid-off with fast computation even with large datasets.
+## Structured data
 
-```
-// Representation of [[1,2,3],[4],[5,6]]
-x.a%% := [0,3,4];       // offsets
-x.b%% := [3,1,2];       // lengths
-x.d%% := [1,2,3,4,5,6]; // the data
+In a typical representation of structured data, each low-level data item contains a reference to a higher-level object (as an index). The builtin `pick` uses this reference to retrieve the property for the lower-level items.
 
-// Representation of [[[1,2],[3,4]],[[5,6],[7,8]]]
-x.0.a%% := [0,4];     // top-level offsets to the .1 arrays
-x.0.b%% := [4,4];     // top-level lengths to the .1 arrays
-x.1.a%% := [0,2,4,6]; // inner-level offsets to the .d array
-x.1.b%% := [2,2,2,2]; // inner-level lengths to the .d array
-x.d%%   := [1,2,3,4,5,6,7,8];
-```
-
-Note that outer dimensions refer into inner dimensions and all data can be sparse (typically after updates to the arrays, etc). `compactX(value..)` compacts higher-dimensional arrays for integer value `X` for small X. `compact(<>value%%,<>offset%%,<>length%%)` (and equivalent for other types) can be used for more complex cases. See appendix to example of compationg.
-
-Slices are used to work with multi-dimensional arrays, including reading and non-shape-changing writes via the `multi_index()` and `multi_slice()` builtins.
-
-See appendix for exmaples of sub-slicing multi-dimensional arrays. `multi_reverse()` yields the offsets of ranges overlapping a predicate's true values for reverse lookup as a boolean array.
-
-When updating an array in a shape-changing way (replacing a row with another of a different size, say), the memory freed is not reclaimed except after a subsequent compation. In most circumstances, it makes sense for the memory simply to "fall-off-the-end-of-the-program" unstead. The new data is simply appended to the `.d` array (and any necessary lower-level `.a` and `.b` arrays). (See appendix for examples).
-
-# Appendices
-
-These monstroseties are provided as a cookbook. Needless to say they are best avoided or, if necessary, factored into well-documented functions.
-
-## Appendix: compacting multi-dimensional arrays
+Consider exons in genes. In many cases (such as drawing) we can consider exons as a flat array. In other cases they need to be linked to their gene. In this case it makes more sense to have a reference _from_ the exons into the gene array.
 
 ```
-// A non-compact representation for [[1,2],[3,4]]
-x.a%% := [2,5];
-x.b%% := [2,2];
-x.d%% := [0,0,1,2,0,3,4];
-compact2(x..);
-print(x.a%%); // [0,2]
-print(x.b%%); // [2,2]
-print(x.d%%); // [1,2,3,4]
+exon.start%% := [A,B,C,D,...];
+exon.end%%   := [W,X,Y,Z,...];
+exon.gene%%  := [m,m,m,n,...];
+
+// create biotype array for exons (eg to place correctly)
+
+exon.biotype$$ := pick(exon.gene%%,gene.biotype$$);
+
+green_exons?? := exon.biotype$$ == "protein_coding";
+blue_exons?? := exon.biotype$$ == "nmd";
+
+special_exons?? := green_exons?? || blue_exons??; // etc
+
+exon.colour$$ := repeat(len(exon.start%%), "red");
+exon.colour$$[green_exons??] := "green";
+exon.colour$$[blue_exons??] := "blue";
 ```
 
-Doing it long-hand.
+On the other hand, we can also update the lower level object based on properties of the high-level one.
 
 ```
-// A non-compact representation for [[[1,2],[3,4]],[[5]],[[6]]]
-x.0.a%% := [2,7];
-x.0.b%% := [2,2];
-x.1.a%% := [0,0,1,5,0,0,0,8,9];
-x.1.b%% := [0,0,2,2,0,0,0,1,1];
-x.d%%   := [0,1,2,0,0,3,4,0,5,6];
+// fred at index m, bob at n
+gene.name$$ := [..., ..., "fred", ..., "bob", ...]; 
+exon.start%% := [A,B,C,D,...];
+exon.end%%   := [W,X,Y,Z,...];
+exon.gene%%  := [m,m,m,n,...];
 
-// compact3() would do the job for us here, but let's do it in bits
+focus_gene?? := gene.name$$ == "fred";
+focus_index%% := position(focus_gene??);
+focus_exon?? := exon.gene%% == focus_index%%;
 
-// compact the .1. variagles
-compact(x.1.a%%,x.0.a%%,x.0.b%%);
-compact(x.1.b%%,x.0.a%%,x.0.b%%);
-
-// compact .d
-compact(x.d%%,x.1.a%%,a.1.b%%);
+exon.colour$$[focus_exon??] := "purple";
 ```
 
-## Appendix: Sub-Slicing Multi-Dimensional Arrays
-
-```
-// Assume data%% contains some rep of [[1,2,3],[4],[5,6]]
-third_row?? := multi_index(data.0.a%%,data.0.b%%,2);
-print(data.d%%[third_row??]) // [5,6]
-
-// Flattening of second and third rows. Useful for updates.
-rows?? := [false,true,true];
-rows_23?? := multi_slice(data.0.a%%,data.0.b%%,rows??);
-print(data.d%%[rows_23??]); // [4,5,6]
-
-// Flattening of rows with fewer then three members
-rows?? := x.0.b%% < 3;
-short_rows?? := multi_slice(data.0.a%%,data.0.b%%,rows??);
-print(data.d%%[short_rows??]); // [4,5,6]
-
-// New array, y, containing only short rows
-rows?? := x.0.b%% < 3;
-y.0.a%% := x.0.a%%[rows??];
-y.0.b%% := x.0.b%%[rows??];
-y.0.d%% := x.0.d%%;
-
-// Assume x contains [[[1,2],[3]],[[4],[5,6]]]
-// create y containing just second row, ie [[4],[5,6]]
-row2_a% := scalar(x.0.a%%[index(1)]);
-row2_b% := scalar(x.0.b%%[index(1)]);
-second_row?? := range(row_2_a%,row_2_b%);
-y.0.a%% := x.1.a%%[second_row??];
-y.0.b%% := x.1.b%%[second_row??];
-y.d%%   := x.d%%;
-
-// create y containing only rows containing any element over 5.
-over5?? := x.d%% > 5; // [f,f,f,f,f,t]
-match.1?? := multi_reverse(over5??,x.1.a%%,x.1.b%%); // [f,f,f,t]
-match.0?? := multi_reverse(match.1??,x.0.a%%,a.0.b%%); // [f,t]
-y.0.a%% := x.0.a%%[match.0??];
-y.0.b%% := x.0.b%%[match.0??];
-y.1.a%% := x.1.a%%[match.1??];
-y.1.b%% := x.1.b%%[match.1??];
-```
-
-## Appendix: replacing array part (reshaping)
-
-```
-// Assume x contains [[[A,B],[C]],[[D],[E,F]]]
-// we want to append [[E],[F,G,H]]
-new.a%% := [0,1];
-new.b%% := [1,3];
-new.d$$ := ["E","F","G","H"];
-
-//
-len_new% := len(new_a%%);
-len_1% := len(x.1%%);
-len_d% := len(x.d$$);
-
-// add the actual data
-append(<>x.d$$,new.d$$);
-
-// at level 1 we tell it about the new data in d
-append(<>x.1.a%%,new.a%% + len_d%)
-append(<>x.1.b%%,new.b%%);
-
-// at level 0 we tell it about the new rows at level 1
-append(<>x.0.a%%,len_1%);
-append(<>x.0.b%%,len_new%);
-```
-
-XXX replace, delete row
+Very complex structured types should be implemented with domain-specific identifiers with the relevant methods rather than as ADTs. However id is important to keep biological modelling out of identifiers so such implementations which touch on bioligy should be as abstract and visual as possible.

@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::{Scale};
 use crate::api::{ CarriageSpeed, PeregrineCore };
-use crate::switch::pitch::Pitch;
 use crate::train::Carriage;
 use crate::train::train::Train;
 use crate::core::Viewport;
@@ -14,7 +13,7 @@ enum CarriageEvent {
     Set(Vec<Carriage>,Scale,u32),
     Transition(u32,u64,CarriageSpeed),
     NotifyViewport(Viewport,bool),
-    NotifyPitch(Pitch)
+    NotifyHeight(i64)
 }
 
 #[derive(Clone)]
@@ -49,8 +48,8 @@ impl CarriageEvents {
         self.0.lock().unwrap().push(CarriageEvent::NotifyViewport(viewport.clone(),future));
     }
 
-    pub(super) fn update_pitch(&mut self, pitch: &Pitch) {
-        self.0.lock().unwrap().push(CarriageEvent::NotifyPitch(pitch.clone()));
+    pub(super) fn notify_height(&mut self, height: i64) {
+        self.0.lock().unwrap().push(CarriageEvent::NotifyHeight(height));
     }
 
     pub(super) fn run(&mut self, objects: &mut PeregrineCore) -> Vec<Carriage> {
@@ -80,8 +79,8 @@ impl CarriageEvents {
                 CarriageEvent::NotifyViewport(viewport, future) => {
                     notifications.push((viewport,future));
                 },
-                CarriageEvent::NotifyPitch(pitch) => {
-                    objects.base.integration.lock().unwrap().notify_pitch(&pitch);
+                CarriageEvent::NotifyHeight(height) => {
+                    objects.base.integration.lock().unwrap().set_height(height);
                 }
             }
         }

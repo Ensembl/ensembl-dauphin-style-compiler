@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::{Arc}};
-use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Pitch, shape::shape::FilterMinMax};
+
+use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, shape::shape::FilterMinMax};
 
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
@@ -101,10 +102,6 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub(super) fn apply_pitch(&self, pitch: &mut Pitch) {
-        pitch.set_limit(self.max);
-    }
-
     pub(super) fn allot(&mut self) {
         let mut sorted_requests = self.requests.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
@@ -114,4 +111,6 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
         self.max = offset;
     }
+
+    pub(super) fn max(&self) -> i64 { self.max }
 }

@@ -1,6 +1,6 @@
 use std::{collections::{HashMap}, sync::{Arc, Mutex}};
 
-use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, Pitch};
+use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest };
 use peregrine_toolkit::lock;
 
 use super::{dustbinallotment::DustbinAllotmentRequest, lineargroup::{LinearRequestGroupName}, maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
@@ -54,8 +54,8 @@ impl UniverseData {
         self.main.allot();
     }
 
-    pub fn apply_pitch(&self, pitch: &mut Pitch) {
-        self.main.apply_pitch(pitch);
+    pub fn height(&self) -> i64 {
+        self.main.max()
     }
 }
 
@@ -98,7 +98,7 @@ impl Universe {
         lock!(self.data).allot();
     }
 
-    pub fn apply_pitch(&self,pitch: &mut Pitch) {
-        lock!(self.data).apply_pitch(pitch);
+    pub fn height(&self) -> i64 {
+        lock!(self.data).height()
     }
 }

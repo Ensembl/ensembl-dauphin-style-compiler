@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
-use crate::switch::pitch::Pitch;
 use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
@@ -25,7 +24,7 @@ pub struct TrainSetData {
     next_activation: u32,
     messages: MessageSender,
     anticipate: Anticipate,
-    pitch: Option<Pitch>,
+    height: Option<i64>,
     visual_blocker: Blocker,
     old_metadata: Option<AllotmentMetadataReport>,
     #[allow(unused)]
@@ -41,7 +40,7 @@ impl TrainSetData {
             next_activation: 0,
             messages: base.messages.clone(),
             anticipate: Anticipate::new(base,result_store),
-            pitch: None,
+            height: None,
             visual_blocker: visual_blocker.clone(),
             visual_lockout: None,
             old_metadata: None
@@ -70,7 +69,7 @@ impl TrainSetData {
                 self.next_activation += 1;
                 self.future = Some(wanted);
                 self.maybe_allotment_metadata(events);
-                self.maybe_notify_pitch(events);
+                self.maybe_new_height(events);
                 self.notify_viewport(events);
             }
         }
@@ -154,7 +153,7 @@ impl TrainSetData {
         }
         self.current = self.future.take();
         self.promote(events);
-        self.maybe_notify_pitch(events);
+        self.maybe_new_height(events);
     }
 
     fn update_trains(&mut self) -> CarriageEvents {
@@ -170,28 +169,28 @@ impl TrainSetData {
             train.set_carriages(&mut events);
         }
         self.maybe_allotment_metadata(&mut events);
-        self.maybe_notify_pitch(&mut events);
+        self.maybe_new_height(&mut events);
         events
     }
 
-    fn maybe_notify_pitch(&mut self, events: &mut CarriageEvents) {
-        let mut pitch = Pitch::new();
+    fn maybe_new_height(&mut self, events: &mut CarriageEvents) {
+        let mut height = 0;
         if let Some(wanted) = &self.wanted {
-            pitch.merge(&wanted.pitch());
+            height = height.max(wanted.height());
         }
         if let Some(future) = &self.future {
-            pitch.merge(&future.pitch());
+            height = height.max(future.height());
         }
         if let Some(current) = &self.current {
-            pitch.merge(&current.pitch());
+            height = height.max(current.height());
         }
-        if let Some(old_pitch) = &self.pitch {
-            if old_pitch == &pitch {
+        if let Some(old_height) = &self.height {
+            if old_height == &height {
                 return;
             }
         }
-        events.update_pitch(&pitch);
-        self.pitch = Some(pitch);
+        events.notify_height(height);
+        self.height = Some(height);
     }
 }
 
