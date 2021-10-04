@@ -44,6 +44,7 @@ impl MTSpecifier {
         }
     }
 
+    fn name(&self) -> String { format!("track:{}",self.name) }
     fn direction(&self) -> AllotmentDirection { AllotmentDirection::Forward }
     fn depth(&self) -> i8 { self.depth }
 
@@ -115,14 +116,13 @@ impl LinearGroupEntry for MainTrackRequest {
 pub struct MainTrackRequestCreator();
 
 impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry> {
-        Arc::new(MainTrackRequest::new(metadata))
+    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry> {
+        let metadata = metadata.get(base).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(base,0)));
+        Arc::new(MainTrackRequest::new(&metadata))
     }
 
-    fn hash(&self, name: &str) -> u64 {
+    fn base(&self, name: &str) -> String {
         let specifier = MTSpecifier::new(name);
-        let mut hasher = DefaultHasher::new();
-        specifier.name.hash(&mut hasher);
-        hasher.finish()
+        specifier.name().to_string()
     }
 }

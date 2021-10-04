@@ -32,7 +32,7 @@ be noted in the test_update_canvas_size call.
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
 use peregrine_toolkit::sync::needed::Needed;
-use web_sys::{HtmlCanvasElement, HtmlElement, WebGlRenderingContext, window };
+use web_sys::{HtmlCanvasElement, WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineInnerAPI;
@@ -46,8 +46,7 @@ fn screen_size() -> (u32,u32) {
 
 struct SizeManagerState {
     container_size: Option<(u32,u32)>,
-    canvas_element: HtmlElement,
-    container_element: HtmlElement,
+    dom: PeregrineDom,
     resize_observer: Option<PgResizeObserver>,
     pending_container_size: Option<(u32,u32)>,
     booted: bool
@@ -55,7 +54,7 @@ struct SizeManagerState {
 
 impl SizeManagerState {
     fn check_container_size(&mut self) -> bool {
-        let size = self.container_element.get_bounding_client_rect();
+        let size = self.dom.canvas_frame().get_bounding_client_rect();
         let (x,y) = (size.width() as u32,size.height() as u32);
         let out = self.container_size.map(|(old_x,old_y)| {
             old_x != x || old_y != y
@@ -72,7 +71,7 @@ impl SizeManagerState {
     }
 
     fn canvas_size(&self) -> (u32,u32) {
-        let size = self.canvas_element.get_bounding_client_rect();
+        let size = self.dom.canvas().get_bounding_client_rect();
         (size.width() as u32,size.height() as u32)
     }
 
@@ -109,7 +108,7 @@ pub(crate) struct SizeManager {
     state: Arc<Mutex<SizeManagerState>>,
     activity_monostable: Monostable,
     redraw_needed: Needed,
-    canvas_element: HtmlCanvasElement
+    dom: PeregrineDom
 }
 
 impl SizeManager {
@@ -121,16 +120,11 @@ impl SizeManager {
         let redraw_needed = Self::redraw_needed(web).await;
         let redraw_needed2 = redraw_needed.clone();
         let commander = web.lock().await.commander.clone();
-        let container_element = dom.canvas_frame().clone();
-        let container_element2 = container_element.clone();
-        let canvas_element = dom.canvas().clone();
-        let canvas_element2 = canvas_element.clone().into();
         let out = SizeManager {
             state: Arc::new(Mutex::new(SizeManagerState {
                 container_size: None,
                 resize_observer: None,
-                container_element,
-                canvas_element: canvas_element2,
+                dom: dom.clone(),
                 pending_container_size: None,
                 booted: false
             })),
@@ -138,7 +132,7 @@ impl SizeManager {
             activity_monostable: Monostable::new(&commander,5000., move || {
                 redraw_needed2.set();
             }), // XXX configurable
-            canvas_element
+            dom: dom.clone()
         };
         let out2 = out.clone();
         let resize_observer = PgResizeObserver::new(web, move|_el| {
@@ -146,7 +140,7 @@ impl SizeManager {
                 out2.container_was_resized();
             }
         })?;
-        resize_observer.observe(&container_element2);
+        resize_observer.observe(dom.canvas_frame());
         out.state.lock().unwrap().set_observer(resize_observer);
         Ok(out)
     }
@@ -161,8 +155,7 @@ impl SizeManager {
     fn update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI, x: u32, y: u32) -> Result<(),Message> {
 //        let x = (x/4)*4;
 //        let y = (y/4)*4;
-        self.canvas_element.set_width(x);
-        self.canvas_element.set_height(y);
+        self.dom.set_canvas_size(x,y);
         *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
         let mut stage = draw.stage.lock().unwrap();
         //use web_sys::console;

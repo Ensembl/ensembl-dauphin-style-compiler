@@ -81,15 +81,14 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
 pub struct OffsetAllotmentRequestCreator(pub CoordinateSystem,pub AllotmentDirection);
 
 impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry> {
-        let mut name = metadata.name().to_string();
+    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry> {
+        let mut name =base.to_string();
         let depth = remove_depth(&mut name);
-        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(metadata,&self.0,&self.1,depth)),depth))
+        let metadata = metadata.get(base).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(base,0)));
+        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(&metadata,&self.0,&self.1,depth)),depth))
     }
 
-    fn hash(&self, name: &str) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        name.hash(&mut hasher);
-        hasher.finish()
+    fn base(&self, name: &str) -> String {
+        name.to_string()
     }
 }

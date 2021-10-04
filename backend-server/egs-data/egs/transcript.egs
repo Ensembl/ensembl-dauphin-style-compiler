@@ -1,5 +1,7 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
 
 /* 
  * actually get the data from the server
@@ -70,12 +72,6 @@ enabled_tracks := get_switch([
     ["track","gene-pc-fwd"],
     ["track","focus"]
 ][]);
-
-stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
-    tracks_used := ["","","","",""];
-    tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
-    our_allotments := [use_allotment(tracks_used[])];
-}
 
 potential_tracks := [
     "track:gene-other-rev","track:gene-pc-rev",
@@ -226,3 +222,15 @@ image_underneath(chevron_spacing,0,"chevron-right",allotments_wallpaper[@==3]);
 /* focus */
 focus_strand := strand#[focus_id==focus_gene];
 image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_wallpaper[@==4]);
+
+/* track names */
+enabled_names := get_switch([
+    ["track","gene-other-rev","name"],
+    ["track","gene-pc-rev","name"],
+    ["track","gene-other-fwd","name"],
+    ["track","gene-pc-fwd","name"],
+    ["track","focus","name"],
+][]);
+
+/* track names */
+draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);

@@ -1,5 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
 
 /* 
  * actually get the data from the server
@@ -81,6 +82,12 @@ tracks_used := ["","","","",""];
 tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
 
 allotments := [use_allotment(tracks_used[])];
+
+use_allotments(allotments_wallpaper,enabled_tracks,[
+    "track:gene-other-rev:wallpaper[-2]","track:gene-pc-rev:wallpaper[-2]",
+    "track:gene-other-fwd:wallpaper[-2]","track:gene-pc-fwd:wallpaper[-2]",
+    "track:focus:wallpaper[-2]"
+]);
 
 /*
  * Which allotment and track does data go into?
@@ -195,3 +202,6 @@ text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
 /* zmenus */
 rectangle_on_genome(start,end,32,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,32,ge_zmenu_patina,allotment);
+
+/* track names */
+draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);

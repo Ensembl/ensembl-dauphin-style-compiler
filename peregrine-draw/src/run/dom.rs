@@ -107,7 +107,17 @@ impl PeregrineDom {
 
     pub(crate) fn canvas(&self) -> &HtmlCanvasElement { &self.canvas }
     pub(crate) fn canvas_frame(&self) -> &HtmlElement { &self.canvas_frame }
-    pub(crate) fn canvas_container(&self) -> &HtmlElement { &self.canvas_container }
     pub(crate) fn document(&self) -> &Document { &self.document }
     pub(crate) fn body(&self) -> &HtmlElement { &self.body }
+
+    pub(crate) fn set_useful_height(&self, height: u32) {
+        let frame_height = self.canvas_frame.get_bounding_client_rect().height() as u32;
+        let height = height.max(frame_height);
+        self.canvas_container.style().set_property("height",&format!("{}px",height)); // XXX errors
+    }
+
+    pub(crate) fn set_canvas_size(&self, width: u32, height: u32) {
+        self.canvas().set_width(width);
+        self.canvas().set_height(height);
+    }
 }

@@ -1,5 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
 
 endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
 
@@ -17,3 +18,6 @@ pos_colour := simple_colour(direct_colour(200,200,200,255));
 patina := patina_filled(index(sense,[neg_colour,pos_colour]));
 
 rectangle_on_genome(start,end,5,patina,allotment);
+
+/* track names */
+draw_track_names(["Contigs"],[["track","contig","name"]],[use_allotment("track:contig:wallpaper[-3]")]);

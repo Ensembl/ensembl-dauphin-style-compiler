@@ -1,5 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
 
 /* 
  * actually get the data from the server
@@ -33,25 +34,20 @@ strand_string#[strand>0] := "forward strand";
  */
 
 potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
-enabled_tracks := get_switch([
+
+switch_names := [
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
     ["track","gene-other-fwd"],
     ["track","gene-pc-fwd"],
     ["track","focus"]
-][]);
+];
+
+enabled_tracks := get_switch(switch_names[]);
 potential_tracks_wallpaper := [
     "track:gene-other-rev:wallpaper[-3]","track:gene-pc-rev:wallpaper[-3]",
     "track:gene-other-fwd:wallpaper[-3]","track:gene-pc-fwd:wallpaper[-3]",
     "track:focus:wallpaper[-3]"
-];
-
-track_labels := [
-    "Genes and transcripts -- Other, Reverse strand",
-    "Genes and transcripts -- Protein coding, Reverse strand",
-    "Genes and transcripts -- Other, Forward strand",
-    "Genes and transcripts -- Protein coding, Forward strand",
-    ""
 ];
 
 tracks_used := ["","","","",""];
@@ -160,16 +156,4 @@ focus_strand := strand#[focus_id==focus_gene];
 image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_wallpaper[@==4]);
 
 /* track names */
-enabled_names := get_switch([
-    ["track","gene-other-rev","name"],
-    ["track","gene-pc-rev","name"],
-    ["track","gene-other-fwd","name"],
-    ["track","gene-pc-fwd","name"],
-    ["track","focus","name"],
-][]);
-
-label_allotments := allotments_wallpaper;
-label_allotments[enabled_names==false] := use_allotment("");
-
-textpen_trackname := pen("'Lato', sans-serif",text_size,text_colour,[][]);
-text2(spacebase(len(track_labels) (*) 0,-18,8),textpen_trackname,track_labels[],label_allotments[]);
+draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);

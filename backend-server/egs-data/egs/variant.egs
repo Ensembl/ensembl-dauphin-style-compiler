@@ -1,5 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
 
 data := get_data("self()","variant",get_region());
 //halt(only_warm(),[data]);
@@ -30,3 +31,6 @@ r_start := run((end-start)/step) * step + start;
 r_end := r_start + step;
 
 rectangle_on_genome(r_start,r_end,5,patina,allotment);
+
+/* track names */
+draw_track_names(["Variants"],[["track","variant","name"]],[use_allotment("track:variant:wallpaper[-3]")]);

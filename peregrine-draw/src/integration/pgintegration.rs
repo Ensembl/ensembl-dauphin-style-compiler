@@ -1,6 +1,4 @@
-use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
-use dauphin_interp::util::cbor::{cbor_map_iter, cbor_string };
 use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
 use super::pgchannel::PgChannel;
 use crate::{Message, PeregrineDom};
@@ -65,7 +63,7 @@ impl PeregrineIntegration for PgIntegration {
     }
 
     fn set_height(&mut self, height: i64) {
-        self.dom.canvas_container().style().set_property("height",&format!("{}px",height)); // XXX errors
+        self.dom.set_useful_height(height as u32);
     }
 }
 

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc}};
 
-use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, shape::shape::FilterMinMax};
+use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
@@ -56,12 +56,12 @@ pub trait AsAllotmentRequestImpl {
 }
 
 pub trait LinearAllotmentRequestCreatorImpl {
-    fn hash(&self, name: &str) -> u64;
-    fn make(&self, metadata: &AllotmentMetadata) -> Arc<dyn LinearGroupEntry>;
+    fn base(&self, name: &str) -> String;
+    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(super) struct LinearRequestGroup<C> {
-    requests: HashMap<u64,Arc<dyn LinearGroupEntry>>,
+    requests: HashMap<String,Arc<dyn LinearGroupEntry>>,
     creator: Box<C>,
     max: i64
 }
@@ -76,22 +76,21 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
     }
 
     pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
-        let hash = self.creator.hash(name);
-        if !self.requests.contains_key(&hash) {
-            let metadata = allotment_metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-            let request = self.creator.make(&metadata);
-            self.requests.insert(hash,request);
+        let base_name = self.creator.base(name);
+        if !self.requests.contains_key(&base_name) {
+            let request = self.creator.make(&allotment_metadata,&base_name);
+            self.requests.insert(base_name.to_string(),request);
         }
-        let entry = self.requests.get(&hash);
+        let entry = self.requests.get(&base_name);
         if entry.is_none() { return None; }
         let entry = entry.unwrap();
         entry.make_request(allotment_metadata,name)
     }
 
     pub(super) fn union(&mut self, other: &LinearRequestGroup<C>) {
-        for (hash,request) in other.requests.iter() {
-            if !self.requests.contains_key(hash) {
-                self.requests.insert(*hash,request.clone());
+        for (base_name,request) in other.requests.iter() {
+            if !self.requests.contains_key(base_name) {
+                self.requests.insert(base_name.clone(),request.clone());
             }
         }
     }
