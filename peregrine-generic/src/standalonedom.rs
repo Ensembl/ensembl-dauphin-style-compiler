@@ -10,15 +10,19 @@ const HTML : &str = r#"
 "#;
 
 const CSS : &str = r#"
-    .$-browser {
+    .$-container {
+        height: 100%;
+    }
+
+.$-browser {
         height: 1234px;
     }
 
     .$-sticky {
         position: sticky;
         top: 0;
-        height: 100%;
         overflow: hidden;
+        height: 100%;
     }
 "#;
 

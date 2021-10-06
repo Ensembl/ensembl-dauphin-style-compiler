@@ -54,7 +54,7 @@ impl UniverseData {
     }
 
     pub fn height(&self) -> i64 {
-        self.top_tracks.max() + self.main.max() + self.bottom_tracks.max()
+        self.bottom_tracks.max()
     }
 }
 
