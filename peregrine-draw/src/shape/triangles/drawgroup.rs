@@ -61,7 +61,7 @@ impl DrawGroup {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
                     let (mut x0,mut y0,mut x1,mut y1) = (top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal);
-                    let (mut bx0,mut by0,mut bx1,mut by1) = (0.,0.,0.,0.);
+                    let (mut bx0,mut by0,mut bx1,mut by1) = (top_left.base,0.,bottom_right.base,0.);
                     if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
                     if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
                     if x1 < 0. { x1 = -x1-1.; bx1 = 1.; }
