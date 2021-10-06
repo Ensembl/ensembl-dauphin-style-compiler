@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc}};
 
-use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
+use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
@@ -11,29 +11,27 @@ pub(super) enum LinearRequestGroupName {
     OverlayBottom,
     OverlayLeft,
     OverlayRight,
-    Screen(i8) // XXX
+    Window
 }
 
 impl LinearRequestGroupName {
-    pub(crate) fn direction(&self) -> AllotmentDirection {
+    pub(crate) fn coord_system(&self, tracking: bool) -> CoordinateSystem {
         match self {
-            LinearRequestGroupName::Track => AllotmentDirection::Forward,
-            LinearRequestGroupName::OverlayTop => AllotmentDirection::Forward,
-            LinearRequestGroupName::OverlayBottom => AllotmentDirection::Reverse,
-            LinearRequestGroupName::OverlayLeft => AllotmentDirection::Forward,
-            LinearRequestGroupName::OverlayRight => AllotmentDirection::Reverse,
-            LinearRequestGroupName::Screen(i) => AllotmentDirection::Forward
+            LinearRequestGroupName::Track => CoordinateSystem::Tracking,
+            LinearRequestGroupName::OverlayTop => if tracking { CoordinateSystem::Tracking } else { CoordinateSystem::Window },
+            LinearRequestGroupName::OverlayBottom => CoordinateSystem::Window,
+            LinearRequestGroupName::OverlayLeft => CoordinateSystem::SidewaysLeft,
+            LinearRequestGroupName::OverlayRight => CoordinateSystem::SidewaysRight,
+            LinearRequestGroupName::Window => CoordinateSystem::Window,
         }
     }
 
-    pub(crate) fn coord_system(&self) -> CoordinateSystem {
+    pub(crate) fn xxx_is_tracking(&self) -> bool {
         match self {
-            LinearRequestGroupName::Track => CoordinateSystem::Track,
-            LinearRequestGroupName::OverlayTop => CoordinateSystem::Space,
-            LinearRequestGroupName::OverlayBottom => CoordinateSystem::Space,
-            LinearRequestGroupName::OverlayLeft => CoordinateSystem::Base,
-            LinearRequestGroupName::OverlayRight => CoordinateSystem::Base,
-            LinearRequestGroupName::Screen(i) => CoordinateSystem::Window
+            LinearRequestGroupName::Track => true,
+            LinearRequestGroupName::OverlayTop => true,
+            LinearRequestGroupName::OverlayBottom => true,
+            _ => false
         }
     }
 }

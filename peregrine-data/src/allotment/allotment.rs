@@ -1,27 +1,19 @@
 use std::sync::{Arc};
-
+use std::hash::{ Hash };
 use crate::{SpaceBasePointRef, shape::shape::FilterMinMax, spacebase::spacebase::SpaceBasePoint};
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum CoordinateSystem {
-    Track,
-    Base,
-    Space,
-    Window
-}
-
-use std::hash::{ Hash };
-
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub enum AllotmentDirection {
-    Forward,
-    Reverse
+    Tracking,
+    Window,
+    SidewaysLeft,
+    SidewaysRight
 }
 
 impl CoordinateSystem {
     pub(crate) fn filter_min_max(&self) -> FilterMinMax {
         match self {
-            CoordinateSystem::Track => FilterMinMax::Base,
+            CoordinateSystem::Tracking => FilterMinMax::Base,
             _ => FilterMinMax::None
         }
     }
@@ -30,7 +22,6 @@ impl CoordinateSystem {
 pub trait AllotmentImpl {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
-    fn direction(&self) -> AllotmentDirection;    
     fn depth(&self) -> i8;
 }
 
@@ -50,6 +41,5 @@ impl Allotment {
         self.0.transform_yy(values)
     }
 
-    pub fn direction(&self) -> AllotmentDirection { self.0.direction().clone() }
     pub fn depth(&self) -> i8 { self.0.depth() }
 }

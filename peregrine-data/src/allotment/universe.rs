@@ -1,61 +1,55 @@
-use std::{collections::{HashMap}, sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
-use crate::{ AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest };
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
-use super::{dustbinallotment::DustbinAllotmentRequest, lineargroup::{LinearRequestGroupName}, maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
+use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
 use super::lineargroup::LinearRequestGroup;
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
     main: LinearRequestGroup<MainTrackRequestCreator>,
-    requests: HashMap<LinearRequestGroupName,LinearRequestGroup<OffsetAllotmentRequestCreator>>
+    top_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    bottom_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
 }
 
 impl UniverseData {
-    fn group(&self, name: &str) -> LinearRequestGroupName {
-        if name.starts_with("window:") {
-            LinearRequestGroupName::Screen(if name.ends_with("[1]") { 1 } else { 0 })
-        } else {
-            LinearRequestGroupName::Track
-        }
-    }
-
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
         } else if name.starts_with("track:") {
             self.main.make_request(allotment_metadata,name)
+        } else if name.starts_with("window:") {
+            self.window.make_request(allotment_metadata,name)
         } else {
-            let group = self.group(name);
-            self.requests.entry(group.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(group.coord_system(),group.direction()))).make_request(allotment_metadata,name)
+            None
         }
     }
 
     fn union(&mut self, other: &UniverseData) {
-        for (group_type,other_group) in other.requests.iter() {
-            let self_group = self.requests.entry(group_type.clone()).or_insert_with(|| LinearRequestGroup::new(OffsetAllotmentRequestCreator(group_type.coord_system(),group_type.direction())));
-            self_group.union(other_group);
-        }
+        self.top_tracks.union(&other.top_tracks);
+        self.bottom_tracks.union(&other.bottom_tracks);
         self.main.union(&other.main);
+        self.window.union(&other.window);
     }
 
     fn get_all_metadata(&self,allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
-        for (_,group) in self.requests.iter() {
-            group.get_all_metadata(allotment_metadata,out);
-        }
         self.main.get_all_metadata(allotment_metadata,out);
+        self.top_tracks.get_all_metadata(allotment_metadata,out);
+        self.bottom_tracks.get_all_metadata(allotment_metadata,out);
+        self.window.get_all_metadata(allotment_metadata,out);
     }
 
     fn allot(&mut self) {
-        for (_,group) in self.requests.iter_mut() {
-            group.allot();
-        }
         self.main.allot();
+        self.top_tracks.allot();
+        self.bottom_tracks.allot();
+        self.window.allot();
     }
 
     pub fn height(&self) -> i64 {
-        self.main.max()
+        self.top_tracks.max() + self.main.max() + self.bottom_tracks.max()
     }
 }
 
@@ -69,8 +63,10 @@ impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                requests: HashMap::new(),
                 main: LinearRequestGroup::new(MainTrackRequestCreator()),
+                top_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking)),
+                bottom_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking)),
+                window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window)),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),
             allotment_metadata: allotment_metadata.clone()

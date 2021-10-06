@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::{Allotment, AllotmentDirection, DataMessage, shape::shape::FilterMinMax};
+use crate::{Allotment, DataMessage, shape::shape::FilterMinMax};
 
 use super::{allotment::CoordinateSystem, allotmentrequest::{AllotmentRequestImpl}};
 
@@ -7,7 +7,6 @@ pub struct DustbinAllotmentRequest();
 
 impl AllotmentRequestImpl for DustbinAllotmentRequest {
     fn name(&self) -> String { "".to_string() }
-    fn direction(&self) -> AllotmentDirection { AllotmentDirection::Forward }
     fn is_dustbin(&self) -> bool { true }
     fn priority(&self) -> i64 { 0 }
     fn register_usage(&self, _max: i64) {}    

@@ -1,8 +1,8 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentDirection, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, shape::shape::FilterMinMax, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, spacebase::spacebase::SpaceBasePoint};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{ LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -45,13 +45,12 @@ impl MTSpecifier {
     }
 
     fn name(&self) -> String { format!("track:{}",self.name) }
-    fn direction(&self) -> AllotmentDirection { AllotmentDirection::Forward }
     fn depth(&self) -> i8 { self.depth }
 
     fn coord_system(&self) -> CoordinateSystem {
         match self.variety {
-            MTVariety::Track => CoordinateSystem::Track,
-            MTVariety::Wallpaper => CoordinateSystem::Space
+            MTVariety::Track => CoordinateSystem::Tracking,
+            MTVariety::Wallpaper => CoordinateSystem::Window
         }
     }
 }
@@ -82,7 +81,7 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),&specifier.direction(),offset,best_offset,best_height,specifier.depth)));
+            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),offset,best_offset,best_height,specifier.depth)));
         }
         best_height
     }
@@ -107,7 +106,7 @@ impl LinearGroupEntry for MainTrackRequest {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
-            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(),&specifier.direction(),specifier.depth()))
+            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(),specifier.depth()))
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }

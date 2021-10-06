@@ -26,10 +26,10 @@ impl EnumerableKey for GeometryProgramName {
     fn enumerable(&self) -> Enumerable {
         Enumerable(match self {
             GeometryProgramName::Wiggle => 0,
-            GeometryProgramName::Triangles(CoordinateSystem::Track) => 1,
-            GeometryProgramName::Triangles(CoordinateSystem::Base) => 2,
-            GeometryProgramName::Triangles(CoordinateSystem::Space) => 3,
-            GeometryProgramName::Triangles(CoordinateSystem::Window) => 4,
+            GeometryProgramName::Triangles(CoordinateSystem::Tracking) => 1,
+            GeometryProgramName::Triangles(CoordinateSystem::Window) => 2,
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => 3,
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => 4,
         },5)
     }
 }
@@ -44,7 +44,7 @@ impl GeometryProgramName {
 
     pub(crate) fn get_source(&self) -> SourceInstrs {
         SourceInstrs::new(match self {
-            GeometryProgramName::Triangles(CoordinateSystem::Track) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -71,7 +71,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(CoordinateSystem::Base) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
@@ -98,7 +98,7 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(CoordinateSystem::Space) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),

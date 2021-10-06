@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
-use crate::{Allotment, AllotmentDirection, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
+use crate::{Allotment, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
 pub(super) fn remove_depth(spec: &mut String) -> i8 {
@@ -23,17 +23,15 @@ pub struct BaseAllotmentRequest<T> {
     metadata: AllotmentMetadata,
     allotment: Mutex<Option<Arc<T>>>,
     coord_system: CoordinateSystem,
-    direction: AllotmentDirection,
     depth: i8,
     max: Mutex<i64>
 }
 
 impl<T> BaseAllotmentRequest<T> {
-    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, direction: &AllotmentDirection, depth: i8) -> BaseAllotmentRequest<T> {
+    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, depth: i8) -> BaseAllotmentRequest<T> {
         BaseAllotmentRequest {
             metadata: metadata.clone(),
             allotment: Mutex::new(None),
-            direction: direction.clone(),
             depth,
             coord_system: coord_system.clone(),
             max: Mutex::new(0)
@@ -75,7 +73,6 @@ impl<T> BaseAllotmentRequest<T> {
 
 impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
     fn name(&self) -> String { self.metadata.name().to_string() }
-    fn direction(&self) -> AllotmentDirection { self.direction.clone() }
     fn is_dustbin(&self) -> bool { false }
     fn priority(&self) -> i64 { self.metadata.priority() }
     fn depth(&self) -> i8 { self.depth }

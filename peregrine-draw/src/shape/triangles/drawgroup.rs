@@ -1,13 +1,6 @@
-use peregrine_data::{Allotment, AllotmentDirection, CoordinateSystem, SpaceBase, SpaceBaseArea};
+use peregrine_data::{Allotment, CoordinateSystem, SpaceBase, SpaceBaseArea};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
-
-fn flip(allotment: &Allotment) -> f64 {
-    match allotment.direction() {
-        AllotmentDirection::Forward => 1.,
-        AllotmentDirection::Reverse => -1.
-    }
-}
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
@@ -35,7 +28,7 @@ impl DrawGroup {
         let mut delta = vec![];
         let base_width = if width.is_some() { Some(0.) } else { None };
         match self.coord_system() {
-            CoordinateSystem::Track => {
+            CoordinateSystem::Tracking => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
@@ -43,14 +36,13 @@ impl DrawGroup {
                     rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
                 }
             },
-            CoordinateSystem::Base => {
+            CoordinateSystem::SidewaysLeft => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                    let flip_y = flip(&allotment);
-                    rectangle64(&mut base, *top_left.base-left, flip_y, *bottom_right.base-left,flip_y,base_width);
+                    rectangle64(&mut base, *top_left.base-left, 0., *bottom_right.base-left,0.,base_width);
                     rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
                 }
             },
-            CoordinateSystem::Space => {
+            CoordinateSystem::SidewaysRight => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);
@@ -65,8 +57,10 @@ impl DrawGroup {
                 }
             },
             CoordinateSystem::Window => {
-                for ((top_left,bottom_right),_) in area.iter().zip(allotments.iter().cycle()) {
-                    let (mut x0,mut y0,mut x1,mut y1) = (*top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal);
+                for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+                    let top_left = allotment.transform_spacebase(&top_left);
+                    let bottom_right = allotment.transform_spacebase(&bottom_right);
+                    let (mut x0,mut y0,mut x1,mut y1) = (top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal);
                     let (mut bx0,mut by0,mut bx1,mut by1) = (0.,0.,0.,0.);
                     if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
                     if y0 < 0. { y0 = -y0-1.; by0 = 1.; }

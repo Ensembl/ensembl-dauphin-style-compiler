@@ -1,6 +1,6 @@
 use std::hash::Hash;
 use std::sync::Arc;
-use crate::{Allotment, AllotmentDirection, DataMessage};
+use crate::{Allotment, DataMessage};
 
 use super::allotment::CoordinateSystem;
 
@@ -22,7 +22,6 @@ impl Eq for AllotmentRequest {}
 
 pub trait AllotmentRequestImpl {
     fn name(&self) -> String;
-    fn direction(&self) -> AllotmentDirection;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;
@@ -41,7 +40,6 @@ impl AllotmentRequest {
     }
 
     pub fn name(&self) -> String { self.0.name().to_string() }
-    pub fn direction(&self) -> AllotmentDirection { self.0.direction() }
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
     pub fn depth(&self) -> i8 { self.0.depth() }
