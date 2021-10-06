@@ -50,8 +50,6 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         let entry = self.requests.get(&base_name);
         if entry.is_none() { return None; }
         let entry = entry.unwrap();
-        use web_sys::console;
-        console::log_1(&format!("base_name={} name={} full_path={}",base_name,name,full_path).into());
         entry.make_request(allotment_metadata,name)
     }
 
