@@ -8,8 +8,8 @@ max := [min_max][@==1];
 interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
 
-allotment_top := use_allotment("track:ruler-top");
-allotment_bottom := use_allotment("track:ruler-bottom");
+allotment_top := use_allotment("track-top:ruler-top");
+allotment_bottom := use_allotment("track-bottom:ruler-bottom");
 
 /* markers */
 marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);

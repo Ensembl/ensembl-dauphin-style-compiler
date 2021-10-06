@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
+use super::baseallotmentrequest::trim_prefix;
 use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
 use super::lineargroup::LinearRequestGroup;
 
@@ -18,10 +19,14 @@ impl UniverseData {
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
-        } else if name.starts_with("track:") {
-            self.main.make_request(allotment_metadata,name)
-        } else if name.starts_with("window:") {
-            self.window.make_request(allotment_metadata,name)
+        } else if let Some(suffix) = trim_prefix("track",name) {
+            self.main.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("track-top",name) {
+            self.top_tracks.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("track-bottom",name) {
+            self.bottom_tracks.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("window",name) {
+            self.window.make_request(allotment_metadata,&suffix,&name)
         } else {
             None
         }
@@ -42,10 +47,10 @@ impl UniverseData {
     }
 
     fn allot(&mut self) {
-        self.main.allot();
-        self.top_tracks.allot();
-        self.bottom_tracks.allot();
-        self.window.allot();
+        let offset = self.top_tracks.allot(0);
+        let offset = self.main.allot(offset);
+        self.bottom_tracks.allot(offset);
+        self.window.allot(0);
     }
 
     pub fn height(&self) -> i64 {

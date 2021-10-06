@@ -2,39 +2,7 @@ use std::{collections::HashMap, sync::{Arc}};
 
 use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 
-use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
-
-#[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub(super) enum LinearRequestGroupName {
-    Track,
-    OverlayTop,
-    OverlayBottom,
-    OverlayLeft,
-    OverlayRight,
-    Window
-}
-
-impl LinearRequestGroupName {
-    pub(crate) fn coord_system(&self, tracking: bool) -> CoordinateSystem {
-        match self {
-            LinearRequestGroupName::Track => CoordinateSystem::Tracking,
-            LinearRequestGroupName::OverlayTop => if tracking { CoordinateSystem::Tracking } else { CoordinateSystem::Window },
-            LinearRequestGroupName::OverlayBottom => CoordinateSystem::Window,
-            LinearRequestGroupName::OverlayLeft => CoordinateSystem::SidewaysLeft,
-            LinearRequestGroupName::OverlayRight => CoordinateSystem::SidewaysRight,
-            LinearRequestGroupName::Window => CoordinateSystem::Window,
-        }
-    }
-
-    pub(crate) fn xxx_is_tracking(&self) -> bool {
-        match self {
-            LinearRequestGroupName::Track => true,
-            LinearRequestGroupName::OverlayTop => true,
-            LinearRequestGroupName::OverlayBottom => true,
-            _ => false
-        }
-    }
-}
+use super::{allotment::{AllotmentImpl}, allotmentrequest::{AllotmentRequestImpl}};
 
 pub trait LinearAllotmentImpl : AllotmentImpl {
     fn max(&self) -> i64;
@@ -55,7 +23,7 @@ pub trait AsAllotmentRequestImpl {
 
 pub trait LinearAllotmentRequestCreatorImpl {
     fn base(&self, name: &str) -> String;
-    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry>;
+    fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(super) struct LinearRequestGroup<C> {
@@ -73,15 +41,17 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
+    pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str, full_path: &str) -> Option<AllotmentRequest> {
         let base_name = self.creator.base(name);
         if !self.requests.contains_key(&base_name) {
-            let request = self.creator.make(&allotment_metadata,&base_name);
+            let request = self.creator.make(&allotment_metadata,&full_path);
             self.requests.insert(base_name.to_string(),request);
         }
         let entry = self.requests.get(&base_name);
         if entry.is_none() { return None; }
         let entry = entry.unwrap();
+        use web_sys::console;
+        console::log_1(&format!("base_name={} name={} full_path={}",base_name,name,full_path).into());
         entry.make_request(allotment_metadata,name)
     }
 
@@ -99,14 +69,14 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub(super) fn allot(&mut self) {
+    pub(super) fn allot(&mut self, mut offset: i64) -> i64 {
         let mut sorted_requests = self.requests.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
-        let mut offset = 0;
         for request in sorted_requests {
             offset += request.make(offset);
         }
         self.max = offset;
+        offset
     }
 
     pub(super) fn max(&self) -> i64 { self.max }

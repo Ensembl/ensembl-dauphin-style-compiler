@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
-use crate::{Allotment, AllotmentMetadata, DataMessage, shape::shape::FilterMinMax};
+use crate::{Allotment, AllotmentMetadata, DataMessage};
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
 pub(super) fn remove_depth(spec: &mut String) -> i8 {
@@ -18,6 +18,23 @@ pub(super) fn remove_depth(spec: &mut String) -> i8 {
     depth
 }
 
+pub(super) fn trim_prefix(prefix: &str, name: &str) -> Option<String> {
+    if let Some(start) = name.find(":") {
+        if &name[0..start] == prefix {
+            return Some(name[start+1..].to_string());
+        }
+    }
+    None
+}
+
+pub(super) fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
+    if let Some(start) = name.rfind(":") {
+        if &name[start+1..] == suffix {
+            return Some(name[0..start].to_string());
+        }
+    }
+    None
+}
 
 pub struct BaseAllotmentRequest<T> {
     metadata: AllotmentMetadata,

@@ -76,8 +76,8 @@ track_apply(p);
 
 /* RULER */
 p := track_new("self()","ruler",1,100,1);
-new_thin_allotment(p,"track:ruler-top",-2000000,"ruler-top","");
-new_thin_allotment(p,"track:ruler-bottom",2000000,"ruler-bottom","");
+new_thin_allotment(p,"track-top:ruler-top",-2000000,"ruler-top","");
+new_thin_allotment(p,"track-bottom:ruler-bottom",2000000,"ruler-bottom","");
 track_add_trigger(p,["ruler"]);
 track_add_switch(p,["settings"]);
 track_apply(p);

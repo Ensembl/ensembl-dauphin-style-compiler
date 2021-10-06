@@ -78,10 +78,10 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
 pub struct OffsetAllotmentRequestCreator(pub CoordinateSystem);
 
 impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry> {
-        let mut name =base.to_string();
+    fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+        let mut name =full_path.to_string();
         let depth = remove_depth(&mut name);
-        let metadata = metadata.get(base).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(base,0)));
+        let metadata = metadata.get(full_path).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(full_path,0)));
         Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(&metadata,&self.0,depth)),depth))
     }
 

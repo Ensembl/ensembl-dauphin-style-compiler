@@ -1,8 +1,8 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{ LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, trim_suffix}, lineargroup::{ LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -27,13 +27,10 @@ impl MTSpecifier {
     fn new(spec: &str) -> MTSpecifier {
         let mut spec = spec.to_string();
         let depth = remove_depth(&mut spec);
-        let parts = spec.split(":").collect::<Vec<_>>();
-        if parts.len() < 2 || parts[0] != "track" {
-            MTSpecifier { name: "".to_string(), variety: MTVariety::Track, depth }
-        } else if parts.len() > 2 && parts[2] == "wallpaper" {
-            MTSpecifier { name: parts[1].to_string(), variety: MTVariety::Wallpaper, depth }
+        if let Some(main) = trim_suffix("wallpaper",&spec) {
+            MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth }
         } else {
-            MTSpecifier { name: parts[1].to_string(), variety: MTVariety::Track, depth }
+            MTSpecifier { name: spec.to_string(), variety: MTVariety::Track, depth }
         }
     }
 
@@ -44,7 +41,7 @@ impl MTSpecifier {
         }
     }
 
-    fn name(&self) -> String { format!("track:{}",self.name) }
+    fn name(&self) -> &str { &self.name }
     fn depth(&self) -> i8 { self.depth }
 
     fn coord_system(&self) -> CoordinateSystem {
@@ -115,8 +112,10 @@ impl LinearGroupEntry for MainTrackRequest {
 pub struct MainTrackRequestCreator();
 
 impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadataStore, base: &str) -> Arc<dyn LinearGroupEntry> {
-        let metadata = metadata.get(base).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(base,0)));
+    fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+        let specifier = MTSpecifier::new(full_path);
+        let name = specifier.name();
+        let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
         Arc::new(MainTrackRequest::new(&metadata))
     }
 
