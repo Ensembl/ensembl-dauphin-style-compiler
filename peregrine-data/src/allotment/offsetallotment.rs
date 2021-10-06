@@ -89,6 +89,8 @@ impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
     }
 
     fn base(&self, name: &str) -> String {
-        name.to_string()
+        let mut out = name.to_string();
+        remove_depth(&mut out);
+        out
     }
 }
