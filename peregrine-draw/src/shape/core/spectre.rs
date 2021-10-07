@@ -59,8 +59,8 @@ impl MarchingAnts {
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[1]",0));
-        let window_origin = shapes.universe().make_request("window:origin[1]").unwrap(); // XXX
+        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[0]",0));
+        let window_origin = shapes.universe().make_request("window:origin[0]").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
