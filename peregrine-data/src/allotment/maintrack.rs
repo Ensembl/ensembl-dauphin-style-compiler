@@ -109,7 +109,7 @@ impl LinearGroupEntry for MainTrackRequest {
     }
 }
 
-pub struct MainTrackRequestCreator();
+pub struct MainTrackRequestCreator(pub bool);
 
 impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
     fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
@@ -123,4 +123,6 @@ impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
         let specifier = MTSpecifier::new(name);
         specifier.name().to_string()
     }
+
+    fn is_reverse(&self) -> bool { self.0 }
 }

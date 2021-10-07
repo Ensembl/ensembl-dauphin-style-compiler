@@ -13,7 +13,7 @@ pub trait EnumerableKey {
 
 impl PartialEq for Enumerable {
     fn eq(&self, other: &Self) -> bool {
-        self.0.eq(&self.1)
+        self.0.eq(&other.0)
     }
 }
 

@@ -76,7 +76,7 @@ async fn message_sending_task(our_queue: CommanderStream<Message>, distributor: 
 
 fn setup_message_sending_task(commander: &PgCommanderWeb, distributor: Distributor<Message>) -> CommanderStream<Message> {
     let stream = CommanderStream::new();
-    commander.add("message-sender",10,None,None,Box::pin(message_sending_task(stream.clone(),distributor)));
+    commander.add("message-sender",7,None,None,Box::pin(message_sending_task(stream.clone(),distributor)));
     // TODO failure handling
     stream
 }

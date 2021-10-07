@@ -5,6 +5,7 @@ use crate::{SpaceBasePointRef, shape::shape::FilterMinMax, spacebase::spacebase:
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum CoordinateSystem {
     Tracking,
+    TrackingBottom,
     Window,
     SidewaysLeft,
     SidewaysRight

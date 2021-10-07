@@ -4,6 +4,32 @@ use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 
 use super::{allotment::{AllotmentImpl}, allotmentrequest::{AllotmentRequestImpl}};
 
+pub struct LinearOffsetBuilder {
+    fwd: i64,
+    rev: i64
+}
+
+impl LinearOffsetBuilder {
+    pub fn new() -> LinearOffsetBuilder {
+        LinearOffsetBuilder {
+            fwd: 0,
+            rev: 0
+        }
+    }
+
+    pub fn advance_fwd(&mut self, amt: i64) {
+        self.fwd += amt;
+    }
+
+    pub fn advance_rev(&mut self, amt: i64) {
+        self.fwd += amt;
+        self.rev += amt;
+    }
+
+    pub fn fwd(&self) -> i64 { self.fwd }
+    pub fn rev(&self) -> i64 { self.rev }
+}
+
 pub trait LinearAllotmentImpl : AllotmentImpl {
     fn max(&self) -> i64;
     fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl>;
@@ -22,6 +48,7 @@ pub trait AsAllotmentRequestImpl {
 }
 
 pub trait LinearAllotmentRequestCreatorImpl {
+    fn is_reverse(&self) -> bool;
     fn base(&self, name: &str) -> String;
     fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
 }
@@ -67,14 +94,20 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub(super) fn allot(&mut self, mut offset: i64) -> i64 {
+    pub(super) fn allot(&mut self, offset: &mut LinearOffsetBuilder) {
+        let is_reverse = self.creator.is_reverse();
         let mut sorted_requests = self.requests.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for request in sorted_requests {
-            offset += request.make(offset);
+            if is_reverse {
+                let more = request.make(offset.rev());
+                offset.advance_rev(more);
+            } else {
+                let more = request.make(offset.fwd());
+                offset.advance_fwd(more);
+            }
         }
-        self.max = offset;
-        offset
+        self.max = offset.fwd();
     }
 
     pub(super) fn max(&self) -> i64 { self.max }

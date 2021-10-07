@@ -28,7 +28,7 @@ impl DrawGroup {
         let mut delta = vec![];
         let base_width = if width.is_some() { Some(0.) } else { None };
         match self.coord_system() {
-            CoordinateSystem::Tracking => {
+            CoordinateSystem::Tracking | CoordinateSystem::TrackingBottom => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);

@@ -75,7 +75,7 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
     }
 }
 
-pub struct OffsetAllotmentRequestCreator(pub CoordinateSystem);
+pub struct OffsetAllotmentRequestCreator(pub CoordinateSystem, pub bool);
 
 impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
     fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
@@ -90,4 +90,6 @@ impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
         remove_depth(&mut out);
         out
     }
+
+    fn is_reverse(&self) -> bool { self.1 }
 }

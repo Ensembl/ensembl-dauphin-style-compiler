@@ -5,7 +5,7 @@ use peregrine_toolkit::lock;
 
 use super::baseallotmentrequest::trim_prefix;
 use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
-use super::lineargroup::LinearRequestGroup;
+use super::lineargroup::{LinearOffsetBuilder, LinearRequestGroup};
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
@@ -47,10 +47,11 @@ impl UniverseData {
     }
 
     fn allot(&mut self) {
-        let offset = self.top_tracks.allot(0);
-        let offset = self.main.allot(offset);
-        self.bottom_tracks.allot(offset);
-        self.window.allot(0);
+        let mut offset = LinearOffsetBuilder::new();
+        self.top_tracks.allot(&mut offset);
+        self.main.allot(&mut offset);
+        self.bottom_tracks.allot(&mut offset);
+        self.window.allot(&mut LinearOffsetBuilder::new());
     }
 
     pub fn height(&self) -> i64 {
@@ -68,10 +69,10 @@ impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                main: LinearRequestGroup::new(MainTrackRequestCreator()),
-                top_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking)),
-                bottom_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking)),
-                window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window)),
+                main: LinearRequestGroup::new(MainTrackRequestCreator(false)),
+                top_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking,false)),
+                bottom_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingBottom,true)),
+                window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),
             allotment_metadata: allotment_metadata.clone()
