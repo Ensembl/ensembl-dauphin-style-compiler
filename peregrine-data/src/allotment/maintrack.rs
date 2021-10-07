@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::{Arc, Mutex}};
+use std::{collections::HashMap, hash::{Hash, Hasher}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};
@@ -54,14 +54,16 @@ impl MTSpecifier {
 
 pub struct MainTrackRequest {
     metadata: AllotmentMetadata,
-    requests: Mutex<HashMap<MTSpecifier,Arc<BaseAllotmentRequest<OffsetAllotment>>>>
+    requests: Mutex<HashMap<MTSpecifier,Arc<BaseAllotmentRequest<OffsetAllotment>>>>,
+    reverse: bool
 }
 
 impl MainTrackRequest {
-    fn new(metadata: &AllotmentMetadata) -> MainTrackRequest {
+    fn new(metadata: &AllotmentMetadata, reverse: bool) -> MainTrackRequest {
         MainTrackRequest {
             metadata: metadata.clone(),
-            requests: Mutex::new(HashMap::new())
+            requests: Mutex::new(HashMap::new()),
+            reverse
         }
     }
 }
@@ -78,7 +80,7 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),offset,best_offset,best_height,specifier.depth)));
+            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),offset,best_offset,best_height,specifier.depth,self.reverse)));
         }
         best_height
     }
@@ -116,7 +118,7 @@ impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-        Arc::new(MainTrackRequest::new(&metadata))
+        Arc::new(MainTrackRequest::new(&metadata,self.0))
     }
 
     fn base(&self, name: &str) -> String {
