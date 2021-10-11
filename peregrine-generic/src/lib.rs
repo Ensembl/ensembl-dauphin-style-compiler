@@ -148,7 +148,8 @@ impl GenomeBrowser {
          * Here we call standalonedom.rs which sorts out finding an element and setting it up for the genome browser to
          * use. See that file for details.
          */
-        let dom = make_dom()?;
+        let target_element_id = config_in.get("target_element_id").unwrap().as_str();
+        let dom = make_dom(target_element_id)?;
         /*
          * Create a genome browser object.
          */

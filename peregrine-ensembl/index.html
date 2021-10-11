@@ -38,14 +38,13 @@
         <div id="zmenu-click" style="width: 200px; word-break: break-all; font-size: 10px"></div>
       </div>
     </div>
-    <script>
-    </script>
     <script type="module">
       import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
         let genome_browser = new GenomeBrowser();
         genome_browser.go({
-          backend_url: "http://52.56.215.72:3333/api/data"
+          backend_url: "http://52.56.215.72:3333/api/data",
+          target_element_id: 'browser'
         });
         var labels = {};
         var tracks_on = {};
@@ -127,10 +126,10 @@
         genome_browser.set_switch(["track","gene-pc-rev"]);
         genome_browser.set_switch(["track","gene-pc-fwd","label"]);
         genome_browser.set_switch(["track","gene-pc-rev","label"]);
-        genome_browser.set_switch(["track","gene-nonpc-fwd"]);
-        genome_browser.set_switch(["track","gene-nonpc-rev"]);
-        genome_browser.set_switch(["track","gene-nonpc-fwd","label"]);
-        genome_browser.set_switch(["track","gene-nonpc-rev","label"]);
+        genome_browser.set_switch(["track","gene-other-fwd"]);
+        genome_browser.set_switch(["track","gene-other-rev"]);
+        genome_browser.set_switch(["track","gene-other-fwd","label"]);
+        genome_browser.set_switch(["track","gene-other-rev","label"]);
         genome_browser.set_switch(["track","gc"]);
         genome_browser.set_switch(["track","contig"]);
         genome_browser.set_switch(["track","variant"]);
