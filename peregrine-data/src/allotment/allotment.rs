@@ -7,6 +7,7 @@ pub enum CoordinateSystem {
     Tracking,
     TrackingBottom,
     Window,
+    WindowBottom,
     SidewaysLeft,
     SidewaysRight
 }

@@ -13,65 +13,69 @@ Earp is a domain-specific language for the genome-browser. It is interpreted wit
 
 Earp has the following base types.
 
-* booleans (`?` sigil)
-* numbers (`%` sigil)
-* bytes (`!` sigil)
-* identifiers (`{type}` sigil)
-* strings (`$` sigil)
+* booleans
+* numbers
+* bytes
+* identifiers
+* strings
 
-Each has an identified default value, to which variables are assigned before they are updated.
+While there are no sigils to demonstrate the contents of a variable, the complier ensures that which of these values a variable contains is always unambiguous. For example, assigning a variable an integer in one branch of a statement and a boolean in another, and then attempting to use it later is a compile-time error. Coercions are always explicit.
 
-Variables are namespaced according to disjoint types and use a sigil prefix (eg `value%`) (therefore there is no implicit coercion). Sigils are suffixed rather than prefixed to make the identifier sigil natural, it is also consistent with Hungarian notation so isn't unprecidented.
+Earp also has one-dimensional homogenous arrays of each of these types. There are no structured types beyond this: no higher-dimensional arrays and no enums/structs. This is a concession of expressiveness for performance. It is mitigated by:
 
-Earp also has one-dimensional homogenous arrays of each of these types. These are indicated by brackets after the sigil (for example `my_var??`). Identifiers just double the braces `{{kind}}` Sigils help with informative error reporting.
-
-There are no structured types beyond this, no higher-dimensional arrays and no enums/structs. This concession of expressiveness for performance is mitigated by:
-
- * very liberal set of chrarcters allowed in variable names;
+ * a very liberal set of chrarcters allowed in variable names;
  * standard functions to emulate higher-dimensional arrays;
- * out parameters to functions to allow multiple returns;
- * bulk-argument syntax;
- * a rich slicing system.
+ * "out" arguments to functions, to allow multiple returns;
+ * the bulk-argument syntax keeping function argument lists small;
+ * a rich slicing system allowing fast array operations.
 
- The main benefit of this restriction is to allow almost all data traversals to take place in parallel (rather than with loops) which removes much of the interpreter overhead from processing large datasets.
+ The main benefit of this restriction is to allow almost all data traversals to take place in parallel (rather than with loops) which removes much of the interpreter overhead from processing large datasets. Large changes to the data can occur entirely in the CPU within various layers of cache and with effective branch prediction, making them incredibly fast for an interpreted language. This is important as our datasets are large and attempting to manipulate them in explicit loopsin an interpreted language would be deathly slow. A more sophisitcated example of this approach is numpy in python, where similar issues arose.
 
 ## Arrays
 
-Arrays are generally manipulated using slices. Slice syntax uses the square-brackets more typically used for retrieving by index (so don't confuse it for that!). The syntax is `array%%[filter??]` where `array%%` is an arbitrary array (here of numbers) an `filter??` must be a boolean array (or a boolean, see later). The boolean array selects indexes from the array and produces a new sub-array. Importantly, the slice is by reference, allowing filtered updates. Boolean arrays are implemented efficiently for very large, sparse arrays.
+Arrays are generally manipulated using slices. Slice syntax uses the square-brackets more typically used for retrieving by index (so don't confuse it for that!). The syntax is `array[filter]` where `array` is an arbitrary array and `filter` must be a boolean array (or a boolean, see later). The boolean array selects indexes from the array, and produces a new sub-array. Importantly, the slice is by reference and modifiable, allowing filtered updates. Boolean arrays are implemented efficiently for very large, sparse arrays for just this reason.
 
 ```
-values%% := [101,102,103,104];
-filter?? := [false,true,false,true];
-values[filter??] += 100;
-print(values%%);
+values := [101,102,103,104];
+
+filter := [false,true,false,true];
+values[filter] += 100;
+
+print(values);
 // [101,202,103,204]
 ```
 
-To facilitate filtering, most predicates allow one argument to be an array, generating a boolean array rather than a boolean.
+To allow filtering to be generally useful, most predicates across the language (such as equality tests, greater/less than operators, etc) allow one argument to be an array, evaluationg to a boolean array, rather than a boolean.
 
 ```
-values%% := [101,102,103,104];
-filter?? := values%% > 102;
-values[filter??] += 100;
-print(values%%);
+values := [101,102,103,104];
+
+filter := values > 102; // [false,false,true,true]
+values[filter] += 100;
+
+print(values);
 // [101,102,203,204]
 ```
 
 Naturally, the filter expression can be moved inline. This allows mapping traversals. For example, the following is equivalent to the above.
 
 ```
-values%% := [101,102,103,104];
-values[values%% > 102] += 100;
-print(values%%);
+values := [101,102,103,104];
+
+values[values > 102] += 100;
+
+print(values);
 // [101,102,203,204]
 ```
 
-Indexes after the last one present in the boolean array are assumed to be false. The builtin funciton `index()` generates an appropriate boolean array to access just a single value, allowing single-instance access.
+The builtin funciton `index()` generates an appropriate boolean array to access just a single value, allowing single-instance access. (Don't worry about the array being too short for now, see the section on iterators and simply assume that it always has sufficient implicit trailing falses.
 
 ```
-values%% := [101,102,103,104];
+values := [101,102,103,104];
+
 values[index(2)] += 100;
-print(values%%);
+
+print(values);
 // [101,102,203,104]
 
 // Let's see how that works
@@ -79,7 +83,7 @@ print(index(2));
 // [false,false,true]
 ```
 
-The `range(offset%,length%) -> ??` builtin returns a boolean where from offset to offset+length, the boolean is true.
+The `range(offset,length)` builtin returns a boolean array, where from offset to offset+length, the boolean is true.
 
 ```
 print(range(4,2));
@@ -90,24 +94,28 @@ Slices are useful for updating mutliple arrays representing structured data.
 
 ```
 // some data
-gene.name$$    := ["A","B","C","D","E","F"];
-gene.start$$   := ["11","22","33","44","55","66"];
-gene.end$$     := ["17","27","37","47","57","67"];
-gene.is_nice$$ := ["y","y","n","n","y","y"];
+gene.name    := ["A","B","C","D","E","F"];
+gene.start   := ["11","22","33","44","55","66"];
+gene.end     := ["17","27","37","47","57","67"];
+gene.is_nice := ["y","y","n","n","y","y"];
 
 // we only want nice genes
-nice?? := gene.is_nice$$ == "y";
+nice := gene.is_nice == "y";
 
-gene.name$$  := gene.name$$[nice??];
-gene.start$$ := gene.start$$[nice??];
-gene.end$$   := gene.end$$[nice??];
+gene.name  := gene.name[nice];
+gene.start := gene.start[nice];
+gene.end   := gene.end[nice];
 ```
 
 The `copy()` buitin creates an independent copy of an array, as does passing the array to a function using _in_ mode. All copies are lazy, and therefore efficient if the variable is unchanged.
 
 ## Iterators
 
-Functions and procdedures can be defined as accepting "iterators" for in and in/out arguments. The sigil for an iterator, for use in the signature, is `&X`, where `X` is a base sigil. Such functions accept both the array and non-array agruments. A non-array argument is equivalent to an infinite sequence. These values are rather opaque: there are very few operations available on iterators to the programmer, but many builtin functions accept them, including the slice operator. Therefore, the slice operator also accepts a plain boolean to update all or none of the values. They are mainly used in functions which also take other arrays and allow subsequent arguments to co-vary with the main array or else take a fixed value.
+Functions and procdedures can be defined as accepting "iterators" for in and in/out arguments. Such functions accept both the array and non-array agruments. A non-array argument is equivalent to an infinite sequence. These values are rather opaque: there are very few operations available on iterators to the programmer, but many builtin functions accept them, including, importantly, the slice operator. Therefore, the slice operator also accepts a plain boolean to update all or none of the values.
+
+Iterators are mainly used in functions which also take other arrays and allow subsequent arguments to co-vary with the main array or else take a fixed value. Often they also include a convention as to allow over-short or over-long array arguments as well. For example, the filter operator assumes trailing falses and ignores excess values.
+
+Iterators are the only datatype polymorphism or ambiguity allowed in earp.
 
 ## (Explicit) Type Coercion
 
@@ -120,7 +128,7 @@ Conditionals and loops are available in earp but best avoided for performance. L
 Conditionals accept a boolean.
 
 ```
-if (test?) {
+if (test) {
     print("passed test");
 } else {
     print("failed test");
@@ -130,14 +138,14 @@ if (test?) {
 Loops accept any array format.
 
 ```
-loop name$ from (names$$) {
-    print(name$);
+loop name from (names) {
+    print(name);
 }
 ```
 
 Parentheses are mandatory as they may contain an arbitrary expression.
 
-## Literals and Construction
+## Literals, Construction, and Constants
 
 XXX
 
@@ -166,6 +174,8 @@ function add_two(input%, >half_way%) -> % {
 ```
 
 Function and procedure implementations must be unique with respect to the type of their in and in/out parameters.
+
+## Bulk Argument Sytnax
 
 Bulk-agrument syntax allows all variables defined up to a perion (`.`) to be passed as arguments. The sigil is a suffixed `..`. Bulk-argument syntax cannot be used in return types for functions. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
 
@@ -209,7 +219,18 @@ filter_genes(<>gene.., gene.is_nice$$=="y");
 
 ## Imports
 
-XXX
+Declarations cannot be nested so there are thre kinds of scope: 
+* within a single procedure/function;
+* at the file level (exported);
+* at the file level (not-exported).
+
+When a file is included, the exported elements at the file level become visible as not-exported elements within the new file.
+
+*Variables*: only variables within that function/procerdure's scope are visible within that function. Variables defined at the file level cannot be exported.
+
+*Functions:* functions with the `export` keyword prefix are exported (and so made available in another file when imported). Other functions exist at the non-exported file level. No functions are defiend within a function scope. References within a function are to one of the file scopes. Names in the file scope must be orthogonal. There are no disambiguating procedures for multiply defined functions sobe careful with your names. It is an error for two functions to exist with the same name and visible within a scope.
+
+Importing is achieved with the `import` keyword. It takes a string constant giving a path relative to the current file.
 
 ## Structured data
 
@@ -253,3 +274,21 @@ exon.colour$$[focus_exon??] := "purple";
 ```
 
 Very complex structured types should be implemented with domain-specific identifiers with the relevant methods rather than as ADTs. However id is important to keep biological modelling out of identifiers so such implementations which touch on bioligy should be as abstract and visual as possible.
+
+## ABD convention
+
+If is also possible to represent nested arrays wqith auxilliary arrays giving the offset an length of each sub-array. By convention these are named A and B, with the data array named D. for exmaple:
+
+```
+// [["A","B","C"],["D","E"],[]]
+x.a%% := [0,3,5];
+x.b%% := [3,2,0];
+x.d$$ := ["A","B","C","D","E"];
+```
+
+A number of utility builtins allow use of this format.
+
+* `abd_pick(a%%,b%%) -> ??` returns a bool array selecting the lower-level elements at the given location.
+* `abd_index(x??,a%%,b%%) -> %%` returns the index in the given a and b arrays of all true values.
+
+If used carefully, abd can be used for higher-dimensional arrays: rather than applying the filters to D arrays containing data, higher level arrays filter lower level A and B arrays.

@@ -3,7 +3,7 @@ import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
 data := get_data("self()","variant",get_region());
-//halt(only_warm(),[data]);
+halt(only_warm(),[data]);
 
 values := delta_seq(data,"values");
 x_range := [positive_seq(data,"range")];

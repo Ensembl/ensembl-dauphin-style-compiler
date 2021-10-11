@@ -2,7 +2,7 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
 data := get_data("self()","zoomed-seq",get_region());
-//halt(only_warm(),[data]);
+halt(only_warm(),[data]);
 
 seq_start := delta_seq(data,"seq_starts");
 seq_end := seq_start + 1;
@@ -18,7 +18,7 @@ patina := patina_hollow(seq_colour,1);
 text_colour := direct_colour(39,154,252,255);
 text_size := 14;
 textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
-allotment := use_allotment("contig");
+allotment := use_allotment("track:contig");
 
 
 half_height := 14;

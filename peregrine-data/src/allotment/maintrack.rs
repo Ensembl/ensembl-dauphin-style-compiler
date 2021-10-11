@@ -44,10 +44,12 @@ impl MTSpecifier {
     fn name(&self) -> &str { &self.name }
     fn depth(&self) -> i8 { self.depth }
 
-    fn coord_system(&self) -> CoordinateSystem {
-        match self.variety {
-            MTVariety::Track => CoordinateSystem::Tracking,
-            MTVariety::Wallpaper => CoordinateSystem::Window
+    fn coord_system(&self, reverse: bool) -> CoordinateSystem {
+        match (&self.variety,reverse) {
+            (MTVariety::Track,false)     => CoordinateSystem::Tracking,
+            (MTVariety::Track,true)      => CoordinateSystem::TrackingBottom,
+            (MTVariety::Wallpaper,false) => CoordinateSystem::Window,
+            (MTVariety::Wallpaper,true)  => CoordinateSystem::WindowBottom
         }
     }
 }
@@ -105,7 +107,7 @@ impl LinearGroupEntry for MainTrackRequest {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
-            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(),specifier.depth()))
+            Arc::new(BaseAllotmentRequest::new(&self.metadata,&specifier.coord_system(self.reverse),specifier.depth()))
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }

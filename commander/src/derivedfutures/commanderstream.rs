@@ -49,6 +49,10 @@ impl<T> CommanderStreamState<T> {
     fn get_nowait(&mut self) -> Option<T> {
         self.data.pop_front()
     }
+
+    fn clear(&mut self) {
+        self.data.clear();
+    }
 }
 
 
@@ -108,6 +112,11 @@ impl<T> CommanderStream<T> {
             if out.len() != 0 { return out; }
             out.push(self.get().await);
         }
+    }
+
+    /// Empry queue, discarding contents
+    pub fn clear(&self) {
+        self.0.lock().unwrap().clear();
     }
 }
 

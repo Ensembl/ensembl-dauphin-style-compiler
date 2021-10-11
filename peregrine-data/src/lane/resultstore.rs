@@ -12,11 +12,12 @@ use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
+use crate::train::carriage::CarriageLoadMode;
 use peregrine_toolkit::lock;
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, batch: bool) -> Result<Arc<ShapeListBuilder>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: CarriageLoadMode) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
-    let priority = if batch { PacketPriority::Batch } else { PacketPriority::RealTime };
+    let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let mut payloads = HashMap::new();
     let shapes = Builder::new(ShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets)));
     let net_ms = Arc::new(Mutex::new(0.));
@@ -24,11 +25,11 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);
     payloads.insert("data".to_string(),Box::new(ProgramData::new()) as Box<dyn Any>);
     payloads.insert("priority".to_string(),Box::new(priority) as Box<dyn Any>);
-    payloads.insert("only_warm".to_string(),Box::new(batch) as Box<dyn Any>);
+    payloads.insert("only_warm".to_string(),Box::new(!mode.build_shapes()) as Box<dyn Any>);
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
     let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
-        prio: if batch { 9 } else { 1 },
+        prio: if mode.high_priority() { 1 } else { 9 },
         slot: None,
         timeout: None,
         program_name: request.track().track().program_name().clone(),
@@ -36,19 +37,21 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     }).await?;
     let took_ms = cdr_current_time() - start;
     let net_time_ms = *net_ms.lock().unwrap();
-    base.metrics.program_run(&request.track().track().program_name().1,request.region().scale().get_index(),batch,net_time_ms,took_ms);
+    base.metrics.program_run(&request.track().track().program_name().1,request.region().scale().get_index(),!mode.build_shapes(),net_time_ms,took_ms);
     Ok(Arc::new(shapes.build()))
 }
 
-fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, batch: bool) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: CarriageLoadMode) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let base2 = base.clone();
     let program_loader = program_loader.clone();
+    let mode = mode.clone();
     Memoized::new(kind,move |_,request: &ShapeRequest| {
         let base = base2.clone();
         let program_loader = program_loader.clone(); 
         let request2 = request.clone();   
+        let mode = mode.clone();
         Box::pin(async move {
-            make_unfiltered_shapes(base,program_loader,request2.clone(),batch).await
+            make_unfiltered_shapes(base,program_loader,request2.clone(),mode.clone()).await
         })
     })
 }
@@ -78,34 +81,51 @@ fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<Sha
 #[derive(Clone)]
 pub struct LaneStore {
     realtime: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>,
-    batch: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>
+    batch: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>,
+    network: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>
 }
 
 impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,false);
+        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,CarriageLoadMode::RealTime);
         let filtered_cache = make_filtered_cache(MemoizedType::Cache(32),unfiltered_cache);
-        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,true);
+        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,CarriageLoadMode::Batch);
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
+        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,CarriageLoadMode::Network);
+        let network_filtered_cache = make_filtered_cache(MemoizedType::None,network_unfiltered_cache);
         LaneStore {
             realtime: filtered_cache,
-            batch: batch_filtered_cache
+            batch: batch_filtered_cache,
+            network: network_filtered_cache,
         }
     }
 
-    pub async fn run(&self, lane: &ShapeRequest, batch: bool) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
-        if batch {
-            if let Some(value) = self.realtime.try_get(lane) {
-                value
-            } else {
-                let value = self.batch.get(lane).await;
-                /* Don't warm! Some mayhave short-circuited */
-                //self.realtime.warm(lane,value.as_ref().clone());
-                value
+    pub async fn run(&self, lane: &ShapeRequest, mode: &CarriageLoadMode) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
+        match mode {
+            CarriageLoadMode::RealTime => {
+                self.realtime.get(lane).await
+            },
+            CarriageLoadMode::Batch => {
+                if let Some(value) = self.realtime.try_get(lane) {
+                    value
+                } else {
+                    let value = self.batch.get(lane).await;
+                    self.realtime.warm(lane,value.as_ref().clone());
+                    value
+                }
+            },
+            CarriageLoadMode::Network => {
+                if let Some(value) = self.realtime.try_get(lane) {
+                    value
+                } else if let Some(value) = self.batch.try_get(lane) {
+                    value    
+                } else if let Some(value) = self.network.try_get(lane) {
+                    value
+                } else {
+                    self.network.get(lane).await
+                }
             }
-        } else {
-            self.realtime.get(lane).await
         }
     }
 }

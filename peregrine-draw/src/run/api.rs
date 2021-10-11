@@ -87,6 +87,25 @@ impl std::fmt::Debug for DrawMessage {
 #[cfg(force_show_incoming)]
 fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { Ok(true) }
 
+#[cfg(debug_assertions)]
+fn dev_warning() {
+    let message = r#"
+                    ******************************
+                    * This is a dev build. Expect it to be 
+                    * cranky and slow with real data.
+                    *
+                    * Do not submit performance bugs
+                    * against this build.
+                    *
+                    * Do not expect this to work for 
+                    * very large chromosomes
+                    ******************************"#;
+    for line in message.split("\n") {
+        console::warn_1(&line.trim().into());  
+    }
+}
+
+
 #[cfg(not(force_show_incoming))]
 fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { config.get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages)) }
 
@@ -207,6 +226,8 @@ impl PeregrineAPI {
         if show_incoming(draw.config())? {
             console::log_1(&format!("compilation: git {:?} build time {:?} build host {:?}",env!("GIT_HASH"),env!("BUILD_TIME"),env!("BUILD_HOST")).into());
         }
+        #[cfg(debug_assertions)]
+        dev_warning();
         loop {
             let message = self.queue.get().await;
             message.run(&mut draw,&self.queue.blocker())?;

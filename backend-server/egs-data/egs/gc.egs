@@ -7,7 +7,7 @@ import "file:common.egs"; use "common";
  */
 
 data := get_data("self()","gc",get_region());
-//halt(only_warm(),[data]);
+halt(only_warm(),[data]);
 
 values := delta_seq(data,"values");
 present := bool_seq(data,"present");

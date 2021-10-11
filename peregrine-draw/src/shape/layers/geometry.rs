@@ -32,9 +32,10 @@ impl EnumerableKey for GeometryProgramName {
             GeometryProgramName::Triangles(CoordinateSystem::Tracking) => 1,
             GeometryProgramName::Triangles(CoordinateSystem::TrackingBottom) => 2,
             GeometryProgramName::Triangles(CoordinateSystem::Window) => 3,
-            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => 4,
-            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => 5,
-        },6)
+            GeometryProgramName::Triangles(CoordinateSystem::WindowBottom) => 4,
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => 5,
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => 6,
+        },7)
     }
 }
 
@@ -162,6 +163,31 @@ impl GeometryProgramName {
                     {
                         return uModel * vec4(    delta.x/uSize.x+base.x*2.0-1.0,
                                              1.0-delta.y/uSize.y-base.y*2.0,    -0.5,1.0);
+                    }
+                "),
+                Statement::new_vertex("
+                    gl_Position = transform(aBase,aDelta)
+                "),
+                Conditional::new("need-origin",vec![
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
+                    Statement::new_vertex("
+                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
+                    ")
+                ]),
+            ],
+            GeometryProgramName::Triangles(CoordinateSystem::WindowBottom) => vec![
+                Header::new(WebGlRenderingContext::TRIANGLES),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
+                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                Declaration::new_vertex("
+                    vec4 transform(in vec2 base, in vec2 delta)
+                    {
+                        return uModel * vec4(    delta.x/uSize.x+base.x*2.0-1.0,
+                                             -(1.0-delta.y/uSize.y-base.y*2.0),    
+                                             -0.5,1.0);
                     }
                 "),
                 Statement::new_vertex("

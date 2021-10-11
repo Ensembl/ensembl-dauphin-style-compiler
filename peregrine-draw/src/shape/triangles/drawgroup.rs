@@ -1,6 +1,8 @@
 use peregrine_data::{Allotment, CoordinateSystem, SpaceBase, SpaceBaseArea};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
 use super::trianglesyielder::TrackTrianglesYielder;
+use web_sys::console;
+
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
@@ -56,7 +58,7 @@ impl DrawGroup {
                     rectangle64(&mut delta, x0,y0,x1,y1,width);
                 }
             },
-            CoordinateSystem::Window => {
+            CoordinateSystem::Window | CoordinateSystem::WindowBottom => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
                     let top_left = allotment.transform_spacebase(&top_left);
                     let bottom_right = allotment.transform_spacebase(&bottom_right);

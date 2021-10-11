@@ -10,8 +10,8 @@ use super::lineargroup::{LinearOffsetBuilder, LinearRequestGroup};
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
     main: LinearRequestGroup<MainTrackRequestCreator>,
-    top_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    bottom_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    top_tracks: LinearRequestGroup<MainTrackRequestCreator>,
+    bottom_tracks: LinearRequestGroup<MainTrackRequestCreator>,
     window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
 }
 
@@ -70,8 +70,8 @@ impl Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
                 main: LinearRequestGroup::new(MainTrackRequestCreator(false)),
-                top_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking,false)),
-                bottom_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingBottom,true)),
+                top_tracks: LinearRequestGroup::new(MainTrackRequestCreator(false)),
+                bottom_tracks: LinearRequestGroup::new(MainTrackRequestCreator(true)),
                 window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),

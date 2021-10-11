@@ -110,7 +110,7 @@ impl Stain {
                                      vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Variable(pos.1,16.)])
             )));
             let pos = self.area.tlbr().clone();
-            /* top right of screen to bottom of screen, allong righthand edge of selection */
+            /* top right of screen to bottom of screen, along righthand edge of selection */
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Constant(0.)],vec![ParameterValue::Variable(pos.3,0.)]),

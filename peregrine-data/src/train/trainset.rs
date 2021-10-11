@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
+use crate::train::carriage::CarriageLoadMode;
 use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{PeregrineCore, MessageSender };
 use crate::core::{ Scale, Viewport };
@@ -211,7 +212,7 @@ impl TrainSet {
     async fn load_carriages(&self, objects: &mut PeregrineCore, carriages: &mut [Carriage]) {
         let mut loads = vec![];
         for carriage in carriages {
-            loads.push(carriage.load(&objects.base,&objects.agent_store.lane_store,false));
+            loads.push(carriage.load(&objects.base,&objects.agent_store.lane_store,CarriageLoadMode::RealTime));
         }
         for future in loads {
             let r = future.await;

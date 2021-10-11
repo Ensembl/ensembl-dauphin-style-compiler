@@ -8,7 +8,7 @@ import "file:common.egs"; use "common";
  */
 
 data := get_data("self()","transcript",get_region());
-//halt(only_warm(),[data]);
+halt(only_warm(),[data]);
 
 /*
  * undo the compression applied by the server basically by applying

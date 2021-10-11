@@ -14,6 +14,8 @@
 * `repeat`
 * `len`
 * `count`
+* `insert`
+* `remove`
 
 # Operators
 
