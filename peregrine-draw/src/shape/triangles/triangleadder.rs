@@ -1,16 +1,16 @@
 use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder}};
 
 #[derive(Clone)]
-pub struct TrianglesProgramLink {
+pub struct TriangleAdder {
     pub base: AttribHandle,
     pub delta: AttribHandle,
     pub origin_base: Option<AttribHandle>,
     pub origin_delta: Option<AttribHandle>,
 }
 
-impl TrianglesProgramLink {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TrianglesProgramLink,Message> {
-        Ok(TrianglesProgramLink {
+impl TriangleAdder {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<TriangleAdder,Message> {
+        Ok(TriangleAdder {
             base: builder.get_attrib_handle("aBase")?,
             delta: builder.get_attrib_handle("aDelta")?,
             origin_base: builder.try_get_attrib_handle("aOriginBase"),

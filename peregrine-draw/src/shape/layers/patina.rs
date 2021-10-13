@@ -1,11 +1,10 @@
 use super::super::core::directcolourdraw::{ DirectColourDraw, DirectProgram };
 use super::super::core::spotcolourdraw::{ SpotColourDraw, SpotProgram };
 use super::super::core::texture::{ TextureDraw, TextureProgram };
-use super::geometry::GeometryProgramLink;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{FlatId, SetFlag};
 use crate::webgl::{ ProcessBuilder, SourceInstrs, UniformProto, AttributeProto, GLArity, Varying, Statement, ProgramBuilder, TextureProto };
-use peregrine_data::{ DirectColour, Patina, Colour };
+use peregrine_data::{ DirectColour };
 use super::consts::{ PR_LOW, PR_DEF };
 use crate::util::message::Message;
 

@@ -1,8 +1,5 @@
 use peregrine_data::{Allotment, CoordinateSystem, SpaceBase, SpaceBaseArea};
-use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName}, util::arrayutil::rectangle64};
-use super::trianglesyielder::TrackTrianglesYielder;
-use web_sys::console;
-
+use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName, GeometryYielder}, util::arrayutil::rectangle64};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
@@ -83,8 +80,8 @@ impl DrawGroup {
         GeometryProcessName::new(program)
     }
 
-    pub(crate) fn geometry_yielder(&self) -> TrackTrianglesYielder {
-        TrackTrianglesYielder::new(&self.geometry_process_name(),self.depth())
+    pub(crate) fn geometry_yielder(&self) -> GeometryYielder {
+        GeometryYielder::new(self.geometry_process_name(),self.depth())
     }
 
     pub fn depth(&self) -> i8 { self.depth }

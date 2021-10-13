@@ -1,9 +1,8 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::rc::Rc;
 use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
-use crate::webgl::{ProcessBuilder, Program, ProgramBuilder, SourceInstrs, make_program};
-use super::geometry::{GeometryProcessName, GeometryProgramLink, GeometryProgramName};
+use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs, make_program};
+use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
 use super::patina::{PatinaProcessName, PatinaProgramLink, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
@@ -19,7 +18,7 @@ impl EnumerableKey for ProgramIndex {
 
 pub(crate) struct ProgramStoreEntry {
     builder: Rc<ProgramBuilder>,
-    geometry: GeometryProgramLink,
+    geometry: GeometryAdder,
     patina: PatinaProgramLink
 }
 

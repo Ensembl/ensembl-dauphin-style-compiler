@@ -3,67 +3,38 @@ use peregrine_data::Allotment;
 use super::super::layers::layer::{ Layer };
 use super::super::layers::geometry::GeometryProgramName;
 use super::super::layers::patina::PatinaProcessName;
-use crate::shape::layers::geometry::{GeometryProcessName, GeometryProgramLink, GeometryYielder};
+use crate::shape::layers::geometry::{GeometryAdder, GeometryProcessName, GeometryYielder};
 use crate::shape::layers::patina::PatinaYielder;
-use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProcessStanzaElements, Program, ProgramBuilder};
+use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder};
 use super::super::util::arrayutil::{ interleave_pair, apply_left };
 use crate::util::message::Message;
 
 const THICKNESS: f64 = 1.; // XXX
 
-pub(crate) struct WiggleYielder {
-    geometry_process_name: GeometryProcessName,
-    link: Option<WiggleProgramLink>,
-    priority: i8
-}
 
-impl<'a> GeometryYielder for WiggleYielder {
-    fn name(&self) -> &GeometryProcessName { &self.geometry_process_name }
-
-    fn priority(&self) -> i8 { self.priority }
-    
-    fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message> {
-        self.link = Some(match program {
-            GeometryProgramLink::Wiggle(prog) => prog,
-            _ => { Err(Message::CodeInvariantFailed(format!("mismatched program: wiggle")))? }
-        }.clone());
-        Ok(())
-    }
-}
-
-impl WiggleYielder {
-    pub(crate) fn new(priority: i8) -> WiggleYielder {
-        WiggleYielder {
-            geometry_process_name: GeometryProcessName::new(GeometryProgramName::Wiggle),
-            link: None,
-            priority
-        }
-    }
-
-    pub(super) fn link(&self) -> Result<&WiggleProgramLink,Message> {
-        self.link.as_ref().ok_or_else(|| Message::CodeInvariantFailed(format!("using accessor without setting")))
-    }
-}
-
-
-pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut WiggleYielder, patina_yielder: &mut dyn PatinaYielder,
+pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
                     start: f64, end: f64, yy: Vec<Option<f64>>, height: f64,
                     allotment: &Allotment, left: f64)-> Result<ProcessStanzaArray,Message> {
-    let process = layer.draw(geometry_yielder,patina_yielder)?.get_process_mut();
+    let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
     let yy = yy.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>();
     let yy = allotment.transform_yy(&yy);
-    let array = geometry_yielder.link()?.add_wiggle(process,start,end,yy,height,left)?;
-    Ok(array)
+    let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
+    match adder {
+        GeometryAdder::Wiggle(w) => {
+            w.add_wiggle(process,start,end,yy,height,left)
+        },
+        _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
+    }
 }
 
 #[derive(Clone)]
-pub struct WiggleProgramLink {
+pub struct WiggleAdder {
     data: AttribHandle
 }
 
-impl WiggleProgramLink {
-    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleProgramLink,Message> {
-        Ok(WiggleProgramLink {
+impl WiggleAdder {
+    pub(crate) fn new(builder: &ProgramBuilder) -> Result<WiggleAdder,Message> {
+        Ok(WiggleAdder {
             data: builder.get_attrib_handle("aData")?,
         })
     }
@@ -138,12 +109,12 @@ impl WigglePusher {
 
 #[derive(Clone)]
 pub struct WiggleGeometry {
-    variety: WiggleProgramLink,
+    variety: WiggleAdder,
     patina: PatinaProcessName
 }
 
 impl WiggleGeometry {
-    pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleProgramLink) -> Result<WiggleGeometry,Message> {
+    pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleAdder) -> Result<WiggleGeometry,Message> {
         Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 }

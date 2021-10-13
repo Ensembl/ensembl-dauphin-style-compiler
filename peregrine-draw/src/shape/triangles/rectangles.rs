@@ -1,4 +1,5 @@
 use crate::shape::layers::drawing::DynamicShape;
+use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{ ProcessStanzaElements };
@@ -7,8 +8,7 @@ use peregrine_data::{
     SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
 };
 use super::drawgroup::DrawGroup;
-use super::trianglesprogramlink::TrianglesProgramLink;
-use super::trianglesyielder::TrackTrianglesYielder;
+use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
 enum RectanglesLocation {
@@ -48,7 +48,7 @@ impl RectanglesLocation {
 
 pub(crate) struct Rectangles {
     elements: ProcessStanzaElements,
-    program: TrianglesProgramLink,
+    program: TriangleAdder,
     location: RectanglesLocation,
     allotments: Vec<Allotment>,
     left: f64,
@@ -57,30 +57,34 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,subs,edge.clone());
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,subs,x_sizes,y_sizes);
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)
     }
 
-    fn real_new(layer: &mut Layer, geometry_yielder: &mut TrackTrianglesYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
-        let builder = layer.draw(geometry_yielder,patina_yielder)?.get_process_mut();
+    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &[Allotment], left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+        let builder = layer.get_process_builder(geometry_yielder,patina_yielder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
         } else {
             vec![0,3,1,2,0,3]
         };
         let elements = builder.get_stanza_builder().make_elements(location.len(),&indexes)?;
+        let adder = match geometry_yielder.get_adder::<GeometryAdder>()? {
+            GeometryAdder::Triangles(adder) => { adder },
+            _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
+        };
         let mut out = Rectangles {
             elements, left,
             width: if hollow { Some(1.) } else { None },
-            program: geometry_yielder.program()?.clone(),
+            program: adder.clone(),
             location,
             kind: kind.clone(),
             allotments: allotments.to_vec()

@@ -1,6 +1,8 @@
-use super::super::core::wigglegeometry::WiggleProgramLink;
+use std::any::Any;
+
+use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
-use crate::shape::triangles::trianglesprogramlink::TrianglesProgramLink;
+use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
@@ -8,15 +10,40 @@ use crate::util::message::Message;
 use peregrine_data::CoordinateSystem;
 
 #[derive(Clone)]
-pub(crate) enum GeometryProgramLink {
-    Wiggle(WiggleProgramLink),
-    Triangles(TrianglesProgramLink),
+pub(crate) enum GeometryAdder {
+    Wiggle(WiggleAdder),
+    Triangles(TriangleAdder),
 }
 
-pub(crate) trait GeometryYielder {
-    fn name(&self) -> &GeometryProcessName;
-    fn priority(&self) -> i8;
-    fn set(&mut self, program: &GeometryProgramLink) -> Result<(),Message>;
+impl GeometryAdder {
+    fn to_any(&self) -> Box<dyn Any> { Box::new(self.clone()) }
+}
+
+pub struct GeometryYielder {
+    name: GeometryProcessName,
+    priority: i8,
+    link: Option<Box<dyn Any>>
+}
+
+impl GeometryYielder {
+    pub(crate) fn new(name: GeometryProcessName, priority: i8) -> GeometryYielder {
+        GeometryYielder {
+            name, priority,
+            link: None
+        }
+    }
+
+    pub fn get_adder<T: 'static>(&self) -> Result<&T,Message> {
+        let x  = self.link.as_ref().map(|x| x.downcast_ref()).flatten();
+        x.ok_or_else(|| Message::CodeInvariantFailed(format!("incorrect adder type")))
+    }
+
+    pub(crate) fn name(&self) -> &GeometryProcessName { &self.name }
+    pub(crate) fn priority(&self) -> i8 { self.priority }
+    pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Message> {
+        self.link = Some(program.to_any());
+        Ok(())
+    }
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
@@ -40,10 +67,10 @@ impl EnumerableKey for GeometryProgramName {
 }
 
 impl GeometryProgramName {
-    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryProgramLink,Message> {
+    pub(crate) fn make_geometry_program(&self, builder: &ProgramBuilder) -> Result<GeometryAdder,Message> {
         Ok(match self {
-            GeometryProgramName::Wiggle => GeometryProgramLink::Wiggle(WiggleProgramLink::new(builder)?),
-            GeometryProgramName::Triangles(_) => GeometryProgramLink::Triangles(TrianglesProgramLink::new(builder)?),
+            GeometryProgramName::Wiggle => GeometryAdder::Wiggle(WiggleAdder::new(builder)?),
+            GeometryProgramName::Triangles(_) => GeometryAdder::Triangles(TriangleAdder::new(builder)?),
         })
     }
 

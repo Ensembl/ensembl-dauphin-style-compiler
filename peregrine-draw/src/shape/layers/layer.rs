@@ -51,14 +51,14 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap())
     }
 
-    pub(crate) fn draw(&mut self, geometry: &mut dyn GeometryYielder, patina: &mut dyn PatinaYielder) -> Result<&mut ShapeProgram,Message> {
+    pub(crate) fn get_process_builder(&mut self, geometry: &mut GeometryYielder, patina: &mut dyn PatinaYielder) -> Result<&mut ProcessBuilder,Message> {
         let geometry_name = geometry.name();
         let patina_name = patina.name();
         let character = ProgramCharacter(geometry.priority(),geometry_name.clone(),patina_name.clone());
         let shape_program = self.shape_program(&character)?; 
         geometry.set(shape_program.get_geometry())?;
         patina.set(shape_program.get_patina())?;
-        Ok(self.store.get_mut(&character).unwrap())
+        Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
     pub(super) fn build(mut self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<(Process,i8)>,Message> {

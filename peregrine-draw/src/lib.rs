@@ -84,9 +84,8 @@ mod shape {
     }
 
     pub(crate) mod triangles {
-        pub(crate) mod trianglesyielder;
         pub(crate) mod drawgroup;
-        pub(crate) mod trianglesprogramlink;
+        pub(crate) mod triangleadder;
         pub(crate) mod rectangles;
     }
 
