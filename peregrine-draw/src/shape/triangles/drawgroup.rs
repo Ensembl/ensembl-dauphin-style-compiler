@@ -40,8 +40,10 @@ impl DrawGroup {
             },
             CoordinateSystem::SidewaysLeft => {
                 for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
-                    rectangle64(&mut base, *top_left.base-left, 0., *bottom_right.base-left,0.,base_width);
-                    rectangle64(&mut delta, *top_left.tangent,*top_left.normal,*bottom_right.tangent,*bottom_right.normal,width);
+                    let top_left = allotment.transform_spacebase(&top_left);
+                    let bottom_right = allotment.transform_spacebase(&bottom_right);
+                    rectangle64(&mut base, top_left.base, 0., bottom_right.base,0.,base_width);
+                    rectangle64(&mut delta, top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal,width);
                 }
             },
             CoordinateSystem::SidewaysRight => {

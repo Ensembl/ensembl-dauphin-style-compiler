@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::{Hash, Hasher}, sync::{Arc, Mutex}};
+use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};

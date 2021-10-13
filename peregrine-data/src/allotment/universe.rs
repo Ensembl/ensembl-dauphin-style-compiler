@@ -12,6 +12,8 @@ struct UniverseData {
     main: LinearRequestGroup<MainTrackRequestCreator>,
     top_tracks: LinearRequestGroup<MainTrackRequestCreator>,
     bottom_tracks: LinearRequestGroup<MainTrackRequestCreator>,
+    left: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    right: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
 }
 
@@ -27,6 +29,10 @@ impl UniverseData {
             self.bottom_tracks.make_request(allotment_metadata,&suffix,&name)
         } else if let Some(suffix) = trim_prefix("window",name) {
             self.window.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("left",name) {
+            self.left.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("right",name) {
+            self.right.make_request(allotment_metadata,&suffix,&name)
         } else {
             None
         }
@@ -37,6 +43,8 @@ impl UniverseData {
         self.bottom_tracks.union(&other.bottom_tracks);
         self.main.union(&other.main);
         self.window.union(&other.window);
+        self.left.union(&other.left);
+        self.right.union(&other.right);
     }
 
     fn get_all_metadata(&self,allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
@@ -44,9 +52,18 @@ impl UniverseData {
         self.top_tracks.get_all_metadata(allotment_metadata,out);
         self.bottom_tracks.get_all_metadata(allotment_metadata,out);
         self.window.get_all_metadata(allotment_metadata,out);
+        self.left.get_all_metadata(allotment_metadata,out);
+        self.right.get_all_metadata(allotment_metadata,out);
     }
 
     fn allot(&mut self) {
+        // XXX pad left and right
+        /* Left and Right */
+        let mut offset = LinearOffsetBuilder::new();
+        self.left.allot(&mut offset);
+        let mut offset = LinearOffsetBuilder::new();
+        self.right.allot(&mut offset);
+        /* Main run */
         let mut offset = LinearOffsetBuilder::new();
         self.top_tracks.allot(&mut offset);
         self.main.allot(&mut offset);
@@ -72,6 +89,8 @@ impl Universe {
                 main: LinearRequestGroup::new(MainTrackRequestCreator(false)),
                 top_tracks: LinearRequestGroup::new(MainTrackRequestCreator(false)),
                 bottom_tracks: LinearRequestGroup::new(MainTrackRequestCreator(true)),
+                left: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
+                right: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
                 window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest())
             })),

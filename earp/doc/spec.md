@@ -19,7 +19,7 @@ Earp has the following base types.
 * identifiers
 * strings
 
-While there are no sigils to demonstrate the contents of a variable, the complier ensures that which of these values a variable contains is always unambiguous. For example, assigning a variable an integer in one branch of a statement and a boolean in another, and then attempting to use it later is a compile-time error. Coercions are always explicit.
+While there are no sigils to demonstrate the contents of a variable, the complier ensures that which of these values a variable contains is always unambiguous. For example, assigning a variable an integer in one branch of a statement and a boolean in another, and then attempting to use it later is a compile-time error. Coercions are always explicit. So while earp looks like it plays fast and loose with types (no explicit typing and no sigils), it is actually rather strict.
 
 Earp also has one-dimensional homogenous arrays of each of these types. There are no structured types beyond this: no higher-dimensional arrays and no enums/structs. This is a concession of expressiveness for performance. It is mitigated by:
 
@@ -119,7 +119,34 @@ Iterators are the only datatype polymorphism or ambiguity allowed in earp.
 
 ## (Explicit) Type Coercion
 
-Type-coercion builtin functions allow inter-conversion, named after the target types: `to_number`, `to_string`, `to_boolean`, `to_bytes`. Arrays can be down-converted using the `scalar` function.
+Type-coercion builtin functions allow inter-conversion, named after the target types: `to_number`, `to_string`, `to_boolean`, `to_bytes`, `to_number_array`, `to_string_array`, `to_boolean_array`, `to_bytes_array`. Arrays can alsso be down-converted using thsee functions.
+
+| in / out | n | s | bo | by | na | sa | boa | bya |
+|----------|---|---|----|----|----|----|-----|-----|
+| n        | I | F | B  | V  | S  | -  | -   | -   |
+| s        | P | I | P  | U  | -  | S  | -   | -   |
+| bo       | B | F | I  | B  | -  | -  | S   | -   |
+| by       | V | U | B  | I  | V+ | -  | -   | S   |
+| na       | S | - | -  | V+ | I  | F+ | B+  | V+  |
+| sa       | - | S | -  | -  | P+ | I  | P+  | U+  |
+| boa      | - | - | S  | -  | B+ | P+ | I   | B+  |
+| bya      | - | - | -  | S  | V+ | U+ | B+  | I   |
+
+* `I` -- no change
+* `F` -- formatted
+* `P` -- parsed
+* `U` -- utf8 conversion
+* `B` -- 1 = true, 0 = false
+* `V` -- unsigned byte value 0-255
+* `S` -- single member / first member
+* `+` -- on each
+
+The scalar conversions accept all other scalar types. to_string() formats its input arguments. Number
+
+* `to_number` accepts a string, a number, a boolean, and bytes.
+* `to_string` accepts a string, a number, a boolean, and bytes.
+* `to_boolean` accepts a string, a number, a boolean, and bytes.
+* `to_bytes` accepts a string, a number, a boolean, bytes, and a number array.
 
 ## Conditionals and Loops
 
@@ -147,12 +174,25 @@ Parentheses are mandatory as they may contain an arbitrary expression.
 
 ## Literals, Construction, and Constants
 
-XXX
+* **numbers** numbers can be specified in standard number formats, including scientific notation (with `e`), hex (with `0x`) and octal (with `0`).
+* **booleans** can be specified with `true` and `false`.
+* **strings** can be specified with double quotes. Multiline strings can be spceified with triple quotes, `"""`. Leading whitespace upto the first newline or non-whitespace are ignored as is trailing whitespace before the closing quote and on the same line.
+* **bytes** have no literal syntax and are best created using an array of numbers or a string.
+* **identifiers** have no general construction method.
 
+Arrays can be constructed with square brackets `[]`. Array values of the correct type are also allowed and interpolated. This allows merging of arrays, appending and so on.
+
+```
+x := [1,2,3]; // simple construction
+x := [42,x]; // append 42 onto x
+z := [x,y]; // merge arrays x and y (if both arrays)
+```
+
+Comments have C++-like syntax. Multiline comments use `/* */` and to end-of-line comments ue `//`.
 
 ## Functions and Procedures
 
-Earp incluides functions and procedures. The difference between them is syntactic. A function has an out parameter to which it evaluates which allows it to be used in a n expression whereas a procedure must be a statement.
+Earp incluides functions and procedures. The difference between them is simply syntactic: a function has an out parameter to which it evaluates which allows it to be used in a n expression whereas a procedure must be a statement.
 
 There are three modes of parameters to functions:
 
@@ -162,37 +202,43 @@ _in_ | `<` (optional, default)| a call-by-value parameter (regular parameter |
 | _in/out_ | `<>` | a call-by-reference parameter (value can be both read and written and is reflected in calling value) |
 | _out_ | `>` | value propagates out of function, value is initially default | 
 
-Sigils must be present (and match) both in the signature and call.
+These sigils must be present (and match) both in the signature and call (except that `<` is always optional and usually best ommitted for clarity).
 
-Functions and procedures are introduced with `function` and `procedure`. The `return` statement returns a value from the function (otherwiset the default is returned). Function return type is identified with `-> <sigil>`. For example:
+Functions and procedures are introduced with `function` and `procedure`. The `return` statement returns a value from the function (otherwiset the default is returned). It is a compile-time error for branches not to include an explicit return. Earp compilers are not required to detect inifinite loops, so this includes (unused) returns after such cases.
 
 ```
-function add_two(input%, >half_way%) -> % {
-  halfway% := input% + 1;
-  return halfway% + 1;
+function add_two(input, >half_way) {
+  halfway := input + 1;
+  return halfway + 1;
 }
+
+x := 2;
+z := add_two(x,>y);
+print(x); // 2
+print(y); // 3
+print(z); // 4
 ```
 
 Function and procedure implementations must be unique with respect to the type of their in and in/out parameters.
 
 ## Bulk Argument Sytnax
 
-Bulk-agrument syntax allows all variables defined up to a perion (`.`) to be passed as arguments. The sigil is a suffixed `..`. Bulk-argument syntax cannot be used in return types for functions. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
+Bulk-agrument syntax allows all variables defined up to a period (`.`) to be passed as arguments. When used as an argument or parameter type, it is a suffixed `..`. Bulk-argument syntax cannot be used in return types for functions. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
 
 ```
 procedure only_nice_genes(<>data..) {
-  nice?? := data.is_nice$$ == "y";
+  nice := data.is_nice == "y";
 
-  data.name$$  := data.name$$  [nice??];
-  data.start$$ := data.start$$ [nice??];
-  data.end$$   := data.end$$   [nice??];
+  data.name  := data.name[nice];
+  data.start := data.start[nice];
+  data.end   := data.end[nice];
 }
 
 // some data
-gene.name$$    := ["A","B","C","D","E","F"];
-gene.start$$   := ["11","22","33","44","55","66"];
-gene.end$$     := ["17","27","37","47","57","67"];
-gene.is_nice$$ := ["y","y","n","n","y","y"];
+gene.name    := ["A","B","C","D","E","F"];
+gene.start   := ["11","22","33","44","55","66"];
+gene.end     := ["17","27","37","47","57","67"];
+gene.is_nice := ["y","y","n","n","y","y"];
 
 // we only want nice genes
 only_nice_genes(<>gene..);
@@ -201,20 +247,20 @@ only_nice_genes(<>gene..);
 or the same things, using iterators with a pluggable predicate
 
 ```
-procedure filter_genes(<>data.., pred&?) {
-  data.name$$  := data.name$$  [pred&?];
-  data.start$$ := data.start$$ [pred&?];
-  data.end$$   := data.end$$   [pred&?];
+procedure filter_genes(<>data.., pred) {
+  data.name  := data.name[pred];
+  data.start := data.start[pred];
+  data.end   := data.end[pred];
 }
 
 // some data
-gene.name$$    := ["A","B","C","D","E","F"];
-gene.start$$   := ["11","22","33","44","55","66"];
-gene.end$$     := ["17","27","37","47","57","67"];
-gene.is_nice$$ := ["y","y","n","n","y","y"];
+gene.name    := ["A","B","C","D","E","F"];
+gene.start   := ["11","22","33","44","55","66"];
+gene.end     := ["17","27","37","47","57","67"];
+gene.is_nice := ["y","y","n","n","y","y"];
 
 // we only want nice genes
-filter_genes(<>gene.., gene.is_nice$$=="y");
+filter_genes(<>gene.., gene.is_nice=="y");
 ```
 
 ## Imports
@@ -230,7 +276,7 @@ When a file is included, the exported elements at the file level become visible 
 
 *Functions:* functions with the `export` keyword prefix are exported (and so made available in another file when imported). Other functions exist at the non-exported file level. No functions are defiend within a function scope. References within a function are to one of the file scopes. Names in the file scope must be orthogonal. There are no disambiguating procedures for multiply defined functions sobe careful with your names. It is an error for two functions to exist with the same name and visible within a scope.
 
-Importing is achieved with the `import` keyword. It takes a string constant giving a path relative to the current file.
+Importing is achieved with the `import` keyword. It takes a string constant giving a path relative to the current file or a URL.
 
 ## Structured data
 
@@ -239,41 +285,41 @@ In a typical representation of structured data, each low-level data item contain
 Consider exons in genes. In many cases (such as drawing) we can consider exons as a flat array. In other cases they need to be linked to their gene. In this case it makes more sense to have a reference _from_ the exons into the gene array.
 
 ```
-exon.start%% := [A,B,C,D,...];
-exon.end%%   := [W,X,Y,Z,...];
-exon.gene%%  := [m,m,m,n,...];
+exon.start := [A,B,C,D,...];
+exon.end   := [W,X,Y,Z,...];
+exon.gene  := [m,m,m,n,...];
 
 // create biotype array for exons (eg to place correctly)
 
-exon.biotype$$ := pick(exon.gene%%,gene.biotype$$);
+exon.biotype := pick(exon.gene,gene.biotype);
 
-green_exons?? := exon.biotype$$ == "protein_coding";
-blue_exons?? := exon.biotype$$ == "nmd";
+green_exons := exon.biotype$$ == "protein_coding";
+blue_exons := exon.biotype == "nmd";
 
-special_exons?? := green_exons?? || blue_exons??; // etc
+special_exons := green_exons || blue_exons; // etc
 
-exon.colour$$ := repeat(len(exon.start%%), "red");
-exon.colour$$[green_exons??] := "green";
-exon.colour$$[blue_exons??] := "blue";
+exon.colour := repeat(len(exon.start), "red");
+exon.colour[green_exons] := "green";
+exon.colour[blue_exons] := "blue";
 ```
 
 On the other hand, we can also update the lower level object based on properties of the high-level one.
 
 ```
 // fred at index m, bob at n
-gene.name$$ := [..., ..., "fred", ..., "bob", ...]; 
-exon.start%% := [A,B,C,D,...];
-exon.end%%   := [W,X,Y,Z,...];
-exon.gene%%  := [m,m,m,n,...];
+gene.name := [..., ..., "fred", ..., "bob", ...]; 
+exon.start := [A,B,C,D,...];
+exon.end   := [W,X,Y,Z,...];
+exon.gene  := [m,m,m,n,...];
 
-focus_gene?? := gene.name$$ == "fred";
-focus_index%% := position(focus_gene??);
-focus_exon?? := exon.gene%% == focus_index%%;
+focus_gene := gene.name == "fred";
+focus_index := position(focus_gene);
+focus_exon := exon.gene == focus_index;
 
-exon.colour$$[focus_exon??] := "purple";
+exon.colour[focus_exon] := "purple";
 ```
 
-Very complex structured types should be implemented with domain-specific identifiers with the relevant methods rather than as ADTs. However id is important to keep biological modelling out of identifiers so such implementations which touch on bioligy should be as abstract and visual as possible.
+Very complex structured types should be implemented with domain-specific identifiers with the relevant methods implemented in the interpreted rather than as ADTs. However id is important to keep biological modelling out of identifiers so such implementations which touch on bioligy should be as abstract and visual as possible.
 
 ## ABD convention
 
@@ -281,14 +327,14 @@ If is also possible to represent nested arrays wqith auxilliary arrays giving th
 
 ```
 // [["A","B","C"],["D","E"],[]]
-x.a%% := [0,3,5];
-x.b%% := [3,2,0];
-x.d$$ := ["A","B","C","D","E"];
+x.a := [0,3,5];
+x.b := [3,2,0];
+x.d := ["A","B","C","D","E"];
 ```
 
 A number of utility builtins allow use of this format.
 
-* `abd_pick(a%%,b%%) -> ??` returns a bool array selecting the lower-level elements at the given location.
-* `abd_index(x??,a%%,b%%) -> %%` returns the index in the given a and b arrays of all true values.
+* `abd_pick(a,b)` returns a bool array selecting the lower-level elements at the given location.
+* `abd_index(x,a,b)` returns the indexes in the given a and b arrays of all true values as a number array.
 
 If used carefully, abd can be used for higher-dimensional arrays: rather than applying the filters to D arrays containing data, higher level arrays filter lower level A and B arrays.

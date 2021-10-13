@@ -48,6 +48,13 @@ stmt gene_std(p) {
     new_allotment(p,"track:gene-other-rev",1000,"gene-other-rev","1");
 }
 
+/* TOP-LEVEL */
+p := track_new("self()","framing",1,60,60);
+new_thin_allotment(p,"left:pad",-2000000,"pad-left","");
+track_add_trigger(p,["track"]);
+track_apply(p);
+
+
 /* GENES & TRANSCRIPTS */
 /* exon-structure; labels ; zmenus; sequence blocks */
 p := track_new("self()","zoomed-transcript",0,sequence_scale,sequence_scale);

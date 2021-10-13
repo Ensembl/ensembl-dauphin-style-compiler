@@ -103,19 +103,16 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
                     {
-                        return uModel * vec4(
-                            (base.x -uStageHpos) * uStageZoom + 
-                                        delta.x / uSize.x,
-                            (1.0 - delta.y / uSize.y) * base.y, 
-                            0.0, 1.0)
-                    }
+                        return uModel * vec4(    delta.y/uSize.x+base.y*2.0-1.0,
+                            1.0-delta.x/uSize.y-base.x*2.0,    -0.5,1.0);
+   }
                 "),
                 Statement::new_vertex("
                     gl_Position = transform(aBase,aDelta)
@@ -130,15 +127,15 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(CoordinateSystem::SidewaysLeft) => vec![
+            GeometryProgramName::Triangles(CoordinateSystem::SidewaysRight) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
                     {
-                        return uModel * vec4(    delta.x/uSize.x+base.x*2.0-1.0,
-                                             1.0-delta.y/uSize.y-base.y*2.0,    -0.5,1.0);
+                        return uModel * vec4(    -(delta.y/uSize.x+base.y*2.0-1.0),
+                            1.0-delta.x/uSize.y-base.x*2.0,    -0.5,1.0);
                     }
                 "),
                 Statement::new_vertex("
