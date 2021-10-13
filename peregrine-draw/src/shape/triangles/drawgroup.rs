@@ -1,5 +1,5 @@
 use peregrine_data::{Allotment, CoordinateSystem, SpaceBase, SpaceBaseArea};
-use crate::shape::{layers::geometry::{GeometryProcessName, GeometryProgramName, GeometryYielder}, util::arrayutil::rectangle64};
+use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, TrianglesTransform}, util::arrayutil::rectangle64};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
@@ -76,8 +76,15 @@ impl DrawGroup {
     }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
-        let program = GeometryProgramName::Triangles(self.coord_system());
-        GeometryProcessName::new(program)
+        let (system,transform) = match self.coord_system() {
+            CoordinateSystem::Tracking => (TrianglesGeometry::Tracking,TrianglesTransform::NegativeY),
+            CoordinateSystem::TrackingBottom => (TrianglesGeometry::Tracking,TrianglesTransform::Identity),
+            CoordinateSystem::Window => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
+            CoordinateSystem::WindowBottom => (TrianglesGeometry::Window,TrianglesTransform::Identity),
+            CoordinateSystem::SidewaysLeft => (TrianglesGeometry::Sideways,TrianglesTransform::NegativeY),
+            CoordinateSystem::SidewaysRight =>  (TrianglesGeometry::Sideways,TrianglesTransform::NegativeXY),
+        };
+        GeometryProcessName::Triangles(system,transform)
     }
 
     pub(crate) fn geometry_yielder(&self) -> GeometryYielder {

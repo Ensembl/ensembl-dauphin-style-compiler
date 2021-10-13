@@ -1,4 +1,4 @@
-use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaProgramLink, PatinaYielder};
+use crate::shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder};
 use crate::webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder };
 use crate::webgl::{ FlatId };
 use crate::util::message::Message;
@@ -99,8 +99,8 @@ impl TextureYielder {
 impl PatinaYielder for TextureYielder {
     fn name(&self) -> &PatinaProcessName { &self.patina_process_name }
 
-    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaProgramLink,Message> {
-        Ok(PatinaProgramLink::Texture(TextureProgram::new(builder)?))
+    fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message> {
+        Ok(PatinaAdder::Texture(TextureProgram::new(builder)?))
     }
     
     fn set(&mut self, program: &PatinaProcess) -> Result<(),Message> {

@@ -1,4 +1,4 @@
-use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder}};
+use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder, UniformHandle}};
 
 #[derive(Clone)]
 pub struct TriangleAdder {
@@ -6,6 +6,7 @@ pub struct TriangleAdder {
     pub delta: AttribHandle,
     pub origin_base: Option<AttribHandle>,
     pub origin_delta: Option<AttribHandle>,
+    pub transform: Option<UniformHandle>
 }
 
 impl TriangleAdder {
@@ -14,7 +15,8 @@ impl TriangleAdder {
             base: builder.get_attrib_handle("aBase")?,
             delta: builder.get_attrib_handle("aDelta")?,
             origin_base: builder.try_get_attrib_handle("aOriginBase"),
-            origin_delta: builder.try_get_attrib_handle("aOriginDelta")
+            origin_delta: builder.try_get_attrib_handle("aOriginDelta"),
+            transform: builder.try_get_uniform_handle("uTransform")
         })
     }
 

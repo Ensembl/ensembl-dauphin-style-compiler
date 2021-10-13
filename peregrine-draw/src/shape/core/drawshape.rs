@@ -156,7 +156,7 @@ pub(crate) enum ShapeToAdd {
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<ShapeToAdd,Message> {
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(height,colour),allotment) => {
-            let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::new(GeometryProgramName::Wiggle),allotment.depth());
+            let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle,allotment.depth());
             let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
             let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left)?;

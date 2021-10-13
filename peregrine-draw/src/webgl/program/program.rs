@@ -72,6 +72,10 @@ impl ProgramBuilder {
         self.attribs.try_get_handle(name)
     }
 
+    pub(crate) fn try_get_uniform_handle(&self, name: &str) -> Option<UniformHandle> {
+        self.uniforms.try_get_handle(name)
+    }
+
     pub(crate) fn make(&self, context: &WebGlRenderingContext, gpuspec: &GPUSpec) -> Result<Rc<Program>,Message> {
         let mut prog = self.program.borrow_mut();
         if prog.is_none() {

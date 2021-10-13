@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
 use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs, make_program};
 use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
-use super::patina::{PatinaProcessName, PatinaProgramLink, PatinaProgramName};
+use super::patina::{PatinaProcessName, PatinaAdder, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;
 use crate::stage::stage::get_stage_source;
 use crate::util::message::Message;
@@ -19,7 +19,7 @@ impl EnumerableKey for ProgramIndex {
 pub(crate) struct ProgramStoreEntry {
     builder: Rc<ProgramBuilder>,
     geometry: GeometryAdder,
-    patina: PatinaProgramLink
+    patina: PatinaAdder
 }
 
 impl ProgramStoreEntry {
@@ -32,12 +32,12 @@ impl ProgramStoreEntry {
             patina
         })
     }
-
-    pub(crate) fn make_shape_program(&self, patina_process_name: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+    
+    pub(crate) fn make_shape_program(&self, geometry_process_name: &GeometryProcessName, patina_process_name: &PatinaProcessName) -> Result<ShapeProgram,Message> {
         let geometry = self.geometry.clone();
         let patina = self.patina.make_patina_process(patina_process_name)?;
         let process = ProcessBuilder::new(self.builder.clone());
-        Ok(ShapeProgram::new(process,geometry,patina))
+        Ok(ShapeProgram::new(process,geometry,geometry_process_name.clone(),patina))
     }
 }
 
@@ -80,6 +80,6 @@ impl ProgramStore {
     }
 
     pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
-        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(patina)
+        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry,patina)
     }
 }
