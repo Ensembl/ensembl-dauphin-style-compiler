@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::util::message::Message;
+use crate::webgl::UniformProto;
 
 #[derive(Clone)]
 struct BootLock(Boot,bool);
@@ -54,13 +55,82 @@ pub trait ReadStageAxis {
     fn version(&self) -> u64;
     fn ready(&self) -> bool;
     fn left_right(&self) -> Result<(f64,f64),Message>;
-    fn convert_canvas_prop_delta_to_bp(&self, prop: f64) -> f64;
-    fn convert_delta_bp_to_canvas_prop(&self, bp: f64) -> f64;
-    fn convert_delta_bp_to_px(&self, bp: f64) -> f64;
-    fn convert_px_delta_to_bp(&self, px: i64) -> f64;
-    fn convert_bp_delta_to_px(&self, bp: f64) -> i64;
-    fn convert_px_pos_to_bp(&self, px: i64) -> Result<f64,Message>;
-    fn convert_bp_to_pos_px(&self, bp: f64) -> Result<i64,Message>;
+    fn unit_converter(&self) -> Result<UnitConverter,Message>;
+}
+
+pub struct UnitConverter {
+    position: f64,
+    bp_per_screen: f64,
+    draw_size: f64,
+    squeeze: (f32,f32)
+}
+
+impl UnitConverter {
+    pub fn move_to(&self, position: f64,) -> UnitConverter {
+        UnitConverter {
+            position,
+            bp_per_screen: self.bp_per_screen,
+            draw_size: self.draw_size,
+            squeeze: self.squeeze
+        }
+    }
+
+    pub fn resize_prop(&self, scale: f64) -> UnitConverter {
+        UnitConverter {
+            position: self.position,
+            bp_per_screen: self.bp_per_screen * scale,
+            draw_size: self.draw_size,
+            squeeze: self.squeeze
+        }
+    }
+
+    pub fn bp_per_screen(&self) -> f64 { self.bp_per_screen }
+    pub fn position(&self) -> f64 { self.position }
+
+    pub fn canvas_prop_delta_to_bp(&self, prop: f64) -> f64 {
+        let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/self.draw_size;
+        prop * self.bp_per_screen / (1.0-invisible_prop)
+    }
+
+    pub fn canvas_prop_to_bp_from_centre(&self, prop: f64) -> f64 {
+        self.px_pos_to_bp_from_centre(prop * self.draw_size)
+    }
+
+    pub fn delta_bp_to_canvas_prop(&self, bp: f64) -> f64 {
+        let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/self.draw_size;
+        bp / self.bp_per_screen * (1.0-invisible_prop)
+    }
+
+    pub fn delta_bp_to_px(&self, bp: f64) -> f64 {
+        self.delta_bp_to_canvas_prop(bp) * self.draw_size
+    }
+
+    pub fn px_delta_to_bp(&self, px: f64) -> f64 {
+        self.canvas_prop_delta_to_bp(px as f64 / self.draw_size)
+    }
+
+    pub fn px_pos_to_bp_from_centre(&self, px: f64) -> f64 {
+        let px = px as f64;
+        let position_x_scr = px / self.draw_size;
+        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/self.draw_size)/2.0;
+        self.canvas_prop_delta_to_bp(position_x_scr - user_centre)        
+    }
+
+    pub fn px_pos_to_bp(&self, px: f64) -> f64 {
+        self.px_pos_to_bp_from_centre(px) + self.position
+    }
+
+    pub fn px_pos_to_screen_prop(&self, px: f64) -> f64 {
+        (px as f64) / self.draw_size
+    }
+
+    pub fn bp_to_pos_px(&self, bp: f64) -> Result<f64,Message> {
+        let bp_right_of_user_centre = bp - self.position;
+        let prop_right_of_user_centre = self.delta_bp_to_canvas_prop(bp_right_of_user_centre);
+        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/self.draw_size)/2.0;
+        let prop = user_centre + prop_right_of_user_centre;
+        Ok((prop*self.draw_size) as f64)
+    }
 }
 
 pub struct StageAxis {
@@ -145,66 +215,17 @@ impl ReadStageAxis for StageAxis {
         Ok((pos-bp_per_screen/2.-1.,pos+bp_per_screen/2.+1.))
     }
 
-    fn convert_canvas_prop_delta_to_bp(&self, prop: f64) -> f64 {
-        if let (Some(draw_size),Some(bp_per_screen)) = (self.draw_size,self.bp_per_screen) {
-            let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/draw_size;
-            prop * bp_per_screen / (1.0-invisible_prop)
-        } else {
-            0.
-        }
-    }
-
-    fn convert_delta_bp_to_canvas_prop(&self, bp: f64) -> f64 {
-        if let (Some(draw_size),Some(bp_per_screen)) = (self.draw_size,self.bp_per_screen) {
-            let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/draw_size;
-            bp / bp_per_screen * (1.0-invisible_prop)
-        } else {
-            0.
-        }
-    }
-
-    fn convert_delta_bp_to_px(&self, bp: f64) -> f64 {
-        if let Some(draw_size) = self.draw_size {
-            self.convert_delta_bp_to_canvas_prop(bp) * draw_size
-        } else {
-            0.
-        }
-    }
-
-    fn convert_px_delta_to_bp(&self, px: i64) -> f64 {
-        if let Some(draw_size) = self.draw_size {
-            self.convert_canvas_prop_delta_to_bp(px as f64 / draw_size)
-        } else {
-            0.
-        }
-    }
-
-    fn convert_bp_delta_to_px(&self, bp: f64) -> i64 {
-        if let Some(draw_size) = self.draw_size {
-            (self.convert_delta_bp_to_canvas_prop(bp) * draw_size) as i64
-        } else {
-            0
-        }
-    }
-
-    fn convert_px_pos_to_bp(&self, px: i64) -> Result<f64,Message> {
-        let px = px as f64;
-        let position = stage_ok(&self.position)?;
+    fn unit_converter(&self) -> Result<UnitConverter,Message> {
         let draw_size = stage_ok(&self.draw_size)?;
-        let position_x_scr = px / draw_size;
-        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/draw_size)/2.0;
-        let position_x_bp = self.convert_canvas_prop_delta_to_bp(position_x_scr - user_centre) + position;
-        Ok(position_x_bp)
-    }
-
-    fn convert_bp_to_pos_px(&self, bp: f64) -> Result<i64,Message> {
         let position = stage_ok(&self.position)?;
-        let draw_size = stage_ok(&self.draw_size)?;
-        let bp_right_of_user_centre = bp - position;
-        let prop_right_of_user_centre = self.convert_delta_bp_to_canvas_prop(bp_right_of_user_centre);
-        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/draw_size)/2.0;
-        let prop = user_centre + prop_right_of_user_centre;
-        Ok((prop*draw_size) as i64)
+        let bp_per_screen = stage_ok(&self.bp_per_screen)?;
+        let squeeze = self.squeeze;
+        Ok(UnitConverter {
+            draw_size,
+            position,
+            bp_per_screen,
+            squeeze
+        })
     }
 
     // secret clone only accessible via read-only subsets

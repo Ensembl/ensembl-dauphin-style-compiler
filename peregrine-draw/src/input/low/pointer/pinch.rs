@@ -1,4 +1,4 @@
-use crate::{Message, stage::stage::ReadStage};
+use crate::{Message, stage::{axis::UnitConverter, stage::ReadStage}};
 
 use super::pointer::PointerConfig;
 
@@ -85,12 +85,6 @@ pub(crate) struct PixelPinchAction {
     delta_y: f64
 }
 
-impl PixelPinchAction {
-    pub(crate) fn parameters(&self) -> Vec<f64> {
-        vec![self.scale,self.eigenpoint,self.delta_y]
-    }
-}
-
 struct FingerPair(FingerPairAxis,FingerPairAxis);
 
 impl FingerPair {
@@ -117,42 +111,35 @@ impl FingerPair {
 }
 
 pub(crate) struct ScreenPosition {
-    centre_bp: f64,
-    bp_per_screen: f64,
-    y_pos: f64,
-    screen_x: f64
+    converter: UnitConverter,
+    y_pos: f64
 }
 
 impl ScreenPosition {
     pub(crate) fn new(stage: &ReadStage) -> Result<ScreenPosition,Message> {
-        let x = stage.x();
         let y = stage.y();
         Ok(ScreenPosition {
-            centre_bp: x.position()?,
-            bp_per_screen: x.bp_per_screen()?,
-            y_pos: y.position()?,
-            screen_x: x.drawable_size()?
+            converter: stage.x().unit_converter()?,
+            y_pos: y.position()?
         })
     }
 
     pub(crate) fn transform(start: &ScreenPosition, action: &PixelPinchAction) -> ScreenPosition {
-        let bp_per_screen = start.bp_per_screen * action.scale;
-        let eigenpoint_in_screenfuls = (action.eigenpoint / start.screen_x)-0.5; // -0.5=left, +0.5=right
-        let eigenpoint_in_bp = start.centre_bp + eigenpoint_in_screenfuls * start.bp_per_screen;
-        let eigenpoint_in_bp_from_centre = eigenpoint_in_screenfuls * bp_per_screen;
+        let eigenpoint_in_screenfuls = start.converter.px_pos_to_screen_prop(action.eigenpoint);
+        let eigenpoint_in_bp = start.converter.px_pos_to_bp(action.eigenpoint);
+        let resized_converter = start.converter.resize_prop(action.scale);
+        let eigenpoint_in_bp_from_centre = resized_converter.canvas_prop_to_bp_from_centre(eigenpoint_in_screenfuls);
         let centre_bp = eigenpoint_in_bp - eigenpoint_in_bp_from_centre;
         ScreenPosition {
-            centre_bp,
-            bp_per_screen,
-            y_pos: start.y_pos + action.delta_y,
-            screen_x: start.screen_x
+            converter: resized_converter.move_to(centre_bp),
+            y_pos: start.y_pos + action.delta_y
         }
     }
 }
 
 impl ScreenPosition {
     pub(crate) fn parameters(&self) -> Vec<f64> {
-        vec![self.bp_per_screen,self.centre_bp,self.y_pos]
+        vec![self.converter.bp_per_screen(),self.converter.position(),self.y_pos]
     }
 }
 

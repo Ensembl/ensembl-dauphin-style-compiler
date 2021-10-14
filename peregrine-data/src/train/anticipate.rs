@@ -191,9 +191,11 @@ impl Anticipate {
             if &new_position == old_position { return; }
         }
         let mut carriages = AnticipatedCarriages::new();
-        new_position.derive(&mut carriages,4,true);
-        new_position.derive(&mut carriages,4,false);
-        if !self.lightweight() {
+        if self.lightweight() {
+            new_position.derive(&mut carriages,2,true);
+        } else {
+            new_position.derive(&mut carriages,4,true);
+            new_position.derive(&mut carriages,4,false);
             new_position.derive(&mut carriages,100,true);
         }
         *self.position.lock().unwrap() = Some(new_position);

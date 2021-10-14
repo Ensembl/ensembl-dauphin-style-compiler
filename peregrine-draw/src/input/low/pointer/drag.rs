@@ -236,10 +236,11 @@ impl DragStateData {
         let (a,_,c,_) = (pos_a.0.min(pos_b.0),pos_a.1.min(pos_b.1),
                                               pos_a.0.max(pos_b.0),pos_a.1.max(pos_b.1));
         if let Some(stage) = self.lowlevel.stage() {
-            let want_bp_per_screen = stage.x().convert_px_delta_to_bp((c-a) as i64);
-            let centroid_bp = stage.x().convert_px_pos_to_bp(((c+a)/2.) as i64)?;
+            let converter = stage.x().unit_converter()?;
+            let want_bp_per_screen = converter.px_delta_to_bp(c-a);
+            let centroid_bp = converter.px_pos_to_bp((c+a)/2.);
             // XXX y
-            if stage.x().convert_delta_bp_to_px(want_bp_per_screen) < self.min_hold_drag_size {
+            if converter.delta_bp_to_px(want_bp_per_screen) < self.min_hold_drag_size {
                 return Ok(None);
             }
             Ok(Some((want_bp_per_screen,centroid_bp,0.)))
