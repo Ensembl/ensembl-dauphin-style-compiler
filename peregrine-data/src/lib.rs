@@ -17,7 +17,7 @@ mod api {
     mod queue;
 
     pub use agentstore::AgentStore;
-    pub use api::{ PeregrineIntegration, CarriageSpeed };
+    pub use api::{ PeregrineIntegration, CarriageSpeed, PlayingField };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::{ ApiMessage, PeregrineApiQueue };
 }
@@ -162,7 +162,7 @@ mod util {
     pub use self::message::DataMessage;
 }
 
-pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };

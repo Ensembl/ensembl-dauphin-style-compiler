@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, Scale, StickId, Viewport, cbor_coerce_string, cbor_bytes};
+use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, Scale, StickId, Viewport, cbor_bytes, cbor_coerce_string};
 use super::pgchannel::PgChannel;
-use crate::{Message, PeregrineDom};
+use crate::{PeregrineDom};
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlTrainSet;
@@ -62,8 +62,10 @@ impl PeregrineIntegration for PgIntegration {
         }
     }
 
-    fn set_height(&mut self, height: i64) {
-        self.dom.set_useful_height(height as u32);
+    fn set_playing_field(&mut self, playing_field: PlayingField) {
+        self.dom.set_useful_height(playing_field.height() as u32);
+        //use web_sys::console;
+        //console::log_1(&format!("squeeze={:?}",playing_field.squeeze()).into());
     }
 }
 

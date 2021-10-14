@@ -1,7 +1,6 @@
 use std::sync::{ Arc, Mutex };
-use std::fmt;
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
-use crate::api::{ PeregrineCore, CarriageSpeed, MessageSender };
+use crate::api::{CarriageSpeed, MessageSender, PeregrineCore, PlayingField};
 use crate::core::{ Layout, Scale };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
@@ -93,18 +92,18 @@ impl TrainData {
         self.central_carriage().map(|c| c.shapes().universe().make_metadata_report().clone())
     }
 
-    fn height(&self) -> i64 {
-        let mut height = 0;
+    fn playingfield(&self) -> PlayingField {
+        let mut playing_field = PlayingField::empty();
         if let Some(carriages) = &self.carriages {
             for carriage in carriages.carriages() {
                 if carriage.ready() {
                     let shapes = carriage.shapes();
                     let universe = shapes.universe();
-                    height = height.max(universe.height());
+                    playing_field.union(&universe.playingfield());
                 }
             }
         }
-        height
+        playing_field
     }
 
     fn set_max(&mut self, max: Result<u64,DataMessage>) {
@@ -195,7 +194,7 @@ impl Train {
     }
 
     pub(super) fn maybe_ready(&mut self) { self.0.lock().unwrap().maybe_ready(); }
-    pub(super) fn height(&self) -> i64 { self.0.lock().unwrap().height() }
+    pub(super) fn playingfield(&self) -> PlayingField { self.0.lock().unwrap().playingfield() }
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
         Ok(data.agent_store.stick_store.get(&self.id().layout().stick()).await?.size())

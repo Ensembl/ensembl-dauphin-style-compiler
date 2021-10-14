@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
@@ -15,6 +16,7 @@ struct UniverseData {
     left: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     right: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    playingfield: PlayingField
 }
 
 impl UniverseData {
@@ -59,21 +61,22 @@ impl UniverseData {
     fn allot(&mut self) {
         // XXX pad left and right
         /* Left and Right */
-        let mut offset = LinearOffsetBuilder::new();
-        self.left.allot(&mut offset);
-        let mut offset = LinearOffsetBuilder::new();
-        self.right.allot(&mut offset);
+        let mut left_offset = LinearOffsetBuilder::new();
+        self.left.allot(&mut left_offset);
+        let mut right_offset = LinearOffsetBuilder::new();
+        self.right.allot(&mut right_offset);
         /* Main run */
         let mut offset = LinearOffsetBuilder::new();
         self.top_tracks.allot(&mut offset);
         self.main.allot(&mut offset);
         self.bottom_tracks.allot(&mut offset);
         self.window.allot(&mut LinearOffsetBuilder::new());
+        /* update playing fields */
+        self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.fwd(),right_offset.fwd()));
     }
 
-    pub fn height(&self) -> i64 {
-        self.bottom_tracks.max()
-    }
+    fn playingfield(&self) -> &PlayingField { &self.playingfield }
 }
 
 #[derive(Clone)]
@@ -92,7 +95,8 @@ impl Universe {
                 left: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
                 right: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
                 window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
-                dustbin: Arc::new(DustbinAllotmentRequest())
+                dustbin: Arc::new(DustbinAllotmentRequest()),
+                playingfield: PlayingField::empty()
             })),
             allotment_metadata: allotment_metadata.clone()
         }
@@ -115,11 +119,6 @@ impl Universe {
         self_data.union(&other_data);
     }
 
-    pub fn allot(&self) {
-        lock!(self.data).allot();
-    }
-
-    pub fn height(&self) -> i64 {
-        lock!(self.data).height()
-    }
+    pub fn allot(&self) { lock!(self.data).allot(); }
+    pub fn playingfield(&self) -> PlayingField { lock!(self.data).playingfield().clone() }
 }

@@ -4,7 +4,7 @@ use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::train::carriage::CarriageLoadMode;
 use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
-use crate::api::{PeregrineCore, MessageSender };
+use crate::api::{MessageSender, PeregrineCore, PlayingField};
 use crate::core::{ Scale, Viewport };
 use super::anticipate::Anticipate;
 use super::train::{ Train, TrainId };
@@ -25,7 +25,7 @@ pub struct TrainSetData {
     next_activation: u32,
     messages: MessageSender,
     anticipate: Anticipate,
-    height: Option<i64>,
+    playing_field: Option<PlayingField>,
     visual_blocker: Blocker,
     old_metadata: Option<AllotmentMetadataReport>,
     #[allow(unused)]
@@ -41,7 +41,7 @@ impl TrainSetData {
             next_activation: 0,
             messages: base.messages.clone(),
             anticipate: Anticipate::new(base,result_store),
-            height: None,
+            playing_field: None,
             visual_blocker: visual_blocker.clone(),
             visual_lockout: None,
             old_metadata: None
@@ -70,7 +70,7 @@ impl TrainSetData {
                 self.next_activation += 1;
                 self.future = Some(wanted);
                 self.maybe_allotment_metadata(events);
-                self.maybe_new_height(events);
+                self.maybe_new_playingfield(events);
                 self.notify_viewport(events);
             }
         }
@@ -154,7 +154,7 @@ impl TrainSetData {
         }
         self.current = self.future.take();
         self.promote(events);
-        self.maybe_new_height(events);
+        self.maybe_new_playingfield(events);
     }
 
     fn update_trains(&mut self) -> CarriageEvents {
@@ -170,28 +170,28 @@ impl TrainSetData {
             train.set_carriages(&mut events);
         }
         self.maybe_allotment_metadata(&mut events);
-        self.maybe_new_height(&mut events);
+        self.maybe_new_playingfield(&mut events);
         events
     }
 
-    fn maybe_new_height(&mut self, events: &mut CarriageEvents) {
-        let mut height = 0;
+    fn maybe_new_playingfield(&mut self, events: &mut CarriageEvents) {
+        let mut playing_field = PlayingField::empty();
         if let Some(wanted) = &self.wanted {
-            height = height.max(wanted.height());
+            playing_field.union(&wanted.playingfield());
         }
         if let Some(future) = &self.future {
-            height = height.max(future.height());
+            playing_field.union(&future.playingfield());
         }
         if let Some(current) = &self.current {
-            height = height.max(current.height());
+            playing_field.union(&current.playingfield());
         }
-        if let Some(old_height) = &self.height {
-            if old_height == &height {
+        if let Some(old_playing_field) = &self.playing_field {
+            if old_playing_field == &playing_field {
                 return;
             }
         }
-        events.notify_height(height);
-        self.height = Some(height);
+        events.notify_playingfield(playing_field.clone());
+        self.playing_field = Some(playing_field);
     }
 }
 
