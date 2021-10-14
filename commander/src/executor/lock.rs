@@ -66,15 +66,10 @@ impl LockManager {
 
 #[cfg(test)]
 mod test {
-    use futures::future;
-    use std::collections::HashSet;
     use std::sync::{ Arc, Mutex };
-    use crate::{cdr_lock, cdr_tick, corefutures::promisefuture::PromiseFuture};
+    use crate::{cdr_lock, cdr_tick};
     use crate::{ Executor, RunConfig };
-    use crate::integration::integration::SleepQuantity;
-    use crate::integration::testintegration::{ TestIntegration, tick_helper };
-    use crate::task::task::{ KillReason, TaskResult };
-    use super::*;
+    use crate::integration::testintegration::{ TestIntegration };
     
     #[test]
     pub fn test_lock_smoke() {
@@ -101,13 +96,13 @@ mod test {
         let step2 = async move {
             report3.lock().unwrap().push("C");
             cdr_tick(1).await;
-            let guard = cdr_lock(&lock2).await;
+            let _guard = cdr_lock(&lock2).await;
             report3.lock().unwrap().push("D");
             cdr_tick(1).await;
             report3.lock().unwrap().push("E");
         };
-        let handle = x.add(step,agent);
-        let handle2 = x.add(step2,agent2);
+        let _handle = x.add(step,agent);
+        let _handle2 = x.add(step2,agent2);
         for _ in 0..10 {
             report.lock().unwrap().push(".");
             x.tick(1.);

@@ -86,7 +86,6 @@ impl<D> TaskContainerHandleData<D> {
 
 #[cfg(test)]
 mod test {
-    use crate::task::faketask::FakeTask;
     use super::*;
 
     #[test]
