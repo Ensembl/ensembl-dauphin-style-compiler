@@ -181,6 +181,10 @@ impl Anticipate {
         }
     }
 
+    fn lightweight(&self) -> bool {
+        cfg!(debug_assertions)
+    }
+
     pub(crate) fn anticipate(&self, train: &Train, position: f64) {
         let new_position = AnticipatePosition::new(train,position);
         if let Some(old_position) = self.position.lock().unwrap().as_ref() {
@@ -189,7 +193,9 @@ impl Anticipate {
         let mut carriages = AnticipatedCarriages::new();
         new_position.derive(&mut carriages,4,true);
         new_position.derive(&mut carriages,4,false);
-        new_position.derive(&mut carriages,100,true);
+        if !self.lightweight() {
+            new_position.derive(&mut carriages,100,true);
+        }
         *self.position.lock().unwrap() = Some(new_position);
         for task in carriages.carriages() {
             self.stream.add(task);

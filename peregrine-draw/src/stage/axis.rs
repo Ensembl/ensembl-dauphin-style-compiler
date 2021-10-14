@@ -56,6 +56,7 @@ pub trait ReadStageAxis {
     fn left_right(&self) -> Result<(f64,f64),Message>;
     fn convert_canvas_prop_delta_to_bp(&self, prop: f64) -> f64;
     fn convert_delta_bp_to_canvas_prop(&self, bp: f64) -> f64;
+    fn convert_delta_bp_to_px(&self, bp: f64) -> f64;
     fn convert_px_delta_to_bp(&self, px: i64) -> f64;
     fn convert_bp_delta_to_px(&self, bp: f64) -> i64;
     fn convert_px_pos_to_bp(&self, px: i64) -> Result<f64,Message>;
@@ -157,6 +158,14 @@ impl ReadStageAxis for StageAxis {
         if let (Some(draw_size),Some(bp_per_screen)) = (self.draw_size,self.bp_per_screen) {
             let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/draw_size;
             bp / bp_per_screen * (1.0-invisible_prop)
+        } else {
+            0.
+        }
+    }
+
+    fn convert_delta_bp_to_px(&self, bp: f64) -> f64 {
+        if let Some(draw_size) = self.draw_size {
+            self.convert_delta_bp_to_canvas_prop(bp) * draw_size
         } else {
             0.
         }
