@@ -1,5 +1,9 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, Scale, StickId, Viewport, cbor_bytes, cbor_coerce_string};
+use peregrine_data::{
+    AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
+    Scale, Viewport
+};
+use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
 use crate::{PeregrineDom};
 use crate::input::Input;
@@ -64,8 +68,7 @@ impl PeregrineIntegration for PgIntegration {
 
     fn set_playing_field(&mut self, playing_field: PlayingField) {
         self.dom.set_useful_height(playing_field.height() as u32);
-        //use web_sys::console;
-        //console::log_1(&format!("squeeze={:?}",playing_field.squeeze()).into());
+        lock!(self.stage).notify_playingfield(&playing_field);
     }
 }
 

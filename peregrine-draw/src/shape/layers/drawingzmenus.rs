@@ -201,20 +201,16 @@ impl DrawingZMenus {
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position_px: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        let px_per_screen = stage.x().drawable_size()?;
-        let position_x_scr = position_px.0 / px_per_screen;
-        let position_x_bp = (position_x_scr - 0.5) * stage.x().bp_per_screen()? + stage.x().position()?;
+        let position_x_bp = stage.x().convert_px_pos_to_bp(position_px.0 as i64)?;
         let bp_from_left = position_x_bp - self.left;
         if bp_from_left < 0. || bp_from_left >= self.bp_in_carriage as f64 { return Ok(vec![]); }
         let carriage_prop = bp_from_left / self.bp_in_carriage as f64;
         let h_zone = (carriage_prop * HORIZ_ZONES as f64).floor() as u64;
         let v_zone = (position_px.1 / VERT_ZONE_HEIGHT as f64).floor() as u64;
         let zone = h_zone + (v_zone * HORIZ_ZONES);
-        let bp_per_px = stage.x().bp_per_screen()? / px_per_screen;
+        let bp_per_px = stage.x().convert_px_delta_to_bp(1);
         let px_per_carriage = self.bp_in_carriage as f64 / bp_per_px;
-        let left_bp_right_of_centre = self.left - stage.x().position()?;
-        let left_prop =  left_bp_right_of_centre / stage.x().bp_per_screen()? + 0.5;
-        let left_px = left_prop * px_per_screen;
+        let left_px = stage.x().convert_bp_to_pos_px(self.left)?;
         let mut zone_data = None;
         let mut last_lookup = self.last_lookup.lock().unwrap();
         if let Some((last_zone,last_zone_data)) = last_lookup.as_ref() {
@@ -229,7 +225,7 @@ impl DrawingZMenus {
         let mut out = vec![];
         if let Some(zone_data) = &zone_data {
             for entry in zone_data.iter() {
-                if entry.is_hotspot(position_px.0,position_px.1,self.left,self.bp_in_carriage as f64,px_per_carriage,left_px) {
+                if entry.is_hotspot(position_px.0,position_px.1,self.left,self.bp_in_carriage as f64,px_per_carriage,left_px as f64) {
                     out.push((entry.order,entry.proxy.clone()));
                 }
             }

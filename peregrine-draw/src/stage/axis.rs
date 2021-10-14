@@ -45,13 +45,21 @@ fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
 pub trait ReadStageAxis {
     fn position(&self) -> Result<f64,Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
+    fn bp_per_screen2(&self) -> Result<f64,Message>;
     fn container_size(&self) -> Result<f64,Message>;
     fn scale_shift(&self) -> Result<(f32,f32),Message>;
+    fn squeeze(&self) -> Result<(f32,f32),Message>;
     fn drawable_size(&self) -> Result<f64,Message>;   
     fn copy(&self) -> StageAxis;
     fn version(&self) -> u64;
     fn ready(&self) -> bool;
     fn left_right(&self) -> Result<(f64,f64),Message>;
+    fn convert_canvas_prop_delta_to_bp(&self, prop: f64) -> f64;
+    fn convert_delta_bp_to_canvas_prop(&self, bp: f64) -> f64;
+    fn convert_px_delta_to_bp(&self, px: i64) -> f64;
+    fn convert_bp_delta_to_px(&self, bp: f64) -> i64;
+    fn convert_px_pos_to_bp(&self, px: i64) -> Result<f64,Message>;
+    fn convert_bp_to_pos_px(&self, bp: f64) -> Result<i64,Message>;
 }
 
 pub struct StageAxis {
@@ -60,6 +68,7 @@ pub struct StageAxis {
     size: Option<f64>,
     draw_size: Option<f64>,
     scale_shift: Option<(f32,f32)>,
+    squeeze: (f32,f32),
     redraw_needed: Needed,
     boot: Boot,
     boot_lock: BootLock,
@@ -78,6 +87,7 @@ impl StageAxis {
             scale_shift: None,
             redraw_needed: redraw_needed.clone(),
             boot: boot.clone(),
+            squeeze: (0.,0.),
             boot_lock,
             version: 0
         }
@@ -112,6 +122,8 @@ impl StageAxis {
         self.version += 1;
     }
 
+    pub fn set_squeeze(&mut self, squeeze: (f32,f32)) { self.squeeze = squeeze; }
+
     pub fn set_position(&mut self, x: f64) { self.position = Some(x); self.changed(); }
     pub fn set_size(&mut self, x: f64) { self.size = Some(x); self.recompute_scale_shift(); self.changed(); }
     pub fn set_drawable_size(&mut self, x: f64) { self.draw_size = Some(x); self.recompute_scale_shift(); self.changed(); }
@@ -121,13 +133,69 @@ impl StageAxis {
 impl ReadStageAxis for StageAxis {
     fn position(&self) -> Result<f64,Message> { stage_ok(&self.position) }
     fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
+    fn bp_per_screen2(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
     fn container_size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
     fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
     fn scale_shift(&self) -> Result<(f32,f32),Message> { stage_ok(&self.scale_shift) }
+    fn squeeze(&self) -> Result<(f32,f32),Message> { stage_ok(&Some(self.squeeze)) }
     fn left_right(&self) -> Result<(f64,f64),Message> {
         let pos = self.position()?;
-        let bp_per_screen = self.bp_per_screen()?;
+        let bp_per_screen = self.bp_per_screen2()?;
         Ok((pos-bp_per_screen/2.-1.,pos+bp_per_screen/2.+1.))
+    }
+
+    fn convert_canvas_prop_delta_to_bp(&self, prop: f64) -> f64 {
+        if let (Some(draw_size),Some(bp_per_screen)) = (self.draw_size,self.bp_per_screen) {
+            let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/draw_size;
+            prop * bp_per_screen / (1.0-invisible_prop)
+        } else {
+            0.
+        }
+    }
+
+    fn convert_delta_bp_to_canvas_prop(&self, bp: f64) -> f64 {
+        if let (Some(draw_size),Some(bp_per_screen)) = (self.draw_size,self.bp_per_screen) {
+            let invisible_prop = (self.squeeze.0+self.squeeze.1) as f64/draw_size;
+            bp / bp_per_screen * (1.0-invisible_prop)
+        } else {
+            0.
+        }
+    }
+
+    fn convert_px_delta_to_bp(&self, px: i64) -> f64 {
+        if let Some(draw_size) = self.draw_size {
+            self.convert_canvas_prop_delta_to_bp(px as f64 / draw_size)
+        } else {
+            0.
+        }
+    }
+
+    fn convert_bp_delta_to_px(&self, bp: f64) -> i64 {
+        if let Some(draw_size) = self.draw_size {
+            (self.convert_delta_bp_to_canvas_prop(bp) * draw_size) as i64
+        } else {
+            0
+        }
+    }
+
+    fn convert_px_pos_to_bp(&self, px: i64) -> Result<f64,Message> {
+        let px = px as f64;
+        let position = stage_ok(&self.position)?;
+        let draw_size = stage_ok(&self.draw_size)?;
+        let position_x_scr = px / draw_size;
+        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/draw_size)/2.0;
+        let position_x_bp = self.convert_canvas_prop_delta_to_bp(position_x_scr - user_centre) + position;
+        Ok(position_x_bp)
+    }
+
+    fn convert_bp_to_pos_px(&self, bp: f64) -> Result<i64,Message> {
+        let position = stage_ok(&self.position)?;
+        let draw_size = stage_ok(&self.draw_size)?;
+        let bp_right_of_user_centre = bp - position;
+        let prop_right_of_user_centre = self.convert_delta_bp_to_canvas_prop(bp_right_of_user_centre);
+        let user_centre = (1.0+(self.squeeze.0-self.squeeze.1) as f64/draw_size)/2.0;
+        let prop = user_centre + prop_right_of_user_centre;
+        Ok((prop*draw_size) as i64)
     }
 
     // secret clone only accessible via read-only subsets
@@ -139,6 +207,7 @@ impl ReadStageAxis for StageAxis {
             draw_size: self.draw_size.clone(),
             scale_shift: self.scale_shift.clone(),
             redraw_needed: self.redraw_needed.clone(),
+            squeeze: self.squeeze.clone(),
             version: self.version,
             boot: self.boot.clone(),
             boot_lock: self.boot_lock.clone()

@@ -1,4 +1,4 @@
-use peregrine_data::{StickId, Viewport};
+use peregrine_data::{PlayingField, StickId, Viewport};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -55,9 +55,18 @@ impl ProgramStage {
         vec![opacity],
         self.model_matrix(stage)).into());  
         */
-        process.set_uniform(&self.hpos,&[(stage.x.position()?-left) as f32])?;
+        let mut position = stage.x.position()?;
+        let mut bp_per_screen = stage.x.bp_per_screen2()? as f64;
+        /* allow for squeeze */
+        let x_size = stage.x.drawable_size()?;
+        let squeeze = stage.x.squeeze()?;
+        let invisible_prop = (squeeze.0+squeeze.1) as f64/x_size;
+        bp_per_screen /= 1.0-invisible_prop;
+        position += (squeeze.1-squeeze.0) as f64/2.0/x_size*bp_per_screen;
+        /**/
+        process.set_uniform(&self.hpos,&[(position-left) as f32])?;
         process.set_uniform(&self.vpos,&[stage.y.position()? as f32])?;
-        process.set_uniform(&self.bp_per_screen,&[2./stage.x.bp_per_screen()? as f32])?;
+        process.set_uniform(&self.bp_per_screen,&[2./bp_per_screen as f32])?;
         /* uSize gets drawable_size because it's later scaled by size/drawable_size */
         let size = (stage.x.drawable_size()?,stage.y.drawable_size()?);
         let full_size = (stage.x.container_size()?,stage.y.container_size()?);
@@ -123,6 +132,11 @@ impl Stage {
     pub fn y(&self) -> &StageAxis { &self.y }
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
+
+    pub fn notify_playingfield(&mut self, playing_field: &PlayingField) {
+        let squeeze = playing_field.squeeze();
+        self.x.set_squeeze((squeeze.0 as f32, squeeze.1 as f32));
+    }
 
     pub fn notify_current(&mut self, viewport: &Viewport) {
         let position = viewport.position().unwrap();
