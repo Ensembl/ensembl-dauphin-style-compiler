@@ -5,4 +5,4 @@ pad_left := use_allotment("left:pad[2]");
 pad_right := use_allotment("right:pad[2]");
 white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);
-rectangle(spacebase(0,0,0),spacebase(1,96,0),white_patina,pad_right);
+rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_right);
