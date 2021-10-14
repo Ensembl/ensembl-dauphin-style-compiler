@@ -5,6 +5,7 @@ use super::{allotment::{AllotmentImpl, CoordinateSystem}, baseallotmentrequest::
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
     metadata: AllotmentMetadata,
+    secondary: i64,
     top: i64,
     offset: i64,
     size: i64,
@@ -14,11 +15,11 @@ pub struct OffsetAllotment {
 }
 
 impl OffsetAllotment {
-    pub(crate) fn new(metadata: &AllotmentMetadata, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> OffsetAllotment {
+    pub(crate) fn new(metadata: &AllotmentMetadata, secondary: i64, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> OffsetAllotment {
         let secret = metadata.get_i64("secret-track").unwrap_or(0) != 0;
         OffsetAllotment {
             metadata: metadata.clone(),
-            top, offset, size, depth, secret, reverse
+            secondary, top, offset, size, depth, secret, reverse
         }
     }
 
@@ -44,6 +45,7 @@ impl AllotmentImpl for OffsetAllotment {
         } else {
             output.normal += self.offset as f64;
         }
+        output.tangent += self.secondary as f64;
         output
     }
 
@@ -65,8 +67,8 @@ impl AllotmentImpl for OffsetAllotment {
 pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8,bool);
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, offset: i64) -> i64 {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),offset,self.0.best_offset(offset),self.0.best_height(),self.1,self.2)));
+    fn make(&self, secondary: i64, offset: i64) -> i64 {
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),secondary,offset,self.0.best_offset(offset),self.0.best_height(),self.1,self.2)));
         self.0.max_used()
     }
 

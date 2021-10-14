@@ -62,15 +62,16 @@ impl UniverseData {
         // XXX pad left and right
         /* Left and Right */
         let mut left_offset = LinearOffsetBuilder::new();
-        self.left.allot(&mut left_offset);
+        self.left.allot(0,&mut left_offset);
         let mut right_offset = LinearOffsetBuilder::new();
-        self.right.allot(&mut right_offset);
+        self.right.allot(0,&mut right_offset);
+        let left = self.left.max();
         /* Main run */
         let mut offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(&mut offset);
-        self.main.allot(&mut offset);
-        self.bottom_tracks.allot(&mut offset);
-        self.window.allot(&mut LinearOffsetBuilder::new());
+        self.top_tracks.allot(left,&mut offset);
+        self.main.allot(left,&mut offset);
+        self.bottom_tracks.allot(left,&mut offset);
+        self.window.allot(left,&mut LinearOffsetBuilder::new());
         /* update playing fields */
         self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
         self.playingfield.union(&PlayingField::new_squeeze(left_offset.fwd(),right_offset.fwd()));

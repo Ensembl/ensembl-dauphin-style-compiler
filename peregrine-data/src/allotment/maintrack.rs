@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, trim_suffix}, lineargroup::{ LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, trim_suffix}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -71,7 +71,7 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn make(&self, offset: i64) -> i64 {
+    fn make(&self, secondary: i64, offset: i64) -> i64 {
         let mut best_offset = 0;
         let mut best_height = 0;
         let requests = lock!(self.requests);
@@ -82,7 +82,11 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),offset,best_offset,best_height,specifier.depth,self.reverse)));
+            let our_secondary = match specifier.variety {
+                MTVariety::Track => 0,
+                MTVariety::Wallpaper => secondary
+            };
+            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),our_secondary,offset,best_offset,best_height,specifier.depth,self.reverse)));
         }
         best_height
     }

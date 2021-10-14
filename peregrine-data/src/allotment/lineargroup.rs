@@ -1,7 +1,5 @@
 use std::{collections::HashMap, sync::{Arc}};
-
 use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
-
 use super::{allotment::{AllotmentImpl}, allotmentrequest::{AllotmentRequestImpl}};
 
 pub struct LinearOffsetBuilder {
@@ -37,7 +35,7 @@ pub trait LinearAllotmentImpl : AllotmentImpl {
 
 pub trait LinearGroupEntry {
     fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn make(&self, offset: i64) -> i64;
+    fn make(&self, secondary: i64, offset: i64) -> i64;
     fn name(&self) -> &str;
     fn priority(&self) -> i64;
     fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
@@ -94,16 +92,16 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub(super) fn allot(&mut self, offset: &mut LinearOffsetBuilder) {
+    pub(super) fn allot(&mut self, secondary: i64, offset: &mut LinearOffsetBuilder) {
         let is_reverse = self.creator.is_reverse();
         let mut sorted_requests = self.requests.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for request in sorted_requests {
             if is_reverse {
-                let more = request.make(offset.rev());
+                let more = request.make(secondary,offset.rev());
                 offset.advance_rev(more);
             } else {
-                let more = request.make(offset.fwd());
+                let more = request.make(secondary,offset.fwd());
                 offset.advance_fwd(more);
             }
         }
