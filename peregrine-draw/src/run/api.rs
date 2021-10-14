@@ -223,8 +223,11 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
+        let git_tag = env!("GIT_TAG");
+        let git_tag = if git_tag != "" { format!("tag {}",git_tag) } else { format!("no tag") };
         if show_incoming(draw.config())? {
-            console::log_1(&format!("compilation: git {:?} build time {:?} build host {:?}",env!("GIT_HASH"),env!("BUILD_TIME"),env!("BUILD_HOST")).into());
+            console::log_1(&format!("compilation: git {:?} ({}) build time {:?} build host {:?}",
+                env!("GIT_HASH"),git_tag,env!("BUILD_TIME"),env!("BUILD_HOST")).into());
         }
         #[cfg(debug_assertions)]
         dev_warning();
