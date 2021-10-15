@@ -12,6 +12,9 @@ allotment_top := use_allotment("track-top:ruler-top[3]");
 allotment_bottom := use_allotment("track-bottom:ruler-bottom[3]");
 allotment_top_wallpaper := use_allotment("track-top:ruler-top:wallpaper[3]");
 allotment_bottom_wallpaper := use_allotment("track-bottom:ruler-bottom:wallpaper[3]");
+allotment_top_left := use_allotment("track-top:ruler-top:wallpaper[5]{left:left-pad}");
+allotment_bottom_left := use_allotment("track-bottom:ruler-bottom:wallpaper[5]{left:left-pad}");
+
 
 marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 
@@ -28,3 +31,13 @@ textpen := pen("'Lato', sans-serif",12,direct_colour(120,120,120,255),[][]);
 text_position := spacebase(markings,2,4);
 text2(text_position,textpen,comma_format(markings),allotment_top);
 text2(text_position,textpen,comma_format(markings),allotment_bottom);
+
+/* "bp" box and text ... */
+/* ... top */
+text2(spacebase(0,2,4),textpen,"bp",allotment_top_left);
+rectangle(spacebase(0,0,48),spacebase(0,16,48),marker_patina,allotment_top_left); /* vert */
+rectangle(spacebase(0,16,0),spacebase(0,16,48),marker_patina,allotment_top_left); /* horiz */
+/* ... bottom */
+text2(spacebase(0,2,4),textpen,"bp",allotment_bottom_left);
+rectangle(spacebase(0,0,48),spacebase(0,16,48),marker_patina,allotment_bottom_left); /* vert */
+rectangle(spacebase(0,0,0),spacebase(0,0,48),marker_patina,allotment_bottom_left); /* horiz */
