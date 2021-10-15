@@ -98,6 +98,8 @@ use_allotments(allotments_wallpaper,enabled_tracks,[
     "track:focus:wallpaper[-2]"
 ]);
 
+use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
+
 /*
  * Which allotment and track does data go into?
  *
@@ -235,7 +237,7 @@ enabled_names := get_switch([
 draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);
 
 /* track category */
-draw_track_category("G",[use_allotment(gene_cat_allotments[])]);
+draw_track_category("G",allotments_cat);
 
 /* focus swatch */
 draw_focus_swatch();

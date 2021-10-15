@@ -56,6 +56,9 @@ tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
 tracks_used_wallpaper := ["","","","",""];
 tracks_used_wallpaper[enabled_tracks] := potential_tracks_wallpaper[enabled_tracks];
 
+tracks_used_cat := ["","","","",""];
+tracks_used_cat[enabled_tracks] := gene_cat_allotments[enabled_tracks];
+
 /*
  * Which allotment and track does data go into?
  *
@@ -77,6 +80,7 @@ allotment_idx#[focus_id==focus_gene] := 4;
 
 allotments := [use_allotment(tracks_used[])];
 allotments_wallpaper := [use_allotment(tracks_used_wallpaper[])];
+allotments_cat := [use_allotment(tracks_used_cat[])];
 
 allotment := index(allotment_idx,allotments);
 
@@ -159,7 +163,7 @@ image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_str
 draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);
 
 /* track category */
-draw_track_category("G",[use_allotment(gene_cat_allotments[])]);
+draw_track_category("G",allotments_cat);
 
 /* focus swatch */
 draw_focus_swatch();
