@@ -30,24 +30,38 @@ impl SecondaryPositionStore {
 
 pub struct LinearOffsetBuilder {
     fwd: i64,
-    rev: i64
+    rev: i64,
+    dud: bool
 }
 
 impl LinearOffsetBuilder {
     pub fn new() -> LinearOffsetBuilder {
         LinearOffsetBuilder {
             fwd: 0,
-            rev: 0
+            rev: 0,
+            dud: false
+        }
+    }
+
+    pub fn dud(offset: i64) -> LinearOffsetBuilder {
+        LinearOffsetBuilder {
+            fwd: offset,
+            rev: offset,
+            dud: true
         }
     }
 
     pub fn advance_fwd(&mut self, amt: i64) {
-        self.fwd += amt;
+        if !self.dud {
+            self.fwd += amt;
+        }
     }
 
     pub fn advance_rev(&mut self, amt: i64) {
-        self.fwd += amt;
-        self.rev += amt;
+        if !self.dud {
+            self.fwd += amt;
+            self.rev += amt;
+        }
     }
 
     pub fn fwd(&self) -> i64 { self.fwd }

@@ -98,21 +98,21 @@ stmt image_underneath(x,y,name,allt) {
     draw_image(sb,name,allt);
 }
 
-stmt rectangle_on_genome(start,end,height,patina,allt) {
-    top_left := spacebase(start,0,0);
-    bottom_right := spacebase(end,height,0);
+stmt rectangle_on_genome(dstart,dend,height,patina,allt) {
+    top_left := spacebase(dstart,0,0);
+    bottom_right := spacebase(dend,height,0);
     rectangle(top_left,bottom_right,patina,allt);
 }
 
-stmt rectangle_on_genome_offset(start,end,height,patina,allt,offset) {
-    top_left := spacebase(start,offset,0);
-    bottom_right := spacebase(end,height+offset,0);
+stmt rectangle_on_genome_offset(dstart,dend,height,patina,allt,offset) {
+    top_left := spacebase(dstart,offset,0);
+    bottom_right := spacebase(dend,height+offset,0);
     rectangle(top_left,bottom_right,patina,allt);
 }
 
-stmt indented_rectangle_on_genome(start,end,height,patina,allt) {
-    top_left := spacebase(start,0,1);
-    bottom_right := spacebase(end,height,-1);
+stmt indented_rectangle_on_genome(dstart,dend,height,patina,allt) {
+    top_left := spacebase(dstart,0,1);
+    bottom_right := spacebase(dend,height,-1);
     rectangle(top_left,bottom_right,patina,allt);
 }
 

@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use crate::util::enummap::{Enumerable, EnumerableKey, EnumerableMap, enumerable_compose };
-use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs, make_program};
+use crate::webgl::{ProcessBuilder, ProgramBuilder, SourceInstrs};
 use super::geometry::{GeometryProcessName, GeometryAdder, GeometryProgramName};
 use super::patina::{PatinaProcessName, PatinaAdder, PatinaProgramName};
 use super::shapeprogram::ShapeProgram;

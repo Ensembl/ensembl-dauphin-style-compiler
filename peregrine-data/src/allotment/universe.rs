@@ -13,6 +13,7 @@ struct UniverseData {
     main: LinearRequestGroup<MainTrackRequestCreator>,
     top_tracks: LinearRequestGroup<MainTrackRequestCreator>,
     bottom_tracks: LinearRequestGroup<MainTrackRequestCreator>,
+    window_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     left: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     right: LinearRequestGroup<OffsetAllotmentRequestCreator>,
     window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
@@ -29,6 +30,8 @@ impl UniverseData {
             self.top_tracks.make_request(allotment_metadata,&suffix,&name)
         } else if let Some(suffix) = trim_prefix("track-bottom",name) {
             self.bottom_tracks.make_request(allotment_metadata,&suffix,&name)
+        } else if let Some(suffix) = trim_prefix("track-window",name) {
+            self.window_tracks.make_request(allotment_metadata,&suffix,&name)
         } else if let Some(suffix) = trim_prefix("window",name) {
             self.window.make_request(allotment_metadata,&suffix,&name)
         } else if let Some(suffix) = trim_prefix("left",name) {
@@ -43,6 +46,7 @@ impl UniverseData {
     fn union(&mut self, other: &UniverseData) {
         self.top_tracks.union(&other.top_tracks);
         self.bottom_tracks.union(&other.bottom_tracks);
+        self.window_tracks.union(&other.window_tracks);
         self.main.union(&other.main);
         self.window.union(&other.window);
         self.left.union(&other.left);
@@ -54,12 +58,12 @@ impl UniverseData {
         self.top_tracks.get_all_metadata(allotment_metadata,out);
         self.bottom_tracks.get_all_metadata(allotment_metadata,out);
         self.window.get_all_metadata(allotment_metadata,out);
+        self.window_tracks.get_all_metadata(allotment_metadata,out);
         self.left.get_all_metadata(allotment_metadata,out);
         self.right.get_all_metadata(allotment_metadata,out);
     }
 
     fn allot(&mut self) {
-        // XXX pad left and right
         /* Left and Right */
         let mut secondary = SecondaryPositionStore::new();
         let mut left_offset = LinearOffsetBuilder::new();
@@ -72,7 +76,9 @@ impl UniverseData {
         self.top_tracks.allot(left,&mut offset, &mut secondary);
         self.main.allot(left,&mut offset,&mut secondary);
         self.bottom_tracks.allot(left,&mut offset,&mut secondary);
-        self.window.allot(left,&mut LinearOffsetBuilder::new(),&mut secondary);
+        /* window etc */
+        self.window.allot(left,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window_tracks.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         /* update playing fields */
         self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
         self.playingfield.union(&PlayingField::new_squeeze(left_offset.fwd(),right_offset.fwd()));
@@ -97,6 +103,7 @@ impl Universe {
                 left: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
                 right: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
                 window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
+                window_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Tracking,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest()),
                 playingfield: PlayingField::empty()
             })),

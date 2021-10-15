@@ -7,7 +7,6 @@ use crate::util::enummap::{Enumerable, EnumerableKey};
 use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProcessBuilder, ProgramBuilder, SourceInstrs, Statement, UniformProto, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
-use peregrine_data::CoordinateSystem;
 
 #[derive(Clone)]
 pub(crate) enum GeometryAdder {
@@ -99,7 +98,7 @@ impl GeometryProgramName {
                         return uModel * uTransform * vec4(
                             (base.x -uStageHpos) * uStageZoom + 
                                         delta.x / uSize.x,
-                            (base.y - uStageVpos + delta.y) / uSize.y - 1.0, 
+                            (- uStageVpos + delta.y) / uSize.y + base.y*2.0 - 1.0, 
                             0.0, 1.0);
                     }
                 "),

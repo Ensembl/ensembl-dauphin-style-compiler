@@ -1,5 +1,5 @@
-use peregrine_data::{Allotment, CoordinateSystem, SpaceBase, SpaceBaseArea};
-use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, TrianglesTransform}, util::arrayutil::rectangle64};
+use peregrine_data::{CoordinateSystem};
+use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, TrianglesTransform}};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {

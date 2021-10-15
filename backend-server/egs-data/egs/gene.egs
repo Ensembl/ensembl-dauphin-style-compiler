@@ -86,6 +86,14 @@ allotment := index(allotment_idx,allotments);
 
 track_name := index(allotment_idx,potential_tracks);
 
+/* 
+ * focus object
+ */
+
+focus_start := start#[allotment_idx==4];
+focus_end := end#[allotment_idx==4];
+notice(format([focus_start,focus_end]));
+
 /*
  * Filter labels by which tracks are configured to have labels
  */
@@ -167,3 +175,8 @@ draw_track_category("G",allotments_cat);
 
 /* focus swatch */
 draw_focus_swatch(allotments_cat[@==4]);
+
+/* red-dotted lines */
+dots_patina := patina_hollow(simple_colour(direct_colour(255,0,0,255)),1);
+rectangle(spacebase(focus_start,0,0),spacebase(focus_start,-1,0),dots_patina,use_allotment("track-window:red-dots"));
+rectangle(spacebase(focus_end,0,0),spacebase(focus_end,-1,0),dots_patina,use_allotment("track-window:red-dots"));

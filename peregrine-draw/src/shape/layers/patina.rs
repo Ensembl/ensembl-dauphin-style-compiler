@@ -13,7 +13,7 @@ pub(crate) enum PatinaAdder {
 }
 
 impl PatinaAdder {
-    pub(super) fn make_patina_process(&self, skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
+    pub(super) fn make_patina_process(&self, _skin: &PatinaProcessName) -> Result<PatinaProcess,Message> {
         Ok(match self {
             PatinaAdder::Direct(v) => PatinaProcess::Direct(DirectColourDraw::new(v)?),
             PatinaAdder::Texture(v) => PatinaProcess::Texture(TextureDraw::new(v,false)?),
