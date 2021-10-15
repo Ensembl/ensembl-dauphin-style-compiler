@@ -74,6 +74,13 @@ allotments_cat := [use_allotment(tracks_used_cat[])];
 
 allotment := index(allotment_idx,allotments);
 
+/* 
+ * focus object
+ */
+
+focus_start := start#[allotment_idx==4];
+focus_end := end#[allotment_idx==4];
+
 /*
  * What colour? What font? etc
  *
@@ -110,3 +117,8 @@ draw_track_category("G",allotments_cat);
 
 /* focus swatch */
 draw_focus_swatch(allotments_cat[@==4]);
+
+/* red-dotted lines */
+dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),5,5,0.25),1);
+rectangle(spacebase(focus_start,0,0),spacebase(focus_start,-1,0),dots_patina,use_allotment("track-window:red-dots"));
+rectangle(spacebase(focus_end,0,0),spacebase(focus_end,-1,0),dots_patina,use_allotment("track-window:red-dots"));

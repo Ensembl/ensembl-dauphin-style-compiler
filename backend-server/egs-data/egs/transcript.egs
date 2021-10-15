@@ -120,6 +120,15 @@ allotment_idx#[focus_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
 allotment_under := index(allotment_idx,allotments_under);
 
+alienate(allotment);
+
+/* 
+ * focus object
+ */
+
+focus_start := start#[allotment_idx==4];
+focus_end := end#[allotment_idx==4];
+
 /*
  * Exon allotments
  */
@@ -241,3 +250,8 @@ draw_track_category("G",allotments_cat);
 
 /* focus swatch */
 draw_focus_swatch(allotments_cat[@==4]);
+
+/* red-dotted lines */
+dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),5,5,0.25),1);
+rectangle(spacebase(focus_start,0,0),spacebase(focus_start,-1,0),dots_patina,use_allotment("track-window:red-dots"));
+rectangle(spacebase(focus_end,0,0),spacebase(focus_end,-1,0),dots_patina,use_allotment("track-window:red-dots"));
