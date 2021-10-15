@@ -240,4 +240,4 @@ draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);
 draw_track_category("G",allotments_cat);
 
 /* focus swatch */
-draw_focus_swatch();
+draw_focus_swatch(allotments_cat[@==4]);
