@@ -1,3 +1,8 @@
+# 0.0.5
+ * bugfix for vertical dotted lines (broken by 0.0.4)
+ * display dotted red lines
+ * don't show dotted lines when focus track is off.
+
 # 0.0.4
 
 * fix lhs track category track-on/off bug
