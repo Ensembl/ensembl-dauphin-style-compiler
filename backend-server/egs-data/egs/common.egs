@@ -52,3 +52,9 @@ stmt draw_track_category(category,allotments) {
     textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
     text2(spacebase(len(allotments) (*) 0,-4,16),textpen_cat,category,allotments[]);
 }
+
+stmt draw_focus_swatch() {
+    focus_left := use_allotment("track:focus:wallpaper{left:left-pad}[5]");
+    swatch_patina := patina_filled(simple_colour(direct_colour(150,150,255,255)));
+    rectangle(spacebase(0,-16,0),spacebase(0,16,6),swatch_patina,focus_left);
+}
