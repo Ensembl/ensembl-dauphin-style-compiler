@@ -22,7 +22,7 @@ textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 allotment := use_allotment("track:contig");
 
 
-half_height := 14;
+half_height := 6;
 
 stmt seq_rectangle(start,end,source,offset) {
     top_left := spacebase(start,-half_height+offset,1);
@@ -38,8 +38,8 @@ stmt bond(start,offset) {
     rectangle(top_left,bottom_right,patina,allotment);
 }
 
-seq_rectangle(seq_start,seq_end,seq_letter,-16);
-seq_rectangle(seq_start,seq_end,seq_rev_letter,16);
+seq_rectangle(seq_start,seq_end,seq_letter,-8);
+seq_rectangle(seq_start,seq_end,seq_rev_letter,8);
 
 bond(seq_start,0.3);
 bond(seq_start,0.7);

@@ -183,8 +183,11 @@ thick_seq_gene_strand := index(thick_seq_gene_index,[strand]);
 thick_seq_letter#[thick_seq_gene_strand==0] := thick_seq_rev_letter#[thick_seq_gene_strand==0];
 thick_seq_allotment := index(thick_seq_gene_index,[allotment]);
 
-indented_rectangle_on_genome(thick_seq_start,thick_seq_start+1,30,thick_seq_patina,thick_seq_allotment);
-coords := spacebase(thick_seq_start + 0.5,8,-4);
+alienate(thick_seq_allotment);
+alienate(thin_seq_allotment);
+
+indented_rectangle_on_genome(thick_seq_start,thick_seq_start+1,12,thick_seq_patina,thick_seq_allotment);
+coords := spacebase(thick_seq_start + 0.5,0,-4);
 text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment);
 
 /* thin letters */
@@ -195,13 +198,13 @@ thin_seq_gene_strand := index(thin_seq_gene_index,[strand]);
 thin_seq_letter#[thin_seq_gene_strand==0] := thin_seq_rev_letter#[thin_seq_gene_strand==0];
 thin_seq_allotment := index(thin_seq_gene_index,[allotment]);
 
-indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,30,thin_seq_patina,thin_seq_allotment);
-coords := spacebase(thin_seq_start + 0.5,8,-4);
+indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,12,thin_seq_patina,thin_seq_allotment);
+coords := spacebase(thin_seq_start + 0.5,0,-4);
 text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
 
 /* zmenus */
-rectangle_on_genome(start,end,32,tr_zmenu_patina,allotment);
-rectangle_on_genome(start,end,32,ge_zmenu_patina,allotment);
+rectangle_on_genome(start,end,16,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,16,ge_zmenu_patina,allotment);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);
