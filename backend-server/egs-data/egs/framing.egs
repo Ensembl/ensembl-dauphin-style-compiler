@@ -1,7 +1,7 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-pad_left := use_allotment("left:left-pad[2]");
+pad_left := use_allotment("left:left-pad[4]");
 pad_right := use_allotment("right:right-pad[2]");
 white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
 rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);

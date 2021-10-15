@@ -8,10 +8,10 @@ max := [min_max][@==1];
 interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
 
-allotment_top := use_allotment("track-top:ruler-top");
-allotment_bottom := use_allotment("track-bottom:ruler-bottom");
-allotment_top_wallpaper := use_allotment("track-top:ruler-top:wallpaper");
-allotment_bottom_wallpaper := use_allotment("track-bottom:ruler-bottom:wallpaper");
+allotment_top := use_allotment("track-top:ruler-top[3]");
+allotment_bottom := use_allotment("track-bottom:ruler-bottom[3]");
+allotment_top_wallpaper := use_allotment("track-top:ruler-top:wallpaper[3]");
+allotment_bottom_wallpaper := use_allotment("track-bottom:ruler-bottom:wallpaper[3]");
 
 marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 

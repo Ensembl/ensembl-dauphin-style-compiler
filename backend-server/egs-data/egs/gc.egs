@@ -21,4 +21,4 @@ wiggle(x_range[@==0],x_range[@==1],p,values,present,use_allotment("track:gc"));
 draw_track_names(["%GC"],[["track","gc","name"]],[use_allotment("track:gc:wallpaper[-3]")]);
 
 /* track category */
-draw_track_category("G",[use_allotment("track:gc:wallpaper{left:left-pad}[3]")]);
+draw_track_category("G",[use_allotment("track:gc:wallpaper{left:left-pad}[5]")]);
