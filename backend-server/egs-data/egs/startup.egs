@@ -50,7 +50,8 @@ stmt gene_std(p) {
 
 /* TOP-LEVEL */
 p := track_new("self()","framing",1,60,60);
-new_thin_allotment(p,"left:pad",-2000000,"pad-left","");
+new_thin_allotment(p,"left:left-pad",-2000000,"pad-left","");
+new_thin_allotment(p,"right:right-pad",-2000000,"pad-right","");
 track_add_trigger(p,["track"]);
 track_apply(p);
 

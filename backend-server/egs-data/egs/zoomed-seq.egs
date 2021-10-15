@@ -1,5 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
 
 data := get_data("self()","zoomed-seq",get_region());
 halt(only_warm(),[data]);
@@ -45,3 +46,6 @@ bond(seq_start,0.7);
 bond(seq_start#[three_bonds],0.5);
 
 rectangle_on_genome(seq_start,seq_end,2,patina,allotment);
+
+/* track category */
+draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[3]")]);

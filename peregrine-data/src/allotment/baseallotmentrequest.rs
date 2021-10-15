@@ -3,19 +3,25 @@ use peregrine_toolkit::lock;
 use crate::{Allotment, AllotmentMetadata, DataMessage};
 use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}};
 
-pub(super) fn remove_depth(spec: &mut String) -> i8 {
-    let mut depth = 0;
-    if let Some(start) = spec.find("[") {
-        if let Some(end) = spec[start..].find("]").map(|x| x+start) {
-            if let Some(new_depth) = spec[(start+1)..end].parse::<i8>().ok() {
-                depth = new_depth;
-                let mut new_spec = spec[0..start].to_string();
-                new_spec.push_str(&spec[end+1..].to_string());
-                *spec = new_spec;
-            }
+pub(super) fn remove_bracketed(spec: &mut String, start: &str, end: &str) -> Option<String> {
+    let mut depth = None;
+    if let Some(start) = spec.find(start) {
+        if let Some(end) = spec[start..].find(end).map(|x| x+start) {
+            depth = Some(spec[(start+1)..end].to_string());
+            let mut new_spec = spec[0..start].to_string();
+            new_spec.push_str(&spec[end+1..].to_string());
+            *spec = new_spec;
         }
     }
     depth
+}
+
+pub(super) fn remove_depth(spec: &mut String) -> i8 {
+    remove_bracketed(spec,"[","]").map(|x| x.parse::<i8>().ok()).flatten().unwrap_or(0)
+}
+
+pub(super) fn remove_secondary(spec: &mut String) -> Option<String> {
+    remove_bracketed(spec,"{","}")
 }
 
 pub(super) fn trim_prefix(prefix: &str, name: &str) -> Option<String> {
@@ -89,7 +95,13 @@ impl<T> BaseAllotmentRequest<T> {
 }
 
 impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
-    fn name(&self) -> String { self.metadata.name().to_string() }
+    fn name(&self) -> String {
+        let mut out = self.metadata.name().to_string();
+        remove_secondary(&mut out);
+        remove_depth(&mut out);
+        out
+    }
+
     fn is_dustbin(&self) -> bool { false }
     fn priority(&self) -> i64 { self.metadata.priority() }
     fn depth(&self) -> i8 { self.depth }

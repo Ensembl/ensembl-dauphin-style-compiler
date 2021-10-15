@@ -2,6 +2,32 @@ use std::{collections::HashMap, sync::{Arc}};
 use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 use super::{allotment::{AllotmentImpl}, allotmentrequest::{AllotmentRequestImpl}};
 
+pub struct SecondaryPosition {
+    pub offset: i64,
+    pub size: i64,
+    pub reverse: bool
+}
+
+pub struct SecondaryPositionStore {
+    position: HashMap<String,SecondaryPosition>
+}
+
+impl SecondaryPositionStore {
+    pub fn new() -> SecondaryPositionStore {
+        SecondaryPositionStore {
+            position: HashMap::new()
+        }
+    }
+
+    pub fn add(&mut self, name: &str, position: SecondaryPosition) {
+        self.position.insert(name.to_string(),position);
+    }
+
+    pub fn lookup(&self, name: &str) -> Option<&SecondaryPosition> {
+        self.position.get(name)
+    }
+}
+
 pub struct LinearOffsetBuilder {
     fwd: i64,
     rev: i64
@@ -35,7 +61,7 @@ pub trait LinearAllotmentImpl : AllotmentImpl {
 
 pub trait LinearGroupEntry {
     fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn make(&self, secondary: i64, offset: i64) -> i64;
+    fn make(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
     fn name(&self) -> &str;
     fn priority(&self) -> i64;
     fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
@@ -92,16 +118,27 @@ impl<C: LinearAllotmentRequestCreatorImpl> LinearRequestGroup<C> {
         }
     }
 
-    pub(super) fn allot(&mut self, secondary: i64, offset: &mut LinearOffsetBuilder) {
+    pub(super) fn allot(&mut self, secondary: i64, offset: &mut LinearOffsetBuilder, secondary_store: &mut SecondaryPositionStore) {
         let is_reverse = self.creator.is_reverse();
         let mut sorted_requests = self.requests.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for request in sorted_requests {
+            let name = request.name();
             if is_reverse {
-                let more = request.make(secondary,offset.rev());
+                let more = request.make(secondary,offset.rev(),secondary_store);
+                secondary_store.add(name,SecondaryPosition {
+                    offset: offset.rev(),
+                    size: more,
+                    reverse: true
+                });
                 offset.advance_rev(more);
             } else {
-                let more = request.make(secondary,offset.fwd());
+                let more = request.make(secondary,offset.fwd(),secondary_store);
+                secondary_store.add(name,SecondaryPosition {
+                    offset: offset.fwd(),
+                    size: more,
+                    reverse: false
+                });
                 offset.advance_fwd(more);
             }
         }

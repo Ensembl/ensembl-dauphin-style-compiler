@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::{AllotmentImpl, CoordinateSystem}, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry}};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
@@ -64,11 +64,13 @@ impl AllotmentImpl for OffsetAllotment {
 }
 
 #[derive(Clone)]
-pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8,bool);
+pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8,bool,String);
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, secondary: i64, offset: i64) -> i64 {
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),secondary,offset,self.0.best_offset(offset),self.0.best_height(),self.1,self.2)));
+    fn make(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+        let offset = self.0.best_offset(offset);
+        let size = self.0.best_height();
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),secondary,offset,offset,size,self.1,self.2)));
         self.0.max_used()
     }
 
@@ -80,7 +82,7 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
         out.push(AllotmentMetadata::new(full_metadata));
     }
 
-    fn name(&self) -> &str { self.0.metadata().name() }
+    fn name(&self) -> &str { &self.3 }
     fn priority(&self) -> i64 { self.0.metadata().priority() }
 
     fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
@@ -95,7 +97,7 @@ impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
         let mut name =full_path.to_string();
         let depth = remove_depth(&mut name);
         let metadata = metadata.get(full_path).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(full_path,0)));
-        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(&metadata,&self.0,depth)),depth,self.1))
+        Arc::new(OffsetAllotmentRequest(Arc::new(BaseAllotmentRequest::new(&metadata,&self.0,depth)),depth,self.1,name))
     }
 
     fn base(&self, name: &str) -> String {

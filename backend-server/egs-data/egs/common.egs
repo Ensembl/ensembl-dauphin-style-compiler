@@ -9,6 +9,14 @@ stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     our_allotments := [use_allotment(tracks_used[])];
 }
 
+gene_cat_allotments := [
+    "track:gene-other-rev:wallpaper{left:left-pad}[3]",
+    "track:gene-other-fwd:wallpaper{left:left-pad}[3]",
+    "track:gene-pc-rev:wallpaper{left:left-pad}[3]",
+    "track:gene-pc-fwd:wallpaper{left:left-pad}[3]",
+    "track:focus:wallpaper{left:left-pad}[3]",
+];
+
 gene_name_switches := [
     ["track","gene-other-rev","name"],
     ["track","gene-pc-rev","name"],
@@ -35,4 +43,12 @@ stmt draw_track_names(track_names,switch_names,allotments) {
 
     textpen_trackname := pen("'Lato', sans-serif",name_text_size,name_text_colour,[][]);
     text2(spacebase(len(track_names) (*) 0,-18,8),textpen_trackname,track_names[],label_allotments[]);
+}
+
+stmt draw_track_category(category,allotments) {
+    cat_text_size := 14;
+    cat_text_colour := direct_colour(0,0,0,255);
+
+    textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
+    text2(spacebase(len(allotments) (*) 0,-4,16),textpen_cat,category,allotments[]);
 }

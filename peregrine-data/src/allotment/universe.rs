@@ -6,7 +6,7 @@ use peregrine_toolkit::lock;
 
 use super::baseallotmentrequest::trim_prefix;
 use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
-use super::lineargroup::{LinearOffsetBuilder, LinearRequestGroup};
+use super::lineargroup::{LinearOffsetBuilder, LinearRequestGroup, SecondaryPositionStore};
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
@@ -61,17 +61,18 @@ impl UniverseData {
     fn allot(&mut self) {
         // XXX pad left and right
         /* Left and Right */
+        let mut secondary = SecondaryPositionStore::new();
         let mut left_offset = LinearOffsetBuilder::new();
-        self.left.allot(0,&mut left_offset);
+        self.left.allot(0,&mut left_offset,&mut secondary);
         let mut right_offset = LinearOffsetBuilder::new();
-        self.right.allot(0,&mut right_offset);
+        self.right.allot(0,&mut right_offset, &mut secondary);
         let left = self.left.max();
         /* Main run */
         let mut offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(left,&mut offset);
-        self.main.allot(left,&mut offset);
-        self.bottom_tracks.allot(left,&mut offset);
-        self.window.allot(left,&mut LinearOffsetBuilder::new());
+        self.top_tracks.allot(left,&mut offset, &mut secondary);
+        self.main.allot(left,&mut offset,&mut secondary);
+        self.bottom_tracks.allot(left,&mut offset,&mut secondary);
+        self.window.allot(left,&mut LinearOffsetBuilder::new(),&mut secondary);
         /* update playing fields */
         self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
         self.playingfield.union(&PlayingField::new_squeeze(left_offset.fwd(),right_offset.fwd()));

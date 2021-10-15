@@ -233,3 +233,6 @@ enabled_names := get_switch([
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);
+
+/* track category */
+draw_track_category("G",[use_allotment(gene_cat_allotments[])]);

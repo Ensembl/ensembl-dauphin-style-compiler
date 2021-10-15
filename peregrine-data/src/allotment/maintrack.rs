@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, trim_suffix}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry}, offsetallotment::OffsetAllotment};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -20,17 +20,19 @@ use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentReq
 struct MTSpecifier {
     name: String,
     variety: MTVariety,
-    depth: i8
+    depth: i8,
+    secondary: Option<String>
 }
 
 impl MTSpecifier {
     fn new(spec: &str) -> MTSpecifier {
         let mut spec = spec.to_string();
         let depth = remove_depth(&mut spec);
+        let secondary = remove_secondary(&mut spec);
         if let Some(main) = trim_suffix("wallpaper",&spec) {
-            MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth }
+            MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth, secondary }
         } else {
-            MTSpecifier { name: spec.to_string(), variety: MTVariety::Track, depth }
+            MTSpecifier { name: spec.to_string(), variety: MTVariety::Track, depth, secondary }
         }
     }
 
@@ -52,6 +54,16 @@ impl MTSpecifier {
             (MTVariety::Wallpaper,true)  => CoordinateSystem::WindowBottom
         }
     }
+
+    fn get_secondary(&self, default_secondary: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+        match self.variety {
+            MTVariety::Track => 0,
+            MTVariety::Wallpaper => {
+                let secondary = self.secondary.as_ref().map(|s| secondary_store.lookup(s)).flatten();
+                secondary.map(|p| p.offset).unwrap_or(default_secondary)
+            }
+        }
+    }
 }
 
 pub struct MainTrackRequest {
@@ -71,7 +83,7 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn make(&self, secondary: i64, offset: i64) -> i64 {
+    fn make(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         let mut best_offset = 0;
         let mut best_height = 0;
         let requests = lock!(self.requests);
@@ -82,10 +94,7 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            let our_secondary = match specifier.variety {
-                MTVariety::Track => 0,
-                MTVariety::Wallpaper => secondary
-            };
+            let our_secondary = specifier.get_secondary(secondary,secondary_store);
             request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),our_secondary,offset,best_offset,best_height,specifier.depth,self.reverse)));
         }
         best_height
