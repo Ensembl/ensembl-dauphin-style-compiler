@@ -1,3 +1,8 @@
+# 0.0.4
+
+* fix lhs track category track-on/off bug
+* fix lhs swatch track-on/off bug
+
 # 0.0.3
 
 * fix tracks-drawn-in-wrong-place bug

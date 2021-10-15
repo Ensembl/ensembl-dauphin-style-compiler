@@ -13,10 +13,10 @@ pub enum CoordinateSystem {
 }
 
 impl CoordinateSystem {
-    pub(crate) fn filter_min_max(&self) -> FilterMinMax {
+    pub fn is_tracking(&self) -> bool {
         match self {
-            CoordinateSystem::Tracking => FilterMinMax::Base,
-            _ => FilterMinMax::None
+            CoordinateSystem::Tracking | CoordinateSystem::TrackingBottom => true,
+            _ => false
         }
     }
 }

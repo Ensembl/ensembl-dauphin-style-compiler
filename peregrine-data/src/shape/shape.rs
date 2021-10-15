@@ -77,13 +77,10 @@ impl Shape {
             Shape::Image(_,_,_,coord_system) => coord_system,
             Shape::Wiggle(_,_,_,_,coord_system) => coord_system
         };
-        match coord_system.filter_min_max() {
-            FilterMinMax::Base => true,
-            FilterMinMax::None => false
-        }
+        coord_system.is_tracking() 
     }
 
-    pub fn filter_min_max(&self, min_value: f64, max_value: f64) -> Shape {
+    pub fn is_tracking(&self, min_value: f64, max_value: f64) -> Shape {
         if !self.test_filter_base() {
             return self.clone();
         }

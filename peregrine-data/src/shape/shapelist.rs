@@ -73,7 +73,7 @@ impl ShapeListBuilder {
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
         let mut shapes = vec![];
         for shape in self.shapes.iter() {
-            shapes.push(shape.filter_min_max(min_value,max_value));
+            shapes.push(shape.is_tracking(min_value,max_value));
         }
         ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone(), assets: self.assets.clone() }
     }

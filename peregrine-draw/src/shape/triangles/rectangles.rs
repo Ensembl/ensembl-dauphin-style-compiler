@@ -2,11 +2,9 @@ use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
 use crate::shape::layers::patina::PatinaYielder;
+use crate::shape::util::arrayutil::rectangle64;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{
-    Allotment, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea,
-    SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues
-};
+use peregrine_data::{Allotment, CoordinateSystem, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
@@ -96,13 +94,38 @@ impl Rectangles {
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 }
 
+fn add_spacebase(point: &SpaceBase<f64>, coord_system: &CoordinateSystem, allotments: &[Allotment], left: f64, width: Option<f64>) -> (Vec<f32>,Vec<f32>) {
+    let area = SpaceBaseArea::new(point.clone(),point.clone());
+    add_spacebase_area(&area,coord_system,allotments,left,width)
+}
+
+fn add_spacebase_area(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSystem, allotments: &[Allotment], left: f64, width: Option<f64>)-> (Vec<f32>,Vec<f32>) {
+    let mut base = vec![];
+    let mut delta = vec![];
+    let base_width = if width.is_some() { Some(0.) } else { None };
+    let applied_left = if coord_system.is_tracking() { left } else { 0. };
+    for ((top_left,bottom_right),allotment) in area.iter().zip(allotments.iter().cycle()) {
+        let top_left = allotment.transform_spacebase(&top_left);
+        let bottom_right = allotment.transform_spacebase(&bottom_right);
+        let (mut x0,mut y0,mut x1,mut y1) = (top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal);
+        let (mut bx0,mut by0,mut bx1,mut by1) = (top_left.base-applied_left,0.,bottom_right.base-applied_left,0.);
+        if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
+        if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
+        if x1 < 0. { x1 = -x1-1.; bx1 = 1.; }
+        if y1 < 0. { y1 = -y1-1.; by1 = 1.; }
+        rectangle64(&mut base, bx0,by0, bx1,by1,base_width);
+        rectangle64(&mut delta, x0,y0,x1,y1,width);
+    }
+    (base,delta)
+}
+
 impl DynamicShape for Rectangles {
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
         let area = self.location.apply(variables);
-        let (base,delta) = self.kind.add_spacebase_area(&area,&self.allotments,self.left,self.width);
+        let (base,delta) = add_spacebase_area(&area,&self.kind.coord_system(),&self.allotments,self.left,self.width);
         self.program.add_data(&mut self.elements,base,delta)?;
         if self.program.origin_base.is_some() || self.program.origin_delta.is_some() {
-            let (origin_base,origin_delta) = self.kind.add_spacebase(&area.middle_base(),&self.allotments,self.left,self.width);
+            let (origin_base,origin_delta) = add_spacebase(&area.middle_base(),&self.kind.coord_system(),&self.allotments,self.left,self.width);
             self.program.add_origin_data(&mut self.elements,origin_base,origin_delta)?;
         }
         Ok(())
