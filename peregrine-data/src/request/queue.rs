@@ -3,6 +3,7 @@ use anyhow::{ Context };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use peregrine_toolkit::lock;
 use commander::{ CommanderStream, cdr_add_timer };
+use peregrine_toolkit::sync::pacer::Pacer;
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -44,6 +45,7 @@ struct RequestQueueData {
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
+    pacer: Pacer<f64>,
     timeout: Option<f64>,
     messages: MessageSender,
     realtime_block: Option<Blocker>,
@@ -97,7 +99,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender) -> Result<RequestQueue,DataMessage> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64]) -> Result<RequestQueue,DataMessage> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             builder: register_responses(),
@@ -107,6 +109,7 @@ impl RequestQueue {
             priority: priority.clone(),
             timeout: None,
             messages: messages.clone(),
+            pacer: Pacer::new(pacing),
             realtime_block: None,
             realtime_block_check: None
         })));
@@ -174,8 +177,16 @@ impl RequestQueue {
         lock!(self.0).get_blocker()
     }
 
+    async fn pace(&self) {
+        let state = lock!(self.0);
+        let wait = state.pacer.get();
+        drop(state);
+        cdr_timer(wait).await;
+    }
+
     async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
         let sender = lock!(self.0).make_packet_sender(packet)?;
+        self.pace().await;
         if let Some(blocker) = self.get_blocker() {
             blocker.wait().await;
         }
@@ -188,9 +199,16 @@ impl RequestQueue {
 
     async fn send_or_fail_packet(&self, packet: &RequestPacket) -> ResponsePacket {
         let res = self.send_packet(packet).await;
-        match lock!(self.0).report(res) {
-            Ok(r) => r,
-            Err(_) => packet.fail()
+        let state = lock!(self.0);
+        match state.report(res) {
+            Ok(r) => {
+                state.pacer.report(true);
+                r
+            },
+            Err(_) => {
+                state.pacer.report(false);
+                packet.fail()
+            }
         }
     }
 

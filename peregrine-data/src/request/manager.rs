@@ -72,6 +72,13 @@ impl RequestManagerData {
         lock!(self.receiver.0).push(Rc::new(receiver));
     }
 
+    fn get_pace(&self, priority: &PacketPriority) -> &[f64] {
+        match priority {
+            PacketPriority::Batch => &[0.,5000.,10000.,20000.,20000.,20000.],
+            PacketPriority::RealTime => &[0.,0.,500.,2000.,3000.,10000.]
+        }
+    }
+
     fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
         let mut channel = channel.clone();
         let mut priority = priority.clone();
@@ -81,7 +88,7 @@ impl RequestManagerData {
             if missing {
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages)?;
+                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages,self.get_pace(&priority))?;
                 match priority {
                     PacketPriority::RealTime => {
                         queue.set_realtime_block(&self.real_time_lock);

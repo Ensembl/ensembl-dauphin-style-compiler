@@ -206,8 +206,11 @@ These sigils must be present (and match) both in the signature and call (except 
 
 Functions and procedures are introduced with `function` and `procedure`. The `return` statement returns a value from the function (otherwiset the default is returned). It is a compile-time error for branches not to include an explicit return. Earp compilers are not required to detect inifinite loops, so this includes (unused) returns after such cases.
 
+Types are specified with the keywords `number`,`string`, `boolean`, `bytes`, `handle{....}`. Each may be enclosed
+in `iterator()` or `array()`. Types are only specified on function/procedure signatures and are separated by colons. Functions/procedures with different signatures may have different implementations but must be unique in all their in and in/out arguments. If functions have identical implementations for different types, the signature may be repeated separated by `|` for a singe implementation (which must use identical parameter names).
+
 ```
-function add_two(input, >half_way) {
+function add_two(input: number, >half_way: number) : number {
   halfway := input + 1;
   return halfway + 1;
 }
@@ -219,14 +222,42 @@ print(y); // 3
 print(z); // 4
 ```
 
+```
+// common
+function count(input: array(number)) : number |
+function count(input: array(booean)) : number {
+   ...
+}
+
+// separated
+function best(input: array(number)) : number {
+  ...
+}
+
+function best(input: array(boolean)) : boolean {
+  ...
+}
+
+function best(input: array(string), criterion: handle{criterion}) : string {
+  ...
+}
+```
+
 Function and procedure implementations must be unique with respect to the type of their in and in/out parameters.
 
 ## Bulk Argument Sytnax
 
-Bulk-agrument syntax allows all variables defined up to a period (`.`) to be passed as arguments. When used as an argument or parameter type, it is a suffixed `..`. Bulk-argument syntax cannot be used in return types for functions. Bulk-argument syntax can be used with all parameter types. For example, the gene filtering example above can be implemented in a utility procedure as follows.
+Bulk-agrument syntax allows all variables defined up to a period (`.`) to be passed as arguments When used as an argument or parameter type.  In the signature, it is given a name for use inside the funcrion followed by braces `{}` containing a comma separated list of subnames with associated type information. When calling, the prefix of a number of variables can be used as a shorthand.
+
+In the unusual case that such a block of variables is not avilable for a call (so negating any benefits at this call), square brackets may be used and the arguments given in `sub-name=expression` syntax.
+
+For example, the gene filtering example above can be implemented in a utility procedure as follows.
 
 ```
-procedure only_nice_genes(<>data..) {
+procedure only_nice_genes(data{< is_nice: boolean, 
+                              <> name: string,
+                              <> start: numver, 
+                              <> end: number       }) {
   nice := data.is_nice == "y";
 
   data.name  := data.name[nice];
@@ -241,13 +272,16 @@ gene.end     := ["17","27","37","47","57","67"];
 gene.is_nice := ["y","y","n","n","y","y"];
 
 // we only want nice genes
-only_nice_genes(<>gene..);
+only_nice_genes(<>gene);
 ```
 
 or the same things, using iterators with a pluggable predicate
 
 ```
-procedure filter_genes(<>data.., pred) {
+procedure only_nice_genes(data{<> name: string,
+                               <> start: number, 
+                               <> end: number  },
+                          pred: iterator(boolean)) {
   data.name  := data.name[pred];
   data.start := data.start[pred];
   data.end   := data.end[pred];
@@ -260,7 +294,14 @@ gene.end     := ["17","27","37","47","57","67"];
 gene.is_nice := ["y","y","n","n","y","y"];
 
 // we only want nice genes
-filter_genes(<>gene.., gene.is_nice=="y");
+filter_genes(<>gene, gene.is_nice=="y");
+```
+
+or should the variables be unfortunately named `gene_name` etc, rather than `gene.name` etc, the call can take the form
+
+```
+fiter_genes(<>{ name = gene_name, start = gene_start,
+                end = gene_end }, gene_is_nice=="y");
 ```
 
 ## Imports
