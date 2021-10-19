@@ -91,6 +91,7 @@ impl GeometryProgramName {
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
@@ -99,7 +100,7 @@ impl GeometryProgramName {
                             (base.x -uStageHpos) * uStageZoom + 
                                         delta.x / uSize.x,
                             (- uStageVpos + delta.y) / uSize.y + base.y*2.0 - 1.0, 
-                            0.0, 1.0);
+                            aDepth, 1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -119,13 +120,14 @@ impl GeometryProgramName {
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
                     {
                         return uModel * uTransform * vec4(    delta.y/uSize.x+base.y*2.0-1.0,
                                                               delta.x/uSize.y+base.x*2.0-1.0,    
-                                                              0.0,1.0);
+                                                              aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -146,11 +148,12 @@ impl GeometryProgramName {
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec2 base, in vec2 delta)
                     {
                         return uModel * uTransform * vec4(delta.x/uSize.x+base.x*2.0-1.0,
-                                                          delta.y/uSize.y+base.y*2.0-1.0,    0.0,1.0);
+                                                          delta.y/uSize.y+base.y*2.0-1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -169,11 +172,12 @@ impl GeometryProgramName {
             GeometryProgramName::Wiggle => vec![
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aData"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(
                         (aData.x -uStageHpos) * uStageZoom,
                         1.0 - (aData.y - uStageVpos) / uSize.y, 
-                        0.0, 1.0)")
+                        aDepth, 1.0)")
             ]
         })
     }

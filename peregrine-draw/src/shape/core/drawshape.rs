@@ -159,7 +159,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle,allotment.depth());
             let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
-            let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left)?;
+            let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left,allotment.depth())?;
             patina_yielder.draw()?.direct(&mut array,&[colour],1)?;
             array.close()?;
             Ok(ShapeToAdd::None)

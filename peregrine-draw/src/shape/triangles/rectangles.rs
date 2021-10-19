@@ -51,7 +51,7 @@ pub(crate) struct Rectangles {
     allotments: Vec<Allotment>,
     left: f64,
     width: Option<f64>,
-    kind: DrawGroup  
+    kind: DrawGroup
 }
 
 impl Rectangles {
@@ -125,7 +125,7 @@ impl DynamicShape for Rectangles {
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
         let area = self.location.apply(variables);
         let (base,delta) = add_spacebase_area(&area,&self.kind.coord_system(),&self.allotments,self.left,self.width);
-        self.program.add_data(&mut self.elements,base,delta)?;
+        self.program.add_data(&mut self.elements,base,delta,self.kind.depth())?;
         if self.program.origin_base.is_some() || self.program.origin_delta.is_some() {
             let (origin_base,origin_delta) = add_spacebase(&area.middle_base(),&self.kind.coord_system(),&self.allotments,self.left,self.width);
             self.program.add_origin_data(&mut self.elements,origin_base,origin_delta)?;

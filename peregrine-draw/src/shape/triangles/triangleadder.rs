@@ -6,6 +6,7 @@ pub struct TriangleAdder {
     pub delta: AttribHandle,
     pub origin_base: Option<AttribHandle>,
     pub origin_delta: Option<AttribHandle>,
+    pub depth: AttribHandle,
     pub transform: Option<UniformHandle>
 }
 
@@ -16,11 +17,14 @@ impl TriangleAdder {
             delta: builder.get_attrib_handle("aDelta")?,
             origin_base: builder.try_get_attrib_handle("aOriginBase"),
             origin_delta: builder.try_get_attrib_handle("aOriginDelta"),
+            depth: builder.get_attrib_handle("aDepth")?,
             transform: builder.try_get_uniform_handle("uTransform")
         })
     }
 
-    pub(super) fn add_data(&self, elements: &mut ProcessStanzaElements, base: Vec<f32>, delta: Vec<f32>) -> Result<(),Message> {
+    pub(super) fn add_data(&self, elements: &mut ProcessStanzaElements, base: Vec<f32>, delta: Vec<f32>, depth: i8) -> Result<(),Message> {
+        let gl_depth = 1.0 - (depth as f32+128.) / 255.;
+        elements.add(&self.depth, vec![gl_depth;delta.len()/2], 1)?;
         elements.add(&self.delta,delta,2)?;
         elements.add(&self.base,base,2)?;
         Ok(())
