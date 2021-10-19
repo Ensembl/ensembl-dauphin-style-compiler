@@ -22,9 +22,9 @@ impl StickCommandRequest {
         }
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<Stick> {
-        let mut backoff = Backoff::new();
-        let r = backoff.backoff::<StickCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
+    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
+        let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
+        let r = backoff.backoff::<StickCommandResponse,_,_>(self.clone(), |_| true).await??;
         Ok(r.stick.clone())
     }
 }

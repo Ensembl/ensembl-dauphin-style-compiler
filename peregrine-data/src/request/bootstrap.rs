@@ -38,12 +38,11 @@ impl BootstrapCommandRequest {
         }
     }
 
-    async fn execute(self, mut manager: RequestManager, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>) -> Result<(),DataMessage> {
+    async fn execute(self, manager: &RequestManager, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>) -> Result<(),DataMessage> {
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
-        let mut backoff = Backoff::new();
-        match backoff.backoff::<BootstrapCommandResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,PacketPriority::RealTime,|_| None).await? {
+        let mut backoff = Backoff::new(&manager,&self.channel,&PacketPriority::RealTime);
+        match backoff.backoff::<BootstrapCommandResponse,_,_>(self.clone(),|_| true).await? {
             Ok(b) => {
                 manager.set_lo_divert(&b.channel_hi,&b.channel_lo);
                 b.bootstrap(&dauphin,&self.queue,&loader,integration).await?;
@@ -121,7 +120,7 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
         timeout: None,
         task: Box::pin(async move {
             let req = BootstrapCommandRequest::new(&base2.dauphin,&base2.queue,&agent_store.program_loader,channel.clone());
-            let r = req.execute(base2.manager.clone(),&base2.integration).await;
+            let r = req.execute(&base2.manager,&base2.integration).await;
             let r = r.unwrap_or(());
             base2.booted.unlock();
             Ok(())

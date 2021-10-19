@@ -56,17 +56,9 @@ impl ProgramCommandRequest {
     }
 
     pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> Result<(),DataMessage> {
-        let mut backoff = Backoff::new();
+        let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
         let program_name = self.program_name.clone();
-        backoff.backoff::<ProgramCommandResponse,_,_>(
-            manager,self.clone(),&self.program_name.0,PacketPriority::RealTime, move |_| {
-                if dauphin.is_present(&program_name) {
-                    None
-                } else {
-                    Some(GeneralFailure::new("program was returned but did not load successfully"))
-                }
-            }
-        ).await??;
+        backoff.backoff::<ProgramCommandResponse,_,_>(self.clone(), move |_| dauphin.is_present(&program_name)).await??;
         if !dauphin.is_present(&self.program_name) {
             return Err(DataMessage::DauphinProgramDidNotLoad(self.program_name));
         }
@@ -76,7 +68,7 @@ impl ProgramCommandRequest {
 
 impl RequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
-    fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage> {
+    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
         self.program_name.serialize()
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

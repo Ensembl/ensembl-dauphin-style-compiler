@@ -1,7 +1,6 @@
 use std::any::Any;
 use serde_cbor::Value as CborValue;
-use crate::core::stick::{ Stick, StickId };
-use crate::util::cbor::{ cbor_array, cbor_string, cbor_map_iter };
+use crate::util::cbor::{ cbor_array, cbor_string };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
@@ -18,9 +17,9 @@ impl StickAuthorityCommandRequest {
         StickAuthorityCommandRequest {}
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> Result<StickAuthority,DataMessage> {
-        let mut backoff = Backoff::new();
-        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
+    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<StickAuthority,DataMessage> {
+        let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
+        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(self.clone(), |_| true).await??;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }

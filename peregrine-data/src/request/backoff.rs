@@ -1,60 +1,68 @@
-use anyhow::bail;
 use commander::cdr_timer;
 use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
-use super::request::{ RequestType };
+use super::request::{RequestType, ResponseType};
 use crate::util::message::DataMessage;
 
-const BACKOFF: &'static [u32] = &[ 0, 1, 1, 1, 100, 100, 100, 500, 500, 500, 5000, 5000, 5000 ];
-
-pub struct Backoff(usize);
+pub struct Backoff { 
+    manager: RequestManager,
+    channel: Channel,
+    priority: PacketPriority
+}
 
 impl Backoff {
-    pub fn new() -> Backoff { Backoff(0) }
-
-    pub async fn wait(&mut self) -> anyhow::Result<()> {
-        if self.0 >= BACKOFF.len() { bail!("too many retries"); }
-        cdr_timer(BACKOFF[self.0] as f64).await;
-        self.0 += 1;
-        Ok(())
+    pub fn new(manager: &RequestManager, channel: &Channel, priority: &PacketPriority) -> Backoff {
+        Backoff {
+            manager: manager.clone(),
+            channel: channel.clone(),
+            priority: priority.clone()
+        }
     }
 
-    pub async fn backoff<S,R,F>(&mut self, manager: &mut RequestManager, req: R, channel: &Channel, prio: PacketPriority, verify: F)
-                    -> Result<Result<Box<S>,DataMessage>,DataMessage>
-                    where R: RequestType+Clone + 'static, S: 'static, F: Fn(&S) -> Option<GeneralFailure> {
-        let channel = channel.clone();
-        let mut last_error = None;
-        while self.wait().await.is_ok() {
-            let channel = channel.clone();
-            let req2 = Box::new(req.clone());
-            let resp = manager.execute(channel.clone(),prio.clone(),req2).await?;
-            match resp.into_any().downcast::<S>() {
-                Ok(s) => {
-                    match verify(&s) {
-                        Some(_) => { last_error = Some(s as Box<dyn Any>); },
-                        None => {
-                            return Ok(Ok(s))
-                        }
-                    }
-                },
-                Err(resp) => {
-                    match resp.downcast::<GeneralFailure>() {
-                        Ok(e) => { 
-                            manager.message(DataMessage::BackendRefused(channel.clone(),e.message().to_string()));
-                            last_error = Some(e);
-                        },
-                        Err(e) => {
-                            return Err(DataMessage::PacketError(channel,format!("unexpected response to request: {:?}",e)));
-                        }
+    fn downcast<S: 'static,F>(&self, resp: Box<dyn ResponseType>, verify: F) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> where F: Fn(&S) -> bool {
+        match resp.into_any().downcast::<S>() {
+            Ok(s) => {
+                /* Got expected response */
+                if verify(&s) {
+                    /* seemed to "work"! */
+                    return Ok(Ok(s));
+                } else {
+                    /* but somehow failed */
+                    return Ok(Err(s as Box<dyn Any>));
+                }
+            },
+            Err(resp) => {
+                match resp.downcast::<GeneralFailure>() {
+                    /* Got general failure */
+                    Ok(e) => { 
+                        self.manager.message(DataMessage::BackendRefused(self.channel.clone(),e.message().to_string()));
+                        return Ok(Err(e));
+                    },
+                    Err(e) => {
+                        /* Gor something unexpected */
+                        return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: {:?}",e)));
                     }
                 }
             }
-            manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
-
         }
-        manager.message(DataMessage::FatalBackendFailure(channel.clone()));
+    }
+
+    pub async fn backoff<S,R,F>(&mut self, req: R, verify: F) -> Result<Result<Box<S>,DataMessage>,DataMessage>
+                    where R: RequestType+Clone + 'static, S: 'static, F: Fn(&S) -> bool {
+        let channel = self.channel.clone();
+        let mut last_error = None;
+        for _ in 0..5 { // XXX configurable
+            let resp = self.manager.execute(channel.clone(),self.priority.clone(),Box::new(req.clone())).await?;
+            match self.downcast(resp,&verify)? {
+                Ok(result) => { return Ok(Ok(result)); },
+                Err(s) => { last_error = Some(s); }
+            }
+            self.manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
+            cdr_timer(500.).await; // XXX configurable
+        }
+        self.manager.message(DataMessage::FatalBackendFailure(channel.clone()));
         match last_error.unwrap().downcast_ref::<GeneralFailure>() {
             Some(e) => Ok(Err(DataMessage::BackendRefused(channel.clone(),e.message().to_string()))),
             None => Err(DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string()))

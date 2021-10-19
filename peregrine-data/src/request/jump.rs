@@ -21,9 +21,9 @@ impl JumpCommandRequest {
         }
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &mut RequestManager) -> anyhow::Result<Option<(String,u64,u64)>> {
-        let mut backoff = Backoff::new();
-        let r = backoff.backoff::<JumpCommandResponse,_,_>(manager,self.clone(),channel,PacketPriority::RealTime, |_| None).await??;
+    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Option<(String,u64,u64)>> {
+        let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
+        let r = backoff.backoff::<JumpCommandResponse,_,_>(self.clone(), |_| true).await??;
         Ok(r.0.map(|r| (r.stick.to_string(),r.start,r.end)))
     }
 }

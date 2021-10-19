@@ -1,4 +1,3 @@
-use commander::cdr_current_time;
 use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricValue;
 use crate::metric::metricreporter::MetricCollector;
@@ -45,11 +44,9 @@ impl DataCommandRequest {
         }
     }
 
-    pub async fn execute(self, mut manager: RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
-        let start_time = cdr_current_time();
-        let mut backoff = Backoff::new();
-        let mut out = backoff.backoff::<DataResponse,_,_>(
-                                    &mut manager,self.clone(),&self.channel,priority.clone(),|_| None).await?
+    pub async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
+        let mut backoff = Backoff::new(manager,&self.channel,priority);
+        let mut out = backoff.backoff::<DataResponse,_,_>(self.clone(),|_| true).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
         if let Ok(response) = &mut out {
             self.account(&response,metrics,priority);
