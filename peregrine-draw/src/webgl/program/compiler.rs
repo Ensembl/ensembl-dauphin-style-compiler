@@ -1,5 +1,4 @@
 use crate::{ webgl::{ SourceInstrs, Phase, GPUSpec }};
-use super::program::{ Program };
 use web_sys::{ WebGlRenderingContext, WebGlShader, WebGlProgram };
 use crate::webgl::util::handle_context_errors;
 use crate::util::message::Message;

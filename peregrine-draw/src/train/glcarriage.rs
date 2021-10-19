@@ -43,7 +43,6 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-    pub fn priority_range(&self) -> (i8,i8) { self.drawing.priority_range() }
 
     fn in_view(&self, stage: &ReadStage) -> Result<bool,Message> {
         let stage = stage.x().left_right()?;
@@ -51,11 +50,11 @@ impl GLCarriage {
         Ok(!(stage.0 > carriage.1 || stage.1 < carriage.0))
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession, priority: i8) ->Result<(),Message> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) ->Result<(),Message> {
         self.drawing.set_zmenu_px_per_screen(stage.x().drawable_size()?);
         let opacity = self.opacity.lock().unwrap().clone();
         if self.in_view(stage)? {
-            self.drawing.draw(gl,stage,session,opacity,priority)?;
+            self.drawing.draw(gl,stage,session,opacity)?;
         }
         Ok(())
     }

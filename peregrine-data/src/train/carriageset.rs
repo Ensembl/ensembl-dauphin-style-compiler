@@ -5,7 +5,7 @@ use super::carriage::{ Carriage, CarriageId };
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-const CARRIAGE_FLANK : u64 = 2;
+const CARRIAGE_FLANK : u64 = 1;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,

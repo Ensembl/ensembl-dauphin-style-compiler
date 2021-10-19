@@ -2,7 +2,6 @@ use peregrine_data::{Assets, Carriage, CarriageId, Scale, ZMenuProxy};
 use peregrine_toolkit::sync::needed::Needed;
 use std::collections::{ HashMap, HashSet };
 use std::rc::Rc;
-use crate::{shape::layers::programstore::ProgramStore };
 use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;
@@ -17,7 +16,7 @@ pub struct GLTrain {
 }
 
 impl GLTrain {
-    pub fn new(programs: &ProgramStore, redraw_needed: &Needed) -> GLTrain {
+    pub fn new(redraw_needed: &Needed) -> GLTrain {
         GLTrain {
             carriages: HashMap::new(),
             opacity: 0.,
@@ -85,17 +84,8 @@ impl GLTrain {
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
-        let mut min = 0;
-        let mut max = 0;
         for carriage in self.carriages.values_mut() {
-            let here_prio = carriage.priority_range();
-            min = min.min(here_prio.0);
-            max = max.max(here_prio.1);
-        }
-        for prio in min..(max+1) {
-            for carriage in self.carriages.values_mut() {
-                carriage.draw(gl,stage,session,prio)?;
-            }
+            carriage.draw(gl,stage,session)?;
         }
         Ok(())
     }

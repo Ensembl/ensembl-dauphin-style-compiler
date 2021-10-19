@@ -41,10 +41,7 @@ impl SpectralDrawing {
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
         if let Some(drawing) = self.0.lock().unwrap().as_mut() {
-            let (min,max) = drawing.priority_range();
-            for depth in min..(max+1) {
-                drawing.draw(gl,stage,session,1.0,depth)?;
-            }
+            drawing.draw(gl,stage,session,1.0)?;
         }
         Ok(())
     }

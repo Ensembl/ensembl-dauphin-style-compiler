@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuFixed, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
@@ -42,19 +42,19 @@ impl GlTrainSetData {
         })
     }
 
-    fn get_train(&mut self,gl: &WebGlGlobal, index: u32) -> &mut GLTrain {
+    fn get_train(&mut self, index: u32) -> &mut GLTrain {
         if !self.trains.contains_key(&index) {
-            self.trains.insert(index,GLTrain::new(&gl.program_store(),&self.redraw_needed));
+            self.trains.insert(index,GLTrain::new(&self.redraw_needed));
         }
         self.trains.get_mut(&index).unwrap()
     }
 
     fn set_carriages(&mut self, gl: &mut WebGlGlobal, assets: &Assets, new_carriages: &[Carriage], scale: &Scale, index: u32) -> Result<(),Message> {
-        self.get_train(gl,index).set_carriages(scale,new_carriages,gl,assets)
+        self.get_train(index).set_carriages(scale,new_carriages,gl,assets)
     }
 
-    fn set_max(&mut self, gl: &WebGlGlobal, index: u32, len: u64) {
-        self.get_train(gl,index).set_max(len);
+    fn set_max(&mut self,index: u32, len: u64) {
+        self.get_train(index).set_max(len);
     }
 
     fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> Result<(),Message> {
@@ -93,21 +93,21 @@ impl GlTrainSetData {
         val
     }
 
-    fn notify_fade_state(&mut self,gl: &WebGlGlobal) {
+    fn notify_fade_state(&mut self) {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(index)) => {
-                self.get_train(gl,index).set_opacity(1.);
+                self.get_train(index).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,Some(elapsed),_) => {
                 let prop_out = self.fade_time(&speed,elapsed,true);
                 let prop_in = self.fade_time(&speed,elapsed,false);
-                self.get_train(gl,to).set_opacity(prop_in);
+                self.get_train(to).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_train(gl,from).set_opacity(prop_out);
+                    self.get_train(from).set_opacity(prop_out);
                 }
             },
-            FadeState::Fading(from,to,speed,None,_) => {}
+            FadeState::Fading(_,_,_,None,_) => {}
         }
     }
 
@@ -120,7 +120,7 @@ impl GlTrainSetData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1.{
                     if let Some(from) = from {
-                        self.get_train(gl,from).discard(gl)?;
+                        self.get_train(from).discard(gl)?;
                         self.trains.remove(&from);
                     }
                     self.fade_state = FadeState::Constant(Some(to));
@@ -129,7 +129,7 @@ impl GlTrainSetData {
                 } else {
                     self.fade_state = FadeState::Fading(from,to,speed.clone(),elapsed,redraw);
                 }
-                self.notify_fade_state(gl);
+                self.notify_fade_state();
             }
         }
         Ok(complete)
@@ -139,24 +139,24 @@ impl GlTrainSetData {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(gl,train).draw(gl,stage,&session)?;
+                self.get_train(train).draw(gl,stage,&session)?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(gl,from).draw(gl,stage,&session)?;
+                    self.get_train(from).draw(gl,stage,&session)?;
                 }
-                self.get_train(gl,to).draw(gl,stage,&session)?;
+                self.get_train(to).draw(gl,stage,&session)?;
             },
         }
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    pub(crate) fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
         match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
         }.map(|id| {
-            self.get_train(gl,id).get_hotspot(stage,position)
+            self.get_train(id).get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
 
@@ -195,14 +195,14 @@ impl GlTrainSet {
         self.data.lock().unwrap().set_carriages(gl,assets,new_carriages,scale,index)
     }
 
-    pub fn start_fade(&mut self, gl: &WebGlGlobal, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
+    pub fn start_fade(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(index,speed)?;
-        self.data.lock().unwrap().set_max(gl,index,max);
+        self.data.lock().unwrap().set_max(index,max);
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&self,gl: &mut WebGlGlobal, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        self.data.lock().unwrap().get_hotspot(gl,stage,position)
+    pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+        self.data.lock().unwrap().get_hotspot(stage,position)
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {

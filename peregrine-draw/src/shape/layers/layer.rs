@@ -25,7 +25,7 @@ TODO intersection cache
 */
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
-pub(crate) struct ProgramCharacter(i8,pub GeometryProcessName, pub PatinaProcessName);
+pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessName);
 
 pub(crate) struct Layer {
     programs: ProgramStore,
@@ -46,7 +46,7 @@ impl Layer {
 
     fn shape_program(&mut self, character: &ProgramCharacter) -> Result<&mut ShapeProgram,Message> {
         if !self.store.contains_key(&character) {
-            self.store.insert(character.clone(),self.programs.get_shape_program(&character.1,&character.2)?);
+            self.store.insert(character.clone(),self.programs.get_shape_program(&character.0,&character.1)?);
         }
         Ok(self.store.get_mut(&character).unwrap())
     }
@@ -54,7 +54,7 @@ impl Layer {
     pub(crate) fn get_process_builder(&mut self, geometry: &mut GeometryYielder, patina: &mut dyn PatinaYielder) -> Result<&mut ProcessBuilder,Message> {
         let geometry_name = geometry.name();
         let patina_name = patina.name();
-        let character = ProgramCharacter(geometry.priority(),geometry_name.clone(),patina_name.clone());
+        let character = ProgramCharacter(geometry_name.clone(),patina_name.clone());
         let shape_program = self.shape_program(&character)?; 
         geometry.set(shape_program.get_geometry())?;
         patina.set(shape_program.get_patina())?;
@@ -63,20 +63,20 @@ impl Layer {
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 
-    pub(super) fn build(mut self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<(Process,i8)>,Message> {
+    pub(super) fn build(mut self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort();
         for character in &characters {
             let mut prog = self.store.remove(&character).unwrap();
             match character {
-                ProgramCharacter(_,_,PatinaProcessName::Texture(flat_id)) |
-                ProgramCharacter(_,_,PatinaProcessName::FreeTexture(flat_id)) =>{
+                ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
+                ProgramCharacter(_,PatinaProcessName::FreeTexture(flat_id)) =>{
                     canvases.add_process(&flat_id,prog.get_process_mut())?;
                 },
                 _ => {}
             }
-            processes.push((prog.into_process().build(gl,self.left)?,character.0));
+            processes.push(prog.into_process().build(gl,self.left)?);
         }
         Ok(processes)
     }

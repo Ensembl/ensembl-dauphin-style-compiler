@@ -1,15 +1,10 @@
 use commander::CommanderStream;
-use peregrine_data::ZMenuFixedItem;
-use peregrine_data::{ZMenuFixed, ZMenuFixedBlock, ZMenuFixedSequence};
-use serde_json::Value as JSONValue;
-use serde_json::Map as JSONMap;
-use serde_json::json;
 
 use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlTrainSet};
 
 fn process_zmenu_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Result<(),Message> {
     let mut gl = api.webgl.lock().unwrap();
-    let zmenus = api.trainset.get_hotspot(&mut gl,&api.stage.lock().unwrap().read_stage(), (x,y))?;
+    let zmenus = api.trainset.get_hotspot(&api.stage.lock().unwrap().read_stage(), (x,y))?;
     let zmenus = zmenus.iter().map(|z| z.value()).collect::<Vec<_>>();
     let report = api.report;
     report.zmenu_event(x,y,zmenus);
