@@ -9,11 +9,10 @@ use crate::allotment::allotment::CoordinateSystem;
 use crate::allotment::allotmentrequest::AllotmentRequest;
 use crate::util::ringarray::DataFilter;
 
-#[derive(Clone,Hash,PartialEq,Eq)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum FilterMinMax {
-    Base,
-    None
+pub trait ShapeDemerge {
+    type X: Hash + PartialEq + Eq;
+
+    fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
 }
 
 #[derive(Clone)]
@@ -101,51 +100,51 @@ impl Shape {
             return self.clone();
         }
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,filter_min_max) => {
+            Shape::SpaceBaseRect(area,patina,allotments,coord_system) => {
                 let filter = area.make_base_filter(min_value,max_value);
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments),filter_min_max.clone())
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(allotments),coord_system.clone())
             },
-            Shape::Text(position,pen,text,allotments,filter_min_max) => {
+            Shape::Text(position,pen,text,allotments,coord_system) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments),filter_min_max.clone())
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),filter.filter(allotments),coord_system.clone())
             },
-            Shape::Image(position,asset,allotments,filter_min_max) => {
+            Shape::Image(position,asset,allotments,coord_system) => {
                 let filter = position.make_base_filter(min_value,max_value);
-                Shape::Image(position.filter(&filter),filter.filter(asset),filter.filter(allotments),filter_min_max.clone())
+                Shape::Image(position.filter(&filter),filter.filter(asset),filter.filter(allotments),coord_system.clone())
             },
-            Shape::Wiggle((x_start,x_end),y,plotter,allotment,filter_min_max) => {
+            Shape::Wiggle((x_start,x_end),y,plotter,allotment,coord_system) => {
                 let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
-                Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone(),filter_min_max.clone())
+                Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone(),coord_system.clone())
             }
         }
     }
 
-    pub fn demerge_by_allotment<X: Hash + PartialEq + Eq,T>(self, cb: T) -> Vec<(X,Shape)> where T: Fn(&AllotmentRequest) -> X {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
         let mut out = vec![];
         match self {
-            Shape::Wiggle(range,y,plotter,allotment,filter_min_max) => {
-                let group = cb(&allotment);
-                out.push((group,Shape::Wiggle(range,y,plotter.clone(),allotment.clone(),filter_min_max)));
+            Shape::Wiggle(range,y,plotter,allotment,coord_system) => {
+                let group = cat.categorise(&allotment);
+                out.push((group,Shape::Wiggle(range,y,plotter.clone(),allotment.clone(),coord_system)));
             },
-            Shape::Text(spacebase,pen,texts,allotment,filter_min_max) => {
-                let demerge = DataFilter::demerge(&allotment, cb);
+            Shape::Text(spacebase,pen,texts,allotment,coord_system) => {
+                let demerge = DataFilter::demerge(&allotment, |a| cat.categorise(a));
                 for (draw_group,mut filter) in demerge {
                     filter.set_size(spacebase.len());
-                    out.push((draw_group,Shape::Text(spacebase.filter(&filter),pen.filter(&filter),filter.filter(&texts),filter.filter(&allotment),filter_min_max.clone())));
+                    out.push((draw_group,Shape::Text(spacebase.filter(&filter),pen.filter(&filter),filter.filter(&texts),filter.filter(&allotment),coord_system.clone())));
                 }
             },
-            Shape::Image(spacebase,images,allotment,filter_min_max) => {
-                let demerge = DataFilter::demerge(&allotment, cb);
+            Shape::Image(spacebase,images,allotment,coord_system) => {
+                let demerge = DataFilter::demerge(&allotment, |a| cat.categorise(a));
                 for (draw_group,mut filter) in demerge {
                     filter.set_size(spacebase.len());
-                    out.push((draw_group,Shape::Image(spacebase.filter(&filter),filter.filter(&images),filter.filter(&allotment),filter_min_max.clone())));
+                    out.push((draw_group,Shape::Image(spacebase.filter(&filter),filter.filter(&images),filter.filter(&allotment),coord_system.clone())));
                 }
             },
-            Shape::SpaceBaseRect(area,patina,allotment,filter_min_max) => {
-                let demerge = DataFilter::demerge(&allotment, cb);
+            Shape::SpaceBaseRect(area,patina,allotment,coord_system) => {
+                let demerge = DataFilter::demerge(&allotment, |a| cat.categorise(a));
                 for (draw_group,mut filter) in demerge {
                     filter.set_size(area.len());
-                    out.push((draw_group,Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotment),filter_min_max.clone())));
+                    out.push((draw_group,Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotment),coord_system.clone())));
                 }
             }
         }
@@ -165,27 +164,27 @@ impl Shape {
 
     pub fn remove_nulls(self) -> Shape {
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,filter_min_max) => {
+            Shape::SpaceBaseRect(area,patina,allotments,coord_system) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(area.len());
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments),filter_min_max)
+                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),filter.filter(&allotments),coord_system)
             },
-            Shape::Text(position,pen,text,allotments,filter_min_max) => {
+            Shape::Text(position,pen,text,allotments,coord_system) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),filter_min_max)
+                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),coord_system)
             },
-            Shape::Image(position,asset,allotments,filter_min_max) => {
+            Shape::Image(position,asset,allotments,coord_system) => {
                 let mut allotment_iter = allotments.iter();
                 let mut filter = DataFilter::new(&mut allotment_iter, |a| !a.is_dustbin());
                 filter.set_size(position.len());
-                Shape::Image(position.filter(&filter),filter.filter(&asset),filter.filter(&allotments),filter_min_max)
+                Shape::Image(position.filter(&filter),filter.filter(&asset),filter.filter(&allotments),coord_system)
             },
-            Shape::Wiggle(x,mut y,plotter,allotment,filter_min_max) => {
+            Shape::Wiggle(x,mut y,plotter,allotment,coord_system) => {
                 if allotment.is_dustbin() { y = vec![]; }
-                Shape::Wiggle(x,y,plotter.clone(),allotment.clone(),filter_min_max)
+                Shape::Wiggle(x,y,plotter.clone(),allotment.clone(),coord_system)
             }
         }
     }

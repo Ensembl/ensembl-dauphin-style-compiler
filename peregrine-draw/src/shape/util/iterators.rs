@@ -1,3 +1,5 @@
+use crate::Message;
+
 pub struct IterFixed<T,U> where T: Iterator<Item=U> {
     iter: T,
     remaining: usize
@@ -70,4 +72,8 @@ impl <T,U> Iterator for IterRepeat<T,U> where T: Iterator<Item=U>, U: Clone {
         }
         self.latest.clone()
     }
+}
+
+pub fn eoe_throw<X>(kind: &str,input: Option<X>) -> Result<X,Message> {
+    input.ok_or_else(|| Message::LengthMismatch(kind.to_string()))
 }

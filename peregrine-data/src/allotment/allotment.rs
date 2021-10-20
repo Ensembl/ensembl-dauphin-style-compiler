@@ -1,6 +1,6 @@
 use std::sync::{Arc};
 use std::hash::{ Hash };
-use crate::{SpaceBasePointRef, shape::shape::FilterMinMax, spacebase::spacebase::SpaceBasePoint};
+use crate::{SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum CoordinateSystem {

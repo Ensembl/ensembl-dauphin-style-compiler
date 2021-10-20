@@ -1,5 +1,5 @@
-use crate::{shape::layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
-use peregrine_data::DirectColour;
+use crate::{shape::{layers::patina::{PatinaProcess, PatinaProcessName, PatinaAdder, PatinaYielder}, util::iterators::eoe_throw}, webgl::{ AttribHandle, ProcessStanzaAddable, ProgramBuilder }};
+use peregrine_data::{DirectColour, EachOrEvery};
 use super::super::util::arrayutil::scale_colour;
 use crate::util::message::Message;
 
@@ -24,8 +24,9 @@ impl DirectColourDraw {
         Ok(DirectColourDraw(variety.clone()))
     }
 
-    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &[DirectColour], vertexes: usize) -> Result<(),Message> {
+    pub(crate) fn direct(&self, addable: &mut dyn ProcessStanzaAddable, colours: &EachOrEvery<DirectColour>, vertexes: usize, count: usize) -> Result<(),Message> {
         let mut codes = vec![];
+        let colours = eoe_throw("direct colours",colours.iter(count))?;
         for c in colours {
             for _ in 0..vertexes {
                 codes.push(scale_colour(c.0));

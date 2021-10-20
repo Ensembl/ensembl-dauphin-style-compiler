@@ -112,7 +112,7 @@ mod shape {
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter 
     };
-    pub use self::shape::Shape;
+    pub use self::shape::{ Shape, ShapeDemerge };
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json };
@@ -154,12 +154,14 @@ mod util {
     pub mod memoized;
     pub mod message;
     pub mod miscpromises;
+    pub mod eachorevery;
     pub mod ringarray;
     pub mod vecutils;
 
     pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
     pub use self::message::DataMessage;
+    pub use self::eachorevery::EachOrEvery;
 }
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
@@ -171,7 +173,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json
+    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
 };
 pub use self::allotment::allotment::{ Allotment, CoordinateSystem };
 pub use self::allotment::allotmentrequest::AllotmentRequest;
@@ -186,6 +188,7 @@ pub use self::util::cbor::{ cbor_coerce_string, cbor_bytes };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
+pub use self::util::eachorevery::EachOrEvery;
 pub use self::spacebase::{ 
     SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
     SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,

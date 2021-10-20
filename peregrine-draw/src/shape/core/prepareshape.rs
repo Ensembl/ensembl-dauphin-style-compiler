@@ -1,12 +1,13 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DataFilter, HoleySpaceBaseArea, HollowEdge, Patina, Shape, ZMenu};
+use peregrine_data::{Allotment, AllotmentRequest, Colour, EachOrEvery, HoleySpaceBaseArea, HollowEdge, Patina, Shape, ShapeDemerge, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed, HeraldryScale};
-use crate::shape::triangles::drawgroup::DrawGroup;
+use crate::shape::triangles::drawgroup::{DrawGroup, DrawGroupVariety};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 use std::hash::Hash;
+use std::sync::Arc;
 
 // XXX not a new one for each!
 fn allotments(allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
@@ -22,15 +23,15 @@ pub(crate) enum ShapeCategory {
     Heraldry(HeraldryCanvasesUsed,HeraldryScale)
 }
 
-enum PatinaExtract<'a> {
-    Visual(&'a [Colour],Option<u32>),
-    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
+enum PatinaExtract {
+    Visual(Arc<EachOrEvery<Colour>>,Option<u32>),
+    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
 }
 
-fn extract_patina<'a>(patina: &'a Patina) -> PatinaExtract<'a> {
+fn extract_patina(patina: &Patina) -> PatinaExtract {
     match &patina {
-        Patina::Filled(c) => PatinaExtract::Visual(c,None),
-        Patina::Hollow(c,w) => PatinaExtract::Visual(c,Some(*w)),
+        Patina::Filled(c) => PatinaExtract::Visual(c.clone(),None),
+        Patina::Hollow(c,w) => PatinaExtract::Visual(c.clone(),Some(*w)),
         Patina::ZMenu(zmenu,values) => PatinaExtract::ZMenu(zmenu.clone(),values.clone())
     }
 }
@@ -40,7 +41,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
     let mut out = vec![];
     match extract_patina(&patina) {
         PatinaExtract::Visual(colours,width) => {
-            let mut demerge_colour = DataFilter::demerge(&colours,|colour| {
+            let mut demerge_colour = colours.demerge(|colour| {
                 if let Some(heraldry) = colour_to_heraldry(colour,width.is_some()) {
                     ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
                 } else {
@@ -55,17 +56,17 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                         let heraldry_tool = tools.heraldry();
-                        let mut heraldry = make_heraldry(patina.filter(filter))?;
-                        let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
+                        let heraldry = make_heraldry(patina.filter(filter))?;
+                        let handles = heraldry.map_into(|x| heraldry_tool.add(x));
                         let area = area.filter(filter);
                         let allotment = filter.filter(&allotment);
-                        out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+                        out.push(GLShape::Heraldry(area,Arc::new(handles),allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                         let width = width.unwrap_or(0) as f64;
                         let heraldry_tool = tools.heraldry();
-                        let mut heraldry = make_heraldry(patina.filter(filter))?;
-                        let handles = heraldry.drain(..).map(|x| heraldry_tool.add(x)).collect::<Vec<_>>();
+                        let heraldry = make_heraldry(patina.filter(filter))?;
+                        let handles = Arc::new(heraldry.map_into(|x| heraldry_tool.add(x)));
                         let area = area.filter(filter);
                         let allotment = filter.filter(allotment.as_ref());
                         // XXX too much cloning, at least Arc them
@@ -100,30 +101,31 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
     }
 }
 
-fn make_heraldry(patina: Patina) -> Result<Vec<Heraldry>,Message> {
+fn make_heraldry(patina: Patina) -> Result<EachOrEvery<Heraldry>,Message> {
     let (colours,hollow) = match patina {
         Patina::Filled(c) => (c,false),
         Patina::Hollow(c,_) => (c,true),
         _ => Err(Message::CodeInvariantFailed(format!("heraldry attempted on non filled/hollow")))?
     };
-    let mut handles = vec![];
-    for colour in &colours {
-        let heraldry = colour_to_heraldry(colour,hollow)
-            .ok_or_else(|| Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))?;
-        handles.push(heraldry);
-    }
-    Ok(handles)
+    colours.map_results(|colour| {
+        colour_to_heraldry(colour,hollow)
+            .ok_or_else(|| Message::CodeInvariantFailed(format!("heraldry attempted on non-heraldic colour")))
+    })
 }
 
-fn split_on_draw_group(shape: Shape) -> Vec<(DrawGroup,Shape)> {
-    shape.demerge_by_allotment(|allotment| {
-        DrawGroup::new(&allotment.coord_system(),allotment.depth())
-    })
+pub struct GLCategoriser();
+
+impl ShapeDemerge for GLCategoriser {
+    type X = DrawGroup;
+
+    fn categorise(&self, allotment: &AllotmentRequest) -> Self::X {
+        DrawGroup::new(&allotment.coord_system(),allotment.depth(),&DrawGroupVariety::Visual)
+    }
 }
 
 pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
-    for (draw_group,shape) in split_on_draw_group(shape) {
+    for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
         match shape {
             Shape::Wiggle(range,y,plotter,allotment,_) => {
                 let allotment = allotments(&[allotment])?;

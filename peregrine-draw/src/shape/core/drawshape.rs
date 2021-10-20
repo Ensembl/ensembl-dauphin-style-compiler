@@ -1,4 +1,6 @@
-use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
+use std::sync::Arc;
+
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::bitmap::BitmapHandle;
@@ -11,6 +13,7 @@ use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::triangles::rectangles::{Rectangles };
 use crate::shape::triangles::drawgroup::DrawGroup;
+use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaAddable };
 use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
@@ -19,19 +22,19 @@ use crate::webgl::canvas::flatstore::FlatId;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
-    Solid(Vec<DirectColour>),
-    Hollow(Vec<DirectColour>),
-    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
+    Solid(Arc<EachOrEvery<DirectColour>>),
+    Hollow(Arc<EachOrEvery<DirectColour>>),
+    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
 }
 
-fn simplify_colours(mut colours: Vec<Colour>) -> Result<Vec<DirectColour>,Message> {
-    colours.drain(..).map(|colour| {
+fn simplify_colours(mut colours: Arc<EachOrEvery<Colour>>) -> Result<Arc<EachOrEvery<DirectColour>>,Message> {
+    Ok(Arc::new(colours.map_results(|colour| {
         match colour {
-            Colour::Direct(d) => Ok(d),
-            Colour::Spot(d) => Ok(d),
+            Colour::Direct(d) => Ok(d.clone()),
+            Colour::Spot(d) => Ok(d.clone()),
             _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify pattern to colour")))
         }
-    }).collect::<Result<Vec<_>,_>>()
+    })?))
 }
 
 impl SimpleShapePatina {
@@ -45,25 +48,25 @@ impl SimpleShapePatina {
 
     fn build(&self) -> DrawingShapePatina {
         match self {
-            SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c),
-            SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c),
+            SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c.clone()),
+            SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
             SimpleShapePatina::ZMenu(zmenu,values) => DrawingShapePatina::ZMenu(zmenu.clone(),values.clone())
         }
     }
 }
 
-enum DrawingShapePatina<'a> {
-    Solid(DirectYielder,&'a [DirectColour]),
-    Hollow(DirectYielder,&'a [DirectColour]),
-    ZMenu(ZMenu,Vec<(String,Vec<String>)>)
+enum DrawingShapePatina {
+    Solid(DirectYielder,Arc<EachOrEvery<DirectColour>>),
+    Hollow(DirectYielder,Arc<EachOrEvery<DirectColour>>),
+    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(ZMenu,Vec<(String,Vec<String>)>)
+    HotSpot(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
 }
 
-impl<'a> DrawingShapePatina<'a> {
+impl DrawingShapePatina {
     pub(crate) fn yielder_mut(&mut self) -> PatinaTarget {
         match self {
             DrawingShapePatina::Solid(dc,_) => PatinaTarget::Visual(dc),
@@ -76,12 +79,12 @@ impl<'a> DrawingShapePatina<'a> {
 pub(crate) enum GLShape {
     Text(HoleySpaceBase,Vec<TextHandle>,Vec<Allotment>,DrawGroup),
     Image(HoleySpaceBase,Vec<BitmapHandle>,Vec<Allotment>,DrawGroup),
-    Heraldry(HoleySpaceBaseArea,Vec<HeraldryHandle>,Vec<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
+    Heraldry(HoleySpaceBaseArea,Arc<EachOrEvery<HeraldryHandle>>,Vec<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,Vec<Allotment>,DrawGroup),
 }
 
-fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina) -> Result<(),Message> {
+fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Message> {
     let vertexes = match simple_shape_patina {
         DrawingShapePatina::Solid(_,_) => 4,
         DrawingShapePatina::Hollow(_,_) => 8,
@@ -89,7 +92,7 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
     };
     match simple_shape_patina {
         DrawingShapePatina::Solid(direct,colours) | DrawingShapePatina::Hollow(direct,colours) => {
-            direct.draw()?.direct(addable,&colours,vertexes)?;
+            direct.draw()?.direct(addable,&colours,vertexes,count)?;
         },
         DrawingShapePatina::ZMenu(_,_) => {}
     }
@@ -129,18 +132,18 @@ fn draw_points_from_canvas(layer: &mut Layer, gl: &WebGlGlobal, draw_group: &Dra
     Ok(Box::new(rectangles))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea, handles: &[HeraldryHandle], allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea, handles: &EachOrEvery<HeraldryHandle>, allotments: &[Allotment], heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();
-    for (i,handle) in handles.iter().enumerate() {
+    for (i,handle) in eoe_throw("heraldry",handles.iter(count))?.enumerate() {
         let area = heraldry.get_texture_area(handle,&heraldry_canvas)?;
         if let Some(area) = area {
             dims.push(area);
             filter_builder.at(i);
         }
     }
-    let mut filter = filter_builder.finish(handles.len());
+    let mut filter = filter_builder.finish(count);
     filter.set_size(area_a.len());
     if filter.count() == 0 { return Ok(None); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
@@ -149,7 +152,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64>,Vec<Allotment>,ZMenu,Vec<(String,Vec<String>)>),
+    ZMenu(SpaceBaseArea<f64>,Vec<Allotment>,ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>),
     None
 }
 
@@ -159,8 +162,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle,allotment.depth());
             let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
-            let mut array = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left,allotment.depth())?;
-            patina_yielder.draw()?.direct(&mut array,&[colour],1)?;
+            let (mut array,count) = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left,allotment.depth())?;
+            patina_yielder.draw()?.direct(&mut array, &EachOrEvery::Every(colour),1,count)?;
             array.close()?;
             Ok(ShapeToAdd::None)
         },
@@ -189,7 +192,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,handles,allotments,kind,heraldry_canvas,scale,edge) => {
-            let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas,&scale,&edge)?;
+            let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&heraldry_canvas,&scale,&edge,area.len())?;
             if let Some(rectangles) = rectangles {
                 Ok(ShapeToAdd::Dynamic(rectangles))
             } else {
@@ -205,7 +208,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
                     let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
                     let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&allotments,left,hollow,&draw_group,&None)?;
                     let campaign = rectangles.elements_mut();
-                    add_colour(campaign,&drawing_shape_patina)?;
+                    add_colour(campaign,&drawing_shape_patina,area.len())?;
                     campaign.close()?;
                     Ok(ShapeToAdd::Dynamic(Box::new(rectangles)))
                 },

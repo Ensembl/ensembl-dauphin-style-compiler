@@ -19,6 +19,7 @@
         <button id="jump-brca2">jump brca2</button>
         <button id="jump-fry">jump fry</button>
         <button id="jump-zar1l">jump zar1l</button>
+        <button id="jump-wheat">jump TraesCS3D02G273600</button>
         <button id="create-error">create error</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
@@ -195,6 +196,10 @@
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000189167"]);
+        };
+        document.getElementById("jump-wheat").onclick = function() {
+          genome_browser.jump("focus:triticum_aestivum_GCA_900519105_1:TraesCS3D02G273600");
+          genome_browser.wait();
         };
         document.getElementById("create-error").onclick = function() {
           genome_browser.jump("focus:none");

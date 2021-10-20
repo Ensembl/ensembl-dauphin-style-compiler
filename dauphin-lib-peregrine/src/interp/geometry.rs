@@ -1,9 +1,10 @@
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
+use std::sync::Arc;
 use crate::util::{ get_peregrine, get_instance };
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
@@ -21,13 +22,16 @@ simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5)
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 
+fn vec_to_eoe<X>(mut input: Vec<X>) -> EachOrEvery<X> {
+    if input.len() == 1 { EachOrEvery::Every(input.remove(0)) }
+    else { EachOrEvery::Each(input) } 
+}
+
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        let peregrine = get_peregrine(context)?;
         let shape = get_instance::<ShapeRequest>(context,"request")?;
         let region = shape.region();
         let registers = context.registers_mut();
-        let scale = region.scale().bp_in_carriage();
         let min = region.min_value();
         let max = region.max_value();
         registers.write(&self.0,InterpValue::Numbers(vec![min as f64, max as f64]));
@@ -53,7 +57,7 @@ impl InterpCommand for SpaceBaseInterpCommand {
 }
 
 fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Vec<Colour>) -> Patina {
+        where F: FnOnce(Arc<EachOrEvery<Colour>>) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
     drop(registers);
@@ -64,7 +68,7 @@ fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Regist
         colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
     }
     drop(peregrine);
-    let patina = cb(colours);
+    let patina = cb(Arc::new(vec_to_eoe(colours)));
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -267,13 +271,13 @@ impl InterpCommand for ZMenuInterpCommand {
     }
 }
 
-fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<Vec<(String,Vec<String>)>> {
+fn make_values(keys: &[String], value_d: &[String], value_a: &[usize], value_b: &[usize]) -> anyhow::Result<Vec<(String,EachOrEvery<String>)>> {
     let mut out = vec![];
     let value_pos = value_a.iter().zip(value_b.iter().cycle());
     let kv = keys.iter().zip(value_pos.cycle());
     for (key,(value_start,value_length)) in kv {
         let values = &value_d[*value_start..(*value_start+*value_length)];
-        out.push((key.to_string(),values.to_vec()));
+        out.push((key.to_string(),vec_to_eoe(values.to_vec())));
     }
     Ok(out)
 }
@@ -300,7 +304,7 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::ZMenu(zmenu.as_ref().clone(),values);
+            let patina = Patina::ZMenu(zmenu.as_ref().clone(),Arc::new(values));
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         drop(peregrine);

@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{Allotment, Scale, SpaceBaseArea, ZMenu, ZMenuGenerator, SpaceBasePointRef, ZMenuProxy };
+use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy};
 use crate::{stage::stage::{ ReadStage }};
 use crate::util::message::Message;
 
@@ -48,10 +48,10 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: Vec<Allotment>, zmenu: ZMenu, values: Vec<(String,Vec<String>)>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: Vec<Allotment>, zmenu: ZMenu, values: Arc<Vec<(String,EachOrEvery<String>)>>) {
         let mut map_values = HashMap::new();
-        for (k,v) in values {
-            map_values.insert(k,v);
+        for (k,v) in values.iter() {
+            map_values.insert(k.to_string(),v.clone());
         }
         let generator = ZMenuGenerator::new(&zmenu,&map_values); // XXX push up
         self.entries.push(ZMenuUnscaledEntry { generator, area, allotments });

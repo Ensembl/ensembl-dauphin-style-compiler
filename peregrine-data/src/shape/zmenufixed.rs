@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::EachOrEvery;
+
 use super::zmenu::{ ZMenu, ZMenuBlock, ZMenuSequence, ZMenuText, ZMenuItem };
 use keyed::{ keyed_handle, KeyedValues };
 use serde_json::Value as JSONValue;
@@ -10,19 +12,17 @@ keyed_handle!(ZMenuKey);
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct ValueSource {
-    values: Vec<String>
+    values: EachOrEvery<String>
 }
 
 impl ValueSource {
-    fn new(name: &str, data: &HashMap<String,Vec<String>>) -> ValueSource {
-        let values = data.get(name).map(|x| x.to_vec()).unwrap_or_else(|| vec![]);
-        ValueSource {
-            values: if values.len() > 0 { values } else { vec!["".to_string()] }
-        }
+    fn new(name: &str, data: &HashMap<String,EachOrEvery<String>>) -> ValueSource {
+        let values = data.get(name).cloned().unwrap_or_else(|| EachOrEvery::Every("".to_string()));
+        ValueSource { values }
     }
 
     fn value(&self, index: usize) -> String {
-        self.values[index%self.values.len()].to_string()
+        self.values.get(index).map(|x| x.as_str()).unwrap_or_else(|| "").to_string()
     }
 }
 
@@ -33,7 +33,7 @@ enum ZMenuBuildText {
 }
 
 impl ZMenuBuildText {
-    fn new(text: &ZMenuText, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,Vec<String>>) -> ZMenuBuildText {
+    fn new(text: &ZMenuText, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuBuildText {
         match text {
             ZMenuText::Fixed(s) => ZMenuBuildText::Fixed(s.to_string()),
             ZMenuText::Template(s) => ZMenuBuildText::Template(values.add(s,ValueSource::new(s,data)))
@@ -62,7 +62,7 @@ struct ZMenuBuildItem {
 }
 
 impl ZMenuBuildItem {
-    fn new(item: &ZMenuItem, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,Vec<String>>) -> ZMenuBuildItem {
+    fn new(item: &ZMenuItem, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuBuildItem {
         ZMenuBuildItem {
             text: ZMenuBuildText::new(&item.text,values,data),
             markup: item.markup.clone()
@@ -87,7 +87,7 @@ pub struct ZMenuFixedBlock {
 struct ZMenuBuildBlock(Vec<ZMenuBuildItem>);
 
 impl ZMenuBuildBlock {
-    fn new(block: &ZMenuBlock, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,Vec<String>>) -> ZMenuBuildBlock {
+    fn new(block: &ZMenuBlock, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuBuildBlock {
         ZMenuBuildBlock(block.0.iter().map(|x| ZMenuBuildItem::new(x,values,data)).collect())
     }
 
@@ -112,7 +112,7 @@ enum ZMenuBuildSequence {
 }
 
 impl ZMenuBuildSequence {
-    fn new(seq: &ZMenuSequence, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,Vec<String>>) -> ZMenuBuildSequence {
+    fn new(seq: &ZMenuSequence, values: &mut KeyedValues<ZMenuKey,ValueSource>, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuBuildSequence {
         match seq {
             ZMenuSequence::Item(block) => ZMenuBuildSequence::Item(ZMenuBuildBlock::new(block,values,data)),
             ZMenuSequence::LineBreak => ZMenuBuildSequence::LineBreak
@@ -177,7 +177,7 @@ struct ZMenuBuild{
 }
 
 impl ZMenuBuild {
-    fn build(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
+    fn build(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> (ZMenuBuild,KeyedValues<ZMenuKey,ValueSource>) {
         let metadata = data.iter().map(|(k,v)| (k.to_string(),ValueSource::new(k,data))).collect::<HashMap<_,_>>();
         let mut values : KeyedValues<ZMenuKey,ValueSource> = KeyedValues::new();
         let build = ZMenuBuild {
@@ -230,7 +230,7 @@ impl Iterator for ZMenuProxyIter {
 }
 
 impl ZMenuGenerator {
-    pub fn new(zmenu: &ZMenu, data: &HashMap<String,Vec<String>>) -> ZMenuGenerator {
+    pub fn new(zmenu: &ZMenu, data: &HashMap<String,EachOrEvery<String>>) -> ZMenuGenerator {
         let (build,values) = ZMenuBuild::build(zmenu,data);
         ZMenuGenerator {
             build: Rc::new(build), values: Rc::new(values)

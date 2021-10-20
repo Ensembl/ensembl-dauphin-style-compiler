@@ -2,16 +2,24 @@ use peregrine_data::{CoordinateSystem};
 use crate::shape::{layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, TrianglesTransform}};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
+pub enum DrawGroupVariety {
+    Visual,
+    ZMenu
+}
+
+#[derive(Debug,Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
     coord_system: CoordinateSystem,
-    depth: i8
+    depth: i8,
+    variety: DrawGroupVariety
 }
 
 impl DrawGroup {
-    pub(crate) fn new(coord_system: &CoordinateSystem, depth: i8) -> DrawGroup {
+    pub(crate) fn new(coord_system: &CoordinateSystem, depth: i8, variety: &DrawGroupVariety) -> DrawGroup {
         DrawGroup {
             coord_system: coord_system.clone(),
-            depth
+            depth,
+            variety: variety.clone()
         }
     }
 

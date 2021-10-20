@@ -10,10 +10,9 @@ use crate::util::message::Message;
 
 const THICKNESS: f64 = 1.; // XXX
 
-
 pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
                     start: f64, end: f64, yy: Vec<Option<f64>>, height: f64,
-                    allotment: &Allotment, left: f64, depth: i8)-> Result<ProcessStanzaArray,Message> {
+                    allotment: &Allotment, left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
     let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
     let yy = yy.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>();
     let yy = allotment.transform_yy(&yy);
@@ -40,7 +39,7 @@ impl WiggleAdder {
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64, depth: i8) -> Result<ProcessStanzaArray,Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
@@ -65,10 +64,9 @@ impl WiggleAdder {
             array.add(&self.data,interleave_pair(&x,&y),2)?;
             let gl_depth = 1.0 - (depth as f32+128.) / 255.;
             array.add_n(&self.depth,vec![gl_depth],1)?;
-        
-            Ok(array)
+            Ok((array,pusher.x.len()))
         } else {
-            Ok(process.get_stanza_builder().make_array(0)?)
+            Ok((process.get_stanza_builder().make_array(0)?,0))
         }
     }
 }
