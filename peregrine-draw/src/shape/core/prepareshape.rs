@@ -86,7 +86,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
 
 fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
     match colour {
-        Colour::Stripe(a,b,c,prop) => {
+        Colour::Stripe(a,b,c,_prop) => {
             Some(Heraldry::Stripe(a.clone(),b.clone(),50,*c))
         },
         Colour::Bar(a,b,c,prop) => {

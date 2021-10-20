@@ -110,6 +110,7 @@ pub struct Plotter(pub f64, pub DirectColour);
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Colour {
     Direct(DirectColour),
+    Spot(DirectColour),
     Stripe(DirectColour,DirectColour,(u32,u32),f64),
     Bar(DirectColour,DirectColour,(u32,u32),f64)
 }

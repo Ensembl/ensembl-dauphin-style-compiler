@@ -7,7 +7,7 @@ use super::texture::{CanvasTextureArea, TextureYielder};
 use crate::shape::core::wigglegeometry::{make_wiggle};
 use crate::shape::heraldry::heraldry::{HeraldryCanvas, HeraldryHandle, HeraldryScale};
 use crate::shape::layers::drawing::DynamicShape;
-use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName, GeometryProgramName};
+use crate::shape::layers::geometry::{GeometryYielder, GeometryProcessName };
 use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::triangles::rectangles::{Rectangles };
 use crate::shape::triangles::drawgroup::DrawGroup;
@@ -16,7 +16,6 @@ use crate::webgl::global::WebGlGlobal;
 use super::super::layers::drawing::DrawingTools;
 use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
-
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
@@ -29,6 +28,7 @@ fn simplify_colours(mut colours: Vec<Colour>) -> Result<Vec<DirectColour>,Messag
     colours.drain(..).map(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d),
+            Colour::Spot(d) => Ok(d),
             _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify pattern to colour")))
         }
     }).collect::<Result<Vec<_>,_>>()
