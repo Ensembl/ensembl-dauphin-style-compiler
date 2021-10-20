@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
 use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy};
-use crate::{stage::stage::{ ReadStage }};
+use crate::{shape::util::iterators::eoe_throw, stage::stage::{ ReadStage }};
 use crate::util::message::Message;
 
 const HORIZ_ZONES : u64 = 10;
@@ -26,7 +26,7 @@ const VERT_ZONE_HEIGHT : u64 = 200;
 struct ZMenuUnscaledEntry {
     generator: ZMenuGenerator,
     area: SpaceBaseArea<f64>,
-    allotments: Vec<Allotment>
+    allotments: EachOrEvery<Allotment>
 }
 
 fn order(a: f64, b: f64) -> (f64,f64) {
@@ -48,7 +48,7 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: Vec<Allotment>, zmenu: ZMenu, values: Arc<Vec<(String,EachOrEvery<String>)>>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: EachOrEvery<Allotment>, zmenu: ZMenu, values: Arc<Vec<(String,EachOrEvery<String>)>>) {
         let mut map_values = HashMap::new();
         for (k,v) in values.iter() {
             map_values.insert(k.to_string(),v.clone());
@@ -136,11 +136,11 @@ impl ScaledZMenus {
         out
     }
 
-    fn build_scaled(&mut self, unscaled: &DrawingZMenusBuilder) {
+    fn build_scaled(&mut self, unscaled: &DrawingZMenusBuilder) -> Result<(),Message> {
         let mut order = 0;
         let mut building_zmenus = HashMap::new();
         for entry in &unscaled.entries {
-            let loop_iter = entry.area.iter().zip(entry.allotments.iter().cycle());
+            let loop_iter = entry.area.iter().zip(eoe_throw("scaled",entry.allotments.iter(entry.area.len()))?);
             let z = entry.generator.iter().next().unwrap().value();
             for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
@@ -158,6 +158,7 @@ impl ScaledZMenus {
             order += 1;
         }
         self.zmenus = building_zmenus.drain().map(|(k,v)| (k,Rc::new(v))).collect();
+        Ok(())
     }
 }
 

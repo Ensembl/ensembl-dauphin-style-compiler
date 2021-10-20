@@ -2,8 +2,7 @@ use std::sync::{ Arc, Mutex };
 use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
-use crate::{ConfigKey, request::channel::Channel};
-use crate::lane::ShapeRequest;
+use crate::{request::channel::Channel};
 use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageId;
@@ -46,7 +45,8 @@ pub enum DataMessage {
     TunnelError(Arc<Mutex<dyn PeregrineMessage>>),
     NoSuchAllotment(String),
     AllotmentNotCreated(String),
-    ConfigError(ConfigError)
+    ConfigError(ConfigError),
+    LengthMismatch(String)
 }
 
 impl PeregrineMessage for DataMessage {
@@ -83,7 +83,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 28; 0 is reserved; 499 is last.
+        // Next code is 29; 0 is reserved; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -113,6 +113,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TunnelError(e) => e.lock().unwrap().code(),
             DataMessage::ConfigError(e) => (17,calculate_hash(e)),
             DataMessage::AllotmentNotCreated(e) => (27,calculate_hash(e)),
+            DataMessage::LengthMismatch(e) => (28,calculate_hash(e)),
         }
     }
 
@@ -156,6 +157,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
             DataMessage::AllotmentNotCreated(allotment) => format!("allotment not created '{}'",allotment),
+            DataMessage::LengthMismatch(e) => format!("length mismatch: {}",e),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
@@ -196,6 +198,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::DataUnavailable(channel,e) => format!("data unavialable '{}', channel={}",e.to_string(),channel),
             DataMessage::NoSuchAllotment(allotment) => format!("no such allotment '{}'",allotment),
             DataMessage::AllotmentNotCreated(allotment) => format!("allotment not created '{}'",allotment),
+            DataMessage::LengthMismatch(e) => format!("length mismatch: {}",e),
             DataMessage::TunnelError(e) => e.lock().unwrap().to_message_string(),
             DataMessage::ConfigError(e) => match e {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),

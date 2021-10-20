@@ -43,8 +43,7 @@ pub enum Message {
     CannotPackRectangles(String),
     BadBackendConnection(String),
     BadTemplate(String),
-    BadAsset(String),
-    LengthMismatch(String)
+    BadAsset(String)
 }
 
 impl PeregrineMessage for Message {
@@ -79,7 +78,7 @@ impl PeregrineMessage for Message {
     }
 
     fn code(&self) -> (u64,u64) {
-        // allowed 500-999; next is 513
+        // allowed 500-999; next is 512
         match self {
             Message::CodeInvariantFailed(s) => (503,calculate_hash(s)),
             Message::DataError(d) => d.code(),
@@ -93,7 +92,6 @@ impl PeregrineMessage for Message {
             Message::BadBackendConnection(s) => (510,calculate_hash(s)),
             Message::BadTemplate(s) => (501,calculate_hash(s)),
             Message::BadAsset(s) => (511,calculate_hash(s)),
-            Message::LengthMismatch(s) => (512,calculate_hash(s)),
             Message::CurrentLocation(_,_,_) => (0,0),
             Message::TargetLocation(_,_,_) => (0,0),
             Message::Ready => (0,0),
@@ -123,7 +121,6 @@ impl PeregrineMessage for Message {
             Message::AllotmentMetadataReport(metadata) => format!("allotment metadata: {:?}",metadata),
             Message::ZMenuEvent(x,y,zmenu) => format!("zmenu event: {} at ({},{})",zmenu_fixed_vec_to_json(zmenu),x,y),
             Message::HitEndstop(x) => format!("hit endstop: {:?}",x.iter().map(|y| format!("{:?}",y)).collect::<Vec<_>>().join(", ")),
-            Message::LengthMismatch(s) => format!("lengthmismatch in drawables: {}",s)
         }
     }
 

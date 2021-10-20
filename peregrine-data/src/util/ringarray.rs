@@ -232,6 +232,22 @@ impl DataFilter {
         builder.finish(count)
     }
 
+    pub fn empty(count: usize) -> DataFilter {
+        DataFilter {
+            ranges: vec![],
+            size: count,
+            num_set: 0
+        }
+    }
+
+    pub fn all(count: usize) -> DataFilter {
+        DataFilter {
+            ranges: vec![(0,count)],
+            size: count,
+            num_set: count
+        }
+    }
+
     pub fn iter<'a>(&'a self) -> DataFilterIterator<'a> {
         DataFilterIterator {
             filter: &self,

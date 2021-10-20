@@ -1,6 +1,6 @@
 use anyhow::{ anyhow as err };
 use dauphin_interp::runtime::{ InterpContext };
-use peregrine_data::InstancePayload;
+use peregrine_data::{EachOrEvery, InstancePayload};
 use crate::payloads::PeregrinePayload;
 
 #[macro_export]
@@ -72,4 +72,9 @@ pub(crate) fn get_instance<T>(context: &mut InterpContext, name: &str) -> anyhow
 
 pub(crate) fn get_peregrine(context: &mut InterpContext) -> anyhow::Result<&mut PeregrinePayload> {
     context.payload("peregrine","core")?.as_any_mut().downcast_mut::<PeregrinePayload>().ok_or_else(|| err!("missing peregrine data"))
+}
+
+pub(crate) fn vec_to_eoe<X>(mut input: Vec<X>) -> EachOrEvery<X> {
+    if input.len() == 1 { EachOrEvery::Every(input.remove(0)) }
+    else { EachOrEvery::Each(input) } 
 }

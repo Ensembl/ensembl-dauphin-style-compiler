@@ -9,11 +9,14 @@ use super::drawshape::{ GLShape };
 use std::hash::Hash;
 use std::sync::Arc;
 
-// XXX not a new one for each!
-fn allotments(allotments: &[AllotmentRequest]) -> Result<Vec<Allotment>,Message> {
-    allotments.iter().map(|handle| {
-        handle.allotment().map(|a| a.clone())
-    }).collect::<Result<Vec<_>,_>>().map_err(|e| Message::DataError(e))
+fn get_allotment(handle: &AllotmentRequest) -> Result<Allotment,Message> {
+    handle.allotment().map_err(|e| Message::DataError(e))
+}
+
+fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<Allotment>,Message> {
+    allotments.map_results(|handle|{
+        handle.allotment()
+    }).map_err(|e| Message::DataError(e))
 }
 
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -36,7 +39,7 @@ fn extract_patina(patina: &Patina) -> PatinaExtract {
     }
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patina: Patina, allotment: Vec<AllotmentRequest>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patina: Patina, allotment: EachOrEvery<AllotmentRequest>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(&allotment)?;
     let mut out = vec![];
     match extract_patina(&patina) {
@@ -52,14 +55,14 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                 filter.set_size(area.len());
                 match pkind {
                     ShapeCategory::Solid() => {
-                        out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,filter.filter(&allotment),draw_group.clone()));
+                        out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,allotment.filter(&filter),draw_group.clone()));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                         let heraldry_tool = tools.heraldry();
                         let heraldry = make_heraldry(patina.filter(filter))?;
                         let handles = heraldry.map_into(|x| heraldry_tool.add(x));
                         let area = area.filter(filter);
-                        let allotment = filter.filter(&allotment);
+                        let allotment = allotment.filter(&filter);
                         out.push(GLShape::Heraldry(area,Arc::new(handles),allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
@@ -68,7 +71,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                         let heraldry = make_heraldry(patina.filter(filter))?;
                         let handles = Arc::new(heraldry.map_into(|x| heraldry_tool.add(x)));
                         let area = area.filter(filter);
-                        let allotment = filter.filter(allotment.as_ref());
+                        let allotment = allotment.filter(&filter);
                         // XXX too much cloning, at least Arc them
                         out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
                         out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
@@ -128,8 +131,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
         match shape {
             Shape::Wiggle(range,y,plotter,allotment,_) => {
-                let allotment = allotments(&[allotment])?;
-                out.push(GLShape::Wiggle(range,y,plotter,allotment[0].clone()));
+                out.push(GLShape::Wiggle(range,y,plotter,get_allotment(&allotment)?));
             },
             Shape::Text(spacebase,pen,texts,allotment,_) => {
                 let allotment = allotments(&allotment)?;

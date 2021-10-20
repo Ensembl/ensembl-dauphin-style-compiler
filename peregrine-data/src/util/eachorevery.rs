@@ -1,6 +1,6 @@
 use core::fmt;
 use std::{hash::Hash};
-use crate::DataFilter;
+use crate::{DataFilter, DataMessage};
 
 pub struct EachOrEveryIterator<'a,X> {
     obj: &'a EachOrEvery<X>,
@@ -90,6 +90,15 @@ impl<X> EachOrEvery<X> where X: Clone {
         }
     }
 
+    pub fn new_filter<F>(&self, count: usize, cb: F) -> DataFilter  where F: Fn(&X) -> bool {
+        match self {
+            EachOrEvery::Each(v) => DataFilter::new(&mut v.iter(),cb),
+            EachOrEvery::Every(v) => {
+                if cb(v) { DataFilter::all(count) } else { DataFilter::empty(count) }
+            }
+        }
+    }
+
     pub fn demerge<F,K: Hash+PartialEq+Eq>(&self,cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
         match self {
             EachOrEvery::Each(v) => {
@@ -109,4 +118,9 @@ impl<X: fmt::Debug> fmt::Debug for EachOrEvery<X> {
             Self::Every(arg0) => f.debug_tuple("Every").field(arg0).finish(),
         }
     }
+}
+
+
+pub fn eoe_throw<X>(kind: &str,input: Option<X>) -> Result<X,DataMessage> {
+    input.ok_or_else(|| DataMessage::LengthMismatch(kind.to_string()))
 }

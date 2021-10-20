@@ -5,7 +5,7 @@ use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
 use std::sync::Arc;
-use crate::util::{ get_peregrine, get_instance };
+use crate::util::{get_instance, get_peregrine, vec_to_eoe};
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
 simple_interp_command!(PatinaZMenuInterpCommand,PatinaZMenuDeserializer,15,8,(0,1,2,3,4,5,6,7));
@@ -21,11 +21,6 @@ simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
-
-fn vec_to_eoe<X>(mut input: Vec<X>) -> EachOrEvery<X> {
-    if input.len() == 1 { EachOrEvery::Every(input.remove(0)) }
-    else { EachOrEvery::Each(input) } 
-}
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {

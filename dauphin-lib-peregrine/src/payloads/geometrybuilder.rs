@@ -1,7 +1,7 @@
 use anyhow::{ anyhow as err, bail };
 use core::f64;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu};
+use peregrine_data::{AllotmentRequest, Colour, DirectColour, Patina, Pen, Plotter, SpaceBase, ZMenu};
 use owning_ref::ArcRef;
 use peregrine_toolkit::lock;
 
@@ -68,7 +68,7 @@ impl GeometryBuilderData {
 
 macro_rules! builder_type {
     ($read:ident,$write:ident,$branch:tt,$typ:ty,$type_name:expr) => {
-        pub fn $read(&self, id: u32) -> anyhow::Result<ArcRef<$typ>> {
+        pub fn $read(&self, id: u32) -> Result<ArcRef<$typ>,anyhow::Error> {
             entry_branch!(lock!(self.0).get(id)?,$branch,$type_name)
         }
 

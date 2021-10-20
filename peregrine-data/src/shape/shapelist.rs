@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentMetadataStore, Assets, DataFilter, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest};
+use crate::{AllotmentMetadataStore, Assets, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -45,24 +45,24 @@ impl ShapeListBuilder {
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: Vec<AllotmentRequest>) {
-        for (coord_system,mut filter) in DataFilter::demerge(&allotments, |x| { x.coord_system() }) {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) {
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(area.len());
-            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),filter.filter(&allotments),coord_system));
+            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),allotments.filter(&filter),coord_system));
         }
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        for (coord_system,mut filter) in DataFilter::demerge(&allotments, |x| { x.coord_system() }) {
+    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: EachOrEvery<AllotmentRequest>) {
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(position.len());
-            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),filter.filter(&allotments),coord_system));
+            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),allotments.filter(&filter),coord_system));
         }
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: Vec<AllotmentRequest>) {
-        for (coord_system,mut filter) in DataFilter::demerge(&allotments, |x| { x.coord_system() }) {
+    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: EachOrEvery<AllotmentRequest>) {
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(position.len());
-            self.push(Shape::Image(position.filter(&filter),filter.filter(&images),filter.filter(&allotments),coord_system));
+            self.push(Shape::Image(position.filter(&filter),filter.filter(&images),allotments.filter(&filter),coord_system));
         }
     }
 
