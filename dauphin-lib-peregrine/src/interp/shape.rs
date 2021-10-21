@@ -58,7 +58,7 @@ impl InterpCommand for ImageInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
         let spacebase_id = registers.get_indexes(&self.0)?.to_vec();
-        let images = registers.get_strings(&self.1)?.to_vec();
+        let images = vec_to_eoe(registers.get_strings(&self.1)?.to_vec());
         let allotment_id = vec_to_eoe(registers.get_indexes(&self.2)?.to_vec());
         drop(registers);
         let peregrine = get_peregrine(context)?;
@@ -68,7 +68,9 @@ impl InterpCommand for ImageInterpCommand {
             geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_image(HoleySpaceBase::Simple(spacebase),images,allotments);
+        if !images.empty() && !allotments.empty() {
+            zoo.lock().add_image(HoleySpaceBase::Simple(spacebase),images,allotments)?;
+        }
         Ok(CommandResult::SyncResult())
     }
 }

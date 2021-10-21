@@ -112,7 +112,7 @@ mod shape {
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter 
     };
-    pub use self::shape::{ Shape, ShapeDemerge };
+    pub use self::shape::{ Shape, ShapeDemerge, RectangleShape };
     pub use self::zmenu::ZMenu;
     pub use self::shapelist::{ ShapeListBuilder, ShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json };
@@ -173,7 +173,7 @@ pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPri
 pub use self::shape::{ 
     Patina, Colour, DirectColour,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
+    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, RectangleShape
 };
 pub use self::allotment::allotment::{ Allotment, CoordinateSystem };
 pub use self::allotment::allotmentrequest::AllotmentRequest;

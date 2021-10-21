@@ -43,6 +43,13 @@ impl<X> EachOrEvery<X> {
         }
     }
 
+    pub fn empty(&self) -> bool {
+        match self {
+            EachOrEvery::Each(x) => x.len() == 0,
+            EachOrEvery::Every(_) => false
+        }
+    }
+
     pub fn get(&self, index: usize) -> Option<&X> {
         match self {
             EachOrEvery::Each(x) => x.get(index),
@@ -91,6 +98,13 @@ impl<X: Clone> Clone for EachOrEvery<X> {
 }
 
 impl<X> EachOrEvery<X> where X: Clone {
+    pub fn xxx_to_vec(&self) -> Vec<X> {
+        match self {
+            EachOrEvery::Each(x) => x.iter().cloned().collect(),
+            EachOrEvery::Every(x) => vec![x.clone()]
+        }
+    }
+
     pub fn merge<Y: Clone>(&self, other: &EachOrEvery<Y>) -> Option<EachOrEvery<(X,Y)>> {
         match (self,other) {
             (EachOrEvery::Each(x),EachOrEvery::Each(y)) => {

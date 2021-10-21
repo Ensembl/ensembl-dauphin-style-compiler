@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::{core::{ Patina, Pen, Plotter }, shape::RectangleShape};
+use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape}};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest, util::eachorevery::eoe_throw};
 
 pub struct ShapeListBuilder {
@@ -62,11 +62,14 @@ impl ShapeListBuilder {
         }
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, images: Vec<String>, allotments: EachOrEvery<AllotmentRequest>) {
+    pub fn add_image(&mut self, position: HoleySpaceBase, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(position.len());
-            self.push(Shape::Image(position.filter(&filter),filter.filter(&images),allotments.filter(&filter),coord_system));
+            self.push(Shape::Image(eoe_throw("add_image",ImageShape::new(
+                position.filter(&filter),images.filter(&filter),allotments.filter(&filter),coord_system)
+            )?));
         }
+        Ok(())
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {

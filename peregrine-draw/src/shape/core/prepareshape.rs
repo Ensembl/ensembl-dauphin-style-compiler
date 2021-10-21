@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, EachOrEvery, HoleySpaceBaseArea, HollowEdge, Patina, Shape, ShapeDemerge, ZMenu};
+use peregrine_data::{Allotment, AllotmentRequest, Colour, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeDemerge, ZMenu};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -7,7 +7,6 @@ use crate::shape::triangles::drawgroup::{DrawGroup, DrawGroupVariety};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 use std::hash::Hash;
-use std::sync::Arc;
 
 fn get_allotment(handle: &AllotmentRequest) -> Result<Allotment,Message> {
     handle.allotment().map_err(|e| Message::DataError(e))
@@ -39,10 +38,10 @@ fn extract_patina(patina: &Patina) -> PatinaExtract {
     }
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patina: Patina, allotment: EachOrEvery<AllotmentRequest>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = allotments(&allotment)?;
+fn split_spacebaserect(tools: &mut DrawingTools, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = allotments(shape.allotments())?;
     let mut out = vec![];
-    match extract_patina(&patina) {
+    match extract_patina(&shape.patina()) {
         PatinaExtract::Visual(colours,width) => {
             let mut demerge_colour = colours.demerge(|colour| {
                 if let Some(heraldry) = colour_to_heraldry(colour,width.is_some()) {
@@ -52,25 +51,25 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                 }
             });
             for (pkind,filter) in &mut demerge_colour {
-                filter.set_size(area.len());
+                filter.set_size(shape.len());
                 match pkind {
                     ShapeCategory::Solid() => {
-                        out.push(GLShape::SpaceBaseRect(area.filter(filter),SimpleShapePatina::from_patina(patina.filter(filter))?,allotment.filter(&filter),draw_group.clone()));
+                        out.push(GLShape::SpaceBaseRect(shape.holey_area().filter(filter),SimpleShapePatina::from_patina(shape.patina().filter(filter))?,allotment.filter(&filter),draw_group.clone()));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                         let heraldry_tool = tools.heraldry();
-                        let heraldry = make_heraldry(patina.filter(filter))?;
+                        let heraldry = make_heraldry(shape.patina().filter(filter))?;
                         let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-                        let area = area.filter(filter);
+                        let area = shape.holey_area().filter(filter);
                         let allotment = allotment.filter(&filter);
                         out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                         let width = width.unwrap_or(0) as f64;
                         let heraldry_tool = tools.heraldry();
-                        let heraldry = make_heraldry(patina.filter(filter))?;
+                        let heraldry = make_heraldry(shape.patina().filter(filter))?;
                         let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-                        let area = area.filter(filter);
+                        let area = shape.holey_area().filter(filter);
                         let allotment = allotment.filter(&filter);
                         // XXX too much cloning, at least Arc them
                         out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
@@ -82,7 +81,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
             }        
         },
         PatinaExtract::ZMenu(zmenu,values) => {
-            out.push(GLShape::SpaceBaseRect(area,SimpleShapePatina::ZMenu(zmenu,values),allotment,draw_group.clone()));
+            out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::ZMenu(zmenu,values),allotment,draw_group.clone()));
         }
     }
     Ok(out)
@@ -141,14 +140,15 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
                 out.push(GLShape::Text(spacebase,handles,allotment,draw_group));
             },
-            Shape::Image(spacebase,images,allotment,_) => {
-                let allotment = allotments(&allotment)?;
+            Shape::Image(shape) => {
+                let allotment = allotments(shape.allotments())?;
                 let drawing_bitmap = tools.bitmap();
-                let handles = images.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
-                out.push(GLShape::Image(spacebase,handles,allotment,draw_group));
+                let names = shape.iter_names().collect::<Vec<_>>();
+                let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
+                out.push(GLShape::Image(shape.holey_position().clone(),handles,allotment,draw_group));
             },
-            Shape::SpaceBaseRect(area,patina,allotment,_) => {
-                out.append(&mut split_spacebaserect(tools,area,patina,allotment,&draw_group)?);
+            Shape::SpaceBaseRect(shape) => {
+                out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             }
         }    
     }
