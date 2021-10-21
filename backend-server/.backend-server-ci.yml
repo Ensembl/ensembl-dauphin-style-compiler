@@ -37,12 +37,14 @@ variables:
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
     - kustomize edit set label "gbtype":"hi"
     - kustomize edit set namesuffix -- -hi
+    - cd -
 
     # Update lo configuration
     - cd ${BASE}/lo
     - kustomize edit set image DOCKER_IMAGE=${DOCKER_IMAGE}
     - kustomize edit set label "gbtype":"lo"
     - kustomize edit set namesuffix -- -lo
+    - cd -
 
     # Update hi/lo configuration
     - kustomize build ${BASE}/hi | kubectl apply -f -
