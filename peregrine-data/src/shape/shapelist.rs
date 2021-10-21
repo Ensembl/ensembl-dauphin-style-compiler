@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape}};
+use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape, TextShape}};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest, util::eachorevery::eoe_throw};
 
 pub struct ShapeListBuilder {
@@ -55,11 +55,14 @@ impl ShapeListBuilder {
         Ok(())
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: EachOrEvery<AllotmentRequest>) {
+    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(position.len());
-            self.push(Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),allotments.filter(&filter),coord_system));
+            self.push(Shape::Text(eoe_throw("add_text",TextShape::new(
+                position.filter(&filter),pen.filter(&filter),text.filter(&filter),allotments.filter(&filter),coord_system)
+            )?));
         }
+        Ok(())
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {

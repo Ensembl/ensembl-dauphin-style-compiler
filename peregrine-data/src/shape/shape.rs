@@ -12,8 +12,6 @@ use crate::SpaceBase;
 use crate::SpaceBaseArea;
 use crate::allotment::allotment::CoordinateSystem;
 use crate::allotment::allotmentrequest::AllotmentRequest;
-use crate::allotment::allotmentrequest::AllotmentRequestImpl;
-use crate::util::eachorevery::eoe_throw;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -24,10 +22,72 @@ pub trait ShapeDemerge {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Shape {
-    Text(HoleySpaceBase,Pen,Vec<String>,EachOrEvery<AllotmentRequest>,CoordinateSystem),
+    Text(TextShape),
     Image(ImageShape),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,CoordinateSystem),
     SpaceBaseRect(RectangleShape)
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct TextShape {
+    position: HoleySpaceBase,
+    pen: Pen,
+    text: EachOrEvery<String>,
+    allotments: EachOrEvery<AllotmentRequest>,
+    coord_system: CoordinateSystem
+}
+
+impl TextShape {
+    pub fn new(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>, coord_system: CoordinateSystem) -> Option<TextShape> {
+        if !allotments.compatible(position.len()) || !text.compatible(position.len()) { return None; }
+        Some(TextShape {
+            position, pen, text, allotments, coord_system
+        })
+    }
+
+    pub fn len(&self) -> usize { self.position.len() }
+    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
+    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
+    pub fn pen(&self) -> &Pen { &self.pen }
+    pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
+    pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
+
+    pub fn filter(&self, filter: &mut DataFilter) -> TextShape {
+        filter.set_size(self.position.len());
+        TextShape {
+            position: self.position.filter(filter),
+            pen: self.pen.filter(&filter),
+            text: self.text.filter(&filter),
+            allotments: self.allotments.filter(filter),
+            coord_system: self.coord_system.clone()
+        }
+    }
+
+    pub fn iter_allotments(&self) -> impl Iterator<Item=&AllotmentRequest> {
+        self.allotments.iter(self.position.len()).unwrap()
+    }
+
+    pub fn iter_texts(&self) -> impl Iterator<Item=&String> {
+        self.text.iter(self.position.len()).unwrap()
+    }
+
+    pub fn filter_by_minmax(&self, min: f64, max: f64) -> TextShape {
+        self.filter(&mut self.position.make_base_filter(min,max))
+    }
+
+    pub fn filter_by_allotment<F>(&self, cb: F)  -> TextShape where F: Fn(&AllotmentRequest) -> bool {
+        self.filter(&mut self.allotments.new_filter(self.position.len(),cb))
+    }
+
+    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,TextShape)> where F: Fn(&AllotmentRequest) -> X {
+        let demerge = self.allotments.demerge(cb);
+        let mut out = vec![];
+        for (draw_group,mut filter) in demerge {
+            out.push((draw_group,self.filter(&mut filter)));
+        }
+        out
+    }
 }
 
 #[derive(Clone)]
@@ -49,8 +109,8 @@ impl ImageShape {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
-    pub fn names(&self) -> &EachOrEvery<String> { &self.names }
     pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
+    pub fn names(&self) -> &EachOrEvery<String> { &self.names }
     pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
 
@@ -184,10 +244,9 @@ impl Shape {
                     allotment.register_usage(bottom_right.normal.ceil() as i64);
                 }
             },
-            Shape::Text(position,pen,_,allotments,_) => {
-                let (position,_) = position.extract();
-                for (position,allotment) in position.iter().zip(eoe_throw("reg B",allotments.iter(position.len()))?) {
-                    allotment.register_usage((*position.normal + pen.size() as f64).ceil() as i64);
+            Shape::Text(shape) => {
+                for (position,allotment) in shape.position().iter().zip(shape.iter_allotments()) {
+                    allotment.register_usage((*position.normal + shape.pen().size() as f64).ceil() as i64);
                 }
             },
             Shape::Image(shape) => {
@@ -209,7 +268,7 @@ impl Shape {
     fn test_filter_base(&self) -> bool {
         let coord_system = match self {
             Shape::SpaceBaseRect(shape) => shape.coord_system(),
-            Shape::Text(_,_,_,_,coord_system) => coord_system,
+            Shape::Text(shape) => shape.coord_system(),
             Shape::Image(shape) => shape.coord_system(),
             Shape::Wiggle(_,_,_,_,coord_system) => coord_system
         };
@@ -224,9 +283,8 @@ impl Shape {
             Shape::SpaceBaseRect(shape) => {
                 Shape::SpaceBaseRect(shape.filter_by_minmax(min_value,max_value))
             },
-            Shape::Text(position,pen,text,allotments,coord_system) => {
-                let filter = position.make_base_filter(min_value,max_value);
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(text),allotments.filter(&filter),coord_system.clone())
+            Shape::Text(shape) => {
+                Shape::Text(shape.filter_by_minmax(min_value,max_value))
             },
             Shape::Image(shape) => {
                 Shape::Image(shape.filter_by_minmax(min_value,max_value))
@@ -245,12 +303,9 @@ impl Shape {
                 let group = cat.categorise(&allotment);
                 out.push((group,Shape::Wiggle(range,y,plotter.clone(),allotment.clone(),coord_system)));
             },
-            Shape::Text(spacebase,pen,texts,allotment,coord_system) => {
-                let demerge = allotment.demerge(|a| cat.categorise(a));
-                for (draw_group,mut filter) in demerge {
-                    filter.set_size(spacebase.len());
-                    out.push((draw_group,Shape::Text(spacebase.filter(&filter),pen.filter(&filter),filter.filter(&texts),allotment.filter(&filter),coord_system.clone())));
-                }
+            Shape::Text(shape) => {
+                return shape.demerge_by_allotment(|a| cat.categorise(a))
+                    .drain(..).map(|(x,s)| (x,Shape::Text(s))).collect()
             },
             Shape::Image(shape) => {
                 return shape.demerge_by_allotment(|a| cat.categorise(a))
@@ -267,7 +322,7 @@ impl Shape {
     pub fn len(&self) -> usize {
         match self {
             Shape::SpaceBaseRect(shape) => shape.len(),
-            Shape::Text(position,_,_,_,_) => position.len(),
+            Shape::Text(shape) => shape.len(),
             Shape::Image(shape) => shape.len(),
             Shape::Wiggle(_,y,_,_,_) => y.len()
         }
@@ -280,9 +335,8 @@ impl Shape {
             Shape::SpaceBaseRect(shape) => {
                 Shape::SpaceBaseRect(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
-            Shape::Text(position,pen,text,allotments,coord_system) => {
-                let filter = allotments.new_filter(position.len(), |a| !a.is_dustbin());
-                Shape::Text(position.filter(&filter),pen.filter(&filter),filter.filter(&text),allotments.filter(&filter),coord_system)
+            Shape::Text(shape) => {
+                Shape::Text(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
             Shape::Image(shape) => {
                 Shape::Image(shape.filter_by_allotment(|a| !a.is_dustbin()))

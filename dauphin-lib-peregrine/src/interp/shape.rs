@@ -38,7 +38,7 @@ impl InterpCommand for Text2InterpCommand {
         let registers = context.registers_mut();
         let spacebase_id = registers.get_indexes(&self.0)?.to_vec();
         let pen_id = registers.get_indexes(&self.1)?.to_vec();
-        let text = registers.get_strings(&self.2)?.to_vec();
+        let text = vec_to_eoe(registers.get_strings(&self.2)?.to_vec());
         let allotment_id = vec_to_eoe(registers.get_indexes(&self.3)?.to_vec());
         drop(registers);
         let peregrine = get_peregrine(context)?;
@@ -49,7 +49,9 @@ impl InterpCommand for Text2InterpCommand {
             geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_text(HoleySpaceBase::Simple(spacebase),pen,text,allotments);
+        if !text.empty() || !allotments.empty() {
+            zoo.lock().add_text(HoleySpaceBase::Simple(spacebase),pen,text,allotments)?;
+        }
         Ok(CommandResult::SyncResult())
     }
 }

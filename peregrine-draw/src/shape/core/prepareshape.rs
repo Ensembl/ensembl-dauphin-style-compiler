@@ -132,13 +132,14 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
             Shape::Wiggle(range,y,plotter,allotment,_) => {
                 out.push(GLShape::Wiggle(range,y,plotter,get_allotment(&allotment)?));
             },
-            Shape::Text(spacebase,pen,texts,allotment,_) => {
-                let allotment = allotments(&allotment)?;
+            Shape::Text(shape) => {
+                let allotment = allotments(&shape.allotments())?;
                 let drawing_text = tools.text();
-                let colours_iter = pen.colours().iter().cycle();
-                let background = pen.background();
-                let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&pen,text,colour,background)).collect();
-                out.push(GLShape::Text(spacebase,handles,allotment,draw_group));
+                let colours_iter = shape.pen().colours().iter().cycle();
+                let background = shape.pen().background();
+                let texts = shape.iter_texts().collect::<Vec<_>>();
+                let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&shape.pen(),text,colour,background)).collect();
+                out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,draw_group));
             },
             Shape::Image(shape) => {
                 let allotment = allotments(shape.allotments())?;
