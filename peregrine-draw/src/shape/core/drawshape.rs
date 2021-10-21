@@ -22,19 +22,19 @@ use crate::webgl::canvas::flatstore::FlatId;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
-    Solid(Arc<EachOrEvery<DirectColour>>),
-    Hollow(Arc<EachOrEvery<DirectColour>>),
-    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
+    Solid(EachOrEvery<DirectColour>),
+    Hollow(EachOrEvery<DirectColour>),
+    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
-fn simplify_colours(mut colours: Arc<EachOrEvery<Colour>>) -> Result<Arc<EachOrEvery<DirectColour>>,Message> {
-    Ok(Arc::new(colours.map_results(|colour| {
+fn simplify_colours(colours: EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
+    Ok(colours.map_results(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d.clone()),
             Colour::Spot(d) => Ok(d.clone()),
             _ => Err(Message::CodeInvariantFailed(format!("attempt to simplify pattern to colour")))
         }
-    })?))
+    })?)
 }
 
 impl SimpleShapePatina {
@@ -56,14 +56,14 @@ impl SimpleShapePatina {
 }
 
 enum DrawingShapePatina {
-    Solid(DirectYielder,Arc<EachOrEvery<DirectColour>>),
-    Hollow(DirectYielder,Arc<EachOrEvery<DirectColour>>),
-    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
+    Solid(DirectYielder,EachOrEvery<DirectColour>),
+    Hollow(DirectYielder,EachOrEvery<DirectColour>),
+    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
 enum PatinaTarget<'a> {
     Visual(&'a mut dyn PatinaYielder),
-    HotSpot(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
+    HotSpot(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
 impl DrawingShapePatina {
@@ -79,7 +79,7 @@ impl DrawingShapePatina {
 pub(crate) enum GLShape {
     Text(HoleySpaceBase,Vec<TextHandle>,EachOrEvery<Allotment>,DrawGroup),
     Image(HoleySpaceBase,Vec<BitmapHandle>,EachOrEvery<Allotment>,DrawGroup),
-    Heraldry(HoleySpaceBaseArea,Arc<EachOrEvery<HeraldryHandle>>,EachOrEvery<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
+    Heraldry(HoleySpaceBaseArea,EachOrEvery<HeraldryHandle>,EachOrEvery<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
     SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,EachOrEvery<Allotment>,DrawGroup),
 }
@@ -152,7 +152,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &WebGlGlobal, tools: &mut Drawing
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64>,EachOrEvery<Allotment>,ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>),
+    ZMenu(SpaceBaseArea<f64>,EachOrEvery<Allotment>,ZMenu,Vec<(String,EachOrEvery<String>)>),
     None
 }
 

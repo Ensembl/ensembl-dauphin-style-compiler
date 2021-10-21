@@ -48,7 +48,7 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: EachOrEvery<Allotment>, zmenu: ZMenu, values: Arc<Vec<(String,EachOrEvery<String>)>>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: EachOrEvery<Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
         let mut map_values = HashMap::new();
         for (k,v) in values.iter() {
             map_values.insert(k.to_string(),v.clone());

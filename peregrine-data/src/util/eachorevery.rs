@@ -1,5 +1,5 @@
 use core::fmt;
-use std::{hash::Hash};
+use std::{hash::Hash, sync::Arc};
 use crate::{DataFilter, DataMessage};
 
 pub struct EachOrEveryIterator<'a,X> {
@@ -23,11 +23,26 @@ impl<'a,X> Iterator for EachOrEveryIterator<'a,X> {
 }
 
 pub enum EachOrEvery<X> {
-    Each(Vec<X>),
+    Each(Arc<Vec<X>>),
     Every(X)
 }
 
 impl<X> EachOrEvery<X> {
+    pub fn each(data: Vec<X>) -> EachOrEvery<X> {
+        EachOrEvery::Each(Arc::new(data))
+    }
+
+    pub fn every(data: X) -> EachOrEvery<X> {
+        EachOrEvery::Every(data)
+    }
+
+    pub fn compatible(&self, len: usize) -> bool {
+        match self {
+            EachOrEvery::Each(v) => v.len() == len,
+            EachOrEvery::Every(_) => true
+        }
+    }
+
     pub fn get(&self, index: usize) -> Option<&X> {
         match self {
             EachOrEvery::Each(x) => x.get(index),
@@ -53,21 +68,14 @@ impl<X> EachOrEvery<X> {
 
     pub fn map<F,Y>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
         match self {
-            EachOrEvery::Each(v) => EachOrEvery::Each(v.iter().map(|x| f(x)).collect()),
+            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
             EachOrEvery::Every(v) => EachOrEvery::Every(f(&v))
-        }
-    }
-
-    pub fn map_into<F,Y>(self, mut f: F) -> EachOrEvery<Y> where F: FnMut(X) -> Y {
-        match self {
-            EachOrEvery::Each(mut v) => EachOrEvery::Each(v.drain(..).map(|x| f(x)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::Every(f(v))
         }
     }
 
     pub fn map_results<F,Y,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
         Ok(match self {
-            EachOrEvery::Each(v) => EachOrEvery::Each(v.iter().map(|x| f(x)).collect::<Result<_,_>>()?),
+            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect::<Result<_,_>>()?),
             EachOrEvery::Every(v) => EachOrEvery::Every(f(&v)?)
         })
     }
@@ -83,9 +91,27 @@ impl<X: Clone> Clone for EachOrEvery<X> {
 }
 
 impl<X> EachOrEvery<X> where X: Clone {
+    pub fn merge<Y: Clone>(&self, other: &EachOrEvery<Y>) -> Option<EachOrEvery<(X,Y)>> {
+        match (self,other) {
+            (EachOrEvery::Each(x),EachOrEvery::Each(y)) => {
+                if x.len() != y.len() { return None; }
+                Some(EachOrEvery::each(x.iter().zip(y.iter()).map(|(x,y)| (x.clone(),y.clone())).collect()))
+            },
+            (EachOrEvery::Each(x),EachOrEvery::Every(y)) => {
+                Some(EachOrEvery::each(x.iter().map(|x| (x.clone(),y.clone())).collect()))
+            },
+            (EachOrEvery::Every(x),EachOrEvery::Each(y)) => {
+                Some(EachOrEvery::each(y.iter().map(|y| (x.clone(),y.clone())).collect()))
+            },
+            (EachOrEvery::Every(x),EachOrEvery::Every(y)) => {
+                Some(EachOrEvery::Every((x.clone(),y.clone())))
+            }
+        }
+    }
+
     pub fn filter(&self, data_filter: &DataFilter) -> EachOrEvery<X> {
         match self {
-            EachOrEvery::Each(v) => { EachOrEvery::Each(data_filter.filter(&v)) },
+            EachOrEvery::Each(v) => { EachOrEvery::each(data_filter.filter(&v)) },
             EachOrEvery::Every(v) => { EachOrEvery::Every(v.clone()) }
         }
     }
@@ -119,7 +145,6 @@ impl<X: fmt::Debug> fmt::Debug for EachOrEvery<X> {
         }
     }
 }
-
 
 pub fn eoe_throw<X>(kind: &str,input: Option<X>) -> Result<X,DataMessage> {
     input.ok_or_else(|| DataMessage::LengthMismatch(kind.to_string()))

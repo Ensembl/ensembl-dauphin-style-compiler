@@ -118,9 +118,9 @@ pub enum Colour {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum Patina {
-    Filled(Arc<EachOrEvery<Colour>>),
-    Hollow(Arc<EachOrEvery<Colour>>,u32),
-    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
+    Filled(EachOrEvery<Colour>),
+    Hollow(EachOrEvery<Colour>,u32),
+    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
 fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &DataFilter) -> Vec<(String,EachOrEvery<String>)> {
@@ -134,9 +134,9 @@ fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &DataFilter) -> 
 impl Patina {
     pub fn filter(&self, filter: &DataFilter) -> Patina {
         match self {
-            Patina::Filled(c) => Patina::Filled(Arc::new(c.filter(filter))),
-            Patina::Hollow(c,w) => Patina::Hollow(Arc::new(c.filter(filter)),*w),
-            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),Arc::new(filter_zmenu(h,filter)))
+            Patina::Filled(c) => Patina::Filled(c.filter(filter)),
+            Patina::Hollow(c,w) => Patina::Hollow(c.filter(filter),*w),
+            Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }
 }

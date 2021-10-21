@@ -27,8 +27,8 @@ pub(crate) enum ShapeCategory {
 }
 
 enum PatinaExtract {
-    Visual(Arc<EachOrEvery<Colour>>,Option<u32>),
-    ZMenu(ZMenu,Arc<Vec<(String,EachOrEvery<String>)>>)
+    Visual(EachOrEvery<Colour>,Option<u32>),
+    ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
 fn extract_patina(patina: &Patina) -> PatinaExtract {
@@ -60,16 +60,16 @@ fn split_spacebaserect(tools: &mut DrawingTools, area: HoleySpaceBaseArea, patin
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                         let heraldry_tool = tools.heraldry();
                         let heraldry = make_heraldry(patina.filter(filter))?;
-                        let handles = heraldry.map_into(|x| heraldry_tool.add(x));
+                        let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
                         let area = area.filter(filter);
                         let allotment = allotment.filter(&filter);
-                        out.push(GLShape::Heraldry(area,Arc::new(handles),allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+                        out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
                     },
                     ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                         let width = width.unwrap_or(0) as f64;
                         let heraldry_tool = tools.heraldry();
                         let heraldry = make_heraldry(patina.filter(filter))?;
-                        let handles = Arc::new(heraldry.map_into(|x| heraldry_tool.add(x)));
+                        let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
                         let area = area.filter(filter);
                         let allotment = allotment.filter(&filter);
                         // XXX too much cloning, at least Arc them

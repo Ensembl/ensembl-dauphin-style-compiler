@@ -76,5 +76,5 @@ pub(crate) fn get_peregrine(context: &mut InterpContext) -> anyhow::Result<&mut 
 
 pub(crate) fn vec_to_eoe<X>(mut input: Vec<X>) -> EachOrEvery<X> {
     if input.len() == 1 { EachOrEvery::Every(input.remove(0)) }
-    else { EachOrEvery::Each(input) } 
+    else { EachOrEvery::each(input) } 
 }

@@ -4,7 +4,6 @@ use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
-use std::sync::Arc;
 use crate::util::{get_instance, get_peregrine, vec_to_eoe};
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
@@ -52,7 +51,7 @@ impl InterpCommand for SpaceBaseInterpCommand {
 }
 
 fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Register, cb: F) -> anyhow::Result<()>
-        where F: FnOnce(Arc<EachOrEvery<Colour>>) -> Patina {
+        where F: FnOnce(EachOrEvery<Colour>) -> Patina {
     let registers = context.registers_mut();
     let colour_ids = registers.get_indexes(colour)?.to_vec();
     drop(registers);
@@ -63,7 +62,7 @@ fn patina_colour<F>(context: &mut InterpContext, out: &Register, colour: &Regist
         colours.push(geometry_builder.colour(*colour_id as u32)?.as_ref().clone());
     }
     drop(peregrine);
-    let patina = cb(Arc::new(vec_to_eoe(colours)));
+    let patina = cb(vec_to_eoe(colours));
     let peregrine = get_peregrine(context)?;
     let id = peregrine.geometry_builder().add_patina(patina);
     let registers = context.registers_mut();
@@ -299,7 +298,7 @@ impl InterpCommand for PatinaZMenuInterpCommand {
         for (zmenu,(key_start,key_length)) in each {
             let keys = &key_d[*key_start..(*key_start+*key_length)];
             let values = make_values(keys,&value_d,&value_a,&value_b)?;
-            let patina = Patina::ZMenu(zmenu.as_ref().clone(),Arc::new(values));
+            let patina = Patina::ZMenu(zmenu.as_ref().clone(),values);
             payload.push(geometry_builder.add_patina(patina) as usize);
         }
         drop(peregrine);

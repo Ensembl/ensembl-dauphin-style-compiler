@@ -2,11 +2,13 @@ use std::hash::Hash;
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::Assets;
+use crate::DataFilter;
 use crate::DataMessage;
 use crate::EachOrEvery;
 use crate::Flattenable;
 use crate::HoleySpaceBase;
 use crate::HoleySpaceBaseArea;
+use crate::SpaceBaseArea;
 use crate::allotment::allotment::CoordinateSystem;
 use crate::allotment::allotmentrequest::AllotmentRequest;
 use crate::util::eachorevery::eoe_throw;
@@ -23,7 +25,63 @@ pub enum Shape {
     Text(HoleySpaceBase,Pen,Vec<String>,EachOrEvery<AllotmentRequest>,CoordinateSystem),
     Image(HoleySpaceBase,Vec<String>,EachOrEvery<AllotmentRequest>,CoordinateSystem),
     Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,CoordinateSystem),
-    SpaceBaseRect(HoleySpaceBaseArea,Patina,EachOrEvery<AllotmentRequest>,CoordinateSystem)
+    SpaceBaseRect(RectangleShape)
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct RectangleShape {
+    area: HoleySpaceBaseArea,
+    patina: Patina,
+    allotments: EachOrEvery<AllotmentRequest>,
+    coord_system: CoordinateSystem
+}
+
+impl RectangleShape {
+    pub fn new(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>, coord_system: CoordinateSystem) -> Option<RectangleShape> {
+        if !allotments.compatible(area.len()) { return None; }
+        Some(RectangleShape {
+            area, patina, allotments, coord_system
+        })
+    }
+
+    pub fn len(&self) -> usize { self.area.len() }
+    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
+
+    pub fn area(&self) -> SpaceBaseArea<f64> {
+        self.area.extract().0
+    }
+
+    pub fn iter_allotments(&self) -> impl Iterator<Item=&AllotmentRequest> {
+        self.allotments.iter(self.area.len()).unwrap()
+    }
+
+    fn filter(&self, filter: &DataFilter) -> RectangleShape {
+        RectangleShape {
+            area: self.area.filter(filter),
+            patina: self.patina.filter(filter),
+            allotments: self.allotments.filter(filter),
+            coord_system: self.coord_system.clone()
+        }
+    }
+
+    pub fn filter_by_minmax(&self, min: f64, max: f64) -> RectangleShape {
+        self.filter(&self.area.make_base_filter(min,max))
+    }
+
+    pub fn filter_by_allotment<F>(&self, cb: F)  -> RectangleShape where F: Fn(&AllotmentRequest) -> bool {
+        self.filter(&self.allotments.new_filter(self.area.len(),cb))
+    }
+
+    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,RectangleShape)> where F: Fn(&AllotmentRequest) -> X {
+        let demerge = self.allotments.demerge(cb);
+        let mut out = vec![];
+        for (draw_group,mut filter) in demerge {
+            filter.set_size(self.area.len());
+            out.push((draw_group,self.filter(&filter)));
+        }
+        out
+    }
 }
 
 const SCALE : i64 = 100; // XXX configurable
@@ -58,9 +116,8 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 impl Shape {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         match self {
-            Shape::SpaceBaseRect(area,_,allotments,_) => {
-                let (area,_) = area.extract();
-                for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("reg A",allotments.iter(area.len()))?) {
+            Shape::SpaceBaseRect(shape) => {
+                for ((top_left,bottom_right),allotment) in shape.area().iter().zip(shape.iter_allotments()) {
                     allotment.register_usage(top_left.normal.ceil() as i64);
                     allotment.register_usage(bottom_right.normal.ceil() as i64);
                 }
@@ -90,7 +147,7 @@ impl Shape {
 
     fn test_filter_base(&self) -> bool {
         let coord_system = match self {
-            Shape::SpaceBaseRect(_,_,_,coord_system) => coord_system,
+            Shape::SpaceBaseRect(shape) => shape.coord_system(),
             Shape::Text(_,_,_,_,coord_system) => coord_system,
             Shape::Image(_,_,_,coord_system) => coord_system,
             Shape::Wiggle(_,_,_,_,coord_system) => coord_system
@@ -103,9 +160,8 @@ impl Shape {
             return self.clone();
         }
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,coord_system) => {
-                let filter = area.make_base_filter(min_value,max_value);
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),allotments.filter(&filter),coord_system.clone())
+            Shape::SpaceBaseRect(shape) => {
+                Shape::SpaceBaseRect(shape.filter_by_minmax(min_value, max_value))
             },
             Shape::Text(position,pen,text,allotments,coord_system) => {
                 let filter = position.make_base_filter(min_value,max_value);
@@ -143,12 +199,9 @@ impl Shape {
                     out.push((draw_group,Shape::Image(spacebase.filter(&filter),filter.filter(&images),allotment.filter(&filter),coord_system.clone())));
                 }
             },
-            Shape::SpaceBaseRect(area,patina,allotment,coord_system) => {
-                let demerge = allotment.demerge(|a| cat.categorise(a));
-                for (draw_group,mut filter) in demerge {
-                    filter.set_size(area.len());
-                    out.push((draw_group,Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),allotment.filter(&filter),coord_system.clone())));
-                }
+            Shape::SpaceBaseRect(shape) => {
+                return shape.demerge_by_allotment(|a| cat.categorise(a))
+                    .drain(..).map(|(x,s)| (x,Shape::SpaceBaseRect(s))).collect()
             }
         }
         out
@@ -156,7 +209,7 @@ impl Shape {
     
     pub fn len(&self) -> usize {
         match self {
-            Shape::SpaceBaseRect(area,_,_,_) => area.len(),
+            Shape::SpaceBaseRect(shape) => shape.len(),
             Shape::Text(position,_,_,_,_) => position.len(),
             Shape::Image(position,_,_,_) => position.len(),
             Shape::Wiggle(_,y,_,_,_) => y.len()
@@ -167,9 +220,8 @@ impl Shape {
 
     pub fn remove_nulls(self) -> Shape {
         match self {
-            Shape::SpaceBaseRect(area,patina,allotments,coord_system) => {
-                let filter = allotments.new_filter(area.len(), |a| !a.is_dustbin());
-                Shape::SpaceBaseRect(area.filter(&filter),patina.filter(&filter),allotments.filter(&filter),coord_system)
+            Shape::SpaceBaseRect(shape) => {
+                Shape::SpaceBaseRect(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
             Shape::Text(position,pen,text,allotments,coord_system) => {
                 let filter = allotments.new_filter(position.len(), |a| !a.is_dustbin());

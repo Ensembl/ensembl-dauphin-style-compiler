@@ -28,7 +28,7 @@ impl InterpCommand for RectangleInterpCommand {
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         let area = SpaceBaseArea::new(top_left,bottom_right);
-        zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,allotments);
+        zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,allotments)?;
         Ok(CommandResult::SyncResult())
     }
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::core::{ Patina, Pen, Plotter };
-use crate::{AllotmentMetadataStore, Assets, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest};
+use super::{core::{ Patina, Pen, Plotter }, shape::RectangleShape};
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest, util::eachorevery::eoe_throw};
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -45,11 +45,14 @@ impl ShapeListBuilder {
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(area.len());
-            self.push(Shape::SpaceBaseRect(area.filter(&filter),patina.clone(),allotments.filter(&filter),coord_system));
+            self.push(Shape::SpaceBaseRect(eoe_throw("add_rectangle",RectangleShape::new(
+                area.filter(&filter),patina.clone(),allotments.filter(&filter),coord_system)
+            )?));
         }
+        Ok(())
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: Vec<String>, allotments: EachOrEvery<AllotmentRequest>) {
