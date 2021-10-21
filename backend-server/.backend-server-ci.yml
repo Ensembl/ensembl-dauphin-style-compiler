@@ -61,7 +61,7 @@ variables:
 #     BASE: backend-server/k8s/overlays/dev
 
 WP-HX:Staging:
-  .extends: .deploy
+  extends: .deploy
   environment:
     name : wp-hx-staging
   variables:
