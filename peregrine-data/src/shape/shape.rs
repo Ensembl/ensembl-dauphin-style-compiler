@@ -18,6 +18,9 @@ pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
+    fn categorise_patinate(&self, allotment: &AllotmentRequest,_patina: &Patina) -> Self::X {
+        self.categorise(allotment)
+    }
 }
 
 #[derive(Clone)]
@@ -70,8 +73,8 @@ impl WiggleShape {
         }
     }
 
-    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,WiggleShape)> where F: Fn(&AllotmentRequest) -> X {
-        let x = cb(self.allotment());
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape)> where D: ShapeDemerge<X=T> {
+        let x = cat.categorise(self.allotment());
         vec![(x,self.clone())]
     }
 
@@ -84,7 +87,6 @@ impl WiggleShape {
             allotments: self.allotments.clone(),
             coord_system: self.coord_system.clone()
         }
-
     }
 }
 
@@ -140,8 +142,8 @@ impl TextShape {
         self.filter(&mut self.allotments.new_filter(self.position.len(),cb))
     }
 
-    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,TextShape)> where F: Fn(&AllotmentRequest) -> X {
-        let demerge = self.allotments.demerge(cb);
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,TextShape)> where D: ShapeDemerge<X=T> {
+        let demerge = self.allotments.demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));
@@ -200,8 +202,8 @@ impl ImageShape {
         self.filter(&mut self.allotments.new_filter(self.position.len(),cb))
     }
 
-    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,ImageShape)> where F: Fn(&AllotmentRequest) -> X {
-        let demerge = self.allotments.demerge(cb);
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,ImageShape)> where D: ShapeDemerge<X=T> {
+        let demerge = self.allotments.demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));
@@ -256,8 +258,8 @@ impl RectangleShape {
         self.filter(&mut self.allotments.new_filter(self.area.len(),cb))
     }
 
-    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,RectangleShape)> where F: Fn(&AllotmentRequest) -> X {
-        let demerge = self.allotments.demerge(cb);
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape)> where D: ShapeDemerge<X=T> {
+        let demerge = self.allotments.demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));
@@ -356,26 +358,20 @@ impl Shape {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
-        let mut out = vec![];
         match self {
             Shape::Wiggle(shape) => {
-                return shape.demerge_by_allotment(|a| cat.categorise(a))
-                    .drain(..).map(|(x,s)| (x,Shape::Wiggle(s))).collect()
+                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Wiggle(s))).collect()
             },
             Shape::Text(shape) => {
-                return shape.demerge_by_allotment(|a| cat.categorise(a))
-                    .drain(..).map(|(x,s)| (x,Shape::Text(s))).collect()
+                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Text(s))).collect()
             },
             Shape::Image(shape) => {
-                return shape.demerge_by_allotment(|a| cat.categorise(a))
-                    .drain(..).map(|(x,s)| (x,Shape::Image(s))).collect()
+                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Image(s))).collect()
             },
             Shape::SpaceBaseRect(shape) => {
-                return shape.demerge_by_allotment(|a| cat.categorise(a))
-                    .drain(..).map(|(x,s)| (x,Shape::SpaceBaseRect(s))).collect()
+                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::SpaceBaseRect(s))).collect()
             }
         }
-        out
     }
     
     pub fn len(&self) -> usize {
