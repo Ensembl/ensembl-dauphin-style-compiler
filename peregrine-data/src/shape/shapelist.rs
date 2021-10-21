@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape, TextShape}};
+use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape, TextShape, WiggleShape}};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest, util::eachorevery::eoe_throw};
 
 pub struct ShapeListBuilder {
@@ -76,7 +76,7 @@ impl ShapeListBuilder {
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {
-        self.push(Shape::Wiggle((min,max),values,plotter,allotment.clone(),allotment.coord_system()))
+        self.push(Shape::Wiggle(WiggleShape::new((min,max),values,plotter,allotment.clone(),allotment.coord_system())))
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {

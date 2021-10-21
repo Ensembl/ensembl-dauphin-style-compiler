@@ -80,7 +80,7 @@ pub(crate) enum GLShape {
     Text(HoleySpaceBase,Vec<TextHandle>,EachOrEvery<Allotment>,DrawGroup),
     Image(HoleySpaceBase,Vec<BitmapHandle>,EachOrEvery<Allotment>,DrawGroup),
     Heraldry(HoleySpaceBaseArea,EachOrEvery<HeraldryHandle>,EachOrEvery<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,Allotment),
+    Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,Allotment),
     SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,EachOrEvery<Allotment>,DrawGroup),
 }
 
@@ -162,7 +162,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle,allotment.depth());
             let mut patina_yielder = DirectYielder::new();
             let left = layer.left();
-            let (mut array,count) = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,yy,height,&allotment,left,allotment.depth())?;
+            let (mut array,count) = make_wiggle(layer,&mut geometry_yielder,&mut patina_yielder,start,end,&yy,height,&allotment,left,allotment.depth())?;
             patina_yielder.draw()?.direct(&mut array, &EachOrEvery::Every(colour),1,count)?;
             array.close()?;
             Ok(ShapeToAdd::None)

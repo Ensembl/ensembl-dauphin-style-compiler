@@ -129,8 +129,8 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
     let mut out = vec![];
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
         match shape {
-            Shape::Wiggle(range,y,plotter,allotment,_) => {
-                out.push(GLShape::Wiggle(range,y,plotter,get_allotment(&allotment)?));
+            Shape::Wiggle(shape) => {
+                out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),get_allotment(shape.allotment())?));
             },
             Shape::Text(shape) => {
                 let allotment = allotments(&shape.allotments())?;

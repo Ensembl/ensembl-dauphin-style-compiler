@@ -11,7 +11,7 @@ use crate::util::message::Message;
 const THICKNESS: f64 = 1.; // XXX
 
 pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
-                    start: f64, end: f64, yy: Vec<Option<f64>>, height: f64,
+                    start: f64, end: f64, yy: &[Option<f64>], height: f64,
                     allotment: &Allotment, left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
     let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
     let yy = yy.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>();
@@ -19,7 +19,7 @@ pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYiel
     let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
     match adder {
         GeometryAdder::Wiggle(w) => {
-            w.add_wiggle(process,start,end,yy,height,left,depth)
+            w.add_wiggle(process,start,end,&yy,height,left,depth)
         },
         _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
     }
@@ -39,7 +39,7 @@ impl WiggleAdder {
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: Vec<Option<f64>>, height: f64, left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: &[Option<f64>], height: f64, left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
@@ -49,7 +49,7 @@ impl WiggleAdder {
                 x: vec![],
                 y: vec![]
             };
-            for y_pos in &yy {
+            for y_pos in yy.iter() {
                 if let Some(y_pos) = y_pos {
                     pusher.active(*y_pos);
                 } else {

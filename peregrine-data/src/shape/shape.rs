@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::sync::Arc;
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::Assets;
@@ -24,8 +25,67 @@ pub trait ShapeDemerge {
 pub enum Shape {
     Text(TextShape),
     Image(ImageShape),
-    Wiggle((f64,f64),Vec<Option<f64>>,Plotter,AllotmentRequest,CoordinateSystem),
+    Wiggle(WiggleShape),
     SpaceBaseRect(RectangleShape)
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct WiggleShape {
+    x_limits: (f64,f64),
+    values: Arc<Vec<Option<f64>>>,
+    plotter: Plotter,
+    allotments: EachOrEvery<AllotmentRequest>, // actually always a single allotment
+    coord_system: CoordinateSystem
+}
+
+impl WiggleShape {
+    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest, coord_system: CoordinateSystem) -> WiggleShape {
+        WiggleShape {
+            x_limits,
+            values: Arc::new(values),
+            plotter,
+            allotments: EachOrEvery::each(vec![allotment]),
+            coord_system
+        }
+    }
+
+    pub fn len(&self) -> usize { self.values.len() }
+    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
+    pub fn range(&self) -> (f64,f64) { self.x_limits }
+    pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
+    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
+    pub fn plotter(&self) -> &Plotter { &self.plotter }
+    pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
+
+    pub fn filter_by_allotment<F>(&self, cb: F)  -> WiggleShape where F: Fn(&AllotmentRequest) -> bool {
+        let mut y = self.values.clone();
+        if !cb(self.allotments.get(0).unwrap()) { y = Arc::new(vec![]); }
+        WiggleShape {
+            x_limits: self.x_limits,
+            values: y,
+            plotter: self.plotter.clone(),
+            allotments: self.allotments.clone(),
+            coord_system: self.coord_system.clone()
+        }
+    }
+
+    pub fn demerge_by_allotment<X: Hash+PartialEq+Eq,F>(&self, cb: F) -> Vec<(X,WiggleShape)> where F: Fn(&AllotmentRequest) -> X {
+        let x = cb(self.allotment());
+        vec![(x,self.clone())]
+    }
+
+    pub fn filter_by_minmax(&self, min: f64, max: f64) -> WiggleShape {
+        let (aim_min,aim_max,new_y) = wiggle_filter(min,max,self.x_limits.0,self.x_limits.1,&self.values);
+        WiggleShape {
+            x_limits: (aim_min,aim_max),
+            values: Arc::new(new_y),
+            plotter: self.plotter.clone(),
+            allotments: self.allotments.clone(),
+            coord_system: self.coord_system.clone()
+        }
+
+    }
 }
 
 #[derive(Clone)]
@@ -258,8 +318,8 @@ impl Shape {
                     }
                 }
             },
-            Shape::Wiggle(_,_,plotter,allotment,_) => {
-                allotment.register_usage(plotter.0 as i64);
+            Shape::Wiggle(shape) => {
+                shape.allotment().register_usage(shape.plotter().0 as i64);
             }
         }
         Ok(())
@@ -270,7 +330,7 @@ impl Shape {
             Shape::SpaceBaseRect(shape) => shape.coord_system(),
             Shape::Text(shape) => shape.coord_system(),
             Shape::Image(shape) => shape.coord_system(),
-            Shape::Wiggle(_,_,_,_,coord_system) => coord_system
+            Shape::Wiggle(shape) => shape.coord_system()
         };
         coord_system.is_tracking() 
     }
@@ -289,9 +349,8 @@ impl Shape {
             Shape::Image(shape) => {
                 Shape::Image(shape.filter_by_minmax(min_value,max_value))
             },
-            Shape::Wiggle((x_start,x_end),y,plotter,allotment,coord_system) => {
-                let (aim_min,aim_max,new_y) = wiggle_filter(min_value,max_value,*x_start,*x_end,y);
-                Shape::Wiggle((aim_min,aim_max),new_y,plotter.clone(),allotment.clone(),coord_system.clone())
+            Shape::Wiggle(shape) => {
+                Shape::Wiggle(shape.filter_by_minmax(min_value,max_value))
             }
         }
     }
@@ -299,9 +358,9 @@ impl Shape {
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
         let mut out = vec![];
         match self {
-            Shape::Wiggle(range,y,plotter,allotment,coord_system) => {
-                let group = cat.categorise(&allotment);
-                out.push((group,Shape::Wiggle(range,y,plotter.clone(),allotment.clone(),coord_system)));
+            Shape::Wiggle(shape) => {
+                return shape.demerge_by_allotment(|a| cat.categorise(a))
+                    .drain(..).map(|(x,s)| (x,Shape::Wiggle(s))).collect()
             },
             Shape::Text(shape) => {
                 return shape.demerge_by_allotment(|a| cat.categorise(a))
@@ -324,7 +383,7 @@ impl Shape {
             Shape::SpaceBaseRect(shape) => shape.len(),
             Shape::Text(shape) => shape.len(),
             Shape::Image(shape) => shape.len(),
-            Shape::Wiggle(_,y,_,_,_) => y.len()
+            Shape::Wiggle(shape) => shape.len()
         }
     }
 
@@ -341,9 +400,8 @@ impl Shape {
             Shape::Image(shape) => {
                 Shape::Image(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
-            Shape::Wiggle(x,mut y,plotter,allotment,coord_system) => {
-                if allotment.is_dustbin() { y = vec![]; }
-                Shape::Wiggle(x,y,plotter.clone(),allotment.clone(),coord_system)
+            Shape::Wiggle(shape) => {
+                Shape::Wiggle(shape.filter_by_allotment(|a| !a.is_dustbin()))
             }
         }
     }
