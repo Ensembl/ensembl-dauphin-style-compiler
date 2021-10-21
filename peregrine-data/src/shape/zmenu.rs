@@ -45,7 +45,6 @@ use anyhow::{ bail };
 use std::collections::{ HashSet };
 use std::iter::Peekable;
 use std::str::Chars;
-use crate::util::ringarray::{ UniformData, DataFilter };
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]

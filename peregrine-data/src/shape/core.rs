@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
 use super::zmenu::ZMenu;
-use crate::{EachOrEvery, util::ringarray::{ UniformData, DataFilter }};
+use crate::{EachOrEvery, util::ringarray::{ DataFilter }};
 
 pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
     let mut out = vec![];
