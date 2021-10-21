@@ -60,6 +60,9 @@ variables:
 #   variables:
 #     BASE: backend-server/k8s/overlays/dev
 
+Docker:
+  extends: .build
+
 WP-HX:Staging:
   extends: .deploy
   environment:
