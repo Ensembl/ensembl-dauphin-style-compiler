@@ -15,6 +15,7 @@ use crate::SpaceBase;
 use crate::SpaceBaseArea;
 use crate::allotment::allotment::CoordinateSystem;
 use crate::allotment::allotmentrequest::AllotmentRequest;
+use crate::util::eachorevery::eoe_throw;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -28,7 +29,7 @@ pub trait ShapeDemerge {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum Shape {
+pub enum ShapeDetails {
     Text(TextShape),
     Image(ImageShape),
     Wiggle(WiggleShape),
@@ -37,43 +38,70 @@ pub enum Shape {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
+pub struct Shape {
+    details: ShapeDetails,
+    coord_system: CoordinateSystem
+}
+
+impl Shape {
+    pub fn details(&self) -> &ShapeDetails { &self.details }
+    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
+}
+
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct WiggleShape {
     x_limits: (f64,f64),
     values: Arc<Vec<Option<f64>>>,
     plotter: Plotter,
-    allotments: EachOrEvery<AllotmentRequest>, // actually always a single allotment
-    coord_system: CoordinateSystem
+    allotments: EachOrEvery<AllotmentRequest> // actually always a single allotment
 }
 
 impl WiggleShape {
-    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest, coord_system: CoordinateSystem) -> WiggleShape {
+    pub fn new_details(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> WiggleShape {
         WiggleShape {
             x_limits,
             values: Arc::new(values),
             plotter,
-            allotments: EachOrEvery::each(vec![allotment]),
-            coord_system
+            allotments: EachOrEvery::each(vec![allotment])
         }
     }
 
-    pub fn len(&self) -> usize { self.values.len() }
-    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
-    pub fn range(&self) -> (f64,f64) { self.x_limits }
-    pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
-    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
-    pub fn plotter(&self) -> &Plotter { &self.plotter }
-    pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
+    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape>,DataMessage> {
+        let mut out = vec![];
+        let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
+        for (coord_system,mut filter) in details.allotments().demerge(|x| { x.coord_system() }) {
+            out.push(Shape {
+                coord_system: coord_system.clone(),
+                details: ShapeDetails::Wiggle(details.clone().filter(&mut filter))
+            });
+        }
+        Ok(out)
+    }
 
-    pub fn filter_by_allotment<F>(&self, cb: F)  -> WiggleShape where F: Fn(&AllotmentRequest) -> bool {
-        let mut y = self.values.clone();
-        if !cb(self.allotments.get(0).unwrap()) { y = Arc::new(vec![]); }
+    pub fn filter(&self, filter: &mut DataFilter) -> WiggleShape {
+        let y = if filter.filter(&[()]).len() > 0 {
+            self.values.clone()
+        } else {
+            Arc::new(vec![])
+        };
         WiggleShape {
             x_limits: self.x_limits,
             values: y,
             plotter: self.plotter.clone(),
-            allotments: self.allotments.clone(),
-            coord_system: self.coord_system.clone()
+            allotments: self.allotments.clone()
         }
+    }
+
+    pub fn len(&self) -> usize { 1 }
+    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
+    pub fn range(&self) -> (f64,f64) { self.x_limits }
+    pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
+    pub fn plotter(&self) -> &Plotter { &self.plotter }
+    pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
+
+    pub fn filter_by_allotment<F>(&self, cb: F)  -> WiggleShape where F: Fn(&AllotmentRequest) -> bool {
+        self.filter(&mut self.allotments.new_filter(1,cb))
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape)> where D: ShapeDemerge<X=T> {
@@ -87,8 +115,7 @@ impl WiggleShape {
             x_limits: (aim_min,aim_max),
             values: Arc::new(new_y),
             plotter: self.plotter.clone(),
-            allotments: self.allotments.clone(),
-            coord_system: self.coord_system.clone()
+            allotments: self.allotments.clone()
         }
     }
 }
@@ -99,21 +126,31 @@ pub struct TextShape {
     position: HoleySpaceBase,
     pen: Pen,
     text: EachOrEvery<String>,
-    allotments: EachOrEvery<AllotmentRequest>,
-    coord_system: CoordinateSystem
+    allotments: EachOrEvery<AllotmentRequest>
 }
 
 impl TextShape {
-    pub fn new(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>, coord_system: CoordinateSystem) -> Option<TextShape> {
+    pub fn new_details(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Option<TextShape> {
         if !allotments.compatible(position.len()) || !text.compatible(position.len()) { return None; }
         Some(TextShape {
-            position, pen, text, allotments, coord_system
+            position, pen, text, allotments
         })
+    }
+
+    pub fn new(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+        let mut out = vec![];
+        let details = eoe_throw("new_text",TextShape::new_details(position,pen,text,allotments.clone()))?;
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
+            out.push(Shape {
+                coord_system,
+                details: ShapeDetails::Text(details.clone().filter(&mut filter))
+            });
+        }
+        Ok(out)        
     }
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
-    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
     pub fn pen(&self) -> &Pen { &self.pen }
     pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
@@ -124,8 +161,7 @@ impl TextShape {
             position: self.position.filter(filter),
             pen: self.pen.filter(&filter),
             text: self.text.filter(&filter),
-            allotments: self.allotments.filter(filter),
-            coord_system: self.coord_system.clone()
+            allotments: self.allotments.filter(filter)
         }
     }
 
@@ -160,21 +196,31 @@ impl TextShape {
 pub struct ImageShape {
     position: HoleySpaceBase,
     names: EachOrEvery<String>,
-    allotments: EachOrEvery<AllotmentRequest>,
-    coord_system: CoordinateSystem
+    allotments: EachOrEvery<AllotmentRequest>
 }
 
 impl ImageShape {
-    pub fn new(position: HoleySpaceBase, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>, coord_system: CoordinateSystem) -> Option<ImageShape> {
+    pub fn new_details(position: HoleySpaceBase, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Option<ImageShape> {
         if !allotments.compatible(position.len()) || !names.compatible(position.len()) { return None; }
         Some(ImageShape {
-            position, names, allotments, coord_system
+            position, names, allotments
         })
+    }
+
+    pub fn new(position: HoleySpaceBase, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+        let mut out = vec![];
+        let details = eoe_throw("add_image",ImageShape::new_details(position,names,allotments.clone()))?;
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
+            out.push(Shape {
+                coord_system,
+                details: ShapeDetails::Image(details.filter(&mut filter))
+            });
+        }
+        Ok(out)        
     }
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
-    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
     pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
@@ -184,8 +230,7 @@ impl ImageShape {
         ImageShape {
             position: self.position.filter(filter),
             names: self.names.filter(&filter),
-            allotments: self.allotments.filter(filter),
-            coord_system: self.coord_system.clone()
+            allotments: self.allotments.filter(filter)
         }
     }
 
@@ -220,21 +265,31 @@ impl ImageShape {
 pub struct RectangleShape {
     area: HoleySpaceBaseArea,
     patina: Patina,
-    allotments: EachOrEvery<AllotmentRequest>,
-    coord_system: CoordinateSystem
+    allotments: EachOrEvery<AllotmentRequest>
 }
 
 impl RectangleShape {
-    pub fn new(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>, coord_system: CoordinateSystem) -> Option<RectangleShape> {
+    pub fn new_details(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Option<RectangleShape> {
         if !allotments.compatible(area.len()) { return None; }
         Some(RectangleShape {
-            area, patina, allotments, coord_system
+            area, patina, allotments
         })
+    }
+
+    pub fn new(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+        let mut out = vec![];
+        let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina,allotments.clone()))?;
+        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
+            out.push(Shape {
+                coord_system,
+                details: ShapeDetails::SpaceBaseRect(details.clone().filter(&mut filter))
+            });
+        }
+        Ok(out)        
     }
 
     pub fn len(&self) -> usize { self.area.len() }
     pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
-    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn holey_area(&self) -> &HoleySpaceBaseArea { &self.area }
     pub fn area(&self) -> SpaceBaseArea<f64> { self.area.extract().0 }
@@ -248,8 +303,7 @@ impl RectangleShape {
         RectangleShape {
             area: self.area.filter(filter),
             patina: self.patina.filter(filter),
-            allotments: self.allotments.filter(filter),
-            coord_system: self.coord_system.clone()
+            allotments: self.allotments.filter(filter)
         }
     }
 
@@ -312,19 +366,19 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 
 impl Shape {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
-        match self {
-            Shape::SpaceBaseRect(shape) => {
+        match &self.details {
+            ShapeDetails::SpaceBaseRect(shape) => {
                 for ((top_left,bottom_right),allotment) in shape.area().iter().zip(shape.iter_allotments()) {
                     allotment.register_usage(top_left.normal.ceil() as i64);
                     allotment.register_usage(bottom_right.normal.ceil() as i64);
                 }
             },
-            Shape::Text(shape) => {
+            ShapeDetails::Text(shape) => {
                 for (position,allotment) in shape.position().iter().zip(shape.iter_allotments()) {
                     allotment.register_usage((*position.normal + shape.pen().size() as f64).ceil() as i64);
                 }
             },
-            Shape::Image(shape) => {
+            ShapeDetails::Image(shape) => {
                 for (position,(allotment,asset_name)) in shape.position().iter().zip(shape.iter_allotments().zip(shape.iter_names())) {
                     if let Some(asset) = assets.get(asset_name) {
                         if let Some(height) = asset.metadata_u32("height") {
@@ -333,7 +387,7 @@ impl Shape {
                     }
                 }
             },
-            Shape::Wiggle(shape) => {
+            ShapeDetails::Wiggle(shape) => {
                 shape.allotment().register_usage(shape.plotter().0 as i64);
             }
         }
@@ -341,77 +395,82 @@ impl Shape {
     }
 
     fn test_filter_base(&self) -> bool {
-        let coord_system = match self {
-            Shape::SpaceBaseRect(shape) => shape.coord_system(),
-            Shape::Text(shape) => shape.coord_system(),
-            Shape::Image(shape) => shape.coord_system(),
-            Shape::Wiggle(shape) => shape.coord_system()
-        };
-        coord_system.is_tracking() 
+        self.coord_system.is_tracking() 
     }
 
     pub fn is_tracking(&self, min_value: f64, max_value: f64) -> Shape {
         if !self.test_filter_base() {
             return self.clone();
         }
-        match self {
-            Shape::SpaceBaseRect(shape) => {
-                Shape::SpaceBaseRect(shape.filter_by_minmax(min_value,max_value))
+        let details = match &self.details {
+            ShapeDetails::SpaceBaseRect(shape) => {
+                ShapeDetails::SpaceBaseRect(shape.filter_by_minmax(min_value,max_value))
             },
-            Shape::Text(shape) => {
-                Shape::Text(shape.filter_by_minmax(min_value,max_value))
+            ShapeDetails::Text(shape) => {
+                ShapeDetails::Text(shape.filter_by_minmax(min_value,max_value))
             },
-            Shape::Image(shape) => {
-                Shape::Image(shape.filter_by_minmax(min_value,max_value))
+            ShapeDetails::Image(shape) => {
+                ShapeDetails::Image(shape.filter_by_minmax(min_value,max_value))
             },
-            Shape::Wiggle(shape) => {
-                Shape::Wiggle(shape.filter_by_minmax(min_value,max_value))
+            ShapeDetails::Wiggle(shape) => {
+                ShapeDetails::Wiggle(shape.filter_by_minmax(min_value,max_value))
             }
-        }
+        };
+        Shape { details, coord_system: self.coord_system.clone() }
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
-        match self {
-            Shape::Wiggle(shape) => {
-                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Wiggle(s))).collect()
+        let coord_system = self.coord_system.clone();
+        match self.details {
+            ShapeDetails::Wiggle(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,s)| 
+                    (x, Shape { coord_system: coord_system.clone(), details: ShapeDetails::Wiggle(s) })
+                ).collect()
             },
-            Shape::Text(shape) => {
-                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Text(s))).collect()
+            ShapeDetails::Text(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,s)|
+                    (x, Shape { coord_system: coord_system.clone(), details: ShapeDetails::Text(s) })
+                ).collect()
             },
-            Shape::Image(shape) => {
-                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::Image(s))).collect()
+            ShapeDetails::Image(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,s)|
+                    (x, Shape { coord_system: coord_system.clone(), details: ShapeDetails::Image(s) })
+                ).collect()
             },
-            Shape::SpaceBaseRect(shape) => {
-                return shape.demerge(cat).drain(..).map(|(x,s)| (x,Shape::SpaceBaseRect(s))).collect()
+            ShapeDetails::SpaceBaseRect(shape) => {
+                return shape.demerge(cat).drain(..).map(|(x,s)|
+                    (x, Shape { coord_system: coord_system.clone(), details: ShapeDetails::SpaceBaseRect(s) })
+                ).collect()
             }
         }
     }
     
     pub fn len(&self) -> usize {
-        match self {
-            Shape::SpaceBaseRect(shape) => shape.len(),
-            Shape::Text(shape) => shape.len(),
-            Shape::Image(shape) => shape.len(),
-            Shape::Wiggle(shape) => shape.len()
+        match &self.details {
+            ShapeDetails::SpaceBaseRect(shape) => shape.len(),
+            ShapeDetails::Text(shape) => shape.len(),
+            ShapeDetails::Image(shape) => shape.len(),
+            ShapeDetails::Wiggle(shape) => shape.len()
         }
     }
 
     pub fn is_empty(&self) -> bool { self.len() == 0 }
 
     pub fn remove_nulls(self) -> Shape {
-        match self {
-            Shape::SpaceBaseRect(shape) => {
-                Shape::SpaceBaseRect(shape.filter_by_allotment(|a| !a.is_dustbin()))
+        let details = match self.details {
+            ShapeDetails::SpaceBaseRect(shape) => {
+                ShapeDetails::SpaceBaseRect(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
-            Shape::Text(shape) => {
-                Shape::Text(shape.filter_by_allotment(|a| !a.is_dustbin()))
+            ShapeDetails::Text(shape) => {
+                ShapeDetails::Text(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
-            Shape::Image(shape) => {
-                Shape::Image(shape.filter_by_allotment(|a| !a.is_dustbin()))
+            ShapeDetails::Image(shape) => {
+                ShapeDetails::Image(shape.filter_by_allotment(|a| !a.is_dustbin()))
             },
-            Shape::Wiggle(shape) => {
-                Shape::Wiggle(shape.filter_by_allotment(|a| !a.is_dustbin()))
+            ShapeDetails::Wiggle(shape) => {
+                ShapeDetails::Wiggle(shape.filter_by_allotment(|a| !a.is_dustbin()))
             }
-        }
+        };
+        Shape { details, coord_system: self.coord_system.clone() }
     }
 }

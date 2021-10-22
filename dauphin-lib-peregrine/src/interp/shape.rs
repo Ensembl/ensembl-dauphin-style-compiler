@@ -93,7 +93,7 @@ impl InterpCommand for WiggleInterpCommand {
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
         let allotment = geometry.allotment(allotment_id as u32)?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment.as_ref().clone());
+        zoo.lock().add_wiggle(x_min,x_max,plotter,values,allotment.as_ref().clone())?;
         Ok(CommandResult::SyncResult())
     }
 }

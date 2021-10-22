@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeDemerge};
+use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeDemerge, ShapeDetails};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -111,11 +111,11 @@ impl ShapeDemerge for GLCategoriser {
 pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
-        match shape {
-            Shape::Wiggle(shape) => {
+        match shape.details() {
+            ShapeDetails::Wiggle(shape) => {
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),get_allotment(shape.allotment())?));
             },
-            Shape::Text(shape) => {
+            ShapeDetails::Text(shape) => {
                 let allotment = allotments(&shape.allotments())?;
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
@@ -124,14 +124,14 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 let handles : Vec<_> = texts.iter().zip(colours_iter).map(|(text,colour)| drawing_text.add_text(&shape.pen(),text,colour,background)).collect();
                 out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,draw_group));
             },
-            Shape::Image(shape) => {
+            ShapeDetails::Image(shape) => {
                 let allotment = allotments(shape.allotments())?;
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
                 out.push(GLShape::Image(shape.holey_position().clone(),handles,allotment,draw_group));
             },
-            Shape::SpaceBaseRect(shape) => {
+            ShapeDetails::SpaceBaseRect(shape) => {
                 out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             }
         }    

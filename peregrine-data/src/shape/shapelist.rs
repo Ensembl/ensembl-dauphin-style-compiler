@@ -30,6 +30,12 @@ impl ShapeListBuilder {
         }
     }
 
+    fn extend(&mut self, mut shapes: Vec<Shape>) {
+        for shape in shapes.drain(..) {
+            self.push(shape);
+        }
+    }
+
     pub fn len(&self) -> usize { self.shapes.len() }
     pub fn vec_len(&self) -> usize {
         let mut out = 0;
@@ -46,37 +52,23 @@ impl ShapeListBuilder {
     }
     
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
-            filter.set_size(area.len());
-            self.push(Shape::SpaceBaseRect(eoe_throw("add_rectangle",RectangleShape::new(
-                area.filter(&filter),patina.clone(),allotments.filter(&filter),coord_system)
-            )?));
-        }
+        self.extend(RectangleShape::new(area,patina,allotments)?);
         Ok(())
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
-            filter.set_size(position.len());
-            self.push(Shape::Text(eoe_throw("add_text",TextShape::new(
-                position.filter(&filter),pen.filter(&filter),text.filter(&filter),allotments.filter(&filter),coord_system)
-            )?));
-        }
+        self.extend(TextShape::new(position,pen,text,allotments)?);
         Ok(())
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
-            filter.set_size(position.len());
-            self.push(Shape::Image(eoe_throw("add_image",ImageShape::new(
-                position.filter(&filter),images.filter(&filter),allotments.filter(&filter),coord_system)
-            )?));
-        }
+        self.extend(ImageShape::new(position,images,allotments)?);
         Ok(())
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) {
-        self.push(Shape::Wiggle(WiggleShape::new((min,max),values,plotter,allotment.clone(),allotment.coord_system())))
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) -> Result<(),DataMessage> {
+        self.extend(WiggleShape::new((min,max),values,plotter,allotment.clone())?);
+        Ok(())
     }
 
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
