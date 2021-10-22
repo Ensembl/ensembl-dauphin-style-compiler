@@ -59,7 +59,7 @@ Docker:
   extends: .build
 
 WP-HX:Dev:
-  .extends: .deploy
+  extends: .deploy
   environment:
     name : wp-hx-dev
   variables:
