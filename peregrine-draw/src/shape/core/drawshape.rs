@@ -27,7 +27,7 @@ pub(crate) enum SimpleShapePatina {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
-fn simplify_colours(colours: EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
+fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
     Ok(colours.map_results(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d.clone()),
@@ -38,7 +38,7 @@ fn simplify_colours(colours: EachOrEvery<Colour>) -> Result<EachOrEvery<DirectCo
 }
 
 impl SimpleShapePatina {
-    pub(crate) fn from_patina(patina: Patina) -> Result<SimpleShapePatina,Message> {
+    pub(crate) fn from_patina(patina: &Patina) -> Result<SimpleShapePatina,Message> {
         Ok(match patina {
             Patina::Drawn(drawn_variety,colours) => {
                 match drawn_variety {
@@ -46,7 +46,7 @@ impl SimpleShapePatina {
                     DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
                 }
             },
-            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu,values) }
+            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()) }
         })
     }
 

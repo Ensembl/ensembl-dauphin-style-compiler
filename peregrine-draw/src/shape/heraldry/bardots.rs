@@ -10,12 +10,14 @@ const BAR_WIDTH : u32 = 32;
 const DOTS_REPEAT : u32 = 4;
 const PAD : u32 = 8;
 
+#[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Hash,Clone)]
 enum Variety {
     Bar,
     Dots
 }
 
+#[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Hash,Clone)]
 pub(crate) struct HeraldryBarDots {
     col_a: DirectColour,

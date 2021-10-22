@@ -6,6 +6,7 @@ use crate::Assets;
 use crate::Colour;
 use crate::DataFilter;
 use crate::DataMessage;
+use crate::DrawnType;
 use crate::EachOrEvery;
 use crate::Flattenable;
 use crate::HoleySpaceBase;
@@ -20,7 +21,7 @@ pub trait ShapeDemerge {
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
     
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _colour: &Colour) -> Self::X {
+    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _variety: &DrawnType, _colour: &Colour) -> Self::X {
         self.categorise(allotment)
     }
 }
@@ -262,9 +263,11 @@ impl RectangleShape {
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
-            Patina::Drawn(_,colours) => {
+            Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.allotments.merge(&colours).unwrap();
-                allotments_and_colours.demerge(|(a,c)| cat.categorise_with_colour(a,c))
+                allotments_and_colours.demerge(|(a,c)| 
+                    cat.categorise_with_colour(a,drawn_type,c)
+                )
             },
             _ => {
                 self.allotments.demerge(|a| cat.categorise(a))

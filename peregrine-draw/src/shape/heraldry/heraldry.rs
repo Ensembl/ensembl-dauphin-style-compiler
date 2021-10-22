@@ -52,6 +52,7 @@ impl HeraldryScale {
     }
 }
 
+#[cfg_attr(debug_assertions, derive(Debug))]
 #[derive(Hash,Clone)]
 pub(crate) enum Heraldry {
     Stripe(DirectColour,DirectColour,u32,(u32,u32)),
@@ -140,6 +141,7 @@ pub(crate) enum HeraldryCanvasesUsed {
     Hollow(HeraldryCanvas,HeraldryCanvas)
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) enum HeraldryHandleType {
     HorizVert,
     Horiz,

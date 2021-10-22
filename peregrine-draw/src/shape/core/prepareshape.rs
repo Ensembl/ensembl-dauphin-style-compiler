@@ -2,11 +2,10 @@ use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
-use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed, HeraldryScale};
-use crate::shape::triangles::drawgroup::{DrawGroup};
+use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
+use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
-use std::hash::Hash;
 
 fn get_allotment(handle: &AllotmentRequest) -> Result<Allotment,Message> {
     handle.allotment().map_err(|e| Message::DataError(e))
@@ -18,62 +17,38 @@ fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<
     }).map_err(|e| Message::DataError(e))
 }
 
-#[derive(Clone,PartialEq,Eq,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub(crate) enum ShapeCategory {
-    Solid(),
-    Heraldry(HeraldryCanvasesUsed,HeraldryScale)
-}
-
 fn split_spacebaserect(tools: &mut DrawingTools, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(shape.allotments())?;
     let mut out = vec![];
     match shape.patina() {
-        Patina::Drawn(drawn_variety,colours) => {
+        Patina::Drawn(drawn_variety,_) => {
             let width = match drawn_variety {
                 DrawnType::Stroke(w) => Some(*w as f64),
                 DrawnType::Fill => None
             };
-            let mut demerge_colour = colours.demerge(|colour| {
-                let is_fill = match drawn_variety {
-                    DrawnType::Fill => true,
-                    DrawnType::Stroke(_) => false
-                };
-                if let Some(heraldry) = colour_to_heraldry(colour,is_fill) {
-                    ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
-                } else {
-                    ShapeCategory::Solid()
+            match draw_group.shape_category() {
+                ShapeCategory::SolidColour | ShapeCategory::Other => {
+                    out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::from_patina(shape.patina())?,allotment,draw_group.clone()));
+                },
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
+                    let heraldry_tool = tools.heraldry();
+                    let heraldry = make_heraldry(shape.patina())?;
+                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    out.push(GLShape::Heraldry(shape.holey_area().clone(),handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+                },
+                ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
+                    let width = width.unwrap_or(0.);
+                    let heraldry_tool = tools.heraldry();
+                    let heraldry = make_heraldry(shape.patina())?;
+                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    // XXX too much cloning, at least Arc them
+                    let area = shape.holey_area();
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
                 }
-            });
-            for (pkind,filter) in &mut demerge_colour {
-                filter.set_size(shape.len());
-                match pkind {
-                    ShapeCategory::Solid() => {
-                        out.push(GLShape::SpaceBaseRect(shape.holey_area().filter(filter),SimpleShapePatina::from_patina(shape.patina().filter(filter))?,allotment.filter(&filter),draw_group.clone()));
-                    },
-                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
-                        let heraldry_tool = tools.heraldry();
-                        let heraldry = make_heraldry(shape.patina().filter(filter))?;
-                        let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-                        let area = shape.holey_area().filter(filter);
-                        let allotment = allotment.filter(&filter);
-                        out.push(GLShape::Heraldry(area,handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
-                    },
-                    ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
-                        let width = width.unwrap_or(0.);
-                        let heraldry_tool = tools.heraldry();
-                        let heraldry = make_heraldry(shape.patina().filter(filter))?;
-                        let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-                        let area = shape.holey_area().filter(filter);
-                        let allotment = allotment.filter(&filter);
-                        // XXX too much cloning, at least Arc them
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
-                        out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
-                        out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
-                    }
-                }
-            }        
+            }
         },
         Patina::ZMenu(zmenu,values) => {
             out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()),allotment,draw_group.clone()));
@@ -98,7 +73,7 @@ fn colour_to_heraldry(colour: &Colour, hollow: bool) -> Option<Heraldry> {
     }
 }
 
-fn make_heraldry(patina: Patina) -> Result<EachOrEvery<Heraldry>,Message> {
+fn make_heraldry(patina: &Patina) -> Result<EachOrEvery<Heraldry>,Message> {
     let (colours,hollow) = match patina {
         Patina::Drawn(DrawnType::Fill,c) => (c,false),
         Patina::Drawn(DrawnType::Stroke(_),c) => (c,true),
@@ -116,11 +91,20 @@ impl ShapeDemerge for GLCategoriser {
     type X = DrawGroup;
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X {
-        DrawGroup::new(&allotment.coord_system(),allotment.depth())
+        DrawGroup::new(&allotment.coord_system(),allotment.depth(),&ShapeCategory::Other)
     }
 
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _colour: &Colour) -> Self::X {
-        DrawGroup::new(&allotment.coord_system(),allotment.depth())
+    fn categorise_with_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
+        let is_fill = match drawn_variety {
+            DrawnType::Fill => false,
+            DrawnType::Stroke(_) => true
+        };
+        let category = if let Some(heraldry) = colour_to_heraldry(colour,is_fill) {
+            ShapeCategory::Heraldry(heraldry.canvases_used(),heraldry.scale())                                
+        } else {
+            ShapeCategory::SolidColour
+        };
+        DrawGroup::new(&allotment.coord_system(),allotment.depth(),&category)        
     }
 }
 
