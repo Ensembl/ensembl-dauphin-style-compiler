@@ -3,6 +3,7 @@ use std::sync::Arc;
 use super::core::{ Patina, Pen, Plotter };
 use std::cmp::{ max, min };
 use crate::Assets;
+use crate::Colour;
 use crate::DataFilter;
 use crate::DataMessage;
 use crate::EachOrEvery;
@@ -18,7 +19,8 @@ pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
-    fn categorise_patinate(&self, allotment: &AllotmentRequest,_patina: &Patina) -> Self::X {
+    
+    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _colour: &Colour) -> Self::X {
         self.categorise(allotment)
     }
 }
@@ -259,7 +261,15 @@ impl RectangleShape {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,RectangleShape)> where D: ShapeDemerge<X=T> {
-        let demerge = self.allotments.demerge(|a| cat.categorise(a));
+        let demerge = match &self.patina {
+            Patina::Drawn(_,colours) => {
+                let allotments_and_colours = self.allotments.merge(&colours).unwrap();
+                allotments_and_colours.demerge(|(a,c)| cat.categorise_with_colour(a,c))
+            },
+            _ => {
+                self.allotments.demerge(|a| cat.categorise(a))
+            }
+        };
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             out.push((draw_group,self.filter(&mut filter)));

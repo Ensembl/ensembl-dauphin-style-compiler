@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
 use super::text::TextHandle;
 use super::bitmap::BitmapHandle;
@@ -40,8 +40,12 @@ fn simplify_colours(colours: EachOrEvery<Colour>) -> Result<EachOrEvery<DirectCo
 impl SimpleShapePatina {
     pub(crate) fn from_patina(patina: Patina) -> Result<SimpleShapePatina,Message> {
         Ok(match patina {
-            Patina::Filled(colours) => { SimpleShapePatina::Solid(simplify_colours(colours)?) },
-            Patina::Hollow(colours,_) => { SimpleShapePatina::Hollow(simplify_colours(colours)?) },
+            Patina::Drawn(drawn_variety,colours) => {
+                match drawn_variety {
+                    DrawnType::Stroke(_) => SimpleShapePatina::Hollow(simplify_colours(colours)?),
+                    DrawnType::Fill => SimpleShapePatina::Solid(simplify_colours(colours)?),
+                }
+            },
             Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu,values) }
         })
     }

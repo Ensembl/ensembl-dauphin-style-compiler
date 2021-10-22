@@ -110,7 +110,7 @@ mod shape {
     mod zmenufixed;
 
     pub use self::core::{ 
-        Patina, Pen, Colour, DirectColour, Plotter 
+        Patina, Pen, Colour, DirectColour, Plotter, DrawnType
     };
     pub use self::shape::{ Shape, ShapeDemerge, RectangleShape };
     pub use self::zmenu::ZMenu;
@@ -171,7 +171,7 @@ pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, 
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request, issue_jump_request };
 pub use self::shape::{ 
-    Patina, Colour, DirectColour,
+    Patina, Colour, DirectColour, DrawnType,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, RectangleShape
 };

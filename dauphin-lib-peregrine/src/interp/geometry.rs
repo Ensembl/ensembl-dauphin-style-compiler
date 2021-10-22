@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -231,7 +231,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
 
 impl InterpCommand for PatinaFilledInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
-        patina_colour(context,&self.0,&self.1, |c| Patina::Filled(c))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Drawn(DrawnType::Fill,c))?;
         Ok(CommandResult::SyncResult())
     }
 }
@@ -241,7 +241,7 @@ impl InterpCommand for PatinaHollowInterpCommand {
         let registers = context.registers_mut();
         let width = *registers.get_numbers(&self.2)?.to_vec().get(0).unwrap_or(&1.);
         drop(registers);    
-        patina_colour(context,&self.0,&self.1, |c| Patina::Hollow(c,width as u32))?;
+        patina_colour(context,&self.0,&self.1, |c| Patina::Drawn(DrawnType::Stroke(width as u32),c))?;
         Ok(CommandResult::SyncResult())
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Colour, DirectColour, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues};
+use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -76,9 +76,10 @@ impl MarchingAnts {
             vec![ParameterValue::Variable(pos.3,16.)]
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        shapes.add_rectangle(area,Patina::Hollow(
+        shapes.add_rectangle(area,Patina::Drawn(
+            DrawnType::Stroke(self.width as u32),
             EachOrEvery::Every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
-        ,self.width as u32),EachOrEvery::Every(window_origin));
+        ),EachOrEvery::Every(window_origin));
         Ok(())
     }
 }
@@ -147,7 +148,7 @@ impl Stain {
             )));
         }
         for area in rectangles.drain(..) {
-            shapes.add_rectangle(area,Patina::Filled(EachOrEvery::Every(Colour::Direct(self.colour.clone()))),EachOrEvery::Every(window_origin.clone()));
+            shapes.add_rectangle(area,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))),EachOrEvery::Every(window_origin.clone()));
         }
         Ok(())
     }
