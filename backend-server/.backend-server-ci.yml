@@ -55,15 +55,15 @@ variables:
       changes: 
         - backend-server/*
 
-# WP-HX:Dev:
-#   .extends: .deploy
-#   environment:
-#     name : wp-hx-dev
-#   variables:
-#     BASE: backend-server/k8s/overlays/dev
-
 Docker:
   extends: .build
+
+WP-HX:Dev:
+  .extends: .deploy
+  environment:
+    name : wp-hx-dev
+  variables:
+    BASE: backend-server/k8s/overlays/dev
 
 WP-HX:Staging:
   extends: .deploy
