@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeDemerge, ShapeDetails};
+use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -17,8 +17,8 @@ fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<
     }).map_err(|e| Message::DataError(e))
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = allotments(shape.allotments())?;
+fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = allotments(common.allotments())?;
     let mut out = vec![];
     match shape.patina() {
         Patina::Drawn(drawn_variety,_) => {
@@ -111,12 +111,13 @@ impl ShapeDemerge for GLCategoriser {
 pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
+        let common = shape.common();
         match shape.details() {
             ShapeDetails::Wiggle(shape) => {
                 out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),get_allotment(shape.allotment())?));
             },
             ShapeDetails::Text(shape) => {
-                let allotment = allotments(&shape.allotments())?;
+                let allotment = allotments(&common.allotments())?;
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
@@ -125,14 +126,14 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,draw_group));
             },
             ShapeDetails::Image(shape) => {
-                let allotment = allotments(shape.allotments())?;
+                let allotment = allotments(&common.allotments())?;
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
                 out.push(GLShape::Image(shape.holey_position().clone(),handles,allotment,draw_group));
             },
             ShapeDetails::SpaceBaseRect(shape) => {
-                out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
+                out.append(&mut split_spacebaserect(tools,&common,&shape,&draw_group)?);
             }
         }    
     }

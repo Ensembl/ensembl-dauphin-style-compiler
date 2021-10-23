@@ -144,4 +144,16 @@ impl Patina {
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))
         }
     }
+
+    pub fn compatible(&self, len: usize) -> bool {
+        match self {
+            Patina::Drawn(_,x) => x.compatible(len),
+            Patina::ZMenu(_,v) => {
+                for (_,x) in v {
+                    if !x.compatible(len) { return false; }
+                }
+                true
+            }
+        }
+    }
 }

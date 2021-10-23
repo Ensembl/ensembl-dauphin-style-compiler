@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use super::{core::{ Patina, Pen, Plotter }, shape::{ImageShape, RectangleShape, TextShape, WiggleShape}};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest, util::eachorevery::eoe_throw};
+use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, allotment::allotmentrequest::AllotmentRequest };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -74,7 +74,7 @@ impl ShapeListBuilder {
     pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
         let mut shapes = vec![];
         for shape in self.shapes.iter() {
-            shapes.push(shape.is_tracking(min_value,max_value));
+            shapes.push(shape.filter_by_minmax(min_value,max_value));
         }
         ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone(), assets: self.assets.clone() }
     }
