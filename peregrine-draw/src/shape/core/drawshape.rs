@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
 use super::directcolourdraw::DirectYielder;
+use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
 use super::bitmap::BitmapHandle;
 use super::super::layers::layer::{ Layer };
@@ -24,6 +25,8 @@ use crate::webgl::canvas::flatstore::FlatId;
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
     Hollow(EachOrEvery<DirectColour>),
+    SolidSpot(DirectColour),
+    HollowSpot(DirectColour),
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
@@ -50,10 +53,24 @@ impl SimpleShapePatina {
         })
     }
 
+    pub(crate) fn spot_from_patina(colour: &DirectColour, patina: &Patina) -> Result<SimpleShapePatina,Message> {
+        Ok(match patina {
+            Patina::Drawn(drawn_variety,_) => {
+                match drawn_variety {
+                    DrawnType::Stroke(_) => SimpleShapePatina::HollowSpot(colour.clone()),
+                    DrawnType::Fill => SimpleShapePatina::SolidSpot(colour.clone()),
+                }
+            },
+            Patina::ZMenu(zmenu,values) => { SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()) }
+        })
+    }
+
     fn build(&self) -> DrawingShapePatina {
         match self {
             SimpleShapePatina::Solid(c) => DrawingShapePatina::Solid(DirectYielder::new(),c.clone()),
             SimpleShapePatina::Hollow(c) => DrawingShapePatina::Hollow(DirectYielder::new(),c.clone()),
+            SimpleShapePatina::SolidSpot(c) => DrawingShapePatina::SolidSpot(SpotColourYielder::new(c)),
+            SimpleShapePatina::HollowSpot(c) => DrawingShapePatina::HollowSpot(SpotColourYielder::new(c)),
             SimpleShapePatina::ZMenu(zmenu,values) => DrawingShapePatina::ZMenu(zmenu.clone(),values.clone())
         }
     }
@@ -62,6 +79,8 @@ impl SimpleShapePatina {
 enum DrawingShapePatina {
     Solid(DirectYielder,EachOrEvery<DirectColour>),
     Hollow(DirectYielder,EachOrEvery<DirectColour>),
+    SolidSpot(SpotColourYielder),
+    HollowSpot(SpotColourYielder),
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
@@ -75,6 +94,8 @@ impl DrawingShapePatina {
         match self {
             DrawingShapePatina::Solid(dc,_) => PatinaTarget::Visual(dc),
             DrawingShapePatina::Hollow(dc,_) => PatinaTarget::Visual(dc),
+            DrawingShapePatina::SolidSpot(dc) => PatinaTarget::Visual(dc),
+            DrawingShapePatina::HollowSpot(dc) => PatinaTarget::Visual(dc),
             DrawingShapePatina::ZMenu(zmenu,values) => PatinaTarget::HotSpot(zmenu.clone(),values.clone())
         }
     }
@@ -95,10 +116,11 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
         _ => 0
     };
     match simple_shape_patina {
-        DrawingShapePatina::Solid(direct,colours) | DrawingShapePatina::Hollow(direct,colours) => {
+        DrawingShapePatina::Solid(direct,colours) |
+        DrawingShapePatina::Hollow(direct,colours) => {
             direct.draw()?.direct(addable,&colours,vertexes,count)?;
         },
-        DrawingShapePatina::ZMenu(_,_) => {}
+        _ => {}
     }
     Ok(())
 }
@@ -209,7 +231,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
             let left = layer.left();
             match drawing_shape_patina.yielder_mut() {
                 PatinaTarget::Visual(patina_yielder) => {
-                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) => true, _ => false };
+                    let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) | SimpleShapePatina::HollowSpot(_) => true, _ => false };
                     let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&allotments,left,hollow,&draw_group,&None)?;
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&drawing_shape_patina,area.len())?;

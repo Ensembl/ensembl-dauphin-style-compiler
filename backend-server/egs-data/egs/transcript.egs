@@ -86,10 +86,22 @@ use_allotments(allotments_under,enabled_tracks,[
     "track:focus[-1]"
 ]);
 
-use_allotments(allotments_over,enabled_tracks,[
+use_allotments(allotments_just_over,enabled_tracks,[
     "track:gene-other-rev[1]","track:gene-pc-rev[1]",
     "track:gene-other-fwd[1]","track:gene-pc-fwd[1]",
     "track:focus[1]"
+]);
+
+use_allotments(allotments_over,enabled_tracks,[
+    "track:gene-other-rev[2]","track:gene-pc-rev[2]",
+    "track:gene-other-fwd[2]","track:gene-pc-fwd[2]",
+    "track:focus[2]"
+]);
+
+use_allotments(allotments_very_over,enabled_tracks,[
+    "track:gene-other-rev[3]","track:gene-pc-rev[3]",
+    "track:gene-other-fwd[3]","track:gene-pc-fwd[3]",
+    "track:focus[3]"
 ]);
 
 use_allotments(allotments_wallpaper,enabled_tracks,[
@@ -138,7 +150,13 @@ exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
 exon_allotment := index(exon_allotment_idx,allotments_over);
-thick_exon_allotment := exon_allotment#[thick_exons];
+
+exon_allotment_just_over := index(exon_allotment_idx,allotments_just_over);
+exon_allotment_over := index(exon_allotment_idx,allotments_very_over);
+
+blanking_exon_allotment := index(exon_allotment_idx,allotments_just_over);
+
+thick_exon_allotment := exon_allotment_over#[thick_exons];
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -176,16 +194,16 @@ base_focus_colour := direct_colour(39,154,252,255);
 dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,5,1,0.25);
 dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.25);
 dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,5,1,0.25);
-non_pc_colour := simple_colour(base_non_pc_colour);
-pc_colour := simple_colour(base_pc_colour);
-focus_colour := simple_colour(base_focus_colour);
+non_pc_colour := spot_colour(base_non_pc_colour);
+pc_colour := spot_colour(base_pc_colour);
+focus_colour := spot_colour(base_focus_colour);
 
 under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),1);
 hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
-white_patina := patina_filled(simple_colour(direct_colour(255,255,255,255)));
+white_patina := patina_filled(spot_colour(direct_colour(255,255,255,255)));
 thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 text_colour := direct_colour(111,129,144,255);
 text_size := 10;
@@ -211,15 +229,22 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene
  * draw everything!
  */
 
+/* draw gene-extent dotted lines */
 rectangle_on_genome(start,start,6,hollow_patina,allotment); // left stop
 rectangle_on_genome(end,end,6,hollow_patina,allotment); // right stop
 rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment_under,3); // central dotted line
 rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment_under,3); // central line
-rectangle_on_genome(exon_start,exon_end,6,white_patina,exon_allotment); // exon white box
+
+
+rectangle_on_genome(exon_start,exon_end,6,white_patina,blanking_exon_allotment); // exon white box
 rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
 rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box
+
+/* zmenu areas */
 rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+
+/* label */
 text_underneath(start,8,textpen,gene_labels,text_allotment);
 
 chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];

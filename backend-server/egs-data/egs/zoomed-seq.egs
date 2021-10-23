@@ -13,7 +13,7 @@ three_bonds := len([seq_letter]) (*) false;
 three_bonds#[seq_letter=="C"] := true;
 three_bonds#[seq_letter=="G"] := true;
 
-seq_colour := simple_colour(direct_colour(39,154,252,255));
+seq_colour := spot_colour(direct_colour(39,154,252,255));
 patina := patina_hollow(seq_colour,1);
 
 text_colour := direct_colour(39,154,252,255);

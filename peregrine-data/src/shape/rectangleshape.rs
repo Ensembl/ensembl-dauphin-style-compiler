@@ -35,14 +35,6 @@ impl RectangleShape {
     pub fn holey_area(&self) -> &HoleySpaceBaseArea { &self.area }
     pub fn area(&self) -> SpaceBaseArea<f64> { self.area.extract().0 }
 
-    pub(super) fn filter_shape(&self, common: &ShapeCommon, filter: &DataFilter) -> Shape {
-        let mut filter = filter.clone();
-        filter.set_size(self.len());
-        let common = common.filter(&filter);
-        let details = self.filter(&filter);
-        Shape::new(common,ShapeDetails::SpaceBaseRect(details))
-    }
-
     pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape {
         RectangleShape {
             area: self.area.filter(filter),

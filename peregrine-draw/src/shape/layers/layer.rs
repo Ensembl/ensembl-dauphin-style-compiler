@@ -1,4 +1,5 @@
 use std::{collections::HashMap};
+use crate::shape::layers::patina::PatinaProcess;
 use crate::webgl::{ ProcessBuilder, Process, DrawingAllFlats };
 use super::geometry::{GeometryProcessName, GeometryYielder};
 use super::programstore::ProgramStore;
@@ -73,6 +74,16 @@ impl Layer {
                 ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
                 ProgramCharacter(_,PatinaProcessName::FreeTexture(flat_id)) =>{
                     canvases.add_process(&flat_id,prog.get_process_mut())?;
+                },
+                ProgramCharacter(_,PatinaProcessName::Spot(colour)) => {
+                    let draw = match prog.get_patina() {
+                        PatinaProcess::Spot(draw) => Some(draw),
+                        _ => None
+                    }.cloned();
+                    if let Some(draw) = draw {
+                        let process = prog.get_process_mut();
+                        draw.set_spot(process,colour)?;
+                    }
                 },
                 _ => {}
             }

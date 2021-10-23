@@ -12,7 +12,7 @@ struct PacerData<T> {
 impl<T> PacerData<T> where T: Clone {
     fn new(config: &[T]) -> PacerData<T> {
         let config = config.to_vec();
-        let failed = vec![false;config.len()];
+        let failed = vec![false;config.len()-1];
         PacerData {
             config, failed,
             count: 0,
@@ -21,14 +21,12 @@ impl<T> PacerData<T> where T: Clone {
     }
 
     fn report(&mut self, failed: bool) {
-        let delta_plus_one = match (self.failed[self.offset],failed) {
-            (false,false) => 1,
-            (false,true) => 2,
-            (true,false) => 0,
-            (true,true) => 1
+        match (self.failed[self.offset],failed) {
+            (false,true) => { self.count += 1; }
+            (true,false) => { self.count -= 1; },
+            _ => {}
         };
         self.failed[self.offset] = failed;
-        self.count += delta_plus_one-1;
         self.offset = (self.offset+1) % self.failed.len();
     }
 

@@ -33,9 +33,9 @@ impl ProgramStoreEntry {
         })
     }
     
-    pub(crate) fn make_shape_program(&self, geometry_process_name: &GeometryProcessName, patina_process_name: &PatinaProcessName) -> Result<ShapeProgram,Message> {
+    pub(crate) fn make_shape_program(&self, geometry_process_name: &GeometryProcessName) -> Result<ShapeProgram,Message> {
         let geometry = self.geometry.clone();
-        let patina = self.patina.make_patina_process(patina_process_name)?;
+        let patina = self.patina.make_patina_process()?;
         let process = ProcessBuilder::new(self.builder.clone());
         Ok(ShapeProgram::new(process,geometry,geometry_process_name.clone(),patina))
     }
@@ -80,6 +80,6 @@ impl ProgramStore {
     }
 
     pub(super) fn get_shape_program(&self, geometry: &GeometryProcessName, patina: &PatinaProcessName) -> Result<ShapeProgram,Message> {
-        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry,patina)
+        self.0.borrow_mut().get_program(geometry.get_program_name(),patina.get_program_name())?.make_shape_program(geometry)
     }
 }

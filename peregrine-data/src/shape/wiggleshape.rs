@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBase, Plotter, Shape, ShapeDemerge, ShapeDetails, SpaceBase, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 100; // XXX configurable

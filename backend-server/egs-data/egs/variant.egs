@@ -19,8 +19,6 @@ colours := [
     simple_colour(direct_colour(216,47,36,255)),   // red = 5
 ];
 
-neg_colour := simple_colour(direct_colour(128,128,128,255));
-pos_colour := simple_colour(direct_colour(200,200,200,255));
 patina := patina_filled(index(values,colours));
 
 start := x_range[@==0];
