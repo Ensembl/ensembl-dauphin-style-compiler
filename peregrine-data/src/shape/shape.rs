@@ -41,6 +41,31 @@ impl ShapeDetails {
         }
     }
 
+    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+        match self {
+            ShapeDetails::SpaceBaseRect(shape) => shape.make_base_filter(min,max),
+            ShapeDetails::Text(shape) => shape.make_base_filter(min,max),
+            ShapeDetails::Image(shape) => shape.make_base_filter(min,max),
+            ShapeDetails::Wiggle(shape) => shape.make_base_filter(min,max),
+        }
+    }
+
+    pub fn filter(&self, filter: &DataFilter) -> ShapeDetails {
+        match self {
+            ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.filter(filter)),
+            ShapeDetails::Text(shape) => ShapeDetails::Text(shape.filter(filter)),
+            ShapeDetails::Image(shape) => ShapeDetails::Image(shape.filter(filter)),
+            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.filter(filter))
+        }
+    }
+
+    pub fn reduce_by_minmax(&self, min_value: f64, max_value: f64) -> ShapeDetails {
+        match self {
+            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.reduce_by_minmax(min_value,max_value)),
+            x => x.clone()
+        }
+    }
+
     pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => {
@@ -70,23 +95,6 @@ impl ShapeDetails {
         Ok(())
     }
 
-    pub fn filter_by_minmax(&self, common: &mut ShapeCommon, min_value: f64, max_value: f64) -> ShapeDetails {
-        match &self {
-            ShapeDetails::SpaceBaseRect(shape) => {
-                ShapeDetails::SpaceBaseRect(shape.filter_by_minmax(common,min_value,max_value))
-            },
-            ShapeDetails::Text(shape) => {
-                ShapeDetails::Text(shape.filter_by_minmax(common,min_value,max_value))
-            },
-            ShapeDetails::Image(shape) => {
-                ShapeDetails::Image(shape.filter_by_minmax(common,min_value,max_value))
-            },
-            ShapeDetails::Wiggle(shape) => {
-                ShapeDetails::Wiggle(shape.filter_by_minmax(common,min_value,max_value))
-            }
-        }
-    }
-
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
         match self {
             ShapeDetails::Wiggle(shape) => {
@@ -111,25 +119,6 @@ impl ShapeDetails {
             }
         }
     }
-
-    pub fn remove_nulls(self, common: &ShapeCommon) -> Shape {
-        let mut common = common.clone();
-        let details = match self {
-            ShapeDetails::SpaceBaseRect(shape) => {
-                ShapeDetails::SpaceBaseRect(shape.filter_by_allotment(&mut common,|a| !a.is_dustbin()))
-            },
-            ShapeDetails::Text(shape) => {
-                ShapeDetails::Text(shape.filter_by_allotment(&mut common, |a| !a.is_dustbin()))
-            },
-            ShapeDetails::Image(shape) => {
-                ShapeDetails::Image(shape.filter_by_allotment(&mut common, |a| !a.is_dustbin()))
-            },
-            ShapeDetails::Wiggle(shape) => {
-                ShapeDetails::Wiggle(shape.filter_by_allotment(&mut common, |a| !a.is_dustbin()))
-            }
-        };
-        Shape { details, common: common.clone() }
-    }   
 }
 
 #[derive(Clone)]
@@ -176,9 +165,20 @@ impl Shape {
 
     pub fn details(&self) -> &ShapeDetails { &self.details }
     pub fn common(&self) -> &ShapeCommon { &self.common }
-}
 
-impl Shape {
+    pub(super) fn filter_shape(&self, filter: &DataFilter) -> Shape {
+        let mut filter = filter.clone();
+        filter.set_size(self.len());
+        let common = self.common.filter(&filter);
+        let details = self.details.filter(&filter);
+        Shape::new(common,details)
+    }
+
+    pub fn filter_by_allotment<F>(&self,  cb: F)  -> Shape where F: Fn(&AllotmentRequest) -> bool {
+        let filter = self.common.allotments().new_filter(self.len(),cb);
+        self.filter_shape(&filter)
+    }
+
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         self.details.register_space(&self.common,assets)
     }
@@ -187,9 +187,10 @@ impl Shape {
         if !self.common.coord_system.is_tracking() {
             return self.clone();
         }
-        let mut common = self.common.clone();
-        let details = self.details.filter_by_minmax(&mut common,min_value,max_value);
-        Shape { details, common }
+        let filter = self.details.make_base_filter(min_value,max_value);
+        let common = self.common.filter(&filter);
+        let details = self.details.filter(&filter).reduce_by_minmax(min_value,max_value);
+        Shape::new(common,details)
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
@@ -198,5 +199,5 @@ impl Shape {
     
     pub fn len(&self) -> usize { self.details.len() }
     pub fn is_empty(&self) -> bool { self.len() == 0 }
-    pub fn remove_nulls(self) -> Shape { self.details.remove_nulls(&self.common) }
+    pub fn remove_nulls(self) -> Shape { self.filter_by_allotment(|a| !a.is_dustbin()) }    
 }

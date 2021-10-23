@@ -36,7 +36,11 @@ impl TextShape {
     pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
 
-    fn filter(&self, filter: &DataFilter) -> TextShape {
+    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+        self.position.make_base_filter(min,max)
+    }
+
+    pub(super) fn filter(&self, filter: &DataFilter) -> TextShape {
         TextShape {
             position: self.position.filter(filter),
             pen: self.pen.filter(filter),
@@ -44,23 +48,8 @@ impl TextShape {
         }
     }
 
-
     pub fn iter_texts(&self) -> impl Iterator<Item=&String> {
         self.text.iter(self.position.len()).unwrap()
-    }
-
-    pub fn filter_by_minmax(&self, common: &mut ShapeCommon, min: f64, max: f64) -> TextShape {
-        let mut filter = self.position.make_base_filter(min,max);
-        filter.set_size(self.position.len());
-        *common = common.filter(&filter);
-        self.filter(&filter)
-    }
-
-    pub fn filter_by_allotment<F>(&self, common: &mut ShapeCommon, cb: F)  -> TextShape where F: Fn(&AllotmentRequest) -> bool {
-        let mut filter = common.allotments().new_filter(self.position.len(),cb);
-        filter.set_size(self.position.len());
-        *common = common.filter(&filter);
-        self.filter(&filter)
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,TextShape)> where D: ShapeDemerge<X=T> {

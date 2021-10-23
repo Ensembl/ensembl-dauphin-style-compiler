@@ -35,7 +35,11 @@ impl ImageShape {
     pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
 
-    fn filter(&self, filter: &DataFilter) -> ImageShape {
+    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+        self.position.make_base_filter(min,max)
+    }
+
+    pub(super) fn filter(&self, filter: &DataFilter) -> ImageShape {
         ImageShape {
             position: self.position.filter(filter),
             names: self.names.filter(&filter)
@@ -44,20 +48,6 @@ impl ImageShape {
 
     pub fn iter_names(&self) -> impl Iterator<Item=&String> {
         self.names.iter(self.position.len()).unwrap()
-    }
-
-    pub fn filter_by_minmax(&self, common: &mut ShapeCommon, min: f64, max: f64) -> ImageShape {
-        let mut filter = self.position.make_base_filter(min,max);
-        filter.set_size(self.position.len());
-        *common = common.filter(&filter);
-        self.filter(&filter)
-    }
-
-    pub fn filter_by_allotment<F>(&self, common: &mut ShapeCommon, cb: F)  -> ImageShape where F: Fn(&AllotmentRequest) -> bool {
-        let mut filter = common.allotments().new_filter(self.position.len(),cb);
-        filter.set_size(self.position.len());
-        *common = common.filter(&filter);
-        self.filter(&filter)
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape)> where D: ShapeDemerge<X=T> {

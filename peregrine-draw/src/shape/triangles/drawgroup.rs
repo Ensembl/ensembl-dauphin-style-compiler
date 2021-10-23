@@ -9,7 +9,8 @@ pub(crate) enum ShapeCategory {
     Other
 }
 
-#[derive(Debug,Clone,PartialEq,Eq,Hash)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
     coord_system: CoordinateSystem,
     depth: i8,

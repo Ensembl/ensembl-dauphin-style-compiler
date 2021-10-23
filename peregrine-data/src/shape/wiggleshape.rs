@@ -63,7 +63,7 @@ impl WiggleShape {
         Ok(out)
     }
 
-    fn filter(&self, filter: &DataFilter) -> WiggleShape {
+    pub(super) fn filter(&self, filter: &DataFilter) -> WiggleShape {
         let y = if filter.filter(&[()]).len() > 0 {
             self.values.clone()
         } else {
@@ -84,13 +84,6 @@ impl WiggleShape {
     pub fn plotter(&self) -> &Plotter { &self.plotter }
     pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
 
-    pub fn filter_by_allotment<F>(&self, common: &mut ShapeCommon, cb: F)  -> WiggleShape where F: Fn(&AllotmentRequest) -> bool {
-        let mut filter = common.allotments().new_filter(1,cb);
-        filter.set_size(1);
-        *common = common.filter(&filter);
-        self.filter(&filter)
-    }
-
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,WiggleShape)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(|a| cat.categorise(a));
         let mut out = vec![];
@@ -102,7 +95,11 @@ impl WiggleShape {
         out
     }
 
-    pub fn filter_by_minmax(&self, _common: &mut ShapeCommon, min: f64, max: f64) -> WiggleShape {
+    pub fn make_base_filter(&self, _min: f64, _max: f64) -> DataFilter {
+        DataFilter::all(1)
+    }
+
+    pub fn reduce_by_minmax(&self, min: f64, max: f64) -> WiggleShape {
         let (aim_min,aim_max,new_y) = wiggle_filter(min,max,self.x_limits.0,self.x_limits.1,&self.values);
         WiggleShape {
             x_limits: (aim_min,aim_max),

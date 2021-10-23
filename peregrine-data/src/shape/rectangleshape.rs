@@ -35,26 +35,23 @@ impl RectangleShape {
     pub fn holey_area(&self) -> &HoleySpaceBaseArea { &self.area }
     pub fn area(&self) -> SpaceBaseArea<f64> { self.area.extract().0 }
 
-    fn filter(&self, filter: &DataFilter) -> RectangleShape {
+    pub(super) fn filter_shape(&self, common: &ShapeCommon, filter: &DataFilter) -> Shape {
+        let mut filter = filter.clone();
+        filter.set_size(self.len());
+        let common = common.filter(&filter);
+        let details = self.filter(&filter);
+        Shape::new(common,ShapeDetails::SpaceBaseRect(details))
+    }
+
+    pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape {
         RectangleShape {
             area: self.area.filter(filter),
             patina: self.patina.filter(filter)
         }
     }
 
-    pub fn filter_by_minmax(&self, common: &mut ShapeCommon, min: f64, max: f64) -> RectangleShape {
-        let mut filter = self.area.make_base_filter(min,max);
-        filter.set_size(self.area.len());
-        *common = common.filter(&filter);
-        let x = self.filter(&filter);
-        x
-    }
-
-    pub fn filter_by_allotment<F>(&self, common: &mut ShapeCommon, cb: F)  -> RectangleShape where F: Fn(&AllotmentRequest) -> bool {
-        let mut filter = common.allotments().new_filter(self.area.len(),cb);
-        filter.set_size(self.area.len());
-        *common = common.filter(&filter);
-        self.filter(&filter)
+    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+        self.area.make_base_filter(min,max)
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,RectangleShape)> where D: ShapeDemerge<X=T> {
