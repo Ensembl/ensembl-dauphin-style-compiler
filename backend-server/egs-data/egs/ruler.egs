@@ -8,12 +8,12 @@ max := [min_max][@==1];
 interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
 
-allotment_top := use_allotment("track-top:ruler-top[3]");
-allotment_bottom := use_allotment("track-bottom:ruler-bottom[3]");
-allotment_top_wallpaper := use_allotment("track-top:ruler-top:wallpaper[3]");
-allotment_bottom_wallpaper := use_allotment("track-bottom:ruler-bottom:wallpaper[3]");
-allotment_top_left := use_allotment("track-top:ruler-top:wallpaper[5]{left:left-pad}");
-allotment_bottom_left := use_allotment("track-bottom:ruler-bottom:wallpaper[5]{left:left-pad}");
+allotment_top := use_allotment("track-top:ruler-top[55]");
+allotment_bottom := use_allotment("track-bottom:ruler-bottom[55]");
+allotment_top_wallpaper := use_allotment("track-top:ruler-top:wallpaper[55]");
+allotment_bottom_wallpaper := use_allotment("track-bottom:ruler-bottom:wallpaper[55]");
+allotment_top_left := use_allotment("track-top:ruler-top:wallpaper[58]{left:left-pad}");
+allotment_bottom_left := use_allotment("track-bottom:ruler-bottom:wallpaper[58]{left:left-pad}");
 
 
 marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);

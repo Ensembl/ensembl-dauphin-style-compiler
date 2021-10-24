@@ -10,11 +10,11 @@ stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
 }
 
 gene_cat_allotments := [
-    "track:gene-other-rev:wallpaper{left:left-pad}[5]",
-    "track:gene-pc-rev:wallpaper{left:left-pad}[5]",
-    "track:gene-other-fwd:wallpaper{left:left-pad}[5]",
-    "track:gene-pc-fwd:wallpaper{left:left-pad}[5]",
-    "track:focus:wallpaper{left:left-pad}[5]",
+    "track:gene-other-rev:wallpaper{left:left-pad}[60]",
+    "track:gene-pc-rev:wallpaper{left:left-pad}[60]",
+    "track:gene-other-fwd:wallpaper{left:left-pad}[60]",
+    "track:gene-pc-fwd:wallpaper{left:left-pad}[60]",
+    "track:focus:wallpaper{left:left-pad}[60]",
 ];
 
 gene_name_switches := [

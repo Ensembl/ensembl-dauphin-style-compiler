@@ -34,4 +34,4 @@ rectangle_on_genome(r_start,r_end,5,patina,allotment);
 draw_track_names(["Variants"],[["track","variant","name"]],[use_allotment("track:variant:wallpaper[-3]")]);
 
 /* track category */
-draw_track_category("V",[use_allotment("track:variant:wallpaper{left:left-pad}[5]")]);
+draw_track_category("V",[use_allotment("track:variant:wallpaper{left:left-pad}[60]")]);

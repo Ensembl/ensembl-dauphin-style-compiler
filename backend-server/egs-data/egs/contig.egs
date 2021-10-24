@@ -23,4 +23,4 @@ rectangle_on_genome(start,end,5,patina,allotment);
 draw_track_names(["Contigs"],[["track","contig","name"]],[use_allotment("track:contig:wallpaper[-3]")]);
 
 /* track category */
-draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[5]")]);
+draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[60]")]);
