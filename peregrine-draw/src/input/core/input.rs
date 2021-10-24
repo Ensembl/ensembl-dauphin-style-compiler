@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{PeregrineCore, StickId};
+use peregrine_data::{PeregrineCore};
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
@@ -10,7 +10,7 @@ use crate::stage::stage::ReadStage;
 use crate::{ PeregrineDom, run::PgPeregrineConfig, PgCommanderWeb };
 use crate::util::Message;
 use crate::input::low::lowlevel::LowLevelInput;
-use crate::input::translate::Physics;
+use crate::input::translate::InputTranslator;
 use crate::input::translate::debug::debug_register;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash)]
@@ -58,7 +58,7 @@ pub struct InputEvent {
 
 struct InputState {
     low_level: LowLevelInput,
-    physics: Physics,
+    physics: InputTranslator,
     inner_api: PeregrineInnerAPI,
     stage: Option<ReadStage>
 }
@@ -82,7 +82,7 @@ impl Input {
     pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
-        let physics = Physics::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
+        let physics = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
         translate_zemnus(&mut low_level,commander,&inner_api);
         debug_register(config,&mut low_level,inner_api)?;
         *self.state.lock().unwrap() = Some(InputState {

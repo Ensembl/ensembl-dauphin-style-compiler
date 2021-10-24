@@ -1,5 +1,5 @@
 use crate::{Message, PeregrineInnerAPI, input::translate::{axisphysics::{AxisPhysicsConfig, Scaling}, measure::Measure}, run::{PgConfigKey, PgPeregrineConfig}};
-use super::{dragregime::{DragRegime, DragRegimeCreator}, windowregime::{WRegime, WRegimeCreator}, zoomxregime::{ZoomXRegime, ZoomXRegimeCreator}};
+use super::{dragregime::{DragRegime, DragRegimeCreator}, setregime::{SetRegime, SetRegimeCreator}, windowregime::{WRegime, WRegimeCreator}, zoomxregime::{ZoomXRegime, ZoomXRegimeCreator}};
 
 pub(crate) enum TickResult {
     Finished,
@@ -31,6 +31,7 @@ impl RegimeTrait for RegimeNone {
 }
 
 enum RegimeObject {
+    Set(SetRegime),
     W(WRegime),
     UserPull(DragRegime),
     InstructedPull(DragRegime),
@@ -42,6 +43,7 @@ enum RegimeObject {
 impl RegimeObject {
     fn as_trait_mut(&mut self) -> &mut dyn RegimeTrait {
         match self {
+            RegimeObject::Set(r) => r,
             RegimeObject::W(r) => r,
             RegimeObject::UserPull(r) => r,
             RegimeObject::InstructedPull(r) => r,
@@ -73,6 +75,7 @@ fn make_drag_axis_config(config: &PgPeregrineConfig, lethargy_key: &PgConfigKey)
 
 pub(crate) struct Regime {
     object: RegimeObject,
+    set_creator: SetRegimeCreator,
     w_creator: WRegimeCreator,
     user_drag_creator: DragRegimeCreator,
     instructed_drag_creator: DragRegimeCreator,
@@ -114,6 +117,7 @@ impl Regime {
         instructed_drag_config.0.force_min *= 100.;
         Ok(Regime {
             object: RegimeObject::None(RegimeNone()),
+            set_creator: SetRegimeCreator(),
             w_creator: WRegimeCreator(w_config),
             user_drag_creator: DragRegimeCreator(user_drag_config.0,user_drag_config.1),
             instructed_drag_creator: DragRegimeCreator(instructed_drag_config.0,instructed_drag_config.1),
@@ -123,6 +127,7 @@ impl Regime {
         })
     }
 
+    set_regime!(regime_set,try_regime_set,SetRegime,Set,set_creator);
     set_regime!(regime_w,try_regime_w,WRegime,W,w_creator);
     set_regime!(regime_user_drag,try_regime_user_drag,DragRegime,UserPull,user_drag_creator);
     set_regime!(regime_instructed_drag,try_regime_instructed_drag,DragRegime,InstructedPull,instructed_drag_creator);

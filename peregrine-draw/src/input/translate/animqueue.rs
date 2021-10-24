@@ -15,6 +15,7 @@ pub(super) enum Cadence {
 }
 
 pub(super) enum QueueEntry {
+    Set(f64,f64),
     MoveW(f64,f64),
     ShiftTo(f64,Cadence),
     ShiftByZoomTo(f64,Cadence),
@@ -27,7 +28,7 @@ pub(super) enum QueueEntry {
     Size(f64)
 }
 
-pub(super) struct PhysicsRunner {
+pub(super) struct AnimationQueue {
     regime: Regime,
     animation_queue: VecDeque<QueueEntry>,
     animation_current: Option<QueueEntry>,
@@ -35,9 +36,9 @@ pub(super) struct PhysicsRunner {
     max_zoom_in_bp: f64
 }
 
-impl PhysicsRunner {
-    pub(super) fn new(config: &PgPeregrineConfig) -> Result<PhysicsRunner,Message> {
-        Ok(PhysicsRunner {
+impl AnimationQueue {
+    pub(super) fn new(config: &PgPeregrineConfig) -> Result<AnimationQueue,Message> {
+        Ok(AnimationQueue {
             regime: Regime::new(config)?,
             animation_queue: VecDeque::new(),
             animation_current: None,
@@ -66,6 +67,9 @@ impl PhysicsRunner {
         self.regime.update_settings(measure);
         match &entry {
             QueueEntry::Wait => {},
+            QueueEntry::Set(centre,scale) => {
+                self.regime.regime_set(measure).set(*centre,*scale);
+            },
             QueueEntry::MoveW(centre,scale) => {
                 self.regime.regime_w(measure).set(measure,*centre,*scale);
             },

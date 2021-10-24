@@ -23,6 +23,7 @@ mod input {
     mod regimes {
         pub(crate) mod regime;
         mod dragregime;
+        mod setregime;
         mod zoomxregime;
         mod windowregime;
     }
@@ -31,11 +32,11 @@ mod input {
         pub(super) mod measure;
         pub(crate) mod animqueue;
         pub(crate) mod axisphysics;
-        pub(crate) mod physics;
+        pub(crate) mod translateinput;
         pub(crate) mod debug;
         pub(crate) mod translatezmenu;
 
-        pub use self::physics::Physics;
+        pub use self::translateinput::InputTranslator;
     }
 
     pub use self::core::input::{ Input, InputEvent, InputEventKind };
@@ -200,7 +201,7 @@ mod webgl {
     pub(crate) use stanza::array::ProcessStanzaArray;
     pub(crate) use stanza::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
     pub(crate) use stanza::stanza::ProcessStanza;
-    pub(crate) use program::program::{ Program, ProgramBuilder };
+    pub(crate) use program::program::{ ProgramBuilder };
     pub(crate) use program::process::{ ProcessBuilder, Process };
     pub(crate) use program::compiler::make_program;
     pub(crate) use program::header::Header;
@@ -211,7 +212,7 @@ mod webgl {
     pub(crate) use program::source::{ SourceInstrs };
     pub(crate) use program::conditional::{ Conditional, SetFlag };
     pub(crate) use program::statement::{ Statement, Declaration };
-    pub(crate) use program::texture::{ Texture, TextureProto };
+    pub(crate) use program::texture::{ TextureProto };
 
     pub(crate) mod global;
     mod util;
