@@ -20,6 +20,13 @@ mod input {
         pub mod mapping;
     }
 
+    mod regimes {
+        pub(crate) mod regime;
+        mod dragregime;
+        mod zoomxregime;
+        mod windowregime;
+    }
+
     mod translate {
         pub(super) mod measure;
         pub(crate) mod animqueue;
@@ -27,9 +34,6 @@ mod input {
         pub(crate) mod physics;
         pub(crate) mod debug;
         pub(crate) mod translatezmenu;
-        pub(super) mod dragregime;
-        pub(super) mod windowregime;
-        pub(super) mod zoomxregime;
 
         pub use self::physics::Physics;
     }

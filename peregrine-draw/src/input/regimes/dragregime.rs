@@ -1,28 +1,29 @@
-use super::{animqueue::{ApplyResult, PhysicsRegimeCreator, PhysicsRegimeTrait}, axisphysics::{AxisPhysics, AxisPhysicsConfig, Scaling}, measure::Measure};
+use crate::input::translate::{axisphysics::{AxisPhysics, AxisPhysicsConfig}, measure::Measure};
+use super::regime::{TickResult, RegimeCreator, RegimeTrait};
 
-pub(super) struct PhysicsDragRegimeCreator(pub AxisPhysicsConfig, pub AxisPhysicsConfig);
+pub(super) struct DragRegimeCreator(pub AxisPhysicsConfig, pub AxisPhysicsConfig);
 
-impl PhysicsRegimeCreator for PhysicsDragRegimeCreator {
-    type Object = PhysicsRunnerDragRegime;
+impl RegimeCreator for DragRegimeCreator {
+    type Object = DragRegime;
 
     fn create(&self) -> Self::Object {
-        PhysicsRunnerDragRegime::new(&self.0,&self.1)
+        DragRegime::new(&self.0,&self.1)
     }
 }
 
-pub(super) struct PhysicsRunnerDragRegime {
+pub(crate) struct DragRegime {
     x: AxisPhysics,
     z: AxisPhysics,
     zoom_centre: Option<f64>,
     size: Option<f64>
 }
 
-impl PhysicsRunnerDragRegime {
-    pub(crate) fn new(x_config: &AxisPhysicsConfig, z_config: &AxisPhysicsConfig) -> PhysicsRunnerDragRegime {
+impl DragRegime {
+    pub(crate) fn new(x_config: &AxisPhysicsConfig, z_config: &AxisPhysicsConfig) -> DragRegime {
         let x =  AxisPhysics::new(x_config);
         let mut z =  AxisPhysics::new(z_config);
         z.set_min_value(z_config.min_bp_per_screen);
-        PhysicsRunnerDragRegime { x, z, zoom_centre: None, size: None }
+        DragRegime { x, z, zoom_centre: None, size: None }
     }
 
     pub(crate) fn shift_to(&mut self, x: f64) {
@@ -52,7 +53,7 @@ impl PhysicsRunnerDragRegime {
     pub(crate) fn brake_z(&mut self) { self.z.brake(); }
 }
 
-impl PhysicsRegimeTrait for PhysicsRunnerDragRegime {
+impl RegimeTrait for DragRegime {
     fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
         if let Some(size) = size {
             self.size = Some(size);
@@ -80,8 +81,8 @@ impl PhysicsRegimeTrait for PhysicsRunnerDragRegime {
         self.x.enforce_limits(measure.x_bp);
     }
 
-    fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> ApplyResult {
-        if !self.x.is_active() && !self.z.is_active() { return ApplyResult::Finished; }
+    fn tick(&mut self, measure: &Measure, total_dt: f64) -> TickResult {
+        if !self.x.is_active() && !self.z.is_active() { return TickResult::Finished; }
         let mut new_x = self.x.apply_spring(measure.x_bp,total_dt);
         let mut new_bp = None;
         if let Some(new_bp_per_screen) = self.z.apply_spring(measure.bp_per_screen,total_dt) {
@@ -100,6 +101,6 @@ impl PhysicsRegimeTrait for PhysicsRunnerDragRegime {
         }
         /**/
         self.update_settings(measure);
-        ApplyResult::Update(new_x,new_bp)
+        TickResult::Update(new_x,new_bp)
     }
 }

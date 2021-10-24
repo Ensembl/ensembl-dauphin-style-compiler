@@ -1,16 +1,18 @@
-use super::{animqueue::{ApplyResult, PhysicsRegimeCreator, PhysicsRegimeTrait}, axisphysics::{AxisPhysics, AxisPhysicsConfig, Scaling}, measure::Measure};
+use crate::input::translate::{axisphysics::{AxisPhysics, AxisPhysicsConfig}, measure::Measure};
 
-pub(super) struct PhysicsWRegimeCreator(pub AxisPhysicsConfig);
+use super::regime::{TickResult, RegimeCreator, RegimeTrait};
 
-impl PhysicsRegimeCreator for PhysicsWRegimeCreator {
-    type Object = PhysicsRunnerWRegime;
+pub(super) struct WRegimeCreator(pub AxisPhysicsConfig);
+
+impl RegimeCreator for WRegimeCreator {
+    type Object = WRegime;
 
     fn create(&self) -> Self::Object {
-        PhysicsRunnerWRegime::new(&self.0)
+        WRegime::new(&self.0)
     }
 }
 
-pub(super) struct PhysicsRunnerWRegime {
+pub(crate) struct WRegime {
     w_left: AxisPhysics,
     w_right: AxisPhysics,
     w_scale: f64,
@@ -18,11 +20,11 @@ pub(super) struct PhysicsRunnerWRegime {
     min_bp: f64
 }
 
-impl PhysicsRunnerWRegime {
-    pub(super) fn new(w_config: &AxisPhysicsConfig) -> PhysicsRunnerWRegime {
+impl WRegime {
+    pub(super) fn new(w_config: &AxisPhysicsConfig) -> WRegime {
         let mut w_left = AxisPhysics::new(&w_config);
         w_left.set_min_value(0.);
-        PhysicsRunnerWRegime {
+        WRegime {
             w_left,
             w_right: AxisPhysics::new(&w_config),
             w_scale: 1., 
@@ -31,7 +33,7 @@ impl PhysicsRunnerWRegime {
         }
     }
 
-    pub(super) fn set(&mut self, measure: &Measure, centre: f64, scale: f64) {
+    pub(crate) fn set(&mut self, measure: &Measure, centre: f64, scale: f64) {
         let new_left_bp = centre - (scale/2.);
         let new_right_bp = centre + (scale/2.);
         self.w_scale = measure.bp_per_screen / measure.px_per_screen; // bp_per_px
@@ -42,7 +44,7 @@ impl PhysicsRunnerWRegime {
     }
 }
 
-impl PhysicsRegimeTrait for PhysicsRunnerWRegime {
+impl RegimeTrait for WRegime {
     fn set_size(&mut self, measure: &Measure, size: Option<f64>) {
         if let Some(size) = size {
             self.size = Some(size);
@@ -69,8 +71,8 @@ impl PhysicsRegimeTrait for PhysicsRunnerWRegime {
         }
     }
 
-    fn apply_spring(&mut self, measure: &Measure, total_dt: f64) -> ApplyResult {
-        if !self.w_left.is_active() && !self.w_right.is_active() { return ApplyResult::Finished; }
+    fn tick(&mut self, measure: &Measure, total_dt: f64) -> TickResult {
+        if !self.w_left.is_active() && !self.w_right.is_active() { return TickResult::Finished; }
         /* where are we right now? */
         let old_left_bp = measure.x_bp - measure.bp_per_screen/2.;
         let old_right_bp = measure.x_bp + measure.bp_per_screen/2.;
@@ -91,8 +93,8 @@ impl PhysicsRegimeTrait for PhysicsRunnerWRegime {
             /* compute new position */
             let x = (new_left_bp+new_right_bp)/2.;
             let bp = new_right_bp-new_left_bp;
-            return ApplyResult::Update(Some(x),Some(bp));
+            return TickResult::Update(Some(x),Some(bp));
         }
-        ApplyResult::Update(None,None)
+        TickResult::Update(None,None)
     }
 }

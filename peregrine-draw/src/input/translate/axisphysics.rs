@@ -61,7 +61,7 @@ pub(super) enum Stopped {
     Maximum
 }
 
-pub(super) struct AxisPhysics {
+pub(crate) struct AxisPhysics {
     config: AxisPhysicsConfig,
     stopped: Stopped,
     target: Option<f64>,
@@ -74,7 +74,7 @@ pub(super) struct AxisPhysics {
 }
 
 impl AxisPhysics {
-    pub(super) fn new(config: &AxisPhysicsConfig) -> AxisPhysics {
+    pub(crate) fn new(config: &AxisPhysicsConfig) -> AxisPhysics {
         AxisPhysics {
             config: config.clone(),
             stopped: Stopped::Nominal,
@@ -88,17 +88,17 @@ impl AxisPhysics {
         }
     }
 
-    pub(super) fn set_factor(&mut self, factor: f64) {
+    pub(crate) fn set_factor(&mut self, factor: f64) {
         self.factor = factor;
         self.apply_limits();
     }
 
-    pub(super) fn set_min_value(&mut self, min_value: f64) {
+    pub(crate) fn set_min_value(&mut self, min_value: f64) {
         self.min_value = Some(min_value);
         self.apply_limits();
     }
 
-    pub(super) fn set_max_value(&mut self, max_value: f64) {
+    pub(crate) fn set_max_value(&mut self, max_value: f64) {
         self.max_value = Some(max_value);
         self.apply_limits();
     }
@@ -131,15 +131,14 @@ impl AxisPhysics {
         }
     }
 
-    pub(super) fn is_stopped(&self) -> &Stopped { &self.stopped }
-    pub(super) fn brake(&mut self) { self.brake = true; }
+    pub(crate) fn brake(&mut self) { self.brake = true; }
 
     fn halt(&mut self) {
         self.target = None;
         self.brake = false;
     }
 
-    pub(super) fn enforce_limits(&mut self, position: f64) {
+    pub(crate) fn enforce_limits(&mut self, position: f64) {
         let limited_position = self.limited_value(position).0;
         if position != limited_position {
             self.target = Some(limited_position);
@@ -147,12 +146,12 @@ impl AxisPhysics {
         }
     }
 
-    pub(super) fn move_to(&mut self, position: f64) {
+    pub(crate) fn move_to(&mut self, position: f64) {
         self.target = Some(position);
         self.apply_limits();
     }
 
-    pub(super) fn move_more(&mut self, amount: f64) {
+    pub(crate) fn move_more(&mut self, amount: f64) {
         if let Some(target) = &mut self.target {
             let mut target_px = self.config.scaling.to_internal(self.factor,*target);
             target_px += amount;
@@ -161,7 +160,7 @@ impl AxisPhysics {
         self.apply_limits();
     }
 
-    pub(super) fn apply_spring(&mut self, current: f64, mut total_dt: f64) -> Option<f64> {
+    pub(crate) fn apply_spring(&mut self, current: f64, mut total_dt: f64) -> Option<f64> {
         let mut current_px = self.config.scaling.to_internal(self.factor,current);
         if let Some(target) = self.target {
             if self.immediate {
@@ -198,7 +197,7 @@ impl AxisPhysics {
         }
     }
 
-    pub(super) fn is_active(&self) -> bool { self.target.is_some() }
+    pub(crate) fn is_active(&self) -> bool { self.target.is_some() }
 
-    pub(super) fn get_target(&self) -> Option<f64> { self.target }
+    pub(crate) fn get_target(&self) -> Option<f64> { self.target }
 }

@@ -101,7 +101,7 @@ impl PhysicsState {
             let dt = now - last_update;
             self.apply_ongoing(dt)?;
             self.runner.drain_animation_queue(inner,report)?;
-            self.runner.apply_spring(inner,dt)?;
+            self.runner.regime_tick(inner,dt)?;
         }
         self.last_update = Some(now);
         self.update_needed();
