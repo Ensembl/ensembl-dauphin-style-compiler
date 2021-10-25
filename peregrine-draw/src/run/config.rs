@@ -82,6 +82,7 @@ pub enum PgConfigKey {
     MinBpPerScreen,
     EndstopSound, // bell or not?
     MinHoldDragSize, // min bp-per-screen ratio for valid hold-drag
+    TargetReportTime, // time between unforced target (intention) reports
 }
 
 #[cfg(not(debug_assertions))]
@@ -163,6 +164,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::ReportUpdateFrequency, name: "report.update-frequency", default: &PgConfigValue::Float(250.) },
             ConfigKeyInfo { key: PgConfigKey::EndstopSound, name: "report.sound.endstop", default: &PgConfigValue::StaticStr("bell") },
             ConfigKeyInfo { key: PgConfigKey::MinHoldDragSize, name: "animate.min-hold-drag-size", default: &PgConfigValue::Float(0.01) },
+            ConfigKeyInfo { key: PgConfigKey::TargetReportTime, name: "report.target-update-time", default: &PgConfigValue::Float(5000.) },
             ]};
 }
 

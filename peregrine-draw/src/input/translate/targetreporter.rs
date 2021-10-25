@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
 use peregrine_toolkit::{lock, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
-use crate::{Message, PgCommanderWeb, run::report::Report, util::debounce::Debounce};
+use crate::{Message, PgCommanderWeb, run::{PgConfigKey, PgPeregrineConfig, report::Report}, util::debounce::Debounce};
 
 /* Lockable, debounced intention reoprting */
 
@@ -70,11 +70,11 @@ impl TargetReporter {
         }
     }
 
-    pub fn new(commander: &PgCommanderWeb, report: &Report) -> TargetReporter {
+    pub fn new(commander: &PgCommanderWeb, config: &PgPeregrineConfig, report: &Report) -> Result<TargetReporter,Message> {
         let out_stage :Arc<Mutex<TargetLocation>> = Arc::new(Mutex::new(TargetLocation::empty()));
         let out_stage2 = out_stage.clone();
         let report2 = report.clone();
-        let debounce = Debounce::new(commander,5000., move || { // XXX configurable
+        let debounce = Debounce::new(commander,config.get_f64(&PgConfigKey::TargetReportTime)?, move || { // XXX configurable
             lock!(out_stage2).make_report(&report2);
         });
         let out = TargetReporter(Arc::new(Mutex::new(TargetReporterState {
@@ -89,7 +89,7 @@ impl TargetReporter {
         })));
         let out2 = out.clone();
         commander.add("target-reporter", 0, None, None, Box::pin(async move { out2.report_loop().await }));
-        out
+        Ok(out)
     }
 
     pub fn lock_updates(&self) -> Lockout {

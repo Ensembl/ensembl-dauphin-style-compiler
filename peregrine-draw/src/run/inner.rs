@@ -134,7 +134,7 @@ impl PeregrineInnerAPI {
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
-        let target_reporter = TargetReporter::new(&commander,&report);
+        let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
