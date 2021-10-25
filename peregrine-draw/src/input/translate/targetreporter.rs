@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_data::DataMessage;
 use peregrine_toolkit::{lock, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
-use crate::{PgCommanderWeb, run::report::Report, util::debounce::Debounce};
+use crate::{Message, PgCommanderWeb, run::report::Report, util::debounce::Debounce};
 
 /* Lockable, debounced intention reoprting */
 
@@ -40,6 +40,7 @@ struct TargetReporterState {
     report: Report,
     in_stage: Arc<Mutex<TargetLocation>>,  // latest report
     out_stage: Arc<Mutex<TargetLocation>>, // ready to send
+    commander: PgCommanderWeb,
     force_needed: Needed,
     needed: Needed,         // pending update
     blocker: Blocker,       // block reports
@@ -83,6 +84,7 @@ impl TargetReporter {
             force_needed: Needed::new(),
             needed: Needed::new(),
             blocker: Blocker::new(),
+            commander: commander.clone(),
             debounce,
         })));
         let out2 = out.clone();
@@ -94,13 +96,22 @@ impl TargetReporter {
         lock!(self.0).blocker.lock()
     }
 
-    pub fn apply_force(&self) {
+    async fn force_applier(&self) -> Result<(),Message> {
+        let blocker = lock!(self.0).blocker.clone();
+        blocker.wait().await;
         let mut state = lock!(self.0);
         let ready = lock!(state.in_stage).is_ready();
         if ready && state.force_needed.is_needed() {
             *lock!(state.out_stage) = lock!(state.in_stage).clone();
             lock!(state.out_stage).make_report(&state.report);
         }
+        Ok(())
+    }
+
+    pub fn apply_force(&self) {
+        let commander = lock!(self.0).commander.clone();
+        let self2 = self.clone();
+        commander.add("force-applier", 0, None, None, Box::pin(async move { self2.force_applier().await }));
     }
 
     pub fn force_report(&self) {

@@ -1,4 +1,6 @@
 use std::collections::VecDeque;
+use peregrine_toolkit::sync::blocker::Lockout;
+
 use crate::run::{PgConfigKey, PgPeregrineConfig};
 use crate::run::report::Report;
 use crate::util::message::Endstop;
@@ -27,12 +29,14 @@ pub(super) enum QueueEntry {
     BrakeZ,
     Wait,
     Size(f64),
-    Report
+    Report,
+    LockReports
 }
 
 pub(super) struct AnimationQueue {
     regime: Regime,
     animation_queue: VecDeque<QueueEntry>,
+    intention_lockout: Option<Lockout>,
     animation_current: Option<QueueEntry>,
     size: Option<f64>,
     max_zoom_in_bp: f64,
@@ -44,6 +48,7 @@ impl AnimationQueue {
         Ok(AnimationQueue {
             regime: Regime::new(config)?,
             animation_queue: VecDeque::new(),
+            intention_lockout: None,
             animation_current: None,
             size: None,
             max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
@@ -52,6 +57,7 @@ impl AnimationQueue {
     }
 
     pub(super) fn queue_clear(&mut self) {
+        self.intention_lockout = None;
         self.animation_queue.clear();
     }
 
@@ -70,6 +76,9 @@ impl AnimationQueue {
     fn run_one_queue_entry(&mut self, measure: &Measure, entry: &QueueEntry) {
         self.regime.update_settings(measure);
         match &entry {
+            QueueEntry::LockReports => {
+                self.intention_lockout = Some(self.target_reporter.lock_updates());
+            }
             QueueEntry::Wait => {},
             QueueEntry::Set(centre,scale) => {
                 self.regime.regime_set(measure).set(*centre,*scale);
@@ -113,6 +122,7 @@ impl AnimationQueue {
                 self.size = Some(*size);
             },
             QueueEntry::Report => {
+                self.intention_lockout = None;
                 self.target_reporter.force_report();
             }
         }
@@ -163,7 +173,7 @@ impl AnimationQueue {
         loop {
             if self.exit_due_to_waiting() { break; }
             self.animation_current = self.animation_queue.pop_front();
-            if self.animation_current.is_none() { break; }
+            if self.animation_current.is_none() {break; }
             /* do it */
             let current = self.animation_current.take();
             let measure = if let Some(measure) = Measure::new(inner)? { measure } else { break; };

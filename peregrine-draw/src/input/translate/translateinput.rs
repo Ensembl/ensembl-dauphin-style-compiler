@@ -128,6 +128,7 @@ impl InputTranslatorState {
             let screenful_move = (centre-measure.x_bp).abs() / bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
+                self.queue.queue_add(QueueEntry::LockReports);
                 self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
@@ -142,6 +143,7 @@ impl InputTranslatorState {
             let screenful_move = (centre-measure.x_bp).abs() / measure.bp_per_screen;
             if screenful_move < 2. { // XXX config
                 /* strategy 1 */
+                self.queue.queue_add(QueueEntry::LockReports);
                 self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
@@ -157,6 +159,7 @@ impl InputTranslatorState {
         let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
+        self.queue.queue_add(QueueEntry::LockReports);
         self.queue.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
