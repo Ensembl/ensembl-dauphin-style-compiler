@@ -143,13 +143,6 @@ impl AnimationQueue {
     }
 
     fn report_targets(&mut self, measure: &Measure, report: &mut Report) {
-        let (target_x,target_bp) = self.regime.report_target(&measure);
-        if let Some(target_x) = target_x {
-            report.set_target_x_bp(target_x);
-        }
-        if let Some(target_bp) = target_bp {
-            report.set_target_bp_per_screen(target_bp);
-        }
         report.set_endstops(&self.detect_endstops(measure));
     }
 
@@ -166,6 +159,7 @@ impl AnimationQueue {
     }
 
     pub(super) fn drain_animation_queue(&mut self, inner: &PeregrineInnerAPI, report: &mut Report) -> Result<(),Message> {
+        let lock = self.target_reporter.lock_updates();
         loop {
             if self.exit_due_to_waiting() { break; }
             self.animation_current = self.animation_queue.pop_front();
@@ -179,6 +173,7 @@ impl AnimationQueue {
             self.report_targets(&measure,report);
             self.animation_current = current;
         }
+        drop(lock);
         Ok(())
     }
 }

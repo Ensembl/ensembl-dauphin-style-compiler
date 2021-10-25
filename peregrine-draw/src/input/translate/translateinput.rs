@@ -114,9 +114,9 @@ impl InputTranslatorState {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.queue.queue_clear();
         /* three strategies:
-         * 1. target is smaller: make short move and then zoom in
-         * 2. target is bigger: zoom out to common scale move and make short move
-         * 3. outzoom to target scale shift and soom in again
+         * 1. target is smaller: make short move, and then zoom in
+         * 2. target is bigger: zoom out to common scale, and make short move
+         * 3. outzoom to target scale, shift, and zoom in again
          */
          if bp_per_screen > measure.bp_per_screen {
             /* we are getting more bp per screen, ie zooming out: can use strategies 2 or 3 */
@@ -127,6 +127,7 @@ impl InputTranslatorState {
                 self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
+                self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::Report);
                 self.update_needed();
                 return Ok(());
@@ -142,6 +143,7 @@ impl InputTranslatorState {
                 self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+                self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::Report);
                 self.update_needed();
                 return Ok(());
@@ -158,6 +160,7 @@ impl InputTranslatorState {
         self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+        self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::Report);
         self.update_needed();
         Ok(())
@@ -257,8 +260,6 @@ impl InputTranslator {
         match event.details {
             InputEventKind::AnimatePosition => {
                 // XXX y
-                self.report.set_target_x_bp(centre);
-                self.report.set_target_bp_per_screen(scale);        
                 state.animate_to(inner,centre,scale,&Cadence::Instructed)?;
             },
             _ => {}
@@ -302,8 +303,6 @@ impl InputTranslator {
     }
 
     pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
-        self.report.set_target_x_bp(centre);
-        self.report.set_target_bp_per_screen(scale);
         self.state.lock().unwrap().goto(api,centre,scale)?;
         Ok(())
     }

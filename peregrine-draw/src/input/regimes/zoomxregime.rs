@@ -58,15 +58,6 @@ impl RegimeTrait for ZoomXRegime {
         self.update_settings(measure);
     }
 
-    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        if let Some(x) = self.zoom_x.get_target() {
-            let bp = self.fixed_bp(x,measure.bp_per_screen);
-            (Some(x),Some(bp))
-        } else {
-            (None,None)
-        }
-    }
-
     fn update_settings(&mut self, measure: &Measure) {
         if let Some(size) = &self.size {
             self.zoom_x.set_max_value(size - self.min_bp/2.);

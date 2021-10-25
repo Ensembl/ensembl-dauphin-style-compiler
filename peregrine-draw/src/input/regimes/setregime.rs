@@ -30,14 +30,6 @@ impl SetRegime {
 impl RegimeTrait for SetRegime {
     fn set_size(&mut self, _measure: &Measure, _size: Option<f64>) {}
 
-    fn report_target(&mut self, _measure: &Measure) -> (Option<f64>,Option<f64>) {
-        if let Some((x,bp)) = self.target {
-            (Some(x),Some(bp))
-        } else {
-            (None,None)
-        }
-    }
-
     fn update_settings(&mut self, _measure: &Measure) {}
 
     fn tick(&mut self, _measure: &Measure, _total_dt: f64) -> TickResult {

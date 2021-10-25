@@ -141,11 +141,11 @@ impl Stage {
     pub fn notify_current(&mut self, viewport: &Viewport) {
         let position = viewport.position().unwrap();
         let bp_per_pixel = viewport.bp_per_screen().unwrap();        
-        self.x_mut().set_position(position);
-        self.x_mut().set_bp_per_screen(bp_per_pixel);
         if let Ok(layout) = viewport.layout() {
             self.stick = Some(layout.stick().clone());
         }
+        self.x_mut().set_position(position);
+        self.x_mut().set_bp_per_screen(bp_per_pixel);
     }
 
     pub fn read_stage(&self) -> ReadStage {

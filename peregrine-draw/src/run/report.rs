@@ -92,6 +92,9 @@ impl ReportData {
 
     fn set_stick(&mut self, stick: &str) {
         self.stick.set(stick.to_string(),&self.needed);
+    }
+
+    fn set_target_stick(&mut self, stick: &str) {
         self.target_stick.set(stick.to_string(),&self.needed);
     }
     fn set_x_bp(&mut self, value: f64) { self.x_bp.set(value,&self.needed); }
@@ -172,6 +175,7 @@ impl Report {
     pub(crate) fn set_stick(&self, value: &str) { self.data.lock().unwrap().set_stick(value); }
     pub(crate) fn set_x_bp(&self, value: f64) { self.data.lock().unwrap().set_x_bp(value); }
     pub(crate) fn set_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_bp_per_screen(value); }
+    pub(crate) fn set_target_stick(&self, value: &str) { self.data.lock().unwrap().set_target_stick(value); }
     pub(crate) fn set_target_x_bp(&self, value: f64) { self.data.lock().unwrap().set_target_x_bp(value); }
     pub(crate) fn set_target_bp_per_screen(&self, value: f64) { self.data.lock().unwrap().set_target_bp_per_screen(value); }
     pub(crate) fn set_endstops(&self,value: &[Endstop]) { self.data.lock().unwrap().set_endstops(value); }

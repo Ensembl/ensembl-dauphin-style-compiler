@@ -14,7 +14,6 @@ pub(super) trait RegimeCreator {
 
 pub(crate) trait RegimeTrait {
     fn set_size(&mut self, measure: &Measure, size: Option<f64>);
-    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>);
     fn tick(&mut self, measure: &Measure, total_dt: f64) -> TickResult;
     fn update_settings(&mut self, measure: &Measure);
     fn is_active(&self) -> bool { true }
@@ -24,7 +23,6 @@ struct RegimeNone();
 
 impl RegimeTrait for RegimeNone {
     fn set_size(&mut self, _measure: &Measure, _size: Option<f64>) {}
-    fn report_target(&mut self, _measure: &Measure) -> (Option<f64>,Option<f64>) { (None,None) }
     fn tick(&mut self, _measure: &Measure, _total_dt: f64) -> TickResult { TickResult::Finished }
     fn update_settings(&mut self, _measure: &Measure) {}
     fn is_active(&self) -> bool { false }
@@ -155,10 +153,6 @@ impl Regime {
 
     pub(crate) fn is_active(&mut self) -> bool {
         self.object.as_trait_mut().is_active()
-    }
-
-    pub(crate) fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        self.object.as_trait_mut().report_target(measure)
     }
 
     pub(crate) fn update_settings(&mut self, measure: &Measure) {

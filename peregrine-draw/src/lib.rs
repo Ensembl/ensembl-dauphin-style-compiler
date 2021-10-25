@@ -28,7 +28,7 @@ mod input {
         mod windowregime;
     }
 
-    mod translate {
+    pub(crate) mod translate {
         pub(super) mod measure;
         pub(crate) mod animqueue;
         pub(crate) mod axisphysics;
@@ -137,6 +137,7 @@ mod util {
     pub(crate) mod evictlist;
     pub(crate) mod message;
     pub(crate) mod monostable;
+    pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
     #[macro_use]
     pub(crate) mod misc;

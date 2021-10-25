@@ -62,14 +62,6 @@ impl RegimeTrait for DragRegime {
         self.update_settings(measure);
     }
     
-    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-        self.x.set_factor(px_per_bp);
-        let x_bp = self.x.get_target();
-        let z_bp = self.z.get_target();
-        (x_bp,z_bp)
-    }
-
     fn update_settings(&mut self, measure: &Measure) {
         let target_bp_per_screen = self.z.get_target().unwrap_or(measure.bp_per_screen);
         let px_per_bp = measure.px_per_screen / target_bp_per_screen;

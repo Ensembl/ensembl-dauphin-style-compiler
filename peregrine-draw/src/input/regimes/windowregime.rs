@@ -52,17 +52,6 @@ impl RegimeTrait for WRegime {
         self.update_settings(measure);
     }
 
-    fn report_target(&mut self, measure: &Measure) -> (Option<f64>,Option<f64>) {
-        let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
-        let left = self.w_left.get_target().map(|x| x / px_per_bp);
-        let right = self.w_right.get_target().map(|x| x / px_per_bp);
-        if let (Some(left),Some(right)) = (left,right) {
-            (Some((left+right)/2.),Some(right-left))
-        } else {
-            (None,None)
-        }
-    }
-
     fn update_settings(&mut self, measure: &Measure) {
         let px_per_bp = measure.px_per_screen / measure.bp_per_screen;
         if let Some(size) = &self.size {

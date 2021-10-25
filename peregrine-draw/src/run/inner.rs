@@ -5,7 +5,7 @@ use crate::integration::pgdauphin::PgDauphinIntegrationWeb;
 use crate::integration::pgintegration::PgIntegration;
 use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
-
+use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
 use peregrine_data::{AllotmentMetadataStore, Assets, Commander, PeregrineCore};
 use peregrine_dauphin::peregrine_dauphin;
@@ -44,7 +44,8 @@ pub struct PeregrineInnerAPI {
     input: Input,
     report: Report,
     sound: Sound,
-    assets: Assets
+    assets: Assets,
+    target_reporter: TargetReporter
 }
 
 pub struct LockedPeregrineInnerAPI<'t> {
@@ -133,6 +134,7 @@ impl PeregrineInnerAPI {
         let stage = Arc::new(Mutex::new(Stage::new()));
         let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
+        let target_reporter = TargetReporter::new(&commander,&report);
         let mut input = Input::new(queue_blocker);
         let integration = Box::new(PgIntegration::new(PgChannel::new(),trainset.clone(),&input,webgl.clone(),&stage,&dom,&report));
         let sound = Sound::new(&config.draw,&commander,integration.assets(),&mut messages)?;
@@ -159,9 +161,10 @@ impl PeregrineInnerAPI {
             input: input.clone(),
             sound: sound.clone(),
             report: report.clone(),
-            assets
+            assets,
+            target_reporter: target_reporter.clone()
         };
-        input.set_api(dom,&config.draw,&out,&commander,&report)?;
+        input.set_api(dom,&config.draw,&out,&commander,&report,&target_reporter)?;
         message_sender.add(Message::Ready);
         Ok(out)
     }
@@ -200,6 +203,7 @@ impl PeregrineInnerAPI {
     
     pub(crate) fn set_x(&mut self, x: f64) {
         self.data_api.set_position(x);
+        self.target_reporter.set_x(x);
     }
 
     pub(super) fn set_y(&mut self, y: f64) {
@@ -212,6 +216,7 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn set_bp_per_screen(&mut self, z: f64) {
         self.data_api.set_bp_per_screen(z);
+        self.target_reporter.set_bp(z);
     }
 
     pub(super) fn goto(&mut self, centre: f64, scale: f64) {
@@ -220,6 +225,7 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn set_stick(&self, stick: &StickId) {
         self.data_api.set_stick(stick);
+        self.target_reporter.set_stick(stick.get_id());
     }
 
     pub(crate) fn debug_action(&mut self, index: u8) {

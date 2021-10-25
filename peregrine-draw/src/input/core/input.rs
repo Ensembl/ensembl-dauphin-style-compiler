@@ -81,9 +81,8 @@ impl Input {
 
     fn state<F,T>(&self, f: F) -> T where F: FnOnce(&mut InputState) -> T { f(self.state.lock().unwrap().as_mut().unwrap()) }
 
-    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
+    pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, target_reporter: &TargetReporter) -> Result<(),Message> {
         let spectres = inner_api.spectres();
-        let target_reporter = TargetReporter::new(commander);
         let mut low_level = LowLevelInput::new(dom,commander,spectres,config,&target_reporter)?;
         let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker,&target_reporter)?;
         translate_zemnus(&mut low_level,commander,&inner_api);
@@ -111,7 +110,6 @@ impl Input {
         self.state(|state| {
             state.stage = Some(stage.clone());
             state.low_level.update_stage(stage);
-            state.target_reporter.stage(stage);
         });
     }
 
@@ -145,7 +143,7 @@ impl Input {
             if slide {
                 self.goto(centre,bp_per_screen)?;
             } else {
-                self.state(|state| { 
+                self.state(|state| {
                     state.inner_api.set_stick(&stick);
                     state.inner_api.set_x(centre);
                     state.inner_api.set_bp_per_screen(bp_per_screen);

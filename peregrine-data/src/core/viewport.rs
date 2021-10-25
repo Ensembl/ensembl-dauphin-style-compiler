@@ -119,6 +119,8 @@ impl Viewport {
     pub fn set_stick(&self, stick: &StickId, size: u64) -> Viewport {
         let mut out = self.clone();
         out.layout.set_stick(stick,size);
+        out.position = None;
+        out.bp_per_screen = None;
         out.update_by_limits();
         out
     }
