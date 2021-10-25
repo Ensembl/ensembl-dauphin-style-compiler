@@ -8,7 +8,7 @@ use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
 use crate::PgCommanderWeb;
-use super::{animqueue::{Cadence, QueueEntry}, axisphysics::{Puller}};
+use super::{animqueue::{Cadence, QueueEntry}, axisphysics::{Puller}, targetreporter::TargetReporter};
 use super::animqueue::AnimationQueue;
 
 const PULL_SPEED : f64 = 2.; // px/ms
@@ -24,20 +24,22 @@ pub struct InputTranslatorState {
     /* used to implement sync in draw queue */
     queue_blocker: Blocker,
     #[allow(unused)]
-    queue_lockout: Option<Lockout>
+    queue_lockout: Option<Lockout>,
+    target_reporter: TargetReporter
 }
 
 impl InputTranslatorState {
-    fn new(config: &PgPeregrineConfig, physics_needed: &Needed, queue_blocker: &Blocker) -> Result<InputTranslatorState,Message> {
+    fn new(config: &PgPeregrineConfig, physics_needed: &Needed, queue_blocker: &Blocker, target_reporter: &TargetReporter) -> Result<InputTranslatorState,Message> {
         Ok(InputTranslatorState {
-            queue: AnimationQueue::new(config)?,
+            queue: AnimationQueue::new(config, target_reporter)?,
             last_update: None,
             x_puller: Puller::new(),
             z_puller: Puller::new(),
             physics_needed: physics_needed.clone(),
             physics_lock: None,
             queue_blocker: queue_blocker.clone(),
-            queue_lockout: None
+            queue_lockout: None,
+            target_reporter: target_reporter.clone()
         })
     }
 
@@ -104,6 +106,7 @@ impl InputTranslatorState {
     fn goto_not_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         inner.set_x(centre);
         inner.set_bp_per_screen(bp_per_screen);
+        self.target_reporter.force_report();
         Ok(())
     }
 
@@ -124,6 +127,7 @@ impl InputTranslatorState {
                 self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
+                self.queue.queue_add(QueueEntry::Report);
                 self.update_needed();
                 return Ok(());
             }
@@ -138,6 +142,7 @@ impl InputTranslatorState {
                 self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+                self.queue.queue_add(QueueEntry::Report);
                 self.update_needed();
                 return Ok(());
             }
@@ -153,6 +158,7 @@ impl InputTranslatorState {
         self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+        self.queue.queue_add(QueueEntry::Report);
         self.update_needed();
         Ok(())
     }
@@ -279,10 +285,10 @@ impl InputTranslator {
         }
     }
 
-    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, queue_blocker: &Blocker) -> Result<InputTranslator,Message> {
+    pub fn new(config: &PgPeregrineConfig, low_level: &mut LowLevelInput, inner: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report, queue_blocker: &Blocker, target_reporter: &TargetReporter) -> Result<InputTranslator,Message> {
         let physics_needed = Needed::new();
         let out = InputTranslator {
-            state: Arc::new(Mutex::new(InputTranslatorState::new(config,&physics_needed,queue_blocker)?)),
+            state: Arc::new(Mutex::new(InputTranslatorState::new(config,&physics_needed,queue_blocker,target_reporter)?)),
             report: report.clone(),
             physics_needed: physics_needed.clone()
         };
@@ -298,7 +304,8 @@ impl InputTranslator {
     pub fn goto(&self, api: &mut PeregrineInnerAPI, centre: f64, scale: f64) -> Result<(),Message> {
         self.report.set_target_x_bp(centre);
         self.report.set_target_bp_per_screen(scale);
-        self.state.lock().unwrap().goto(api,centre,scale)
+        self.state.lock().unwrap().goto(api,centre,scale)?;
+        Ok(())
     }
 
     pub fn set_limit(&self, limit: f64) {

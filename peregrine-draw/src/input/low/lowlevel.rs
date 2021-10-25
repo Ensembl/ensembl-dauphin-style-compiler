@@ -1,6 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use crate::input::InputEventKind;
 use crate::input::low::modifiers::KeyboardModifiers;
+use crate::input::translate::targetreporter::TargetReporter;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::{SpectreHandle, SpectreManager};
 use crate::stage::stage::ReadStage;
@@ -30,11 +31,12 @@ pub struct LowLevelState {
     stage: Arc<Mutex<Option<ReadStage>>>,
     cursor: Cursor,
     spectres: SpectreManager,
-    pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>
+    pointer_last_seen: Arc<Mutex<Option<(f64,f64)>>>,
+    target_reporter: TargetReporter
 }
 
 impl LowLevelState {
-    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
+    fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig, target_reporter: &TargetReporter) -> Result<(LowLevelState,Distributor<InputEvent>),Message> {
         let mut mapping = InputMapBuilder::new();
         mapping.add_config(config)?;
         let modifiers = Arc::new(Mutex::new(Modifiers::new(KeyboardModifiers::new(false,false,false),&[])));
@@ -48,8 +50,13 @@ impl LowLevelState {
             modifiers,
             stage: Arc::new(Mutex::new(None)),
             spectres: spectres.clone(),
-            pointer_last_seen: Arc::new(Mutex::new(None))
+            pointer_last_seen: Arc::new(Mutex::new(None)),
+            target_reporter: target_reporter.clone() 
         },distributor))
+    }
+
+    pub fn target_reporter(&self) -> &TargetReporter {
+        &self.target_reporter
     }
 
     pub(super) fn set_pointer_last_seen(&mut self, position: (f64,f64)) {
@@ -115,9 +122,9 @@ pub struct LowLevelInput {
 }
 
 impl LowLevelInput {
-    pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig) -> Result<LowLevelInput,Message> {
+    pub(crate) fn new(dom: &PeregrineDom, commander: &PgCommanderWeb, spectres: &SpectreManager, config: &PgPeregrineConfig, target_reporter: &TargetReporter) -> Result<LowLevelInput,Message> {
         let mouse_moved = Needed::new();
-        let (state,distributor) = LowLevelState::new(dom,commander,spectres,config)?;
+        let (state,distributor) = LowLevelState::new(dom,commander,spectres,config,target_reporter)?;
         let keyboard = keyboard_events(&state)?;
         let mouse = mouse_events(config,&state,&mouse_moved)?;
         Ok(LowLevelInput { keyboard, mouse, distributor, state, mouse_moved, hotspot_cursor_handle: None })

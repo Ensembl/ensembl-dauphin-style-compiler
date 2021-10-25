@@ -119,7 +119,7 @@ impl Pointer {
             wheel_cursor,
             wheel_monostable: Monostable::new(lowlevel.commander(), config.wheel_timeout, move || {
                 wheel_cursor2.lock().unwrap().take();
-            }),
+            })
         }
     }
 
@@ -156,7 +156,7 @@ impl Pointer {
     pub(crate) fn process_event(&mut self, config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, kind: &PointerEventKind) -> Result<(),Message> {
         match (&mut self.drag,kind) {
             (None,PointerEventKind::Down) => {
-                self.drag = Some(DragState::new(config,lowlevel,primary,secondary)?);
+                self.drag = Some(DragState::new(config,lowlevel,primary,secondary,lowlevel.target_reporter())?);
                 self.start = primary;
                 self.modifiers = lowlevel.modifiers();
             },

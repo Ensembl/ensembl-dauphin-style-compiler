@@ -34,6 +34,7 @@ mod input {
         pub(crate) mod axisphysics;
         pub(crate) mod translateinput;
         pub(crate) mod debug;
+        pub(crate) mod targetreporter;
         pub(crate) mod translatezmenu;
 
         pub use self::translateinput::InputTranslator;

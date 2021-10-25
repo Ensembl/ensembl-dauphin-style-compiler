@@ -4,6 +4,7 @@ use crate::run::report::Report;
 use crate::util::message::Endstop;
 use crate::{Message, PeregrineInnerAPI };
 use super::measure::Measure;
+use super::targetreporter::TargetReporter;
 use crate::input::regimes::regime::Regime;
 
 #[derive(Clone)]
@@ -25,7 +26,8 @@ pub(super) enum QueueEntry {
     BrakeX,
     BrakeZ,
     Wait,
-    Size(f64)
+    Size(f64),
+    Report
 }
 
 pub(super) struct AnimationQueue {
@@ -33,17 +35,19 @@ pub(super) struct AnimationQueue {
     animation_queue: VecDeque<QueueEntry>,
     animation_current: Option<QueueEntry>,
     size: Option<f64>,
-    max_zoom_in_bp: f64
+    max_zoom_in_bp: f64,
+    target_reporter: TargetReporter
 }
 
 impl AnimationQueue {
-    pub(super) fn new(config: &PgPeregrineConfig) -> Result<AnimationQueue,Message> {
+    pub(super) fn new(config: &PgPeregrineConfig, target_reporter: &TargetReporter) -> Result<AnimationQueue,Message> {
         Ok(AnimationQueue {
             regime: Regime::new(config)?,
             animation_queue: VecDeque::new(),
             animation_current: None,
             size: None,
-            max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?
+            max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
+            target_reporter: target_reporter.clone()
         })
     }
 
@@ -107,6 +111,9 @@ impl AnimationQueue {
             QueueEntry::Size(size) => {
                 self.regime.set_size(measure,*size);
                 self.size = Some(*size);
+            },
+            QueueEntry::Report => {
+                self.target_reporter.force_report();
             }
         }
     }

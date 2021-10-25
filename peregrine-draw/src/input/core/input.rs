@@ -3,6 +3,7 @@ use peregrine_data::{PeregrineCore};
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::PeregrineInnerAPI;
+use crate::input::translate::targetreporter::TargetReporter;
 use crate::input::translate::translatezmenu::translate_zemnus;
 use crate::run::report::Report;
 use crate::shape::core::spectre::Spectre;
@@ -58,8 +59,9 @@ pub struct InputEvent {
 
 struct InputState {
     low_level: LowLevelInput,
-    physics: InputTranslator,
+    translator: InputTranslator,
     inner_api: PeregrineInnerAPI,
+    target_reporter: TargetReporter,
     stage: Option<ReadStage>
 }
 
@@ -81,13 +83,15 @@ impl Input {
 
     pub fn set_api(&mut self, dom: &PeregrineDom, config: &PgPeregrineConfig, inner_api: &PeregrineInnerAPI, commander: &PgCommanderWeb, report: &Report) -> Result<(),Message> {
         let spectres = inner_api.spectres();
-        let mut low_level = LowLevelInput::new(dom,commander,spectres,config)?;
-        let physics = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker)?;
+        let target_reporter = TargetReporter::new(commander);
+        let mut low_level = LowLevelInput::new(dom,commander,spectres,config,&target_reporter)?;
+        let translator = InputTranslator::new(config,&mut low_level,inner_api,commander,report,&self.queue_blocker,&target_reporter)?;
         translate_zemnus(&mut low_level,commander,&inner_api);
         debug_register(config,&mut low_level,inner_api)?;
         *self.state.lock().unwrap() = Some(InputState {
-            low_level, physics,
+            low_level, translator,
             inner_api: inner_api.clone(),
+            target_reporter: target_reporter.clone(),
             stage: None
         });
         Ok(())
@@ -95,7 +99,7 @@ impl Input {
 
     pub fn set_limit(&self, limit: f64) {
         if let Some(state) = self.state.lock().unwrap().as_mut() {
-            state.physics.set_limit(limit);
+            state.translator.set_limit(limit);
         }
     }
 
@@ -106,7 +110,8 @@ impl Input {
     pub fn update_stage(&self, stage: &ReadStage) { 
         self.state(|state| {
             state.stage = Some(stage.clone());
-            state.low_level.update_stage(stage)
+            state.low_level.update_stage(stage);
+            state.target_reporter.stage(stage);
         });
     }
 
@@ -123,7 +128,7 @@ impl Input {
     pub fn set_artificial(&self, name: &str, start: bool) { self.state(|state| state.low_level.set_artificial(name,start)); }
 
     pub(crate) fn goto(&self, centre: f64, scale: f64) -> Result<(),Message> {
-        self.state(|state| state.physics.goto(&mut state.inner_api.clone(),centre,scale))
+        self.state(|state| state.translator.goto(&mut state.inner_api.clone(),centre,scale))
     }
 
     async fn jump_task(&self,data_api: PeregrineCore, location: String, lockout: Lockout) -> Result<(),Message> {
@@ -144,6 +149,7 @@ impl Input {
                     state.inner_api.set_stick(&stick);
                     state.inner_api.set_x(centre);
                     state.inner_api.set_bp_per_screen(bp_per_screen);
+                    state.target_reporter.force_report();
                 });
             }
         }

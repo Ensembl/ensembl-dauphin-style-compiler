@@ -1,8 +1,10 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::sync::blocker::Lockout;
+
 use crate::Message;
 use crate::input::low::lowlevel::LowLevelState;
 use crate::input::low::modifiers::Modifiers;
-use crate::run::PgConfigKey;
+use crate::input::translate::targetreporter::TargetReporter;
 use crate::shape::core::spectre::AreaVariables;
 use crate::shape::core::spectre::Spectre;
 use crate::shape::core::spectremanager::SpectreHandle;
@@ -64,6 +66,7 @@ impl FingerDrag {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq)]
 enum DragMode {
     Unknown,
@@ -96,11 +99,14 @@ pub struct DragStateData {
     #[allow(unused)] // keep as guard
     cursor: Option<CursorHandle>,
     #[allow(unused)] // keep as guard
-    spectre: Option<SpectreHandle>
+    spectre: Option<SpectreHandle>,
+    #[allow(unused)]
+    intention_lockout: Option<Lockout>,
+    target_reporter: TargetReporter
 }
 
 impl DragStateData {
-    fn new(lowlevel: &LowLevelState, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<DragStateData,Message> {
+    fn new(lowlevel: &LowLevelState, config: &PointerConfig, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragStateData,Message> {
         let mut out = DragStateData {
             lowlevel: lowlevel.clone(),
             modifiers: lowlevel.modifiers(),
@@ -112,7 +118,9 @@ impl DragStateData {
             hold_vars: AreaVariables::new(lowlevel.spectre_manager().variables()),
             min_hold_drag_size: config.min_hold_drag_size,
             cursor: None,
-            spectre: None
+            spectre: None,
+            intention_lockout: Some(target_reporter.lock_updates()),
+            target_reporter: target_reporter.clone()
         };
         out.check_secondary(primary,secondary)?;
         Ok(out)
@@ -259,6 +267,8 @@ impl DragStateData {
         self.alive = false;
         self.cursor = None;
         let total_delta = self.primary.total_delta();
+        self.intention_lockout = None;
+        self.target_reporter.force_report();
         Ok(match self.mode {
             DragMode::Unknown => { false },
             DragMode::Drag => {
@@ -287,8 +297,8 @@ impl DragStateData {
 pub struct DragState(Arc<Mutex<DragStateData>>);
 
 impl DragState {
-    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>) -> Result<DragState,Message> {
-        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,config,primary,secondary)?));
+    pub(super) fn new(config: &PointerConfig, lowlevel: &LowLevelState, primary: (f64,f64), secondary: Option<(f64,f64)>, target_reporter: &TargetReporter) -> Result<DragState,Message> {
+        let inner = Arc::new(Mutex::new(DragStateData::new(lowlevel,config,primary,secondary,target_reporter)?));
         let inner2 = inner.clone();
         let hold_time = config.hold_delay;
         let drag_cursor_delay = config.drag_cursor_delay;

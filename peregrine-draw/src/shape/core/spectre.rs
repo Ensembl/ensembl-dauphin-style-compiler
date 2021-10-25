@@ -61,8 +61,8 @@ impl MarchingAnts {
     }
 
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[10]",0));
-        let window_origin = shapes.universe().make_request("window:origin[10]").unwrap(); // XXX
+        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[101]",0));
+        let window_origin = shapes.universe().make_request("window:origin[101]").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = SpaceBase::new(
@@ -101,8 +101,8 @@ impl Stain {
     }
     
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[9]",-1));
-        let window_origin = shapes.universe().make_request("window:origin[9]").unwrap(); // XXX
+        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[100]",-1));
+        let window_origin = shapes.universe().make_request("window:origin[100]").unwrap(); // XXX
         shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         if self.invert {

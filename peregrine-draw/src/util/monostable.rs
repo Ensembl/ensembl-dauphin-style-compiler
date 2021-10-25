@@ -25,8 +25,8 @@ async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, needed: Need
         } else {
             break;
         }
-        needed.wait_until_needed().await;
         cdr_timer(period_ms).await;
+        needed.wait_until_needed().await;
     }
     Ok(())
 }
@@ -34,6 +34,7 @@ async fn monostable_agent(weak_state: Weak<Mutex<MonostableState>>, needed: Need
 #[derive(Clone)]
 pub(crate) struct Monostable(Arc<Mutex<MonostableState>>);
 
+// XXX run level audit
 impl Monostable {
     pub(crate) fn new<F>(commander: &PgCommanderWeb, period_ms: f64, cb: F) -> Monostable where F: Fn() + 'static {
         let needed = Needed::new();
@@ -45,7 +46,7 @@ impl Monostable {
         }));
         let weak_state = Arc::downgrade(&state);
         let callback : Arc<Box<dyn Fn() + 'static>> = Arc::new(Box::new(cb));
-        commander.add("monostable",15,None,None,Box::pin(monostable_agent(weak_state,needed,period_ms,callback)));
+        commander.add("monostable",6,None,None,Box::pin(monostable_agent(weak_state,needed,period_ms,callback)));
         Monostable(state)
     }
 
