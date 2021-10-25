@@ -161,7 +161,7 @@ impl DragStateData {
     fn emit(&mut self, action: &PointerAction, start: bool) {
         for (kind,args) in action.map(&self.lowlevel) {
             self.lowlevel.send(kind,start,&args);
-        }    
+        }
     }
 
     fn click_timer_expired(&mut self) {
@@ -268,11 +268,11 @@ impl DragStateData {
         self.cursor = None;
         let total_delta = self.primary.total_delta();
         self.intention_lockout = None;
-        self.target_reporter.force_report();
         Ok(match self.mode {
             DragMode::Unknown => { false },
             DragMode::Drag => {
                 self.send_drag((0.,0.),false);
+                self.target_reporter.force_report();
                 self.emit(&PointerAction::Drag(self.modifiers.clone(),total_delta),true);
                 true
             },
@@ -285,6 +285,7 @@ impl DragStateData {
             },
             DragMode::Pinch => {
                 self.send_drag((0.,0.),false);
+                self.target_reporter.force_report();
                 if let Some(pinch) = &self.pinch {
                     self.emit(&PointerAction::PinchDrag(self.modifiers.clone(),pinch.position()),true);
                 }

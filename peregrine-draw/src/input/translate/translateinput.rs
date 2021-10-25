@@ -91,15 +91,19 @@ impl InputTranslatorState {
     }
 
     fn physics_step(&mut self, inner: &mut PeregrineInnerAPI, report: &mut Report) -> Result<(),Message> {
+        let mut finished = false;
         let now = Date::now();
         if let Some(last_update) = self.last_update {
             let dt = now - last_update;
             self.apply_ongoing(dt)?;
             self.queue.drain_animation_queue(inner,report)?;
-            self.queue.regime_tick(inner,dt)?;
+            finished = self.queue.regime_tick(inner,dt)?;
         }
         self.last_update = Some(now);
         self.update_needed();
+        if finished {
+            self.target_reporter.apply_force();
+        }
         Ok(())
     }
 

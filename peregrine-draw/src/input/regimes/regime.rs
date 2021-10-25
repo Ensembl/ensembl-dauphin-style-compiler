@@ -132,13 +132,15 @@ impl Regime {
     set_regime!(regime_self_drag,try_regime_self_drag,DragRegime,SelfPull,self_drag_creator);
     set_regime!(regime_zoomx,try_regime_zoomx,ZoomXRegime,ZoomX,zoomx_creator);
 
-    pub(crate) fn tick(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+    pub(crate) fn tick(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<bool,Message> {
+        let mut finished = false;
+        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(true); };
         self.update_settings(&measure);
         let (new_x,new_bp) = match self.object.as_trait_mut().tick(&measure,total_dt) {
             TickResult::Update(x,bp) => (x,bp),
             TickResult::Finished => {
                 self.object = RegimeObject::None(RegimeNone());
+                finished = true;
                 (None,None)
             }
         };
@@ -148,7 +150,7 @@ impl Regime {
         if let Some(bp_per_screen) = new_bp {
             inner.set_bp_per_screen(bp_per_screen);
         }
-        Ok(())
+        Ok(finished)
     }
 
     pub(crate) fn is_active(&mut self) -> bool {

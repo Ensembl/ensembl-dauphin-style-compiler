@@ -40,7 +40,7 @@ struct TargetReporterState {
     report: Report,
     in_stage: Arc<Mutex<TargetLocation>>,  // latest report
     out_stage: Arc<Mutex<TargetLocation>>, // ready to send
-    force: bool,
+    force_needed: Needed,
     needed: Needed,         // pending update
     blocker: Blocker,       // block reports
     debounce: Debounce  // debounce
@@ -80,9 +80,9 @@ impl TargetReporter {
             report: report.clone(),
             out_stage,
             in_stage: Arc::new(Mutex::new(TargetLocation::empty())),
+            force_needed: Needed::new(),
             needed: Needed::new(),
             blocker: Blocker::new(),
-            force: false,
             debounce,
         })));
         let out2 = out.clone();
@@ -94,21 +94,18 @@ impl TargetReporter {
         lock!(self.0).blocker.lock()
     }
 
-    fn force_report_ready(&self) {
-        let state = lock!(self.0);
-        *lock!(state.out_stage) = lock!(state.in_stage).clone();
-        lock!(state.out_stage).make_report(&state.report);
+    pub fn apply_force(&self) {
+        let mut state = lock!(self.0);
+        let ready = lock!(state.in_stage).is_ready();
+        if ready && state.force_needed.is_needed() {
+            *lock!(state.out_stage) = lock!(state.in_stage).clone();
+            lock!(state.out_stage).make_report(&state.report);
+        }
     }
 
     pub fn force_report(&self) {
-        let mut state = lock!(self.0);
-        let ready= lock!(state.in_stage).is_ready();
-        if ready {
-            drop(state);
-            self.force_report_ready();
-        } else {
-            state.force = true;
-        }
+        let state = lock!(self.0);
+        state.force_needed.set();
     }
 
     pub fn set_stick(&self, stick: &str) {
@@ -127,12 +124,7 @@ impl TargetReporter {
         let mut state = lock!(self.0);
         let changed = lock!(state.in_stage).x != Some(x);
         lock!(state.in_stage).x = Some(x);
-        let ready= lock!(state.in_stage).is_ready();
-        if state.force && ready {
-            state.force = false;
-            drop(state);
-            self.force_report_ready();
-        } else if changed {
+        if changed {
             state.needed.set();
         }
     }
@@ -141,12 +133,7 @@ impl TargetReporter {
         let mut state = lock!(self.0);
         let changed = lock!(state.in_stage).bp_per_screen != Some(bp);
         lock!(state.in_stage).bp_per_screen = Some(bp);
-        let ready= lock!(state.in_stage).is_ready();
-        if state.force && ready {
-            state.force = false;
-            drop(state);
-            self.force_report_ready();
-        } else if changed {
+        if changed {
             state.needed.set();
         }
     }

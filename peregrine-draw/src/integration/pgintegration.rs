@@ -59,7 +59,7 @@ impl PeregrineIntegration for PgIntegration {
                 self.report.set_stick(&stick.to_string());
                 if let (Ok(x),Ok(bp)) = (viewport.position(),viewport.bp_per_screen()) {
                     self.report.set_x_bp(x);
-                    self.report.set_bp_per_screen(bp);    
+                    self.report.set_bp_per_screen(bp);
                 }
             }
         }

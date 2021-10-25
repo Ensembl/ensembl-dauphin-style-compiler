@@ -63,7 +63,7 @@ impl AnimationQueue {
         self.regime.is_active() || self.animation_queue.len() !=0 || self.animation_current.is_some()
     }
 
-    pub(crate) fn regime_tick(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<(),Message> {
+    pub(crate) fn regime_tick(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<bool,Message> {
         self.regime.tick(inner,total_dt)
     }
 
@@ -166,7 +166,7 @@ impl AnimationQueue {
             if self.animation_current.is_none() { break; }
             /* do it */
             let current = self.animation_current.take();
-            let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
+            let measure = if let Some(measure) = Measure::new(inner)? { measure } else { break; };
             if let Some(entry) = &current {
                 self.run_one_queue_entry(&measure,entry);
             }
