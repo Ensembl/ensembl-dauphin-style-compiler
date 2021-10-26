@@ -70,4 +70,4 @@ WP-HX:Staging:
   environment:
     name : wp-hx-staging
   variables:
-    BASE: backend-server/k8s/overlays/stage
+    BASE: backend-server/k8s/overlays/staging
