@@ -1,13 +1,12 @@
-use anyhow::{ self, Context, anyhow as err, bail };
+use anyhow::{ self, Context, anyhow as err };
 use std::collections::{ BTreeMap, HashMap };
 use std::mem::replace;
 use std::rc::Rc;
 use serde_cbor::Value as CborValue;
 use super::channel::Channel;
+use super::programbundle::SuppliedBundle;
 use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
-use crate::core::stick::{ Stick, StickId, StickTopology };
-use super::program::SuppliedBundle;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_map, cbor_string };
+use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
 use crate::util::message::DataMessage;
 
 pub struct RequestPacket {

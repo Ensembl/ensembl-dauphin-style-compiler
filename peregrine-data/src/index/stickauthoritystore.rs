@@ -1,4 +1,5 @@
-use crate::{PeregrineCoreBase, ProgramLoader };
+use crate::lane::programloader::ProgramLoader;
+use crate::{PeregrineCoreBase };
 use crate::request::{ Channel };
 use super::stickauthority::{ StickAuthority, load_stick_authority };
 use crate::core::{ StickId, Stick };

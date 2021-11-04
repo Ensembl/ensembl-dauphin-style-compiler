@@ -3,7 +3,7 @@ use crate::util::{ get_instance, get_peregrine };
 use peregrine_data::{ Channel, Builder };
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, AsyncBlock, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
-use peregrine_data::{ StickId, issue_stick_request, issue_jump_request, Stick, StickTopology };
+use peregrine_data::{ StickId, Stick, StickTopology };
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
 
@@ -76,9 +76,11 @@ async fn get(context: &mut InterpContext, cmd: GetStickDataInterpCommand) -> any
     let mut tags_data = vec![];
     drop(registers);
     let pc = get_peregrine(context)?;
+    let all_backends = pc.all_backends();
     for stick_id in id_strings.iter() {
         let channel_name = channel_iter.next().unwrap();
-        let stick = issue_stick_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,StickId::new(stick_id)).await?;
+        let backend = all_backends.backend(&Channel::parse(&self_channel,channel_name)?);
+        let stick = backend.stick(&StickId::new(stick_id)).await?;
         id_strings_out.push(stick.get_id().get_id().to_string());
         sizes.push(stick.size() as f64);
         topologies.push(stick.topology().to_number() as usize);
@@ -115,9 +117,11 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     let mut rights_out = vec![];
     drop(registers);
     let pc = get_peregrine(context)?;
+    let all_backends = pc.all_backends();
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
-        if let Some((stick,left,right)) = issue_jump_request(pc.manager().clone(),Channel::parse(&self_channel,channel_name)?,location).await? {
+        let backend = all_backends.backend(&Channel::parse(&self_channel,channel_name)?);
+        if let Some((stick,left,right)) = backend.jump(location).await? {
             sticks_out.push(stick);
             lefts_out.push(left as f64);
             rights_out.push(right as f64);

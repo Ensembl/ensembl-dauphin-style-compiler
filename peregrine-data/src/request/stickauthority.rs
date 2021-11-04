@@ -13,11 +13,11 @@ use crate::util::message::DataMessage;
 struct StickAuthorityCommandRequest {}
 
 impl StickAuthorityCommandRequest {
-    pub(crate) fn new() -> StickAuthorityCommandRequest {
+    fn new() -> StickAuthorityCommandRequest {
         StickAuthorityCommandRequest {}
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<StickAuthority,DataMessage> {
+    async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
         let response = backoff.backoff::<StickAuthorityCommandResponse,_>(self.clone()).await??;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
@@ -64,7 +64,7 @@ impl ResponseBuilderType for StickAuthorityResponseBuilderType {
     }
 }
 
-pub async fn get_stick_authority(mut manager: RequestManager, channel: Channel) -> Result<StickAuthority,DataMessage> {
+pub(super) async fn do_stick_authority(mut manager: RequestManager, channel: Channel) -> Result<StickAuthority,DataMessage> {
     let req = StickAuthorityCommandRequest::new();
     req.execute(&channel,&mut manager).await
 }

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use crate::{PeregrineCoreBase, ProgramLoader};
+use crate::lane::programloader::ProgramLoader;
+use crate::{PeregrineCoreBase};
 use crate::core::{ StickId, Stick };
-use crate::request::stickauthority::get_stick_authority;
 use crate::request::{ Channel };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;
-use crate::api::{ AgentStore, ApiMessage };
+use crate::api::{ ApiMessage };
 use crate::lane::programname::ProgramName;
 use crate::util::builder::Builder;
 
@@ -79,7 +79,8 @@ impl StickAuthority {
 }
 
 pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: Channel) -> Result<StickAuthority,DataMessage> {
-    let stick_authority = get_stick_authority(base.manager.clone(),channel.clone()).await?;
+    let backend = base.all_backends.backend(&channel);
+    let stick_authority = backend.authority().await?;
     stick_authority.preload_lookup_program(base,program_loader);
     stick_authority.run_startup_program(base,program_loader).await?;
     Ok(stick_authority)

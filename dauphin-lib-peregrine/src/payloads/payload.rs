@@ -17,7 +17,7 @@
 use std::any::Any;
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ Dauphin };
-use peregrine_data::{AgentStore, AllotmentMetadataStore, CountingPromise, PeregrineCoreBase, RequestManager, Switches, Universe};
+use peregrine_data::{AgentStore, AllBackends, AllotmentMetadataStore, CountingPromise, PeregrineCoreBase, RequestManager, Switches, Universe};
 use super::trackbuilder::AllTracksBuilder;
 use super::geometrybuilder::GeometryBuilder;
 
@@ -25,6 +25,7 @@ pub struct PeregrinePayload {
     booted: CountingPromise,
     agent_store: AgentStore,
     manager: RequestManager,
+    all_backends: AllBackends,
     track_builder: AllTracksBuilder,
     geometry_builder: GeometryBuilder,
     allotment_metadata: AllotmentMetadataStore,
@@ -38,11 +39,12 @@ impl Payload for PeregrinePayload {
 }
 
 impl PeregrinePayload {
-    fn new(agent_store: &AgentStore, manager: &RequestManager, booted: &CountingPromise, switches: &Switches, allotment_metadata: &AllotmentMetadataStore) -> PeregrinePayload {
+    fn new(agent_store: &AgentStore, all_backends: &AllBackends, manager: &RequestManager, booted: &CountingPromise, switches: &Switches, allotment_metadata: &AllotmentMetadataStore) -> PeregrinePayload {
         PeregrinePayload {
             booted: booted.clone(),
             agent_store: agent_store.clone(),
             manager: manager.clone(),
+            all_backends: all_backends.clone(),
             track_builder: AllTracksBuilder::new(),
             geometry_builder: GeometryBuilder::new(),
             switches: switches.clone(),
@@ -57,10 +59,12 @@ impl PeregrinePayload {
     pub fn track_builder(&self) -> &AllTracksBuilder { &self.track_builder }
     pub fn geometry_builder(&self) -> &GeometryBuilder { &self.geometry_builder }
     pub fn allotment_metadata(&self) -> &AllotmentMetadataStore { &self.allotment_metadata }
+    pub fn all_backends(&self) -> &AllBackends { &self.all_backends }
 }
 
 #[derive(Clone)]
 pub struct PeregrinePayloadFactory {
+    all_backends: AllBackends,
     manager: RequestManager,
     agent_store: AgentStore,
     booted: CountingPromise,
@@ -72,6 +76,7 @@ impl PeregrinePayloadFactory {
     pub fn new(base: &PeregrineCoreBase, agent_store: &AgentStore, switches: &Switches) -> PeregrinePayloadFactory {
         PeregrinePayloadFactory {
             booted: base.booted.clone(),
+            all_backends: base.all_backends.clone(),
             manager: base.manager.clone(),
             agent_store: agent_store.clone(),
             switches: switches.clone(),
@@ -82,7 +87,7 @@ impl PeregrinePayloadFactory {
 
 impl PayloadFactory for PeregrinePayloadFactory {
     fn make_payload(&self) -> Box<dyn Payload> {
-        Box::new(PeregrinePayload::new(&self.agent_store,&self.manager,&self.booted,&self.switches,&self.allotment_metadata))
+        Box::new(PeregrinePayload::new(&self.agent_store,&self.all_backends,&self.manager,&self.booted,&self.switches,&self.allotment_metadata))
     }
 }
 

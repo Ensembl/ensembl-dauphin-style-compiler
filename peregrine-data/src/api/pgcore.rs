@@ -9,7 +9,7 @@ use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
-use crate::{AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, ProgramLoader, RequestManager, StickAuthorityStore, StickStore, Universe};
+use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, RequestManager, StickAuthorityStore, StickStore, Universe};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
@@ -37,6 +37,7 @@ pub struct PeregrineCoreBase {
     pub dauphin_queue: PgDauphinQueue,
     pub dauphin: PgDauphin,
     pub commander: PgCommander,
+    pub all_backends: AllBackends,
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
@@ -64,6 +65,7 @@ impl PeregrineCore {
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let manager = RequestManager::new(integration.channel(),&commander,&messages);
+        let all_backends = AllBackends::new(&manager,&metrics);
         let booted = CountingPromise::new();
         let allotment_metadata = AllotmentMetadataStore::new();
         let base = PeregrineCoreBase {
@@ -74,6 +76,7 @@ impl PeregrineCore {
             dauphin_queue,
             manager,
             messages,
+            all_backends,
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
             allotment_metadata,

@@ -3,7 +3,8 @@ use commander::PromiseFuture;
 use commander::FusePromise;
 use crate::PeregrineCoreBase;
 use crate::index::jumpstore::JumpStore;
-use crate::{ ProgramLoader, StickAuthorityStore, StickStore, LaneStore, DataStore };
+use crate::lane::programloader::ProgramLoader;
+use crate::{ StickAuthorityStore, StickStore, LaneStore, DataStore };
 
 #[derive(Clone)]
 struct DelayedLoader<T> where T: Clone {

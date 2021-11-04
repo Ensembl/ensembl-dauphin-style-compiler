@@ -50,6 +50,7 @@ mod index {
 mod lane {
     mod datastore;
     mod shaperequest;
+    pub(crate) mod programloader;
     pub(crate) mod programregion;
     mod resultstore;
     pub(crate) mod programdata;
@@ -72,6 +73,7 @@ mod metric {
 }
 
 mod request {
+    pub(crate) mod backend;
     pub(crate) mod backoff;
     pub(crate) mod bootstrap;
     pub(crate) mod channel;
@@ -80,20 +82,20 @@ mod request {
     pub(crate) mod jump;
     pub(crate) mod manager;
     pub(crate) mod packet;
+    pub(crate) mod programbundle;
     pub(crate) mod queue;
     pub(crate) mod program;
     pub(crate) mod request;
     pub(crate) mod stick;
     pub(crate) mod stickauthority;
+    pub use backend::{ AllBackends, Backend };
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
-    pub use self::program::{ ProgramLoader };
     pub use self::manager::RequestManager;
-    pub use self::stick::issue_stick_request;
-    pub use self::jump::issue_jump_request;
 }
 
 mod run {
     pub mod instancepayload;
+    pub mod bootstrap;
     pub mod pgcommander;
     pub mod pgdauphin;
     pub use self::pgcommander::Commander;
@@ -173,7 +175,7 @@ pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, Stick
 pub use self::index::{ StickStore, StickAuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, ProgramLoader, RequestManager, issue_stick_request, issue_jump_request };
+pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager, AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,

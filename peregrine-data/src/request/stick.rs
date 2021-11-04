@@ -16,13 +16,13 @@ struct StickCommandRequest {
 }
 
 impl StickCommandRequest {
-    pub(crate) fn new(stick_id: &StickId) -> StickCommandRequest {
+    fn new(stick_id: &StickId) -> StickCommandRequest {
         StickCommandRequest {
             stick_id: stick_id.clone()
         }
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
+    async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
         let r = backoff.backoff::<StickCommandResponse,_>(self.clone()).await??;
         Ok(r.stick.clone())
@@ -64,7 +64,7 @@ impl ResponseBuilderType for StickResponseBuilderType {
     }
 }
 
-pub async fn issue_stick_request(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<Stick> {
+pub(super) async fn do_stick_request(mut manager: RequestManager, channel: Channel, name: StickId) -> anyhow::Result<Stick> {
     let req = StickCommandRequest::new(&name);
     req.execute(&channel,&mut manager).await
 }

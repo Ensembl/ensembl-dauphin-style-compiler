@@ -1,11 +1,12 @@
 use std::sync::Mutex;
 use commander::cdr_current_time;
 use std::collections::HashMap;
-use crate::{PacketPriority, ProgramLoader};
+use crate::{PacketPriority};
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::ShapeListBuilder;
+use super::programloader::ProgramLoader;
 use super::shaperequest::ShapeRequest;
 use crate::util::message::DataMessage;
 use crate::util::memoized::{ Memoized, MemoizedType };

@@ -18,15 +18,20 @@ pub struct DataResponse {
     data: HashMap<String,Vec<u8>>,
 }
 
+pub(super) async fn do_data_request(channel: &Channel, name: &str, region: &Region, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
+    let request = DataCommandRequest::new(channel,name,region);
+    request.execute(manager,priority,metrics).await
+}
+
 #[derive(Clone)]
-pub struct DataCommandRequest {
+struct DataCommandRequest {
     channel: Channel,
     name: String,
     region: Region
 }
 
 impl DataCommandRequest {
-    pub fn new(channel: &Channel, name: &str, region: &Region) -> DataCommandRequest {
+    fn new(channel: &Channel, name: &str, region: &Region) -> DataCommandRequest {
         DataCommandRequest {
             channel: channel.clone(),
             name: name.to_string(),
@@ -44,7 +49,7 @@ impl DataCommandRequest {
         }
     }
 
-    pub async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
+    async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new(manager,&self.channel,priority);
         let mut out = backoff.backoff::<DataResponse,_>(self.clone()).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));

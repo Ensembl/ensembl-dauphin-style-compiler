@@ -10,18 +10,18 @@ use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]
-pub(crate) struct JumpCommandRequest {
+struct JumpCommandRequest {
     location: String
 }
 
 impl JumpCommandRequest {
-    pub(crate) fn new(location: &str) -> JumpCommandRequest {
+    fn new(location: &str) -> JumpCommandRequest {
         JumpCommandRequest {
             location: location.to_string()
         }
     }
 
-    pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Option<(String,u64,u64)>> {
+    async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Option<(String,u64,u64)>> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
         let r = backoff.backoff::<JumpCommandResponse,_>(self.clone()).await??;
         Ok(r.0.map(|r| (r.stick.to_string(),r.start,r.end)))
@@ -68,7 +68,7 @@ impl ResponseBuilderType for JumpResponseBuilderType {
     }
 }
 
-pub async fn issue_jump_request(mut manager: RequestManager, channel: Channel, location: &str) -> anyhow::Result<Option<(String,u64,u64)>> {
+pub async fn do_jump_request(mut manager: RequestManager, channel: Channel, location: &str) -> anyhow::Result<Option<(String,u64,u64)>> {
     let req = JumpCommandRequest::new(&location);
     req.execute(&channel,&mut manager).await
 }
