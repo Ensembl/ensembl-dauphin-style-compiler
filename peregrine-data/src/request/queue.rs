@@ -116,7 +116,7 @@ impl RequestQueue {
         out.start(commander)?;
         Ok(out)
     }
-
+    
     pub(super) fn set_realtime_block(&mut self, blocker: &Blocker) {
         self.0.lock().unwrap().realtime_block = Some(blocker.clone());
     }

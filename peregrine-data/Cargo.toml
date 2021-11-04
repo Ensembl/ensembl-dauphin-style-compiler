@@ -15,6 +15,7 @@ serde={ version="*", features=["rc"] }
 serde_derive="*"
 serde_json="*"
 serde_tuple="*"
+erased-serde="*"
 futures="*"
 lazy_static="*"
 

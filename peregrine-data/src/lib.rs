@@ -162,6 +162,7 @@ mod util {
     pub mod miscpromises;
     pub mod eachorevery;
     pub mod ringarray;
+    pub(crate) mod serde;
     pub mod vecutils;
 
     pub use self::builder::Builder;

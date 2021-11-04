@@ -8,6 +8,10 @@ edition = "2018"
 anyhow="*"
 js-sys="*"
 wasm-bindgen="*"
+erased-serde="*"
+serde="*"
+serde_cbor="*"
+serde_derive="*"
 
 [dependencies.commander]
 version="*"

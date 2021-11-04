@@ -1,14 +1,18 @@
 use anyhow::bail;
+use serde::{Deserialize, Deserializer, Serializer};
+use serde::de::{self, SeqAccess, Unexpected, Visitor};
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_string };
 use crate::util::message::DataMessage;
+use crate::util::serde::ser_wrap;
 use serde_derive::{ Serialize };
+use peregrine_toolkit::serde::{EnVarySeq, de_seq_next, de_wrap};
+use peregrine_toolkit::envaryseq_addn;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -104,19 +108,46 @@ impl Display for PacketPriority {
 
 impl Channel {
     pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(match self.0.as_ref() {
-            ChannelLocation::HttpChannel(url) => CborValue::Array(vec![CborValue::Integer(0),CborValue::Text(url.to_string())]),
-            ChannelLocation::None => CborValue::Array(vec![CborValue::Integer(1)])
-        })
+        let xxx_value = ser_wrap(serde_cbor::to_vec(self))?;
+        Ok(ser_wrap(serde_cbor::from_slice(&xxx_value))?)
     }
 
-    pub fn deserialize(value: &CborValue) -> anyhow::Result<Channel> {
-        let values = cbor_array(value,2,false)?;
-        let data = match cbor_int(&values[0],Some(0))? {
-            0 => ChannelLocation::HttpChannel(Url::parse(&cbor_string(&values[1])?).map_err(|e| err!(e.to_string())).context("parsing URL")?),
+    pub fn deserialize(value: &CborValue) -> Result<Channel,serde_cbor::Error> {
+        let xxx_bytes = serde_cbor::to_vec(value)?;
+        serde_cbor::from_slice(&xxx_bytes)
+    }
+}
+
+impl serde::Serialize for Channel {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        let mut seq = EnVarySeq::new();
+        match self.0.as_ref() {
+            ChannelLocation::HttpChannel(url) => envaryseq_addn!(seq,0,url.to_string()),
+            ChannelLocation::None => envaryseq_addn!(seq,1),
+        }
+        seq.serialize(serializer)
+    }
+}
+
+struct ChannelVisitor;
+
+impl<'de> Visitor<'de> for ChannelVisitor {
+    type Value = Channel;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a channel") }
+
+    fn visit_seq<S>(self, mut seq: S) -> Result<Channel,S::Error> where S: SeqAccess<'de> {
+        let data = match de_seq_next(&mut seq)? {
+            0 => ChannelLocation::HttpChannel(de_wrap(Url::parse(de_seq_next(&mut seq)?))?),
             1 => ChannelLocation::None,
-            _ => Err(err!("bad channel type in deserialize"))?
+            _ => Err(de::Error::invalid_value(Unexpected::Str(&"out-of range integer"),&"in-range integer"))?
         };
         Ok(Channel(Arc::new(data)))
+    }
+}
+
+impl<'de> Deserialize<'de> for Channel {
+    fn deserialize<D>(deserializer: D) -> Result<Channel, D::Error> where D: Deserializer<'de> {
+        deserializer.deserialize_seq(ChannelVisitor)
     }
 }

@@ -11,4 +11,5 @@ pub mod plumbing {
 }
 
 pub mod refs;
+pub mod serde;
 pub mod url;
