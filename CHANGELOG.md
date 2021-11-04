@@ -1,8 +1,10 @@
 # 0.0.7
+
  * cleaner use of WebGL
  * new target location mechanism.
 
 # 0.0.6
+
  * more intelligent handling of failed backends
 
 # 0.0.5

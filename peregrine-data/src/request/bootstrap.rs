@@ -42,7 +42,7 @@ impl BootstrapCommandRequest {
         let dauphin = self.dauphin.clone();
         let loader = self.loader.clone();
         let mut backoff = Backoff::new(&manager,&self.channel,&PacketPriority::RealTime);
-        match backoff.backoff::<BootstrapCommandResponse,_,_>(self.clone(),|_| true).await? {
+        match backoff.backoff::<BootstrapCommandResponse,_>(self.clone()).await? {
             Ok(b) => {
                 manager.set_lo_divert(&b.channel_hi,&b.channel_lo);
                 b.bootstrap(&dauphin,&self.queue,&loader,integration).await?;

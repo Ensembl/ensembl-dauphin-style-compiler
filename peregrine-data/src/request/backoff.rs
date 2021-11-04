@@ -21,17 +21,11 @@ impl Backoff {
         }
     }
 
-    fn downcast<S: 'static,F>(&self, resp: Box<dyn ResponseType>, verify: F) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> where F: Fn(&S) -> bool {
+    fn downcast<S: 'static>(&self, resp: Box<dyn ResponseType>) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> {
         match resp.into_any().downcast::<S>() {
             Ok(s) => {
                 /* Got expected response */
-                if verify(&s) {
-                    /* seemed to "work"! */
-                    return Ok(Ok(s));
-                } else {
-                    /* but somehow failed */
-                    return Ok(Err(s as Box<dyn Any>));
-                }
+                return Ok(Ok(s));
             },
             Err(resp) => {
                 match resp.downcast::<GeneralFailure>() {
@@ -49,13 +43,13 @@ impl Backoff {
         }
     }
 
-    pub async fn backoff<S,R,F>(&mut self, req: R, verify: F) -> Result<Result<Box<S>,DataMessage>,DataMessage>
-                    where R: RequestType+Clone + 'static, S: 'static, F: Fn(&S) -> bool {
+    pub async fn backoff<S,R>(&mut self, req: R) -> Result<Result<Box<S>,DataMessage>,DataMessage>
+                    where R: RequestType+Clone + 'static, S: 'static {
         let channel = self.channel.clone();
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
             let resp = self.manager.execute(channel.clone(),self.priority.clone(),Box::new(req.clone())).await?;
-            match self.downcast(resp,&verify)? {
+            match self.downcast(resp)? {
                 Ok(result) => { return Ok(Ok(result)); },
                 Err(s) => { last_error = Some(s); }
             }

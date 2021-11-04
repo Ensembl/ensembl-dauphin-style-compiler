@@ -19,7 +19,7 @@ impl StickAuthorityCommandRequest {
 
     pub(crate) async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let response = backoff.backoff::<StickAuthorityCommandResponse,_,_>(self.clone(), |_| true).await??;
+        let response = backoff.backoff::<StickAuthorityCommandResponse,_>(self.clone()).await??;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }

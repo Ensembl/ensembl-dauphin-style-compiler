@@ -57,8 +57,7 @@ impl ProgramCommandRequest {
 
     pub(crate) async fn execute(self, manager: &mut RequestManager, dauphin: &PgDauphin) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
-        let program_name = self.program_name.clone();
-        backoff.backoff::<ProgramCommandResponse,_,_>(self.clone(), move |_| dauphin.is_present(&program_name)).await??;
+        backoff.backoff::<ProgramCommandResponse,_>(self.clone()).await??;
         if !dauphin.is_present(&self.program_name) {
             return Err(DataMessage::DauphinProgramDidNotLoad(self.program_name));
         }

@@ -46,7 +46,7 @@ impl DataCommandRequest {
 
     pub async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new(manager,&self.channel,priority);
-        let mut out = backoff.backoff::<DataResponse,_,_>(self.clone(),|_| true).await?
+        let mut out = backoff.backoff::<DataResponse,_>(self.clone()).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
         if let Ok(response) = &mut out {
             self.account(&response,metrics,priority);
