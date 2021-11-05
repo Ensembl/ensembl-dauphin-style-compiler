@@ -1,9 +1,15 @@
-use serde_cbor::Value as CborValue;
+use serde::Serializer;
 use std::fmt::{ self, Display, Formatter };
-use crate::util::message::DataMessage;
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);
+
+impl serde::Serialize for Scale {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_u64(self.0)
+    }
+}
+
 
 impl Scale {
     pub fn new(scale: u64) -> Scale {
@@ -53,10 +59,6 @@ impl Scale {
 
     pub fn carriage(&self, position: f64) -> u64 {
         (position / (self.bp_in_carriage() as f64)).floor() as u64
-    }
-
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Integer(self.0 as i128))
     }
 }
 

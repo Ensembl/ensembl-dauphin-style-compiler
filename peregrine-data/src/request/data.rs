@@ -2,10 +2,13 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricValue;
 use crate::metric::metricreporter::MetricCollector;
 use anyhow::{ anyhow as err };
+use serde::Serializer;
+use serde::ser::SerializeSeq;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Arc;
 use super::channel::{ Channel, PacketPriority };
+use super::request::NewRequestType;
 use crate::Region;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
@@ -25,7 +28,7 @@ pub(super) async fn do_data_request(channel: &Channel, name: &str, region: &Regi
 }
 
 #[derive(Clone)]
-struct DataCommandRequest {
+pub(super) struct DataCommandRequest {
     channel: Channel,
     name: String,
     region: Region
@@ -52,7 +55,7 @@ impl DataCommandRequest {
 
     async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new(manager,&self.channel,priority);
-        let mut out = backoff.backoff_old::<_,DataResponse>(self.clone()).await?
+        let mut out = backoff.backoff_new::<DataResponse>(NewRequestType::new_data(self.clone())).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
         if let Ok(response) = &mut out {
             self.account(&response,metrics,priority);
@@ -61,13 +64,13 @@ impl DataCommandRequest {
     }
 }
 
-impl OldRequestType for DataCommandRequest {
-    fn type_index(&self) -> u8 { 4 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.region.serialize()?]))
-    }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("data loading failed"))
+impl serde::Serialize for DataCommandRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        let mut seq = serializer.serialize_seq(Some(3))?;
+        seq.serialize_element(&self.channel)?;
+        seq.serialize_element(&self.name)?;
+        seq.serialize_element(&self.region)?;
+        seq.end()
     }
 }
 

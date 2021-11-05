@@ -1,9 +1,7 @@
 use anyhow::bail;
+use serde::Serializer;
 use std::collections::HashSet;
-use serde_cbor::Value as CborValue;
 use std::fmt::{ self, Display, Formatter };
-use std::sync::Arc;
-use crate::util::message::DataMessage;
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub struct StickId(String);
 
@@ -13,12 +11,13 @@ impl StickId {
     }
 
     pub fn get_id(&self) -> &str { &self.0 }
-
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Text(self.0.clone()))
-    }
 }
 
+impl serde::Serialize for StickId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_str(&self.0)
+    }
+}
 
 impl Display for StickId {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
