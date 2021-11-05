@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{Channel, DataMessage, PacketPriority, ProgramName, Region, RequestManager, Stick, StickId, index::stickauthority::StickAuthority, metric::metricreporter::MetricCollector};
-use super::{bootstrap::{BootstrapCommandResponse, do_bootstrap}, data::{DataResponse, do_data_request}, jump::do_jump_request, program::do_load_program, stick::do_stick_request, stickauthority::do_stick_authority};
+use super::{bootstrap::{BootstrapCommandResponse, do_bootstrap}, data::{DataResponse, do_data_request}, jump::{JumpLocation, do_jump_request}, program::do_load_program, stick::do_stick_request, stickauthority::do_stick_authority};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -32,7 +32,7 @@ impl Backend {
         do_stick_authority(self.manager.clone(),self.channel.clone()).await
     }
 
-    pub async fn jump(&self, location: &str) -> anyhow::Result<Option<(String,u64,u64)>> {
+    pub async fn jump(&self, location: &str) -> anyhow::Result<Option<JumpLocation>> {
         do_jump_request(self.manager.clone(),self.channel.clone(),location.clone()).await
     }
 

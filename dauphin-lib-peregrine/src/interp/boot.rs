@@ -121,10 +121,10 @@ async fn get_jump(context: &mut InterpContext, cmd: GetJumpDataInterpCommand) ->
     for location in locations.iter() {
         let channel_name = channel_iter.next().unwrap();
         let backend = all_backends.backend(&Channel::parse(&self_channel,channel_name)?);
-        if let Some((stick,left,right)) = backend.jump(location).await? {
-            sticks_out.push(stick);
-            lefts_out.push(left as f64);
-            rights_out.push(right as f64);
+        if let Some(jump_location) = backend.jump(location).await? {
+            sticks_out.push(jump_location.stick);
+            lefts_out.push(jump_location.left as f64);
+            rights_out.push(jump_location.right as f64);
         }
     }
     let registers = context.registers_mut();

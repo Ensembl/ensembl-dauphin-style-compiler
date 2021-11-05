@@ -1,7 +1,6 @@
 use std::any::Any;
-use dauphin_interp::util::cbor::cbor_entry;
+use serde::{Deserialize};
 use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_string, cbor_map, cbor_int };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
@@ -21,10 +20,10 @@ impl JumpCommandRequest {
         }
     }
 
-    async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Option<(String,u64,u64)>> {
+    async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<JumpResponse> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff::<JumpCommandResponse,_>(self.clone()).await??;
-        Ok(r.0.map(|r| (r.stick.to_string(),r.start,r.end)))
+        let r = backoff.backoff::<JumpResponse,_>(self.clone()).await??;
+        Ok(r.as_ref().clone())
     }
 }
 
@@ -38,15 +37,24 @@ impl RequestType for JumpCommandRequest {
     }
 }
 
-struct JumpLocation {
-    stick: String,
-    start: u64,
-    end: u64
+#[derive(Clone,Deserialize)]
+pub struct JumpLocation {
+    pub stick: String,
+    pub left: u64,
+    pub right: u64
 }
 
-struct JumpCommandResponse(Option<JumpLocation>);
+#[derive(Clone,Deserialize)]
+struct NotFound { no: bool }
 
-impl ResponseType for JumpCommandResponse {
+#[derive(Clone,Deserialize)]
+#[serde(untagged)]
+enum JumpResponse {
+    Found(JumpLocation),
+    NotFound(NotFound)
+}
+
+impl ResponseType for JumpResponse {
     fn as_any(&self) -> &dyn Any { self }
     fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
 }
@@ -55,20 +63,15 @@ pub struct JumpResponseBuilderType();
 
 impl ResponseBuilderType for JumpResponseBuilderType {
     fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let loc = if cbor_entry(value,"no")?.is_none() {
-            let values = cbor_map(value,&["stick","left","right"])?;
-            let stick = cbor_string(&values[0])?; 
-            let start = cbor_int(&values[1],None)? as u64;
-            let end = cbor_int(&values[2],None)? as u64;
-            Some(JumpLocation { stick, start, end })
-        } else {
-            None
-        };
-        Ok(Box::new(JumpCommandResponse(loc)))
+        let xxx_bytes = serde_cbor::to_vec(value)?;
+        Ok(Box::new(serde_cbor::from_slice::<JumpResponse>(&xxx_bytes)?))
     }
 }
 
-pub async fn do_jump_request(mut manager: RequestManager, channel: Channel, location: &str) -> anyhow::Result<Option<(String,u64,u64)>> {
+pub async fn do_jump_request(mut manager: RequestManager, channel: Channel, location: &str) -> anyhow::Result<Option<JumpLocation>> {
     let req = JumpCommandRequest::new(&location);
-    req.execute(&channel,&mut manager).await
+    Ok(match req.execute(&channel,&mut manager).await? {
+        JumpResponse::Found(x) => Some(x),
+        JumpResponse::NotFound(_) => None
+    })
 }
