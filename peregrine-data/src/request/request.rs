@@ -1,6 +1,6 @@
 // TODO tied failures
 
-use crate::{util::serde::ser_wrap};
+use crate::{metric::metricreporter::MetricReport, util::serde::ser_wrap};
 use std::{any::Any, sync::Arc};
 use anyhow::{ self };
 use serde::{Serializer, ser::SerializeSeq};
@@ -57,6 +57,12 @@ impl NewRequestType {
             variant: Arc::new(NewRequestVariant::Data(request))
         }
     }
+
+    pub(crate) fn new_metric(request: MetricReport) -> NewRequestType {
+        NewRequestType {
+            variant: Arc::new(NewRequestVariant::Metric(request))
+        }
+    }
 }
 
 enum NewRequestVariant {
@@ -65,7 +71,8 @@ enum NewRequestVariant {
     Stick(StickCommandRequest),
     Authority(AuthorityCommandRequest),
     Data(DataCommandRequest),
-    Jump(JumpCommandRequest)
+    Jump(JumpCommandRequest),
+    Metric(MetricReport),
 }
 
 impl serde::Serialize for NewRequestType {
@@ -77,6 +84,7 @@ impl serde::Serialize for NewRequestType {
             NewRequestVariant::Authority(x) => x.serialize(serializer),
             NewRequestVariant::Data(x) => x.serialize(serializer),
             NewRequestVariant::Jump(x) => x.serialize(serializer),
+            NewRequestVariant::Metric(x) => x.serialize(serializer),
         }
     }
 }
@@ -90,6 +98,7 @@ impl NewRequestType {
             NewRequestVariant::Authority(_) => Box::new(GeneralFailure::new("getting authority info")),
             NewRequestVariant::Data(_) => Box::new(GeneralFailure::new("getting data")),
             NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
+            NewRequestVariant::Metric(_) => Box::new(GeneralFailure::new("sending metric report")),
         }
     }
 
@@ -101,6 +110,7 @@ impl NewRequestType {
             NewRequestVariant::Authority(_) => 3,
             NewRequestVariant::Data(_) => 4,
             NewRequestVariant::Jump(_) => 5,
+            NewRequestVariant::Metric(_) => 6,
         }
     }
 }

@@ -4,13 +4,13 @@ use crate::metric::datastreammetric::DatastreamMetricValue;
 use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
-use crate::request::request::OldRequestType;
+use crate::request::request::NewRequestType;
 use commander::cdr_timer;
 use std::sync::Mutex;
 use std::sync::Arc;
 
 use peregrine_message::PeregrineMessage;
-use crate::{Channel, PacketPriority, PgCommander, PgCommanderTaskSpec, RequestManager, add_task, request::{failure::GeneralFailure}, DataMessage};
+use crate::{Channel, PacketPriority, PgCommander, PgCommanderTaskSpec, RequestManager, add_task };
 use crate::PeregrineCoreBase;
 use serde_derive::{ Serialize };
 use super::errormetric::ErrorMetricReport;
@@ -51,7 +51,7 @@ impl MetricReport {
 
     async fn send_task(&self, mut manager: RequestManager, channel: Channel) {
         // We don't care about errors here: avoid loops and spew
-        manager.execute_old(channel,PacketPriority::Batch,Box::new(self.clone())).await.ok();
+        manager.execute_new(channel,PacketPriority::Batch,NewRequestType::new_metric(self.clone())).await.ok();
     }
 
     pub(crate) fn send(&self, commander: &PgCommander, manager: &mut RequestManager, channel: &Channel) {
@@ -71,19 +71,6 @@ impl MetricReport {
         });
     }
 }
-
-impl OldRequestType for MetricReport {
-    fn type_index(&self) -> u8 { 6 }
-
-    fn serialize(&self) -> Result<serde_cbor::Value,DataMessage> {
-        serde_cbor::value::to_value(self).map_err(|e| DataMessage::CodeInvariantFailed(e.to_string()))
-    }
-
-    fn to_failure(&self) -> Box<dyn crate::request::request::ResponseType> {
-        Box::new(GeneralFailure::new("metric reporting failed"))
-    }
-}
-
 
 struct MetricCollectorData {
     datastream: DatastreamMetricBuilder,
@@ -107,11 +94,11 @@ impl MetricCollectorData {
         self.manager_and_channel = Some((manager.clone(),channel.clone()));
     }
 
-    fn send(&mut self) -> Vec<Box<dyn OldRequestType>> {
+    fn send(&mut self) -> Vec<NewRequestType> {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run);
         if !report.empty() {
-            out.push(Box::new(MetricReport::Client(report)) as Box<dyn OldRequestType>);
+            out.push(NewRequestType::new_metric(MetricReport::Client(report)));
         }
         out
     }
@@ -131,7 +118,7 @@ impl MetricCollector {
             if let Some((manager,channel)) = &mut manager_and_channel {
                 let mut messages = self.data.lock().unwrap().send();
                 for message in messages.drain(..) {
-                    manager.execute_old(channel.clone(),PacketPriority::Batch,message).await.ok(); 
+                    manager.execute_new(channel.clone(),PacketPriority::Batch,message).await.ok(); 
                 }
             }
             cdr_timer(60000.).await;
