@@ -1,17 +1,16 @@
 use std::any::Any;
-use std::sync::Arc;
+use serde::Serializer;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::failure::GeneralFailure;
 use crate::index::stickauthority::Authority;
-use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
+use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
 #[derive(Clone)]
-struct AuthorityCommandRequest {}
+pub(super) struct AuthorityCommandRequest {}
 
 impl AuthorityCommandRequest {
     fn new() -> AuthorityCommandRequest {
@@ -20,18 +19,14 @@ impl AuthorityCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<Authority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let response = backoff.backoff_old::<_,AuthorityCommandResponse>(self.clone()).await??;
+        let response = backoff.backoff_new::<AuthorityCommandResponse>(NewRequestType::new_authority(self.clone())).await??;
         Ok(Authority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }
 
-impl OldRequestType for AuthorityCommandRequest {
-    fn type_index(&self) -> u8 { 3 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Null)
-    }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("loading stick info failed"))
+impl serde::Serialize for AuthorityCommandRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        serializer.serialize_none()
     }
 }
 
