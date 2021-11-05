@@ -9,7 +9,7 @@ use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
 use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, RequestManager, StickAuthorityStore, StickStore, Universe};
+use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, RequestManager, AuthorityStore, StickStore, Universe};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;

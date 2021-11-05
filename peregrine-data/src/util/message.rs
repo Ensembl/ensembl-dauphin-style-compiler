@@ -33,7 +33,7 @@ pub enum DataMessage {
     TaskUnexpectedlyOngoing(String),
     DataMissing(Box<DataMessage>),
     CodeInvariantFailed(String),
-    StickAuthorityUnavailable(Box<DataMessage>),
+    AuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
     NoSuchJump(String),
     CarriageUnavailable(CarriageId,Vec<DataMessage>),
@@ -100,7 +100,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskUnexpectedlyOngoing(s) => (11,calculate_hash(s)),
             DataMessage::DataMissing(cause) => (13,calculate_hash(&cause.code())),
             DataMessage::CodeInvariantFailed(s) => (15,calculate_hash(s)),
-            DataMessage::StickAuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
+            DataMessage::AuthorityUnavailable(cause) => (16,calculate_hash(&cause.code())),
             DataMessage::NoSuchJump(s) => (12,calculate_hash(s)),
             DataMessage::NoSuchStick(s) => (19,calculate_hash(s)),
             DataMessage::CarriageUnavailable(c,_) => (20,calculate_hash(c)),
@@ -120,7 +120,7 @@ impl PeregrineMessage for DataMessage {
     fn knock_on(&self) -> bool {
         match self {
             DataMessage::DataMissing(_) => true,
-            DataMessage::StickAuthorityUnavailable(_) => true,
+            DataMessage::AuthorityUnavailable(_) => true,
             DataMessage::CarriageUnavailable(_,_) => true,
             _ => false
         }
@@ -145,7 +145,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
             DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
-            DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
+            DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::NoSuchJump(jump) => format!("no such stick: {}",jump),
             DataMessage::CarriageUnavailable(id,causes) =>
@@ -186,7 +186,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::TaskUnexpectedlyOngoing(s) => format!("Task '{}' unexpectedly ongoing",s),
             DataMessage::DataMissing(source) => format!("Data missing due to earlier: {}",source),
             DataMessage::CodeInvariantFailed(f) => format!("Code invariant failed: {}",f),
-            DataMessage::StickAuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
+            DataMessage::AuthorityUnavailable(source) => format!("stick authority unavailable due to earlier: {}",source),
             DataMessage::NoSuchStick(stick) => format!("no such stick: {}",stick),
             DataMessage::NoSuchJump(location) => format!("no such jump: {}",location),
             DataMessage::CarriageUnavailable(id,causes) =>

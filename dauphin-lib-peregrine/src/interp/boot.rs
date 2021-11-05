@@ -7,7 +7,7 @@ use peregrine_data::{ StickId, Stick, StickTopology };
 use serde_cbor::Value as CborValue;
 use crate::payloads::PeregrinePayload;
 
-simple_interp_command!(AddStickAuthorityInterpCommand,AddStickAuthorityDeserializer,0,1,(0));
+simple_interp_command!(AddAuthorityInterpCommand,AddAuthorityDeserializer,0,1,(0));
 simple_interp_command!(GetStickIdInterpCommand,GetStickIdDeserializer,1,1,(0));
 simple_interp_command!(GetJumpLocationInterpCommand,GetJumpLocationDeserializer,41,1,(0));
 simple_interp_command!(GetStickDataInterpCommand,GetStickDataDeserializer,2,8,(0,1,2,3,4,5,6,7));
@@ -16,7 +16,7 @@ simple_interp_command!(AddStickInterpCommand,AddStickDeserializer,3,6,(0,1,2,3,4
 simple_interp_command!(AddJumpInterpCommand,AddJumpDeserializer,39,4,(0,1,2,3));
 
 // TODO booted is a mess,  is it needed?
-async fn add_stick_authority(context: &mut InterpContext, cmd: AddStickAuthorityInterpCommand) -> anyhow::Result<()> {
+async fn add_stick_authority(context: &mut InterpContext, cmd: AddAuthorityInterpCommand) -> anyhow::Result<()> {
     let self_channel = get_instance::<Channel>(context,"channel")?;
     let registers = context.registers_mut();
     let authorities = registers.get_strings(&cmd.0)?;
@@ -37,7 +37,7 @@ async fn add_stick_authority(context: &mut InterpContext, cmd: AddStickAuthority
     Ok(())
 }
 
-impl InterpCommand for AddStickAuthorityInterpCommand {
+impl InterpCommand for AddAuthorityInterpCommand {
     fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(add_stick_authority(context,cmd))))))

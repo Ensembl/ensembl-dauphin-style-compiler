@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{Channel, DataMessage, PacketPriority, ProgramName, Region, RequestManager, Stick, StickId, index::stickauthority::StickAuthority, metric::metricreporter::MetricCollector};
-use super::{bootstrap::{BootstrapCommandResponse, do_bootstrap}, data::{DataResponse, do_data_request}, jump::{JumpLocation, do_jump_request}, program::do_load_program, stick::do_stick_request, stickauthority::do_stick_authority};
+use crate::{Channel, DataMessage, PacketPriority, ProgramName, Region, RequestManager, Stick, StickId, index::stickauthority::Authority, metric::metricreporter::MetricCollector};
+use super::{bootstrap::{BootstrapCommandResponse, do_bootstrap}, data::{DataResponse, do_data_request}, jump::{JumpLocation, do_jump_request}, program::do_load_program, stick::do_stick_request, authority::do_stick_authority};
 
 #[derive(Clone)]
 pub struct Backend {
@@ -28,7 +28,7 @@ impl Backend {
         do_stick_request(self.manager.clone(),self.channel.clone(),id.clone()).await
     }
 
-    pub async fn authority(&self) -> Result<StickAuthority,DataMessage> {
+    pub async fn authority(&self) -> Result<Authority,DataMessage> {
         do_stick_authority(self.manager.clone(),self.channel.clone()).await
     }
 

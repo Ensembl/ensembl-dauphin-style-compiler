@@ -11,15 +11,15 @@ use crate::lane::programname::ProgramName;
 use crate::util::builder::Builder;
 
 #[derive(Clone)]
-pub struct StickAuthority {
+pub struct Authority {
     startup_program_name: ProgramName,
     jump_program_name: ProgramName,
     lookup_program_name: ProgramName
 }
 
-impl StickAuthority {
-    pub fn new(channel: &Channel, startup_program_name: &str, lookup_program_name: &str, jump_program_name: &str) -> StickAuthority {
-        StickAuthority {
+impl Authority {
+    pub fn new(channel: &Channel, startup_program_name: &str, lookup_program_name: &str, jump_program_name: &str) -> Authority {
+        Authority {
             startup_program_name: ProgramName(channel.clone(),startup_program_name.to_string()),
             lookup_program_name: ProgramName(channel.clone(),lookup_program_name.to_string()),
             jump_program_name: ProgramName(channel.clone(),jump_program_name.to_string())
@@ -78,7 +78,7 @@ impl StickAuthority {
     }
 }
 
-pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: Channel) -> Result<StickAuthority,DataMessage> {
+pub(super) async fn load_stick_authority(base: &PeregrineCoreBase, program_loader: &ProgramLoader, channel: Channel) -> Result<Authority,DataMessage> {
     let backend = base.all_backends.backend(&channel);
     let stick_authority = backend.authority().await?;
     stick_authority.preload_lookup_program(base,program_loader);

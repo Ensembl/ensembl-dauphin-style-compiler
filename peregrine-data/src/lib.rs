@@ -44,7 +44,7 @@ mod index {
     pub(crate) mod stickauthoritystore;
     pub(crate) mod jumpstore;
     pub use self::stickstore::StickStore;
-    pub use self::stickauthoritystore::StickAuthorityStore;
+    pub use self::stickauthoritystore::AuthorityStore;
 }
 
 mod lane {
@@ -87,7 +87,7 @@ mod request {
     pub(crate) mod program;
     pub(crate) mod request;
     pub(crate) mod stick;
-    pub(crate) mod stickauthority;
+    pub(crate) mod authority;
     pub use backend::{ AllBackends, Backend };
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
     pub use self::manager::RequestManager;
@@ -173,7 +173,7 @@ mod util {
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
-pub use self::index::{ StickStore, StickAuthorityStore };
+pub use self::index::{ StickStore, AuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager, AllBackends, Backend };

@@ -5,7 +5,7 @@ use dauphin_interp::command::{ CommandSetId };
 use crate::compile::boot::AddJumpCommandType;
 use crate::make_peregrine_interp;
 use super::boot::{
-    AddStickAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
+    AddAuthorityCommandType, GetStickIdCommandType, GetStickDataCommandType, AddStickCommandType,
     GetJumpDataCommandType, GetJumpLocationCommandType
 };
 use super::data::{ GetLaneCommandType, GetDataCommandType, DataStreamCommandType, OnlyWarmCommandType };
@@ -31,7 +31,7 @@ pub fn peregrine_id() -> CommandSetId {
 
 pub fn make_peregrine() -> CompLibRegister {
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
-    set.push("add_stick_authority",Some(0),AddStickAuthorityCommandType());
+    set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
     set.push("get_stick_data",Some(2),GetStickDataCommandType());
     set.push("add_stick",Some(3),AddStickCommandType());

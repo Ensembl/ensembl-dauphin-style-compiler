@@ -4,7 +4,7 @@ use commander::FusePromise;
 use crate::PeregrineCoreBase;
 use crate::index::jumpstore::JumpStore;
 use crate::lane::programloader::ProgramLoader;
-use crate::{ StickAuthorityStore, StickStore, LaneStore, DataStore };
+use crate::{ AuthorityStore, StickStore, LaneStore, DataStore };
 
 #[derive(Clone)]
 struct DelayedLoader<T> where T: Clone {
@@ -38,7 +38,7 @@ impl<T> DelayedLoader<T> where T: Clone {
 #[derive(Clone)]
 pub struct AgentStore {
     pub program_loader: ProgramLoader,
-    pub stick_authority_store: StickAuthorityStore,
+    pub stick_authority_store: AuthorityStore,
     pub stick_store: StickStore,
     pub jump_store: JumpStore,
     pub lane_store: LaneStore,
@@ -50,7 +50,7 @@ impl AgentStore {
         /* Payloads are about 4k on the wire, maybe 4x that unpacked. 1000 => ~64Mb. */
         let data_store = DataStore::new(10240,&base);
         let program_loader = ProgramLoader::new(&base);
-        let stick_authority_store = StickAuthorityStore::new(&base,&program_loader);
+        let stick_authority_store = AuthorityStore::new(&base,&program_loader);
         let stick_store = StickStore::new(&base,&stick_authority_store);
         let lane_store = LaneStore::new(1024,&base,&program_loader);
         let jump_store = JumpStore::new(&base,&stick_authority_store);

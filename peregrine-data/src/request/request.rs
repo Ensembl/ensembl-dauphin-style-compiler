@@ -8,7 +8,7 @@ use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 use crate::util::message::DataMessage;
 
-use super::{failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest};
+use super::{failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest, stick::StickCommandRequest};
 
 pub trait OldRequestType {
     fn type_index(&self) -> u8;
@@ -33,11 +33,18 @@ impl NewRequestType {
             variant: Arc::new(NewRequestVariant::Program(request))
         }
     }
+
+    pub(super) fn new_stick(request: StickCommandRequest) -> NewRequestType {
+        NewRequestType {
+            variant: Arc::new(NewRequestVariant::Stick(request))
+        }
+    }
 }
 
 enum NewRequestVariant {
     Jump(JumpCommandRequest),
-    Program(ProgramCommandRequest)
+    Program(ProgramCommandRequest),
+    Stick(StickCommandRequest)
 }
 
 impl serde::Serialize for NewRequestType {
@@ -45,6 +52,7 @@ impl serde::Serialize for NewRequestType {
         match self.variant.as_ref() {
             NewRequestVariant::Jump(x) => x.serialize(serializer),
             NewRequestVariant::Program(x) => x.serialize(serializer),
+            NewRequestVariant::Stick(x) => x.serialize(serializer),
         }
     }
 }
@@ -54,12 +62,14 @@ impl NewRequestType {
         match self.variant.as_ref() {
             NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
             NewRequestVariant::Program(_) => Box::new(GeneralFailure::new("getting program")),
+            NewRequestVariant::Stick(_) => Box::new(GeneralFailure::new("getting stick info")),
         }
     }
 
     fn type_index(&self) -> u8 {
         match self.variant.as_ref() {
             NewRequestVariant::Program(_) => 1,
+            NewRequestVariant::Stick(_) => 2,
             NewRequestVariant::Jump(_) => 5,
         }
     }

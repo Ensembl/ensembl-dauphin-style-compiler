@@ -11,7 +11,7 @@ use dauphin_interp::types::{ to_xstructure, XStructure, map_xstructure };
 use dauphin_interp::util::DauphinError;
 use serde_cbor::Value as CborValue;
 
-simple_command!(AddStickAuthorityCommand,AddStickAuthorityCommandType,"peregrine","add_stick_authority",1,(0));
+simple_command!(AddAuthorityCommand,AddAuthorityCommandType,"peregrine","add_stick_authority",1,(0));
 simple_command!(GetStickIdCommand,GetStickIdCommandType,"peregrine","get_stick_id",1,(0));
 simple_command!(GetJumpLocationCommand,GetJumpLocationCommandType,"peregrine","get_jump_location",1,(0));
 

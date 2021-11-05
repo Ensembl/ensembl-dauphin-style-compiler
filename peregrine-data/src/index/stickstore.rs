@@ -1,13 +1,13 @@
 use std::sync::{ Arc };
-use crate::{DataMessage, StickAuthorityStore, core::stick::{ Stick, StickId }};
+use crate::{DataMessage, AuthorityStore, core::stick::{ Stick, StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase, AgentStore };
 
-async fn get_sticks(stick_authority_store: &StickAuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,DataMessage> {
+async fn get_sticks(stick_authority_store: &AuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,DataMessage> {
     stick_authority_store.try_lookup(stick_id.clone()).await
 }
 
-async fn query_stick(stick_authority_store: StickAuthorityStore, stick_cache: Memoized<StickId,Result<Arc<Stick>,DataMessage>>, stick_id: StickId) -> Result<Arc<Stick>,DataMessage> {
+async fn query_stick(stick_authority_store: AuthorityStore, stick_cache: Memoized<StickId,Result<Arc<Stick>,DataMessage>>, stick_id: StickId) -> Result<Arc<Stick>,DataMessage> {
     let stick_cache = stick_cache.clone();
     let mut sticks = get_sticks(&stick_authority_store,&stick_id).await?;
     let mut out = Err(DataMessage::NoSuchStick(stick_id.clone()));
@@ -21,7 +21,7 @@ async fn query_stick(stick_authority_store: StickAuthorityStore, stick_cache: Me
     out
 }
 
-fn make_stick_cache(stick_authority_store: &StickAuthorityStore) -> Memoized<StickId,Result<Arc<Stick>,DataMessage>> {
+fn make_stick_cache(stick_authority_store: &AuthorityStore) -> Memoized<StickId,Result<Arc<Stick>,DataMessage>> {
     let stick_authority_store = stick_authority_store.clone();
     Memoized::new(MemoizedType::Store,move |stick_cache,stick_id: &StickId| {
         let stick_authority_store = stick_authority_store.clone();
@@ -35,7 +35,7 @@ fn make_stick_cache(stick_authority_store: &StickAuthorityStore) -> Memoized<Sti
 pub struct StickStore(Memoized<StickId,Result<Arc<Stick>,DataMessage>>,PeregrineCoreBase);
 
 impl StickStore {
-    pub fn new(base: &PeregrineCoreBase, stick_authority_store: &StickAuthorityStore) -> StickStore {
+    pub fn new(base: &PeregrineCoreBase, stick_authority_store: &AuthorityStore) -> StickStore {
         StickStore(make_stick_cache(stick_authority_store),base.clone())
     }
 

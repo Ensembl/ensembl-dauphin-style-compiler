@@ -1,18 +1,17 @@
 use anyhow::bail;
+use peregrine_toolkit::envaryseq;
+use serde::Serializer;
 use std::any::Any;
-use std::sync::Arc;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::failure::GeneralFailure;
-use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
+use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
-use crate::util::message::DataMessage;
 
 #[derive(Clone)]
-struct StickCommandRequest {
+pub(super) struct StickCommandRequest {
     stick_id: StickId
 }
 
@@ -25,18 +24,14 @@ impl StickCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_old::<_,StickCommandResponse>(self.clone()).await??;
+        let r = backoff.backoff_new::<StickCommandResponse>(NewRequestType::new_stick(self.clone())).await??;
         Ok(r.stick.clone())
     }
 }
 
-impl OldRequestType for StickCommandRequest {
-    fn type_index(&self) -> u8 { 2 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![CborValue::Text(self.stick_id.get_id().to_string())]))
-    }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("loading stick info failed"))
+impl serde::Serialize for StickCommandRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        envaryseq!(serializer,self.stick_id.get_id().to_string())
     }
 }
 

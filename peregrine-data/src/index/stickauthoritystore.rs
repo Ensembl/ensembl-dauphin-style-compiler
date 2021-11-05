@@ -1,47 +1,47 @@
 use crate::lane::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase };
 use crate::request::{ Channel };
-use super::stickauthority::{ StickAuthority, load_stick_authority };
+use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };
 use std::sync::{ Arc, Mutex };
 use crate::util::message::DataMessage;
 use peregrine_toolkit::lock;
 
-struct StickAuthorityStoreData {
-    authorities: Vec<StickAuthority>
+struct AuthorityStoreData {
+    authorities: Vec<Authority>
 }
 
-impl StickAuthorityStoreData {
-    fn new() -> StickAuthorityStoreData {
-        StickAuthorityStoreData {
+impl AuthorityStoreData {
+    fn new() -> AuthorityStoreData {
+        AuthorityStoreData {
             authorities: vec![]
         }
     }
 
-    fn add(&mut self, stick_authority: StickAuthority) {
+    fn add(&mut self, stick_authority: Authority) {
         self.authorities.push(stick_authority);
     }
 
-    fn each(&self) -> impl Iterator<Item=&StickAuthority> {
+    fn each(&self) -> impl Iterator<Item=&Authority> {
         self.authorities.iter()
     }
 }
 
 #[derive(Clone)]
-pub struct StickAuthorityStore {
+pub struct AuthorityStore {
     base: PeregrineCoreBase,
     program_loader: ProgramLoader,
-    data: Arc<Mutex<StickAuthorityStoreData>>
+    data: Arc<Mutex<AuthorityStoreData>>
 }
 
 // TODO API-supplied stick authorities
 
-impl StickAuthorityStore {
-    pub fn new(base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> StickAuthorityStore {
-        StickAuthorityStore {
+impl AuthorityStore {
+    pub fn new(base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> AuthorityStore {
+        AuthorityStore {
             base: base.clone(),
             program_loader: program_loader.clone(),
-            data: Arc::new(Mutex::new(StickAuthorityStoreData::new()))
+            data: Arc::new(Mutex::new(AuthorityStoreData::new()))
         }
     }
 
