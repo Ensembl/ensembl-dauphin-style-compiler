@@ -7,7 +7,7 @@ use serde_cbor::Value as CborValue;
 use crate::core::Asset;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
-use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType, ResponseBuilderType, ResponseType};
 use super::backoff::Backoff;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
@@ -21,7 +21,7 @@ pub(super) struct BootstrapCommandRequest {
 pub(super) async fn do_bootstrap(manager: &RequestManager, channel: &Channel) -> Result<Box<BootstrapCommandResponse>,DataMessage> {
     let request = BootstrapCommandRequest::new(channel.clone());
     let mut backoff = Backoff::new(&manager,&channel,&PacketPriority::RealTime);
-    match backoff.backoff_new::<BootstrapCommandResponse>(NewRequestType::new_bootstrap(request)).await? {
+    match backoff.backoff_new::<BootstrapCommandResponse>(RequestType::new_bootstrap(request)).await? {
         Ok(response) => {
             Ok(response)
         }

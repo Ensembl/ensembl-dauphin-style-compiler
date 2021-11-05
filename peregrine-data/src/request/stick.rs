@@ -7,7 +7,7 @@ use crate::core::stick::{ Stick, StickId, StickTopology };
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 
 #[derive(Clone)]
@@ -24,7 +24,7 @@ impl StickCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_new::<StickCommandResponse>(NewRequestType::new_stick(self.clone())).await??;
+        let r = backoff.backoff_new::<StickCommandResponse>(RequestType::new_stick(self.clone())).await??;
         Ok(r.stick.clone())
     }
 }

@@ -1,65 +1,58 @@
 // TODO tied failures
 
-use crate::{metric::metricreporter::MetricReport, util::serde::ser_wrap};
+use crate::{metric::metricreporter::MetricReport };
 use std::{any::Any, sync::Arc};
 use anyhow::{ self };
 use serde::{Serializer, ser::SerializeSeq};
 use serde_cbor::Value as CborValue;
 use std::rc::Rc;
-use crate::util::message::DataMessage;
 
 use super::{authority::AuthorityCommandRequest, bootstrap::BootstrapCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest, stick::StickCommandRequest};
 
-pub trait OldRequestType {
-    fn type_index(&self) -> u8;
-    fn serialize(&self) -> Result<CborValue,DataMessage>;
-    fn to_failure(&self) -> Box<dyn ResponseType>;
-}
-
 #[derive(Clone)]
-pub struct NewRequestType {
+pub struct RequestType {
     variant: Arc<NewRequestVariant>
 }
 
-impl NewRequestType {
-    pub(super) fn new_bootstrap(request: BootstrapCommandRequest) -> NewRequestType {
-        NewRequestType {
+impl RequestType {
+    pub(super) fn new_bootstrap(request: BootstrapCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Bootstrap(request))
         }
     }
 
-    pub(super) fn new_jump(request: JumpCommandRequest) -> NewRequestType {
-        NewRequestType {
+    pub(super) fn new_jump(request: JumpCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Jump(request))
         }
     }
 
-    pub(super) fn new_program(request: ProgramCommandRequest) -> NewRequestType {
-        NewRequestType {
+    pub(super) fn new_program(request: ProgramCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Program(request))
         }
     }
 
-    pub(super) fn new_stick(request: StickCommandRequest) -> NewRequestType {
-        NewRequestType {
+    pub(super) fn new_stick(request: StickCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Stick(request))
         }
     }
 
-    pub(super) fn new_authority(request: AuthorityCommandRequest) -> NewRequestType {
-        NewRequestType {
+    pub(super) fn new_authority(request: AuthorityCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Authority(request))
         }
     }
 
-    pub(super) fn new_data(request: DataCommandRequest) -> NewRequestType {
-        NewRequestType {
+    pub(super) fn new_data(request: DataCommandRequest) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Data(request))
         }
     }
 
-    pub(crate) fn new_metric(request: MetricReport) -> NewRequestType {
-        NewRequestType {
+    pub(crate) fn new_metric(request: MetricReport) -> RequestType {
+        RequestType {
             variant: Arc::new(NewRequestVariant::Metric(request))
         }
     }
@@ -75,7 +68,7 @@ enum NewRequestVariant {
     Metric(MetricReport),
 }
 
-impl serde::Serialize for NewRequestType {
+impl serde::Serialize for RequestType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match self.variant.as_ref() {
             NewRequestVariant::Bootstrap(x) => x.serialize(serializer),
@@ -89,7 +82,7 @@ impl serde::Serialize for NewRequestType {
     }
 }
 
-impl NewRequestType {
+impl RequestType {
     pub fn to_failure(&self) -> Box<dyn ResponseType> {
         match self.variant.as_ref() {
             NewRequestVariant::Bootstrap(_) => Box::new(GeneralFailure::new("bootstrapping")),
@@ -116,46 +109,14 @@ impl NewRequestType {
 }
 
 #[derive(Clone)]
-pub struct OldCommandRequest {
+pub struct CommandRequest {
     msgid: u64,
-    data: Rc<Box<dyn OldRequestType>>
+    data: Rc<RequestType>
 }
 
-#[derive(Clone)]
-pub struct NewCommandRequest {
-    msgid: u64,
-    data: Rc<NewRequestType>
-}
-
-#[derive(Clone)]
-pub enum CommandRequest {
-    Old(OldCommandRequest),
-    New(NewCommandRequest)
-}
-
-impl OldCommandRequest {
-    pub(crate) fn new(msgid: u64, rt: Box<dyn OldRequestType>) -> OldCommandRequest {
-        OldCommandRequest {
-            msgid,
-            data: Rc::new(rt)
-        }
-    }
-
-    pub(super) fn to_failure(&self) -> Box<dyn ResponseType> { self.data.to_failure() }
-    pub(crate) fn message_id(&self) -> u64 { self.msgid }
-    pub(crate) fn fail(&self) -> CommandResponse {
-        CommandResponse::new(self.msgid,self.data.to_failure())
-    }
-
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        let typ = self.data.type_index();
-        Ok(CborValue::Array(vec![CborValue::Integer(self.msgid as i128),CborValue::Integer(typ as i128),self.data.serialize()?]))
-    }
-}
-
-impl NewCommandRequest {
-    pub(crate) fn new(msgid: u64, rt: NewRequestType) -> NewCommandRequest {
-        NewCommandRequest {
+impl CommandRequest {
+    pub(crate) fn new(msgid: u64, rt: RequestType) -> CommandRequest {
+        CommandRequest {
             msgid,
             data: Rc::new(rt)
         }
@@ -168,46 +129,13 @@ impl NewCommandRequest {
     }
 }
 
-impl serde::Serialize for NewCommandRequest {
+impl serde::Serialize for CommandRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         let mut seq = serializer.serialize_seq(Some(3))?;
         seq.serialize_element(&self.msgid)?;
         seq.serialize_element(&self.data.type_index())?;
         seq.serialize_element(&self.data)?;
         seq.end()
-    }
-}
-
-impl CommandRequest {
-    pub(crate) fn message_id(&self) -> u64 {
-        match self {
-            CommandRequest::New(x) => x.message_id(),
-            CommandRequest::Old(x) => x.message_id()
-        }
-    }
-
-    pub(crate) fn fail(&self) -> CommandResponse {
-        match self {
-            CommandRequest::New(x) => x.fail(),
-            CommandRequest::Old(x) => x.fail()
-        }
-    }
-
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        match self {
-            CommandRequest::New(x) => {
-                let xxx_value = ser_wrap(serde_cbor::to_vec(&x))?;
-                ser_wrap(serde_cbor::from_slice(&xxx_value))      
-            },
-            CommandRequest::Old(x) => x.serialize()
-        }
-    }
-
-    pub(super) fn to_failure(&self) -> Box<dyn ResponseType> {
-        match self {
-            CommandRequest::New(x) => x.to_failure(),
-            CommandRequest::Old(x) => x.to_failure()
-        }
     }
 }
 

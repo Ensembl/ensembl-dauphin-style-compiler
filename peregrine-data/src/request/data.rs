@@ -7,7 +7,7 @@ use serde::ser::SerializeSeq;
 use std::any::Any;
 use std::collections::HashMap;
 use super::channel::{ Channel, PacketPriority };
-use super::request::NewRequestType;
+use super::request::RequestType;
 use crate::Region;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
@@ -53,7 +53,7 @@ impl DataCommandRequest {
 
     async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new(manager,&self.channel,priority);
-        let mut out = backoff.backoff_new::<DataResponse>(NewRequestType::new_data(self.clone())).await?
+        let mut out = backoff.backoff_new::<DataResponse>(RequestType::new_data(self.clone())).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
         if let Ok(response) = &mut out {
             self.account(&response,metrics,priority);

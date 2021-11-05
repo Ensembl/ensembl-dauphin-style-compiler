@@ -8,6 +8,7 @@ use super::programbundle::SuppliedBundle;
 use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
 use crate::util::message::DataMessage;
+use crate::util::serde::ser_wrap;
 
 pub struct RequestPacket {
     requests: Vec<CommandRequest>
@@ -28,7 +29,8 @@ impl RequestPacket {
         let mut map = BTreeMap::new();
         let mut requests = vec![];
         for r in &self.requests {
-            requests.push(r.serialize()?);
+            let xxx_value = ser_wrap(serde_cbor::to_vec(&r))?;
+            requests.push(ser_wrap(serde_cbor::from_slice(&xxx_value))?);     
         }
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
         map.insert(CborValue::Text("channel".to_string()),channel.serialize()?);

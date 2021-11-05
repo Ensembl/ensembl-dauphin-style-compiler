@@ -3,7 +3,7 @@ use serde::Serializer;
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ PacketPriority };
-use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
@@ -22,7 +22,7 @@ impl ProgramCommandRequest {
 
     async fn execute(self, manager: &RequestManager) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
-        backoff.backoff_new::<ProgramCommandResponse>(NewRequestType::new_program(self.clone())).await??;
+        backoff.backoff_new::<ProgramCommandResponse>(RequestType::new_program(self.clone())).await??;
         Ok(())
     }
 }

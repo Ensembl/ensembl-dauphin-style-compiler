@@ -9,7 +9,7 @@ use std::sync::{ Arc, Mutex };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::queue::RequestQueue;
 use super::packet::ResponsePacket;
-use super::request::{CommandRequest, NewCommandRequest, NewRequestType, OldCommandRequest, OldRequestType, ResponseType};
+use super::request::{CommandRequest, RequestType, ResponseType};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
@@ -111,21 +111,12 @@ impl RequestManagerData {
         }
     }
 
-    fn execute_old(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn OldRequestType>) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
+    fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
-        let request = OldCommandRequest::new(msg_id,request);
+        let request = CommandRequest::new(msg_id,request);
         let response_stream = CommanderStream::new();
-        self.get_queue(&channel,&priority)?.queue_command(CommandRequest::Old(request),response_stream.clone());
-        Ok(response_stream)
-    }
-
-    fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: NewRequestType) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
-        let msg_id = self.next_id;
-        self.next_id += 1;
-        let request = NewCommandRequest::new(msg_id,request);
-        let response_stream = CommanderStream::new();
-        self.get_queue(&channel,&priority)?.queue_command(CommandRequest::New(request),response_stream.clone());
+        self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
         Ok(response_stream)
     }
 
@@ -158,23 +149,13 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute_old(&mut self, channel: Channel, priority: PacketPriority, request: Box<dyn OldRequestType>) -> Result<Box<dyn ResponseType>,DataMessage> {
-        let m = lock!(self.0).execute_old(channel,priority,request)?;
-        let out = Ok(m.get().await);
-        out
-    }
-
-    pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: NewRequestType) -> Result<Box<dyn ResponseType>,DataMessage> {
+    pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<Box<dyn ResponseType>,DataMessage> {
         let m = lock!(self.0).execute_new(channel,priority,request)?;
         let out = Ok(m.get().await);
         out
     }
 
-    pub fn execute_background_old(&self, channel: &Channel, request: Box<dyn OldRequestType>) -> Result<(),DataMessage> {
-        lock!(self.0).execute_old(channel.clone(),PacketPriority::Batch,request).map(|_| ())
-    }
-
-    pub fn execute_background_new(&self, channel: &Channel, request: NewRequestType) -> Result<(),DataMessage> {
+    pub fn execute_background_new(&self, channel: &Channel, request: RequestType) -> Result<(),DataMessage> {
         lock!(self.0).execute_new(channel.clone(),PacketPriority::Batch,request).map(|_| ())
     }
 

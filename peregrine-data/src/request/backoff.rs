@@ -3,7 +3,7 @@ use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
-use super::request::{NewRequestType, OldRequestType, ResponseType};
+use super::request::{RequestType, ResponseType};
 use crate::util::message::DataMessage;
 
 pub struct Backoff { 
@@ -43,27 +43,7 @@ impl Backoff {
         }
     }
 
-    pub async fn backoff_old<R,S>(&mut self, req: R) -> Result<Result<Box<S>,DataMessage>,DataMessage>
-                    where R: OldRequestType + Clone + 'static, S: 'static {
-        let channel = self.channel.clone();
-        let mut last_error = None;
-        for _ in 0..5 { // XXX configurable
-            let resp = self.manager.execute_old(channel.clone(),self.priority.clone(),Box::new(req.clone())).await?;
-            match self.downcast(resp)? {
-                Ok(result) => { return Ok(Ok(result)); },
-                Err(s) => { last_error = Some(s); }
-            }
-            self.manager.message(DataMessage::TemporaryBackendFailure(channel.clone()));
-            cdr_timer(500.).await; // XXX configurable
-        }
-        self.manager.message(DataMessage::FatalBackendFailure(channel.clone()));
-        match last_error.unwrap().downcast_ref::<GeneralFailure>() {
-            Some(e) => Ok(Err(DataMessage::BackendRefused(channel.clone(),e.message().to_string()))),
-            None => Err(DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string()))
-        }
-    }
-
-    pub async fn backoff_new<S>(&mut self, req: NewRequestType) -> Result<Result<Box<S>,DataMessage>,DataMessage>
+    pub async fn backoff_new<S>(&mut self, req: RequestType) -> Result<Result<Box<S>,DataMessage>,DataMessage>
                     where S: 'static {
         let channel = self.channel.clone();
         let mut last_error = None;

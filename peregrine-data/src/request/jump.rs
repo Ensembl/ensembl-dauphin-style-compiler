@@ -4,7 +4,7 @@ use serde::{Deserialize, Serializer};
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 
 #[derive(Clone)]
@@ -21,7 +21,7 @@ impl JumpCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<JumpResponse> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_new::<JumpResponse>(NewRequestType::new_jump(self.clone())).await??;
+        let r = backoff.backoff_new::<JumpResponse>(RequestType::new_jump(self.clone())).await??;
         Ok(r.as_ref().clone())
     }
 }

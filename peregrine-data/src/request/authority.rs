@@ -5,7 +5,7 @@ use crate::util::cbor::{ cbor_array, cbor_string };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use crate::index::stickauthority::Authority;
-use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
@@ -19,7 +19,7 @@ impl AuthorityCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<Authority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let response = backoff.backoff_new::<AuthorityCommandResponse>(NewRequestType::new_authority(self.clone())).await??;
+        let response = backoff.backoff_new::<AuthorityCommandResponse>(RequestType::new_authority(self.clone())).await??;
         Ok(Authority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }
