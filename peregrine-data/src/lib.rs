@@ -90,6 +90,7 @@ mod request {
     pub(crate) mod authority;
     pub use backend::{ AllBackends, Backend };
     pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
+    pub use self::packet::RequestPacket;
     pub use self::manager::RequestManager;
 }
 
@@ -162,7 +163,6 @@ mod util {
     pub mod miscpromises;
     pub mod eachorevery;
     pub mod ringarray;
-    pub(crate) mod serde;
     pub mod vecutils;
 
     pub use self::builder::Builder;
@@ -176,7 +176,7 @@ pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, Stick
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager, AllBackends, Backend };
+pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager, AllBackends, Backend, RequestPacket };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,

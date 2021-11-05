@@ -1,5 +1,5 @@
 use anyhow::{ self, Context, anyhow as err };
-use serde::Serialize;
+use serde_derive::Serialize;
 use std::collections::{ HashMap };
 use std::mem::replace;
 use std::rc::Rc;

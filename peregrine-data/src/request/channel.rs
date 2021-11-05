@@ -9,10 +9,11 @@ use std::sync::Arc;
 use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
-use crate::util::serde::ser_wrap;
 use serde_derive::{ Serialize };
 use peregrine_toolkit::serde::{de_seq_next, de_wrap};
 use peregrine_toolkit::envaryseq;
+
+use super::packet::RequestPacket;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -30,7 +31,7 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
 
 pub trait ChannelIntegration {
     fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: CborValue) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>;
+    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -107,11 +108,6 @@ impl Display for PacketPriority {
 }
 
 impl Channel {
-    pub fn serialize(&self) -> Result<CborValue,DataMessage> {
-        let xxx_value = ser_wrap(serde_cbor::to_vec(self))?;
-        Ok(ser_wrap(serde_cbor::from_slice(&xxx_value))?)
-    }
-
     pub fn deserialize(value: &CborValue) -> Result<Channel,serde_cbor::Error> {
         let xxx_bytes = serde_cbor::to_vec(value)?;
         serde_cbor::from_slice(&xxx_bytes)

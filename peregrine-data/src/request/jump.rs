@@ -1,7 +1,8 @@
 use std::any::Any;
 use peregrine_toolkit::envaryseq;
-use serde::{Deserialize, Serializer};
+use serde::{Serializer};
 use serde_cbor::Value as CborValue;
+use serde_derive::Deserialize;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::request::{RequestType, ResponseBuilderType, ResponseType};

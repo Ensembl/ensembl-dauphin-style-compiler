@@ -11,7 +11,6 @@ use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use crate::api::MessageSender;
 use crate::request::packet::RequestPacketBuilder;
-use crate::util::serde::ser_wrap;
 use super::bootstrap::BootstrapResponseBuilderType;
 use super::data::DataResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
@@ -59,9 +58,7 @@ impl RequestQueueData {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
-        let xxx_value = ser_wrap(serde_cbor::to_vec(&packet))?;
-        let data = ser_wrap(serde_cbor::from_slice(&xxx_value))?;
-        Ok(integration.get_sender(channel,priority,data))
+        Ok(integration.get_sender(channel,priority,packet.clone()))
     }
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
