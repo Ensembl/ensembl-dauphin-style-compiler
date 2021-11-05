@@ -8,7 +8,7 @@ use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 use crate::util::message::DataMessage;
 
-use super::{authority::AuthorityCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest, stick::StickCommandRequest};
+use super::{authority::AuthorityCommandRequest, bootstrap::BootstrapCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest, stick::StickCommandRequest};
 
 pub trait OldRequestType {
     fn type_index(&self) -> u8;
@@ -22,6 +22,12 @@ pub struct NewRequestType {
 }
 
 impl NewRequestType {
+    pub(super) fn new_bootstrap(request: BootstrapCommandRequest) -> NewRequestType {
+        NewRequestType {
+            variant: Arc::new(NewRequestVariant::Bootstrap(request))
+        }
+    }
+
     pub(super) fn new_jump(request: JumpCommandRequest) -> NewRequestType {
         NewRequestType {
             variant: Arc::new(NewRequestVariant::Jump(request))
@@ -54,6 +60,7 @@ impl NewRequestType {
 }
 
 enum NewRequestVariant {
+    Bootstrap(BootstrapCommandRequest),
     Program(ProgramCommandRequest),
     Stick(StickCommandRequest),
     Authority(AuthorityCommandRequest),
@@ -64,11 +71,12 @@ enum NewRequestVariant {
 impl serde::Serialize for NewRequestType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match self.variant.as_ref() {
-            NewRequestVariant::Jump(x) => x.serialize(serializer),
+            NewRequestVariant::Bootstrap(x) => x.serialize(serializer),
             NewRequestVariant::Program(x) => x.serialize(serializer),
             NewRequestVariant::Stick(x) => x.serialize(serializer),
+            NewRequestVariant::Authority(x) => x.serialize(serializer),
             NewRequestVariant::Data(x) => x.serialize(serializer),
-            NewRequestVariant::Authority(x) => x.serialize(serializer)
+            NewRequestVariant::Jump(x) => x.serialize(serializer),
         }
     }
 }
@@ -76,16 +84,18 @@ impl serde::Serialize for NewRequestType {
 impl NewRequestType {
     pub fn to_failure(&self) -> Box<dyn ResponseType> {
         match self.variant.as_ref() {
-            NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
+            NewRequestVariant::Bootstrap(_) => Box::new(GeneralFailure::new("bootstrapping")),
             NewRequestVariant::Program(_) => Box::new(GeneralFailure::new("getting program")),
             NewRequestVariant::Stick(_) => Box::new(GeneralFailure::new("getting stick info")),
-            NewRequestVariant::Data(_) => Box::new(GeneralFailure::new("getting data")),
             NewRequestVariant::Authority(_) => Box::new(GeneralFailure::new("getting authority info")),
+            NewRequestVariant::Data(_) => Box::new(GeneralFailure::new("getting data")),
+            NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
         }
     }
 
     fn type_index(&self) -> u8 {
         match self.variant.as_ref() {
+            NewRequestVariant::Bootstrap(_) => 0,
             NewRequestVariant::Program(_) => 1,
             NewRequestVariant::Stick(_) => 2,
             NewRequestVariant::Authority(_) => 3,

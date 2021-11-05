@@ -6,15 +6,13 @@ use serde::Serializer;
 use serde::ser::SerializeSeq;
 use std::any::Any;
 use std::collections::HashMap;
-use std::sync::Arc;
 use super::channel::{ Channel, PacketPriority };
 use super::request::NewRequestType;
 use crate::Region;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
-use super::request::{ OldRequestType, ResponseType, ResponseBuilderType };
+use super::request::{ ResponseType, ResponseBuilderType };
 use serde_cbor::Value as CborValue;
-use super::failure::GeneralFailure;
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
