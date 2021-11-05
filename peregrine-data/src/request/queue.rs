@@ -10,6 +10,8 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use crate::api::MessageSender;
+use crate::request::packet::RequestPacketBuilder;
+use crate::util::serde::ser_wrap;
 use super::bootstrap::BootstrapResponseBuilderType;
 use super::data::DataResponseBuilderType;
 use super::failure::GeneralFailureBuilderType;
@@ -57,7 +59,9 @@ impl RequestQueueData {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
-        Ok(integration.get_sender(channel,priority,packet.serialize(&self.channel)?))
+        let xxx_value = ser_wrap(serde_cbor::to_vec(&packet))?;
+        let data = ser_wrap(serde_cbor::from_slice(&xxx_value))?;
+        Ok(integration.get_sender(channel,priority,data))
     }
 
     fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
@@ -149,6 +153,7 @@ impl RequestQueue {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
+        let channel = data.channel.clone();
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
@@ -160,16 +165,16 @@ impl RequestQueue {
                 more
             }
         };
-        let mut packet = RequestPacket::new();
-        let mut channels = HashMap::new();
+        let mut packet = RequestPacketBuilder::new(&channel);
+        let mut streams = HashMap::new();
         let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
-            channels.insert(r.message_id(),c.clone());
+            streams.insert(r.message_id(),c.clone());
             timeouts.push((r.to_failure(),c));
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);
-        (packet,channels)
+        (RequestPacket::new(packet),streams)
     }
 
     fn get_blocker(&self) -> Option<Blocker> {

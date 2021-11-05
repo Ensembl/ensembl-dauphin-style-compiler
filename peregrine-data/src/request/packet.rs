@@ -1,22 +1,24 @@
 use anyhow::{ self, Context, anyhow as err };
-use std::collections::{ BTreeMap, HashMap };
+use serde::Serialize;
+use std::collections::{ HashMap };
 use std::mem::replace;
 use std::rc::Rc;
+use std::sync::Arc;
 use serde_cbor::Value as CborValue;
 use super::channel::Channel;
 use super::programbundle::SuppliedBundle;
-use super::request::{ ResponseBuilderType, CommandResponse, CommandRequest };
+use super::request::{CommandRequest, CommandResponse, ResponseBuilderType};
 use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
-use crate::util::message::DataMessage;
-use crate::util::serde::ser_wrap;
 
-pub struct RequestPacket {
+pub struct RequestPacketBuilder {
+    channel: Channel,
     requests: Vec<CommandRequest>
 }
 
-impl RequestPacket {
-    pub fn new() -> RequestPacket {
-        RequestPacket {
+impl RequestPacketBuilder {
+    pub fn new(channel: &Channel) -> RequestPacketBuilder {
+        RequestPacketBuilder {
+            channel: channel.clone(),
             requests: vec![]
         }
     }
@@ -24,22 +26,25 @@ impl RequestPacket {
     pub fn add(&mut self, request: CommandRequest) {
         self.requests.push(request);
     }
+}
 
-    pub fn serialize(&self, channel: &Channel) -> Result<CborValue,DataMessage> {
-        let mut map = BTreeMap::new();
-        let mut requests = vec![];
-        for r in &self.requests {
-            let xxx_value = ser_wrap(serde_cbor::to_vec(&r))?;
-            requests.push(ser_wrap(serde_cbor::from_slice(&xxx_value))?);     
+#[derive(Serialize,Clone)]
+pub struct RequestPacket {
+    channel: Channel,
+    requests: Arc<Vec<CommandRequest>>
+}
+
+impl RequestPacket {
+    pub fn new(builder: RequestPacketBuilder) -> RequestPacket {
+        RequestPacket {
+            channel: builder.channel.clone(),
+            requests: Arc::new(builder.requests.clone())
         }
-        map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
-        map.insert(CborValue::Text("channel".to_string()),channel.serialize()?);
-        Ok(CborValue::Map(map))
     }
 
     pub fn fail(&self) -> ResponsePacket {
         let mut response = ResponsePacket::new();
-        for r in &self.requests {
+        for r in self.requests.iter() {
             response.add_response(r.fail());
         }
         response
