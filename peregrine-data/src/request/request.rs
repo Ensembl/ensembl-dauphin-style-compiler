@@ -8,7 +8,7 @@ use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 use crate::util::message::DataMessage;
 
-use super::{failure::GeneralFailure, jump::JumpCommandRequest};
+use super::{failure::GeneralFailure, jump::JumpCommandRequest, program::ProgramCommandRequest};
 
 pub trait OldRequestType {
     fn type_index(&self) -> u8;
@@ -27,16 +27,24 @@ impl NewRequestType {
             variant: Arc::new(NewRequestVariant::Jump(request))
         }
     }
+
+    pub(super) fn new_program(request: ProgramCommandRequest) -> NewRequestType {
+        NewRequestType {
+            variant: Arc::new(NewRequestVariant::Program(request))
+        }
+    }
 }
 
 enum NewRequestVariant {
-    Jump(JumpCommandRequest)
+    Jump(JumpCommandRequest),
+    Program(ProgramCommandRequest)
 }
 
 impl serde::Serialize for NewRequestType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match self.variant.as_ref() {
-            NewRequestVariant::Jump(x) => x.serialize(serializer)
+            NewRequestVariant::Jump(x) => x.serialize(serializer),
+            NewRequestVariant::Program(x) => x.serialize(serializer),
         }
     }
 }
@@ -45,11 +53,13 @@ impl NewRequestType {
     pub fn to_failure(&self) -> Box<dyn ResponseType> {
         match self.variant.as_ref() {
             NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
+            NewRequestVariant::Program(_) => Box::new(GeneralFailure::new("getting program")),
         }
     }
 
     fn type_index(&self) -> u8 {
         match self.variant.as_ref() {
+            NewRequestVariant::Program(_) => 1,
             NewRequestVariant::Jump(_) => 5,
         }
     }

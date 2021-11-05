@@ -1,15 +1,15 @@
 use std::any::Any;
+use serde::Serializer;
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ PacketPriority };
-use super::failure::GeneralFailure;
-use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
+use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
 
 #[derive(Clone)]
-struct ProgramCommandRequest {
+pub(super) struct ProgramCommandRequest {
     program_name: ProgramName
 }
 
@@ -22,18 +22,14 @@ impl ProgramCommandRequest {
 
     async fn execute(self, manager: &RequestManager) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
-        backoff.backoff_old::<_,ProgramCommandResponse>(self.clone()).await??;
+        backoff.backoff_new::<ProgramCommandResponse>(NewRequestType::new_program(self.clone())).await??;
         Ok(())
     }
 }
 
-impl OldRequestType for ProgramCommandRequest {
-    fn type_index(&self) -> u8 { 1 }
-    fn serialize(&self) -> Result<CborValue,DataMessage> {
-        self.program_name.serialize()
-    }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("program loading failed"))
+impl serde::Serialize for ProgramCommandRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        self.program_name.serialize(serializer)
     }
 }
 
