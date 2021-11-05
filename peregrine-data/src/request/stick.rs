@@ -1,12 +1,13 @@
 use anyhow::bail;
 use std::any::Any;
+use std::sync::Arc;
 use serde_cbor::Value as CborValue;
 use crate::core::stick::{ Stick, StickId, StickTopology };
 use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
@@ -24,14 +25,14 @@ impl StickCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff::<StickCommandResponse,_>(self.clone()).await??;
+        let r = backoff.backoff_old::<_,StickCommandResponse>(self.clone()).await??;
         Ok(r.stick.clone())
     }
 }
 
-impl RequestType for StickCommandRequest {
+impl OldRequestType for StickCommandRequest {
     fn type_index(&self) -> u8 { 2 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![CborValue::Text(self.stick_id.get_id().to_string())]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

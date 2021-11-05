@@ -1,11 +1,12 @@
 use std::any::Any;
+use std::sync::Arc;
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use crate::index::stickauthority::StickAuthority;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
@@ -19,14 +20,14 @@ impl StickAuthorityCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<StickAuthority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let response = backoff.backoff::<StickAuthorityCommandResponse,_>(self.clone()).await??;
+        let response = backoff.backoff_old::<_,StickAuthorityCommandResponse>(self.clone()).await??;
         Ok(StickAuthority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }
 
-impl RequestType for StickAuthorityCommandRequest {
+impl OldRequestType for StickAuthorityCommandRequest {
     fn type_index(&self) -> u8 { 3 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Null)
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

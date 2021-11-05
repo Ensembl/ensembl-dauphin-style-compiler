@@ -4,11 +4,12 @@ use crate::metric::metricreporter::MetricCollector;
 use anyhow::{ anyhow as err };
 use std::any::Any;
 use std::collections::HashMap;
+use std::sync::Arc;
 use super::channel::{ Channel, PacketPriority };
 use crate::Region;
 use crate::util::cbor::{ cbor_map, cbor_map_iter, cbor_string, cbor_bytes };
 use super::backoff::Backoff;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{ OldRequestType, ResponseType, ResponseBuilderType };
 use serde_cbor::Value as CborValue;
 use super::failure::GeneralFailure;
 use super::manager::RequestManager;
@@ -51,7 +52,7 @@ impl DataCommandRequest {
 
     async fn execute(self, manager: &RequestManager, priority: &PacketPriority, metrics: &MetricCollector) -> Result<Box<DataResponse>,DataMessage> {
         let mut backoff = Backoff::new(manager,&self.channel,priority);
-        let mut out = backoff.backoff::<DataResponse,_>(self.clone()).await?
+        let mut out = backoff.backoff_old::<_,DataResponse>(self.clone()).await?
                 .map_err(|e| DataMessage::DataUnavailable(self.channel.clone(),Box::new(e)));
         if let Ok(response) = &mut out {
             self.account(&response,metrics,priority);
@@ -60,9 +61,9 @@ impl DataCommandRequest {
     }
 }
 
-impl RequestType for DataCommandRequest {
+impl OldRequestType for DataCommandRequest {
     fn type_index(&self) -> u8 { 4 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         Ok(CborValue::Array(vec![self.channel.serialize()?,CborValue::Text(self.name.to_string()),self.region.serialize()?]))
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

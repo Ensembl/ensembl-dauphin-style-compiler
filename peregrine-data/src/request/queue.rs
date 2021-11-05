@@ -149,7 +149,6 @@ impl RequestQueue {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
-        let channel = data.channel.clone();
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
@@ -166,7 +165,7 @@ impl RequestQueue {
         let mut timeouts = vec![];
         for (r,c) in requests.drain(..) {
             channels.insert(r.message_id(),c.clone());
-            timeouts.push((r.request(&channel).to_failure(),c));
+            timeouts.push((r.to_failure(),c));
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);

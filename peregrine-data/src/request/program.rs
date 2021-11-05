@@ -1,10 +1,9 @@
-use crate::Channel;
 use std::any::Any;
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ PacketPriority };
 use super::failure::GeneralFailure;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
@@ -23,14 +22,14 @@ impl ProgramCommandRequest {
 
     async fn execute(self, manager: &RequestManager) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
-        backoff.backoff::<ProgramCommandResponse,_>(self.clone()).await??;
+        backoff.backoff_old::<_,ProgramCommandResponse>(self.clone()).await??;
         Ok(())
     }
 }
 
-impl RequestType for ProgramCommandRequest {
+impl OldRequestType for ProgramCommandRequest {
     fn type_index(&self) -> u8 { 1 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
+    fn serialize(&self) -> Result<CborValue,DataMessage> {
         self.program_name.serialize()
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {

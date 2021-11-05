@@ -4,14 +4,11 @@ use serde::{Deserialize, Serializer};
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::failure::GeneralFailure;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{NewRequestType, ResponseBuilderType, ResponseType};
 use super::manager::RequestManager;
-use crate::util::message::DataMessage;
-use crate::util::serde::ser_wrap;
 
 #[derive(Clone)]
-struct JumpCommandRequest {
+pub struct JumpCommandRequest {
     location: String
 }
 
@@ -24,7 +21,7 @@ impl JumpCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<JumpResponse> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff::<JumpResponse,_>(self.clone()).await??;
+        let r = backoff.backoff_new::<JumpResponse>(NewRequestType::new_jump(self.clone())).await??;
         Ok(r.as_ref().clone())
     }
 }
@@ -32,17 +29,6 @@ impl JumpCommandRequest {
 impl serde::Serialize for JumpCommandRequest {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         envaryseq!(serializer,self.location.to_string())
-    }
-}
-
-impl RequestType for JumpCommandRequest {
-    fn type_index(&self) -> u8 { 5 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
-        let xxx_value = ser_wrap(serde_cbor::to_vec(self))?;
-        Ok(ser_wrap(serde_cbor::from_slice(&xxx_value))?)
-    }
-    fn to_failure(&self) -> Box<dyn ResponseType> {
-        Box::new(GeneralFailure::new("getting jump location"))
     }
 }
 

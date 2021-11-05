@@ -1,13 +1,14 @@
 use crate::core::asset::AssetsBuilder;
 use crate::core::Assets;
 use std::any::Any;
+use std::sync::Arc;
 use anyhow::{ self, };
 use serde_cbor::Value as CborValue;
 use crate::core::Asset;
 use super::channel::{ Channel, PacketPriority };
 use super::failure::GeneralFailure;
 use super::manager::RequestManager;
-use super::request::{ RequestType, ResponseType, ResponseBuilderType };
+use super::request::{OldRequestType, ResponseBuilderType, ResponseType};
 use super::backoff::Backoff;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
@@ -21,7 +22,7 @@ struct BootstrapCommandRequest {
 pub(super) async fn do_bootstrap(manager: &RequestManager, channel: &Channel) -> Result<Box<BootstrapCommandResponse>,DataMessage> {
     let request = BootstrapCommandRequest::new(channel.clone());
     let mut backoff = Backoff::new(&manager,&channel,&PacketPriority::RealTime);
-    match backoff.backoff::<BootstrapCommandResponse,_>(request).await? {
+    match backoff.backoff_old::<_,BootstrapCommandResponse>(request).await? {
         Ok(response) => {
             Ok(response)
         }
@@ -39,9 +40,9 @@ impl BootstrapCommandRequest {
     }
 }
 
-impl RequestType for BootstrapCommandRequest {
+impl OldRequestType for BootstrapCommandRequest {
     fn type_index(&self) -> u8 { 0 }
-    fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> { Ok(CborValue::Null) }
+    fn serialize(&self) -> Result<CborValue,DataMessage> { Ok(CborValue::Null) }
     fn to_failure(&self) -> Box<dyn ResponseType> { Box::new(GeneralFailure::new("bootstrap failed")) }
 }
 
