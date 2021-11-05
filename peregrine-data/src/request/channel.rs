@@ -11,8 +11,8 @@ use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 use crate::util::serde::ser_wrap;
 use serde_derive::{ Serialize };
-use peregrine_toolkit::serde::{EnVarySeq, de_seq_next, de_wrap};
-use peregrine_toolkit::envaryseq_addn;
+use peregrine_toolkit::serde::{de_seq_next, de_wrap};
+use peregrine_toolkit::envaryseq;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -120,12 +120,10 @@ impl Channel {
 
 impl serde::Serialize for Channel {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut seq = EnVarySeq::new();
         match self.0.as_ref() {
-            ChannelLocation::HttpChannel(url) => envaryseq_addn!(seq,0,url.to_string()),
-            ChannelLocation::None => envaryseq_addn!(seq,1),
+            ChannelLocation::HttpChannel(url) => envaryseq!(serializer,0,url.to_string()),
+            ChannelLocation::None => envaryseq!(serializer,1)
         }
-        seq.serialize(serializer)
     }
 }
 

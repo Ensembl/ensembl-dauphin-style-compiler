@@ -43,3 +43,14 @@ macro_rules! envaryseq_addn {
         }
     };
 }
+
+#[macro_export]
+macro_rules! envaryseq {
+    ($serializer:expr,$($value:expr),*) => {
+        {
+            let mut seq = $crate::serde::EnVarySeq::new();
+            $(seq.add(Box::new($value));)*
+            seq.serialize($serializer)
+        }
+    }
+}

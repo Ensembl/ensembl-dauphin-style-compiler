@@ -1,5 +1,6 @@
 use std::any::Any;
-use serde::{Deserialize};
+use peregrine_toolkit::envaryseq;
+use serde::{Deserialize, Serializer};
 use serde_cbor::Value as CborValue;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
@@ -7,6 +8,7 @@ use super::failure::GeneralFailure;
 use super::request::{ RequestType, ResponseType, ResponseBuilderType };
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
+use crate::util::serde::ser_wrap;
 
 #[derive(Clone)]
 struct JumpCommandRequest {
@@ -27,10 +29,17 @@ impl JumpCommandRequest {
     }
 }
 
+impl serde::Serialize for JumpCommandRequest {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        envaryseq!(serializer,self.location.to_string())
+    }
+}
+
 impl RequestType for JumpCommandRequest {
     fn type_index(&self) -> u8 { 5 }
     fn serialize(&self, _channel: &Channel) -> Result<CborValue,DataMessage> {
-        Ok(CborValue::Array(vec![CborValue::Text(self.location.to_string())]))
+        let xxx_value = ser_wrap(serde_cbor::to_vec(self))?;
+        Ok(ser_wrap(serde_cbor::from_slice(&xxx_value))?)
     }
     fn to_failure(&self) -> Box<dyn ResponseType> {
         Box::new(GeneralFailure::new("getting jump location"))
