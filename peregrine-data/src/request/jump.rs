@@ -22,7 +22,9 @@ impl JumpCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<JumpResponse> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_jump(RequestType::new_jump(self.clone())).await??;
+        let r = backoff.backoff(RequestType::new_jump(self.clone()), |v| {
+            v.into_jump()
+        }).await?;
         Ok(r)
     }
 }

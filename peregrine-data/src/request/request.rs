@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
+use crate::DataMessage;
 use crate::request::queue::register_responses;
 use crate::{metric::metricreporter::MetricReport};
 use std::fmt;
@@ -193,6 +194,29 @@ pub trait ResponseBuilderType {
 pub enum NewResponse {
     Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
+}
+
+impl NewResponse {
+    fn bad_response(&self) -> String {
+        let unexpected = match self {
+            NewResponse::Jump(_) => "jump",
+            NewResponse::Other(r) => {
+                if let Some(general) = r.as_any().downcast_ref::<GeneralFailure>() {
+                    return general.message().to_string();
+                } else {
+                    "unknown"
+                }
+            }
+        };
+        format!("unexpected response: {}",unexpected)
+    }
+
+    pub(crate) fn into_jump(self) -> Result<JumpResponse,String> {
+        match self {
+            NewResponse::Jump(j) => Ok(j),
+            _ => Err(self.bad_response())
+        }
+    }
 }
 
 struct NewResponseVisitor;
