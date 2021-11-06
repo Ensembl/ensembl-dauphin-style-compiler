@@ -6,7 +6,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
-use crate::DataMessage;
 use crate::request::queue::register_responses;
 use crate::{metric::metricreporter::MetricReport};
 use std::fmt;
@@ -94,15 +93,15 @@ impl serde::Serialize for RequestType {
 impl RequestType {
     pub fn to_failure(&self) -> NewResponse {
         let out = match self.variant.as_ref() {
-            NewRequestVariant::Bootstrap(_) => Box::new(GeneralFailure::new("bootstrapping")),
-            NewRequestVariant::Program(_) => Box::new(GeneralFailure::new("getting program")),
-            NewRequestVariant::Stick(_) => Box::new(GeneralFailure::new("getting stick info")),
-            NewRequestVariant::Authority(_) => Box::new(GeneralFailure::new("getting authority info")),
-            NewRequestVariant::Data(_) => Box::new(GeneralFailure::new("getting data")),
-            NewRequestVariant::Jump(_) => Box::new(GeneralFailure::new("getting jump location")),
-            NewRequestVariant::Metric(_) => Box::new(GeneralFailure::new("sending metric report")),
+            NewRequestVariant::Bootstrap(_) => GeneralFailure::new("bootstrapping"),
+            NewRequestVariant::Program(_) => GeneralFailure::new("getting program"),
+            NewRequestVariant::Stick(_) => GeneralFailure::new("getting stick info"),
+            NewRequestVariant::Authority(_) => GeneralFailure::new("getting authority info"),
+            NewRequestVariant::Data(_) => GeneralFailure::new("getting data"),
+            NewRequestVariant::Jump(_) => GeneralFailure::new("getting jump location"),
+            NewRequestVariant::Metric(_) => GeneralFailure::new("sending metric report"),
         };
-        NewResponse::Other(out)
+        NewResponse::GeneralFailure(out)
     }
 
     fn type_index(&self) -> u8 {
@@ -192,6 +191,7 @@ pub trait ResponseBuilderType {
 }
 
 pub enum NewResponse {
+    GeneralFailure(GeneralFailure),
     Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
 }
@@ -199,14 +199,11 @@ pub enum NewResponse {
 impl NewResponse {
     fn bad_response(&self) -> String {
         let unexpected = match self {
+            NewResponse::GeneralFailure(g) => {
+                return g.message().to_string();
+            },
             NewResponse::Jump(_) => "jump",
-            NewResponse::Other(r) => {
-                if let Some(general) = r.as_any().downcast_ref::<GeneralFailure>() {
-                    return general.message().to_string();
-                } else {
-                    "unknown"
-                }
-            }
+            NewResponse::Other(_) => "unknown"
         };
         format!("unexpected response: {}",unexpected)
     }
@@ -229,9 +226,8 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
     fn visit_seq<S>(self, mut seq: S) -> Result<NewResponse,S::Error> where S: SeqAccess<'de> {
         let variety = de_seq_next(&mut seq)?;
         match variety {
-            6 => {
-                Ok(NewResponse::Jump(de_seq_next(&mut seq)?))
-            },
+            1 => Ok(NewResponse::GeneralFailure(de_seq_next(&mut seq)?)),
+            6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
             _ => {
                 let payload : CborValue = de_seq_next(&mut seq)?;
                 let buffer = de_wrap(serde_cbor::to_vec(&payload))?;

@@ -1,7 +1,6 @@
 use commander::cdr_timer;
 use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
-use super::jump::JumpResponse;
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
 use super::request::{NewResponse, RequestType };
@@ -22,31 +21,10 @@ impl Backoff {
         }
     }
 
-    fn downcast_jump(&self, response: NewResponse) -> Result<Result<JumpResponse,Box<dyn Any>>,DataMessage> {
-        match response {
-            NewResponse::Jump(jump) => {
-                return Ok(Ok(jump))
-            },
-            NewResponse::Other(resp) => {
-                match resp.into_any().downcast::<GeneralFailure>() {
-                    /* Got general failure */
-                    Ok(e) => { 
-                        self.manager.message(DataMessage::BackendRefused(self.channel.clone(),e.message().to_string()));
-                        return Ok(Err(e));
-                    },
-                    Err(e) => {
-                        /* Gor something unexpected */
-                        return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: {:?}",e)));
-                    }
-                }
-            }
-        }
-    }
-
     fn downcast<S: 'static>(&self, response: NewResponse) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> {
         match response {
-            NewResponse::Jump(_) => {
-                return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: jump")));
+            NewResponse::Jump(_) | NewResponse::GeneralFailure(_) => {
+                return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: new")));
             },
             NewResponse::Other(resp) => {
                 match resp.into_any().downcast::<S>() {

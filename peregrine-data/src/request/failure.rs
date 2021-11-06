@@ -1,8 +1,5 @@
-use std::any::Any;
-use anyhow::{ self, };
-use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_string };
-use super::request::{ ResponseType, ResponseBuilderType };
+use std::fmt;
+use serde::{Deserialize, Deserializer, de::Visitor};
 
 pub struct GeneralFailure {
     message: String
@@ -16,16 +13,20 @@ impl GeneralFailure {
     pub fn message(&self) -> &str { &self.message }
 }
 
-impl ResponseType for GeneralFailure {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+struct GeneralFailureVisitor;
+
+impl<'de> Visitor<'de> for GeneralFailureVisitor {
+    type Value = GeneralFailure;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a general failure") }
+
+    fn visit_string<E>(self, v: String) -> Result<GeneralFailure, E> where E: serde::de::Error {
+        Ok(GeneralFailure { message: v })
+    }
 }
 
-pub struct GeneralFailureBuilderType();
-impl ResponseBuilderType for GeneralFailureBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(GeneralFailure{
-            message: cbor_string(value)?
-        }))
+impl<'de> Deserialize<'de> for GeneralFailure {
+    fn deserialize<D>(deserializer: D) -> Result<GeneralFailure, D::Error> where D: Deserializer<'de> {
+        deserializer.deserialize_string(GeneralFailureVisitor)
     }
 }

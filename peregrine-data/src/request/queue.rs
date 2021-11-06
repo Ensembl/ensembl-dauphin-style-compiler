@@ -13,8 +13,6 @@ use crate::api::MessageSender;
 use crate::request::packet::RequestPacketBuilder;
 use super::bootstrap::BootstrapResponseBuilderType;
 use super::data::DataResponseBuilderType;
-use super::failure::GeneralFailureBuilderType;
-use super::jump::JumpResponseBuilderType;
 use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
@@ -30,12 +28,10 @@ use crate::util::message::DataMessage;
 pub(super) fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
-    rspbb.register(1,Box::new(GeneralFailureBuilderType()));
     rspbb.register(2,Box::new(ProgramResponseBuilderType()));
     rspbb.register(3,Box::new(StickResponseBuilderType()));
     rspbb.register(4,Box::new(AuthorityResponseBuilderType()));
     rspbb.register(5,Box::new(DataResponseBuilderType()));
-    rspbb.register(6,Box::new(JumpResponseBuilderType()));
     rspbb.build()
 }
 

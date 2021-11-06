@@ -1,11 +1,9 @@
-use std::any::Any;
 use peregrine_toolkit::envaryseq;
 use serde::{Serializer};
-use serde_cbor::Value as CborValue;
 use serde_derive::Deserialize;
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::request::{RequestType, ResponseBuilderType, ResponseType};
+use super::request::RequestType;
 use super::manager::RequestManager;
 
 #[derive(Clone)]
@@ -50,20 +48,6 @@ pub struct NotFound { no: bool }
 pub enum JumpResponse {
     Found(JumpLocation),
     NotFound(NotFound)
-}
-
-impl ResponseType for JumpResponse {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
-}
-
-pub struct JumpResponseBuilderType();
-
-impl ResponseBuilderType for JumpResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let xxx_bytes = serde_cbor::to_vec(value)?;
-        Ok(Box::new(serde_cbor::from_slice::<JumpResponse>(&xxx_bytes)?))
-    }
 }
 
 pub async fn do_jump_request(mut manager: RequestManager, channel: Channel, location: &str) -> anyhow::Result<Option<JumpLocation>> {
