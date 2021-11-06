@@ -20,7 +20,6 @@ use super::request::{CommandRequest, NewResponse};
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
-use super::authority::AuthorityResponseBuilderType;
 use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 
@@ -28,7 +27,6 @@ pub(super) fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
     rspbb.register(3,Box::new(StickResponseBuilderType()));
-    rspbb.register(4,Box::new(AuthorityResponseBuilderType()));
     rspbb.register(5,Box::new(DataResponseBuilderType()));
     rspbb.build()
 }

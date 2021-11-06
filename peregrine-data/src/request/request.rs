@@ -15,6 +15,7 @@ use serde::{Serializer, ser::SerializeSeq};
 use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 
+use super::authority::AuthorityCommandResponse;
 use super::program::ProgramCommandResponse;
 use super::{authority::AuthorityCommandRequest, bootstrap::BootstrapCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::{JumpCommandRequest, JumpResponse}, program::ProgramCommandRequest, stick::StickCommandRequest};
 
@@ -194,6 +195,7 @@ pub trait ResponseBuilderType {
 pub enum NewResponse {
     GeneralFailure(GeneralFailure),
     Program(ProgramCommandResponse),
+    Authority(AuthorityCommandResponse),
     Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
 }
@@ -205,6 +207,7 @@ impl NewResponse {
                 return g.message().to_string();
             },
             NewResponse::Program(_) => "program",
+            NewResponse::Authority(_) => "authority",
             NewResponse::Jump(_) => "jump",
             NewResponse::Other(_) => "unknown"
         };
@@ -224,6 +227,13 @@ impl NewResponse {
             _ => Err(self.bad_response())
         }
     }
+
+    pub(crate) fn into_authority(self) -> Result<AuthorityCommandResponse,String> {
+        match self {
+            NewResponse::Authority(a) => Ok(a),
+            _ => Err(self.bad_response())
+        }
+    }
 }
 
 struct NewResponseVisitor;
@@ -238,6 +248,7 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
         match variety {
             1 => Ok(NewResponse::GeneralFailure(de_seq_next(&mut seq)?)),
             2 => Ok(NewResponse::Program(de_seq_next(&mut seq)?)),
+            4 => Ok(NewResponse::Authority(de_seq_next(&mut seq)?)),
             6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
             _ => {
                 let payload : CborValue = de_seq_next(&mut seq)?;

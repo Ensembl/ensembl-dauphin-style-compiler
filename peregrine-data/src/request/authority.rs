@@ -1,11 +1,11 @@
-use std::any::Any;
-use serde::Serializer;
-use serde_cbor::Value as CborValue;
-use crate::util::cbor::{ cbor_array, cbor_string };
+use std::fmt;
+use peregrine_toolkit::serde::de_seq_next;
+use serde::{Deserialize, Deserializer, Serializer};
+use serde::de::{SeqAccess, Visitor};
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
 use crate::index::stickauthority::Authority;
-use super::request::{RequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
@@ -19,7 +19,9 @@ impl AuthorityCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> Result<Authority,DataMessage> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let response = backoff.backoff_new::<AuthorityCommandResponse>(RequestType::new_authority(self.clone())).await??;
+        let response = backoff.backoff(RequestType::new_authority(self.clone()), |v| {
+            v.into_authority()
+        }).await?;
         Ok(Authority::new(&response.channel,&response.startup_name,&response.lookup_name,&response.jump_name))
     }
 }
@@ -30,33 +32,32 @@ impl serde::Serialize for AuthorityCommandRequest {
     }
 }
 
-struct AuthorityCommandResponse {
+pub struct AuthorityCommandResponse {
     channel: Channel,
     startup_name: String,
     lookup_name: String,
     jump_name: String
 }
 
-impl ResponseType for AuthorityCommandResponse {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
+struct AuthorityVisitor;
+
+impl<'de> Visitor<'de> for AuthorityVisitor {
+    type Value = AuthorityCommandResponse;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"an authority") }
+
+    fn visit_seq<S>(self, mut seq: S) -> Result<AuthorityCommandResponse,S::Error> where S: SeqAccess<'de> {
+        let channel = de_seq_next(&mut seq)?;
+        let startup_name = de_seq_next(&mut seq)?;
+        let lookup_name = de_seq_next(&mut seq)?;
+        let jump_name = de_seq_next(&mut seq)?;
+        Ok(AuthorityCommandResponse { channel, startup_name, lookup_name, jump_name })
+    }
 }
 
-pub struct AuthorityResponseBuilderType();
-
-impl ResponseBuilderType for AuthorityResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let values = cbor_array(value,4,false)?;
-        let channel = Channel::deserialize(&values[0])?;
-        let startup_name = cbor_string(&values[1])?;
-        let lookup_name = cbor_string(&values[2])?;
-        let jump_name = cbor_string(&values[3])?;
-        Ok(Box::new(AuthorityCommandResponse {
-            channel,
-            startup_name: startup_name.to_string(),
-            lookup_name: lookup_name.to_string(),
-            jump_name: jump_name.to_string()
-        }))
+impl<'de> Deserialize<'de> for AuthorityCommandResponse {
+    fn deserialize<D>(deserializer: D) -> Result<AuthorityCommandResponse, D::Error> where D: Deserializer<'de> {
+        deserializer.deserialize_seq(AuthorityVisitor)
     }
 }
 
