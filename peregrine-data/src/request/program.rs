@@ -1,9 +1,7 @@
-use std::any::Any;
-use serde::Serializer;
-use serde_cbor::Value as CborValue;
+use serde::{Deserialize, Deserializer, Serializer};
 use super::backoff::Backoff;
 use super::channel::{ PacketPriority };
-use super::request::{RequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType};
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 use crate::lane::programname::ProgramName;
@@ -22,7 +20,9 @@ impl ProgramCommandRequest {
 
     async fn execute(self, manager: &RequestManager) -> Result<(),DataMessage> {
         let mut backoff = Backoff::new(manager,&self.program_name.0,&PacketPriority::RealTime);
-        backoff.backoff_new::<ProgramCommandResponse>(RequestType::new_program(self.clone())).await??;
+        let _r = backoff.backoff(RequestType::new_program(self.clone()), |v| {
+            v.into_program()
+        }).await?;
         Ok(())
     }
 }
@@ -33,23 +33,16 @@ impl serde::Serialize for ProgramCommandRequest {
     }
 }
 
-struct ProgramCommandResponse {}
-
-impl ResponseType for ProgramCommandResponse {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
-}
-
-pub struct ProgramResponseBuilderType();
-
-impl ResponseBuilderType for ProgramResponseBuilderType {
-    fn deserialize(&self, _value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        Ok(Box::new(ProgramCommandResponse {}))
-    }
-}
+pub struct ProgramCommandResponse {}
 
 pub(super) async fn do_load_program(manager: &RequestManager, program_name: ProgramName) -> Result<(),DataMessage> {
     let req = ProgramCommandRequest::new(&program_name);
     req.execute(manager).await?;
     Ok(())
+}
+
+impl<'de> Deserialize<'de> for ProgramCommandResponse {
+    fn deserialize<D>(_deserializer: D) -> Result<ProgramCommandResponse, D::Error> where D: Deserializer<'de> {
+        Ok(ProgramCommandResponse{})
+    }
 }
