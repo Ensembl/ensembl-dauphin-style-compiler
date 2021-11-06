@@ -41,11 +41,11 @@ pub struct JumpLocation {
 }
 
 #[derive(Clone,Deserialize)]
-struct NotFound { no: bool }
+pub(crate) struct NotFound { no: bool }
 
 #[derive(Clone,Deserialize)]
 #[serde(untagged)]
-enum JumpResponse {
+pub(crate) enum JumpResponse {
     Found(JumpLocation),
     NotFound(NotFound)
 }

@@ -3,7 +3,7 @@ use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
 use super::failure::GeneralFailure;
-use super::request::{RequestType, ResponseType};
+use super::request::{NewResponse, RequestType };
 use crate::util::message::DataMessage;
 
 pub struct Backoff { 
@@ -21,22 +21,26 @@ impl Backoff {
         }
     }
 
-    fn downcast<S: 'static>(&self, resp: Box<dyn ResponseType>) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> {
-        match resp.into_any().downcast::<S>() {
-            Ok(s) => {
-                /* Got expected response */
-                return Ok(Ok(s));
-            },
-            Err(resp) => {
-                match resp.downcast::<GeneralFailure>() {
-                    /* Got general failure */
-                    Ok(e) => { 
-                        self.manager.message(DataMessage::BackendRefused(self.channel.clone(),e.message().to_string()));
-                        return Ok(Err(e));
+    fn downcast<S: 'static>(&self, response: NewResponse) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> {
+        match response {
+            NewResponse::Other(resp) => {
+                match resp.into_any().downcast::<S>() {
+                    Ok(s) => {
+                        /* Got expected response */
+                        return Ok(Ok(s));
                     },
-                    Err(e) => {
-                        /* Gor something unexpected */
-                        return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: {:?}",e)));
+                    Err(resp) => {
+                        match resp.downcast::<GeneralFailure>() {
+                            /* Got general failure */
+                            Ok(e) => { 
+                                self.manager.message(DataMessage::BackendRefused(self.channel.clone(),e.message().to_string()));
+                                return Ok(Err(e));
+                            },
+                            Err(e) => {
+                                /* Gor something unexpected */
+                                return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: {:?}",e)));
+                            }
+                        }
                     }
                 }
             }

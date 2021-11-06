@@ -19,7 +19,7 @@ use super::program::{ ProgramResponseBuilderType };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
-use super::request::{ CommandRequest, ResponseType };
+use super::request::{CommandRequest, NewResponse};
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use super::stick::StickResponseBuilderType;
@@ -27,7 +27,7 @@ use super::authority::AuthorityResponseBuilderType;
 use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 
-fn register_responses() -> ResponsePacketBuilder {
+pub(super) fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
     rspbb.register(1,Box::new(GeneralFailureBuilderType()));
@@ -42,7 +42,7 @@ fn register_responses() -> ResponsePacketBuilder {
 struct RequestQueueData {
     receiver: PayloadReceiverCollection,
     builder: ResponsePacketBuilder,
-    pending_send: CommanderStream<(CommandRequest,CommanderStream<Box<dyn ResponseType>>)>,
+    pending_send: CommanderStream<(CommandRequest,CommanderStream<NewResponse>)>,
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
@@ -80,7 +80,7 @@ impl RequestQueueData {
         self.timeout = Some(timeout);
     }
 
-    fn timeout(&self, streams: Vec<(Box<dyn ResponseType>,CommanderStream<Box<dyn ResponseType>>)>) {
+    fn timeout(&self, streams: Vec<(NewResponse,CommanderStream<NewResponse>)>) {
         if let Some(timeout) = self.timeout {
             for (response,stream) in streams {
                 let stream = stream.clone();
@@ -126,7 +126,7 @@ impl RequestQueue {
         self.0.lock().unwrap().realtime_block_check = Some(blocker.clone());
     }
 
-    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<Box<dyn ResponseType>>) {
+    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<NewResponse>) {
         lock!(self.0).pending_send.add((request,stream));
     }
 
@@ -146,7 +146,7 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<NewResponse>>) {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
@@ -213,7 +213,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<NewResponse>>) {
         let channel = lock!(self.0).channel.clone();
         let itn = lock!(self.0).integration.clone();
         let receiver = lock!(self.0).receiver.clone();
@@ -222,13 +222,13 @@ impl RequestQueue {
         for r in response.take_responses().drain(..) {
             let id = r.message_id();
             if let Some(stream) = streams.remove(&id) {
-                let response = r.into_response();
+                let response = r.into_variety();
                 stream.add(response);
             }
         }
     }
 
-    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<Box<dyn ResponseType>>>) {
+    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<NewResponse>>) {
         let response = self.send_or_fail_packet(request).await;
         self.process_responses(response,streams).await;
     }

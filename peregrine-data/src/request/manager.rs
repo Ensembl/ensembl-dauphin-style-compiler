@@ -9,7 +9,7 @@ use std::sync::{ Arc, Mutex };
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::queue::RequestQueue;
 use super::packet::ResponsePacket;
-use super::request::{CommandRequest, RequestType, ResponseType};
+use super::request::{CommandRequest, NewResponse, RequestType };
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
@@ -111,7 +111,7 @@ impl RequestManagerData {
         }
     }
 
-    fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<Box<dyn ResponseType>>,DataMessage> {
+    fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<NewResponse>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
@@ -149,7 +149,7 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<Box<dyn ResponseType>,DataMessage> {
+    pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<NewResponse,DataMessage> {
         let m = lock!(self.0).execute_new(channel,priority,request)?;
         let out = Ok(m.get().await);
         out

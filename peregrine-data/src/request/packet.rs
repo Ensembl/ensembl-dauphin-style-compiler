@@ -1,4 +1,4 @@
-use anyhow::{ self, Context, anyhow as err };
+use anyhow::{ self, Context };
 use serde_derive::Serialize;
 use std::collections::{ HashMap };
 use std::mem::replace;
@@ -7,8 +7,8 @@ use std::sync::Arc;
 use serde_cbor::Value as CborValue;
 use super::channel::Channel;
 use super::programbundle::SuppliedBundle;
-use super::request::{CommandRequest, CommandResponse, ResponseBuilderType};
-use crate::util::cbor::{ cbor_array, cbor_int, cbor_map };
+use super::request::{CommandRequest, NewCommandResponse, ResponseBuilderType};
+use crate::util::cbor::{ cbor_array, cbor_map };
 
 pub struct RequestPacketBuilder {
     channel: Channel,
@@ -56,7 +56,7 @@ pub struct ResponsePacketBuilderBuilder {
 }
 
 pub struct ResponsePacketBuilder {
-    builders: Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>
+    pub builders: Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>
 }
 
 impl ResponsePacketBuilderBuilder {
@@ -79,12 +79,12 @@ impl ResponsePacketBuilderBuilder {
 
 impl ResponsePacketBuilder {
     pub fn new_packet(&self, value: &CborValue) -> anyhow::Result<ResponsePacket> {
-        ResponsePacket::deserialize(value,&self.builders).context("parsing server response")
+        ResponsePacket::deserialize(value).context("parsing server response")
     }
 }
 
 pub struct ResponsePacket {
-    responses: Vec<CommandResponse>,
+    responses: Vec<NewCommandResponse>,
     programs: Vec<SuppliedBundle>
 }
 
@@ -96,33 +96,22 @@ impl ResponsePacket {
         }
     }
 
-    fn add_response(&mut self, response: CommandResponse) {
+    fn add_response(&mut self, response: NewCommandResponse) {
         self.responses.push(response);
     }
 
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn take_responses(&mut self) -> Vec<CommandResponse> {
+    pub(crate) fn take_responses(&mut self) -> Vec<NewCommandResponse> {
         replace(&mut self.responses,vec![])
     }
 
-    fn deserialize_response(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<CommandResponse> {
-        let values = cbor_array(value,2,false)?;
-        let msgid = cbor_int(&values[0],None)? as u64;
-        let response = cbor_array(&values[1],2,false)?;
-        let builder = builders.get(&(cbor_int(&response[0],Some(255))? as u8)).ok_or(err!("bad response type"))?;
-        let payload = builder.deserialize(&response[1]).with_context(
-            || format!("deserializing individual response payload (type {})",cbor_int(&response[0],None).unwrap_or(-1))
-        )?;
-        Ok(CommandResponse::new(msgid,payload))
-    }
-
-    fn deserialize(value: &CborValue, builders: &Rc<HashMap<u8,Box<dyn ResponseBuilderType>>>) -> anyhow::Result<ResponsePacket> {
+    fn deserialize(value: &CborValue,) -> anyhow::Result<ResponsePacket> {
         let values = cbor_map(value,&["responses","programs"])?;
         let mut responses = vec![];
         for v in cbor_array(&values[0],0,true)? {
-            responses.push(ResponsePacket::deserialize_response(v,builders).with_context(
-                || format!("deserializing individual response payload (type {})",cbor_int(&values[1],None).unwrap_or(-1))
-            )?);
+            let xxx_data = serde_cbor::to_vec(v)?;
+            let v = serde_cbor::from_slice::<NewCommandResponse>(&xxx_data)?;
+            responses.push(v);
         }
         let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
         Ok(ResponsePacket {
