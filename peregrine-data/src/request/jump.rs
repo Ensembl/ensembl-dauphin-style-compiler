@@ -22,8 +22,8 @@ impl JumpCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<JumpResponse> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_new::<JumpResponse>(RequestType::new_jump(self.clone())).await??;
-        Ok(r.as_ref().clone())
+        let r = backoff.backoff_jump(RequestType::new_jump(self.clone())).await??;
+        Ok(r)
     }
 }
 
@@ -41,11 +41,11 @@ pub struct JumpLocation {
 }
 
 #[derive(Clone,Deserialize)]
-pub(crate) struct NotFound { no: bool }
+pub struct NotFound { no: bool }
 
 #[derive(Clone,Deserialize)]
 #[serde(untagged)]
-pub(crate) enum JumpResponse {
+pub enum JumpResponse {
     Found(JumpLocation),
     NotFound(NotFound)
 }

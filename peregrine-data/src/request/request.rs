@@ -181,7 +181,6 @@ impl<'de> Deserialize<'de> for NewCommandResponse {
     }
 }
 
-
 pub trait ResponseType {
     fn as_any(&self) -> &dyn Any;
     fn into_any(self: Box<Self>) -> Box<dyn Any>;
@@ -192,7 +191,7 @@ pub trait ResponseBuilderType {
 }
 
 pub enum NewResponse {
-    //Jump(JumpResponse),
+    Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
 }
 
@@ -205,14 +204,21 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
 
     fn visit_seq<S>(self, mut seq: S) -> Result<NewResponse,S::Error> where S: SeqAccess<'de> {
         let variety = de_seq_next(&mut seq)?;
-        let payload : CborValue = de_seq_next(&mut seq)?;
-        let buffer = de_wrap(serde_cbor::to_vec(&payload))?;
-        let data = de_wrap(serde_cbor::from_slice(&buffer))?;
-        let builders = register_responses().builders;                                                                                                                                                                            
-        let builder = de_wrap(builders.get(&variety).ok_or(err!("bad response type")))?;
-        let payload = de_wrap(builder.deserialize(&data).with_context(
-            || format!("deserializing individual response payload (type {})",variety)))?;
-        Ok(NewResponse::Other(payload))
+        match variety {
+            6 => {
+                Ok(NewResponse::Jump(de_seq_next(&mut seq)?))
+            },
+            _ => {
+                let payload : CborValue = de_seq_next(&mut seq)?;
+                let buffer = de_wrap(serde_cbor::to_vec(&payload))?;
+                let data = de_wrap(serde_cbor::from_slice(&buffer))?;
+                let builders = register_responses().builders;                                                                                                                                                                            
+                let builder = de_wrap(builders.get(&variety).ok_or(err!("bad response type")))?;
+                let payload = de_wrap(builder.deserialize(&data).with_context(
+                    || format!("deserializing individual response payload (type {})",variety)))?;
+                Ok(NewResponse::Other(payload))
+            }
+        }
     }
 }
 
