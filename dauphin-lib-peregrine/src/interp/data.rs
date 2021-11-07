@@ -88,7 +88,7 @@ impl InterpCommand for DataStreamInterpCommand {
         let mut out = vec![];
         for name in names {
             let values = data.get(&name)?;
-            out.push(values.clone()); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
+            out.push(values.data().to_vec()); // XXX critical-path copy. Use Arc's to avoid, but involves significant changes in dauphin
         }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Bytes(out));

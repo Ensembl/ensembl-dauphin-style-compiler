@@ -1,4 +1,4 @@
-use anyhow::{ self, Context };
+use anyhow::{ self };
 use serde_derive::Serialize;
 use std::collections::{ HashMap };
 use std::mem::replace;
@@ -8,6 +8,7 @@ use serde_cbor::Value as CborValue;
 use super::channel::Channel;
 use super::programbundle::SuppliedBundle;
 use super::request::{CommandRequest, NewCommandResponse, ResponseBuilderType};
+use crate::{ChannelLocation, DataMessage};
 use crate::util::cbor::{ cbor_array, cbor_map };
 
 pub struct RequestPacketBuilder {
@@ -78,9 +79,13 @@ impl ResponsePacketBuilderBuilder {
 }
 
 impl ResponsePacketBuilder {
-    pub fn new_packet(&self, value: &CborValue) -> anyhow::Result<ResponsePacket> {
-        ResponsePacket::deserialize(value).context("parsing server response")
+    pub fn new_packet(&self, value: &CborValue) -> Result<ResponsePacket,DataMessage> {
+        ResponsePacket::deserialize(value)
     }
+}
+
+fn packet_wrap<T, E: ToString>(v: Result<T,E>) -> Result<T,DataMessage> {
+    v.map_err(|e| DataMessage::PacketError(Channel::new(&ChannelLocation::None),e.to_string()))
 }
 
 pub struct ResponsePacket {
@@ -105,18 +110,18 @@ impl ResponsePacket {
         replace(&mut self.responses,vec![])
     }
 
-    fn deserialize(value: &CborValue,) -> anyhow::Result<ResponsePacket> {
-        let values = cbor_map(value,&["responses","programs"])?;
+    fn deserialize(value: &CborValue,) -> Result<ResponsePacket,DataMessage> {
+        let values = packet_wrap(cbor_map(value,&["responses","programs"]))?;
         let mut responses = vec![];
-        for v in cbor_array(&values[0],0,true)? {
-            let xxx_data = serde_cbor::to_vec(v)?;
-            let v = serde_cbor::from_slice::<NewCommandResponse>(&xxx_data)?;
+        for v in packet_wrap(cbor_array(&values[0],0,true))? {
+            let xxx_data = packet_wrap(serde_cbor::to_vec(v))?;
+            let v = packet_wrap(serde_cbor::from_slice::<NewCommandResponse>(&xxx_data))?;
             responses.push(v);
         }
-        let programs : anyhow::Result<_> = cbor_array(&values[1],0,true)?.iter().map(|x| SuppliedBundle::new(x)).collect();
+        let programs : anyhow::Result<_> = packet_wrap(cbor_array(&values[1],0,true))?.iter().map(|x| SuppliedBundle::new(x)).collect();
         Ok(ResponsePacket {
             responses,
-            programs: programs?
+            programs: packet_wrap(programs)?
         })
     }
 }

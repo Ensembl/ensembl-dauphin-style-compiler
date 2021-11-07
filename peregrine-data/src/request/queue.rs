@@ -1,5 +1,4 @@
 use commander::cdr_timer;
-use anyhow::{ Context };
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 use peregrine_toolkit::lock;
 use commander::{ CommanderStream, cdr_add_timer };
@@ -12,7 +11,6 @@ use std::sync::{ Arc, Mutex };
 use crate::api::MessageSender;
 use crate::request::packet::RequestPacketBuilder;
 use super::bootstrap::BootstrapResponseBuilderType;
-use super::data::DataResponseBuilderType;
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
@@ -25,7 +23,6 @@ use crate::util::message::DataMessage;
 pub(super) fn register_responses() -> ResponsePacketBuilder {
     let mut rspbb = ResponsePacketBuilderBuilder::new();
     rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
-    rspbb.register(5,Box::new(DataResponseBuilderType()));
     rspbb.build()
 }
 
@@ -51,7 +48,7 @@ impl RequestQueueData {
         Ok(integration.get_sender(channel,priority,packet.clone()))
     }
 
-    fn report<T>(&self, msg: anyhow::Result<T>) -> anyhow::Result<T> {
+    fn report<T>(&self, msg: Result<T,DataMessage>) -> Result<T,DataMessage> {
         if let Some(ref e) = msg.as_ref().err() {
             self.messages.send(DataMessage::PacketError(self.channel.clone(),e.to_string()));
         }
@@ -175,7 +172,7 @@ impl RequestQueue {
         cdr_timer(wait).await;
     }
 
-    async fn send_packet(&self, packet: &RequestPacket) -> anyhow::Result<ResponsePacket> {
+    async fn send_packet(&self, packet: &RequestPacket) -> Result<ResponsePacket,DataMessage> {
         let sender = lock!(self.0).make_packet_sender(packet)?;
         self.pace().await;
         if let Some(blocker) = self.get_blocker() {
@@ -184,7 +181,7 @@ impl RequestQueue {
         let lockout = lock!(self.0).acquire_realtime_lock();
         let response = sender.await?;
         drop(lockout);
-        let response = lock!(self.0).builder.new_packet(&response).context("Building response packet")?;
+        let response = lock!(self.0).builder.new_packet(&response)?;
         Ok(response)
     }
 

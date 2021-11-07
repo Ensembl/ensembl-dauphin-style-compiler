@@ -16,6 +16,7 @@ use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 
 use super::authority::AuthorityCommandResponse;
+use super::data::DataResponse;
 use super::program::ProgramCommandResponse;
 use super::stick::StickCommandResponse;
 use super::{authority::AuthorityCommandRequest, bootstrap::BootstrapCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::{JumpCommandRequest, JumpResponse}, program::ProgramCommandRequest, stick::StickCommandRequest};
@@ -198,6 +199,7 @@ pub enum NewResponse {
     Program(ProgramCommandResponse),
     Stick(StickCommandResponse),
     Authority(AuthorityCommandResponse),
+    Data(DataResponse),
     Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
 }
@@ -211,6 +213,7 @@ impl NewResponse {
             NewResponse::Program(_) => "program",
             NewResponse::Stick(_) => "stick",
             NewResponse::Authority(_) => "authority",
+            NewResponse::Data(_) => "data",
             NewResponse::Jump(_) => "jump",
             NewResponse::Other(_) => "unknown"
         };
@@ -244,6 +247,13 @@ impl NewResponse {
             _ => Err(self.bad_response())
         }
     }
+
+    pub(crate) fn into_data(self) -> Result<DataResponse,String> {
+        match self {
+            NewResponse::Data(d) => Ok(d),
+            _ => Err(self.bad_response())
+        }
+    }
 }
 
 struct NewResponseVisitor;
@@ -260,6 +270,7 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
             2 => Ok(NewResponse::Program(de_seq_next(&mut seq)?)),
             3 => Ok(NewResponse::Stick(de_seq_next(&mut seq)?)),
             4 => Ok(NewResponse::Authority(de_seq_next(&mut seq)?)),
+            5 => Ok(NewResponse::Data(de_seq_next(&mut seq)?)),
             6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
             _ => {
                 let payload : CborValue = de_seq_next(&mut seq)?;

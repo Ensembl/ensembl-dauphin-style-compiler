@@ -20,7 +20,7 @@ impl Backend {
         }
     }
 
-    pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<Box<DataResponse>,DataMessage> {
+    pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<DataResponse,DataMessage> {
         do_data_request(&self.channel,name,region,&self.manager,priority,&self.metrics).await
     }
 

@@ -9,12 +9,12 @@ use crate::request::data::{DataResponse};
 
 // TODO Memoized errors with retry semantics
 
-async fn run(base: PeregrineCoreBase, (region,channel,name): (Region,Channel,String), priority: PacketPriority) -> Result<Arc<Box<DataResponse>>,DataMessage> {
+async fn run(base: PeregrineCoreBase, (region,channel,name): (Region,Channel,String), priority: PacketPriority) -> Result<Arc<DataResponse>,DataMessage> {
     let backend = base.all_backends.backend(&channel);
     backend.data(&name,&region,&priority).await.map(|x| Arc::new(x))
 }
 
-fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Region,Channel,String),Result<Arc<Box<DataResponse>>,DataMessage>> {
+fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Region,Channel,String),Result<Arc<DataResponse>,DataMessage>> {
     let base = base.clone();
      Memoized::new(MemoizedType::Cache(cache_size),move |_,k: &(Region,Channel,String)|{
         let base = base.clone();
@@ -25,7 +25,7 @@ fn make_data_cache(cache_size: usize, base: &PeregrineCoreBase) -> Memoized<(Reg
 
 #[derive(Clone)]
 pub struct DataStore {
-    cache: Memoized<(Region,Channel,String),Result<Arc<Box<DataResponse>>,DataMessage>>,
+    cache: Memoized<(Region,Channel,String),Result<Arc<DataResponse>,DataMessage>>,
     base: PeregrineCoreBase
 }
 
@@ -37,7 +37,7 @@ impl DataStore {
         }
     }
 
-    pub async fn get(&self, region: &Region, channel: &Channel, name: &str, priority: &PacketPriority) -> Result<(Arc<Box<DataResponse>>,f64),DataMessage> {
+    pub async fn get(&self, region: &Region, channel: &Channel, name: &str, priority: &PacketPriority) -> Result<(Arc<DataResponse>,f64),DataMessage> {
         let location = (region.clone(),channel.clone(),name.to_string());
         let start = cdr_current_time();
         let response = match priority {
