@@ -36,7 +36,7 @@ impl Backend {
         do_jump_request(self.manager.clone(),self.channel.clone(),location.clone()).await
     }
 
-    pub async fn bootstrap(&self) -> Result<Box<BootstrapCommandResponse>,DataMessage> {
+    pub async fn bootstrap(&self) -> Result<BootstrapCommandResponse,DataMessage> {
         do_bootstrap(&self.manager,&self.channel).await
     }
 

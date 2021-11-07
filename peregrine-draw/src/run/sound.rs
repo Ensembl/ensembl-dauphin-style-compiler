@@ -60,7 +60,7 @@ impl SoundState {
         let bytes = asset.bytes();
         if bytes.is_none() { return Ok(None); }
         let bytes = bytes.unwrap();
-        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.as_ref().as_ref()).buffer())?;
+        let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data().as_ref().as_ref()).buffer())?;
         let audio_buffer = wrap_js_promise(promise).await?.dyn_into::<AudioBuffer>()?;
         Ok(Some(audio_buffer))
     }

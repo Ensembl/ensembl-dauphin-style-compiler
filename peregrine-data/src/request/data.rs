@@ -17,11 +17,12 @@ use super::backoff::Backoff;
 use super::manager::RequestManager;
 use crate::util::message::DataMessage;
 
+#[derive(Clone)]
 pub struct ReceivedData(Arc<Vec<u8>>);
 
 impl ReceivedData {
     pub fn len(&self) -> usize { self.0.len() }
-    pub fn data(&self) -> &[u8] { &self.0 }
+    pub fn data(&self) -> &Arc<Vec<u8>> { &self.0 }
 }
 
 struct DataVisitor;

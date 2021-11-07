@@ -1,6 +1,7 @@
 use std::fmt;
 use crate::Channel;
-use serde::{Serializer, ser::SerializeSeq};
+use peregrine_toolkit::serde::de_seq_next;
+use serde::{Deserializer, Serializer, de::{SeqAccess, Visitor}, ser::SerializeSeq};
 use serde_cbor::Value as CborValue;
 use crate::util::cbor::{ cbor_array, cbor_string };
 
@@ -27,5 +28,25 @@ impl serde::Serialize for ProgramName {
 impl fmt::Display for ProgramName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"{}/{}",self.0,self.1)
+    }
+}
+
+struct ProgramNameVisitor;
+
+impl<'de> Visitor<'de> for ProgramNameVisitor {
+    type Value = ProgramName;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a channel") }
+
+    fn visit_seq<S>(self, mut seq: S) -> Result<ProgramName,S::Error> where S: SeqAccess<'de> {
+        let channel = de_seq_next(&mut seq)?;
+        let name = de_seq_next(&mut seq)?;
+        Ok(ProgramName(channel,name))
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ProgramName {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramName, D::Error> where D: Deserializer<'de> {
+        deserializer.deserialize_seq(ProgramNameVisitor)
     }
 }

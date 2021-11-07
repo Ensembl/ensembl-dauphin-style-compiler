@@ -28,7 +28,7 @@ pub(crate) struct Bitmap {
 
 impl Bitmap {
     fn set_from_asset(&mut self, asset: &Asset, name: &str) -> Result<(),Message> {
-        self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
+        self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data().clone();
         self.width = asset.metadata_u32("width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?;
         self.height = asset.metadata_u32("height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?;
         Ok(())

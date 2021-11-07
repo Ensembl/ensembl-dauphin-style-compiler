@@ -10,7 +10,6 @@ use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use crate::api::MessageSender;
 use crate::request::packet::RequestPacketBuilder;
-use super::bootstrap::BootstrapResponseBuilderType;
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
 use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
@@ -21,8 +20,7 @@ use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 
 pub(super) fn register_responses() -> ResponsePacketBuilder {
-    let mut rspbb = ResponsePacketBuilderBuilder::new();
-    rspbb.register(0,Box::new(BootstrapResponseBuilderType()));
+    let rspbb = ResponsePacketBuilderBuilder::new();
     rspbb.build()
 }
 

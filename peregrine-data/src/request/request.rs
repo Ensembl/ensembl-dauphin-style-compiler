@@ -16,6 +16,7 @@ use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 
 use super::authority::AuthorityCommandResponse;
+use super::bootstrap::BootstrapCommandResponse;
 use super::data::DataResponse;
 use super::program::ProgramCommandResponse;
 use super::stick::StickCommandResponse;
@@ -195,6 +196,7 @@ pub trait ResponseBuilderType {
 }
 
 pub enum NewResponse {
+    Bootstrap(BootstrapCommandResponse),
     GeneralFailure(GeneralFailure),
     Program(ProgramCommandResponse),
     Stick(StickCommandResponse),
@@ -210,6 +212,7 @@ impl NewResponse {
             NewResponse::GeneralFailure(g) => {
                 return g.message().to_string();
             },
+            NewResponse::Bootstrap(_) => "bootstrap",
             NewResponse::Program(_) => "program",
             NewResponse::Stick(_) => "stick",
             NewResponse::Authority(_) => "authority",
@@ -254,6 +257,13 @@ impl NewResponse {
             _ => Err(self.bad_response())
         }
     }
+
+    pub(crate) fn into_bootstrap(self) -> Result<BootstrapCommandResponse,String> {
+        match self {
+            NewResponse::Bootstrap(b) => Ok(b),
+            _ => Err(self.bad_response())
+        }
+    }
 }
 
 struct NewResponseVisitor;
@@ -266,6 +276,7 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
     fn visit_seq<S>(self, mut seq: S) -> Result<NewResponse,S::Error> where S: SeqAccess<'de> {
         let variety = de_seq_next(&mut seq)?;
         match variety {
+            0 => Ok(NewResponse::Bootstrap(de_seq_next(&mut seq)?)),
             1 => Ok(NewResponse::GeneralFailure(de_seq_next(&mut seq)?)),
             2 => Ok(NewResponse::Program(de_seq_next(&mut seq)?)),
             3 => Ok(NewResponse::Stick(de_seq_next(&mut seq)?)),
