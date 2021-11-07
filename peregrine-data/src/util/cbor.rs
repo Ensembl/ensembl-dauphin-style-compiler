@@ -13,20 +13,6 @@ pub fn cbor_array<'a>(cbor: &'a CborValue, len: usize, or_more: bool) -> anyhow:
     Err(err!(format!("expected array len={:?} or_more={:?} got {:?}",len,or_more,cbor)))
 }
 
-pub fn cbor_int(cbor: &CborValue, max: Option<i128>) -> anyhow::Result<i128>  {
-    match cbor {
-        CborValue::Integer(x) => {
-            if let Some(max) = max {
-                if *x >= 0 && *x <= max { return Ok(*x); }
-            } else {
-                return Ok(*x);
-            }
-        },
-        _ => {}
-    }
-    bail!("not an integer");
-}
-
 pub fn cbor_bytes(cbor: &CborValue) -> anyhow::Result<Vec<u8>> {
     match cbor {
         CborValue::Bytes(b) => {
@@ -75,13 +61,6 @@ pub fn cbor_map_iter(cbor: &CborValue) -> anyhow::Result<impl Iterator<Item=(&Cb
         _ => {
             bail!("expected map")
         }
-    }
-}
-
-pub fn cbor_bool(cbor: &CborValue) -> anyhow::Result<bool> {
-    match cbor {
-        CborValue::Bool(x) => Ok(*x),
-        _ => bail!("expected bool")
     }
 }
 

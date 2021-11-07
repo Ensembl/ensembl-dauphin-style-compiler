@@ -1,13 +1,9 @@
-use anyhow::bail;
 use peregrine_toolkit::envaryseq;
-use serde::Serializer;
-use std::any::Any;
-use serde_cbor::Value as CborValue;
-use crate::core::stick::{ Stick, StickId, StickTopology };
-use crate::util::cbor::{ cbor_array, cbor_string, cbor_map, cbor_int };
+use serde::{Deserializer, Serializer};
+use crate::core::stick::{ Stick, StickId };
 use super::backoff::Backoff;
 use super::channel::{ Channel, PacketPriority };
-use super::request::{RequestType, ResponseBuilderType, ResponseType};
+use super::request::{RequestType};
 use super::manager::RequestManager;
 
 #[derive(Clone)]
@@ -24,7 +20,9 @@ impl StickCommandRequest {
 
     async fn execute(self, channel: &Channel, manager: &RequestManager) -> anyhow::Result<Stick> {
         let mut backoff = Backoff::new(manager,channel,&PacketPriority::RealTime);
-        let r = backoff.backoff_new::<StickCommandResponse>(RequestType::new_stick(self.clone())).await??;
+        let r = backoff.backoff(RequestType::new_stick(self.clone()), |v| {
+            v.into_stick()
+        }).await?;
         Ok(r.stick.clone())
     }
 }
@@ -35,28 +33,15 @@ impl serde::Serialize for StickCommandRequest {
     }
 }
 
-struct StickCommandResponse {
+pub struct StickCommandResponse {
     stick: Stick
 }
 
-impl ResponseType for StickCommandResponse {
-    fn as_any(&self) -> &dyn Any { self }
-    fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
-}
-
-pub struct StickResponseBuilderType();
-
-impl ResponseBuilderType for StickResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>> {
-        let values = cbor_map(value,&["id","size","topology","tags"])?;
-        let size = cbor_int(&values[1],None)? as u64;
-        let topology = match cbor_int(&values[2],None)? {
-            0 => StickTopology::Linear,
-            1 => StickTopology::Circular,
-            _ => bail!("bad packet (stick topology)")
-        };
-        let tags : anyhow::Result<Vec<String>> = cbor_array(&values[3],0,true)?.iter().map(|x| cbor_string(x)).collect();
-        Ok(Box::new(StickCommandResponse { stick: Stick::new(&StickId::new(&cbor_string(&values[0])?),size,topology,&tags?) })) // XXX
+impl<'de> serde::Deserialize<'de> for StickCommandResponse {
+    fn deserialize<D>(deserializer: D) -> Result<StickCommandResponse, D::Error> where D: Deserializer<'de> {
+        Ok(StickCommandResponse {
+            stick: Stick::deserialize(deserializer)?
+        })
     }
 }
 

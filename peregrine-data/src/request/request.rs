@@ -17,6 +17,7 @@ use std::rc::Rc;
 
 use super::authority::AuthorityCommandResponse;
 use super::program::ProgramCommandResponse;
+use super::stick::StickCommandResponse;
 use super::{authority::AuthorityCommandRequest, bootstrap::BootstrapCommandRequest, data::DataCommandRequest, failure::GeneralFailure, jump::{JumpCommandRequest, JumpResponse}, program::ProgramCommandRequest, stick::StickCommandRequest};
 
 #[derive(Clone)]
@@ -195,6 +196,7 @@ pub trait ResponseBuilderType {
 pub enum NewResponse {
     GeneralFailure(GeneralFailure),
     Program(ProgramCommandResponse),
+    Stick(StickCommandResponse),
     Authority(AuthorityCommandResponse),
     Jump(JumpResponse),
     Other(Box<dyn ResponseType>)
@@ -207,6 +209,7 @@ impl NewResponse {
                 return g.message().to_string();
             },
             NewResponse::Program(_) => "program",
+            NewResponse::Stick(_) => "stick",
             NewResponse::Authority(_) => "authority",
             NewResponse::Jump(_) => "jump",
             NewResponse::Other(_) => "unknown"
@@ -224,6 +227,13 @@ impl NewResponse {
     pub(crate) fn into_program(self) -> Result<ProgramCommandResponse,String> {
         match self {
             NewResponse::Program(p) => Ok(p),
+            _ => Err(self.bad_response())
+        }
+    }
+
+    pub(crate) fn into_stick(self) -> Result<StickCommandResponse,String> {
+        match self {
+            NewResponse::Stick(s) => Ok(s),
             _ => Err(self.bad_response())
         }
     }
@@ -248,6 +258,7 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
         match variety {
             1 => Ok(NewResponse::GeneralFailure(de_seq_next(&mut seq)?)),
             2 => Ok(NewResponse::Program(de_seq_next(&mut seq)?)),
+            3 => Ok(NewResponse::Stick(de_seq_next(&mut seq)?)),
             4 => Ok(NewResponse::Authority(de_seq_next(&mut seq)?)),
             6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
             _ => {

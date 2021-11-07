@@ -1,5 +1,7 @@
 use anyhow::bail;
-use serde::Serializer;
+use peregrine_toolkit::serde::de_wrap;
+use serde::{Deserializer, Serializer};
+use serde_derive::Deserialize;
 use std::collections::HashSet;
 use std::fmt::{ self, Display, Formatter };
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
@@ -49,6 +51,8 @@ impl StickTopology {
     }
 }
 
+
+
 #[derive(Clone)]
 pub struct Stick {
     id: StickId,
@@ -70,4 +74,25 @@ impl Stick {
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
+}
+
+#[derive(Deserialize)]
+struct StickResponse {
+    id: String,
+    size: u64,
+    topology: u8,
+    tags: Vec<String>
+}
+
+impl<'de> serde::Deserialize<'de> for Stick {
+    fn deserialize<D>(deserializer: D) -> Result<Stick, D::Error> where D: Deserializer<'de> {
+        let mut r = StickResponse::deserialize(deserializer)?;
+        let topology = match r.topology {
+            0 => StickTopology::Linear,
+            1 => StickTopology::Circular,
+            _ => de_wrap(Err("unknown topology"))?
+        };
+        let tags : HashSet<_> = r.tags.drain(..).collect();
+        Ok(Stick { id: StickId::new(&r.id), size: r.size, topology, tags })
+    }
 }

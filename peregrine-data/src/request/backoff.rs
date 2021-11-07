@@ -23,7 +23,7 @@ impl Backoff {
 
     fn downcast<S: 'static>(&self, response: NewResponse) -> Result<Result<Box<S>,Box<dyn Any>>,DataMessage> {
         match response {
-            NewResponse::Jump(_) | NewResponse::GeneralFailure(_) |NewResponse::Program(_) | NewResponse::Authority(_) => {
+            NewResponse::Jump(_) | NewResponse::GeneralFailure(_) |NewResponse::Program(_) | NewResponse::Authority(_) | NewResponse::Stick(_) => {
                 return Err(DataMessage::PacketError(self.channel.clone(),format!("unexpected response to request: new")));
             },
             NewResponse::Other(resp) => {
