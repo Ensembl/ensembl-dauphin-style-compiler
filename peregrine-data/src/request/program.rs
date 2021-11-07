@@ -1,3 +1,6 @@
+use std::fmt;
+
+use serde::de::{SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serializer};
 use super::backoff::Backoff;
 use super::channel::{ PacketPriority };
@@ -41,8 +44,20 @@ pub(super) async fn do_load_program(manager: &RequestManager, program_name: Prog
     Ok(())
 }
 
-impl<'de> Deserialize<'de> for ProgramCommandResponse {
-    fn deserialize<D>(_deserializer: D) -> Result<ProgramCommandResponse, D::Error> where D: Deserializer<'de> {
+struct ProgramVisitor;
+
+impl<'de> Visitor<'de> for ProgramVisitor {
+    type Value = ProgramCommandResponse;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a program response") }
+
+    fn visit_seq<S>(self, mut seq: S) -> Result<ProgramCommandResponse,S::Error> where S: SeqAccess<'de> {
         Ok(ProgramCommandResponse{})
+    }
+}
+
+impl<'de> Deserialize<'de> for ProgramCommandResponse {
+    fn deserialize<D>(deserializer: D) -> Result<ProgramCommandResponse, D::Error> where D: Deserializer<'de> {
+        deserializer.deserialize_seq(ProgramVisitor)
     }
 }
