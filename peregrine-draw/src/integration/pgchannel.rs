@@ -1,5 +1,5 @@
 use js_sys::Date;
-use peregrine_data::{Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestPacket};
+use peregrine_data::{Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestPacket, ResponsePacket};
 use serde_cbor::Value as CborValue;
 use crate::util::ajax::PgAjax;
 use peregrine_toolkit::url::Url;
@@ -52,15 +52,18 @@ pub(crate) fn ser_wrap<T,E>(value: Result<T,E>) -> Result<T,DataMessage> where E
     value.map_err(|e| DataMessage::CodeInvariantFailed(format!("cannot serialzie: {}",e.to_string())))
 }
 
-async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<CborValue,DataMessage> {
+async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,DataMessage> {
     let xxx_value = ser_wrap(serde_cbor::to_vec(&packet))?;
     let data = ser_wrap(serde_cbor::from_slice(&xxx_value))?;
-    send(channel,prio,data,timeout,&cache_buster).await.map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))
+    let data = send(channel,prio,data,timeout,&cache_buster).await.map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
+    let xxx_data = ser_wrap(serde_cbor::to_vec(&data))?;
+    let response = ser_wrap(serde_cbor::from_slice::<ResponsePacket>(&xxx_data))?;
+    Ok(response)
 }
 
 /* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
-    fn get_sender(&self,channel: Channel, prio: PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>> {
+    fn get_sender(&self,channel: Channel, prio: PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
         let timeout = lock!(self.0).get(&channel).and_then(|x| x.clone());
         Box::pin(send_wrap(channel,prio,packet,timeout,self.1.clone()))
     }

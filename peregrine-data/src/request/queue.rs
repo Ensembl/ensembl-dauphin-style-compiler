@@ -16,7 +16,6 @@ use super::packet::{ RequestPacket, ResponsePacket };
 use super::request::{CommandRequest, NewResponse};
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
-use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 
 struct RequestQueueData {
@@ -33,7 +32,7 @@ struct RequestQueueData {
 }
 
 impl RequestQueueData {
-    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>,DataMessage> {
+    fn make_packet_sender(&self, packet: &RequestPacket) -> Result<Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>,DataMessage> {
         let channel = self.channel.clone();
         let priority = self.priority.clone();
         let integration = self.integration.clone();
@@ -172,7 +171,6 @@ impl RequestQueue {
         let lockout = lock!(self.0).acquire_realtime_lock();
         let response = sender.await?;
         drop(lockout);
-        let response = ResponsePacket::process(&response)?;
         Ok(response)
     }
 

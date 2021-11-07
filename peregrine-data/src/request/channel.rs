@@ -13,7 +13,7 @@ use serde_derive::{ Serialize };
 use peregrine_toolkit::serde::{de_seq_next, de_wrap};
 use peregrine_toolkit::envaryseq;
 
-use super::packet::RequestPacket;
+use super::packet::{RequestPacket, ResponsePacket};
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -31,7 +31,7 @@ fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
 
 pub trait ChannelIntegration {
     fn set_timeout(&self, channel: &Channel, timeout: f64);
-    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<CborValue,DataMessage>>>>;
+    fn get_sender(&self,channel: Channel, prio: PacketPriority, data: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>>;
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]

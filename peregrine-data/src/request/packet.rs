@@ -48,10 +48,6 @@ impl RequestPacket {
     }
 }
 
-fn packet_wrap<T, E: ToString>(v: Result<T,E>) -> Result<T,DataMessage> {
-    v.map_err(|e| DataMessage::PacketError(Channel::new(&ChannelLocation::None),e.to_string()))
-}
-
 #[derive(Deserialize)]
 pub struct ResponsePacket {
     responses: Vec<NewCommandResponse>,
@@ -73,11 +69,5 @@ impl ResponsePacket {
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
     pub(crate) fn take_responses(&mut self) -> Vec<NewCommandResponse> {
         replace(&mut self.responses,vec![])
-    }
-
-    pub(crate) fn process(value: &CborValue) -> Result<ResponsePacket,DataMessage> {
-        let xxx_data = packet_wrap(serde_cbor::to_vec(value))?;
-        let v = packet_wrap(serde_cbor::from_slice::<ResponsePacket>(&xxx_data))?;
-        Ok(v)
     }
 }
