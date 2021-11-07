@@ -156,7 +156,6 @@ mod train {
 
 mod util {
     pub mod builder;
-    pub mod cbor;
     pub mod lrucache;
     pub mod memoized;
     pub mod message;
@@ -191,7 +190,6 @@ pub use self::allotment::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageId };
-pub use self::util::cbor::{ cbor_coerce_string, cbor_bytes };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;

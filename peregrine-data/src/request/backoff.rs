@@ -1,8 +1,6 @@
 use commander::cdr_timer;
-use std::any::Any;
 use super::channel::{ Channel, PacketPriority };
 use super::manager::RequestManager;
-use super::failure::GeneralFailure;
 use super::request::{NewResponse, RequestType };
 use crate::util::message::DataMessage;
 

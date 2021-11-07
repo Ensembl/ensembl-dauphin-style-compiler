@@ -51,7 +51,7 @@ impl<'de> Visitor<'de> for ProgramVisitor {
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a program response") }
 
-    fn visit_seq<S>(self, mut seq: S) -> Result<ProgramCommandResponse,S::Error> where S: SeqAccess<'de> {
+    fn visit_seq<S>(self, _seq: S) -> Result<ProgramCommandResponse,S::Error> where S: SeqAccess<'de> {
         Ok(ProgramCommandResponse{})
     }
 }

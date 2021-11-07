@@ -23,7 +23,7 @@ impl StickCommandRequest {
         let r = backoff.backoff(RequestType::new_stick(self.clone()), |v| {
             v.into_stick()
         }).await?;
-        Ok(r.stick.clone())
+        Ok(r.stick)
     }
 }
 

@@ -12,21 +12,15 @@ use crate::api::MessageSender;
 use crate::request::packet::RequestPacketBuilder;
 use super::channel::{ Channel, PacketPriority, ChannelIntegration };
 use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
-use super::packet::{ RequestPacket, ResponsePacket, ResponsePacketBuilder, ResponsePacketBuilderBuilder };
+use super::packet::{ RequestPacket, ResponsePacket };
 use super::request::{CommandRequest, NewResponse};
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use serde_cbor::Value as CborValue;
 use crate::util::message::DataMessage;
 
-pub(super) fn register_responses() -> ResponsePacketBuilder {
-    let rspbb = ResponsePacketBuilderBuilder::new();
-    rspbb.build()
-}
-
 struct RequestQueueData {
     receiver: PayloadReceiverCollection,
-    builder: ResponsePacketBuilder,
     pending_send: CommanderStream<(CommandRequest,CommanderStream<NewResponse>)>,
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
@@ -88,7 +82,6 @@ impl RequestQueue {
     pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64]) -> Result<RequestQueue,DataMessage> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
-            builder: register_responses(),
             pending_send: CommanderStream::new(),
             integration: integration.clone(),
             channel: channel.clone(),
@@ -179,7 +172,7 @@ impl RequestQueue {
         let lockout = lock!(self.0).acquire_realtime_lock();
         let response = sender.await?;
         drop(lockout);
-        let response = lock!(self.0).builder.new_packet(&response)?;
+        let response = ResponsePacket::process(&response)?;
         Ok(response)
     }
 

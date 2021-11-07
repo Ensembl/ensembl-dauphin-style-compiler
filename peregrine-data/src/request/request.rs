@@ -1,18 +1,13 @@
 // TODO tied failures
-use anyhow::anyhow as err;
-use anyhow::Context;
 use peregrine_toolkit::serde::{ de_seq_next, de_wrap };
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::de::SeqAccess;
 use serde::de::Visitor;
-use crate::request::queue::register_responses;
 use crate::{metric::metricreporter::MetricReport};
 use std::fmt;
-use std::{any::Any, sync::Arc};
-use anyhow::{ self };
+use std::sync::Arc;
 use serde::{Serializer, ser::SerializeSeq};
-use serde_cbor::Value as CborValue;
 use std::rc::Rc;
 
 use super::authority::AuthorityCommandResponse;
@@ -186,15 +181,6 @@ impl<'de> Deserialize<'de> for NewCommandResponse {
     }
 }
 
-pub trait ResponseType {
-    fn as_any(&self) -> &dyn Any;
-    fn into_any(self: Box<Self>) -> Box<dyn Any>;
-}
-
-pub trait ResponseBuilderType {
-    fn deserialize(&self, value: &CborValue) -> anyhow::Result<Box<dyn ResponseType>>;
-}
-
 pub enum NewResponse {
     Bootstrap(BootstrapCommandResponse),
     GeneralFailure(GeneralFailure),
@@ -202,8 +188,7 @@ pub enum NewResponse {
     Stick(StickCommandResponse),
     Authority(AuthorityCommandResponse),
     Data(DataResponse),
-    Jump(JumpResponse),
-    Other(Box<dyn ResponseType>)
+    Jump(JumpResponse)
 }
 
 impl NewResponse {
@@ -217,8 +202,7 @@ impl NewResponse {
             NewResponse::Stick(_) => "stick",
             NewResponse::Authority(_) => "authority",
             NewResponse::Data(_) => "data",
-            NewResponse::Jump(_) => "jump",
-            NewResponse::Other(_) => "unknown"
+            NewResponse::Jump(_) => "jump"
         };
         format!("unexpected response: {}",unexpected)
     }
@@ -283,15 +267,8 @@ impl<'de> Visitor<'de> for NewResponseVisitor {
             4 => Ok(NewResponse::Authority(de_seq_next(&mut seq)?)),
             5 => Ok(NewResponse::Data(de_seq_next(&mut seq)?)),
             6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
-            _ => {
-                let payload : CborValue = de_seq_next(&mut seq)?;
-                let buffer = de_wrap(serde_cbor::to_vec(&payload))?;
-                let data = de_wrap(serde_cbor::from_slice(&buffer))?;
-                let builders = register_responses().builders;                                                                                                                                                                            
-                let builder = de_wrap(builders.get(&variety).ok_or(err!("bad response type")))?;
-                let payload = de_wrap(builder.deserialize(&data).with_context(
-                    || format!("deserializing individual response payload (type {})",variety)))?;
-                Ok(NewResponse::Other(payload))
+            v => {
+                return de_wrap(Err(format!("bad response type: {}",v)));
             }
         }
     }
