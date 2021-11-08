@@ -2,17 +2,17 @@ use peregrine_toolkit::cbor::{cbor_into_map, cbor_map_key};
 use crate::{Assets, ProgramName, core::channel::Channel};
 use serde_cbor::Value as CborValue;
 
-pub struct BootstrapCommandResponse {
+pub struct BootRes {
     program_name: ProgramName,
     channel_hi: Channel,
     channel_lo: Channel,
     assets: Assets,
 }
 
-impl BootstrapCommandResponse {
-    pub fn decode(value: CborValue) -> Result<BootstrapCommandResponse,String> {
+impl BootRes {
+    pub fn decode(value: CborValue) -> Result<BootRes,String> {
         let mut map = cbor_into_map(value)?;
-        Ok(BootstrapCommandResponse {
+        Ok(BootRes {
             program_name: ProgramName::decode(cbor_map_key(&mut map,"boot")?)?,
             channel_hi: Channel::decode(cbor_map_key(&mut map,"hi")?)?,
             channel_lo: Channel::decode(cbor_map_key(&mut map,"lo")?)?,

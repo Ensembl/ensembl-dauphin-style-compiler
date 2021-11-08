@@ -7,18 +7,18 @@ pub struct JumpLocation {
     pub right: u64
 }
 
-pub enum JumpResponse {
+pub enum JumpRes {
     Found(JumpLocation),
     NotFound
 }
 
-impl JumpResponse {
-    pub fn decode(value: CborValue) -> Result<JumpResponse,String> {
+impl JumpRes {
+    pub fn decode(value: CborValue) -> Result<JumpRes,String> {
         let mut map = cbor_into_map(value)?;
         if cbor_map_contains(&map, "no") {
-            Ok(JumpResponse::NotFound)
+            Ok(JumpRes::NotFound)
         } else {
-            Ok(JumpResponse::Found(JumpLocation {
+            Ok(JumpRes::Found(JumpLocation {
                 stick: cbor_as_str(&cbor_map_key(&mut map,"stick")?)?.to_string(),
                 left: cbor_as_number(&cbor_map_key(&mut map,"left")?)?,
                 right: cbor_as_number(&cbor_map_key(&mut map,"right")?)?,

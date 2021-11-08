@@ -1,5 +1,5 @@
 use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len}, decompose_vec};
-use crate::request::messages::{authorityres::AuthorityCommandResponse, bootstrapres::BootstrapCommandResponse, datares::DataResponse, failureres::GeneralFailure, jumpres::JumpResponse, programres::ProgramCommandResponse, stickres::StickCommandResponse};
+use crate::request::messages::{authorityres::AuthorityRes, bootstrapres::BootRes, datares::DataRes, failureres::FailureRes, jumpres::JumpRes, programres::ProgramRes, stickres::StickRes};
 use serde_cbor::Value as CborValue;
 
 pub struct NewCommandResponse {
@@ -27,13 +27,13 @@ impl NewCommandResponse {
 }
 
 pub enum NewResponse {
-    Bootstrap(BootstrapCommandResponse),
-    GeneralFailure(GeneralFailure),
-    Program(ProgramCommandResponse),
-    Stick(StickCommandResponse),
-    Authority(AuthorityCommandResponse),
-    Data(DataResponse),
-    Jump(JumpResponse)
+    Bootstrap(BootRes),
+    FailureRes(FailureRes),
+    Program(ProgramRes),
+    Stick(StickRes),
+    Authority(AuthorityRes),
+    Data(DataRes),
+    Jump(JumpRes)
 }
 
 macro_rules! accessor {
@@ -51,7 +51,7 @@ macro_rules! accessor {
 impl NewResponse {
     fn bad_response(&self) -> String {
         let unexpected = match self {
-            NewResponse::GeneralFailure(g) => {
+            NewResponse::FailureRes(g) => {
                 return g.message().to_string();
             },
             NewResponse::Bootstrap(_) => "bootstrap",
@@ -64,25 +64,25 @@ impl NewResponse {
         format!("unexpected response: {}",unexpected)
     }
 
-    accessor!(self,into_jump,Jump,JumpResponse);
-    accessor!(self,into_program,Program,ProgramCommandResponse);
-    accessor!(self,into_stick,Stick,StickCommandResponse);
-    accessor!(self,into_authority,Authority,AuthorityCommandResponse);
-    accessor!(self,into_data,Data,DataResponse);
-    accessor!(self,into_bootstrap,Bootstrap,BootstrapCommandResponse);
+    accessor!(self,into_jump,Jump,JumpRes);
+    accessor!(self,into_program,Program,ProgramRes);
+    accessor!(self,into_stick,Stick,StickRes);
+    accessor!(self,into_authority,Authority,AuthorityRes);
+    accessor!(self,into_data,Data,DataRes);
+    accessor!(self,into_bootstrap,Bootstrap,BootRes);
 
     pub fn decode(value: CborValue) -> Result<NewResponse,String> {
         let mut seq = cbor_into_vec(value)?;
         check_array_len(&seq,2)?;
         decompose_vec!(seq,variety,value);
         Ok(match cbor_as_number(&variety)? {
-            0 => NewResponse::Bootstrap(BootstrapCommandResponse::decode(value)?),
-            1 => NewResponse::GeneralFailure(GeneralFailure::decode(value)?),
-            2 => NewResponse::Program(ProgramCommandResponse::decode(value)?),
-            3 => NewResponse::Stick(StickCommandResponse::decode(value)?),
-            4 => NewResponse::Authority(AuthorityCommandResponse::decode(value)?),
-            5 => NewResponse::Data(DataResponse::decode(value)?),
-            6 => NewResponse::Jump(JumpResponse::decode(value)?),
+            0 => NewResponse::Bootstrap(BootRes::decode(value)?),
+            1 => NewResponse::FailureRes(FailureRes::decode(value)?),
+            2 => NewResponse::Program(ProgramRes::decode(value)?),
+            3 => NewResponse::Stick(StickRes::decode(value)?),
+            4 => NewResponse::Authority(AuthorityRes::decode(value)?),
+            5 => NewResponse::Data(DataRes::decode(value)?),
+            6 => NewResponse::Jump(JumpRes::decode(value)?),
             v => { return Err(format!("bad response type: {}",v)) }
         })
     }

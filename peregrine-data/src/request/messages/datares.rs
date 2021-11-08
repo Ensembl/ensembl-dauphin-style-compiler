@@ -5,24 +5,24 @@ use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
 use serde_cbor::Value as CborValue;
 
-pub struct DataResponse {
+pub struct DataRes {
     data: HashMap<String,ReceivedData>
 }
 
-impl DataResponse {
+impl DataRes {
     pub(crate) fn account(&self, account_builder: &PacketDatastreamMetricBuilder) {
         for (name,data) in &self.data {
             account_builder.add(name,data.len());
         }
     }
 
-    pub fn decode(value: CborValue) -> Result<DataResponse,String> {
+    pub fn decode(value: CborValue) -> Result<DataRes,String> {
         for (key,value) in cbor_into_drained_map(value)?.drain(..) {
             if key == "data" {
                 let data = cbor_into_drained_map(value)?.drain(..).map(|(k,v)| {
                     Ok((k,ReceivedData::decode(v)?))
                 }).collect::<Result<_,String>>()?;
-                return Ok(DataResponse { data });
+                return Ok(DataRes { data });
             }
         }
         return Err(format!("missing key 'data'"));

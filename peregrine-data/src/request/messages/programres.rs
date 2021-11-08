@@ -1,9 +1,9 @@
 use serde_cbor::Value as CborValue;
 
-pub struct ProgramCommandResponse {}
+pub struct ProgramRes {}
 
-impl ProgramCommandResponse {
-    pub fn decode(_value: CborValue) -> Result<ProgramCommandResponse,String> {
-        Ok(ProgramCommandResponse{})
+impl ProgramRes {
+    pub fn decode(_value: CborValue) -> Result<ProgramRes,String> {
+        Ok(ProgramRes{})
     }
 }

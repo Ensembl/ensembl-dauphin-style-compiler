@@ -2,23 +2,23 @@ use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, dec
 use crate::{core::channel::Channel, index::stickauthority::Authority};
 use serde_cbor::Value as CborValue;
 
-pub struct AuthorityCommandResponse {
+pub struct AuthorityRes {
     channel: Channel,
     startup_name: String,
     lookup_name: String,
     jump_name: String
 }
 
-impl AuthorityCommandResponse {
+impl AuthorityRes {
     pub fn build(&self) -> Authority {
         Authority::new(&self.channel,&self.startup_name,&self.lookup_name,&self.jump_name)
     }
 
-    pub fn decode(value: CborValue) -> Result<AuthorityCommandResponse,String> {
+    pub fn decode(value: CborValue) -> Result<AuthorityRes,String> {
         let mut value = cbor_into_vec(value)?;
         check_array_len(&value,4)?;
         decompose_vec!(value,channel,startup,lookup,jump);
-        Ok(AuthorityCommandResponse {
+        Ok(AuthorityRes {
             channel: Channel::decode(channel)?,
             startup_name: cbor_as_str(&startup)?.to_string(),
             lookup_name: cbor_as_str(&lookup)?.to_string(),
