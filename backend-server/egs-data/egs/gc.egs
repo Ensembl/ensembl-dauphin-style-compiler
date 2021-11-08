@@ -10,12 +10,11 @@ data := get_data("self()","gc",get_region());
 halt(only_warm(),[data]);
 
 values := delta_seq(data,"values");
-present := bool_seq(data,"present");
 values := values / 25;
 x_range := [positive_seq(data,"range")];
 colour := direct_colour(255,0,0,255);
 p := plotter(32,colour);
-wiggle(x_range[@==0],x_range[@==1],p,values,present,use_allotment("track:gc"));
+wiggle(x_range[@==0],x_range[@==1],p,values,true,use_allotment("track:gc"));
 
 /* track names */
 draw_track_names(["%GC"],[["track","gc","name"]],[use_allotment("track:gc:wallpaper[-3]")]);
