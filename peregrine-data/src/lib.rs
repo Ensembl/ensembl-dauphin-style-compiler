@@ -96,6 +96,7 @@ mod request {
         pub(crate) mod failureres;
         pub(crate) mod jumpreq;
         pub(crate) mod jumpres;
+        pub(crate) mod metricreq;
         pub(crate) mod programreq;
         pub(crate) mod programres;
         pub(crate) mod stickreq;

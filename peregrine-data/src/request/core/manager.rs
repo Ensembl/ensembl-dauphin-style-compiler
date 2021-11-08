@@ -11,7 +11,7 @@ use super::queue::RequestQueue;
 use super::request::{CommandRequest, RequestType};
 use super::response::NewResponse;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
-use crate::{ResponsePacket};
+use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
@@ -113,7 +113,7 @@ impl RequestManagerData {
         }
     }
 
-    fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<NewResponse>,DataMessage> {
+    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<NewResponse>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
         let request = CommandRequest::new(msg_id,request);
@@ -151,8 +151,8 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<NewResponse,DataMessage> {
-        let m = lock!(self.0).execute_new(channel,priority,request)?;
+    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<NewResponse,DataMessage> {
+        let m = lock!(self.0).execute(channel,priority,request)?;
         Ok(m.get().await)
     }
 
@@ -163,8 +163,25 @@ impl RequestManager {
         backoff.backoff(request,cb).await
     }
 
-    pub fn execute_background_new(&self, channel: &Channel, request: RequestType) -> Result<(),DataMessage> {
-        lock!(self.0).execute_new(channel.clone(),PacketPriority::Batch,request).map(|_| ())
+    pub fn execute_bactch(&self, channel: &Channel, request: RequestType) -> Result<(),DataMessage> {
+        lock!(self.0).execute(channel.clone(),PacketPriority::Batch,request).map(|_| ())
+    }
+
+    pub(crate) fn execute_and_forget(&self, channel: &Channel, request: RequestType) {
+        let commander = lock!(self.0).commander.clone();
+        let mut manager = self.clone();
+        let channel = channel.clone();
+        add_task(&commander,PgCommanderTaskSpec {
+            name: "message".to_string(),
+            prio: 11,
+            timeout: None,
+            slot: None,
+            task: Box::pin(async move { 
+                manager.execute(channel,PacketPriority::Batch,request).await.ok();
+                Ok(())
+            }),
+            stats: false
+        });
     }
 
     pub fn add_receiver(&mut self, receiver: Box<dyn PayloadReceiver>) {

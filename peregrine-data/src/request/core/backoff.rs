@@ -23,7 +23,7 @@ impl Backoff {
         let channel = self.channel.clone();
         let mut last_error = None;
         for _ in 0..5 { // XXX configurable
-            let resp = self.manager.execute_new(channel.clone(),self.priority.clone(),req.clone()).await?;
+            let resp = self.manager.execute(channel.clone(),self.priority.clone(),req.clone()).await?;
             match cb(resp) {
                 Ok(r) => { return Ok(r); },
                 Err(e) => { last_error = Some(e); }

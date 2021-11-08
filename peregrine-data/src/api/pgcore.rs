@@ -1,8 +1,8 @@
 use crate::core::channel::Channel;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
-use crate::metric::metricreporter::MetricReport;
 use crate::request::core::manager::RequestManager;
+use crate::request::messages::metricreq::MetricReport;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use commander::PromiseFuture;

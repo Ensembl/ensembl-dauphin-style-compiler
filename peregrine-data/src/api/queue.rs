@@ -1,7 +1,8 @@
 use crate::api::PeregrineCore;
 use crate::core::channel::Channel;
 use crate::core::{ StickId, Viewport };
-use crate::metric::metricreporter::MetricReport;
+use crate::request::core::request::{NewRequestVariant, RequestType};
+use crate::request::messages::metricreq::MetricReport;
 use crate::run::{add_task};
 use crate::run::bootstrap::bootstrap;
 use crate::{Assets, PgCommanderTaskSpec};
@@ -79,7 +80,7 @@ impl ApiQueueCampaign {
                 self.viewport = self.viewport.set_track_config_list(&data.switches.get_track_config_list());
             },
             ApiMessage::ReportMetric(channel,metric) => {
-                metric.send(&data.base.commander,&mut data.base.manager,&channel);
+                data.base.manager.execute_and_forget(&channel,RequestType::new(NewRequestVariant::Metric(metric)));
             },
             ApiMessage::SetAssets(assets) => {
                 *data.base.assets.lock().unwrap() = assets;

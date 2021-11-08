@@ -9,6 +9,7 @@ use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
 use crate::request::core::request::NewRequestVariant;
 use crate::request::core::request::RequestType;
+use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use std::sync::Mutex;
 use std::sync::Arc;
@@ -18,14 +19,6 @@ use crate::{PgCommander, PgCommanderTaskSpec, add_task };
 use crate::PeregrineCoreBase;
 use serde_derive::{ Serialize };
 use super::errormetric::ErrorMetricReport;
-
-#[derive(Clone,Serialize)]
-#[serde(tag = "type")]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum MetricReport {
-    Client(ClientMetricReport),
-    Error(ErrorMetricReport)
-}
 
 #[derive(Clone,Serialize)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -45,36 +38,6 @@ impl ClientMetricReport {
     }
 
     fn empty(&self) -> bool { self.datastream.empty() && self.programrun.empty() }
-}
-
-impl MetricReport {
-    pub fn new_from_error_message(base: &PeregrineCoreBase, message: &(dyn PeregrineMessage + 'static)) -> MetricReport {
-        let identity = *base.identity.lock().unwrap();
-        MetricReport::Error(ErrorMetricReport::new(identity,message))
-    }
-
-    async fn send_task(&self, mut manager: RequestManager, channel: Channel) {
-        // We don't care about errors here: avoid loops and spew
-        let request = NewRequestVariant::Metric(self.clone());
-        manager.execute_new(channel,PacketPriority::Batch,RequestType::new(request)).await.ok();
-    }
-
-    pub(crate) fn send(&self, commander: &PgCommander, manager: &mut RequestManager, channel: &Channel) {
-        let self2 = self.clone();
-        let manager = manager.clone();
-        let channel = channel.clone();
-        add_task(commander,PgCommanderTaskSpec {
-            name: "message".to_string(),
-            prio: 11,
-            timeout: None,
-            slot: None,
-            task: Box::pin(async move { 
-                self2.send_task(manager,channel).await;
-                Ok(())
-            }),
-            stats: false
-        });
-    }
 }
 
 struct MetricCollectorData {
@@ -123,7 +86,7 @@ impl MetricCollector {
             if let Some((manager,channel)) = &mut manager_and_channel {
                 let mut messages = self.data.lock().unwrap().send();
                 for message in messages.drain(..) {
-                    manager.execute_new(channel.clone(),PacketPriority::Batch,message).await.ok(); 
+                    manager.execute(channel.clone(),PacketPriority::Batch,message).await.ok(); 
                 }
             }
             cdr_timer(60000.).await;
