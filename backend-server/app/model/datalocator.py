@@ -139,7 +139,7 @@ class DataSourceResolver:
                 self._add(path+[more_path],new_data)
 
     def _add_redirect(self,path,data):
-        if "upstream" in data and data["upstream"] and not (type(data["upstream"]) is dict):
+        if "upstream" in data and not (type(data["upstream"]) is dict):
             self._redirect[tuple(path)] = data["upstream"]
         for (more_path,new_data) in data.items():
             if type(new_data) is dict:
@@ -169,7 +169,7 @@ class DataSourceResolver:
         return None
 
     def find_override(self, prefix):
-        for end in range(0,len(prefix)+1):
+        for end in reversed(range(0,len(prefix)+1)):
             v = self._redirect.get(tuple(prefix[0:end]),None)
             if v != None:
                 return v if v else None
