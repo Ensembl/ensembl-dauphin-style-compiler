@@ -1,11 +1,11 @@
 use commander::cdr_current_time;
 use std::sync::{ Arc };
 use crate::api::{ PeregrineCoreBase };
+use crate::core::channel::{Channel, PacketPriority};
+use crate::request::messages::datares::DataResponse;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::util::message::{ DataMessage };
 use super::shaperequest::{ Region };
-use crate::{Channel, PacketPriority};
-use crate::request::data::{DataResponse};
 
 // TODO Memoized errors with retry semantics
 

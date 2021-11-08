@@ -8,15 +8,18 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
+use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use crate::request::core::manager::PayloadReceiver;
+use crate::request::core::packet::RequestPacketBuilder;
+use crate::{RequestPacket, ResponsePacket};
 use crate::api::MessageSender;
-use crate::request::packet::RequestPacketBuilder;
-use super::channel::{ Channel, PacketPriority, ChannelIntegration };
-use super::manager::{ PayloadReceiver, PayloadReceiverCollection };
-use super::packet::{ RequestPacket, ResponsePacket };
-use super::request::{CommandRequest, NewResponse};
 use crate::run::{ PgCommander, add_task };
 use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
+
+use super::manager::PayloadReceiverCollection;
+use super::request::CommandRequest;
+use super::response::NewResponse;
 
 struct RequestQueueData {
     receiver: PayloadReceiverCollection,

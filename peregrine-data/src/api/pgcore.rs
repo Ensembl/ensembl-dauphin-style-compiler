@@ -1,15 +1,16 @@
+use crate::core::channel::Channel;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
 use crate::metric::metricreporter::MetricReport;
+use crate::request::core::manager::RequestManager;
 use crate::train::{ TrainSet };
 use crate::api::PeregrineIntegration;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
-use crate::request::channel::Channel;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin, RequestManager, AuthorityStore, StickStore, Universe};
+use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;

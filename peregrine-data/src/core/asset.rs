@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use peregrine_toolkit::serde::de_wrap;
 use serde::Deserializer;
 use serde::de::Visitor;
-use crate::request::data::ReceivedData;
 use serde_cbor::Value as CborValue;
+use super::data::ReceivedData;
 
 #[derive(Clone)]
 pub struct Assets {

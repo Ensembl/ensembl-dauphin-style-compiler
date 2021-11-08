@@ -1,8 +1,8 @@
 use std::collections::HashMap;
+use crate::core::channel::Channel;
 use crate::lane::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase};
 use crate::core::{ StickId, Stick };
-use crate::request::{ Channel };
 use crate::run::{ PgDauphin, PgDauphinTaskSpec };
 use std::any::Any;
 use crate::util::message::DataMessage;

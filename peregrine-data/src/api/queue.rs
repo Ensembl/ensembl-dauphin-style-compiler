@@ -1,4 +1,5 @@
 use crate::api::PeregrineCore;
+use crate::core::channel::Channel;
 use crate::core::{ StickId, Viewport };
 use crate::metric::metricreporter::MetricReport;
 use crate::run::{add_task};
@@ -6,7 +7,6 @@ use crate::run::bootstrap::bootstrap;
 use crate::{Assets, PgCommanderTaskSpec};
 use commander::{CommanderStream, PromiseFuture};
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
-use crate::request::channel::Channel;
 use crate::util::message::DataMessage;
 
 //#[cfg_attr(debug_assertions,derive(Debug))]

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 #[macro_export]
 macro_rules! lock {
     ($x: expr) => {{

@@ -6,10 +6,12 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use super::channel::{ Channel, PacketPriority, ChannelIntegration };
+use super::backoff::Backoff;
 use super::queue::RequestQueue;
-use super::packet::ResponsePacket;
-use super::request::{CommandRequest, NewResponse, RequestType };
+use super::request::{CommandRequest, RequestType};
+use super::response::NewResponse;
+use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use crate::{ResponsePacket};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
 use crate::util::message::DataMessage;
@@ -151,8 +153,14 @@ impl RequestManager {
 
     pub async fn execute_new(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<NewResponse,DataMessage> {
         let m = lock!(self.0).execute_new(channel,priority,request)?;
-        let out = Ok(m.get().await);
-        out
+        Ok(m.get().await)
+    }
+
+    pub async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: RequestType, cb: F) 
+                                                                    -> Result<T,DataMessage>
+                                                                    where F: Fn(NewResponse) -> Result<T,String> {
+        let mut backoff = Backoff::new(self,channel,priority);
+        backoff.backoff(request,cb).await
     }
 
     pub fn execute_background_new(&self, channel: &Channel, request: RequestType) -> Result<(),DataMessage> {

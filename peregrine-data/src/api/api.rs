@@ -1,6 +1,7 @@
 use crate::Scale;
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
-use crate::{DataMessage, request::ChannelIntegration};
+use crate::core::channel::ChannelIntegration;
+use crate::{DataMessage};
 use crate::train::{ Carriage };
 use crate::core::Viewport;
 use crate::core::Assets;

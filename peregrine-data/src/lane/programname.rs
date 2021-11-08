@@ -1,7 +1,8 @@
 use std::fmt;
-use crate::Channel;
 use peregrine_toolkit::serde::de_seq_next;
 use serde::{Deserializer, Serializer, de::{SeqAccess, Visitor}, ser::SerializeSeq};
+
+use crate::core::channel::Channel;
 
 #[derive(Clone,Debug,Eq,Hash,PartialEq,PartialOrd,Ord)]
 pub struct ProgramName(pub Channel,pub String);

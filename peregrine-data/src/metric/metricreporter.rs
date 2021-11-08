@@ -1,16 +1,20 @@
+use crate::core::channel::Channel;
+use crate::core::channel::PacketPriority;
 use crate::metric::programrunmetric::ProgramRunMetricBuilder;
 use crate::metric::programrunmetric::ProgramRunMetricData;
 use crate::metric::datastreammetric::DatastreamMetricValue;
 use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
-use crate::request::request::RequestType;
+use crate::request::core::manager::RequestManager;
+use crate::request::core::request::NewRequestVariant;
+use crate::request::core::request::RequestType;
 use commander::cdr_timer;
 use std::sync::Mutex;
 use std::sync::Arc;
 
 use peregrine_message::PeregrineMessage;
-use crate::{Channel, PacketPriority, PgCommander, PgCommanderTaskSpec, RequestManager, add_task };
+use crate::{PgCommander, PgCommanderTaskSpec, add_task };
 use crate::PeregrineCoreBase;
 use serde_derive::{ Serialize };
 use super::errormetric::ErrorMetricReport;
@@ -51,7 +55,8 @@ impl MetricReport {
 
     async fn send_task(&self, mut manager: RequestManager, channel: Channel) {
         // We don't care about errors here: avoid loops and spew
-        manager.execute_new(channel,PacketPriority::Batch,RequestType::new_metric(self.clone())).await.ok();
+        let request = NewRequestVariant::Metric(self.clone());
+        manager.execute_new(channel,PacketPriority::Batch,RequestType::new(request)).await.ok();
     }
 
     pub(crate) fn send(&self, commander: &PgCommander, manager: &mut RequestManager, channel: &Channel) {
@@ -98,7 +103,7 @@ impl MetricCollectorData {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run);
         if !report.empty() {
-            out.push(RequestType::new_metric(MetricReport::Client(report)));
+            out.push(RequestType::new(NewRequestVariant::Metric(MetricReport::Client(report))));
         }
         out
     }

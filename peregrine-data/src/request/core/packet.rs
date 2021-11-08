@@ -1,11 +1,10 @@
 use serde_derive::{Deserialize, Serialize};
 use std::mem::replace;
 use std::sync::Arc;
-use serde_cbor::Value as CborValue;
-use super::channel::Channel;
-use super::programbundle::SuppliedBundle;
-use super::request::{CommandRequest, NewCommandResponse};
-use crate::{ChannelLocation, DataMessage};
+use crate::core::channel::Channel;
+use crate::core::programbundle::SuppliedBundle;
+use super::request::CommandRequest;
+use super::response::NewCommandResponse;
 
 pub struct RequestPacketBuilder {
     channel: Channel,

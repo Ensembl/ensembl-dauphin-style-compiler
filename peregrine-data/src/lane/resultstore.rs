@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use commander::cdr_current_time;
 use std::collections::HashMap;
-use crate::{PacketPriority};
+use crate::core::channel::PacketPriority;
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };

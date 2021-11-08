@@ -1,9 +1,10 @@
-use crate::metric::metricutil::FactoredValueBuilder;
+use crate::{Region, core::channel::PacketPriority, metric::metricutil::FactoredValueBuilder};
 use serde::Serializer;
-use crate::PacketPriority;
 use serde_derive::{ Serialize };
 use serde::ser::{ SerializeSeq };
 use std::mem::replace;
+
+use super::metricreporter::MetricCollector;
 
 #[derive(PartialEq,Eq,Hash,Clone,Serialize)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -61,6 +62,32 @@ impl serde::Serialize for DatastreamDatapoint {
         seq.serialize_element(&self.num_events)?;
         seq.serialize_element(&self.total_size)?;
         seq.end()
+    }
+}
+
+pub(crate) struct PacketDatastreamMetricBuilder<'mc> {
+    metrics: &'mc MetricCollector,
+    endpoint: String,
+    priority: PacketPriority,
+    region: Region
+}
+
+impl<'mc> PacketDatastreamMetricBuilder<'mc> {
+    pub(crate) fn new(metrics: &'mc MetricCollector, endpoint: &str, priority: &PacketPriority, region: &Region) -> PacketDatastreamMetricBuilder<'mc> {
+        PacketDatastreamMetricBuilder {
+            metrics,
+            endpoint: endpoint.to_string(),
+            priority: priority.clone(),
+            region: region.clone()
+        }
+    }
+
+    pub(crate) fn add(&self, key: &str, len: usize) {
+        let key = DatastreamMetricKey::new(&self.endpoint,key,self.region.scale().get_index(),self.priority.clone());
+        let mut value = DatastreamMetricValue::empty();
+        value.num_events += 1;
+        value.total_size += len;
+        self.metrics.add_datastream(&key,&value);
     }
 }
 

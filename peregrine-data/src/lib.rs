@@ -26,9 +26,12 @@ mod core {
     pub(crate) mod asset;
     mod config;
     mod layout;
+    pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
     mod viewport;
+    pub(crate) mod channel;
+    pub(crate) mod data;
 
     pub use self::config::{ PgdPeregrineConfig, ConfigKey };
     pub use self::layout::Layout;
@@ -73,25 +76,31 @@ mod metric {
 }
 
 mod request {
-    pub(crate) mod backend;
-    pub(crate) mod backoff;
-    pub(crate) mod bootstrap;
-    pub(crate) mod channel;
-    pub(crate) mod data;
-    pub(crate) mod failure;
-    pub(crate) mod jump;
-    pub(crate) mod manager;
-    pub(crate) mod packet;
-    pub(crate) mod programbundle;
-    pub(crate) mod queue;
-    pub(crate) mod program;
-    pub(crate) mod request;
-    pub(crate) mod stick;
-    pub(crate) mod authority;
-    pub use backend::{ AllBackends, Backend };
-    pub use self::channel::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority };
-    pub use self::packet::{ RequestPacket, ResponsePacket };
-    pub use self::manager::RequestManager;
+    pub(crate) mod core {
+        pub(crate) mod backend;
+        pub(crate) mod backoff;
+        pub(crate) mod manager;
+        pub(crate) mod packet;
+        pub(crate) mod queue;
+        pub(crate) mod request;
+        pub(crate) mod response;
+    }
+
+    pub(crate) mod messages {
+        pub(crate) mod authorityreq;
+        pub(crate) mod authorityres;
+        pub(crate) mod bootstrapreq;
+        pub(crate) mod bootstrapres;
+        pub(crate) mod datareq;
+        pub(crate) mod datares;
+        pub(crate) mod failureres;
+        pub(crate) mod jumpreq;
+        pub(crate) mod jumpres;
+        pub(crate) mod programreq;
+        pub(crate) mod programres;
+        pub(crate) mod stickreq;
+        pub(crate) mod stickres;
+    }
 }
 
 mod run {
@@ -172,10 +181,12 @@ mod util {
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
+pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
 pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
-pub use self::request::{ Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestManager, AllBackends, Backend, RequestPacket, ResponsePacket };
+pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
+pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
@@ -200,3 +211,4 @@ pub use self::spacebase::{
     SpaceBaseParameterLocation, HollowEdge, Variable
 };
 pub use self::shape::rectangleshape::RectangleShape;
+pub use self::request::core::manager::RequestManager;

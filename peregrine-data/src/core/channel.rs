@@ -8,12 +8,11 @@ use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
 use serde_cbor::Value as CborValue;
+use crate::{RequestPacket, ResponsePacket};
 use crate::util::message::DataMessage;
 use serde_derive::{ Serialize };
 use peregrine_toolkit::serde::{de_seq_next, de_wrap};
 use peregrine_toolkit::envaryseq;
-
-use super::packet::{RequestPacket, ResponsePacket};
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {

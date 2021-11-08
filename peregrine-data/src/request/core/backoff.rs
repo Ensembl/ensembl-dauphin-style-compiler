@@ -1,8 +1,7 @@
 use commander::cdr_timer;
-use super::channel::{ Channel, PacketPriority };
-use super::manager::RequestManager;
-use super::request::{NewResponse, RequestType };
-use crate::util::message::DataMessage;
+use crate::{core::channel::{Channel, PacketPriority}, util::message::DataMessage};
+
+use super::{manager::RequestManager, request::RequestType, response::NewResponse};
 
 pub struct Backoff { 
     manager: RequestManager,
