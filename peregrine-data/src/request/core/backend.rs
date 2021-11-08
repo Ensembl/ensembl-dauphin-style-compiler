@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{DataMessage, ProgramName, Region, RequestManager, Stick, StickId, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootstrapCommandResponse, datareq::DataReq, datares::DataResponse, jumpreq::JumpReq, jumpres::{JumpLocation, JumpResponse}, programreq::ProgramReq, stickreq::StickReq}};
+use crate::{DataMessage, ProgramName, Region, RequestManager, Stick, StickId, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataReq, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}};
 
 use super::request::RequestType;
 
@@ -21,7 +21,7 @@ impl Backend {
         }
     }
 
-    pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<DataResponse,DataMessage> {
+    pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
         let request = DataReq::new(&self.channel,name,region);
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,name,priority,region);
         let r = self.manager.submit(&self.channel,priority,RequestType::new(request), |v| {
@@ -52,12 +52,12 @@ impl Backend {
             v.into_jump()
         }).await?;
         Ok(match r {
-            JumpResponse::Found(x) => Some(x),
-            JumpResponse::NotFound => None
+            JumpRes::Found(x) => Some(x),
+            JumpRes::NotFound => None
         })
     }
 
-    pub async fn bootstrap(&self) -> Result<BootstrapCommandResponse,DataMessage> {
+    pub async fn bootstrap(&self) -> Result<BootRes,DataMessage> {
         let request = BootstrapReq::new();
         self.manager.submit(&self.channel,&PacketPriority::RealTime,RequestType::new(request), |v| {
             v.into_bootstrap()

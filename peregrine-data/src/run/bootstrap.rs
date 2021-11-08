@@ -1,9 +1,9 @@
 use std::sync::{Arc, Mutex};
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::channel::Channel, lane::programloader::ProgramLoader, request::{core::manager::RequestManager, messages::bootstrapres::BootstrapCommandResponse}};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::channel::Channel, lane::programloader::ProgramLoader, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}};
 
 use super::PgDauphinTaskSpec;
 
-async fn finish_bootstrap(response: &BootstrapCommandResponse, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>) -> Result<(),DataMessage> {
+async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>) -> Result<(),DataMessage> {
     manager.set_lo_divert(response.channel_hi(),response.channel_lo());
     dauphin.run_program(loader,PgDauphinTaskSpec {
         prio: 2,

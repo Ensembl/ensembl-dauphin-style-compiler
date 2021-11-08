@@ -2,7 +2,7 @@
 use crate::request::messages::authorityreq::AuthorityReq;
 use crate::request::messages::bootstrapreq::BootstrapReq;
 use crate::request::messages::datareq::DataReq;
-use crate::request::messages::failureres::GeneralFailure;
+use crate::request::messages::failureres::FailureRes;
 use crate::request::messages::jumpreq::JumpReq;
 use crate::request::messages::metricreq::MetricReport;
 use crate::request::messages::programreq::ProgramReq;
@@ -58,7 +58,7 @@ impl RequestType {
             RequestVariant::Metric(_) => "metric",
 
         };
-        NewResponse::GeneralFailure(GeneralFailure::new(out))
+        NewResponse::FailureRes(FailureRes::new(out))
     }
 
     pub(crate) fn encode(&self) -> CborValue {
