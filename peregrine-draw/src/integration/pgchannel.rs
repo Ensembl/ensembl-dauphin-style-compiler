@@ -48,16 +48,11 @@ async fn send(channel: Channel, prio: PacketPriority, data: CborValue, timeout: 
     }
 }
 
-pub(crate) fn ser_wrap<T,E>(value: Result<T,E>) -> Result<T,DataMessage> where E: ToString {
-    value.map_err(|e| DataMessage::CodeInvariantFailed(format!("cannot serialzie: {}",e.to_string())))
-}
-
 async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket, timeout: Option<f64>, cache_buster: String) -> Result<ResponsePacket,DataMessage> {
-    let xxx_value = ser_wrap(serde_cbor::to_vec(&packet))?;
-    let data = ser_wrap(serde_cbor::from_slice(&xxx_value))?;
+    let channel2 = channel.clone();
+    let data = packet.encode();
     let data = send(channel,prio,data,timeout,&cache_buster).await.map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
-    let xxx_data = ser_wrap(serde_cbor::to_vec(&data))?;
-    let response = ser_wrap(serde_cbor::from_slice::<ResponsePacket>(&xxx_data))?;
+    let response = ResponsePacket::decode(data).map_err(|e| DataMessage::PacketError(channel2,e))?;
     Ok(response)
 }
 

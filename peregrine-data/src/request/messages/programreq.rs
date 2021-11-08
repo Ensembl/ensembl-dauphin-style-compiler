@@ -1,21 +1,18 @@
-use serde::Serializer;
-
-use crate::{ProgramName, request::core::request::NewRequestVariant};
+use crate::{ProgramName, request::core::request::{RequestVariant}};
+use serde_cbor::Value as CborValue;
 
 pub(crate) struct ProgramCommandRequest {
     program_name: ProgramName
 }
 
 impl ProgramCommandRequest {
-    pub(crate) fn new(program_name: &ProgramName) -> NewRequestVariant {
-        NewRequestVariant::Program(ProgramCommandRequest {
+    pub(crate) fn new(program_name: &ProgramName) -> RequestVariant {
+        RequestVariant::Program(ProgramCommandRequest {
             program_name: program_name.clone()
         })
     }
-}
-
-impl serde::Serialize for ProgramCommandRequest {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        self.program_name.serialize(serializer)
+    
+    pub(crate) fn encode(&self) -> CborValue {
+        self.program_name.encode()
     }
 }

@@ -10,6 +10,6 @@ pub mod plumbing {
     pub mod distributor;
 }
 
+pub mod cbor;
 pub mod refs;
-pub mod serde;
 pub mod url;

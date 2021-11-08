@@ -1,5 +1,5 @@
-use serde::Deserializer;
 use crate::Stick;
+use serde_cbor::Value as CborValue;
 
 pub struct StickCommandResponse {
     stick: Stick
@@ -7,12 +7,10 @@ pub struct StickCommandResponse {
 
 impl StickCommandResponse {
     pub(crate) fn stick(&self) -> Stick { self.stick.clone() }
-}
 
-impl<'de> serde::Deserialize<'de> for StickCommandResponse {
-    fn deserialize<D>(deserializer: D) -> Result<StickCommandResponse, D::Error> where D: Deserializer<'de> {
+    pub(crate) fn decode(value: CborValue) -> Result<StickCommandResponse,String> {
         Ok(StickCommandResponse {
-            stick: Stick::deserialize(deserializer)?
+            stick: Stick::decode(value)?
         })
     }
 }

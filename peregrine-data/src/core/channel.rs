@@ -1,18 +1,15 @@
 use anyhow::bail;
-use serde::{Deserialize, Deserializer, Serializer};
-use serde::de::{self, SeqAccess, Unexpected, Visitor};
+use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_vec, check_array_len, check_array_min_len};
 use std::future::Future;
 use std::pin::Pin;
 use std::fmt::{ self, Display, Formatter };
 use anyhow::{ self };
 use std::sync::Arc;
 use peregrine_toolkit::url::Url;
-use serde_cbor::Value as CborValue;
 use crate::{RequestPacket, ResponsePacket};
 use crate::util::message::DataMessage;
 use serde_derive::{ Serialize };
-use peregrine_toolkit::serde::{de_seq_next, de_wrap};
-use peregrine_toolkit::envaryseq;
+use serde_cbor::Value as CborValue;
 
 fn parse_channel(value: &str) -> anyhow::Result<(String,String)> {
     if value.ends_with(")") {
@@ -59,6 +56,22 @@ impl Channel {
         Channel(Arc::new(location.clone()))
     }
 
+    pub fn decode(value: CborValue) -> Result<Channel,String> {
+        let value = cbor_into_vec(value)?;
+        check_array_min_len(&value,1)?;
+        let data = match cbor_as_number(&value[0])? {
+            0 => {
+                check_array_len(&value,2)?;
+                ChannelLocation::HttpChannel(Url::parse(&cbor_as_str(&value[1])?).map_err(|e| e.to_string())?)
+            },
+            1 => ChannelLocation::None,
+            x => { 
+                return Err(format!("channel type out-of range: {}",x));
+            }
+        };
+        Ok(Channel(Arc::new(data)))
+    }
+
     pub fn parse(base: &Channel, value: &str) -> anyhow::Result<Channel> {
         Ok(Channel(Arc::new(ChannelLocation::parse(&base.0,value)?)))
     }
@@ -72,6 +85,14 @@ impl Channel {
 
     pub fn location(&self) -> Arc<ChannelLocation> {
         self.0.clone()
+    }
+
+    pub fn encode(&self) -> CborValue {
+        let v = match self.0.as_ref() {
+            ChannelLocation::HttpChannel(url) => vec![CborValue::Integer(0),CborValue::Text(url.to_string())],
+            ChannelLocation::None => vec![CborValue::Integer(1)]
+        };
+        CborValue::Array(v)
     }
 }
 
@@ -103,44 +124,5 @@ impl Display for PacketPriority {
             PacketPriority::RealTime => write!(f,"real-time"),
             PacketPriority::Batch => write!(f,"batch")
         }
-    }
-}
-
-impl Channel {
-    pub fn deserialize(value: &CborValue) -> Result<Channel,serde_cbor::Error> {
-        let xxx_bytes = serde_cbor::to_vec(value)?;
-        serde_cbor::from_slice(&xxx_bytes)
-    }
-}
-
-impl serde::Serialize for Channel {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        match self.0.as_ref() {
-            ChannelLocation::HttpChannel(url) => envaryseq!(serializer,0,url.to_string()),
-            ChannelLocation::None => envaryseq!(serializer,1)
-        }
-    }
-}
-
-struct ChannelVisitor;
-
-impl<'de> Visitor<'de> for ChannelVisitor {
-    type Value = Channel;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a channel") }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<Channel,S::Error> where S: SeqAccess<'de> {
-        let data = match de_seq_next(&mut seq)? {
-            0 => ChannelLocation::HttpChannel(de_wrap(Url::parse(de_seq_next(&mut seq)?))?),
-            1 => ChannelLocation::None,
-            _ => Err(de::Error::invalid_value(Unexpected::Str(&"out-of range integer"),&"in-range integer"))?
-        };
-        Ok(Channel(Arc::new(data)))
-    }
-}
-
-impl<'de> Deserialize<'de> for Channel {
-    fn deserialize<D>(deserializer: D) -> Result<Channel, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_seq(ChannelVisitor)
     }
 }

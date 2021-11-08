@@ -1,16 +1,12 @@
-use serde::Serializer;
-use crate::request::core::request::NewRequestVariant;
+use crate::request::core::request::{RequestVariant};
+use serde_cbor::Value as CborValue;
 
 pub(crate) struct BootstrapCommandRequest;
 
 impl BootstrapCommandRequest {
-    pub(crate) fn new() -> NewRequestVariant {
-        NewRequestVariant::Bootstrap(BootstrapCommandRequest)
+    pub(crate) fn new() -> RequestVariant {
+        RequestVariant::Bootstrap(BootstrapCommandRequest)
     }
-}
 
-impl serde::Serialize for BootstrapCommandRequest {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        serializer.serialize_none()
-    }
+    pub(crate) fn encode(&self) -> CborValue { CborValue::Null }
 }

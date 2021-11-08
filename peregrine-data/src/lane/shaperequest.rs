@@ -1,8 +1,7 @@
 use crate::core::{ Scale, StickId };
-use serde::Serializer;
-use serde::ser::SerializeSeq;
 use crate::switch::trackconfig::TrackConfig;
 use crate::switch::track::Track;
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub struct Region {
@@ -11,19 +10,17 @@ pub struct Region {
     index: u64
 }
 
-impl serde::Serialize for Region {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut seq = serializer.serialize_seq(Some(3))?;
-        seq.serialize_element(&self.stick)?;
-        seq.serialize_element(&self.scale)?;
-        seq.serialize_element(&self.index)?;
-        seq.end()
-    }
-}
-
 impl Region {
     pub fn new(stick: &StickId, index: u64, scale: &Scale) -> Region {
         Region { stick: stick.clone(), scale: scale.clone(), index }
+    }
+
+    pub fn encode(&self) -> CborValue {
+        CborValue::Array(vec![
+            self.stick.encode(),
+            self.scale.encode(),
+            CborValue::Integer(self.index as i128)
+        ])
     }
 
     pub fn stick(&self) -> &StickId { &self.stick }

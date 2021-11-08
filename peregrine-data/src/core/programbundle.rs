@@ -1,6 +1,5 @@
-use std::{collections::HashMap, fmt};
-use peregrine_toolkit::serde::de_seq_next;
-use serde::{Deserialize, Deserializer, de::{SeqAccess, Visitor}};
+use std::{collections::HashMap};
+use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_drained_map, cbor_into_vec, check_array_len}, decompose_vec};
 use serde_cbor::Value as CborValue;
 
 pub struct SuppliedBundle {
@@ -15,25 +14,18 @@ impl SuppliedBundle {
     pub(crate) fn name_map(&self) -> impl Iterator<Item=(&str,&str)> {
         self.names.iter().map(|(x,y)| (x as &str,y as &str))
     }
-}
 
-struct BundleVisitor;
-
-impl<'de> Visitor<'de> for BundleVisitor {
-    type Value = SuppliedBundle;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a channel") }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<SuppliedBundle,S::Error> where S: SeqAccess<'de> {
-        let bundle_name = de_seq_next(&mut seq)?;
-        let program = de_seq_next(&mut seq)?;
-        let names = de_seq_next(&mut seq)?;
-        Ok(SuppliedBundle { bundle_name, program, names })
-    }
-}
-
-impl<'de> Deserialize<'de> for SuppliedBundle {
-    fn deserialize<D>(deserializer: D) -> Result<SuppliedBundle, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_seq(BundleVisitor)
+    pub fn decode(value: CborValue) -> Result<SuppliedBundle,String> {
+        let mut seq = cbor_into_vec(value)?;
+        check_array_len(&seq,3)?;
+        decompose_vec!(seq,bundle_name,program,names);
+        let names = cbor_into_drained_map(names)?.drain(..)
+            .map::<Result<_,String>,_>(|(k,v)| Ok((k,cbor_as_str(&v)?.to_string())))
+            .collect::<Result<HashMap<_,_>,_>>()?;
+        Ok(SuppliedBundle {
+            bundle_name: cbor_as_str(&bundle_name)?.to_string(),
+            program,
+           names
+        })      
     }
 }

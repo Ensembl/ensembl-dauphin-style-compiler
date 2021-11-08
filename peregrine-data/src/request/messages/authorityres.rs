@@ -1,7 +1,6 @@
-use std::fmt;
-use peregrine_toolkit::serde::de_seq_next;
-use serde::{Deserialize, Deserializer, de::{SeqAccess, Visitor}};
+use peregrine_toolkit::{cbor::{cbor_as_str, cbor_into_vec, check_array_len}, decompose_vec };
 use crate::{core::channel::Channel, index::stickauthority::Authority};
+use serde_cbor::Value as CborValue;
 
 pub struct AuthorityCommandResponse {
     channel: Channel,
@@ -14,26 +13,16 @@ impl AuthorityCommandResponse {
     pub fn build(&self) -> Authority {
         Authority::new(&self.channel,&self.startup_name,&self.lookup_name,&self.jump_name)
     }
-}
 
-struct AuthorityVisitor;
-
-impl<'de> Visitor<'de> for AuthorityVisitor {
-    type Value = AuthorityCommandResponse;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"an authority") }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<AuthorityCommandResponse,S::Error> where S: SeqAccess<'de> {
-        let channel = de_seq_next(&mut seq)?;
-        let startup_name = de_seq_next(&mut seq)?;
-        let lookup_name = de_seq_next(&mut seq)?;
-        let jump_name = de_seq_next(&mut seq)?;
-        Ok(AuthorityCommandResponse { channel, startup_name, lookup_name, jump_name })
-    }
-}
-
-impl<'de> Deserialize<'de> for AuthorityCommandResponse {
-    fn deserialize<D>(deserializer: D) -> Result<AuthorityCommandResponse, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_seq(AuthorityVisitor)
+    pub fn decode(value: CborValue) -> Result<AuthorityCommandResponse,String> {
+        let mut value = cbor_into_vec(value)?;
+        check_array_len(&value,4)?;
+        decompose_vec!(value,channel,startup,lookup,jump);
+        Ok(AuthorityCommandResponse {
+            channel: Channel::decode(channel)?,
+            startup_name: cbor_as_str(&startup)?.to_string(),
+            lookup_name: cbor_as_str(&lookup)?.to_string(),
+            jump_name: cbor_as_str(&jump)?.to_string(),
+        })
     }
 }

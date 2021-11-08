@@ -53,7 +53,7 @@ impl Backend {
         }).await?;
         Ok(match r {
             JumpResponse::Found(x) => Some(x),
-            JumpResponse::NotFound(_) => None
+            JumpResponse::NotFound => None
         })
     }
 

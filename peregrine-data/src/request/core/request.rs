@@ -8,25 +8,12 @@ use crate::request::messages::metricreq::MetricReport;
 use crate::request::messages::programreq::ProgramCommandRequest;
 use crate::request::messages::stickreq::StickCommandRequest;
 use std::sync::Arc;
-use serde::{Serializer, ser::SerializeSeq};
 use std::rc::Rc;
 use super::response::NewCommandResponse;
 use super::response::NewResponse;
+use serde_cbor::Value as CborValue;
 
-#[derive(Clone)]
-pub struct RequestType {
-    variant: Arc<NewRequestVariant>
-}
-
-impl RequestType {
-    pub(crate) fn new(variant: NewRequestVariant) -> RequestType {
-        RequestType {
-            variant: Arc::new(variant)
-        }
-    }
-}
-
-pub(crate) enum NewRequestVariant {
+pub(crate) enum RequestVariant {
     Bootstrap(BootstrapCommandRequest),
     Program(ProgramCommandRequest),
     Stick(StickCommandRequest),
@@ -36,43 +23,53 @@ pub(crate) enum NewRequestVariant {
     Metric(MetricReport),
 }
 
-impl serde::Serialize for RequestType {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        match self.variant.as_ref() {
-            NewRequestVariant::Bootstrap(x) => x.serialize(serializer),
-            NewRequestVariant::Program(x) => x.serialize(serializer),
-            NewRequestVariant::Stick(x) => x.serialize(serializer),
-            NewRequestVariant::Authority(x) => x.serialize(serializer),
-            NewRequestVariant::Data(x) => x.serialize(serializer),
-            NewRequestVariant::Jump(x) => x.serialize(serializer),
-            NewRequestVariant::Metric(x) => x.serialize(serializer),
-        }
-    }
+#[derive(Clone)]
+pub struct RequestType {
+    variant: Arc<RequestVariant>
 }
 
 impl RequestType {
-    pub fn to_failure(&self) -> NewResponse {
-        let out = match self.variant.as_ref() {
-            NewRequestVariant::Bootstrap(_) => "bootstrapping",
-            NewRequestVariant::Program(_) => "getting program",
-            NewRequestVariant::Stick(_) => "getting stick info",
-            NewRequestVariant::Authority(_) => "getting authority info",
-            NewRequestVariant::Data(_) => "getting data",
-            NewRequestVariant::Jump(_) => "getting jump location",
-            NewRequestVariant::Metric(_) => "sending metric report",
-        };
-        NewResponse::GeneralFailure(GeneralFailure::new(out))
+    pub(crate) fn new(variant: RequestVariant) -> RequestType {
+        RequestType {
+            variant: Arc::new(variant)
+        }
     }
 
     fn type_index(&self) -> u8 {
         match self.variant.as_ref() {
-            NewRequestVariant::Bootstrap(_) => 0,
-            NewRequestVariant::Program(_) => 1,
-            NewRequestVariant::Stick(_) => 2,
-            NewRequestVariant::Authority(_) => 3,
-            NewRequestVariant::Data(_) => 4,
-            NewRequestVariant::Jump(_) => 5,
-            NewRequestVariant::Metric(_) => 6,
+            RequestVariant::Bootstrap(_) => 0,
+            RequestVariant::Program(_) => 1,
+            RequestVariant::Stick(_) => 2,
+            RequestVariant::Authority(_) => 3,
+            RequestVariant::Data(_) => 4,
+            RequestVariant::Jump(_) => 5,
+            RequestVariant::Metric(_) => 6,
+        }
+    }
+
+    pub fn to_failure(&self) -> NewResponse {
+        let out = match self.variant.as_ref() {
+            RequestVariant::Bootstrap(_) => "bootstrap",
+            RequestVariant::Program(_) => "program",
+            RequestVariant::Stick(_) => "stick",
+            RequestVariant::Authority(_) => "authority",
+            RequestVariant::Data(_) => "data",
+            RequestVariant::Jump(_) => "jump",
+            RequestVariant::Metric(_) => "metric",
+
+        };
+        NewResponse::GeneralFailure(GeneralFailure::new(out))
+    }
+
+    pub(crate) fn encode(&self) -> CborValue {
+        match self.variant.as_ref() {
+            RequestVariant::Bootstrap(x) => x.encode(),
+            RequestVariant::Program(x) => x.encode(),
+            RequestVariant::Stick(x) => x.encode(),
+            RequestVariant::Authority(x) => x.encode(),
+            RequestVariant::Data(x) => x.encode(),
+            RequestVariant::Jump(x) => x.encode(),
+            RequestVariant::Metric(x) => x.encode(),
         }
     }
 }
@@ -84,7 +81,7 @@ pub struct CommandRequest {
 }
 
 impl CommandRequest {
-    pub(crate) fn new(msgid: u64, rt: RequestType) -> CommandRequest {
+    pub(crate) fn new2(msgid: u64, rt: RequestType) -> CommandRequest {
         CommandRequest {
             msgid,
             data: Rc::new(rt)
@@ -96,14 +93,12 @@ impl CommandRequest {
     pub(crate) fn fail(&self) -> NewCommandResponse {
         NewCommandResponse::new(self.msgid,self.data.to_failure())
     }
-}
 
-impl serde::Serialize for CommandRequest {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        let mut seq = serializer.serialize_seq(Some(3))?;
-        seq.serialize_element(&self.msgid)?;
-        seq.serialize_element(&self.data.type_index())?;
-        seq.serialize_element(&self.data)?;
-        seq.end()
+    pub(crate) fn encode(&self) -> CborValue {
+        CborValue::Array(vec![
+            CborValue::Integer(self.msgid as i128),
+            CborValue::Integer(self.data.type_index() as i128),
+            self.data.encode()
+        ])
     }
 }

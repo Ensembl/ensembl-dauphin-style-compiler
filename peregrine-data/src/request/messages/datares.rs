@@ -1,50 +1,34 @@
 use anyhow::anyhow as err;
-use std::{collections::HashMap, fmt};
-use serde::{Deserializer, de::Visitor};
-use serde_derive::Deserialize;
+use peregrine_toolkit::cbor::{cbor_into_drained_map};
+use std::{collections::HashMap};
 use crate::{metric::datastreammetric::PacketDatastreamMetricBuilder};
 use crate::core::data::ReceivedData;
+use serde_cbor::Value as CborValue;
 
-struct DatasetResponse(HashMap<String,ReceivedData>);
-
-#[derive(Deserialize)]
 pub struct DataResponse {
-    data: DatasetResponse
+    data: HashMap<String,ReceivedData>
 }
 
 impl DataResponse {
     pub(crate) fn account(&self, account_builder: &PacketDatastreamMetricBuilder) {
-        for (name,data) in &self.data.0 {
+        for (name,data) in &self.data {
             account_builder.add(name,data.len());
         }
-
     }
-}
 
-struct DatasetResponseVisitor;
-
-impl<'de> Visitor<'de> for DatasetResponseVisitor {
-    type Value = DatasetResponse;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a data response") }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where A: serde::de::MapAccess<'de> {
-        let mut data = HashMap::new();
-        while let Some((k,v)) = map.next_entry::<String,ReceivedData>()? {
-            data.insert(k,v);
+    pub fn decode(value: CborValue) -> Result<DataResponse,String> {
+        for (key,value) in cbor_into_drained_map(value)?.drain(..) {
+            if key == "data" {
+                let data = cbor_into_drained_map(value)?.drain(..).map(|(k,v)| {
+                    Ok((k,ReceivedData::decode(v)?))
+                }).collect::<Result<_,String>>()?;
+                return Ok(DataResponse { data });
+            }
         }
-        Ok(DatasetResponse(data))
+        return Err(format!("missing key 'data'"));
     }
-}
 
-impl<'de> serde::Deserialize<'de> for DatasetResponse {
-    fn deserialize<D>(deserializer: D) -> Result<DatasetResponse, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_map(DatasetResponseVisitor)
-    }
-}
-
-impl DataResponse {
     pub fn get(&self, name: &str) -> anyhow::Result<&ReceivedData> {
-        self.data.0.get(name).ok_or_else(|| err!("no such data {}",name))
+        self.data.get(name).ok_or_else(|| err!("no such data {}",name))
     }
 }

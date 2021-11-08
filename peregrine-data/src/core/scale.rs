@@ -1,19 +1,17 @@
 use serde::Serializer;
 use std::fmt::{ self, Display, Formatter };
+use serde_cbor::Value as CborValue;
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);
 
-impl serde::Serialize for Scale {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        serializer.serialize_u64(self.0)
-    }
-}
-
-
 impl Scale {
     pub fn new(scale: u64) -> Scale {
         Scale(scale)
+    }
+
+    pub fn encode(&self) -> CborValue {
+        CborValue::Integer(self.0 as i128)
     }
 
     pub fn new_bp_per_screen(bp_per_screen: f64) -> Scale {

@@ -7,18 +7,14 @@ use crate::metric::datastreammetric::DatastreamMetricKey;
 use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
-use crate::request::core::request::NewRequestVariant;
+use crate::request::core::request::RequestVariant;
 use crate::request::core::request::RequestType;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use std::sync::Mutex;
 use std::sync::Arc;
-
-use peregrine_message::PeregrineMessage;
 use crate::{PgCommander, PgCommanderTaskSpec, add_task };
-use crate::PeregrineCoreBase;
 use serde_derive::{ Serialize };
-use super::errormetric::ErrorMetricReport;
 
 #[derive(Clone,Serialize)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -66,7 +62,7 @@ impl MetricCollectorData {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run);
         if !report.empty() {
-            out.push(RequestType::new(NewRequestVariant::Metric(MetricReport::Client(report))));
+            out.push(RequestType::new(RequestVariant::Metric(MetricReport::Client(report))));
         }
         out
     }

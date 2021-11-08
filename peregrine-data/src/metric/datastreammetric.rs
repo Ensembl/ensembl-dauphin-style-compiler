@@ -1,5 +1,6 @@
-use crate::{Region, core::channel::PacketPriority, metric::metricutil::FactoredValueBuilder};
+use crate::{Region, metric::metricutil::FactoredValueBuilder};
 use serde::Serializer;
+use crate::PacketPriority;
 use serde_derive::{ Serialize };
 use serde::ser::{ SerializeSeq };
 use std::mem::replace;

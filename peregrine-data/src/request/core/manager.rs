@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::backoff::Backoff;
 use super::queue::RequestQueue;
-use super::request::{CommandRequest, RequestType};
+use super::request::{CommandRequest, RequestType };
 use super::response::NewResponse;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
 use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
@@ -116,7 +116,7 @@ impl RequestManagerData {
     fn execute(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<NewResponse>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
-        let request = CommandRequest::new(msg_id,request);
+        let request = CommandRequest::new2(msg_id,request);
         let response_stream = CommanderStream::new();
         self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
         Ok(response_stream)
@@ -161,10 +161,6 @@ impl RequestManager {
                                                                     where F: Fn(NewResponse) -> Result<T,String> {
         let mut backoff = Backoff::new(self,channel,priority);
         backoff.backoff(request,cb).await
-    }
-
-    pub fn execute_bactch(&self, channel: &Channel, request: RequestType) -> Result<(),DataMessage> {
-        lock!(self.0).execute(channel.clone(),PacketPriority::Batch,request).map(|_| ())
     }
 
     pub(crate) fn execute_and_forget(&self, channel: &Channel, request: RequestType) {

@@ -1,9 +1,6 @@
-use std::fmt;
-
-use peregrine_toolkit::serde::{de_seq_next, de_wrap};
-use serde::{Deserialize, Deserializer, de::{SeqAccess, Visitor}};
-
+use peregrine_toolkit::{cbor::{cbor_as_number, cbor_into_vec, check_array_len}, decompose_vec};
 use crate::request::messages::{authorityres::AuthorityCommandResponse, bootstrapres::BootstrapCommandResponse, datares::DataResponse, failureres::GeneralFailure, jumpres::JumpResponse, programres::ProgramCommandResponse, stickres::StickCommandResponse};
+use serde_cbor::Value as CborValue;
 
 pub struct NewCommandResponse {
     msg_id: u64,
@@ -15,28 +12,18 @@ impl NewCommandResponse {
         NewCommandResponse { msg_id, variety }
     }
 
+    pub fn decode(value: CborValue) -> Result<NewCommandResponse,String> {
+        let mut seq = cbor_into_vec(value)?;
+        check_array_len(&seq,2)?;
+        decompose_vec!(seq,msg_id,variety);
+        Ok(NewCommandResponse {
+            msg_id: cbor_as_number(&msg_id)?,
+            variety: NewResponse::decode(variety)?
+        })
+    }
+
     pub(crate) fn message_id(&self) -> u64 { self.msg_id }
     pub(crate) fn into_variety(self) -> NewResponse { self.variety }
-}
-
-struct CommandResponseVisitor;
-
-impl<'de> Visitor<'de> for CommandResponseVisitor {
-    type Value = NewCommandResponse;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a command response") }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<NewCommandResponse,S::Error> where S: SeqAccess<'de> {
-        let msg_id = de_seq_next(&mut seq)?;
-        let variety = de_seq_next(&mut seq)?;
-        Ok(NewCommandResponse { msg_id, variety })
-    }
-}
-
-impl<'de> Deserialize<'de> for NewCommandResponse {
-    fn deserialize<D>(deserializer: D) -> Result<NewCommandResponse, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_seq(CommandResponseVisitor)
-    }
 }
 
 pub enum NewResponse {
@@ -47,6 +34,18 @@ pub enum NewResponse {
     Authority(AuthorityCommandResponse),
     Data(DataResponse),
     Jump(JumpResponse)
+}
+
+macro_rules! accessor {
+    ($self:ident,$name:tt,$branch:tt,$result:ty) => {
+        pub(crate) fn $name($self) -> Result<$result,String> {
+            match $self {
+                NewResponse::$branch(j) => Ok(j),
+                _ => Err($self.bad_response())
+            }
+        }
+                
+    };
 }
 
 impl NewResponse {
@@ -65,75 +64,26 @@ impl NewResponse {
         format!("unexpected response: {}",unexpected)
     }
 
-    pub(crate) fn into_jump(self) -> Result<JumpResponse,String> {
-        match self {
-            NewResponse::Jump(j) => Ok(j),
-            _ => Err(self.bad_response())
-        }
-    }
+    accessor!(self,into_jump,Jump,JumpResponse);
+    accessor!(self,into_program,Program,ProgramCommandResponse);
+    accessor!(self,into_stick,Stick,StickCommandResponse);
+    accessor!(self,into_authority,Authority,AuthorityCommandResponse);
+    accessor!(self,into_data,Data,DataResponse);
+    accessor!(self,into_bootstrap,Bootstrap,BootstrapCommandResponse);
 
-    pub(crate) fn into_program(self) -> Result<ProgramCommandResponse,String> {
-        match self {
-            NewResponse::Program(p) => Ok(p),
-            _ => Err(self.bad_response())
-        }
-    }
-
-    pub(crate) fn into_stick(self) -> Result<StickCommandResponse,String> {
-        match self {
-            NewResponse::Stick(s) => Ok(s),
-            _ => Err(self.bad_response())
-        }
-    }
-
-    pub(crate) fn into_authority(self) -> Result<AuthorityCommandResponse,String> {
-        match self {
-            NewResponse::Authority(a) => Ok(a),
-            _ => Err(self.bad_response())
-        }
-    }
-
-    pub(crate) fn into_data(self) -> Result<DataResponse,String> {
-        match self {
-            NewResponse::Data(d) => Ok(d),
-            _ => Err(self.bad_response())
-        }
-    }
-
-    pub(crate) fn into_bootstrap(self) -> Result<BootstrapCommandResponse,String> {
-        match self {
-            NewResponse::Bootstrap(b) => Ok(b),
-            _ => Err(self.bad_response())
-        }
-    }
-}
-
-struct NewResponseVisitor;
-
-impl<'de> Visitor<'de> for NewResponseVisitor {
-    type Value = NewResponse;
-
-    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f,"a response") }
-
-    fn visit_seq<S>(self, mut seq: S) -> Result<NewResponse,S::Error> where S: SeqAccess<'de> {
-        let variety = de_seq_next(&mut seq)?;
-        match variety {
-            0 => Ok(NewResponse::Bootstrap(de_seq_next(&mut seq)?)),
-            1 => Ok(NewResponse::GeneralFailure(de_seq_next(&mut seq)?)),
-            2 => Ok(NewResponse::Program(de_seq_next(&mut seq)?)),
-            3 => Ok(NewResponse::Stick(de_seq_next(&mut seq)?)),
-            4 => Ok(NewResponse::Authority(de_seq_next(&mut seq)?)),
-            5 => Ok(NewResponse::Data(de_seq_next(&mut seq)?)),
-            6 => Ok(NewResponse::Jump(de_seq_next(&mut seq)?)),
-            v => {
-                return de_wrap(Err(format!("bad response type: {}",v)));
-            }
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for NewResponse {
-    fn deserialize<D>(deserializer: D) -> Result<NewResponse, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_seq(NewResponseVisitor)
+    pub fn decode(value: CborValue) -> Result<NewResponse,String> {
+        let mut seq = cbor_into_vec(value)?;
+        check_array_len(&seq,2)?;
+        decompose_vec!(seq,variety,value);
+        Ok(match cbor_as_number(&variety)? {
+            0 => NewResponse::Bootstrap(BootstrapCommandResponse::decode(value)?),
+            1 => NewResponse::GeneralFailure(GeneralFailure::decode(value)?),
+            2 => NewResponse::Program(ProgramCommandResponse::decode(value)?),
+            3 => NewResponse::Stick(StickCommandResponse::decode(value)?),
+            4 => NewResponse::Authority(AuthorityCommandResponse::decode(value)?),
+            5 => NewResponse::Data(DataResponse::decode(value)?),
+            6 => NewResponse::Jump(JumpResponse::decode(value)?),
+            v => { return Err(format!("bad response type: {}",v)) }
+        })
     }
 }
