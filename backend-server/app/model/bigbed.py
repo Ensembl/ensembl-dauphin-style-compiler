@@ -21,9 +21,14 @@ def _get_bigbed_data(path,chrom,start,end):
     return out
 
 def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
+    # angel's share: extra at start end end to allow seamless overlap
+    angel_share = int((end-start)/nBins)+1
+    start = start - 2*angel_share
+    end = end + 2*angel_share
+    start = max(start,0)
     end = min(end,chrom.size)
     if end < start:
-        return ([],start)
+        return ([],start,start)
     try:
         if not (path in _bigwigs):
             _bigwigs[path] = pyBigWig.open(path)
@@ -31,12 +36,12 @@ def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
         out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
     except (RuntimeError,OverflowError) as e:
         out = []
-    return (out,end)
+    return (out,start,end)
 
 def get_bigwig_data(path,chrom,start,end):
     end = min(end,chrom.size)
     if end < start:
-        return ([],start)
+        return ([],start,start)
     try:
         if not (path in _bigwigs):
             _bigwigs[path] = pyBigWig.open(path)
@@ -44,7 +49,7 @@ def get_bigwig_data(path,chrom,start,end):
         out = bw.values(chrom.name,start,end) or []
     except (RuntimeError,OverflowError) as e:
         out = []
-    return (out,end)
+    return (out,start,end)
 
 def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: int):
     accessor = data_accessor.resolver.get(item)

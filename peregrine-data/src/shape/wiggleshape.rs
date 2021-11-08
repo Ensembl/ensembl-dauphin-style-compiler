@@ -1,30 +1,36 @@
 use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
-const SCALE : i64 = 100; // XXX configurable
+const SCALE : i64 = 200; // XXX configurable
 
 fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y: &[Option<f64>]) -> (f64,f64,Vec<Option<f64>>) {
     if y.len() == 0 { return (wanted_min,wanted_max,vec![]); }
+    /* add in angel's share */
+    let angel_share = (wanted_max-wanted_min)/(SCALE as f64);
+    let wanted_min = (wanted_min - angel_share).floor();
+    let wanted_max = (wanted_max + angel_share).ceil();
     /* truncation */
     let aim_min = if wanted_min < got_min { got_min } else { wanted_min }; // ie invariant: aim_min >= got_min
     let aim_max = if wanted_max > got_max { got_max } else { wanted_max }; // ie invariant: aim_max <= got_max
     let pitch = (got_max-got_min)/(y.len() as f64);
-    let left_truncate = ((aim_min-got_min)/pitch).floor() as i64 - 1;
-    let right_truncate = ((got_max-aim_max)/pitch).floor() as i64 - 1;
+    let left_truncate = ((aim_min-got_min)/pitch).floor() as i64;
+    let right_truncate = ((got_max-aim_max)/pitch).floor() as i64;
     let y_len = y.len() as i64;
     let left = min(max(left_truncate,0),y_len);
-    let right = max(left,min(max(0,y_len-right_truncate),y_len));
+    let right = max(left,min(max(0,y_len-right_truncate),y_len-1));
     /* weeding */
     let y = if right-left+1 > SCALE*2 {
         let mut y2 = vec![];
-        let got = right - left + 1;
-        for (i,v) in y[(left as usize)..(right as usize)].iter().enumerate() {
-            if i as i64 * SCALE / got as i64 - y2.len() as i64 > 1 {
-                y2.push(v.clone());
-            }
+        let input = &y[(left as usize)..(right as usize)];
+        let mut index = 0.5;
+        let incr_index = (input.len() as f64)/(SCALE as f64);
+        for _ in 0_usize..(SCALE as usize) {
+            y2.push(input[min(index as usize,y.len()-1)].clone());
+            index += incr_index;
         }
         y2
     } else {
+        let right = min(1+(right as usize),y.len());
         y[(left as usize)..(right as usize)].to_vec()
     };
     (aim_min,aim_max,y)

@@ -43,7 +43,7 @@ impl WiggleAdder {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
-                x_step: (end-start)/(yy.len() as f64),
+                x_step: (end-start+1.)/(yy.len() as f64),
                 x_pos: start,
                 y_height: height,
                 x: vec![],
