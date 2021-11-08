@@ -1,13 +1,13 @@
 use crate::request::core::request::{RequestVariant};
 use serde_cbor::Value as CborValue;
 
-pub struct JumpCommandRequest {
+pub struct JumpReq {
     location: String
 }
 
-impl JumpCommandRequest {
+impl JumpReq {
     pub(crate) fn new(location: &str) -> RequestVariant {
-        RequestVariant::Jump(JumpCommandRequest {
+        RequestVariant::Jump(JumpReq {
             location: location.to_string()
         })
     }

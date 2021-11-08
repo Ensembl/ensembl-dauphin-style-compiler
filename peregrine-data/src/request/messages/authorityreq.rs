@@ -1,11 +1,11 @@
 use crate::request::core::request::{RequestVariant};
 use serde_cbor::Value as CborValue;
 
-pub(crate) struct AuthorityCommandRequest;
+pub(crate) struct AuthorityReq;
 
-impl AuthorityCommandRequest {
+impl AuthorityReq {
     pub(crate) fn new() -> RequestVariant {
-        RequestVariant::Authority(AuthorityCommandRequest)
+        RequestVariant::Authority(AuthorityReq)
     }
 
     pub(crate) fn encode(&self) -> CborValue { CborValue::Null }

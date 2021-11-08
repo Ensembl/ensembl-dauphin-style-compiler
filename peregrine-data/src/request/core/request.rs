@@ -1,12 +1,12 @@
 // TODO tied failures
-use crate::request::messages::authorityreq::AuthorityCommandRequest;
-use crate::request::messages::bootstrapreq::BootstrapCommandRequest;
-use crate::request::messages::datareq::DataCommandRequest;
+use crate::request::messages::authorityreq::AuthorityReq;
+use crate::request::messages::bootstrapreq::BootstrapReq;
+use crate::request::messages::datareq::DataReq;
 use crate::request::messages::failureres::GeneralFailure;
-use crate::request::messages::jumpreq::JumpCommandRequest;
+use crate::request::messages::jumpreq::JumpReq;
 use crate::request::messages::metricreq::MetricReport;
-use crate::request::messages::programreq::ProgramCommandRequest;
-use crate::request::messages::stickreq::StickCommandRequest;
+use crate::request::messages::programreq::ProgramReq;
+use crate::request::messages::stickreq::StickReq;
 use std::sync::Arc;
 use std::rc::Rc;
 use super::response::NewCommandResponse;
@@ -14,12 +14,12 @@ use super::response::NewResponse;
 use serde_cbor::Value as CborValue;
 
 pub(crate) enum RequestVariant {
-    Bootstrap(BootstrapCommandRequest),
-    Program(ProgramCommandRequest),
-    Stick(StickCommandRequest),
-    Authority(AuthorityCommandRequest),
-    Data(DataCommandRequest),
-    Jump(JumpCommandRequest),
+    Bootstrap(BootstrapReq),
+    Program(ProgramReq),
+    Stick(StickReq),
+    Authority(AuthorityReq),
+    Data(DataReq),
+    Jump(JumpReq),
     Metric(MetricReport),
 }
 

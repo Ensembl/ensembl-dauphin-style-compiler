@@ -2,15 +2,15 @@ use crate::{Region, core::channel::Channel, request::core::request::{RequestVari
 use serde_cbor::Value as CborValue;
 
 #[derive(Clone)]
-pub(crate) struct DataCommandRequest {
+pub(crate) struct DataReq {
     channel: Channel,
     name: String,
     region: Region
 }
 
-impl DataCommandRequest {
+impl DataReq {
     pub(crate) fn new(channel: &Channel, name: &str, region: &Region) -> RequestVariant {
-        RequestVariant::Data(DataCommandRequest {
+        RequestVariant::Data(DataReq {
             channel: channel.clone(),
             name: name.to_string(),
             region: region.clone()

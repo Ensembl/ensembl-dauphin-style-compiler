@@ -1,13 +1,13 @@
 use serde_cbor::Value as CborValue;
 use crate::{StickId, request::core::request::{RequestVariant}};
 
-pub(crate) struct StickCommandRequest {
+pub(crate) struct StickReq {
     stick_id: StickId
 }
 
-impl StickCommandRequest {
+impl StickReq {
     pub(crate) fn new(stick_id: &StickId) -> RequestVariant {
-        RequestVariant::Stick(StickCommandRequest {
+        RequestVariant::Stick(StickReq {
             stick_id: stick_id.clone()
         })
     }

@@ -1,11 +1,11 @@
 use crate::request::core::request::{RequestVariant};
 use serde_cbor::Value as CborValue;
 
-pub(crate) struct BootstrapCommandRequest;
+pub(crate) struct BootstrapReq;
 
-impl BootstrapCommandRequest {
+impl BootstrapReq {
     pub(crate) fn new() -> RequestVariant {
-        RequestVariant::Bootstrap(BootstrapCommandRequest)
+        RequestVariant::Bootstrap(BootstrapReq)
     }
 
     pub(crate) fn encode(&self) -> CborValue { CborValue::Null }
