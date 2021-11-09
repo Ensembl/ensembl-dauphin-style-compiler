@@ -1,3 +1,15 @@
+# 0.0.8
+
+ * Cleaner backand request/response API on frontend
+ * Backend errors no longer cause CORS knockon errors
+ * GC track fixes:
+   * wrong colour;
+   * horiz bar missing;
+   * incorrect spikiness;
+   * mini-blank bug;
+   * incorrect at most-zoomed-in level;
+   * missing data blanks.
+
 # 0.0.7
 
  * cleaner use of WebGL
