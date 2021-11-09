@@ -1,7 +1,5 @@
 use anyhow::bail;
-use dauphin_interp::util::cbor::{cbor_int, cbor_string};
 use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_map, cbor_into_vec, cbor_map_key};
-use serde_derive::Deserialize;
 use std::collections::HashSet;
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;

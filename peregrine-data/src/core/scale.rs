@@ -1,4 +1,3 @@
-use serde::Serializer;
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;
 

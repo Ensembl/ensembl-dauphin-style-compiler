@@ -1,4 +1,3 @@
-use std::fmt::{ self, Display, Formatter };
 use super::stick::StickId;
 use crate::switch::trackconfiglist::TrackConfigList;
 

@@ -1,7 +1,7 @@
 use std::sync::{ Arc };
 use crate::{DataMessage, AuthorityStore, core::stick::{ Stick, StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
-use crate::api::{ PeregrineCoreBase, AgentStore };
+use crate::api::{ PeregrineCoreBase };
 
 async fn get_sticks(stick_authority_store: &AuthorityStore, stick_id: &StickId) -> Result<Vec<Stick>,DataMessage> {
     stick_authority_store.try_lookup(stick_id.clone()).await

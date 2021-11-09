@@ -1,7 +1,7 @@
 use std::sync::{ Arc };
 use commander::PromiseFuture;
 
-use crate::{DataMessage, PgCommanderTaskSpec, AuthorityStore, add_task, api::ApiMessage, async_complete_task, core::stick::{ StickId }};
+use crate::{DataMessage, PgCommanderTaskSpec, AuthorityStore, add_task, async_complete_task, core::stick::{ StickId }};
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 

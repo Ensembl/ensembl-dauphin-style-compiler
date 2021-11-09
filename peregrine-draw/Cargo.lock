@@ -158,12 +158,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fnv"
-version = "1.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
-
-[[package]]
 name = "form_urlencoded"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -405,12 +399,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "once_cell"
-version = "1.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af8b08b04175473088b46763e51ee54da5f9a164bc162f615b91bc179dbf15a3"
-
-[[package]]
 name = "ordered-float"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -501,13 +489,10 @@ dependencies = [
  "console_error_panic_hook",
  "css-color-parser",
  "dauphin_interp",
- "fnv",
  "hostname",
  "js-sys",
  "keyed",
  "lazy_static 1.4.0",
- "once_cell",
- "owning_ref",
  "peregrine_config",
  "peregrine_data",
  "peregrine_dauphin",
