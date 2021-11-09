@@ -18,12 +18,12 @@ use crate::run::pgcommander::PgCommanderTaskSpec;
 use crate::util::message::DataMessage;
 
 use super::manager::PayloadReceiverCollection;
-use super::request::CommandRequest;
-use super::response::NewResponse;
+use super::request::BackendRequestAttempt;
+use super::response::BackendResponse;
 
 struct RequestQueueData {
     receiver: PayloadReceiverCollection,
-    pending_send: CommanderStream<(CommandRequest,CommanderStream<NewResponse>)>,
+    pending_send: CommanderStream<(BackendRequestAttempt,CommanderStream<BackendResponse>)>,
     integration: Rc<Box<dyn ChannelIntegration>>,
     channel: Channel,
     priority: PacketPriority,
@@ -61,7 +61,7 @@ impl RequestQueueData {
         self.timeout = Some(timeout);
     }
 
-    fn timeout(&self, streams: Vec<(NewResponse,CommanderStream<NewResponse>)>) {
+    fn timeout(&self, streams: Vec<(BackendResponse,CommanderStream<BackendResponse>)>) {
         if let Some(timeout) = self.timeout {
             for (response,stream) in streams {
                 let stream = stream.clone();
@@ -106,7 +106,7 @@ impl RequestQueue {
         self.0.lock().unwrap().realtime_block_check = Some(blocker.clone());
     }
 
-    pub(crate) fn queue_command(&mut self, request: CommandRequest, stream: CommanderStream<NewResponse>) {
+    pub(crate) fn queue_command(&mut self, request: BackendRequestAttempt, stream: CommanderStream<BackendResponse>) {
         lock!(self.0).pending_send.add((request,stream));
     }
 
@@ -126,7 +126,7 @@ impl RequestQueue {
         Ok(())
     }
 
-    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<NewResponse>>) {
+    async fn build_packet(&self) -> (RequestPacket,HashMap<u64,CommanderStream<BackendResponse>>) {
         let data = lock!(self.0);
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
@@ -192,7 +192,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<NewResponse>>) {
+    async fn process_responses(&self, response: ResponsePacket, streams: &mut HashMap<u64,CommanderStream<BackendResponse>>) {
         let channel = lock!(self.0).channel.clone();
         let itn = lock!(self.0).integration.clone();
         let receiver = lock!(self.0).receiver.clone();
@@ -207,7 +207,7 @@ impl RequestQueue {
         }
     }
 
-    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<NewResponse>>) {
+    async fn process_request(&self, request: &mut RequestPacket, streams: &mut HashMap<u64,CommanderStream<BackendResponse>>) {
         let response = self.send_or_fail_packet(request).await;
         self.process_responses(response,streams).await;
     }

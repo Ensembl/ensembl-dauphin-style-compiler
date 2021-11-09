@@ -8,7 +8,7 @@ use crate::metric::datastreammetric::DatastreamMetricBuilder;
 use crate::metric::datastreammetric::DatastreamMetricData;
 use crate::request::core::manager::RequestManager;
 use crate::request::core::request::RequestVariant;
-use crate::request::core::request::RequestType;
+use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
 use std::sync::Mutex;
@@ -58,11 +58,11 @@ impl MetricCollectorData {
         self.manager_and_channel = Some((manager.clone(),channel.clone()));
     }
 
-    fn send(&mut self) -> Vec<RequestType> {
+    fn send(&mut self) -> Vec<BackendRequest> {
         let mut out = vec![];
         let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run);
         if !report.empty() {
-            out.push(RequestType::new(RequestVariant::Metric(MetricReport::Client(report))));
+            out.push(BackendRequest::new(RequestVariant::Metric(MetricReport::Client(report))));
         }
         out
     }

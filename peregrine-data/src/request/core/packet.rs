@@ -4,13 +4,13 @@ use std::mem::replace;
 use std::sync::Arc;
 use crate::core::channel::Channel;
 use crate::core::programbundle::SuppliedBundle;
-use super::request::CommandRequest;
-use super::response::NewCommandResponse;
+use super::request::BackendRequestAttempt;
+use super::response::BackendResponseAttempt;
 use serde_cbor::Value as CborValue;
 
 pub struct RequestPacketBuilder {
     channel: Channel,
-    requests: Vec<CommandRequest>
+    requests: Vec<BackendRequestAttempt>
 }
 
 impl RequestPacketBuilder {
@@ -21,7 +21,7 @@ impl RequestPacketBuilder {
         }
     }
 
-    pub fn add(&mut self, request: CommandRequest) {
+    pub fn add(&mut self, request: BackendRequestAttempt) {
         self.requests.push(request);
     }
 }
@@ -29,7 +29,7 @@ impl RequestPacketBuilder {
 #[derive(Clone)]
 pub struct RequestPacket {
     channel: Channel,
-    requests: Arc<Vec<CommandRequest>>
+    requests: Arc<Vec<BackendRequestAttempt>>
 }
 
 impl RequestPacket {
@@ -58,7 +58,7 @@ impl RequestPacket {
 }
 
 pub struct ResponsePacket {
-    responses: Vec<NewCommandResponse>,
+    responses: Vec<BackendResponseAttempt>,
     programs: Vec<SuppliedBundle>
 }
 
@@ -70,9 +70,9 @@ impl ResponsePacket {
         }
     }
 
-    fn decode_responses(value: CborValue) -> Result<Vec<NewCommandResponse>,String> {
+    fn decode_responses(value: CborValue) -> Result<Vec<BackendResponseAttempt>,String> {
         Ok(cbor_into_vec(value)?.drain(..)
-            .map(|v| NewCommandResponse::decode(v))
+            .map(|v| BackendResponseAttempt::decode(v))
             .collect::<Result<_,_>>()?)
     }
 
@@ -95,12 +95,12 @@ impl ResponsePacket {
         Ok(ResponsePacket { responses, programs })
     }
 
-    fn add_response(&mut self, response: NewCommandResponse) {
+    fn add_response(&mut self, response: BackendResponseAttempt) {
         self.responses.push(response);
     }
 
     pub(crate) fn programs(&self) -> &[SuppliedBundle] { &self.programs }
-    pub(crate) fn take_responses(&mut self) -> Vec<NewCommandResponse> {
+    pub(crate) fn take_responses(&mut self) -> Vec<BackendResponseAttempt> {
         replace(&mut self.responses,vec![])
     }
 }

@@ -9,8 +9,8 @@ use crate::request::messages::programreq::ProgramReq;
 use crate::request::messages::stickreq::StickReq;
 use std::sync::Arc;
 use std::rc::Rc;
-use super::response::NewCommandResponse;
-use super::response::NewResponse;
+use super::response::BackendResponseAttempt;
+use super::response::BackendResponse;
 use serde_cbor::Value as CborValue;
 
 pub(crate) enum RequestVariant {
@@ -24,13 +24,13 @@ pub(crate) enum RequestVariant {
 }
 
 #[derive(Clone)]
-pub struct RequestType {
+pub struct BackendRequest {
     variant: Arc<RequestVariant>
 }
 
-impl RequestType {
-    pub(crate) fn new(variant: RequestVariant) -> RequestType {
-        RequestType {
+impl BackendRequest {
+    pub(crate) fn new(variant: RequestVariant) -> BackendRequest {
+        BackendRequest {
             variant: Arc::new(variant)
         }
     }
@@ -47,7 +47,7 @@ impl RequestType {
         }
     }
 
-    pub fn to_failure(&self) -> NewResponse {
+    pub fn to_failure(&self) -> BackendResponse {
         let out = match self.variant.as_ref() {
             RequestVariant::Bootstrap(_) => "bootstrap",
             RequestVariant::Program(_) => "program",
@@ -58,7 +58,7 @@ impl RequestType {
             RequestVariant::Metric(_) => "metric",
 
         };
-        NewResponse::FailureRes(FailureRes::new(out))
+        BackendResponse::FailureRes(FailureRes::new(out))
     }
 
     pub(crate) fn encode(&self) -> CborValue {
@@ -75,23 +75,23 @@ impl RequestType {
 }
 
 #[derive(Clone)]
-pub struct CommandRequest {
+pub struct BackendRequestAttempt {
     msgid: u64,
-    data: Rc<RequestType>
+    data: Rc<BackendRequest>
 }
 
-impl CommandRequest {
-    pub(crate) fn new2(msgid: u64, rt: RequestType) -> CommandRequest {
-        CommandRequest {
+impl BackendRequestAttempt {
+    pub(crate) fn new2(msgid: u64, rt: BackendRequest) -> BackendRequestAttempt {
+        BackendRequestAttempt {
             msgid,
             data: Rc::new(rt)
         }
     }
 
-    pub(crate) fn to_failure(&self) -> NewResponse { self.data.to_failure() }
+    pub(crate) fn to_failure(&self) -> BackendResponse { self.data.to_failure() }
     pub(crate) fn message_id(&self) -> u64 { self.msgid }
-    pub(crate) fn fail(&self) -> NewCommandResponse {
-        NewCommandResponse::new(self.msgid,self.data.to_failure())
+    pub(crate) fn fail(&self) -> BackendResponseAttempt {
+        BackendResponseAttempt::new(self.msgid,self.data.to_failure())
     }
 
     pub(crate) fn encode(&self) -> CborValue {

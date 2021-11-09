@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 
 use crate::{DataMessage, ProgramName, Region, RequestManager, Stick, StickId, core::channel::{Channel, PacketPriority}, index::stickauthority::Authority, metric::{datastreammetric::PacketDatastreamMetricBuilder, metricreporter::MetricCollector}, request::messages::{authorityreq::AuthorityReq, bootstrapreq::BootstrapReq, bootstrapres::BootRes, datareq::DataReq, datares::DataRes, jumpreq::JumpReq, jumpres::{JumpLocation, JumpRes}, programreq::ProgramReq, stickreq::StickReq}};
 
-use super::request::RequestType;
+use super::request::BackendRequest;
 
 #[derive(Clone)]
 pub struct Backend {
@@ -24,7 +24,7 @@ impl Backend {
     pub async fn data(&self, name: &str, region: &Region, priority: &PacketPriority) -> Result<DataRes,DataMessage> {
         let request = DataReq::new(&self.channel,name,region);
         let account_builder = PacketDatastreamMetricBuilder::new(&self.metrics,name,priority,region);
-        let r = self.manager.submit(&self.channel,priority,RequestType::new(request), |v| {
+        let r = self.manager.submit(&self.channel,priority,BackendRequest::new(request), |v| {
             v.into_data()
         }).await?;
         r.account(&account_builder);
@@ -33,7 +33,7 @@ impl Backend {
 
     pub async fn stick(&self, id: &StickId) -> anyhow::Result<Stick> {
         let req = StickReq::new(&id);
-        let r = self.manager.submit(&self.channel, &PacketPriority::RealTime, RequestType::new(req), |v| {
+        let r = self.manager.submit(&self.channel, &PacketPriority::RealTime, BackendRequest::new(req), |v| {
             v.into_stick()
         }).await?;
         Ok(r.stick())
@@ -41,14 +41,14 @@ impl Backend {
 
     pub async fn authority(&self) -> Result<Authority,DataMessage> {
         let request = AuthorityReq::new();
-        Ok(self.manager.submit(&self.channel,&PacketPriority::RealTime, RequestType::new(request), |v| {
+        Ok(self.manager.submit(&self.channel,&PacketPriority::RealTime, BackendRequest::new(request), |v| {
             v.into_authority()
         }).await?.build())
     }
 
     pub async fn jump(&self, location: &str) -> anyhow::Result<Option<JumpLocation>> {
         let req = JumpReq::new(&location);
-        let r = self.manager.submit(&self.channel,&PacketPriority::RealTime,RequestType::new(req), |v| {
+        let r = self.manager.submit(&self.channel,&PacketPriority::RealTime,BackendRequest::new(req), |v| {
             v.into_jump()
         }).await?;
         Ok(match r {
@@ -59,14 +59,14 @@ impl Backend {
 
     pub async fn bootstrap(&self) -> Result<BootRes,DataMessage> {
         let request = BootstrapReq::new();
-        self.manager.submit(&self.channel,&PacketPriority::RealTime,RequestType::new(request), |v| {
+        self.manager.submit(&self.channel,&PacketPriority::RealTime,BackendRequest::new(request), |v| {
             v.into_bootstrap()
         }).await    
     }
 
     pub async fn program(&self, program_name: &ProgramName) -> Result<(),DataMessage> {
         let req = ProgramReq::new(&program_name);
-        self.manager.submit(&program_name.0,&PacketPriority::RealTime,RequestType::new(req), |v| {
+        self.manager.submit(&program_name.0,&PacketPriority::RealTime,BackendRequest::new(req), |v| {
             v.into_program()
         }).await?;
         Ok(())

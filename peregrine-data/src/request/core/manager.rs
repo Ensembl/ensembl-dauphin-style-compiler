@@ -8,8 +8,8 @@ use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use super::backoff::Backoff;
 use super::queue::RequestQueue;
-use super::request::{CommandRequest, RequestType };
-use super::response::NewResponse;
+use super::request::{BackendRequestAttempt, BackendRequest };
+use super::response::BackendResponse;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
 use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
 use crate::api::MessageSender;
@@ -113,10 +113,10 @@ impl RequestManagerData {
         }
     }
 
-    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<CommanderStream<NewResponse>,DataMessage> {
+    fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<CommanderStream<BackendResponse>,DataMessage> {
         let msg_id = self.next_id;
         self.next_id += 1;
-        let request = CommandRequest::new2(msg_id,request);
+        let request = BackendRequestAttempt::new2(msg_id,request);
         let response_stream = CommanderStream::new();
         self.get_queue(&channel,&priority)?.queue_command(request,response_stream.clone());
         Ok(response_stream)
@@ -151,19 +151,19 @@ impl RequestManager {
         lock!(self.0).set_timeout(channel,priority,timeout)
     }
 
-    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: RequestType) -> Result<NewResponse,DataMessage> {
+    pub async fn execute(&mut self, channel: Channel, priority: PacketPriority, request: BackendRequest) -> Result<BackendResponse,DataMessage> {
         let m = lock!(self.0).execute(channel,priority,request)?;
         Ok(m.get().await)
     }
 
-    pub async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: RequestType, cb: F) 
+    pub async fn submit<F,T>(&self, channel: &Channel, priority: &PacketPriority, request: BackendRequest, cb: F) 
                                                                     -> Result<T,DataMessage>
-                                                                    where F: Fn(NewResponse) -> Result<T,String> {
+                                                                    where F: Fn(BackendResponse) -> Result<T,String> {
         let mut backoff = Backoff::new(self,channel,priority);
         backoff.backoff(request,cb).await
     }
 
-    pub(crate) fn execute_and_forget(&self, channel: &Channel, request: RequestType) {
+    pub(crate) fn execute_and_forget(&self, channel: &Channel, request: BackendRequest) {
         let commander = lock!(self.0).commander.clone();
         let mut manager = self.clone();
         let channel = channel.clone();
