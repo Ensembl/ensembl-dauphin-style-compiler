@@ -54,6 +54,6 @@ stmt draw_track_category(category,allotments) {
 }
 
 stmt draw_focus_swatch(allotment_value) {
-    swatch_patina := patina_filled(spot_colour(direct_colour(150,150,255,255)));
+    swatch_patina := patina_filled(spot_colour(direct_colour(88,168,249,255)));
     rectangle(spacebase(0,-16,0),spacebase(0,16,6),swatch_patina,allotment_value);
 }
