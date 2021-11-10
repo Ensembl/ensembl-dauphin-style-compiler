@@ -1,3 +1,11 @@
+# 0.0.9
+
+ * reliably show sequence letters at zoomed-in level
+ * show red-dotted line even at most zoomed-in level
+ * correct swatch colour
+ * corrext swatch size
+ * correct font size in track category
+
 # 0.0.8
 
  * Cleaner backand request/response API on frontend
