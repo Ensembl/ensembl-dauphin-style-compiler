@@ -70,6 +70,7 @@ exon_thick_end := exon_thick_end#[thick_exons];
  */
 
 potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
+
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -91,6 +92,14 @@ use_allotments(allotments_wallpaper,enabled_tracks,[
 
 use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
 
+use_allotments(allotments_over,enabled_tracks,[
+    "track:gene-other-rev[1]",
+    "track:gene-pc-rev[1]",
+    "track:gene-other-fwd[1]",
+    "track:gene-pc-fwd[1]",
+    "track:focus[1]"
+]);
+
 /*
  * Which allotment and track does data go into?
  *
@@ -108,6 +117,7 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 allotment := index(allotment_idx,allotments);
+allotment_over := index(allotment_idx,allotments_over);
 
 track_name := index(allotment_idx,potential_tracks);
 
@@ -191,13 +201,14 @@ thick_seq_rev_letter := index(thick_seq_index,[seq_rev_letter]);
 thick_seq_gene_strand := index(thick_seq_gene_index,[strand]);
 thick_seq_letter#[thick_seq_gene_strand==0] := thick_seq_rev_letter#[thick_seq_gene_strand==0];
 thick_seq_allotment := index(thick_seq_gene_index,[allotment]);
+thick_seq_allotment_over := index(thick_seq_gene_index,[allotment_over]);
 
 alienate(thick_seq_allotment);
 alienate(thin_seq_allotment);
 
 indented_rectangle_on_genome(thick_seq_start,thick_seq_start+1,12,thick_seq_patina,thick_seq_allotment);
 coords := spacebase(thick_seq_start + 0.5,0,-4);
-text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment);
+text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment_over);
 
 /* thin letters */
 extract_filter(thin_seq_start,thin_seq_index,thin_seq_gene_index,seq_start,seq_end,transcript_start,transcript_end);
