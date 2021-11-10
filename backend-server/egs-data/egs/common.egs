@@ -46,7 +46,7 @@ stmt draw_track_names(track_names,switch_names,allotments) {
 }
 
 stmt draw_track_category(category,allotments) {
-    cat_text_size := 14;
+    cat_text_size := 10;
     cat_text_colour := direct_colour(0,0,0,255);
 
     textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
@@ -55,5 +55,5 @@ stmt draw_track_category(category,allotments) {
 
 stmt draw_focus_swatch(allotment_value) {
     swatch_patina := patina_filled(spot_colour(direct_colour(88,168,249,255)));
-    rectangle(spacebase(0,-16,0),spacebase(0,16,6),swatch_patina,allotment_value);
+    rectangle(spacebase(0,-16,0),spacebase(0,16,5),swatch_patina,allotment_value);
 }
