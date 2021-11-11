@@ -6,6 +6,10 @@ import time
 import cbor2
 import os.path
 from os import stat
+from model.version import Version
+
+class UnknownVersionException(Exception):
+    pass
 
 class BegsFilesMonitor(object):
     def __init__(self):
@@ -32,20 +36,20 @@ class BegsFilesMonitor(object):
     def path(self, name: str) -> Optional[str]:
         return self._paths.get(name)
 
-class BegsFiles(object):
-    def __init__(self):
-        with open(BEGS_CONFIG) as f:
+class VersionedBegsFiles(object):
+    def __init__(self, path: str):
+        with open(path) as f:
             toml_file = toml.loads(f.read())            
         self.boot_program = toml_file["core"]["boot"]
         stick_authority = toml_file.get("stick-authority")
         if stick_authority != None:
-            self.stickauthority_startup_program = stick_authority["startup"]
-            self.stickauthority_lookup_program = stick_authority["lookup"]
-            self.stickauthority_jump_program = stick_authority["jump"]
+            self.authority_startup_program = stick_authority["startup"]
+            self.authority_lookup_program = stick_authority["lookup"]
+            self.authority_jump_program = stick_authority["jump"]
         else:
-            self.stickauthority_startup_program = None
-            self.stickauthority_lookup_program = None
-            self.stickauthority_jump_program = None
+            self.authority_startup_program = None
+            self.authority_lookup_program = None
+            self.authority_jump_program = None
         self.bundle_contents = {}
         self.program_map = {}
         self.program = {}
@@ -80,6 +84,44 @@ class BegsFiles(object):
             logging.warn("Bundle '{0}' changed. Reloading".format(bundle_name))
             self.program[bundle_name] = self.load_program(self._monitor.path(bundle_name))
         return Bundle(self,bundle_name).serialize(self.program[bundle_name])
+
+class BegsFiles(object):
+    def __init__(self):
+        self._versions = {}
+        with open(BEGS_CONFIG) as f:
+            toml_file = toml.loads(f.read())            
+            logging.info("Loading begs files {0}".format(toml_file["version"]))
+        for (version,filepath) in toml_file["version"].items():
+            logging.info("Found begs files for version {0} in {1}".format(version,filepath))
+            self._versions[version] = VersionedBegsFiles(os.path.join(os.path.dirname(BEGS_CONFIG),filepath))
+
+    def _bundle(self, version: Version) -> VersionedBegsFiles:
+        egs_version = version.get_egs()
+        bundle = self._versions.get(str(egs_version),None)
+        if bundle == None:
+            raise UnknownVersionException("Unknown egs version {0}".format(egs_version))
+        return bundle
+
+    def boot_program(self, version: Version) -> str:
+        return self._bundle(version).boot_program
+
+    def find_bundle(self, name: str, version: Version) -> str:
+        return self._bundle(version).find_bundle(name)
+
+    def all_bundles(self, version: Version) -> Any:
+        return self._bundle(version).all_bundles()
+
+    def add_bundle(self, bundle_name: str, version: Version) -> Any:
+        return self._bundle(version).add_bundle(bundle_name)
+
+    def authority_startup_program(self, version: Version):
+        return self._bundle(version).authority_startup_program
+
+    def authority_lookup_program(self, version: Version):
+        return self._bundle(version).authority_lookup_program
+
+    def authority_jump_program(self, version: Version):
+        return self._bundle(version).authority_jump_program
 
 class Bundle(object):
     def __init__(self, begs_files: BegsFiles, name: str):

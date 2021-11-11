@@ -10,6 +10,7 @@ from data.sequence import ZoomedSeqDataHandler
 from data.contig import ContigDataHandler, ShimmerContigDataHandler
 from data.focusjump import FocusJumpHandler
 from util.influx import ResponseMetrics
+from model.version import Version
 
 class DataHandler(Handler):
     def __init__(self):
@@ -25,7 +26,7 @@ class DataHandler(Handler):
             "variant": VariantDataHandler()
         }
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         (channel,name,panel) = payload
         panel = Panel(panel)
         out = data_accessor.cache.get_data(channel,name,panel)
@@ -55,7 +56,7 @@ class JumpHandler(Handler):
             FocusJumpHandler(data_accessor)
         ]
 
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         (location,) = payload
         for handler in self.handlers:
             jump = handler.get(data_accessor,location)

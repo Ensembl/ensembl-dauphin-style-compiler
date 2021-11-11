@@ -7,6 +7,7 @@ import datetime
 from core.logging import get_logger
 import logging, socket
 from util.influx import send_to_telegraf, ResponseMetrics
+from model.version import Version
 
 FACILITIES = {
     "Error": 17,
@@ -100,7 +101,7 @@ METRIC_HANDLERS = {
 }
 
 class MetricHandler(Handler):
-    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics) -> Response:
+    def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         message_type = payload["type"]
         handlers = METRIC_HANDLERS.get(message_type,METRIC_HANDLERS[""])
         for handler in handlers:
