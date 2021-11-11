@@ -1,3 +1,8 @@
+# 0.0.11
+
+  * Remove lots of unnecessary key bindings interfering with browser chrome
+  * Reformat zmenu payloads
+
 # 0.0.10
 
  * Backend/frontend versioning support for multiple egs files, depending on FE capabilities.
