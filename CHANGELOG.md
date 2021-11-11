@@ -1,3 +1,7 @@
+# 0.0.10
+
+ * Backend/frontend versioning support for multiple egs files, depending on FE capabilities.
+
 # 0.0.9
 
  * reliably show sequence letters at zoomed-in level
