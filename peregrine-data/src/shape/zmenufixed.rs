@@ -148,11 +148,20 @@ fn zmenu_fixed_block_to_json(zmenu: &ZMenuFixedBlock) -> JSONValue {
     })
 }
 
-fn zmenu_fixed_sequence_to_json(zmenu: &ZMenuFixedSequence) -> JSONValue {
-    match zmenu {
-        ZMenuFixedSequence::Item(block) => zmenu_fixed_block_to_json(block),
-        ZMenuFixedSequence::LineBreak => json!({ "type": "line-break" })
+fn assemble_lines(data: &[ZMenuFixedSequence]) -> Vec<JSONValue> {
+    if data.len() == 0 { return vec![]; }
+    let mut ret = vec![vec![]];
+    for z in data {
+        match z {
+            ZMenuFixedSequence::Item(block) => {
+                ret.last_mut().unwrap().push(zmenu_fixed_block_to_json(block));
+            },
+            ZMenuFixedSequence::LineBreak => {
+                ret.push(vec![]);
+            }
+        }
     }
+    ret.drain(..).map(|x| JSONValue::Array(x)).collect::<Vec<_>>()
 }
 
 fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
@@ -162,7 +171,7 @@ fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
     }
     json!({
         "metadata": metadata,
-        "data": JSONValue::Array(zmenu.sequence.iter().map(|z| zmenu_fixed_sequence_to_json(z)).collect())
+        "data": JSONValue::Array(assemble_lines(&zmenu.sequence))
     })
 }
 
