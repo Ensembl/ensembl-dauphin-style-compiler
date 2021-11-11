@@ -4,6 +4,7 @@ use std::mem::replace;
 use std::sync::Arc;
 use crate::core::channel::Channel;
 use crate::core::programbundle::SuppliedBundle;
+use crate::core::version::VersionMetadata;
 use super::request::BackendRequestAttempt;
 use super::response::BackendResponseAttempt;
 use serde_cbor::Value as CborValue;
@@ -29,14 +30,16 @@ impl RequestPacketBuilder {
 #[derive(Clone)]
 pub struct RequestPacket {
     channel: Channel,
-    requests: Arc<Vec<BackendRequestAttempt>>
+    requests: Arc<Vec<BackendRequestAttempt>>,
+    metadata: VersionMetadata
 }
 
 impl RequestPacket {
-    pub fn new(builder: RequestPacketBuilder) -> RequestPacket {
+    pub fn new(builder: RequestPacketBuilder, metadata: &VersionMetadata) -> RequestPacket {
         RequestPacket {
             channel: builder.channel.clone(),
-            requests: Arc::new(builder.requests.clone())
+            requests: Arc::new(builder.requests.clone()),
+            metadata: metadata.clone()
         }
     }
 
@@ -53,6 +56,7 @@ impl RequestPacket {
         map.insert(CborValue::Text("channel".to_string()), self.channel.encode());
         let requests = self.requests.iter().map(|r| r.encode()).collect::<Vec<_>>();
         map.insert(CborValue::Text("requests".to_string()),CborValue::Array(requests));
+        map.insert(CborValue::Text("version".to_string()),self.metadata.encode());
         CborValue::Map(map)
     }
 }

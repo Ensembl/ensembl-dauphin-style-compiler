@@ -11,6 +11,7 @@ use super::queue::RequestQueue;
 use super::request::{BackendRequestAttempt, BackendRequest };
 use super::response::BackendResponse;
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use crate::core::version::VersionMetadata;
 use crate::{PgCommanderTaskSpec, ResponsePacket, add_task};
 use crate::api::MessageSender;
 use crate::run::{ PgCommander };
@@ -45,6 +46,7 @@ enum QueueValue {
 
 pub struct RequestManagerData {
     integration: Rc<Box<dyn ChannelIntegration>>,
+    version: VersionMetadata,
     receiver: PayloadReceiverCollection,
     commander: PgCommander,
     next_id: u64,
@@ -54,7 +56,7 @@ pub struct RequestManagerData {
 }
 
 impl RequestManagerData {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender) -> RequestManagerData {
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender, version: &VersionMetadata) -> RequestManagerData {
         RequestManagerData {
             integration: Rc::new(integration),
             receiver: PayloadReceiverCollection(Arc::new(Mutex::new(vec![]))),
@@ -62,7 +64,8 @@ impl RequestManagerData {
             next_id: 0,
             queues: HashMap::new(),
             real_time_lock: Blocker::new(),
-            messages: messages.clone()
+            messages: messages.clone(),
+            version: version.clone()
         }
     }
 
@@ -90,7 +93,7 @@ impl RequestManagerData {
             if missing {
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&channel,&priority,&self.messages,self.get_pace(&priority))?;
+                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority))?;
                 match priority {
                     PacketPriority::RealTime => {
                         queue.set_realtime_block(&self.real_time_lock);
@@ -139,8 +142,8 @@ impl RequestManagerData {
 pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 
 impl RequestManager {
-    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender) -> RequestManager {
-        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages))))
+    pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
+        RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages,version))))
     }
 
     pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {

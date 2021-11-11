@@ -62,6 +62,7 @@ def process_packet(packet_cbor: Any, high_priority: bool) -> Any:
     local_requests = []
     remote_requests = collections.defaultdict(list)
     # anything that should be remote
+    #logging.warn("version: {}".format(packet_cbor.get("version",None)))
     metrics.count_packets += len(packet_cbor["requests"])
     for p in packet_cbor["requests"]:
         (msgid,typ,payload) = p

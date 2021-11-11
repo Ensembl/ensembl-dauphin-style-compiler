@@ -1,4 +1,5 @@
 use crate::core::channel::Channel;
+use crate::core::version::VersionMetadata;
 use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
 use crate::request::core::manager::RequestManager;
@@ -65,7 +66,8 @@ impl PeregrineCore {
         let messages = MessageSender::new(messages);
         let dauphin_queue = PgDauphinQueue::new();
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
-        let manager = RequestManager::new(integration.channel(),&commander,&messages);
+        let version = VersionMetadata::new();
+        let manager = RequestManager::new(integration.channel(),&commander,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics);
         let booted = CountingPromise::new();
         let allotment_metadata = AllotmentMetadataStore::new();

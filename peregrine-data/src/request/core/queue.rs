@@ -9,6 +9,7 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use crate::core::channel::{Channel, ChannelIntegration, PacketPriority};
+use crate::core::version::VersionMetadata;
 use crate::request::core::manager::PayloadReceiver;
 use crate::request::core::packet::RequestPacketBuilder;
 use crate::{RequestPacket, ResponsePacket};
@@ -22,6 +23,7 @@ use super::request::BackendRequestAttempt;
 use super::response::BackendResponse;
 
 struct RequestQueueData {
+    version: VersionMetadata,
     receiver: PayloadReceiverCollection,
     pending_send: CommanderStream<(BackendRequestAttempt,CommanderStream<BackendResponse>)>,
     integration: Rc<Box<dyn ChannelIntegration>>,
@@ -81,7 +83,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64]) -> Result<RequestQueue,DataMessage> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64]) -> Result<RequestQueue,DataMessage> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             pending_send: CommanderStream::new(),
@@ -91,6 +93,7 @@ impl RequestQueue {
             timeout: None,
             messages: messages.clone(),
             pacer: Pacer::new(pacing),
+            version: version.clone(),
             realtime_block: None,
             realtime_block_check: None
         })));
@@ -131,6 +134,7 @@ impl RequestQueue {
         let pending = data.pending_send.clone();
         let priority = data.priority.clone();
         let channel = data.channel.clone();
+        let version = data.version.clone();
         drop(data);
         let mut requests = match priority {
             PacketPriority::RealTime => { pending.get_multi(None).await },
@@ -151,7 +155,7 @@ impl RequestQueue {
             packet.add(r);
         }
         lock!(self.0).timeout(timeouts);
-        (RequestPacket::new(packet),streams)
+        (RequestPacket::new(packet,&version),streams)
     }
 
     fn get_blocker(&self) -> Option<Blocker> {

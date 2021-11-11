@@ -29,6 +29,7 @@ mod core {
     pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
+    pub(crate) mod version;
     mod viewport;
     pub(crate) mod channel;
     pub(crate) mod data;
