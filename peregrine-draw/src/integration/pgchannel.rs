@@ -1,3 +1,4 @@
+use web_sys::console;
 use js_sys::Date;
 use peregrine_data::{Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestPacket, ResponsePacket};
 use serde_cbor::Value as CborValue;
@@ -56,8 +57,25 @@ async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket
     Ok(response)
 }
 
+#[cfg(any(force_show_incoming,debug_assertions))]
+fn show_versions(supports: Option<&[u32]>, version: u32)  {
+    let support = if let Some(versions) = supports {
+        format!("versions {}",versions.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(","))
+    } else {
+        "unknown".to_string()
+    };
+    console::log_1(&format!("backend supports {}, we are version {}",support,version).into());
+}
+
+#[cfg(not(any(force_show_incoming,debug_assertions)))]
+fn show_versions(supports: Option<&[u32]>) {}
+
 /* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
+    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32) {
+        show_versions(supports,version);
+    }
+
     fn get_sender(&self,channel: Channel, prio: PacketPriority, packet: RequestPacket) -> Pin<Box<dyn Future<Output=Result<ResponsePacket,DataMessage>>>> {
         let timeout = lock!(self.0).get(&channel).and_then(|x| x.clone());
         Box::pin(send_wrap(channel,prio,packet,timeout,self.1.clone()))

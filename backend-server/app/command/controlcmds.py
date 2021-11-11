@@ -48,7 +48,8 @@ class BootstrapHandler(Handler):
             "boot": [channel,data_accessor.begs_files.boot_program(version)],
             "hi":  channel,
             "lo":  lo_channel,
-            "assets": load_assets()
+            "assets": load_assets(),
+            "supports": data_accessor.begs_files.versions()
         })
         try:
             bundles = data_accessor.begs_files.all_bundles(version)

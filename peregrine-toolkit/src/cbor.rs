@@ -41,6 +41,10 @@ pub fn cbor_map_contains(value: &BTreeMap<CborValue,CborValue>, key: &str) -> bo
     value.contains_key(&CborValue::Text(key.to_string()))
 }
 
+pub fn cbor_map_optional_key(value: &mut BTreeMap<CborValue,CborValue>, key: &str) -> Option<CborValue> {
+    value.remove(&CborValue::Text(key.to_string()))
+}
+
 pub fn cbor_as_str(value: &CborValue) -> Result<&str,String> {
     match value {
         CborValue::Text(t) => Ok(t),

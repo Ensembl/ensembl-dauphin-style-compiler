@@ -116,7 +116,7 @@ impl PeregrineCore {
     /* from api */
     pub fn ready(&self, mut core: PeregrineCore) {
         self.base.queue.run(&mut core);
-        self.base.queue.push(cbor_map_containsApiMessage::Ready);
+        self.base.queue.push(ApiMessage::Ready);
     }
 
     /* called after someprograms to refresh state in-case tracks appeared */

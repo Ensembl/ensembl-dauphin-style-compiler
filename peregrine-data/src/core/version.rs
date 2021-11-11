@@ -1,23 +1,25 @@
 use std::collections::BTreeMap;
 use serde_cbor::Value as CborValue;
 
-const EGS_VERSION: u32 = 4;
+const BE_VERSION: u32 = 4;
 
 #[derive(Clone)]
 pub struct VersionMetadata {
-    egs_version: u32
+    be_version: u32
 }
 
 impl VersionMetadata {
     pub fn new() -> VersionMetadata {
         VersionMetadata {
-            egs_version: EGS_VERSION
+            be_version: BE_VERSION
         }
     }
 
     pub fn encode(&self) -> CborValue {
         let mut map = BTreeMap::new();
-        map.insert(CborValue::Text("egs".to_string()),CborValue::Integer(self.egs_version.into()));
+        map.insert(CborValue::Text("egs".to_string()),CborValue::Integer(self.be_version.into()));
         CborValue::Map(map)
     }
+
+    pub fn backend_version(&self) -> u32 { self.be_version }
 }

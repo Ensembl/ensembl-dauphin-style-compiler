@@ -1,5 +1,5 @@
 from core.config import BEGS_FILES, BEGS_CONFIG
-from typing import Any, Optional;
+from typing import Any, List, Optional;
 import logging
 import toml
 import time
@@ -101,6 +101,9 @@ class BegsFiles(object):
         if bundle == None:
             raise UnknownVersionException("Unknown egs version {0}".format(egs_version))
         return bundle
+
+    def versions(self) -> List[int]:
+        return [int(x) for x in self._versions.keys()]
 
     def boot_program(self, version: Version) -> str:
         return self._bundle(version).boot_program

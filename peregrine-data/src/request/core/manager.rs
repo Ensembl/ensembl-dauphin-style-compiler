@@ -136,6 +136,10 @@ impl RequestManagerData {
             self.queues.insert((hi.clone(),PacketPriority::Batch),QueueValue::Redirect(lo.clone(),PacketPriority::Batch));
         }
     }
+
+    fn set_supported_versions(&self, supports: Option<&[u32]>, version: u32) {
+        self.integration.set_supported_versions(supports,version);
+    }
 }
 
 #[derive(Clone)]
@@ -144,6 +148,10 @@ pub struct RequestManager(Arc<Mutex<RequestManagerData>>);
 impl RequestManager {
     pub fn new(integration: Box<dyn ChannelIntegration>, commander: &PgCommander, messages: &MessageSender, version: &VersionMetadata) -> RequestManager {
         RequestManager(Arc::new(Mutex::new(RequestManagerData::new(integration,commander,messages,version))))
+    }
+
+    pub fn set_supported_versions(&self, support: Option<&[u32]>, version: u32) {
+        lock!(self.0).set_supported_versions(support,version);
     }
 
     pub fn set_lo_divert(&self, channel_hi: &Channel, channel_lo: &Channel) {

@@ -1,9 +1,10 @@
 use std::sync::{Arc, Mutex};
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::channel::Channel, lane::programloader::ProgramLoader, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::{channel::Channel, version::VersionMetadata}, lane::programloader::ProgramLoader, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}};
 
 use super::PgDauphinTaskSpec;
 
-async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>) -> Result<(),DataMessage> {
+async fn finish_bootstrap(response: &BootRes, manager: &RequestManager, dauphin: &PgDauphin, queue: &PeregrineApiQueue, loader: &ProgramLoader, integration: &Arc<Mutex<Box<dyn PeregrineIntegration>>>, version: &VersionMetadata) -> Result<(),DataMessage> {
+    manager.set_supported_versions(response.supports(),version.backend_version());
     manager.set_lo_divert(response.channel_hi(),response.channel_lo());
     dauphin.run_program(loader,PgDauphinTaskSpec {
         prio: 2,
@@ -30,7 +31,7 @@ pub(crate) fn bootstrap(base: &PeregrineCoreBase, agent_store: &AgentStore, chan
         timeout: None,
         task: Box::pin(async move {
             let response = backend.bootstrap().await?;
-            finish_bootstrap(&response,&base2.manager,&base2.dauphin,&base2.queue,&agent_store.program_loader,&base2.integration).await?;
+            finish_bootstrap(&response,&base2.manager,&base2.dauphin,&base2.queue,&agent_store.program_loader,&base2.integration,&base2.version).await?;
             base2.booted.unlock();
             Ok(())
         }),
