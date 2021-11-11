@@ -134,7 +134,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
             DataMessage::PacketError(c,s) => format!("Error sending/receiving packet: '{}' channel={}",s,c),
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
-            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure (retrying) channel={}",c.to_string()),
+            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure channel={}",c.to_string()),
             DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
             DataMessage::DataHasNoAssociatedStyle(tags) => 
                 format!("Data has no associated style: tags={}",tags.join(",")),
@@ -175,7 +175,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::BackendTimeout(c) => format!("Timeout on connection to {}",c),
             DataMessage::PacketError(c,s) => format!("Error sending/receiving packet: '{}' channel={}",s,c),
             DataMessage::TemporaryBackendFailure(c) => format!("Temporary backend failure (retrying) channel={}",c.to_string()),
-            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure (retrying) channel={}",c.to_string()),
+            DataMessage::FatalBackendFailure(c) => format!("Fatal backend failure channel={}",c.to_string()),
             DataMessage::BackendRefused(c,s) => format!("Backend refused: '{}' channel={}",s,c),
             DataMessage::DataHasNoAssociatedStyle(tags) => 
                 format!("Data has no associated style: tags={}",tags.join(",")),

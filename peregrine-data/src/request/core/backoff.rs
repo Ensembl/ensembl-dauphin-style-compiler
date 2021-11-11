@@ -33,7 +33,11 @@ impl Backoff {
         }
         self.manager.message(DataMessage::FatalBackendFailure(channel.clone()));
         Err(match last_error {
-            Some(e) => DataMessage::BackendRefused(channel.clone(),e.to_string()),
+            Some(e) => {
+                let e = DataMessage::BackendRefused(channel.clone(),e.to_string());
+                self.manager.message(e.clone());
+                DataMessage::BackendRefused(channel.clone(),e.to_string())
+            },
             None => DataMessage::CodeInvariantFailed("unexpected downcast error in backoff".to_string())
         })
     }

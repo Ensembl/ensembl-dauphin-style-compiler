@@ -59,12 +59,16 @@ async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket
 
 #[cfg(any(force_show_incoming,debug_assertions))]
 fn show_versions(supports: Option<&[u32]>, version: u32)  {
-    let support = if let Some(versions) = supports {
-        format!("versions {}",versions.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(","))
+    let (ok,support) = if let Some(versions) = supports {
+        (versions.contains(&version),format!("versions {}",versions.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))
     } else {
-        "unknown".to_string()
+       (true, "unknown".to_string())
     };
-    console::log_1(&format!("backend supports {}, we are version {}",support,version).into());
+    if ok {
+        console::log_1(&format!("backend supports {}, we are version {}",support,version).into());
+    } else {
+        console::error_1(&format!("backend supports {}, we are version {}",support,version).into());
+    }
 }
 
 #[cfg(not(any(force_show_incoming,debug_assertions)))]

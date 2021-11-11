@@ -44,17 +44,17 @@ def load_assets():
 class BootstrapHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
         lo_channel = (lo_port(channel) if LO_PORT else channel)
-        r = Response(0,{
-            "boot": [channel,data_accessor.begs_files.boot_program(version)],
-            "hi":  channel,
-            "lo":  lo_channel,
-            "assets": load_assets(),
-            "supports": data_accessor.begs_files.versions()
-        })
         try:
+            r = Response(0,{
+                "boot": [channel,data_accessor.begs_files.boot_program(version)],
+                "hi":  channel,
+                "lo":  lo_channel,
+                "assets": load_assets(),
+                "supports": data_accessor.begs_files.versions()
+            })
             bundles = data_accessor.begs_files.all_bundles(version)
         except UnknownVersionException as e:
-            return Response(1,"Unknown egs version {}".format(e))
+            return Response(1,"Backend out of date: Doesn't support egs version {}".format(e))
         for b in bundles:
             r.bundles.add(b)
         return r
@@ -67,7 +67,7 @@ class ProgramHandler(Handler):
         try:
             bundle = data_accessor.begs_files.find_bundle(name)
         except UnknownVersionException as e:
-            return Response(1,"Unknown egs version {}".format(e))
+            return Response(1,e)
         if bundle == None:
             return Response(1,"Unknown program {}".format(name))
         r = Response(2,[])
@@ -90,11 +90,14 @@ class StickHandler(Handler):
 
 class StickAuthorityHandler(Handler):
     def process(self, data_accessor: DataAccessor, channel: Any, payload: Any, metrics: ResponseMetrics, version: Version) -> Response:
-        sa_start_prog = data_accessor.begs_files.authority_startup_program(version)
-        sa_lookup_prog = data_accessor.begs_files.authority_lookup_program(version)
-        sa_jump_prog = data_accessor.begs_files.authority_jump_program(version)
-        if sa_start_prog != None:
-            r = Response(4,[channel,sa_start_prog,sa_lookup_prog,sa_jump_prog])
-        else:
-            return Response(1,"I am not an authority")
-        return r
+        try:
+            sa_start_prog = data_accessor.begs_files.authority_startup_program(version)
+            sa_lookup_prog = data_accessor.begs_files.authority_lookup_program(version)
+            sa_jump_prog = data_accessor.begs_files.authority_jump_program(version)
+            if sa_start_prog != None:
+                r = Response(4,[channel,sa_start_prog,sa_lookup_prog,sa_jump_prog])
+            else:
+                return Response(1,"I am not an authority")
+            return r
+        except UnknownVersionException as e:
+            return Response(1,e)
