@@ -47,6 +47,7 @@ pub struct PeregrineCoreBase {
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub assets: Arc<Mutex<Assets>>,
+    pub version: VersionMetadata
 }
 
 #[derive(Clone)]
@@ -84,7 +85,8 @@ impl PeregrineCore {
             queue: PeregrineApiQueue::new(visual_blocker),
             allotment_metadata,
             identity: Arc::new(Mutex::new(0)),
-            assets: Arc::new(Mutex::new(Assets::empty()))
+            assets: Arc::new(Mutex::new(Assets::empty())),
+            version
         };
         let agent_store = AgentStore::new(&base);
         let train_set = TrainSet::new(&base,&agent_store.lane_store,visual_blocker);
@@ -114,7 +116,7 @@ impl PeregrineCore {
     /* from api */
     pub fn ready(&self, mut core: PeregrineCore) {
         self.base.queue.run(&mut core);
-        self.base.queue.push(ApiMessage::Ready);
+        self.base.queue.push(cbor_map_containsApiMessage::Ready);
     }
 
     /* called after someprograms to refresh state in-case tracks appeared */
