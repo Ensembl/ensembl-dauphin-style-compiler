@@ -21,9 +21,9 @@ def munge_designation(s):
     return s
 
 def transcript_grade(designation: str, transcript_biotype: str) -> str:
-    if designation == "MANE Select":
+    if designation == "mane_select":
         return 3
-    elif designation == "Selected":
+    elif designation == "canonical":
         return 2
     elif transcript_biotype == "protein_coding":
         return 1
@@ -84,7 +84,9 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         transcript_designations[line.transcript_id] = line.transcript_designation
         # store candidate designated transcript
         (dt_grade_stored,_) = designated_transcript[line.gene_id]
-        dt_grade = transcript_grade(line.transcript_designation,line.transcript_biotype)
+        dt_grade = transcript_grade(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id])
+        if line.gene_name == "ZAR1L":
+            logging.warn("ZAR1L des {0} bio {1} grade {2}".format(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id],dt_grade))
         if dt_grade > dt_grade_stored:
             designated_transcript[line.gene_id] = (dt_grade,line)
     designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
