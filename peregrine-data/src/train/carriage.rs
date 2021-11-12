@@ -121,7 +121,7 @@ impl Carriage {
                 })
             })
         }).collect();
-        //if !mode.build_shapes() { return Ok(()); }
+        if !mode.build_shapes() { return Ok(()); }
         let mut new_shapes = ShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets));
         for future in tracks {
             future.finish_future().await;
