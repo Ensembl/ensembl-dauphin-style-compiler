@@ -24,7 +24,7 @@ variables:
     - docker logout $CI_REGISTRY
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "deploy2envs"'
       changes: 
         - backend-server/*
 
@@ -51,7 +51,7 @@ variables:
     - kustomize build ${BASE}/lo | kubectl apply -f -
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "deploy2envs"'
       changes: 
         - backend-server/*
 
@@ -69,5 +69,12 @@ WP-HX:Staging:
   extends: .deploy
   environment:
     name : wp-hx-staging
+  variables:
+    BASE: backend-server/k8s/overlays/staging
+    
+WP-HX:Staging:
+  extends: .deploy
+  environment:
+    name : wp-hh-staging
   variables:
     BASE: backend-server/k8s/overlays/staging
