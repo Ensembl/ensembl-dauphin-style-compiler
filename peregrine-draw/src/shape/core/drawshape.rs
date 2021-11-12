@@ -22,6 +22,12 @@ use crate::util::message::Message;
 use crate::webgl::canvas::flatstore::FlatId;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
+pub(crate) enum LineColour {
+    Direct(EachOrEvery<DirectColour>),
+    Spot(DirectColour),
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(crate) enum SimpleShapePatina {
     Solid(EachOrEvery<DirectColour>),
     Hollow(EachOrEvery<DirectColour>),
@@ -30,7 +36,7 @@ pub(crate) enum SimpleShapePatina {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
-fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
+pub(super) fn simplify_colours(colours: &EachOrEvery<Colour>) -> Result<EachOrEvery<DirectColour>,Message> {
     Ok(colours.map_results(|colour| {
         match colour {
             Colour::Direct(d) => Ok(d.clone()),
@@ -106,7 +112,8 @@ pub(crate) enum GLShape {
     Image(HoleySpaceBase,Vec<BitmapHandle>,EachOrEvery<Allotment>,DrawGroup),
     Heraldry(HoleySpaceBaseArea,EachOrEvery<HeraldryHandle>,EachOrEvery<Allotment>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,Allotment),
-    SpaceBaseRect(HoleySpaceBaseArea,SimpleShapePatina,EachOrEvery<Allotment>,DrawGroup),
+    Rectangle(HoleySpaceBaseArea,SimpleShapePatina,EachOrEvery<Allotment>,DrawGroup),
+    Line(HoleySpaceBaseArea,LineColour,u32,EachOrEvery<Allotment>,DrawGroup),
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Message> {
@@ -225,7 +232,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
                 Ok(ShapeToAdd::None)
             }
         },
-        GLShape::SpaceBaseRect(area,simple_shape_patina,allotments,draw_group) => {
+        GLShape::Rectangle(area,simple_shape_patina,allotments,draw_group) => {
             let mut drawing_shape_patina = simple_shape_patina.build();
             let mut geometry_yielder = draw_group.geometry_yielder();
             let left = layer.left();

@@ -119,6 +119,7 @@ mod run {
 mod shape {
     mod core;
     mod imageshape;
+    pub mod lineshape;
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
@@ -213,4 +214,5 @@ pub use self::spacebase::{
     SpaceBaseParameterLocation, HollowEdge, Variable
 };
 pub use self::shape::rectangleshape::RectangleShape;
+pub use self::shape::lineshape::LineShape;
 pub use self::request::core::manager::RequestManager;

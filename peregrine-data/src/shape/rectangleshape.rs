@@ -24,7 +24,7 @@ impl RectangleShape {
             filter.set_size(len);
             out.push(Shape::new(
                 eoe_throw("add_rectangles",ShapeCommon::new(filter.count(),coord_system, allotments.filter(&filter)))?,
-                ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
+                ShapeDetails::Rectangle(details.clone().filter(&filter))
             ));
         }
         Ok(out)        
@@ -51,7 +51,7 @@ impl RectangleShape {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = common_in.allotments().merge(&colours).unwrap();
                 allotments_and_colours.demerge(|(a,c)| 
-                    cat.categorise_with_colour(a,drawn_type,c)
+                    cat.categorise_strokefill_colour(a,drawn_type,c)
                 )
             },
             _ => {

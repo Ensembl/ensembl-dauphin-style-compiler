@@ -1,5 +1,6 @@
 use std::hash::Hash;
 use super::imageshape::ImageShape;
+use super::lineshape::LineShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
@@ -16,9 +17,13 @@ pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
-    
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _variety: &DrawnType, _colour: &Colour) -> Self::X {
+
+    fn categorise_colour(&self, allotment: &AllotmentRequest, _colour: &Colour) -> Self::X {
         self.categorise(allotment)
+    }
+
+    fn categorise_strokefill_colour(&self, allotment: &AllotmentRequest, _variety: &DrawnType, colour: &Colour) -> Self::X {
+        self.categorise_colour(allotment,colour)
     }
 }
 
@@ -28,22 +33,25 @@ pub enum ShapeDetails {
     Text(TextShape),
     Image(ImageShape),
     Wiggle(WiggleShape),
-    SpaceBaseRect(RectangleShape)
+    Rectangle(RectangleShape),
+    Line(LineShape)
 }
 
 impl ShapeDetails {
     pub fn len(&self) -> usize {
         match &self {
-            ShapeDetails::SpaceBaseRect(shape) => shape.len(),
+            ShapeDetails::Rectangle(shape) => shape.len(),
             ShapeDetails::Text(shape) => shape.len(),
             ShapeDetails::Image(shape) => shape.len(),
-            ShapeDetails::Wiggle(shape) => shape.len()
+            ShapeDetails::Wiggle(shape) => shape.len(),
+            ShapeDetails::Line(shape) => shape.len()
         }
     }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
         match self {
-            ShapeDetails::SpaceBaseRect(shape) => shape.make_base_filter(min,max),
+            ShapeDetails::Rectangle(shape) => shape.make_base_filter(min,max),
+            ShapeDetails::Line(shape) => shape.make_base_filter(min,max),
             ShapeDetails::Text(shape) => shape.make_base_filter(min,max),
             ShapeDetails::Image(shape) => shape.make_base_filter(min,max),
             ShapeDetails::Wiggle(shape) => shape.make_base_filter(min,max),
@@ -52,7 +60,8 @@ impl ShapeDetails {
 
     pub fn filter(&self, filter: &DataFilter) -> ShapeDetails {
         match self {
-            ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.filter(filter)),
+            ShapeDetails::Rectangle(shape) => ShapeDetails::Rectangle(shape.filter(filter)),
+            ShapeDetails::Line(shape) => ShapeDetails::Line(shape.filter(filter)),
             ShapeDetails::Text(shape) => ShapeDetails::Text(shape.filter(filter)),
             ShapeDetails::Image(shape) => ShapeDetails::Image(shape.filter(filter)),
             ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.filter(filter))
@@ -68,8 +77,14 @@ impl ShapeDetails {
 
     pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
-            ShapeDetails::SpaceBaseRect(shape) => {
+            ShapeDetails::Rectangle(shape) => {
                 for ((top_left,bottom_right),allotment) in shape.area().iter().zip(common.iter_allotments()) {
+                    allotment.register_usage(top_left.normal.ceil() as i64);
+                    allotment.register_usage(bottom_right.normal.ceil() as i64);
+                }
+            },
+            ShapeDetails::Line(shape) => {
+                for ((top_left,bottom_right),allotment) in shape.line().iter().zip(common.iter_allotments()) {
                     allotment.register_usage(top_left.normal.ceil() as i64);
                     allotment.register_usage(bottom_right.normal.ceil() as i64);
                 }
@@ -112,11 +127,17 @@ impl ShapeDetails {
                     (x, Shape { common, details: ShapeDetails::Image(details) })
                 ).collect()
             },
-            ShapeDetails::SpaceBaseRect(shape) => {
+            ShapeDetails::Rectangle(shape) => {
                 return shape.demerge(common,cat).drain(..).map(|(x,common,details)|
-                    (x, Shape { common, details: ShapeDetails::SpaceBaseRect(details) })
+                    (x, Shape { common, details: ShapeDetails::Rectangle(details) })
+                ).collect()
+            },
+            ShapeDetails::Line(shape) => {
+                return shape.demerge(common,cat).drain(..).map(|(x,common,details)|
+                    (x, Shape { common, details: ShapeDetails::Line(details) })
                 ).collect()
             }
+
         }
     }
 }

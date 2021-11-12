@@ -1,7 +1,7 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails};
+use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, LineShape, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
-use crate::shape::core::drawshape::{SimpleShapePatina};
+use crate::shape::core::drawshape::{LineColour, SimpleShapePatina, simplify_colours};
 use crate::shape::heraldry::heraldry::{Heraldry, HeraldryCanvasesUsed};
 use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
@@ -17,7 +17,39 @@ fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<
     }).map_err(|e| Message::DataError(e))
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn prepare_line(tools: &mut DrawingTools, common: &ShapeCommon, shape: &LineShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = allotments(common.allotments())?;
+    let mut out = vec![];
+    match draw_group.shape_category() {
+        ShapeCategory::SolidColour | ShapeCategory::Other => {
+            out.push(GLShape::Line(shape.holey_line().clone(),LineColour::Direct(simplify_colours(shape.colour())?),shape.width(),allotment,draw_group.clone()));
+        },
+        ShapeCategory::SpotColour(c) => {
+            out.push(GLShape::Line(shape.holey_line().clone(),LineColour::Spot(c.clone()),shape.width(),allotment,draw_group.clone()));
+        },
+        ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
+            let heraldry_tool = tools.heraldry();
+            let heraldry = make_heraldry(shape.patina())?;
+            let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+            out.push(GLShape::Heraldry(shape.holey_line().clone(),handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+        },
+        ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
+            let width = width.unwrap_or(0.);
+            let heraldry_tool = tools.heraldry();
+            let heraldry = make_heraldry(shape.patina())?;
+            let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+            // XXX too much cloning, at least Arc them
+            let area = shape.holey_area();
+            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
+            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
+            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
+            out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
+        }
+    }
+    Ok(out)
+}
+
+fn prepare_rectangle(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(common.allotments())?;
     let mut out = vec![];
     match shape.patina() {
@@ -28,10 +60,10 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
             };
             match draw_group.shape_category() {
                 ShapeCategory::SolidColour | ShapeCategory::Other => {
-                    out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::from_patina(shape.patina())?,allotment,draw_group.clone()));
+                    out.push(GLShape::Rectangle(shape.holey_area().clone(),SimpleShapePatina::from_patina(shape.patina())?,allotment,draw_group.clone()));
                 },
                 ShapeCategory::SpotColour(c) => {
-                    out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,allotment,draw_group.clone()));
+                    out.push(GLShape::Rectangle(shape.holey_area().clone(),SimpleShapePatina::spot_from_patina(c,shape.patina())?,allotment,draw_group.clone()));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry_tool = tools.heraldry();
@@ -54,7 +86,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
             }
         },
         Patina::ZMenu(zmenu,values) => {
-            out.push(GLShape::SpaceBaseRect(shape.holey_area().clone(),SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()),allotment,draw_group.clone()));
+            out.push(GLShape::Rectangle(shape.holey_area().clone(),SimpleShapePatina::ZMenu(zmenu.clone(),values.clone()),allotment,draw_group.clone()));
         }
     }
     Ok(out)
@@ -97,7 +129,7 @@ impl ShapeDemerge for GLCategoriser {
         DrawGroup::new(&allotment.coord_system(),allotment.depth(),&ShapeCategory::Other)
     }
 
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
+    fn categorise_strokefill_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
         let is_fill = match drawn_variety {
             DrawnType::Fill => false,
             DrawnType::Stroke(_) => true
@@ -137,10 +169,13 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
                 out.push(GLShape::Image(shape.holey_position().clone(),handles,allotment,draw_group));
             },
-            ShapeDetails::SpaceBaseRect(shape) => {
-                out.append(&mut split_spacebaserect(tools,&common,&shape,&draw_group)?);
+            ShapeDetails::Rectangle(shape) => {
+                out.append(&mut prepare_rectangle(tools,&common,&shape,&draw_group)?);
+            },
+            ShapeDetails::Line(shape) => {
+                out.append(&mut prepare_line(tools,&common,&shape,&draw_group)?);
             }
-        }    
+        }
     }
     Ok(out)
 }
