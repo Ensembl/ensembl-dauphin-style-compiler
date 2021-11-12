@@ -28,22 +28,21 @@ fn prepare_line(tools: &mut DrawingTools, common: &ShapeCommon, shape: &LineShap
             out.push(GLShape::Line(shape.holey_line().clone(),LineColour::Spot(c.clone()),shape.width(),allotment,draw_group.clone()));
         },
         ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
+            /*
             let heraldry_tool = tools.heraldry();
             let heraldry = make_heraldry(shape.patina())?;
             let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
             out.push(GLShape::Heraldry(shape.holey_line().clone(),handles,allotment,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None));
+            */
         },
         ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
+            /*
             let width = width.unwrap_or(0.);
             let heraldry_tool = tools.heraldry();
             let heraldry = make_heraldry(shape.patina())?;
             let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
-            // XXX too much cloning, at least Arc them
-            let area = shape.holey_area();
-            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
-            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
-            out.push(GLShape::Heraldry(area.clone(),handles.clone(),allotment.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
-            out.push(GLShape::Heraldry(area.clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
+            out.push(GLShape::Heraldry(shape.holey_line().clone(),handles,allotment,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),None)));
+            */
         }
     }
     Ok(out)

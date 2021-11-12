@@ -25,6 +25,7 @@ use crate::webgl::canvas::flatstore::FlatId;
 pub(crate) enum LineColour {
     Direct(EachOrEvery<DirectColour>),
     Spot(DirectColour),
+//    Heraldry(EachOrEvery<HeraldryHandle>)
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -250,6 +251,12 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &WebGlGlobal, tools: &mu
                     Ok(ShapeToAdd::ZMenu(real_area,allotments,zmenu,values))
                 }
             }
+        },
+        GLShape::Line(line,colour,width,allotments,draw_group) => {
+            use web_sys::console;
+            #[cfg(debug_assertions)]
+            console::log_1(&format!("line: line={:?}",line).into());
+            Ok(ShapeToAdd::None)
         }
     }
 }
