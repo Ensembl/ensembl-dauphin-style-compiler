@@ -1,3 +1,8 @@
+# 0.0.12
+
+  * Select correct designated transcript in backend
+  * (Hopefully) fix (at least reduce) jumping track bug.
+
 # 0.0.11
 
   * Remove lots of unnecessary key bindings interfering with browser chrome

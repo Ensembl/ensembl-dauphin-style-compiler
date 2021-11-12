@@ -34,7 +34,7 @@ impl AnticipatedCarriages {
         let carriage_id = CarriageId::new(&train_id,index);
         if self.contains(&carriage_id,batch) { return None; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
-        let mut carriage = Carriage::new(&carriage_id,&train_track_config_list,None);
+        let carriage = Carriage::new(&carriage_id,&train_track_config_list,None);
         self.insert(&carriage_id,&carriage,batch);
         return Some(carriage);
     }
@@ -133,7 +133,7 @@ async fn anticipator(base: PeregrineCoreBase, result_store: LaneStore, stream: C
                     handles.push(handle);
                 } else {
                     carriage.load(&base,&result_store,CarriageLoadMode::Batch).await.ok();    
-                }        
+                }
             },
             AnticipateTask::Wait => {
                 for handle in handles.drain(..) {
@@ -197,6 +197,7 @@ impl Anticipate {
             new_position.derive(&mut carriages,4,true);
             new_position.derive(&mut carriages,4,false);
             new_position.derive(&mut carriages,100,true);
+            new_position.derive(&mut carriages,100,false);
         }
         *self.position.lock().unwrap() = Some(new_position);
         for task in carriages.carriages() {
