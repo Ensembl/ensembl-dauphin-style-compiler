@@ -34,7 +34,7 @@ impl LayoutBuilder {
     pub fn set_stick(&mut self, stick_in: &StickId, size: u64) {
         match self {
             LayoutBuilder::Pending(stick,_) => { *stick = Some((stick_in.clone(),size)); },
-            LayoutBuilder::Finished(layout) => { layout.set_stick(stick_in); }
+            LayoutBuilder::Finished(layout) => { layout.set_stick(stick_in,size); }
         }
         self.try_upgrade();
     }

@@ -22,8 +22,9 @@ impl Layout {
     pub fn stick(&self) -> &StickId { &self.stick }
     pub fn size(&self) -> u64 { self.size }
 
-    pub fn set_stick(&mut self, stick: &StickId) {
+    pub fn set_stick(&mut self, stick: &StickId, size: u64) {
         self.stick = stick.clone();
+        self.size = size;
     }
 
     pub fn set_track_config_list(&mut self, track_config_list: &TrackConfigList) {
