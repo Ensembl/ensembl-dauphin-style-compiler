@@ -1,17 +1,19 @@
 import collections
 import logging
+from typing import Any, List
 from command.coremodel import DataHandler, Panel, DataAccessor
 from command.response import Response
 from model.bigbed import get_bigwig_stats, get_bigwig
 from model.chromosome import Chromosome
 from model.transcriptfile import TranscriptFileLine
 from .numbers import delta, zigzag, lesqlite2, compress, classify
+from data.util import domino_series_expand
 
 SCALE=1000
 
 def get_variant_stats(data_accessor : DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
-    (data,start,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=1000)
+    (data,start,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=500)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:
@@ -44,7 +46,7 @@ def get_variant_exact(data_accessor : DataAccessor, chrom: Chromosome, panel: Pa
     return Response(5,{ 'data': out })
 
 def get_variant(data_accessor : DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
-    if panel.end-panel.start > 5000:
+    if panel.end-panel.start > 1000:
         return get_variant_stats(data_accessor,chrom,panel)
     else:
         return get_variant_exact(data_accessor,chrom,panel)

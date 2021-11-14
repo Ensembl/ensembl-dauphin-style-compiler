@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(8,0),0x5419544B7434B16E)
+    CommandSetId::new("std",(8,0),0xAD4C49EF08C3EB0E)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -396,12 +396,12 @@ pub fn make_std() -> CompLibRegister {
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
     set.push("extract_filter",Some(27),ExtractFilterCommandType());
-    set.push("set_difference",Some(34),SetDifferenceCommandType());
     set.push("run",Some(29),RunCommandType());
     set.push("halt",Some(30),HaltCommandType());
     set.push("ruler_interval",Some(31),RulerIntervalCommandType());
     set.push("ruler_markings",Some(32),RulerMarkingsCommandType());
     set.push("comma_format",Some(33),CommaFormatCommandType());
+    set.push("set_difference",Some(34),SetDifferenceCommandType());
     set.add_header("std",include_str!("header.dp"));
     library_numops_commands(&mut set);
     library_assign_commands(&mut set);

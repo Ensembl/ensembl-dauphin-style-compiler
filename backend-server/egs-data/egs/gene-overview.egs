@@ -96,7 +96,8 @@ patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colo
  * draw everything!
  */
 
-rectangle_on_genome(start,end,5,patina,allotment);
+rectangle(spacebase(start,0,-0.5),spacebase(end,5,0.5),patina,allotment);
+
 
 chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];
 

@@ -11,6 +11,8 @@ from .util import classified_numbers, starts_and_ends, starts_and_lengths
 from .numbers import delta, zigzag, lesqlite2, compress, classify
 from .sequence import sequence_blocks
 
+BLOCKS_PER_PANEL = 1000
+
 # HACK should use correct codes in the first place
 def munge_designation(s):
     s = re.sub(r'_',' ',s)
@@ -85,8 +87,6 @@ def extract_gene_data(data_accessor: DataAccessor, chrom: Chromosome, panel: Pan
         # store candidate designated transcript
         (dt_grade_stored,_) = designated_transcript[line.gene_id]
         dt_grade = transcript_grade(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id])
-        if line.gene_name == "ZAR1L":
-            logging.warn("ZAR1L des {0} bio {1} grade {2}".format(transcript_designations[line.transcript_id],transcript_biotypes[line.transcript_id],dt_grade))
         if dt_grade > dt_grade_stored:
             designated_transcript[line.gene_id] = (dt_grade,line)
     designated_transcript = { k: v[1] for (k,v) in designated_transcript.items() }
@@ -138,8 +138,9 @@ def extract_gene_overview_data(data_accessor: DataAccessor, chrom: Chromosome, p
     gene_sizes = list([ gene_sizes[gene] for gene in genes ])
     gene_biotypes = [ gene_biotypes[gene] for gene in genes ]
     (gene_biotypes_keys,gene_biotypes_values) = classify(gene_biotypes)
+    min_width = 0 #int((panel.end - panel.start) / BLOCKS_PER_PANEL)
     out['starts'] = compress(lesqlite2(zigzag(delta([ x[0] for x in gene_sizes ]))))
-    out['lengths'] = compress(lesqlite2(zigzag(delta([ x[1]-x[0] for x in gene_sizes ]))))
+    out['lengths'] = compress(lesqlite2(zigzag(delta([ max(x[1]-x[0],min_width) for x in gene_sizes ]))))
     out['strands'] = compress(lesqlite2([int(x=='+') for x in strands.values()]))
     out['gene_biotypes_keys'] = compress("\0".join(gene_biotypes_keys))
     out['gene_biotypes_values'] = compress(lesqlite2(gene_biotypes_values))
