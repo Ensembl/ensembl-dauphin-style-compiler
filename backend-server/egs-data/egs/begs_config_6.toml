@@ -30,9 +30,9 @@ jump="sa-jump"
 [begs.boot]
 boot="boot"
 
-[begs.render5]
+[begs.render6]
 zoomed-seq="zoomed-seq"
-zoomed-transcript-5="zoomed-transcript"
+zoomed-transcript-6="zoomed-transcript"
 transcript="transcript"
 gene="gene"
 gene-overview="gene-overview"

@@ -1,9 +1,13 @@
-# Version 5
+# Version 6
 
 * Code versions `0.1.x`
 * `std/8`
   * Add `set_difference`.
 * Change stick response to allow positive failure
+
+# Version 5
+
+* Used during acceptance testing of versioning protocol. Never deployed live.
 
 # Version 4
 
