@@ -211,8 +211,9 @@
           genome_browser.wait();
         };
         document.getElementById("create-error").onclick = function() {
-          genome_browser.jump("focus:none");
-          genome_browser.wait();
+          //genome_browser.jump("focus:none");
+          genome_browser.set_stick("");
+          //genome_browser.wait();
         };
       });
     </script>

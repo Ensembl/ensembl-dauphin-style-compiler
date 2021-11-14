@@ -69,7 +69,7 @@ impl PeregrineCore {
         let dauphin = PgDauphin::new(&dauphin_queue).map_err(|e| DataMessage::DauphinIntegrationError(format!("could not create: {}",e)))?;
         let version = VersionMetadata::new();
         let manager = RequestManager::new(integration.channel(),&commander,&messages,&version);
-        let all_backends = AllBackends::new(&manager,&metrics);
+        let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
         let allotment_metadata = AllotmentMetadataStore::new();
         let base = PeregrineCoreBase {

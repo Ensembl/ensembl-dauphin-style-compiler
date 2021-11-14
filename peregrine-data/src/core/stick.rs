@@ -1,6 +1,6 @@
 use anyhow::bail;
-use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_map, cbor_into_vec, cbor_map_key};
-use std::collections::HashSet;
+use peregrine_toolkit::cbor::{cbor_as_number, cbor_as_str, cbor_into_map, cbor_into_vec, cbor_map_key, cbor_map_optional_key};
+use std::collections::{BTreeMap, HashSet};
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;
 
@@ -50,6 +50,37 @@ impl StickTopology {
 }
 
 #[derive(Clone)]
+pub enum StickResponse {
+    Stick(Stick),
+    Unknown(String)
+}
+
+impl StickResponse {
+    pub fn decode(value: CborValue) -> Result<StickResponse,String> {
+        let mut map = cbor_into_map(value)?;
+        Ok(if let Some(error) = cbor_map_optional_key(&mut map,"error") {
+            StickResponse::Unknown(cbor_as_str(&error)?.to_string())
+        } else {
+            StickResponse::Stick(StickResponse::decode_stick(map)?)
+        })
+    }
+
+    fn decode_stick(mut map: BTreeMap<CborValue,CborValue>) -> Result<Stick,String> {
+        let mut tags = cbor_into_vec(cbor_map_key(&mut map,"tags")?)?;
+        let tags = tags.drain(..).map(|x| cbor_as_str(&x).map(|x| x.to_string())).collect::<Result<HashSet<_>,_>>()?;
+        let id = cbor_as_str(&cbor_map_key(&mut map,"id")?)?.to_string();
+        let size = cbor_as_number(&cbor_map_key(&mut map,"size")?)?;
+        let topology = cbor_as_number(&cbor_map_key(&mut map,"topology")?)?;
+        let topology = match topology {
+            0 => StickTopology::Linear,
+            1 => StickTopology::Circular,
+            x => { return Err(format!("unknown topology: {}",x)); }
+        };
+        Ok(Stick { id: StickId::new(&id), size, topology, tags })        
+    }
+}
+
+#[derive(Clone)]
 pub struct Stick {
     id: StickId,
     size: u64,
@@ -66,40 +97,8 @@ impl Stick {
         }
     }
 
-    pub fn decode(value: CborValue) -> Result<Stick,String> {
-        let mut r = StickResponse::decode(value)?;
-        let topology = match r.topology {
-            0 => StickTopology::Linear,
-            1 => StickTopology::Circular,
-            x => { return Err(format!("unknown topology: {}",x)); }
-        };
-        let tags : HashSet<_> = r.tags.drain(..).collect();
-        Ok(Stick { id: StickId::new(&r.id), size: r.size, topology, tags })        
-    }
-
     pub fn get_id(&self) -> &StickId { &self.id }
     pub fn size(&self) -> u64 { self.size }
     pub fn tags(&self) -> &HashSet<String> { &self.tags }
     pub fn topology(&self) -> &StickTopology { &self.topology }
-}
-
-struct StickResponse {
-    id: String,
-    size: u64,
-    topology: u8,
-    tags: Vec<String>
-}
-
-impl StickResponse {
-    pub fn decode(value: CborValue) -> Result<StickResponse,String> {
-        let mut map = cbor_into_map(value)?;
-        let mut tags = cbor_into_vec(cbor_map_key(&mut map,"tags")?)?;
-        let tags = tags.drain(..).map(|x| cbor_as_str(&x).map(|x| x.to_string())).collect::<Result<Vec<_>,_>>()?;
-        Ok(StickResponse {
-            id: cbor_as_str(&cbor_map_key(&mut map,"id")?)?.to_string(),
-            size: cbor_as_number(&cbor_map_key(&mut map,"size")?)?,
-            topology: cbor_as_number(&cbor_map_key(&mut map,"topology")?)?,
-            tags
-        })
-    }
 }

@@ -57,8 +57,13 @@ impl ApiQueueCampaign {
                 data.agent_store.jump_store.jump(&location,promise);
             },
             ApiMessage::SetStick(stick_id) => {
-                if let Ok(stick) = data.agent_store.stick_store.get(&stick_id).await.as_ref().map(|x| x.as_ref()) { // XXX errors
-                    self.viewport = self.viewport.set_stick(&stick_id,stick.size());
+                match data.agent_store.stick_store.get(&stick_id).await.as_ref().map(|x| x.as_ref()) {
+                    Ok(stick) => {
+                        self.viewport = self.viewport.set_stick(&stick_id,stick.size());
+                    },
+                    Err(e) => {
+                        data.base.messages.send(e.clone());
+                    }
                 }
             },
             ApiMessage::Bootstrap(identity,channel) => {
