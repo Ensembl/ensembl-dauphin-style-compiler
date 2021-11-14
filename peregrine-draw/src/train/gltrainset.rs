@@ -8,6 +8,7 @@ use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, Read
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
+use web_sys::console;
 
 #[derive(Clone)]
 enum FadeState {
@@ -135,6 +136,10 @@ impl GlTrainSetData {
         Ok(complete)
     }
 
+    fn train_scale(&mut self, index: u32)-> u64 {
+        self.get_train(index).scale().map(|x| x.get_index()).unwrap_or(0)
+    }
+
     fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
@@ -143,9 +148,18 @@ impl GlTrainSetData {
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    self.get_train(from).draw(gl,stage,&session)?;
+                    if self.train_scale(from) > self.train_scale(to) {
+                        /* zooming in, give priority to more detailed target */
+                        self.get_train(to).draw(gl,stage,&session)?;
+                        self.get_train(from).draw(gl,stage,&session)?;
+                    } else {
+                        /* zooming out, give priority to more detailed source */
+                        self.get_train(from).draw(gl,stage,&session)?;
+                        self.get_train(to).draw(gl,stage,&session)?;
+                    }
+                } else {
+                    self.get_train(to).draw(gl,stage,&session)?;
                 }
-                self.get_train(to).draw(gl,stage,&session)?;
             },
         }
         Ok(())

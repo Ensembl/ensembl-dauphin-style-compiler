@@ -2,12 +2,11 @@ import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 import "file:common.egs"; use "common";
 
-
 /* 
  * actually get the data from the server
  */
 
-data := get_data("self()","transcript",get_region());
+data := get_data("self()","zoomed-transcript",get_region());
 halt(only_warm(),[data]);
 
 /*
@@ -36,11 +35,16 @@ exon_strand := positive_seq(data,"exon_strands");
 exon_gene_biotype := classified_seq(data,"exon_gene_biotypes_keys","exon_gene_biotypes_values");
 exon_start := delta_seq(data,"exon_starts");
 exon_end := exon_start + delta_seq(data,"exon_lengths");
+exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
+/* sequence stuff */
+seq_start := delta_seq(data,"seq_starts");
+seq_end := seq_start + 1;
+seq_letter := classified_seq(data,"seq_keys","seq_values");
+seq_rev_letter := base_flip(seq_letter);
+
 thick_start := delta_seq(data,"thick_starts");
 thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
-
-exon_focus_id := index(exon_gene_indexes,[focus_id]);
 
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
@@ -65,6 +69,8 @@ exon_thick_end := exon_thick_end#[thick_exons];
  * What are the current track settings?
  */
 
+potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
+
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -73,42 +79,8 @@ enabled_tracks := get_switch([
     ["track","focus"]
 ][]);
 
-potential_tracks := [
-    "track:gene-other-rev","track:gene-pc-rev",
-    "track:gene-other-fwd","track:gene-pc-fwd",
-    "track:focus"
-];
-use_allotments(allotments,enabled_tracks,potential_tracks);
-
-use_allotments(blanking_allotments,enabled_tracks,[
-    "track:gene-other-rev[-1]","track:gene-pc-rev[-1]",
-    "track:gene-other-fwd[-1]","track:gene-pc-fwd[-1]",
-    "track:focus[-1]"
-]);
-
-use_allotments(allotments_under,enabled_tracks,[
-    "track:gene-other-rev[-2]","track:gene-pc-rev[-2]",
-    "track:gene-other-fwd[-2]","track:gene-pc-fwd[-2]",
-    "track:focus[-2]"
-]);
-
-use_allotments(allotments_far_under,enabled_tracks,[
-    "track:gene-other-rev[-3]","track:gene-pc-rev[-3]",
-    "track:gene-other-fwd[-3]","track:gene-pc-fwd[-3]",
-    "track:focus[-3]"
-]);
-
-use_allotments(allotments_over,enabled_tracks,[
-    "track:gene-other-rev[2]","track:gene-pc-rev[2]",
-    "track:gene-other-fwd[2]","track:gene-pc-fwd[2]",
-    "track:focus[2]"
-]);
-
-use_allotments(allotments_very_over,enabled_tracks,[
-    "track:gene-other-rev[3]","track:gene-pc-rev[3]",
-    "track:gene-other-fwd[3]","track:gene-pc-fwd[3]",
-    "track:focus[3]"
-]);
+tracks_used := ["","","","",""];
+tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
 
 use_allotments(allotments_wallpaper,enabled_tracks,[
     "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
@@ -117,6 +89,22 @@ use_allotments(allotments_wallpaper,enabled_tracks,[
 ]);
 
 use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
+
+use_allotments(allotments,enabled_tracks,[
+    "track:gene-other-rev[0]",
+    "track:gene-pc-rev[0]",
+    "track:gene-other-fwd[0]",
+    "track:gene-pc-fwd[0]",
+    "track:focus[0]"
+]);
+
+use_allotments(allotments_over,enabled_tracks,[
+    "track:gene-other-rev[1]",
+    "track:gene-pc-rev[1]",
+    "track:gene-other-fwd[1]",
+    "track:gene-pc-fwd[1]",
+    "track:focus[1]"
+]);
 
 /*
  * Which allotment and track does data go into?
@@ -134,12 +122,10 @@ allotment_idx#[strand > 0] (+=) 2;
 allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
-
 allotment := index(allotment_idx,allotments);
-allotment_under := index(allotment_idx,allotments_under);
-allotment_far_under := index(allotment_idx,allotments_far_under);
+allotment_over := index(allotment_idx,allotments_over);
 
-alienate(allotment);
+track_name := index(allotment_idx,potential_tracks);
 
 /* 
  * focus object
@@ -147,22 +133,6 @@ alienate(allotment);
 
 focus_start := start#[allotment_idx==4];
 focus_end := end#[allotment_idx==4];
-
-/*
- * Exon allotments
- */
-
-exon_allotment_idx := len([exon_start]) (*) 0;
-exon_allotment_idx#[exon_strand > 0] (+=) 2;
-exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
-exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
-exon_allotment := index(exon_allotment_idx,allotments_over);
-
-exon_allotment_over := index(exon_allotment_idx,allotments_very_over);
-
-blanking_exon_allotment := index(exon_allotment_idx,blanking_allotments);
-
-thick_exon_allotment := exon_allotment_over#[thick_exons];
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -184,37 +154,33 @@ text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
 
 gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
 
-track_name := index(allotment_idx,potential_tracks);
-
 /*
  * What colour? What font? etc
  *
  * (driven by allotment for gene)
  */
 
-// XXX allow types to overlap with functions/vars
-base_non_pc_colour := direct_colour(200,200,200,255);
-base_pc_colour := direct_colour(128,128,128,255);
-base_focus_colour := direct_colour(39,154,252,255);
+normal_text_colour := direct_colour(111,129,144,255);
+focus_text_colour := direct_colour(39,154,252,255);
 
-dotted_non_pc_colour := barred(direct_colour(255,255,255,255),base_non_pc_colour,5,1,0.25);
-dotted_pc_colour := barred(direct_colour(255,255,255,255),base_pc_colour,5,1,0.25);
-dotted_focus_colour := barred(direct_colour(255,255,255,255),base_focus_colour,5,1,0.25);
-non_pc_colour := spot_colour(base_non_pc_colour);
-pc_colour := spot_colour(base_pc_colour);
-focus_colour := spot_colour(base_focus_colour);
+text_colour := index(allotment_idx,[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
 
-under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),1);
-hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
-exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
-white_patina := patina_filled(spot_colour(direct_colour(255,255,255,255)));
-thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-text_colour := direct_colour(111,129,144,255);
-text_size := 10;
+thick_text_colour := direct_colour(255,255,255,255);
 
-textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
+text_size := 12;
+
+normal_thick_colour := direct_colour(148,160,171,255);
+focus_thick_colour := direct_colour(39,154,252,255);
+
+thick_colour := index(allotment_idx,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
+
+thick_seq_colour := spot_colour(thick_colour);
+thin_seq_colour := spot_colour(text_colour);
+thick_seq_patina := patina_filled(thick_seq_colour);
+thin_seq_patina := patina_hollow(thin_seq_colour,1);
+
+thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
+thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][]);
 
 /*
  * prepare the zmenus
@@ -227,51 +193,48 @@ zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation","track","type"],
                                       [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],[track_name],["transcript"]][]);
 
+/* find thick exon regions */
+
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
 ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene_name],[gene_id],[track_name],["gene"]][]);
 
-/*
- * draw everything!
- */
+/* thick letters */
+extract_filter(thick_seq_start,thick_seq_index,thick_seq_exon_index,  seq_start,seq_end,  exon_thick_start,exon_thick_end);
+thick_seq_gene_index := index(thick_seq_exon_index,[thick_exon_gene_indexes]);
+thick_seq_letter := index(thick_seq_index,[seq_letter]);
+thick_seq_rev_letter := index(thick_seq_index,[seq_rev_letter]);
+thick_seq_gene_strand := index(thick_seq_gene_index,[strand]);
+thick_seq_letter#[thick_seq_gene_strand==0] := thick_seq_rev_letter#[thick_seq_gene_strand==0];
+thick_seq_allotment := index(thick_seq_gene_index,[allotment]);
+thick_seq_allotment_over := index(thick_seq_gene_index,[allotment_over]);
 
-/* draw gene-extent dotted lines */
-rectangle_on_genome(start,start,6,hollow_patina,allotment); // left stop
-rectangle_on_genome(end,end,6,hollow_patina,allotment); // right stop
-rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment_far_under,3); // central dotted line
-rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment_under,3); // central line
+indented_rectangle_on_genome(thick_seq_start,thick_seq_start+1,12,thick_seq_patina,thick_seq_allotment);
+coords := spacebase(thick_seq_start + 0.5,0,-4);
+text2(coords,thick_textpen,thick_seq_letter,thick_seq_allotment_over);
 
+/* thin letters */
+extract_filter(thin_seq_start,thin_seq_index,thin_seq_gene_index,  seq_start,seq_end,  transcript_start,transcript_end);
 
-rectangle_on_genome(exon_start,exon_end,6,white_patina,blanking_exon_allotment); // exon white box
-rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
-rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box
+/* (filter out thicks) */
+thick_filter := set_difference(thin_seq_start,thick_seq_start);
+thin_seq_start := thin_seq_start#[thick_filter];
+thin_seq_index := thin_seq_index#[thick_filter];
+thin_seq_gene_index := thin_seq_gene_index#[thick_filter];
 
-/* zmenu areas */
-rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
-rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+thin_seq_letter := index(thin_seq_index,[seq_letter]);
+thin_seq_rev_letter := index(thin_seq_index,[seq_rev_letter]);
+thin_seq_gene_strand := index(thin_seq_gene_index,[strand]);
+thin_seq_letter#[thin_seq_gene_strand==0] := thin_seq_rev_letter#[thin_seq_gene_strand==0];
+thin_seq_allotment := index(thin_seq_gene_index,[allotment]);
 
-/* label */
-text_underneath(start,8,textpen,gene_labels,text_allotment);
+indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,12,thin_seq_patina,thin_seq_allotment);
+coords := spacebase(thin_seq_start + 0.5,0,-4);
+text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
 
-chevron_spacing := [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0][];
-
-image_underneath(chevron_spacing,0,"chevron-left",allotments_wallpaper[@==0]);
-image_underneath(chevron_spacing,0,"chevron-left",allotments_wallpaper[@==1]);
-image_underneath(chevron_spacing,0,"chevron-right",allotments_wallpaper[@==2]);
-image_underneath(chevron_spacing,0,"chevron-right",allotments_wallpaper[@==3]);
-
-/* focus */
-focus_strand := strand#[focus_id==focus_gene];
-image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_wallpaper[@==4]);
-
-/* track names */
-enabled_names := get_switch([
-    ["track","gene-other-rev","name"],
-    ["track","gene-pc-rev","name"],
-    ["track","gene-other-fwd","name"],
-    ["track","gene-pc-fwd","name"],
-    ["track","focus","name"],
-][]);
+/* zmenus */
+rectangle_on_genome(start,end,16,tr_zmenu_patina,allotment);
+rectangle_on_genome(start,end,16,ge_zmenu_patina,allotment);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_wallpaper);

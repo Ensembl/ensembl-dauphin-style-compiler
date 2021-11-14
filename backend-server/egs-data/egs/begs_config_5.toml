@@ -32,7 +32,7 @@ boot="boot"
 
 [begs.render5]
 zoomed-seq="zoomed-seq"
-zoomed-transcript="zoomed-transcript"
+zoomed-transcript-5="zoomed-transcript"
 transcript="transcript"
 gene="gene"
 gene-overview="gene-overview"

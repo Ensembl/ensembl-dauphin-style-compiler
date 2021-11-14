@@ -11,7 +11,7 @@ SCALE=1000
 
 def get_variant_stats(data_accessor : DataAccessor, chrom: Chromosome, panel: Panel) -> Response:
     item = chrom.item_path("variant-summary")
-    (data,start,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=250)
+    (data,start,end) = get_bigwig_stats(data_accessor,item,panel.start,panel.end,"max",nBins=1000)
     data = [ 0.0 if x is None else x for x in data ]
     length = len(data)
     if length == 0:

@@ -69,3 +69,4 @@ expr if(p,a,b) [[b],[a]][(@==1)==p][];
 
 func bytes_to_bool(bytes) becomes boolean;
 proc extract_filter(stomp mask number,stomp mask number,stomp mask number,number,number,number,number);
+func set_difference(number,number) becomes boolean;

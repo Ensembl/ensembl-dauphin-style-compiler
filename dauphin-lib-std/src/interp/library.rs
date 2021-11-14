@@ -14,10 +14,7 @@
  *  limitations under the License.
  */
 
-use std::io::Read;
-
 use dauphin_interp::command::{ CommandSetId, InterpCommand, CommandDeserializer, InterpLibRegister, CommandResult };
-use dauphin_interp::polymorphic;
 use dauphin_interp::runtime::{InterpContext, InterpValue, Register};
 use dauphin_interp::util::DauphinError;
 use dauphin_interp::util::templates::NoopDeserializer;
@@ -29,7 +26,7 @@ use super::print::{ library_print_commands_interp };
 use super::map::{ library_map_commands_interp };
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(7,0),0x3E2979E227570A0D)
+    CommandSetId::new("std",(8,0),0x5419544B7434B16E)
 }
 
 pub struct AssertDeserializer();
@@ -200,7 +197,7 @@ impl InterpCommand for ExtractFilterInterpCommand {
         let mut values = vec![];
         let mut source_indexes = vec![];
         let mut range_indexes = vec![];
-        let mut range_starts_and_ends = 
+        let range_starts_and_ends = 
             range_starts.iter().cloned().zip(range_ends.iter().cycle().cloned()).enumerate().collect::<Vec<_>>();
         for (i,(start,end)) in starts.iter().zip(ends.iter().cycle()).enumerate() {
             extract_filter(&mut values, &mut source_indexes, &mut range_indexes,*start,*end,&range_starts_and_ends,i);
@@ -208,6 +205,53 @@ impl InterpCommand for ExtractFilterInterpCommand {
         registers.write(&self.0,InterpValue::Indexes(values));
         registers.write(&self.1,InterpValue::Indexes(source_indexes));
         registers.write(&self.2,InterpValue::Indexes(range_indexes));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+pub struct SetDifferenceDeserializer();
+
+impl CommandDeserializer for SetDifferenceDeserializer {
+    fn get_opcode_len(&self) -> anyhow::Result<Option<(u32,usize)>> { Ok(Some((34,3))) }
+    fn deserialize(&self, _opcode: u32, value: &[&CborValue]) -> anyhow::Result<Box<dyn InterpCommand>> {
+        Ok(Box::new(SetDifferenceInterpCommand(Register::deserialize(&value[0])?,Register::deserialize(&value[1])?,
+                                               Register::deserialize(&value[2])?)))
+    }
+}
+
+fn set_difference(a: &[usize], b: &[usize])  -> Vec<bool> {
+    let mut out = vec![];
+    let mut b = b.to_vec();
+    b.sort();
+    let mut a_iter = a.iter();
+    let mut b_iter = b.iter();
+    let mut b_next = b_iter.next();
+    while let Some(a_value) = a_iter.next() {
+        /* if there's b left, make sure it's not less than a */
+        while let Some(b_value) = b_next {
+            if b_value >= a_value { break; }
+            b_next = b_iter.next();
+        }
+        let mut hit = true;
+        /* skip any match */
+        if let Some(b_value) = b_next {
+            if a_value == b_value { hit = false; }
+        }
+        /* push value */
+        out.push(hit);
+    }
+    out
+}
+
+pub struct SetDifferenceInterpCommand(Register,Register,Register);
+
+impl InterpCommand for SetDifferenceInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let a = registers.get_indexes(&self.1)?;
+        let b = registers.get_indexes(&self.2)?;
+        let c = set_difference(&a,&b);
+        registers.write(&self.0,InterpValue::Boolean(c));
         Ok(CommandResult::SyncResult())
     }
 }
@@ -299,6 +343,7 @@ pub fn make_std_interp() -> InterpLibRegister {
     set.push(BytesToBoolDeserializer());
     set.push(DerunDeserializer());
     set.push(ExtractFilterDeserializer());
+    set.push(SetDifferenceDeserializer());
     set.push(RunDeserializer());
     set.push(HaltDeserializer());
     set.push(RulerIntervalDeserializer());

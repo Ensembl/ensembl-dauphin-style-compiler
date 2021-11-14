@@ -33,8 +33,6 @@ strand_string#[strand>0] := "forward strand";
  * What are the current track settings?
  */
 
-potential_tracks := ["track:gene-other-rev","track:gene-pc-rev","track:gene-other-fwd","track:gene-pc-fwd","track:focus"];
-
 switch_names := [
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -44,17 +42,21 @@ switch_names := [
 ];
 
 enabled_tracks := get_switch(switch_names[]);
-potential_tracks_wallpaper := [
-    "track:gene-other-rev:wallpaper[-3]","track:gene-pc-rev:wallpaper[-3]",
-    "track:gene-other-fwd:wallpaper[-3]","track:gene-pc-fwd:wallpaper[-3]",
-    "track:focus:wallpaper[-3]"
-];
 
-tracks_used := ["","","","",""];
-tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+potential_tracks := ["track:gene-other-rev[4]","track:gene-pc-rev[4]","track:gene-other-fwd[4]","track:gene-pc-fwd[4]","track:focus[4]"];
+use_allotments(allotments,enabled_tracks,potential_tracks);
 
-tracks_used_wallpaper := ["","","","",""];
-tracks_used_wallpaper[enabled_tracks] := potential_tracks_wallpaper[enabled_tracks];
+use_allotments(allotments_wallpaper,enabled_tracks,[
+    "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
+    "track:gene-other-fwd:wallpaper[-10]","track:gene-pc-fwd:wallpaper[-10]",
+    "track:focus:wallpaper[-10]"
+]);
+
+use_allotments(allotments_text,enabled_tracks,[
+    "track:gene-other-rev","track:gene-pc-rev",
+    "track:gene-other-fwd","track:gene-pc-fwd",
+    "track:focus"
+]);
 
 tracks_used_cat := ["","","","",""];
 tracks_used_cat[enabled_tracks] := gene_cat_allotments[enabled_tracks];
@@ -78,11 +80,10 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 
-allotments := [use_allotment(tracks_used[])];
-allotments_wallpaper := [use_allotment(tracks_used_wallpaper[])];
 allotments_cat := [use_allotment(tracks_used_cat[])];
 
 allotment := index(allotment_idx,allotments);
+text_allotment := index(allotment_idx,allotments_text);
 
 track_name := index(allotment_idx,potential_tracks);
 
@@ -109,7 +110,6 @@ enabled_labels := get_switch([
 
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 
-text_allotment := allotment;
 text_allotment#[enabled_gene_labels==false] := use_allotment("");
 text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
 

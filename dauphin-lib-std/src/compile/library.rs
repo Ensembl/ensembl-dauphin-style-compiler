@@ -33,7 +33,7 @@ use super::map::{ library_map_commands };
 use crate::make_std_interp;
 
 pub fn std_id() -> CommandSetId {
-    CommandSetId::new("std",(7,0),0x3E2979E227570A0D)
+    CommandSetId::new("std",(8,0),0x5419544B7434B16E)
 }
 
 pub(super) fn std(name: &str) -> Identifier {
@@ -198,6 +198,34 @@ impl Command for ExtractFilterCommand {
     }
 }
 
+pub struct SetDifferenceCommandType();
+
+impl CommandType for SetDifferenceCommandType {
+    fn get_schema(&self) -> CommandSchema {
+        CommandSchema {
+            values: 3,
+            trigger: CommandTrigger::Command(std("set_difference"))
+        }
+    }
+
+    fn from_instruction(&self, it: &Instruction) -> anyhow::Result<Box<dyn Command>> {
+        if let InstructionType::Call(_,_,sig,_) = &it.itype {
+            Ok(Box::new(SetDifferenceCommand(
+                it.regs[0].clone(),it.regs[1].clone(),it.regs[2].clone())))
+        } else {
+            Err(DauphinError::malformed("unexpected instruction"))
+        }
+    }
+}
+
+pub struct SetDifferenceCommand(Register,Register,Register);
+
+impl Command for SetDifferenceCommand {
+    fn serialize(&self) -> anyhow::Result<Option<Vec<CborValue>>> {
+        Ok(Some(vec![self.0.serialize(),self.1.serialize(),self.2.serialize()]))
+    }
+}
+
 pub struct AssertCommandType();
 
 impl CommandType for AssertCommandType {
@@ -356,7 +384,7 @@ impl Command for RulerMarkingsCommand {
 }
 
 pub fn make_std() -> CompLibRegister {
-    /* next is 34 */
+    /* next is 35 */
     let mut set = CompLibRegister::new(&std_id(),Some(make_std_interp()));
     library_eq_command(&mut set);
     set.push("len",None,LenCommandType());
@@ -368,6 +396,7 @@ pub fn make_std() -> CompLibRegister {
     set.push("bytes_to_bool",Some(25),BytesToBoolCommandType());
     set.push("derun",Some(26),DerunCommandType());
     set.push("extract_filter",Some(27),ExtractFilterCommandType());
+    set.push("set_difference",Some(34),SetDifferenceCommandType());
     set.push("run",Some(29),RunCommandType());
     set.push("halt",Some(30),HaltCommandType());
     set.push("ruler_interval",Some(31),RulerIntervalCommandType());

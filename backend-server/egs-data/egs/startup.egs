@@ -100,7 +100,7 @@ track_apply(p);
 
 
 /* VARIANT */
-p := track_new("self()","variant",1,100,2);
+p := track_new("self()","variant",1,100,1);
 new_allotment(p,"track:variant",3000,"variant","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","variant"]);

@@ -25,6 +25,10 @@ impl GLTrain {
         }
     }
 
+    pub(super) fn scale(&self) -> Option<Scale> {
+        self.carriages.iter().next().map(|(x,_)| x.train().scale()).cloned()
+    }
+
     pub(super) fn set_max(&mut self, max: u64) {
         self.max = Some(max);
     }

@@ -107,7 +107,7 @@ lazy_static! {
         vec![
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade), name: "animate.fade.slow-cross", default: &PgConfigValue::Float(500.) },
-            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow), name: "animate.fade.slow", default: &PgConfigValue::Float(400.) },    
+            ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow), name: "animate.fade.slow", default: &PgConfigValue::Float(400.) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Quick), name: "animate.overlap.fast", default: &PgConfigValue::Float(-0.75) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade), name: "animate.overlap.slow-cross", default: &PgConfigValue::Float(0.) },
             ConfigKeyInfo { key: PgConfigKey::FadeOverlap(CarriageSpeed::Slow), name: "animate.overlap.slow", default: &PgConfigValue::Float(3.) },
