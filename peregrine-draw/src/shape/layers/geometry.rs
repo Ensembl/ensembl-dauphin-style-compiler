@@ -89,82 +89,76 @@ impl GeometryProgramName {
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
-                    vec4 transform(in vec2 base, in vec2 delta)
+                    vec4 transform(in vec4 p)
                     {
                         return uModel * uTransform * vec4(
-                            (base.x -uStageHpos) * uStageZoom + 
-                                        delta.x / uSize.x,
-                            (- uStageVpos + delta.y) / uSize.y + base.y*2.0 - 1.0, 
+                            (p.x -uStageHpos) * uStageZoom + 
+                                        p.z / uSize.x,
+                            (- uStageVpos + p.a) / uSize.y + p.y*2.0 - 1.0, 
                             aDepth, 1.0);
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aBase,aDelta);
+                    gl_Position = transform(aCoords);
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
-                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vec4 x = transform(aOriginCoords);
                         vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
                     ")
                 ]),
             ],
             GeometryProgramName::Triangles(TrianglesGeometry::Sideways) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
-                    vec4 transform(in vec2 base, in vec2 delta)
+                    vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(    delta.y/uSize.x+base.y*2.0-1.0,
-                                                              delta.x/uSize.y+base.x*2.0-1.0,    
+                        return uModel * uTransform * vec4(    p.a/uSize.x+p.y*2.0-1.0,
+                                                              p.z/uSize.y+p.x*2.0-1.0,    
                                                               aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aBase,aDelta)
+                    gl_Position = transform(aCoords)
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
-                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vec4 x = transform(aOriginCoords);
                         vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
                     ")
                 ]),
             ],
             GeometryProgramName::Triangles(TrianglesGeometry::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aBase"),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aDelta"),
+                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
-                    vec4 transform(in vec2 base, in vec2 delta)
+                    vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(delta.x/uSize.x+base.x*2.0-1.0,
-                                                          delta.y/uSize.y+base.y*2.0-1.0,    aDepth,1.0);
+                        return uModel * uTransform * vec4(p.z/uSize.x+p.x*2.0-1.0,
+                                                          p.a/uSize.y+p.y*2.0-1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aBase,aDelta)
+                    gl_Position = transform(aCoords)
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginBase"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aOriginDelta"),
+                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
-                        vec4 x = transform(aOriginBase,aOriginDelta);
+                        vec4 x = transform(aOriginCoords);
                         vOrigin = vec2((x.x+1.0)*uFullSize.x,(x.y+1.0)*uFullSize.y);
                     ")
                 ]),

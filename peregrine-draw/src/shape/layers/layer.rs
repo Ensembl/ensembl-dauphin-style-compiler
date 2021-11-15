@@ -71,10 +71,12 @@ impl Layer {
     }
 
     pub(super) fn build(mut self, gl: &mut WebGlGlobal, canvases: &DrawingAllFlats) -> Result<Vec<Process>,Message> {
+        use web_sys::console;
         let mut processes = vec![];
         let mut characters = self.store.keys().cloned().collect::<Vec<_>>();
         characters.sort();
         for character in &characters {
+            //console::log_1(&format!("ch {:?}",character).into());
             let mut prog = self.store.remove(&character).unwrap();
             match character {
                 ProgramCharacter(_,PatinaProcessName::Texture(flat_id)) |
@@ -95,6 +97,7 @@ impl Layer {
             }
             processes.push(prog.into_process().build(gl,self.left,character)?);
         }
+        //console::log_1(&format!("Layer.build {:?}",processes.len()).into());
         Ok(processes)
     }
 }

@@ -155,7 +155,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
-            ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(65536) },
+            ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(256*1024) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
