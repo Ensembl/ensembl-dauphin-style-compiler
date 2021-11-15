@@ -14,6 +14,18 @@ FACILITIES = {
     "Metric": 18
 }
 
+class GeneralMetricHandler:
+    def process_metric(self,message_type,payload):
+        lines = ""
+        for (name,tag_keys,tag_values,value_keys,data) in payload['general'].items():
+            for (tag_keys_data,tag_values_data,value_keys_data,value_values) in data:
+                tags = [ (tag_keys[k],tag_values[v]) for (k,v) in zip(tag_keys,tag_values) ]
+                values = [ (value_keys[k],v) for (k,v) in zip(value_keys,value_values) ]
+                tags_str = ",".join(["{0}={1}".format(k,v) for (k,v) in tags])
+                values_str = ",".join(["{0}={1}".format(k,v) for (k,v) in values])
+                lines += "{0},{1} {2}\n".format(name,tags_str,values_str)
+        send_to_telegraf(lines)
+
 class DatastreamMetricHandler:
     def unmangle(self,payload):
         out = []
@@ -96,7 +108,7 @@ class LoggingMetricHandler:
         logger.info(payload)
 
 METRIC_HANDLERS = {
-    "Client": [DatastreamMetricHandler(),ProgramRunMetricHandler()],
+    "Client": [DatastreamMetricHandler(),ProgramRunMetricHandler(),GeneralMetricHandler()],
     "": [LoggingMetricHandler()]
 }
 
