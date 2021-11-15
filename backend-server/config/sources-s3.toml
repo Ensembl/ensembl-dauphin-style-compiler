@@ -2,6 +2,5 @@
 driver = "s3"
 url="http://nginx/upload-20210808/"
 
-# Wheat contig file is broken
-[redirect.data.contig.triticum_aestivum_GCA_900519105]
-upstream=""
+[source.contigs."triticum_aestivum_GCA_900519105.1"]
+driver = "none"
