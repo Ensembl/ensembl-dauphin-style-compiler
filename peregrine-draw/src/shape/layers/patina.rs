@@ -30,6 +30,12 @@ impl PatinaAdder {
 #[derive(Clone,Debug,Hash,PartialEq,Eq)]
 pub(crate) enum PatinaProgramName { Direct, Spot, Texture, FreeTexture }
 
+impl PatinaProgramName {
+    pub(crate) fn key(&self) -> String {
+        format!("{:?}",self)
+    }
+}
+
 pub(crate) trait PatinaYielder {
     fn name(&self) -> &PatinaProcessName;
     fn make(&mut self, builder: &ProgramBuilder) -> Result<PatinaAdder,Message>;

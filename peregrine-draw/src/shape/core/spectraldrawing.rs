@@ -39,7 +39,7 @@ impl SpectralDrawing {
         Ok(())
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         if let Some(drawing) = self.0.lock().unwrap().as_mut() {
             drawing.draw(gl,stage,session,1.0)?;
         }

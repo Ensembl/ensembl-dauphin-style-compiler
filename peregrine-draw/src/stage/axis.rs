@@ -3,7 +3,6 @@ use std::cell::RefCell;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::util::message::Message;
-use crate::webgl::UniformProto;
 
 #[derive(Clone)]
 struct BootLock(Boot,bool);

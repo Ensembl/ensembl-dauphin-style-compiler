@@ -28,6 +28,12 @@ TODO intersection cache
 #[derive(Clone,Debug,PartialEq,Eq,Hash,PartialOrd,Ord)]
 pub(crate) struct ProgramCharacter(pub GeometryProcessName, pub PatinaProcessName);
 
+impl ProgramCharacter {
+    pub(crate) fn key(&self) -> String {
+        format!("{}/{}",self.0.key(),self.1.get_program_name().key())
+    }
+}
+
 pub(crate) struct Layer {
     programs: ProgramStore,
     store: HashMap<ProgramCharacter,ShapeProgram>,
@@ -87,7 +93,7 @@ impl Layer {
                 },
                 _ => {}
             }
-            processes.push(prog.into_process().build(gl,self.left)?);
+            processes.push(prog.into_process().build(gl,self.left,character)?);
         }
         Ok(processes)
     }

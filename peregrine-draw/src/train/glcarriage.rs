@@ -52,7 +52,7 @@ impl GLCarriage {
         Ok(!(stage.0 > carriage.1 || stage.1 < carriage.0))
     }
 
-    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) ->Result<(),Message> {
+    pub fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) ->Result<(),Message> {
         self.drawing.set_zmenu_px_per_screen(stage.x().drawable_size()?);
         let opacity = self.opacity.lock().unwrap().clone();
         if self.in_view(stage)? {

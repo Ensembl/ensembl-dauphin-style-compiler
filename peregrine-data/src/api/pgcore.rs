@@ -161,4 +161,8 @@ impl PeregrineCore {
     pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {
         self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_error_message(&self.base,message)));
     }
+
+    pub fn general_metric(&self, name: &str, tags: Vec<(String,String)>, values: Vec<(String,f64)>) {
+        self.base.queue.push(ApiMessage::GeneralMetric(name.to_string(),tags,values))
+    }
 }

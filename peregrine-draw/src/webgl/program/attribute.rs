@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use super::source::Source;
 use super::program::{ Program, ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
+use commander::cdr_current_time;
 use web_sys::{ WebGlRenderingContext, WebGlBuffer, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;
@@ -110,8 +111,15 @@ pub(crate) struct AttributeValues {
 
 impl AttributeValues {
     pub(crate) fn new(object: &Attribute, our_value: &[f32], context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<AttributeValues,Message> {
+        let now = cdr_current_time();
+        let gl_value = create_buffer(context,aux_array,our_value)?;
+        let took = cdr_current_time() - now;
+        if took > 0.5 {
+            use web_sys::console;
+            console::log_1(&format!("len={} {}ms",our_value.len(),took).into());
+        }
         Ok(AttributeValues {
-            gl_value: create_buffer(context,aux_array,our_value)?,
+            gl_value,
             arity: object.proto.arity.to_num() as i32,
             location: object.location.unwrap()
         })

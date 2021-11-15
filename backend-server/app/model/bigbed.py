@@ -20,7 +20,7 @@ def _get_bigbed_data(path,chrom,start,end):
         out = []
     return out
 
-def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
+def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=500):
     # angel's share: extra at start end end to allow seamless overlap
     angel_share = int((end-start)/nBins)+1
     start = start - 2*angel_share

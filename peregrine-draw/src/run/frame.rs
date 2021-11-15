@@ -19,11 +19,11 @@ fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager,
     let assets = web.assets.clone();
     web.trainset.transition_animate_tick(&web.data_api,gl,elapsed)?;
     if read_stage.ready() {
-        let mut session = DrawingSession::new();
+        let mut session = DrawingSession::new(web.trainset.scale());
         session.begin(gl)?;
-        web.trainset.draw_animate_tick(read_stage,gl,&session)?;
-        web.spectre_manager.draw(gl,&assets,read_stage,&session)?;
-        session.finish()?;
+        web.trainset.draw_animate_tick(read_stage,gl,&mut session)?;
+        web.spectre_manager.draw(gl,&assets,read_stage,&mut session)?;
+        session.finish(web.data_api)?;
     }
     Ok(())
 }

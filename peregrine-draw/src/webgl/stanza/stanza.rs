@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
+use commander::cdr_current_time;
 use js_sys::Float32Array;
 use keyed::{ KeyedData };
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
@@ -24,6 +25,7 @@ impl AttribSource {
 }
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
+    let now = cdr_current_time();
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(&buffer));
     // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
@@ -35,6 +37,11 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Resul
             WebGlRenderingContext::STATIC_DRAW,
         );
         drop(value_array);
+    }
+    let took = cdr_current_time() - now;
+    if took > 0.5 {
+        use web_sys::console;
+        console::log_1(&format!("s len={} {}ms",values.len(),took).into());
     }
     handle_context_errors(context)?;
     Ok(buffer)
@@ -52,6 +59,10 @@ impl ProcessStanza {
             attrib.replace(&source.get(),context,aux_array)?;
         }
         Ok(())
+    }
+
+    pub(crate) fn number_of_buffers(&self) -> usize {
+        self.attribs.len()
     }
 
     pub(super) fn new_elements(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {

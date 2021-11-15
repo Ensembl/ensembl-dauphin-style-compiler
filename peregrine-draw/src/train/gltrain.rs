@@ -87,7 +87,7 @@ impl GLTrain {
         Ok(out)
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         for carriage in self.carriages.values_mut() {
             carriage.draw(gl,stage,session)?;
         }

@@ -71,6 +71,7 @@ mod lane {
 mod metric {
     pub(crate) mod datastreammetric;
     pub(crate) mod errormetric;
+    pub(crate) mod generalreporter;
     pub(crate) mod metricreporter;
     pub(crate) mod metricutil;
     pub(crate) mod programrunmetric;

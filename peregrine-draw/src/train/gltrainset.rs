@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy};
+use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
@@ -140,32 +141,40 @@ impl GlTrainSetData {
         self.get_train(index).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
+    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(train).draw(gl,stage,&session)?;
+                self.get_train(train).draw(gl,stage,session)?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
                     if self.train_scale(from) > self.train_scale(to) {
                         /* zooming in, give priority to more detailed target */
-                        self.get_train(to).draw(gl,stage,&session)?;
-                        self.get_train(from).draw(gl,stage,&session)?;
+                        self.get_train(to).draw(gl,stage,session)?;
+                        self.get_train(from).draw(gl,stage,session)?;
                     } else {
                         /* zooming out, give priority to more detailed source */
-                        self.get_train(from).draw(gl,stage,&session)?;
-                        self.get_train(to).draw(gl,stage,&session)?;
+                        self.get_train(from).draw(gl,stage,session)?;
+                        self.get_train(to).draw(gl,stage,session)?;
                     }
                 } else {
-                    self.get_train(to).draw(gl,stage,&session)?;
+                    self.get_train(to).draw(gl,stage,session)?;
                 }
             },
         }
         Ok(())
     }
 
-    pub(crate) fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
+    fn scale(&mut self) -> Option<Scale> {
+        match self.fade_state.clone() {
+            FadeState::Constant(None) => None,
+            FadeState::Constant(Some(train)) => self.get_train(train).scale(),
+            FadeState::Fading(_,to,_,_,_) => self.get_train(to).scale()
+        }
+    }
+
+    fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
         match self.fade_state {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
@@ -201,7 +210,7 @@ impl GlTrainSet {
         Ok(())
     }
 
-    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &DrawingSession) -> Result<(),Message> {
+    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
         self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
     }
 
@@ -216,10 +225,12 @@ impl GlTrainSet {
     }
 
     pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        self.data.lock().unwrap().get_hotspot(stage,position)
+        lock!(self.data).get_hotspot(stage,position)
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        self.data.lock().unwrap().discard(gl)
+        lock!(self.data).discard(gl)
     }
+
+    pub fn scale(&self) -> Option<Scale> { lock!(self.data).scale() }
 }

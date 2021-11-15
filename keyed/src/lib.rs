@@ -93,6 +93,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
         K::new(idx)
     }
 
+    pub fn len(&self) -> usize { self.0.len()}
     pub fn get(&self, key: &K) -> &T { &self.0[key.get()] }
     pub fn get_mut(&mut self, key: &K) -> &mut T { &mut self.0[key.get()] }
     pub fn values(&self) -> impl Iterator<Item=&T> { self.0.iter() }

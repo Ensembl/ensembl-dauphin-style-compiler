@@ -11,25 +11,32 @@ use crate::request::core::request::RequestVariant;
 use crate::request::core::request::BackendRequest;
 use crate::request::messages::metricreq::MetricReport;
 use commander::cdr_timer;
+use peregrine_toolkit::lock;
+use std::ops::Add;
 use std::sync::Mutex;
 use std::sync::Arc;
 use crate::{PgCommander, PgCommanderTaskSpec, add_task };
 use serde_derive::{ Serialize };
+
+use super::generalreporter::GeneralMetricBuilder;
+use super::generalreporter::GeneralMetricData;
 
 #[derive(Clone,Serialize)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ClientMetricReport {
     identity: u64,
     datastream: Arc<DatastreamMetricData>,
-    programrun: Arc<ProgramRunMetricData>
+    programrun: Arc<ProgramRunMetricData>,
+    general: Arc<GeneralMetricData>
 }
 
 impl ClientMetricReport {
-    fn new(identity: u64, datastream_generator: &mut DatastreamMetricBuilder, programrun_generator: &mut ProgramRunMetricBuilder) -> ClientMetricReport {
+    fn new(identity: u64, datastream_generator: &mut DatastreamMetricBuilder, programrun_generator: &mut ProgramRunMetricBuilder, general_generator: &mut GeneralMetricBuilder) -> ClientMetricReport {
         ClientMetricReport {
             identity,
             datastream: Arc::new(DatastreamMetricData::new(datastream_generator)),
-            programrun: Arc::new(ProgramRunMetricData::new(programrun_generator))
+            programrun: Arc::new(ProgramRunMetricData::new(programrun_generator)),
+            general: Arc::new(GeneralMetricData::new(general_generator))
         }
     }
 
@@ -39,6 +46,7 @@ impl ClientMetricReport {
 struct MetricCollectorData {
     datastream: DatastreamMetricBuilder,
     program_run: ProgramRunMetricBuilder,
+    general: GeneralMetricBuilder,
     manager_and_channel: Option<(RequestManager,Channel)>,
     identity: u64
 }
@@ -48,6 +56,7 @@ impl MetricCollectorData {
         MetricCollectorData {
             datastream: DatastreamMetricBuilder::new(),
             program_run: ProgramRunMetricBuilder::new(),
+            general: GeneralMetricBuilder::new(),
             manager_and_channel: None,
             identity: 0
         }
@@ -60,7 +69,7 @@ impl MetricCollectorData {
 
     fn send(&mut self) -> Vec<BackendRequest> {
         let mut out = vec![];
-        let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run);
+        let report = ClientMetricReport::new(self.identity,&mut self.datastream,&mut self.program_run, &mut self.general);
         if !report.empty() {
             out.push(BackendRequest::new(RequestVariant::Metric(MetricReport::Client(report))));
         }
@@ -109,11 +118,15 @@ impl MetricCollector {
     }
 
     pub fn bootstrap(&mut self, channel: &Channel, identity: u64, manager: &RequestManager) {
-        self.data.lock().unwrap().bootstrap(channel,identity,manager);
+       lock!(self.data).bootstrap(channel,identity,manager);
     }
 
     pub fn add_datastream(&self, key: &DatastreamMetricKey, value: &DatastreamMetricValue) {
-        self.data.lock().unwrap().datastream.add(key,value);
+        lock!(self.data).datastream.add(key,value);
+    }
+
+    pub fn add_general(&self, name: &str, tags: &[(String,String)], values: &[(String,f64)]) {
+        lock!(self.data).general.add(name,tags,values);
     }
 
     #[cfg(debug_assertions)]

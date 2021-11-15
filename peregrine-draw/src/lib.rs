@@ -177,7 +177,7 @@ mod webgl {
     pub(crate) use gpuspec::glarity::GLArity;
     pub(crate) use gpuspec::precision::Precision;
 
-    mod program {
+    pub(crate) mod program {
         pub(crate) mod compiler;
         pub(crate) mod conditional;
         pub(crate) mod texture;

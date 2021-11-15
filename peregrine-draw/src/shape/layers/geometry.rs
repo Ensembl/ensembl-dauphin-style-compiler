@@ -190,6 +190,13 @@ pub(crate) enum GeometryProcessName {
 }
 
 impl GeometryProcessName {
+    pub(crate) fn key(&self) -> String {
+        match self {
+            GeometryProcessName::Triangles(g,t) => format!("{:?}-{:?}",g,t),
+            GeometryProcessName::Wiggle => "wiggle".to_string()
+        }
+    }
+
     pub(crate) fn get_program_name(&self) -> GeometryProgramName {
         match self {
             GeometryProcessName::Triangles(g,_) => GeometryProgramName::Triangles(g.clone()),

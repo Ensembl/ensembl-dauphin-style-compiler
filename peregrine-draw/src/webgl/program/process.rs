@@ -1,6 +1,8 @@
 use std::rc::Rc;
+use crate::shape::layers::layer::ProgramCharacter;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::{ Program, ProgramBuilder };
+use super::session::SessionMetric;
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues, TextureHandle };
 use keyed::KeyedData;
@@ -42,7 +44,7 @@ impl ProcessBuilder {
         &mut self.stanza_builder
     }
 
-    pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64) -> Result<Process,Message> {
+    pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
         let program = self.builder.make(gl.context(),gl.gpuspec())?;
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
@@ -53,7 +55,7 @@ impl ProcessBuilder {
             let handle = self.builder.get_texture_handle(&name)?;
             textures.get_mut(&handle).set_value(gl.flat_store(),&value)?;
         }
-        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left)
+        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character)
     }
 }
 
@@ -63,11 +65,12 @@ pub struct Process {
     program_stage: ProgramStage,
     uniforms: KeyedData<UniformHandle,UniformValues>,
     textures: KeyedData<TextureHandle,TextureValues>,
-    left: f64
+    left: f64,
+    character: ProgramCharacter
 }
 
 impl Process {
-    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64) -> Result<Process,Message> {
+    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
         let stanzas = program.make_stanzas(gl.context(),gl.aux_array(),&stanza_builder)?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
@@ -76,8 +79,13 @@ impl Process {
             program_stage,
             uniforms,
             textures,
-            left
+            left,
+            character: character.clone()
         })
+    }
+
+    pub fn number_of_buffers(&self) -> usize {
+        self.stanzas.iter().map(|x| x.number_of_buffers()).sum()
     }
 
     pub fn update_attributes(&self, gl: &mut WebGlGlobal) -> Result<(),Message> {
@@ -91,7 +99,7 @@ impl Process {
         self.uniforms.get_mut(handle).set_value(values)
     }
 
-    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64) -> Result<(),Message> {
+    pub(super) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, opacity: f64, stats: &mut SessionMetric) -> Result<(),Message> {
         let mut gl = gl.refs();
         gl.bindery.clear(gl.flat_store)?;
         let program_stage = self.program_stage.clone();
@@ -109,6 +117,7 @@ impl Process {
             stanza.deactivate(gl.context)?;
             handle_context_errors(gl.context)?;
         }
+        stats.add_character(&self.character);
         Ok(())
     }
 

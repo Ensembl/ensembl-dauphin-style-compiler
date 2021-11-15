@@ -24,6 +24,7 @@ pub enum ApiMessage {
     RegeneraateTrackConfig,
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
     ReportMetric(Channel,MetricReport),
+    GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets)
 }
 
@@ -86,6 +87,9 @@ impl ApiQueueCampaign {
             },
             ApiMessage::ReportMetric(channel,metric) => {
                 data.base.manager.execute_and_forget(&channel,BackendRequest::new(RequestVariant::Metric(metric)));
+            },
+            ApiMessage::GeneralMetric(name,tags,values) => {
+                data.base.metrics.add_general(&name,&tags,&values);
             },
             ApiMessage::SetAssets(assets) => {
                 *data.base.assets.lock().unwrap() = assets;
