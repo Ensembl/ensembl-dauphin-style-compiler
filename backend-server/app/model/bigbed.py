@@ -34,7 +34,7 @@ def get_bigwig_stats_data(path,chrom,start,end,consolidation="mean",nBins=1000):
             _bigwigs[path] = pyBigWig.open(path)
         bw = _bigwigs[path]
         out = bw.stats(chrom.name,start,end,nBins=nBins,type=consolidation) or []
-    except (RuntimeError,OverflowError) as e:
+    except (RuntimeError,OverflowError,RequestException) as e:
         out = []
     return (out,start,end)
 
@@ -47,7 +47,7 @@ def get_bigwig_data(path,chrom,start,end):
             _bigwigs[path] = pyBigWig.open(path)
         bw = _bigwigs[path]
         out = bw.values(chrom.name,start,end) or []
-    except (RuntimeError,OverflowError) as e:
+    except (RuntimeError,OverflowError,RequestException) as e:
         out = []
     return (out,start,end)
 
@@ -55,7 +55,7 @@ def get_bigbed(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
     accessor = data_accessor.resolver.get(item)
     chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:
-        raise RequestException("Cannot resolve item")
+        return []
     if accessor.file != None:
         return _get_bigbed_data(accessor.file,chromosome,start,end)
     elif accessor.url != None:
@@ -67,7 +67,7 @@ def get_bigwig(data_accessor: DataAccessor, item: AccessItem, start: int, end: i
     accessor = data_accessor.resolver.get(item)
     chromosome = data_accessor.data_model.stick(data_accessor,item.stick())
     if accessor == None:
-        raise RequestException("Cannot resolve item")
+        return ([],start,end)
     if accessor.file != None:
         return get_bigwig_data(accessor.file,chromosome,start,end)
     elif accessor.url != None:

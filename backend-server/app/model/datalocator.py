@@ -116,10 +116,15 @@ class FileDataSource(object):
         method = FileAccessMethod(self.root,item)
         return method
 
+class NoneDataSource(object):
+    def resolve(self, _item: AccessItem) -> Optional[AccessMethod]:
+        return None
+
 class DataSourceResolver:
     def __init__(self):
         self._paths = {}
         self._redirect = {}
+        self._blacklist = set()
         self._load(SOURCES_TOML)
 
     def _add_here(self,path,data):
@@ -128,6 +133,8 @@ class DataSourceResolver:
             self._paths[tuple(path)] = S3DataSource(data)
         elif driver == "file":
             self._paths[tuple(path)] = FileDataSource(data)
+        elif driver == "none":
+            self._paths[tuple(path)] = NoneDataSource()
         else:
             logging.critical("No such driver '{}'".format(driver))
 

@@ -33,7 +33,7 @@ values := values#[filter];
 
 patina := patina_filled(index(values,colours));
 
-rectangle(spacebase(r_start,0,-0.5),spacebase(r_end,5,0.5),patina,allotment);
+rectangle(spacebase(r_start,0,-1),spacebase(r_end,5,1),patina,allotment);
 
 /* track names */
 draw_track_names(["Variants"],[["track","variant","name"]],[use_allotment("track:variant:wallpaper[-3]")]);

@@ -1,3 +1,7 @@
 [source]
 driver = "file"
 root = "/usr/data/newsite/dev/genome_browser/s3-data"
+
+# Wheat contig file is broken
+[redirect.data.contig.triticum_aestivum_GCA_900519105]
+upstream=""
