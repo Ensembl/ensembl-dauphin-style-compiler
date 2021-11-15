@@ -16,7 +16,7 @@ allotment_top_left := use_allotment("track-top:ruler-top:wallpaper[58]{left:left
 allotment_bottom_left := use_allotment("track-bottom:ruler-bottom:wallpaper[58]{left:left-pad}");
 
 
-marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);
+marker_patina := patina_hollow(simple_colour(direct_colour(120,120,120,255)),1);
 
 /* top and bototm ruler */
 rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_top_wallpaper);

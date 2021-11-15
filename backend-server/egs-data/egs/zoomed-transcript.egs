@@ -177,8 +177,8 @@ focus_thick_colour := direct_colour(39,154,252,255);
 
 thick_colour := index(allotment_idx,[normal_thick_colour,normal_thick_colour,normal_thick_colour,normal_thick_colour,focus_thick_colour]);
 
-thick_seq_colour := spot_colour(thick_colour);
-thin_seq_colour := spot_colour(text_colour);
+thick_seq_colour := simple_colour(thick_colour);
+thin_seq_colour := simple_colour(text_colour);
 thick_seq_patina := patina_filled(thick_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 

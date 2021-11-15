@@ -111,13 +111,7 @@ pub(crate) struct AttributeValues {
 
 impl AttributeValues {
     pub(crate) fn new(object: &Attribute, our_value: &[f32], context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<AttributeValues,Message> {
-        let now = cdr_current_time();
         let gl_value = create_buffer(context,aux_array,our_value)?;
-        let took = cdr_current_time() - now;
-        if took > 0.5 {
-            use web_sys::console;
-            console::log_1(&format!("len={} {}ms",our_value.len(),took).into());
-        }
         Ok(AttributeValues {
             gl_value,
             arity: object.proto.arity.to_num() as i32,

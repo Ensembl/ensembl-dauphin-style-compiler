@@ -13,8 +13,8 @@ sense := positive_seq(data,"sense");
 
 allotment := use_allotment("track:contig");
 
-neg_colour := spot_colour(direct_colour(128,128,128,255));
-pos_colour := spot_colour(direct_colour(200,200,200,255));
+neg_colour := simple_colour(direct_colour(128,128,128,255));
+pos_colour := simple_colour(direct_colour(200,200,200,255));
 patina := patina_filled(index(sense,[neg_colour,pos_colour]));
 
 rectangle_on_genome(start,end,5,patina,allotment);

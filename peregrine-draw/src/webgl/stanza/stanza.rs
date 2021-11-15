@@ -25,7 +25,6 @@ impl AttribSource {
 }
 
 fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Result<WebGlBuffer,Message> {
-    let now = cdr_current_time();
     let buffer = context.create_buffer().ok_or(Message::WebGLFailure(format!("failed to create buffer")))?;
     context.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,Some(&buffer));
     // After `Int16Array::view` be very careful not to do any memory allocations before it's dropped.
@@ -37,11 +36,6 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Resul
             WebGlRenderingContext::STATIC_DRAW,
         );
         drop(value_array);
-    }
-    let took = cdr_current_time() - now;
-    if took > 0.5 {
-        use web_sys::console;
-        console::log_1(&format!("s len={} {}ms",values.len(),took).into());
     }
     handle_context_errors(context)?;
     Ok(buffer)
