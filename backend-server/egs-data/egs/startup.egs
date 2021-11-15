@@ -63,7 +63,7 @@ track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
 /* exon-structure; labels ; zmenus; no sequence blocks */
-p := track_new("self()","transcript",sequence_scale,18,3);
+p := track_new("self()","transcript",sequence_scale,18,6);
 track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
