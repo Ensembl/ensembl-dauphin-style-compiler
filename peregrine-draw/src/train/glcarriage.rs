@@ -45,7 +45,6 @@ impl GLCarriage {
         *self.opacity.lock().unwrap() = amount;
     }
 
-
     fn in_view(&self, stage: &ReadStage) -> Result<bool,Message> {
         let stage = stage.x().left_right()?;
         let carriage = self.id.left_right();

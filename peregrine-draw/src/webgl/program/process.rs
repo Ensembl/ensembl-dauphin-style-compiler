@@ -45,7 +45,8 @@ impl ProcessBuilder {
     }
 
     pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
-        let program = self.builder.make(gl.context(),gl.gpuspec())?;
+        let gl_ref = gl.refs();
+        let program = self.builder.make(gl_ref.context,gl_ref.gpuspec)?;
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
             uniforms.get_mut(&name).set_value(&value)?;
@@ -53,7 +54,8 @@ impl ProcessBuilder {
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
             let handle = self.builder.get_texture_handle(&name)?;
-            textures.get_mut(&handle).set_value(gl.flat_store(),&value)?;
+            let gl_ref = gl.refs();
+            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value)?;
         }
         Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character)
     }
@@ -71,7 +73,8 @@ pub struct Process {
 
 impl Process {
     fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
-        let stanzas = program.make_stanzas(gl.context(),gl.aux_array(),&stanza_builder)?;
+        let gl_ref = gl.refs();
+        let stanzas = program.make_stanzas(gl_ref.context,gl_ref.aux_array,&stanza_builder)?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
             program,
@@ -89,8 +92,9 @@ impl Process {
     }
 
     pub fn update_attributes(&self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        let gl_ref = gl.refs();
         for stanza in &self.stanzas {
-            stanza.update_values(gl.context(),gl.aux_array())?;
+            stanza.update_values(gl_ref.context,gl_ref.aux_array)?;
         }
         Ok(())
     }

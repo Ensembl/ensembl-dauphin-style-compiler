@@ -156,7 +156,7 @@ impl SizeManager {
 //        let x = (x/4)*4;
 //        let y = (y/4)*4;
         self.dom.set_canvas_size(x,y);
-        *draw.webgl.lock().unwrap().canvas_size() = Some((x,y));
+        *draw.webgl.lock().unwrap().refs().canvas_size = Some((x,y));
         let mut stage = draw.stage.lock().unwrap();
         //use web_sys::console;
         //console::log_1(&format!("{}x{}",x,y).into());        

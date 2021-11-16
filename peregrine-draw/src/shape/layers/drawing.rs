@@ -93,9 +93,10 @@ pub(crate) struct DrawingBuilder {
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(scale: Option<&Scale>, gl: &WebGlGlobal, assets: &Assets, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
+        let gl_ref = gl.refs();
         Ok(DrawingBuilder {
-            main_layer: Layer::new(gl.program_store(),left)?,
+            main_layer: Layer::new(gl_ref.program_store,left)?,
             tools: DrawingTools::new(assets,scale,left),
             flats: None,
             variables: variables.clone(),
@@ -113,7 +114,8 @@ impl DrawingBuilder {
         let mut prep = self.tools.start_preparation(gl)?;
         let mut drawable = DrawingAllFlatsBuilder::new();
         prep.allocate(gl,&mut drawable)?;
-        self.tools.finish_preparation(gl.flat_store_mut(),prep)?;
+        let gl_ref = gl.refs();
+        self.tools.finish_preparation(gl_ref.flat_store,prep)?;
         self.flats = Some(drawable);
         Ok(())
     }

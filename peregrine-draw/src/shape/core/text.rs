@@ -33,8 +33,9 @@ impl Text {
 
 impl FlatDrawingItem for Text {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
-        let document = gl.document().clone();
-        let canvas = gl.flat_store_mut().scratch(&document,&CanvasWeave::Crisp,(100,100))?;
+        let gl_ref = gl.refs();
+        let document = gl_ref.document.clone();
+        let canvas = gl_ref.flat_store.scratch(&document,&CanvasWeave::Crisp,(100,100))?;
         canvas.set_font(&self.pen)?;
         canvas.measure(&self.text)
     }

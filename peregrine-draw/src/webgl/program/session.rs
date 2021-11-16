@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::process::Process;
 use crate::shape::layers::layer::ProgramCharacter;
 use crate::stage::stage::{ ReadStage };
+use crate::webgl::util::handle_context_errors;
 use peregrine_data::{PeregrineCore, Scale};
 use web_sys::{ WebGlRenderingContext };
 use crate::webgl::global::WebGlGlobal;
@@ -70,23 +71,24 @@ impl DrawingSession {
     }
 
     pub(crate) fn begin(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        let size = gl.canvas_size().clone()
+        let gl_ref = gl.refs();
+        let size = gl_ref.canvas_size.clone()
             .ok_or_else(|| Message::ConfusedWebBrowser(format!("unsized canvas")))?;
         //use web_sys::console;
         //console::log_1(&format!("init {} {}",size.0,size.1).into());    
-        gl.context().enable(WebGlRenderingContext::DEPTH_TEST);
-        gl.context().enable(WebGlRenderingContext::BLEND);
-        gl.context().enable(WebGlRenderingContext::SCISSOR_TEST);
-        gl.context().depth_func(WebGlRenderingContext::LEQUAL);
-        gl.context().viewport(0,0,size.0 as i32,size.1 as i32);
-        gl.context().scissor(0,0,size.0 as i32,size.1 as i32);
-        gl.context().clear_color(1., 1., 1., 1.);
-        gl.context().depth_mask(true);
-        gl.handle_context_errors()?;
-        gl.context().clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
-        gl.handle_context_errors()?;
-        gl.context().blend_func_separate(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA, WebGlRenderingContext::ONE, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
-        gl.handle_context_errors()?;
+        gl_ref.context.enable(WebGlRenderingContext::DEPTH_TEST);
+        gl_ref.context.enable(WebGlRenderingContext::BLEND);
+        gl_ref.context.enable(WebGlRenderingContext::SCISSOR_TEST);
+        gl_ref.context.depth_func(WebGlRenderingContext::LEQUAL);
+        gl_ref.context.viewport(0,0,size.0 as i32,size.1 as i32);
+        gl_ref.context.scissor(0,0,size.0 as i32,size.1 as i32);
+        gl_ref.context.clear_color(1., 1., 1., 1.);
+        gl_ref.context.depth_mask(true);
+        handle_context_errors(&gl_ref.context)?;
+        gl_ref.context.clear(WebGlRenderingContext::COLOR_BUFFER_BIT|WebGlRenderingContext::DEPTH_BUFFER_BIT);
+        handle_context_errors(&gl_ref.context)?;
+        gl_ref.context.blend_func_separate(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA, WebGlRenderingContext::ONE, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA);
+        handle_context_errors(&gl_ref.context)?;
         Ok(())
     }
 

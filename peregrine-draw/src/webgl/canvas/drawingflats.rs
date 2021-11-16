@@ -20,8 +20,9 @@ impl DrawingAllFlats {
     }
 
     fn allocate(&mut self, gl: &mut WebGlGlobal, weave: &CanvasWeave, size: (u32,u32), uniform_name: &str) -> Result<FlatId,Message> {
-        let document = gl.document().clone();
-        let id = gl.flat_store_mut().allocate(&document,weave,size)?;
+        let gl_ref = gl.refs();
+        let document = gl_ref.document.clone();
+        let id = gl_ref.flat_store.allocate(&document,weave,size)?;
         self.main_canvases.insert(id.clone(),uniform_name.to_string());
         Ok(id)
     }
