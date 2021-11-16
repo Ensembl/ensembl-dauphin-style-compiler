@@ -24,7 +24,7 @@ variables:
     - docker logout $CI_REGISTRY
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "deploy2envs"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes: 
         - backend-server/*
 
@@ -57,7 +57,7 @@ variables:
     - kustomize build ${BASE}/lo | kubectl apply -f -
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "deploy2envs"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes: 
         - backend-server/*
 
