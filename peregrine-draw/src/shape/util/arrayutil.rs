@@ -24,40 +24,40 @@ pub fn plain_rectangle4<T>(data: &mut Vec<T>, b_left: T, b_top: T, b_right: T, b
 }
 
 fn hollow_rectangle4<T>(data: &mut Vec<T>, b_left: T, b_top: T, b_right: T, b_bottom: T, d_left: T, d_top: T, d_right: T, d_bottom: T, w: T) where T: Sub<Output=T> + Add<Output=T> + Copy {
-    data.push(b_left);
-    data.push(b_top);
-    data.push(d_left+w);
-    data.push(d_top+w);
+    data.push(b_left+w);
+    data.push(b_top+w);
+    data.push(d_left);
+    data.push(d_top);
 
     data.push(b_left);
     data.push(b_top);
     data.push(d_left);
     data.push(d_top);
 
-    data.push(b_left);
-    data.push(b_bottom);
-    data.push(d_left+w);
-    data.push(d_bottom+w);
+    data.push(b_left+w);
+    data.push(b_bottom+w);
+    data.push(d_left);
+    data.push(d_bottom);
 
     data.push(b_left);
     data.push(b_bottom);
     data.push(d_left);
     data.push(d_bottom);
 
-    data.push(b_right);
-    data.push(b_bottom);
-    data.push(d_right+w);
-    data.push(d_bottom+w);
+    data.push(b_right+w);
+    data.push(b_bottom+w);
+    data.push(d_right);
+    data.push(d_bottom);
 
     data.push(b_right);
     data.push(b_bottom);    
     data.push(d_right);
     data.push(d_bottom);    
 
-    data.push(b_right);
-    data.push(b_top);
-    data.push(d_right+w);
-    data.push(d_top+w);
+    data.push(b_right+w);
+    data.push(b_top+w);
+    data.push(d_right);
+    data.push(d_top);
 
     data.push(b_right);
     data.push(b_top);

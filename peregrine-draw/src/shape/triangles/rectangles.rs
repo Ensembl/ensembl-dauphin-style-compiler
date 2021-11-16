@@ -95,12 +95,12 @@ impl Rectangles {
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 }
 
-fn add_spacebase4(point: &SpaceBase<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>) -> Result<Vec<f32>,Message> {
+fn add_spacebase4(point: &SpaceBase<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>, depth: f64) -> Result<Vec<f32>,Message> {
     let area = SpaceBaseArea::new(point.clone(),point.clone());
-    add_spacebase_area4(&area,coord_system,allotments,left,width)
+    add_spacebase_area4(&area,coord_system,allotments,left,width,depth)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>)-> Result<Vec<f32>,Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>,depth: f64)-> Result<Vec<f32>,Message> {
     let mut data = vec![];
     let applied_left = if coord_system.is_tracking() { left } else { 0. };
     for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("sba1",allotments.iter(area.len()))?) {
@@ -111,10 +111,16 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSyste
         if !coord_system.is_tracking() {
             if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
             if x1 < 0. { x1 = -x1-1.; bx1 = 1.; }
+            if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
+            if y1 < 0. { y1 = -y1-1.; by1 = 1.; }
+            if coord_system.flip_xy() {
+                rectangle4(&mut data, y0,x0, y1,x1,by0,bx0,by1,bx1,width);
+            } else {
+                rectangle4(&mut data, x0,y0, x1,y1,bx0,by0,bx1,by1,width);
+            }    
+        } else {
+            rectangle4(&mut data, x0,y0, x1,y1,bx0,depth,bx1,depth,width);    
         }
-        if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
-        if y1 < 0. { y1 = -y1-1.; by1 = 1.; }
-        rectangle4(&mut data, bx0,by0, bx1,by1,x0,y0,x1,y1,width);
     }
     Ok(data)
 }
@@ -122,10 +128,11 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSyste
 impl DynamicShape for Rectangles {
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
         let area = self.location.apply(variables);
-        let data = add_spacebase_area4(&area,&self.kind.coord_system(),&self.allotments,self.left,self.width)?;
+        let gl_depth = 1.0 - (self.kind.depth() as f64+128.) / 255.;
+        let data = add_spacebase_area4(&area,&self.kind.coord_system(),&self.allotments,self.left,self.width,gl_depth)?;
         self.program.add_data4(&mut self.elements,data,self.kind.depth())?;
         if self.program.origin_coords.is_some() {
-            let data= add_spacebase4(&area.middle_base(),&self.kind.coord_system(),&self.allotments,self.left,self.width)?;
+            let data= add_spacebase4(&area.middle_base(),&self.kind.coord_system(),&self.allotments,self.left,self.width,gl_depth)?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())

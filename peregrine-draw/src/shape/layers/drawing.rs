@@ -187,14 +187,12 @@ impl Drawing {
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Message> {
-        let mut processes = 0;
         let recompute =  self.recompute.is_needed();
         for process in &mut self.processes {
             if recompute {
                 process.update_attributes(gl)?;
             }
             session.run_process(gl,stage,process,opacity)?;
-            processes += 1;
         }
         Ok(())
     }

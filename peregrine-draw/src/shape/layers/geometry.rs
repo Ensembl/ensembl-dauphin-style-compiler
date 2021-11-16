@@ -48,8 +48,8 @@ impl GeometryYielder {
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum TrianglesGeometry {
     Tracking,
-    Window,
-    Sideways
+    TrackingBottom,
+    Window
 }
 
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
@@ -71,8 +71,8 @@ impl EnumerableKey for GeometryProgramName {
         Enumerable(match self {
             GeometryProgramName::Wiggle => 0,
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => 1,
-            GeometryProgramName::Triangles(TrianglesGeometry::Window) => 2,
-            GeometryProgramName::Triangles(TrianglesGeometry::Sideways) => 3,
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingBottom) => 2,
+            GeometryProgramName::Triangles(TrianglesGeometry::Window) => 3,
         },4)
     }
 }
@@ -90,16 +90,15 @@ impl GeometryProgramName {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
-                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
                         return uModel * uTransform * vec4(
-                            (p.x -uStageHpos) * uStageZoom + 
-                                        p.z / uSize.x,
-                            (- uStageVpos + p.a) / uSize.y + p.y*2.0 - 1.0, 
-                            aDepth, 1.0);
+                            (p.z -uStageHpos) * uStageZoom + 
+                                        p.x / uSize.x,
+                            (uStageVpos - p.y) / uSize.y + 1.0, 
+                            p.a, 1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -114,21 +113,22 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(TrianglesGeometry::Sideways) => vec![
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingBottom) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
-                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(    p.a/uSize.x+p.y*2.0-1.0,
-                                                              p.z/uSize.y+p.x*2.0-1.0,    
-                                                              aDepth,1.0);
+                        return uModel * uTransform * vec4(
+                            (p.z -uStageHpos) * uStageZoom + 
+                                        p.x / uSize.x,
+                            (p.y - uStageVpos) / uSize.y - 1.0, 
+                            p.a, 1.0);
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aCoords)
+                    gl_Position = transform(aCoords);
                 "),
                 Conditional::new("need-origin",vec![
                     AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
@@ -147,8 +147,8 @@ impl GeometryProgramName {
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(p.z/uSize.x+p.x*2.0-1.0,
-                                                          p.a/uSize.y+p.y*2.0-1.0,    aDepth,1.0);
+                        return uModel * uTransform * vec4(p.x/uSize.x+p.z*2.0-1.0,
+                                                          p.y/uSize.y+p.a*2.0-1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("

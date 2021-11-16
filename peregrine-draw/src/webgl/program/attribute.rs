@@ -1,9 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 
 use super::source::Source;
-use super::program::{ Program, ProgramBuilder };
+use super::program::{ ProgramBuilder };
 use super::super::{ GLArity, GPUSpec, Precision, Phase };
-use commander::cdr_current_time;
 use web_sys::{ WebGlRenderingContext, WebGlBuffer, WebGlProgram };
 use keyed::keyed_handle;
 use crate::webgl::util::handle_context_errors;

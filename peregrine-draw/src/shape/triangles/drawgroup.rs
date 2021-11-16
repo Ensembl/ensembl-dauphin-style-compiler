@@ -32,12 +32,12 @@ impl DrawGroup {
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
         let (system,transform) = match self.coord_system() {
-            CoordinateSystem::Tracking => (TrianglesGeometry::Tracking,TrianglesTransform::NegativeY),
-            CoordinateSystem::TrackingBottom => (TrianglesGeometry::Tracking,TrianglesTransform::Identity),
+            CoordinateSystem::Tracking => (TrianglesGeometry::Tracking,TrianglesTransform::Identity),
+            CoordinateSystem::TrackingBottom => (TrianglesGeometry::TrackingBottom,TrianglesTransform::Identity),
             CoordinateSystem::Window => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
             CoordinateSystem::WindowBottom => (TrianglesGeometry::Window,TrianglesTransform::Identity),
-            CoordinateSystem::SidewaysLeft => (TrianglesGeometry::Sideways,TrianglesTransform::NegativeY),
-            CoordinateSystem::SidewaysRight =>  (TrianglesGeometry::Sideways,TrianglesTransform::NegativeXY),
+            CoordinateSystem::SidewaysLeft => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
+            CoordinateSystem::SidewaysRight =>  (TrianglesGeometry::Window,TrianglesTransform::NegativeXY),
         };
         GeometryProcessName::Triangles(system,transform)
     }

@@ -19,6 +19,13 @@ impl CoordinateSystem {
             _ => false
         }
     }
+
+    pub fn flip_xy(&self) -> bool {
+        match self {
+            CoordinateSystem::SidewaysLeft | CoordinateSystem::SidewaysRight => true,
+            _ => false
+        }
+    }
 }
 
 pub trait AllotmentImpl {
