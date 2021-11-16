@@ -10,3 +10,8 @@ spec:
           envFrom:
           - configMapRef:
               name: new-genome-browser-server-configmap-hi
+      volumes:
+        - name: new-genome-browser-server-data-vol
+          nfs:
+            path: <NFS_PATH>
+            server: <NFS_SERVER>
