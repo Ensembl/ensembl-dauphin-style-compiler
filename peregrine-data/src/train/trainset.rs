@@ -1,4 +1,5 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::plumbing::onchange::OnChange;
 use peregrine_toolkit::sync::blocker::{Blocker, Lockout};
 
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
@@ -7,9 +8,10 @@ use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec};
 use crate::api::{MessageSender, PeregrineCore, PlayingField};
 use crate::core::{ Scale, Viewport };
 use super::anticipate::Anticipate;
-use super::train::{ Train, TrainId };
+use super::train::{ Train };
 use super::carriage::Carriage;
 use super::carriageevent::CarriageEvents;
+use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
 
@@ -25,9 +27,9 @@ pub struct TrainSetData {
     next_activation: u32,
     messages: MessageSender,
     anticipate: Anticipate,
-    playing_field: Option<PlayingField>,
+    playing_field: OnChange<PlayingField>,
+    metadata: OnChange<AllotmentMetadataReport>,
     visual_blocker: Blocker,
-    old_metadata: Option<AllotmentMetadataReport>,
     #[allow(unused)]
     visual_lockout: Option<Lockout>
 }
@@ -41,54 +43,10 @@ impl TrainSetData {
             next_activation: 0,
             messages: base.messages.clone(),
             anticipate: Anticipate::new(base,result_store),
-            playing_field: None,
+            playing_field: OnChange::new(),
             visual_blocker: visual_blocker.clone(),
             visual_lockout: None,
-            old_metadata: None
-        }
-    }
-
-    fn maybe_allotment_metadata(&mut self, events: &mut CarriageEvents) {
-        if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.is_active() {
-                if let Some(metadata) = quiescent.allotter_metadata() {
-                    if let Some(old_metadata) = &self.old_metadata {
-                        if &metadata == old_metadata { return; }
-                    }
-                    events.send_allotment_metadata(&metadata);
-                    self.old_metadata = Some(metadata);
-                }
-            }
-        }
-    }
-
-    fn promote(&mut self, events: &mut CarriageEvents) {
-        if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
-            if let Some(mut wanted) = self.wanted.take() {
-                let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
-                wanted.set_active(events,self.next_activation,speed);
-                self.next_activation += 1;
-                self.future = Some(wanted);
-                self.maybe_allotment_metadata(events);
-                self.maybe_new_playingfield(events);
-                self.notify_viewport(events);
-            }
-        }
-    }
-
-    fn new_wanted(&mut self, events: &mut CarriageEvents, train_id: &TrainId, viewport: &Viewport) -> Result<(),DataMessage> {
-        self.wanted = Some(Train::new(train_id,events,viewport,&self.messages)?);
-        Ok(())
-    }
-
-    fn update_visual_lock(&mut self) {
-        let new_busy = !(self.future.is_none() && self.wanted.is_none());
-        if new_busy {
-            if self.visual_lockout.is_none() {
-                self.visual_lockout = Some(self.visual_blocker.lock());
-            }
-        } else {
-            self.visual_lockout = None;
+            metadata: OnChange::new()
         }
     }
 
@@ -105,6 +63,55 @@ impl TrainSetData {
         }
     }
 
+    fn each_current_train<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Train) {
+        if let Some(wanted) = &self.wanted { cb(state,wanted); }
+        if let Some(future) = &self.future { cb(state,future); }
+        if let Some(current) = &self.current { cb(state,current); }
+    }
+
+    fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
+        self.each_current_train(state,&|state,train| train.each_current_carriage(state,cb));
+    }
+
+    /**/
+
+    fn maybe_allotment_metadata(&mut self, events: &mut CarriageEvents) {
+        if let Some(quiescent) = self.quiescent_target() {
+            if quiescent.is_active() {
+                if let Some(metadata) = quiescent.allotter_metadata() {
+                    self.metadata.update(metadata,|metadata| {
+                        events.send_allotment_metadata(&metadata);
+                    });
+                }
+            }
+        }
+    }
+
+    fn promote(&mut self, events: &mut CarriageEvents) {
+        if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
+            if let Some(mut wanted) = self.wanted.take() {
+                let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
+                wanted.set_active(events,self.next_activation,speed);
+                self.next_activation += 1;
+                self.future = Some(wanted);
+                self.maybe_allotment_metadata(events);
+                self.maybe_new_playingfield(events);
+                self.notify_viewport(events);
+            }
+        }
+    }
+
+    fn update_visual_lock(&mut self) {
+        let new_busy = !(self.future.is_none() && self.wanted.is_none());
+        if new_busy {
+            if self.visual_lockout.is_none() {
+                self.visual_lockout = Some(self.visual_blocker.lock());
+            }
+        } else {
+            self.visual_lockout = None;
+        }
+    }
+
     fn notify_viewport(&self, events: &mut CarriageEvents) {
         if let Some(train) = self.future.as_ref().or_else(|| self.current.as_ref()) {
             events.notify_viewport(&train.viewport(),false);
@@ -112,24 +119,15 @@ impl TrainSetData {
     }
 
     fn maybe_new_wanted(&mut self, events: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        let train_id = TrainId::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
+        let train_id = TrainExtent::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.id() == train_id {
+            if quiescent.extent() == train_id {
                 new_target_needed = false;
             }
         }
         if new_target_needed {
-            self.new_wanted(events,&train_id,viewport)?;
-        }
-        Ok(())
-    }
-
-    fn set_train_position(&self, events: &mut CarriageEvents, train: Option<&Train>, viewport: &Viewport) -> Result<(),DataMessage> {
-        if let Some(train) = train {
-            if viewport.layout()?.stick() == train.id().layout().stick() {
-                train.set_position(&mut events.clone(),viewport)?;
-            }
+            self.wanted = Some(Train::new(&train_id,events,viewport,&self.messages)?);
         }
         Ok(())
     }
@@ -140,9 +138,12 @@ impl TrainSetData {
         if let Some(train) = self.quiescent_target() {
             self.anticipate.anticipate(train,viewport.position()?);
         }
-        self.set_train_position(events,self.wanted.as_ref(),viewport)?;
-        self.set_train_position(events,self.future.as_ref(),viewport)?;
-        self.set_train_position(events,self.current.as_ref(),viewport)?;
+        let viewport_stick = viewport.layout()?.stick();
+        self.each_current_train(events,&|events,train| {
+            if viewport_stick == train.extent().layout().stick() {
+                train.set_position(&mut events.clone(),viewport); // XXX error handling
+            }
+        });
         self.promote(events);
         self.notify_viewport(events);
         Ok(())
@@ -176,22 +177,12 @@ impl TrainSetData {
 
     fn maybe_new_playingfield(&mut self, events: &mut CarriageEvents) {
         let mut playing_field = PlayingField::empty();
-        if let Some(wanted) = &self.wanted {
-            playing_field.union(&wanted.playingfield());
-        }
-        if let Some(future) = &self.future {
-            playing_field.union(&future.playingfield());
-        }
-        if let Some(current) = &self.current {
-            playing_field.union(&current.playingfield());
-        }
-        if let Some(old_playing_field) = &self.playing_field {
-            if old_playing_field == &playing_field {
-                return;
-            }
-        }
-        events.notify_playingfield(playing_field.clone());
-        self.playing_field = Some(playing_field);
+        self.each_current_carriage(&mut playing_field, &|playing_field,carriage| {
+            playing_field.union(&carriage.shapes().universe().playingfield());
+        });
+        self.playing_field.update(playing_field, |playing_field| {
+            events.notify_playingfield(playing_field.clone());
+        });
     }
 }
 

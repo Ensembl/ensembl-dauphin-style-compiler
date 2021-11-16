@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, Carriage, CarriageId, Scale, VariableValues, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageExtent, Scale, VariableValues, ZMenuProxy};
 use crate::shape::layers::drawing::{ Drawing };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -9,7 +9,7 @@ use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 pub(crate) struct GLCarriage {
-    id: CarriageId,
+    extent: CarriageExtent,
     scale: Scale,
     opacity: Mutex<f64>,
     drawing: Drawing
@@ -17,7 +17,7 @@ pub(crate) struct GLCarriage {
 
 impl PartialEq for GLCarriage {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+        self.extent == other.extent
     }
 }
 
@@ -25,7 +25,7 @@ impl Eq for GLCarriage {}
 
 impl Hash for GLCarriage {
     fn hash<H: Hasher>(&self, hasher: &mut H) {
-        self.id.hash(hasher);
+        self.extent.hash(hasher);
     }
 }
 
@@ -33,13 +33,13 @@ impl GLCarriage {
     pub fn new(carriage: &Carriage, scale: &Scale, opacity: f64, gl: &mut WebGlGlobal, assets: &Assets) -> Result<GLCarriage,Message> {
         Ok(GLCarriage {
             scale: scale.clone(),
-            id: carriage.id().clone(),
+            extent: carriage.extent().clone(),
             opacity: Mutex::new(opacity),
-            drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.id().left_right().0,&VariableValues::new(),assets)?
+            drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.extent().left_right().0,&VariableValues::new(),assets)?
         })
     }
 
-    pub fn id(&self) -> &CarriageId { &self.id }
+    pub fn extent(&self) -> &CarriageExtent { &self.extent }
 
     pub(super) fn set_opacity(&self, amount: f64) {
         *self.opacity.lock().unwrap() = amount;
@@ -47,7 +47,7 @@ impl GLCarriage {
 
     fn in_view(&self, stage: &ReadStage) -> Result<bool,Message> {
         let stage = stage.x().left_right()?;
-        let carriage = self.id.left_right();
+        let carriage = self.extent.left_right();
         Ok(!(stage.0 > carriage.1 || stage.1 < carriage.0))
     }
 

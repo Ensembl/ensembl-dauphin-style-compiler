@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, Carriage, CarriageId, Scale, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageExtent, Scale, ZMenuProxy};
 use peregrine_toolkit::sync::needed::Needed;
 use std::collections::{ HashMap, HashSet };
 use std::rc::Rc;
@@ -9,7 +9,7 @@ use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
 pub struct GLTrain {
-    carriages: HashMap<CarriageId,GLCarriage>,
+    carriages: HashMap<CarriageExtent,GLCarriage>,
     opacity: f64,
     max: Option<u64>,
     redraw_needed: Needed
@@ -50,16 +50,16 @@ impl GLTrain {
     
     pub(super) fn set_carriages(&mut self, scale: &Scale, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
         let mut dont_keeps : HashSet<_> = self.carriages.keys().cloned().collect();
-        let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.id()).cloned().collect();
+        let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.extent()).cloned().collect();
         for new in new_carriages {
-            dont_keeps.remove(new.id());
+            dont_keeps.remove(new.extent());
         }
         for old in self.carriages.keys() {
             novels.remove(old);
         }
         let mut target = HashMap::new();
         for (id,mut carriage) in self.carriages.drain() {
-            if dont_keeps.contains(&carriage.id()) {
+            if dont_keeps.contains(&carriage.extent()) {
                 carriage.discard(gl)?;
             } else {
                 target.insert(id,carriage);
@@ -67,8 +67,8 @@ impl GLTrain {
         }
         let mut redraw = false;
         for carriage in new_carriages {
-            if novels.contains(carriage.id()) {
-                target.insert(carriage.id().clone(),GLCarriage::new(carriage,scale,self.opacity,gl,assets)?);
+            if novels.contains(carriage.extent()) {
+                target.insert(carriage.extent().clone(),GLCarriage::new(carriage,scale,self.opacity,gl,assets)?);
                 redraw = true;
             }
         }

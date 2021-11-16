@@ -1,13 +1,13 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use commander::CommanderStream;
 
-use crate::{Carriage, CarriageId, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
-use super::{carriage::CarriageLoadMode, train::{Train, TrainId}};
+use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
+use super::{carriage::CarriageLoadMode, train::{Train}, trainextent::TrainExtent};
 
 #[derive(Clone)]
 struct AnticipatedCarriages {
-    hot_carriages: Arc<Mutex<HashMap<CarriageId,Carriage>>>,
-    warm_carriages: Arc<Mutex<HashMap<CarriageId,Carriage>>>,
+    hot_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
+    warm_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
 }
 
 impl AnticipatedCarriages {
@@ -18,20 +18,20 @@ impl AnticipatedCarriages {
         }
     }
 
-    fn insert(&mut self, id: &CarriageId, carriage: &Carriage, batch: bool) {
+    fn insert(&mut self, id: &CarriageExtent, carriage: &Carriage, batch: bool) {
         let carriages = if batch { &mut self.warm_carriages } else { &mut self.hot_carriages };
         carriages.lock().unwrap().insert(id.clone(),carriage.clone());
     }
 
-    fn contains(&self, id: &CarriageId, batch: bool) -> bool {
+    fn contains(&self, id: &CarriageExtent, batch: bool) -> bool {
         if self.hot_carriages.lock().unwrap().contains_key(id) { return true; }
         if !batch { return false; }
         self.warm_carriages.lock().unwrap().contains_key(id)
     }
 
     fn make_carriage(&mut self, layout: &Layout, scale: &Scale, index: u64, batch: bool) -> Option<Carriage> {
-        let train_id = TrainId::new(layout,&scale);
-        let carriage_id = CarriageId::new(&train_id,index);
+        let train_id = TrainExtent::new(layout,&scale);
+        let carriage_id = CarriageExtent::new(&train_id,index);
         if self.contains(&carriage_id,batch) { return None; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
         let carriage = Carriage::new(&carriage_id,&train_track_config_list,None);
@@ -65,12 +65,12 @@ struct AnticipatePosition {
 
 impl AnticipatePosition {
     fn new(train: &Train, position: f64) -> AnticipatePosition {
-        let train_id = train.id();
-        let scale = train_id.scale();
+        let train_extent = train.extent();
+        let scale = train_extent.scale();
         AnticipatePosition {
             scale: scale.clone(),
             index: scale.carriage(position),
-            layout: train_id.layout().clone()
+            layout: train_extent.layout().clone()
         }
     }
 

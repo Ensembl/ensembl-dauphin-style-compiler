@@ -5,7 +5,7 @@ use std::error::Error;
 use crate::core::channel::Channel;
 use crate::lane::programname::ProgramName;
 use crate::core::stick::StickId;
-use crate::train::CarriageId;
+use crate::train::CarriageExtent;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };
 use peregrine_config::ConfigError;
 
@@ -36,7 +36,7 @@ pub enum DataMessage {
     AuthorityUnavailable(Box<DataMessage>),
     NoSuchStick(StickId),
     NoSuchJump(String),
-    CarriageUnavailable(CarriageId,Vec<DataMessage>),
+    CarriageUnavailable(CarriageExtent,Vec<DataMessage>),
     DauphinProgramDidNotLoad(ProgramName),
     DauphinIntegrationError(String),
     DauphinRunError(ProgramName,String),

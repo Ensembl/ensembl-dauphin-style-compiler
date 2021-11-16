@@ -8,6 +8,7 @@ pub mod sync {
 }
 pub mod plumbing {
     pub mod distributor;
+    pub mod onchange;
 }
 
 pub mod cbor;
