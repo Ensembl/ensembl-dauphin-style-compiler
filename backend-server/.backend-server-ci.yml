@@ -90,3 +90,39 @@ WP-HL:Staging:
     BASE: backend-server/k8s/overlays/staging
     NFS_SERVER: ${HL_NFS_SERVER}
     NFS_PATH: ${HL_NFS_PATH}
+
+WP-HX:Internal:
+  extends: .deploy
+  environment:
+    name : wp-hx-internal
+  variables:
+    BASE: backend-server/k8s/overlays/internal
+    NFS_SERVER: ${HX_NFS_SERVER}
+    NFS_PATH: ${HX_NFS_PATH}
+
+WP-HL:Internal:
+  extends: .deploy
+  environment:
+    name : wp-hh-internal
+  variables:
+    BASE: backend-server/k8s/overlays/internal
+    NFS_SERVER: ${HL_NFS_SERVER}
+    NFS_PATH: ${HL_NFS_PATH}
+
+WP-HX:Production:
+  extends: .deploy
+  environment:
+    name : wp-hx-live
+  variables:
+    BASE: backend-server/k8s/overlays/production
+    NFS_SERVER: ${HX_NFS_SERVER}
+    NFS_PATH: ${HX_NFS_PATH}
+
+WP-HL:Production:
+  extends: .deploy
+  environment:
+    name : wp-hh-live
+  variables:
+    BASE: backend-server/k8s/overlays/production
+    NFS_SERVER: ${HL_NFS_SERVER}
+    NFS_PATH: ${HL_NFS_PATH}
