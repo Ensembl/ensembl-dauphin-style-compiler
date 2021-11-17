@@ -10,7 +10,6 @@ use crate::util::message::Message;
 
 pub(crate) struct GLCarriage {
     extent: CarriageExtent,
-    scale: Scale,
     opacity: Mutex<f64>,
     drawing: Drawing
 }
@@ -30,9 +29,9 @@ impl Hash for GLCarriage {
 }
 
 impl GLCarriage {
-    pub fn new(carriage: &Carriage, scale: &Scale, opacity: f64, gl: &mut WebGlGlobal, assets: &Assets) -> Result<GLCarriage,Message> {
+    pub fn new(carriage: &Carriage, opacity: f64, gl: &mut WebGlGlobal, assets: &Assets) -> Result<GLCarriage,Message> {
+        let scale = carriage.extent().train().scale();
         Ok(GLCarriage {
-            scale: scale.clone(),
             extent: carriage.extent().clone(),
             opacity: Mutex::new(opacity),
             drawing: Drawing::new(Some(scale),carriage.shapes(),gl,carriage.extent().left_right().0,&VariableValues::new(),assets)?

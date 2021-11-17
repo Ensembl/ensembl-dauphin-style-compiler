@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::gltrain::GLTrain;
@@ -9,12 +9,11 @@ use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, Read
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
-use web_sys::console;
 
 #[derive(Clone)]
 enum FadeState {
-    Constant(Option<u32>),
-    Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,Arc<NeededLock>)
+    Constant(Option<u64>),
+    Fading(Option<u64>,u64,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlRailwayData {
@@ -24,7 +23,7 @@ struct GlRailwayData {
     slow_fade_overlap_prop: f64,
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
-    trains: HashMap<u32,GLTrain>,
+    trains: HashMap<u64,GLTrain>,
     fade_state: FadeState,
     redraw_needed: Needed
 }
@@ -44,29 +43,34 @@ impl GlRailwayData {
         })
     }
 
-    fn get_train(&mut self, index: u32) -> &mut GLTrain {
-        if !self.trains.contains_key(&index) {
-            self.trains.insert(index,GLTrain::new(&self.redraw_needed));
-        }
+    fn get_our_train(&mut self, index: u64) -> &mut GLTrain {
         self.trains.get_mut(&index).unwrap()
     }
 
-    fn set_carriages(&mut self, gl: &mut WebGlGlobal, assets: &Assets, new_carriages: &[Carriage], scale: &Scale, index: u32) -> Result<(),Message> {
-        self.get_train(index).set_carriages(scale,new_carriages,gl,assets)
+    fn create_train(&mut self, train: &Train) {
+        self.trains.insert(train.serial(),GLTrain::new(&self.redraw_needed));
     }
 
-    fn set_max(&mut self,index: u32, len: u64) {
-        self.get_train(index).set_max(len);
+    fn drop_train(&mut self, train: &Train) {
+        self.trains.remove(&train.serial());
     }
 
-    fn start_fade(&mut self, index: u32, speed: CarriageSpeed) -> Result<(),Message> {
+    fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
+        self.get_our_train(train.serial()).set_carriages(new_carriages,gl,assets)
+    }
+
+    fn set_max(&mut self, serial: u64, len: u64) {
+        self.get_our_train(serial).set_max(len);
+    }
+
+    fn start_fade(&mut self, train: &Train, speed: CarriageSpeed) -> Result<(),Message> {
         let from = match self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from,index,speed,None,Arc::new(self.redraw_needed.clone().lock()));
+        self.fade_state = FadeState::Fading(from,train.serial(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
 
@@ -99,14 +103,14 @@ impl GlRailwayData {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(index)) => {
-                self.get_train(index).set_opacity(1.);
+                self.get_our_train(index).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,Some(elapsed),_) => {
                 let prop_out = self.fade_time(&speed,elapsed,true);
                 let prop_in = self.fade_time(&speed,elapsed,false);
-                self.get_train(to).set_opacity(prop_in);
+                self.get_our_train(to).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_train(from).set_opacity(prop_out);
+                    self.get_our_train(from).set_opacity(prop_out);
                 }
             },
             FadeState::Fading(_,_,_,None,_) => {}
@@ -122,8 +126,7 @@ impl GlRailwayData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1.{
                     if let Some(from) = from {
-                        self.get_train(from).discard(gl)?;
-                        self.trains.remove(&from);
+                        self.get_our_train(from).discard(gl)?;
                     }
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
@@ -137,29 +140,29 @@ impl GlRailwayData {
         Ok(complete)
     }
 
-    fn train_scale(&mut self, index: u32)-> u64 {
-        self.get_train(index).scale().map(|x| x.get_index()).unwrap_or(0)
+    fn train_scale(&mut self, serial: u64)-> u64 {
+        self.get_our_train(serial).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
     fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_train(train).draw(gl,stage,session)?;
+                self.get_our_train(train).draw(gl,stage,session)?;
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
                     if self.train_scale(from) > self.train_scale(to) {
                         /* zooming in, give priority to more detailed target */
-                        self.get_train(to).draw(gl,stage,session)?;
-                        self.get_train(from).draw(gl,stage,session)?;
+                        self.get_our_train(to).draw(gl,stage,session)?;
+                        self.get_our_train(from).draw(gl,stage,session)?;
                     } else {
                         /* zooming out, give priority to more detailed source */
-                        self.get_train(from).draw(gl,stage,session)?;
-                        self.get_train(to).draw(gl,stage,session)?;
+                        self.get_our_train(from).draw(gl,stage,session)?;
+                        self.get_our_train(to).draw(gl,stage,session)?;
                     }
                 } else {
-                    self.get_train(to).draw(gl,stage,session)?;
+                    self.get_our_train(to).draw(gl,stage,session)?;
                 }
             },
         }
@@ -169,8 +172,8 @@ impl GlRailwayData {
     fn scale(&mut self) -> Option<Scale> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => None,
-            FadeState::Constant(Some(train)) => self.get_train(train).scale(),
-            FadeState::Fading(_,to,_,_,_) => self.get_train(to).scale()
+            FadeState::Constant(Some(train)) => self.get_our_train(train).scale(),
+            FadeState::Fading(_,to,_,_,_) => self.get_our_train(to).scale()
         }
     }
 
@@ -179,15 +182,8 @@ impl GlRailwayData {
             FadeState::Constant(x) => x,
             FadeState::Fading(_,x,_,_,_) => Some(x)
         }.map(|id| {
-            self.get_train(id).get_hotspot(stage,position)
+            self.get_our_train(id).get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
-    }
-
-    fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for(_,mut train) in self.trains.drain() {
-            train.discard(gl)?;
-        }
-        Ok(())
     }
 }
 
@@ -203,6 +199,9 @@ impl GlRailway {
         })
     }
 
+    pub fn create_train(&mut self, train: &Train) { lock!(self.data).create_train(train) }
+    pub fn drop_train(&mut self, train: &Train) { lock!(self.data).drop_train(train) }
+
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
         if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
             api.transition_complete();
@@ -211,25 +210,22 @@ impl GlRailway {
     }
 
     pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
-        self.data.lock().unwrap().draw_animate_tick(stage,gl,session)
+        lock!(self.data).draw_animate_tick(stage,gl,session)
     }
 
-    pub fn set_carriages(&mut self, new_carriages: &[Carriage], scale: &Scale, gl: &mut WebGlGlobal, assets: &Assets, index: u32) -> Result<(),Message> {
-        self.data.lock().unwrap().set_carriages(gl,assets,new_carriages,scale,index)
+    pub fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
+        lock!(self.data).set_carriages(train,new_carriages,gl,assets)?;
+        Ok(())
     }
 
-    pub fn start_fade(&mut self, index: u32, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
-        self.data.lock().unwrap().start_fade(index,speed)?;
-        self.data.lock().unwrap().set_max(index,max);
+    pub fn start_fade(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
+        self.data.lock().unwrap().start_fade(train,speed)?;
+        self.data.lock().unwrap().set_max(train.serial(),max);
         Ok(())
     }
 
     pub(crate) fn get_hotspot(&self,stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
         lock!(self.data).get_hotspot(stage,position)
-    }
-
-    pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        lock!(self.data).discard(gl)
     }
 
     pub fn scale(&self) -> Option<Scale> { lock!(self.data).scale() }

@@ -1,22 +1,18 @@
 use std::sync::{Arc, Mutex};
-
-use peregrine_toolkit::sync::blocker::Blocker;
-
+use peregrine_toolkit::{lock, sync::blocker::Blocker};
 use crate::{Carriage, DataMessage, LaneStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, lane::shapeloader::LoadMode};
-
 use super::{railwayevent::RailwayEvents, trainset::TrainSet};
-
 
 #[derive(Clone)]
 pub struct Railway {
-    state: Arc<Mutex<TrainSet>>,
+    train_set: Arc<Mutex<TrainSet>>,
     messages: MessageSender
 }
 
 impl Railway {
     pub fn new(base: &PeregrineCoreBase,result_store: &LaneStore, visual_blocker: &Blocker) -> Railway {
         Railway {
-            state: Arc::new(Mutex::new(TrainSet::new(base,result_store,visual_blocker))),
+            train_set: Arc::new(Mutex::new(TrainSet::new(base,result_store,visual_blocker))),
             messages: base.messages.clone()
         }
     }
@@ -39,11 +35,11 @@ impl Railway {
         if loads.len() > 0 {
            self.run_load_carriages(objects,loads);
         }
-        self.state.lock().unwrap().update_dependents();
+        lock!(self.train_set).update_dependents();
     }
 
     pub(super) fn move_and_lifecycle_trains(&mut self, objects: &mut PeregrineCore) {
-        let events = self.state.lock().unwrap().move_and_lifecycle_trains();
+        let events = lock!(self.train_set).move_and_lifecycle_trains();
         self.run_events(events,objects);
     }
 
@@ -69,7 +65,7 @@ impl Railway {
     pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) -> Result<(),DataMessage> {
         let mut events = RailwayEvents::new();
         if viewport.ready() {
-            self.state.lock().unwrap().set_position(&mut events,viewport)?;
+            lock!(self.train_set).set_position(&mut events,viewport)?;
         }
         events.draw_notify_viewport(viewport,true);
         self.run_events(events,objects);
@@ -78,7 +74,7 @@ impl Railway {
 
     pub fn transition_complete(&self, objects: &mut PeregrineCore) {
         let mut events = RailwayEvents::new();
-        self.state.lock().unwrap().transition_complete(&mut events);
+        lock!(self.train_set).transition_complete(&mut events);
         self.run_events(events,objects);
     }
 }

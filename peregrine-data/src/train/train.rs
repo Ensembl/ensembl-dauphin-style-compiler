@@ -43,11 +43,11 @@ impl TrainData {
         Ok(out)
     }
 
-    fn set_active(&mut self, carriage_event: &mut RailwayEvents, index: u32, speed: CarriageSpeed) {
+    fn set_active(&mut self, train: &Train, carriage_event: &mut RailwayEvents, index: u32, speed: CarriageSpeed) {
         if self.active != Some(index) {
             self.active = Some(index);
-            self.set_carriages(carriage_event);
-            carriage_event.draw_start_transition(index,self.max.unwrap(),speed);
+            self.set_carriages(train,carriage_event);
+            carriage_event.draw_start_transition(train,self.max.unwrap(),speed);
         }
     }
 
@@ -114,11 +114,11 @@ impl TrainData {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
-    fn set_carriages(&mut self, events: &mut RailwayEvents) {
+    fn set_carriages(&mut self, train: &Train, events: &mut RailwayEvents) {
         if let Some(carriages) = &mut self.carriages {
             if carriages.ready() {
                 if let Some(index) = self.active {
-                    events.draw_set_carriages(&self.carriages(),self.extent.scale().clone(),index);
+                    events.draw_set_carriages(train,&self.carriages());
                 }
             }
         }
@@ -127,14 +127,16 @@ impl TrainData {
 
 // XXX circular chroms
 #[derive(Clone)]
-pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
+pub struct Train(Arc<Mutex<TrainData>>,MessageSender,u64);
 
 impl Train {
-    pub(super) fn new(id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone());
+    pub(super) fn new(serial: u64, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone(),serial);
         carriage_event.load_train_data(&out);
         Ok(out)
     }
+
+    pub fn serial(&self) -> u64 { self.2 }
 
     pub(super) fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
         lock!(self.0).each_current_carriage(state,cb);
@@ -148,7 +150,7 @@ impl Train {
     pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.0.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, index: u32, speed: CarriageSpeed) {
-        self.0.lock().unwrap().set_active(carriage_event,index,speed);
+        self.0.lock().unwrap().set_active(&self.clone(),carriage_event,index,speed);
     }
 
     pub(super) fn set_inactive(&mut self) {
@@ -193,6 +195,6 @@ impl Train {
     }
 
     pub(super) fn set_carriages(&mut self, events: &mut RailwayEvents) {
-        self.0.lock().unwrap().set_carriages(events);
+        self.0.lock().unwrap().set_carriages(&self.clone(),events);
     }
 }

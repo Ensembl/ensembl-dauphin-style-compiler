@@ -169,6 +169,7 @@ mod train {
 
     pub use carriageextent::CarriageExtent;
     pub use carriage::{ Carriage };
+    pub use train::Train;
     pub use railway::Railway;
 }
 
@@ -209,7 +210,7 @@ pub use self::allotment::allotmentmetadata::{
 pub use self::allotment::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ Carriage, CarriageExtent };
+pub use self::train::{ Carriage, CarriageExtent, Train };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;

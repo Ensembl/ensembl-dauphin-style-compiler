@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+use std::ops::Add;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
@@ -9,7 +11,7 @@ use crate::{PeregrineDom};
 use crate::input::Input;
 use crate::run::report::Report;
 use crate::train::GlRailway;
-use peregrine_data::{ DataMessage };
+use peregrine_data::{ DataMessage, Train };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
 
@@ -29,10 +31,17 @@ impl PeregrineIntegration for PgIntegration {
         self.assets.add(&mut assets);
     }
 
-    fn set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) -> Result<(),DataMessage> {
+    fn create_train(&mut self, train: &Train) {
+        self.trainset.create_train(train);
+    }
+
+    fn drop_train(&mut self, train: &Train) {
+        self.trainset.drop_train(train);
+    }
+
+    fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage> {
         let mut webgl = self.webgl.lock().unwrap();
-        self.trainset.set_carriages(carriages,&scale,&mut webgl,&self.assets,index)
-            .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
+        self.trainset.set_carriages(train,carriages,&mut webgl,&self.assets);
         Ok(())
     }
 
@@ -44,9 +53,9 @@ impl PeregrineIntegration for PgIntegration {
         Box::new(self.channel.clone())
     }
 
-    fn start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
+    fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) ->Result<(),DataMessage> {
         self.input.set_limit(max as f64);
-        self.trainset.start_fade(index,max,speed)
+        self.trainset.start_fade(train,max,speed)
             .map_err(|e| DataMessage::TunnelError(Arc::new(Mutex::new(e))))?;
         Ok(())
     }

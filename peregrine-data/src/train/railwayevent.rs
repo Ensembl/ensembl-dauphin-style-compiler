@@ -1,6 +1,7 @@
 use std::sync::{ Arc, Mutex };
+use peregrine_toolkit::lock;
+
 use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
-use crate::{Scale};
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::api::PlayingField;
 use crate::train::Carriage;
@@ -11,10 +12,12 @@ enum RailwayEvent {
     DrawSendAllotmentMetadata(AllotmentMetadataReport),
     LoadTrainData(Train),
     LoadCarriageData(Carriage),
-    DrawSetCarriages(Vec<Carriage>,Scale,u32),
-    DrawStartTransition(u32,u64,CarriageSpeed),
+    DrawSetCarriages(Train,Vec<Carriage>),
+    DrawStartTransition(Train,u64,CarriageSpeed),
     DrawNotifyViewport(Viewport,bool),
-    DrawNotifyPlayingField(PlayingField)
+    DrawNotifyPlayingField(PlayingField),
+    DrawCreateTrain(Train),
+    DrawDropTrain(Train)
 }
 
 #[derive(Clone)]
@@ -37,12 +40,12 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::LoadCarriageData(carriage.clone()));
     }
 
-    pub(super) fn draw_set_carriages(&mut self, carriages: &[Carriage], scale: Scale, index: u32) {
-        self.0.lock().unwrap().push(RailwayEvent::DrawSetCarriages(carriages.iter().cloned().collect(),scale,index));
+    pub(super) fn draw_set_carriages(&mut self, train: &Train, carriages: &[Carriage]) {
+        self.0.lock().unwrap().push(RailwayEvent::DrawSetCarriages(train.clone(),carriages.iter().cloned().collect()));
     }
 
-    pub(super) fn draw_start_transition(&mut self, index: u32, max: u64, speed: CarriageSpeed) {
-        self.0.lock().unwrap().push(RailwayEvent::DrawStartTransition(index,max,speed));
+    pub(super) fn draw_start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) {
+        self.0.lock().unwrap().push(RailwayEvent::DrawStartTransition(train.clone(),max,speed));
     }
 
     pub(super) fn draw_notify_viewport(&mut self, viewport: &Viewport, future: bool) {
@@ -51,6 +54,14 @@ impl RailwayEvents {
 
     pub(super) fn draw_notify_playingfield(&mut self, playing_field: PlayingField) {
         self.0.lock().unwrap().push(RailwayEvent::DrawNotifyPlayingField(playing_field));
+    }
+
+    pub(super) fn draw_create_train(&mut self, train: &Train) {
+        self.0.lock().unwrap().push(RailwayEvent::DrawCreateTrain(train.clone()));
+    }
+
+    pub(super) fn draw_drop_train(&mut self, train: &Train) {
+        self.0.lock().unwrap().push(RailwayEvent::DrawDropTrain(train.clone()));
     }
 
     pub(super) fn run_events(&mut self, objects: &mut PeregrineCore) -> Vec<Carriage> {
@@ -64,8 +75,8 @@ impl RailwayEvents {
                 RailwayEvent::DrawSendAllotmentMetadata(metadata) => {
                     objects.base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
                 },
-                RailwayEvent::DrawSetCarriages(carriages,scale,index) => {
-                    let r = objects.base.integration.lock().unwrap().set_carriages(&carriages,scale,index);
+                RailwayEvent::DrawSetCarriages(train,carriages) => {
+                    let r = objects.base.integration.lock().unwrap().set_carriages(&train,&carriages);
                     if let Err(r) = r { errors.push(r); }
                 },
                 RailwayEvent::DrawStartTransition(index,max,speed) => {
@@ -81,12 +92,18 @@ impl RailwayEvents {
                     notifications.push((viewport,future));
                 },
                 RailwayEvent::DrawNotifyPlayingField(height) => {
-                    objects.base.integration.lock().unwrap().set_playing_field(height);
+                    lock!(objects.base.integration).set_playing_field(height);
+                },
+                RailwayEvent::DrawCreateTrain(train) => {
+                    lock!(objects.base.integration).create_train(&train);
+                },
+                RailwayEvent::DrawDropTrain(train) => {
+                    lock!(objects.base.integration).drop_train(&train);
                 }
             }
         }
-        if let Some((index,max,speed)) = transition {
-            let r = objects.base.integration.lock().unwrap().start_transition(index,max,speed);
+        if let Some((train,max,speed)) = transition {
+            let r = objects.base.integration.lock().unwrap().start_transition(&train,max,speed);
             if let Err(r) = r {
                 errors.push(r);
                 objects.transition_complete();

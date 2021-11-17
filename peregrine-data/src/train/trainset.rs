@@ -19,6 +19,7 @@ pub struct TrainSet {
     future: Option<Train>,
     wanted: Option<Train>,
     next_activation: u32,
+    next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
 }
@@ -30,6 +31,7 @@ impl TrainSet {
             future: None,
             wanted: None,
             next_activation: 0,
+            next_train_serial: 0,
             messages: base.messages.clone(),
             dependents: RailwayDependents::new(base,result_store,visual_blocker),
         }
@@ -94,7 +96,13 @@ impl TrainSet {
             }
         }
         if new_target_needed {
-            self.wanted = Some(Train::new(&train_id,events,viewport,&self.messages)?);
+            if let Some(wanted) = self.wanted.take() {
+                events.draw_drop_train(&wanted);
+            }
+            self.next_train_serial +=1;
+            let wanted = Train::new(self.next_train_serial,&train_id,events,viewport,&self.messages)?;
+            events.draw_create_train(&wanted);
+            self.wanted = Some(wanted);
         }
         Ok(())
     }
@@ -125,6 +133,7 @@ impl TrainSet {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
             current.set_inactive();
+            events.draw_drop_train(&current);
         }
         self.current = self.future.take();
         /* now future is free, maybe wanted can go there? */
