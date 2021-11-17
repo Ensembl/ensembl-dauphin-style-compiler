@@ -125,18 +125,21 @@ impl TrainData {
     }
 }
 
+#[derive(Clone,Copy,PartialEq,Eq,Hash)]
+pub struct TrainSerial(u64);
+
 // XXX circular chroms
 #[derive(Clone)]
-pub struct Train(Arc<Mutex<TrainData>>,MessageSender,u64);
+pub struct Train(Arc<Mutex<TrainData>>,MessageSender,TrainSerial);
 
 impl Train {
     pub(super) fn new(serial: u64, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone(),serial);
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone(),TrainSerial(serial));
         carriage_event.load_train_data(&out);
         Ok(out)
     }
 
-    pub fn serial(&self) -> u64 { self.2 }
+    pub fn serial(&self) -> TrainSerial { self.2 }
 
     pub(super) fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
         lock!(self.0).each_current_carriage(state,cb);
