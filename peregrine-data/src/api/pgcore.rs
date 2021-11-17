@@ -4,7 +4,7 @@ use crate::metric::metricreporter::MetricCollector;
 use crate::core::{ Viewport };
 use crate::request::core::manager::RequestManager;
 use crate::request::messages::metricreq::MetricReport;
-use crate::train::{ TrainSet };
+use crate::train::{ Railway };
 use crate::api::PeregrineIntegration;
 use commander::PromiseFuture;
 use peregrine_dauphin_queue::{ PgDauphinQueue };
@@ -54,7 +54,7 @@ pub struct PeregrineCoreBase {
 pub struct PeregrineCore {
     pub base: PeregrineCoreBase,
     pub agent_store: AgentStore,
-    pub train_set: TrainSet,
+    pub train_set: Railway,
     pub viewport: Viewport,
     pub switches: Switches,
 }
@@ -89,7 +89,7 @@ impl PeregrineCore {
             version
         };
         let agent_store = AgentStore::new(&base);
-        let train_set = TrainSet::new(&base,&agent_store.lane_store,visual_blocker);
+        let train_set = Railway::new(&base,&agent_store.lane_store,visual_blocker);
         Ok(PeregrineCore {
             base,
             agent_store,

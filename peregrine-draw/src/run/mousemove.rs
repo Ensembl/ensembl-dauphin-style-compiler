@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use commander::cdr_tick;
 use peregrine_data::Commander;
 
-use crate::{Message, PeregrineDom, PeregrineInnerAPI, input::Input, stage::stage::{ReadStage, Stage}, train::GlTrainSet, webgl::global::WebGlGlobal};
+use crate::{Message, PeregrineDom, PeregrineInnerAPI, input::Input, stage::stage::{ReadStage, Stage}, train::GlRailway, webgl::global::WebGlGlobal};
 
-fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage: &ReadStage, train_set: &GlTrainSet) -> Result<(),Message> {
+fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage: &ReadStage, train_set: &GlRailway) -> Result<(),Message> {
     let position = input.get_pointer_last_seen();
     if let Some(position) = position {
         if let Some(old_position) = mouse_position {
@@ -17,7 +17,7 @@ fn mouse_move_tick(input: &Input, mouse_position: &mut Option<(f64,f64)>, stage:
     Ok(())
 }
 
-async fn mouse_move_loop(input: Input, train_set: GlTrainSet, stage: Arc<Mutex<Stage>>) {
+async fn mouse_move_loop(input: Input, train_set: GlRailway, stage: Arc<Mutex<Stage>>) {
     let mut mouse_position: Option<(f64,f64)> = None;
     loop {
         let read_stage = stage.lock().unwrap().read_stage();

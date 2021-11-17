@@ -17,7 +17,7 @@ enum FadeState {
     Fading(Option<u32>,u32,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
-struct GlTrainSetData {
+struct GlRailwayData {
     slow_fade_time: f64,
     slow_cross_fade_time: f64,
     fast_fade_time: f64,
@@ -29,9 +29,9 @@ struct GlTrainSetData {
     redraw_needed: Needed
 }
 
-impl GlTrainSetData {
-    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlTrainSetData,Message> {
-        Ok(GlTrainSetData {
+impl GlRailwayData {
+    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlRailwayData,Message> {
+        Ok(GlRailwayData {
             slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow))?,
             slow_cross_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade))?,
             fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick))?,
@@ -192,14 +192,14 @@ impl GlTrainSetData {
 }
 
 #[derive(Clone)]
-pub struct GlTrainSet {
-    data: Arc<Mutex<GlTrainSetData>>
+pub struct GlRailway {
+    data: Arc<Mutex<GlRailwayData>>
 }
 
-impl GlTrainSet {
-    pub fn new(draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlTrainSet,Message> {
-        Ok(GlTrainSet {
-            data: Arc::new(Mutex::new(GlTrainSetData::new(draw_config,&stage.redraw_needed())?))
+impl GlRailway {
+    pub fn new(draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlRailway,Message> {
+        Ok(GlRailway {
+            data: Arc::new(Mutex::new(GlRailwayData::new(draw_config,&stage.redraw_needed())?))
         })
     }
 

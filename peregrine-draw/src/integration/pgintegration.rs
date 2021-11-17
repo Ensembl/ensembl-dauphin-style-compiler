@@ -8,14 +8,14 @@ use super::pgchannel::PgChannel;
 use crate::{PeregrineDom};
 use crate::input::Input;
 use crate::run::report::Report;
-use crate::train::GlTrainSet;
+use crate::train::GlRailway;
 use peregrine_data::{ DataMessage };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
 
 pub struct PgIntegration {
     channel: PgChannel,
-    trainset: GlTrainSet,
+    trainset: GlRailway,
     input: Input,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
@@ -72,7 +72,7 @@ impl PeregrineIntegration for PgIntegration {
 }
 
 impl PgIntegration {
-    pub(crate) fn new(channel: PgChannel, trainset: GlTrainSet, input: &Input, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
+    pub(crate) fn new(channel: PgChannel, trainset: GlRailway, input: &Input, webgl: Arc<Mutex<WebGlGlobal>>, stage: &Arc<Mutex<Stage>>, dom: &PeregrineDom, report: &Report) -> PgIntegration {
         PgIntegration {
             channel,
             trainset,

@@ -7,16 +7,16 @@ use std::any::Any;
 use std::sync::{ Arc };
 use crate::shape::ShapeListBuilder;
 use super::programloader::ProgramLoader;
+use super::shapeloader::LoadMode;
 use super::shaperequest::ShapeRequest;
 use crate::util::message::DataMessage;
 use crate::util::memoized::{ Memoized, MemoizedType };
 use crate::api::{ PeregrineCoreBase };
 use crate::run::{ PgDauphinTaskSpec };
 use crate::lane::programdata::ProgramData;
-use crate::train::carriage::CarriageLoadMode;
 use peregrine_toolkit::lock;
 
-async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: CarriageLoadMode) -> Result<Arc<ShapeListBuilder>,DataMessage> {
+async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: ProgramLoader, request: ShapeRequest, mode: LoadMode) -> Result<Arc<ShapeListBuilder>,DataMessage> {
     base.booted.wait().await;
     let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let mut payloads = HashMap::new();
@@ -42,7 +42,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     Ok(Arc::new(shapes.build()))
 }
 
-fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: CarriageLoadMode) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
+fn make_unfiltered_cache(kind: MemoizedType, base: &PeregrineCoreBase, program_loader: &ProgramLoader, mode: LoadMode) -> Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>> {
     let base2 = base.clone();
     let program_loader = program_loader.clone();
     let mode = mode.clone();
@@ -89,11 +89,11 @@ pub struct LaneStore {
 impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
         // XXX both caches separate sizes
-        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,CarriageLoadMode::RealTime);
+        let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,LoadMode::RealTime);
         let filtered_cache = make_filtered_cache(MemoizedType::Cache(32),unfiltered_cache);
-        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,CarriageLoadMode::Batch);
+        let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Batch);
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
-        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,CarriageLoadMode::Network);
+        let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Network);
         let network_filtered_cache = make_filtered_cache(MemoizedType::None,network_unfiltered_cache);
         LaneStore {
             realtime: filtered_cache,
@@ -102,12 +102,12 @@ impl LaneStore {
         }
     }
 
-    pub async fn run(&self, lane: &ShapeRequest, mode: &CarriageLoadMode) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
+    pub async fn run(&self, lane: &ShapeRequest, mode: &LoadMode) -> Arc<Result<Arc<ShapeListBuilder>,DataMessage>> {
         match mode {
-            CarriageLoadMode::RealTime => {
+            LoadMode::RealTime => {
                 self.realtime.get(lane).await
             },
-            CarriageLoadMode::Batch => {
+            LoadMode::Batch => {
                 if let Some(value) = self.realtime.try_get(lane) {
                     value
                 } else {
@@ -116,7 +116,7 @@ impl LaneStore {
                     value
                 }
             },
-            CarriageLoadMode::Network => {
+            LoadMode::Network => {
                 if let Some(value) = self.realtime.try_get(lane) {
                     value
                 } else if let Some(value) = self.batch.try_get(lane) {

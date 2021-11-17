@@ -1,5 +1,5 @@
 use std::cmp::max;
-use super::carriageevent::CarriageEvents;
+use super::railwayevent::RailwayEvents;
 use super::carriage::{ Carriage };
 use super::trainextent::TrainExtent;
 use crate::CarriageExtent;
@@ -14,7 +14,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    fn create(train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut CarriageEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
+    fn create(train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
         let start = max((centre as i64)-(CARRIAGE_FLANK as i64),0) as u64;
         let old_start = old.start;
         let mut carriages = vec![];
@@ -36,7 +36,7 @@ impl CarriageSet {
                 old_carriages.next().unwrap().1
             } else {
                 let out = Carriage::new(&CarriageExtent::new(train_id,index),configs,Some(messages));
-                carriage_events.carriage(&out);
+                carriage_events.load_carriage_data(&out);
                 out
             });
         }
@@ -47,7 +47,7 @@ impl CarriageSet {
         CarriageSet { carriages: vec![], start: 0 }
     }
 
-    pub(super) fn new_using(train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut CarriageEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
+    pub(super) fn new_using(train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
         CarriageSet::create(train_id,configs,carriage_events,centre,old,messages)
     }
 

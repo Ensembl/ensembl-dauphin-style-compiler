@@ -1,117 +1,102 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
-use crate::{CarriageExtent, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task};
-use crate::api::{ MessageSender };
+
+use crate::api::MessageSender;
+use crate::{CarriageExtent, LaneStore, PeregrineCoreBase };
 use crate::lane::{ ShapeRequest };
-use crate::shape::{ ShapeListBuilder, ShapeList };
+use crate::shape::{ ShapeList };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
+use crate::lane::shapeloader::{LoadMode, load_shapes};
 
 #[derive(Clone)]
-pub enum CarriageLoadMode {
-    RealTime,
-    Batch,
-    Network
+struct UnloadedCarriage {
+    config: TrainTrackConfigList,
+    messages: Option<MessageSender>
 }
 
-impl CarriageLoadMode {
-    pub fn build_shapes(&self) -> bool {
-        match self {
-            CarriageLoadMode::Network => false,
-            _ => true
+impl UnloadedCarriage {
+    fn make_shape_requests(&self, extent: &CarriageExtent) -> Vec<ShapeRequest> {
+        let mut shape_requests = vec![];
+        let track_config_list = extent.train().layout().track_config_list();
+        let track_list = self.config.list_tracks();
+        for track in track_list {
+            if let Some(track_config) = track_config_list.get_track(&track) {
+                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config));
+            }
         }
+        shape_requests
     }
 
-    pub fn high_priority(&self) -> bool {
-        match self {
-            CarriageLoadMode::RealTime => true,
-            _ => false
-        }
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &LaneStore, mode: LoadMode) -> Result<Option<LoadedCarriage>,DataMessage> {
+        let shape_requests = self.make_shape_requests(extent);
+        let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
+        Ok(match shapes {
+            Some(shapes) => {
+                if errors.len() != 0 {
+                    return Err(DataMessage::CarriageUnavailable(extent.clone(),errors));
+                }    
+                Some(LoadedCarriage {shapes})
+            },
+            None => None
+        })
     }
+}
+
+struct LoadedCarriage {
+    shapes: ShapeList
+}
+
+enum CarriageState {
+    Unloaded(UnloadedCarriage),
+    Loading,
+    Loaded(LoadedCarriage)
 }
 
 #[derive(Clone)]
 pub struct Carriage {
-    no_shapes: ShapeList, // useful to return ref to sometimes
     extent: CarriageExtent,
-    track_configs: TrainTrackConfigList,
-    shapes: Arc<Mutex<Option<ShapeList>>>,
-    messages: Option<MessageSender>
+    state: Arc<Mutex<CarriageState>>
 }
 
 impl Carriage {
     pub fn new(extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>) -> Carriage {
         Carriage {
-            no_shapes: ShapeList::empty(),
             extent: extent.clone(),
-            shapes: Arc::new(Mutex::new(None)),
-            track_configs: configs.clone(),
-            messages: messages.cloned()
+            state: Arc::new(Mutex::new(CarriageState::Unloaded(UnloadedCarriage {
+                config: configs.clone(),
+                messages: messages.cloned()
+            })))
         }
     }
 
     pub fn extent(&self) -> &CarriageExtent { &self.extent }
 
-    // XXX should be able to return without cloning
     pub fn shapes(&self) -> ShapeList {
-        let data = self.shapes.lock().unwrap();
-        let shape = data.as_ref().cloned();
-        shape.unwrap_or(ShapeList::empty())
+        match &*lock!(self.state) {
+            CarriageState::Loaded(s) => { s.shapes.clone() },
+            _ => ShapeList::empty()
+        }
     }
 
     pub(super) fn ready(&self) -> bool {
-        self.shapes.lock().unwrap().is_some()
+        match &*lock!(self.state) {
+            CarriageState::Loaded(_) => true,
+            _ => false
+        }
     }
 
-    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore, mode: CarriageLoadMode) -> Result<(),DataMessage> {
-        if self.ready() { return Ok(()); }
-        let mut shape_requests = vec![];
-        let track_config_list = self.extent.train().layout().track_config_list();
-        let track_list = self.track_configs.list_tracks();
-        for track in track_list {
-            if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push((ShapeRequest::new(&self.extent.region(),&track_config),mode.clone()));
+    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore, mode: LoadMode) -> Result<(),DataMessage> {
+        let unloaded = match &*lock!(self.state) {
+            CarriageState::Unloaded(unloaded) => Some(unloaded.clone()),
+            _ => None
+        };
+        if let Some(mut unloaded) = unloaded {
+            *lock!(self.state) = CarriageState::Loading;
+            if let Some(new_state) = unloaded.load(&self.extent,base,result_store,mode).await? {
+                *lock!(self.state) = CarriageState::Loaded(new_state);
             }
         }
-        // collect and reiterate to allow asyncs to run in parallel. Laziness in iters would defeat the point.
-        let mut errors = vec![];
-        let lane_store = result_store.clone();
-        let tracks : Vec<_> = shape_requests.iter().map(|p|{
-            let (request,mode) = p.clone();
-            let lane_store = lane_store.clone();
-            add_task(&base.commander,PgCommanderTaskSpec {
-                name: format!("data program"),
-                prio: if mode.high_priority() { 0 } else { 9 },
-                slot: None,
-                timeout: None,
-                stats: false,
-                task: Box::pin(async move {
-                    lane_store.run(&request,&mode).await.as_ref().clone()
-                })
-            })
-        }).collect();
-        if !mode.build_shapes() { return Ok(()); }
-        let mut new_shapes = ShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets));
-        for future in tracks {
-            future.finish_future().await;
-            match future.take_result().as_ref().unwrap() {
-                Ok(zoo) => {
-                    new_shapes.append(&zoo);
-                },
-                Err(e) => {
-                    if let Some(messages) = &self.messages {
-                        messages.send(e.clone());
-                    }
-                    errors.push(e.clone());
-                }
-            }
-        }
-        let shapes = new_shapes.build();
-        self.shapes.lock().unwrap().replace(shapes);
-        if errors.len() == 0 {
-            Ok(())
-        } else {
-            Err(DataMessage::CarriageUnavailable(self.extent.clone(),errors))
-        }
+        Ok(())
     }
 }

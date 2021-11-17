@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use commander::CommanderStream;
 
-use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
-use super::{carriage::CarriageLoadMode, train::{Train}, trainextent::TrainExtent};
+use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
+use super::{train::{Train}, trainextent::TrainExtent};
 
 #[derive(Clone)]
 struct AnticipatedCarriages {
@@ -126,13 +126,13 @@ async fn anticipator(base: PeregrineCoreBase, result_store: LaneStore, stream: C
                         timeout: None,
                         stats: false,
                         task: Box::pin(async move {
-                            carriage.load(&base2,&result_store,CarriageLoadMode::Network).await.ok();
+                            carriage.load(&base2,&result_store,LoadMode::Network).await.ok();
                             Ok(())
                         })
                     });
                     handles.push(handle);
                 } else {
-                    carriage.load(&base,&result_store,CarriageLoadMode::Batch).await.ok();    
+                    carriage.load(&base,&result_store,LoadMode::Batch).await.ok();    
                 }
             },
             AnticipateTask::Wait => {

@@ -5,7 +5,7 @@ use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
 use super::carriage::Carriage;
 use super::carriageset::CarriageSet;
-use super::carriageevent::CarriageEvents;
+use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
@@ -26,7 +26,7 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(extent: &TrainExtent, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender) -> Result<TrainData,DataMessage> {
+    fn new(extent: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let mut out = TrainData {
             broken: false,
@@ -43,11 +43,11 @@ impl TrainData {
         Ok(out)
     }
 
-    fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
+    fn set_active(&mut self, carriage_event: &mut RailwayEvents, index: u32, speed: CarriageSpeed) {
         if self.active != Some(index) {
             self.active = Some(index);
             self.set_carriages(carriage_event);
-            carriage_event.transition(index,self.max.unwrap(),speed);
+            carriage_event.draw_start_transition(index,self.max.unwrap(),speed);
         }
     }
 
@@ -94,7 +94,7 @@ impl TrainData {
     }
 
     // TODO don't always update CarriageSet
-    fn set_position(&mut self, carriage_event: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn set_position(&mut self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         self.viewport = viewport.clone();
         let carriage = self.extent.scale().carriage(viewport.position()?);
         let carriages = CarriageSet::new_using(&self.extent,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
@@ -102,7 +102,7 @@ impl TrainData {
         Ok(())
     }
 
-    fn maybe_ready(&mut self) {
+    fn check_if_ready(&mut self) {
         if let Some(carriages) = &self.carriages {
             if carriages.ready() && self.max.is_some() {
                 self.data_ready = true;
@@ -114,11 +114,11 @@ impl TrainData {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
-    fn set_carriages(&mut self, events: &mut CarriageEvents) {
+    fn set_carriages(&mut self, events: &mut RailwayEvents) {
         if let Some(carriages) = &mut self.carriages {
             if carriages.ready() {
                 if let Some(index) = self.active {
-                    events.set_carriages(&self.carriages(),self.extent.scale().clone(),index);
+                    events.draw_set_carriages(&self.carriages(),self.extent.scale().clone(),index);
                 }
             }
         }
@@ -130,10 +130,14 @@ impl TrainData {
 pub struct Train(Arc<Mutex<TrainData>>,MessageSender);
 
 impl Train {
-    pub(super) fn new(id: &TrainExtent, carriage_event: &mut CarriageEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
+    pub(super) fn new(id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender) -> Result<Train,DataMessage> {
         let out = Train(Arc::new(Mutex::new(TrainData::new(id,carriage_event,viewport,&messages)?)),messages.clone());
-        carriage_event.train(&out);
+        carriage_event.load_train_data(&out);
         Ok(out)
+    }
+
+    pub(super) fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
+        lock!(self.0).each_current_carriage(state,cb);
     }
 
     pub fn extent(&self) -> TrainExtent { self.0.lock().unwrap().extent().clone() }
@@ -143,7 +147,7 @@ impl Train {
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
     pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.0.lock().unwrap().allotter_metadata() }
 
-    pub(super) fn set_active(&mut self, carriage_event: &mut CarriageEvents, index: u32, speed: CarriageSpeed) {
+    pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, index: u32, speed: CarriageSpeed) {
         self.0.lock().unwrap().set_active(carriage_event,index,speed);
     }
 
@@ -151,12 +155,12 @@ impl Train {
         self.0.lock().unwrap().set_inactive();
     }
 
-    pub(super) fn set_position(&self, carriage_event: &mut CarriageEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    pub(super) fn set_position(&self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         self.0.lock().unwrap().set_position(carriage_event,viewport)?;
         Ok(())
     }
 
-    pub(super) fn maybe_ready(&mut self) { self.0.lock().unwrap().maybe_ready(); }
+    pub(super) fn check_if_ready(&mut self) { self.0.lock().unwrap().check_if_ready(); }
 
     async fn find_max(&self, data: &mut PeregrineCore) -> Result<u64,DataMessage> {
         Ok(data.agent_store.stick_store.get(&self.extent().layout().stick()).await?.size())
@@ -180,7 +184,7 @@ impl Train {
                     objects2.base.messages.send(e.clone());
                 }
                 self2.set_max(max);
-                objects2.train_set.clone().update_trains(&mut objects2);
+                objects2.train_set.clone().move_and_lifecycle_trains(&mut objects2);
                 Ok(())
             }),
             stats: false
@@ -188,11 +192,7 @@ impl Train {
         async_complete_task(&objects.base.commander,&objects.base.messages,handle, |e| (e,false));
     }
 
-    pub(super) fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
-        lock!(self.0).each_current_carriage(state,cb);
-    }
-
-    pub(super) fn set_carriages(&mut self, events: &mut CarriageEvents) {
+    pub(super) fn set_carriages(&mut self, events: &mut RailwayEvents) {
         self.0.lock().unwrap().set_carriages(events);
     }
 }

@@ -54,6 +54,7 @@ mod index {
 mod lane {
     mod datastore;
     mod shaperequest;
+    pub(crate) mod shapeloader;
     pub(crate) mod programloader;
     pub(crate) mod programregion;
     mod resultstore;
@@ -157,16 +158,18 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub(crate) mod carriage;
-    mod carriageevent;
+    mod railwayevent;
     mod carriageextent;
     mod carriageset;
+    mod railway;
+    mod railwaydependents;
     mod trainextent;
     mod train;
     mod trainset;
 
     pub use carriageextent::CarriageExtent;
     pub use carriage::{ Carriage };
-    pub use trainset::TrainSet;
+    pub use railway::Railway;
 }
 
 mod util {

@@ -1,6 +1,6 @@
 use commander::CommanderStream;
 
-use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlTrainSet};
+use crate::{Message, PeregrineInnerAPI, PgCommanderWeb, input::{InputEvent, InputEventKind, low::lowlevel::LowLevelInput}, run::inner::LockedPeregrineInnerAPI, train::GlRailway};
 
 fn process_zmenu_event(api: &LockedPeregrineInnerAPI, x: f64, y: f64) -> Result<(),Message> {
     let mut gl = api.webgl.lock().unwrap();

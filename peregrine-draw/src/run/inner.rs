@@ -17,7 +17,7 @@ use super::sound::Sound;
 use super::{PgPeregrineConfig, globalconfig::CreatedPeregrineConfigs};
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
-use crate::train::GlTrainSet;
+use crate::train::GlRailway;
 use super::dom::PeregrineDom;
 use crate::stage::stage::{ Stage };
 use crate::webgl::global::WebGlGlobal;
@@ -36,7 +36,7 @@ pub struct PeregrineInnerAPI {
     lock: Lock,
     commander: PgCommanderWeb,
     data_api: PeregrineCore,
-    trainset: GlTrainSet,
+    trainset: GlRailway,
     webgl: Arc<Mutex<WebGlGlobal>>,
     stage: Arc<Mutex<Stage>>,
     dom: PeregrineDom,
@@ -51,7 +51,7 @@ pub struct PeregrineInnerAPI {
 pub struct LockedPeregrineInnerAPI<'t> {
     pub commander: &'t mut PgCommanderWeb,
     pub data_api: &'t mut PeregrineCore,
-    pub trainset: &'t mut GlTrainSet,
+    pub trainset: &'t mut GlRailway,
     pub webgl: &'t mut Arc<Mutex<WebGlGlobal>>,
     pub stage: &'t mut Arc<Mutex<Stage>>,
     pub message_sender: &'t mut CommanderStream<Message>,
@@ -132,7 +132,7 @@ impl PeregrineInnerAPI {
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
-        let trainset = GlTrainSet::new(&config.draw,&stage.lock().unwrap())?;
+        let trainset = GlRailway::new(&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);

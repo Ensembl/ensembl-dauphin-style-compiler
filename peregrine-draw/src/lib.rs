@@ -127,7 +127,7 @@ mod train {
     mod gltrain;
     mod gltrainset;
 
-    pub(crate) use self::gltrainset::GlTrainSet;
+    pub(crate) use self::gltrainset::GlRailway;
 }
 
 mod util {
