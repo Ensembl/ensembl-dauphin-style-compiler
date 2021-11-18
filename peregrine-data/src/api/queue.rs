@@ -141,7 +141,7 @@ impl PeregrineApiQueue {
         let mut data2 = data.clone();
         add_task::<Result<(),DataMessage>>(&data.base.commander,PgCommanderTaskSpec {
             name: format!("api message runner"),
-            prio: 5,
+            prio: 0,
             slot: None,
             timeout: None,
             task: Box::pin(async move {

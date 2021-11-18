@@ -3,7 +3,7 @@ use peregrine_data::Commander;
 use std::sync::{ Arc, Mutex, Weak };
 use wasm_bindgen::prelude::*;
 use crate::util::message::Message;
-use crate::{ PeregrineInnerAPI, PgCommanderWeb };
+use crate::{ PeregrineInnerAPI };
 use wasm_bindgen::JsCast;
 use web_sys::Element;
 use js_sys::Array;

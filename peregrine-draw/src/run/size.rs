@@ -32,7 +32,7 @@ be noted in the test_update_canvas_size call.
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
 use peregrine_toolkit::sync::needed::Needed;
-use web_sys::{HtmlCanvasElement, WebGlRenderingContext, window };
+use web_sys::{ WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
 use crate::util::resizeobserver::PgResizeObserver;
 use crate::PeregrineInnerAPI;

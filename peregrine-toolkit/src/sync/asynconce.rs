@@ -24,7 +24,6 @@ impl<T: Clone> AsyncOnceData<T> {
     }
 }
 
-// XXX not thread safe!
 #[derive(Clone)]
 pub struct AsyncOnce<T: Clone>(Arc<Mutex<AsyncOnceData<T>>>);
 

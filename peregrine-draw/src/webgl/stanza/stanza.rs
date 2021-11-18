@@ -35,7 +35,7 @@ fn create_index_buffer(context: &WebGlRenderingContext, values: &[u16]) -> Resul
         context.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
             &value_array,
-            WebGlRenderingContext::STATIC_DRAW,
+            WebGlRenderingContext::DYNAMIC_DRAW,
         );
         drop(value_array);
     }
