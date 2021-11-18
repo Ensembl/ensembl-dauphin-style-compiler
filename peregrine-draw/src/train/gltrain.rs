@@ -1,95 +1,81 @@
-use peregrine_data::{Assets, Carriage, CarriageExtent, Scale, ZMenuProxy};
+use peregrine_data::{ Scale, ZMenuProxy};
+use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
-use std::collections::{ HashMap, HashSet };
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use super::glcarriage::GLCarriage;
 use crate::stage::stage::{ ReadStage };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
 use crate::util::message::Message;
 
-pub struct GLTrain {
-    carriages: HashMap<CarriageExtent,GLCarriage>,
+struct GLTrainData {
+    carriages: Vec<GLCarriage>,
     opacity: f64,
     max: Option<u64>,
     redraw_needed: Needed
 }
 
+#[derive(Clone)]
+pub struct GLTrain(Arc<Mutex<GLTrainData>>);
+
 impl GLTrain {
     pub fn new(redraw_needed: &Needed) -> GLTrain {
-        GLTrain {
-            carriages: HashMap::new(),
+        GLTrain(Arc::new(Mutex::new(GLTrainData {
+            carriages: vec![],
             opacity: 0.,
             max: None,
             redraw_needed: redraw_needed.clone()
-        }
+        })))
     }
 
     pub(super) fn scale(&self) -> Option<Scale> {
-        self.carriages.iter().next().map(|(x,_)| x.train().scale()).cloned()
+        lock!(self.0).carriages.iter().next().map(|c| c.extent().train().scale().clone())
     }
 
     pub(super) fn set_max(&mut self, max: u64) {
-        self.max = Some(max);
+        lock!(self.0).max = Some(max);
     }
 
     pub(super) fn set_opacity(&mut self, amount: f64) {
-        self.redraw_needed.set();
-        self.opacity = amount;
-        for carriage in self.carriages.values() {
+        let mut state = lock!(self.0);
+        state.redraw_needed.set();
+        state.opacity = amount;
+        for carriage in &state.carriages {
             carriage.set_opacity(amount);
         }
     }
 
     pub(super) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for (_,mut carriage) in self.carriages.drain() {
+        for mut carriage in lock!(self.0).carriages.drain(..) {
             carriage.discard(gl)?;
         }
         Ok(())
     }
     
-    pub(super) fn set_carriages(&mut self, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
-        let mut dont_keeps : HashSet<_> = self.carriages.keys().cloned().collect();
-        let mut novels : HashSet<_> = new_carriages.iter().map(|x| x.extent()).cloned().collect();
-        for new in new_carriages {
-            dont_keeps.remove(new.extent());
+    pub(super) fn set_carriages(&mut self, new_carriages: Vec<GLCarriage>) -> Result<(),Message> {
+        let mut state = lock!(self.0);
+        for c in &new_carriages {
+            c.set_opacity(state.opacity);
         }
-        for old in self.carriages.keys() {
-            novels.remove(old);
-        }
-        let mut target = HashMap::new();
-        for (id,mut carriage) in self.carriages.drain() {
-            if dont_keeps.contains(&carriage.extent()) {
-                carriage.discard(gl)?;
-            } else {
-                target.insert(id,carriage);
-            }
-        }
-        let mut redraw = false;
-        for carriage in new_carriages {
-            if novels.contains(carriage.extent()) {
-                target.insert(carriage.extent().clone(),GLCarriage::new(carriage,self.opacity,gl,assets)?);
-                redraw = true;
-            }
-        }
-        self.carriages = target;
-        if redraw {
-            self.redraw_needed.set();
-        }
+        state.carriages = new_carriages;
+        state.redraw_needed.set();
         Ok(())
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
         let mut out = vec![];
-        for (_,carriage) in self.carriages.iter() {
+        for carriage in &lock!(self.0).carriages {
             out.append(&mut carriage.get_hotspot(stage,position)?);
         }
         Ok(out)
     }
 
-    pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
-        for carriage in self.carriages.values_mut() {
-            carriage.draw(gl,stage,session)?;
+    pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
+        let mut carriages = lock!(self.0).carriages.iter().cloned().collect::<Vec<_>>();
+        for mut carriage in carriages.drain(..) {
+            let mut gl = lock!(gl);
+            carriage.draw(&mut gl,stage,session)?;
         }
         Ok(())
     }

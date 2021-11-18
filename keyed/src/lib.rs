@@ -107,7 +107,7 @@ impl<K: KeyedHandle,T> KeyedData<K,T> {
         Ok(KeyedData(self.0.drain(..).enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
     }
 
-    pub fn map<F,U,E>(&self, f: F) -> Result<KeyedData<K,U>,E> where F: Fn(K,&T) -> Result<U,E> {
+    pub fn map<F,U,E>(&self, mut f: F) -> Result<KeyedData<K,U>,E> where F: FnMut(K,&T) -> Result<U,E> {
         Ok(KeyedData(self.0.iter().enumerate().map(|(i,t)| f(K::new(i),t)).collect::<Result<_,_>>()?,PhantomData))
     }
 }

@@ -102,6 +102,8 @@ impl<L> Substitutions<L> {
         }
     }
 
+    pub fn len(&self) -> usize { self.locations.len() }
+
     pub(super) fn flatten<X: Clone, F>(&mut self, data: &[ParameterValue<X>], cb: F) -> Vec<X> where F: Fn(usize) -> L {
         let mut out = vec![];
         for (i,item) in data.iter().enumerate() {

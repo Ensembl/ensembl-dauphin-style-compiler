@@ -2,28 +2,31 @@ use super::inner::{ PeregrineInnerAPI, LockedPeregrineInnerAPI };
 use super::size::SizeManager;
 use commander::{ cdr_tick, cdr_current_time };
 use peregrine_data::Commander;
+use peregrine_toolkit::lock;
 use crate::input::Input;
 use crate::util::message::Message;
 use crate::webgl::DrawingSession;
 use super::dom::PeregrineDom;
 
-fn animation_tick(web: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, input: &Input, elapsed: f64) -> Result<(),Message> {
-    size_manager.tick(web)?;
-    let read_stage = &web.stage.lock().unwrap().read_stage();
+fn animation_tick(lweb: &mut LockedPeregrineInnerAPI, size_manager: &SizeManager, input: &Input, elapsed: f64) -> Result<(),Message> {
+    size_manager.tick(lweb)?;
+    let read_stage = &lweb.stage.lock().unwrap().read_stage();
     input.update_stage(read_stage);
     let spectres = input.get_spectres();
     if spectres.len() > 0 {
-        web.stage.lock().unwrap().redraw_needed().set();
+        lweb.stage.lock().unwrap().redraw_needed().set();
     }
-    let gl = &mut web.webgl.lock().unwrap();
-    let assets = web.assets.clone();
-    web.trainset.transition_animate_tick(&web.data_api,gl,elapsed)?;
+    lweb.data_api.try_lifecycle_trains();
+    let gl = lweb.webgl.clone();
+    let assets = lweb.assets.clone();
+    lweb.trainset.transition_animate_tick(&lweb.data_api,&mut *lock!(gl),elapsed)?;
     if read_stage.ready() {
-        let mut session = DrawingSession::new(web.trainset.scale());
-        session.begin(gl)?;
-        web.trainset.draw_animate_tick(read_stage,gl,&mut session)?;
-        web.spectre_manager.draw(gl,&assets,read_stage,&mut session)?;
-        session.finish(web.data_api)?;
+        let mut session = DrawingSession::new(lweb.trainset.scale());
+        session.begin(&mut *lock!(gl))?;
+        let mut train_set = lweb.trainset.clone();
+        train_set.draw_animate_tick(read_stage,&gl,&mut session)?;
+        lweb.spectre_manager.draw(&gl,&assets,read_stage,&mut session)?;
+        session.finish(lweb.data_api)?;
     }
     Ok(())
 }
@@ -35,12 +38,10 @@ async fn animation_tick_loop(mut web: PeregrineInnerAPI, size_manager: SizeManag
     drop(lweb);
     loop {
         let next = cdr_current_time();
-        let mut lweb = web.lock().await;
-        let r = animation_tick(&mut lweb,&size_manager,&input,next-start);
+        let r = animation_tick(&mut web.lock().await,&size_manager,&input,next-start);
         if let Err(e) = r { 
-            lweb.message_sender.add(e);
+            web.lock().await.message_sender.add(e);
         }
-        drop(lweb);
         cdr_tick(1).await;
         redraw.wait_until_needed().await;
         start = next;

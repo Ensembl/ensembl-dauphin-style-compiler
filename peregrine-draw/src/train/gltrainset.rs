@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, Carriage, CarriageSpeed, PeregrineCore, Scale, Train, TrainSerial, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageSerial, CarriageSpeed, PeregrineCore, Scale, Train, TrainSerial, ZMenuProxy};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
+use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
+use crate::PgCommanderWeb;
 use crate::{run::{ PgPeregrineConfig, PgConfigKey }, stage::stage::{ Stage, ReadStage } };
 use crate::webgl::DrawingSession;
 use crate::webgl::global::WebGlGlobal;
@@ -23,14 +25,17 @@ struct GlRailwayData {
     slow_fade_overlap_prop: f64,
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
+    commander: PgCommanderWeb,
     trains: HashMap<TrainSerial,GLTrain>,
+    carriages: HashMap<CarriageSerial,GLCarriage>,
     fade_state: FadeState,
     redraw_needed: Needed
 }
 
 impl GlRailwayData {
-    fn new(draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlRailwayData,Message> {
+    fn new(commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig,redraw_needed: &Needed) -> Result<GlRailwayData,Message> {
         Ok(GlRailwayData {
+            commander: commander.clone(),
             slow_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow))?,
             slow_cross_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade))?,
             fast_fade_time: draw_config.get_f64(&PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick))?,
@@ -38,6 +43,7 @@ impl GlRailwayData {
             slow_cross_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(CarriageSpeed::SlowCrossFade))?,
             fast_fade_overlap_prop: draw_config.get_f64(&PgConfigKey::FadeOverlap(CarriageSpeed::Quick))?,
             trains: HashMap::new(),
+            carriages: HashMap::new(),
             fade_state: FadeState::Constant(None),
             redraw_needed: redraw_needed.clone(),
         })
@@ -55,8 +61,26 @@ impl GlRailwayData {
         self.trains.remove(&train.serial());
     }
 
-    fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
-        self.get_our_train(train.serial()).set_carriages(new_carriages,gl,assets)
+    fn create_carriage(&mut self, carriage: &Carriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
+        if !self.carriages.contains_key(&carriage.serial()) {
+            self.carriages.insert(carriage.serial(), GLCarriage::new(&self.redraw_needed,&self.commander,carriage, gl, assets)?);
+        }
+        Ok(())
+    }
+
+    fn drop_carriage(&mut self, carriage: &Carriage) { 
+        self.carriages.remove(&carriage.serial());
+    }
+
+    fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage]) -> Result<(),Message> {
+        match new_carriages.iter().map(|c| self.carriages.get(&c.serial()).cloned()).collect::<Option<Vec<_>>>() {
+            Some(carriages) => {
+                self.get_our_train(train.serial()).set_carriages(carriages)
+            },
+            None => {
+                Err(Message::CodeInvariantFailed(format!("missing carriages")))
+            }
+        }
     }
 
     fn set_max(&mut self, serial: TrainSerial, len: u64) {
@@ -144,29 +168,29 @@ impl GlRailwayData {
         self.get_our_train(serial).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
-    fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
+    fn get_draws(&mut self) -> Vec<GLTrain> {
+        let mut out = vec![];
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                self.get_our_train(train).draw(gl,stage,session)?;
+                out.push(self.get_our_train(train).clone());
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
                     if self.train_scale(from) > self.train_scale(to) {
                         /* zooming in, give priority to more detailed target */
-                        self.get_our_train(to).draw(gl,stage,session)?;
-                        self.get_our_train(from).draw(gl,stage,session)?;
+                        out.push(self.get_our_train(to).clone());
+                        out.push(self.get_our_train(from).clone());
                     } else {
                         /* zooming out, give priority to more detailed source */
-                        self.get_our_train(from).draw(gl,stage,session)?;
-                        self.get_our_train(to).draw(gl,stage,session)?;
-                    }
+                        out.push(self.get_our_train(from).clone());
+                        out.push(self.get_our_train(to).clone());                    }
                 } else {
-                    self.get_our_train(to).draw(gl,stage,session)?;
+                    out.push(self.get_our_train(to).clone());
                 }
             },
         }
-        Ok(())
+        out
     }
 
     fn scale(&mut self) -> Option<Scale> {
@@ -193,28 +217,40 @@ pub struct GlRailway {
 }
 
 impl GlRailway {
-    pub fn new(draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlRailway,Message> {
+    pub fn new(commander: &PgCommanderWeb, draw_config: &PgPeregrineConfig, stage: &Stage) -> Result<GlRailway,Message> {
         Ok(GlRailway {
-            data: Arc::new(Mutex::new(GlRailwayData::new(draw_config,&stage.redraw_needed())?))
+            data: Arc::new(Mutex::new(GlRailwayData::new(commander,draw_config,&stage.redraw_needed())?))
         })
     }
 
     pub fn create_train(&mut self, train: &Train) { lock!(self.data).create_train(train) }
     pub fn drop_train(&mut self, train: &Train) { lock!(self.data).drop_train(train) }
 
+    pub(crate) fn create_carriage(&mut self, carriage: &Carriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
+        lock!(self.data).create_carriage(carriage,gl,assets)
+    }
+
+    pub(crate) fn drop_carriage(&mut self, carriage: &Carriage) { lock!(self.data).drop_carriage(carriage); }
+
     pub fn transition_animate_tick(&mut self, api: &PeregrineCore, gl: &mut WebGlGlobal, newly_elapsed: f64) -> Result<(),Message> {
-        if self.data.lock().unwrap().transition_animate_tick(gl,newly_elapsed)? {
+        if lock!(self.data).transition_animate_tick(gl,newly_elapsed)? {
             api.transition_complete();
         }
         Ok(())
     }
 
-    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &mut WebGlGlobal, session: &mut DrawingSession) -> Result<(),Message> {
-        lock!(self.data).draw_animate_tick(stage,gl,session)
+    pub(crate) fn draw_animate_tick(&mut self, stage: &ReadStage, gl: &Arc<Mutex<WebGlGlobal>>, session: &mut DrawingSession) -> Result<(),Message> {
+        let mut state =  lock!(self.data);
+        let mut draws = state.get_draws();
+        drop(state);
+        for mut train in draws.drain(..) {
+            train.draw(gl,stage,session)?;
+        }
+        Ok(())
     }
 
-    pub fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage], gl: &mut WebGlGlobal, assets: &Assets) -> Result<(),Message> {
-        lock!(self.data).set_carriages(train,new_carriages,gl,assets)?;
+    pub fn set_carriages(&mut self, train: &Train, new_carriages: &[Carriage]) -> Result<(),Message> {
+        lock!(self.data).set_carriages(train,new_carriages)?;
         Ok(())
     }
 

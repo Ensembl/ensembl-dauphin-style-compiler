@@ -16,6 +16,13 @@ enum RectanglesLocation {
 }
 
 impl RectanglesLocation {
+    fn any_dynamic(&self) -> bool {
+        match self {
+            RectanglesLocation::Area(_,s,_) => s.len() != 0,
+            RectanglesLocation::Sized(_,s,_,_) => s.len() != 0
+        }
+    }
+
     fn apply(&mut self, variables: &VariableValues<f64>) -> SpaceBaseArea<f64> {
         match self {
             RectanglesLocation::Area(ref mut a ,s,edge) => {
@@ -126,6 +133,10 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSyste
 }
 
 impl DynamicShape for Rectangles {
+    fn any_dynamic(&self) -> bool {
+        self.location.any_dynamic()
+    }
+
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
         let area = self.location.apply(variables);
         let gl_depth = 1.0 - (self.kind.depth() as f64+128.) / 255.;

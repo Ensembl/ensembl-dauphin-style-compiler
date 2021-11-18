@@ -158,6 +158,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::SetStick(stick.clone()));
     }
 
+    pub fn try_lifecycle_trains(&self) {
+        self.base.queue.push(ApiMessage::TryLifecycleTrains);
+    }
+
     pub fn report_message(&self, channel: &Channel, message: &(dyn PeregrineMessage + 'static)) {
         self.base.queue.push(ApiMessage::ReportMetric(channel.clone(),MetricReport::new_from_error_message(&self.base,message)));
     }

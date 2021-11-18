@@ -6,7 +6,9 @@ use super::builder::{ ProcessStanzaBuilder, ProcessStanzaAddable };
 use web_sys::{ WebGlRenderingContext };
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
+use crate::webgl::global::WebGlGlobal;
 
 const LIMIT : usize = 16384;
 
@@ -61,8 +63,13 @@ impl ProcessStanzaElementsEntry {
         Ok(())
     }
 
-    pub(super) fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
-        let out = ProcessStanza::new_elements(context,aux_array,&self.index,values,&self.attribs)?;
+    pub(super) fn make_stanza_sync(&self, values: &KeyedData<AttribHandle,Attribute>, context: &WebGlRenderingContext, aux_array: &Float32Array) -> Result<Option<ProcessStanza>,Message> {
+        let out = ProcessStanza::new_elements_sync(context,aux_array,&self.index,values,&self.attribs)?;
+        Ok(out)
+    }
+
+    pub(super) async fn make_stanza(&self, values: &KeyedData<AttribHandle,Attribute>, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Option<ProcessStanza>,Message> {
+        let out = ProcessStanza::new_elements(gl,&self.index,values,&self.attribs).await?;
         Ok(out)
     }
 }

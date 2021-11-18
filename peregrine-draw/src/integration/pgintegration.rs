@@ -1,9 +1,7 @@
-use std::collections::HashSet;
-use std::ops::Add;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
-    Scale, Viewport
+    Viewport
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -14,7 +12,6 @@ use crate::train::GlRailway;
 use peregrine_data::{ DataMessage, Train };
 use crate::webgl::global::WebGlGlobal;
 use crate::stage::stage::Stage;
-
 pub struct PgIntegration {
     channel: PgChannel,
     trainset: GlRailway,
@@ -39,9 +36,16 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.drop_train(train);
     }
 
+    fn create_carriage(&mut self, carriage: &Carriage) {
+        self.trainset.create_carriage(carriage,&self.webgl,&self.assets);
+    }
+
+    fn drop_carriage(&mut self, carriage: &Carriage) {
+        self.trainset.drop_carriage(carriage);
+    }
+
     fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage> {
-        let mut webgl = self.webgl.lock().unwrap();
-        self.trainset.set_carriages(train,carriages,&mut webgl,&self.assets);
+        self.trainset.set_carriages(train,carriages);
         Ok(())
     }
 

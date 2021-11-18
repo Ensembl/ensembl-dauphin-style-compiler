@@ -1,6 +1,8 @@
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use super::layer::Layer;
 use peregrine_data::{Assets, Scale, Shape, ShapeList, VariableValues, ZMenuProxy};
+use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
 use super::super::core::drawshape::{ add_shape_to_layer, GLShape };
@@ -16,6 +18,7 @@ use crate::stage::stage::ReadStage;
 use crate::util::message::Message;
 
 pub(crate) trait DynamicShape {
+    fn any_dynamic(&self) -> bool;
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message>;
 }
 
@@ -134,14 +137,20 @@ impl DrawingBuilder {
         Ok(())
     }
 
-    pub(crate) fn build(mut self, gl: &mut WebGlGlobal) -> Result<Drawing,Message> {
+    pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
         let flats = self.flats.take().unwrap().built();
-        let processes = self.main_layer.build(gl,&flats)?;
+        let processes = self.main_layer.build(gl,&flats).await?;
+        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes,&self.variables)?)
+    }
+
+    pub(crate) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
+        let flats = self.flats.take().unwrap().built();
+        let processes = self.main_layer.build_sync(gl,&flats)?;
         Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes,&self.variables)?)
     }
 }
 
-pub(crate) struct Drawing {
+struct DrawingData {
     processes: Vec<Process>,
     canvases: DrawingAllFlats,
     variables: VariableValues<f64>,
@@ -150,47 +159,71 @@ pub(crate) struct Drawing {
     recompute: Needed
 }
 
+#[derive(Clone)]
+pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
+
 impl Drawing {
-    pub(crate) fn new(scale: Option<&Scale>, shapes: ShapeList, gl: &mut WebGlGlobal, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: ShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(scale,gl,assets,variables,left)?;
+        let mut lgl = lock!(gl);
+        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
-        drawing.prepare_tools(gl)?;
+        drawing.prepare_tools(&mut lgl)?;
         /* draw shapes (including any 2d work) */
         for mut shapes in prepared_shapes.drain(..) {
             for shape in shapes.drain(..) {
-                drawing.add_shape(gl,shape)?;
+                drawing.add_shape(&mut lgl,shape)?;
+            }
+        }
+        drop(lgl);
+        /* convert stuff to WebGL processes */
+        drawing.build(gl).await
+    }
+
+    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: ShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+        let mut lgl = lock!(gl);
+        /* convert core shape data model into gl shapes */
+        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;
+        let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
+        /* gather and allocate aux requirements (2d canvas space etc) */
+        drawing.prepare_tools(&mut lgl)?;
+        /* draw shapes (including any 2d work) */
+        for mut shapes in prepared_shapes.drain(..) {
+            for shape in shapes.drain(..) {
+                drawing.add_shape(&mut lgl,shape)?;
             }
         }
         /* convert stuff to WebGL processes */
-        drawing.build(gl)
+        drop(lgl);
+        drawing.build_sync(gl)
     }
 
     fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
-        let mut out = Drawing {
+        let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
             zmenus,
             variables: variables.clone(),
             dynamic_shapes,
             recompute: Needed::new()
-        };
+        })));
         out.recompute()?;
         Ok(out)
     }
 
     pub(crate) fn set_zmenu_px_per_screen(&mut self, px_per_screen: f64) {
-        self.zmenus.set_px_per_screen(px_per_screen);
+        lock!(self.0).zmenus.set_px_per_screen(px_per_screen);
     }
 
     pub(crate) fn get_hotspot(&self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        self.zmenus.get_hotspot(stage,position)
+        lock!(self.0).zmenus.get_hotspot(stage,position)
     }
 
     pub(crate) fn draw(&mut self, gl: &mut WebGlGlobal, stage: &ReadStage, session: &mut DrawingSession, opacity: f64) -> Result<(),Message> {
-        let recompute =  self.recompute.is_needed();
-        for process in &mut self.processes {
+        let mut state = lock!(self.0);
+        let recompute =  state.recompute.is_needed();
+        for process in &mut state.processes {
             if recompute {
                 process.update_attributes(gl)?;
             }
@@ -200,19 +233,26 @@ impl Drawing {
     }
 
     pub(crate) fn recompute(&mut self) -> Result<(),Message> {
-        for shape in &mut self.dynamic_shapes {
-            shape.recompute(&self.variables)?;
+        let mut state = lock!(self.0);
+        let variables = state.variables.clone();
+        let mut any = false;
+        for shape in &mut state.dynamic_shapes {
+            any |= shape.any_dynamic();
+            shape.recompute(&variables)?;
         }
-        self.recompute.set();
+        if any {
+            state.recompute.set();
+        }
         Ok(())
     }
 
     pub(crate) fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        for process in &mut self.processes {
+        let mut state = lock!(self.0);
+        for process in &mut state.processes {
             process.discard(gl)?;
         }
         let gl = gl.refs();
-        self.canvases.discard(gl.flat_store,gl.bindery)?;
+        state.canvases.discard(gl.flat_store,gl.bindery)?;
         Ok(())
     }
 }

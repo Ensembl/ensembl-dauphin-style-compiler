@@ -1,10 +1,11 @@
 use peregrine_toolkit::sync::blocker::{Blocker};
+use peregrine_toolkit::sync::needed::Needed;
 use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase};
 use crate::api::MessageSender;
-use crate::core::{ Scale, Viewport };
+use crate::core::{Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
 use super::train::{ Train };
-use super::carriage::{Carriage};
+use super::carriage::{Carriage, CarriageSerialSource};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::util::message::DataMessage;
@@ -15,25 +16,28 @@ use crate::util::message::DataMessage;
  */
 
 pub struct TrainSet {
+    try_lifecycle: Needed,
+    serial_source: CarriageSerialSource,
     current: Option<Train>,
     future: Option<Train>,
     wanted: Option<Train>,
-    next_activation: u32,
     next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
 }
 
 impl TrainSet {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker) -> TrainSet {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
+        let serial_source = CarriageSerialSource::new();
         TrainSet {
+            try_lifecycle: try_lifecycle.clone(),
             current: None,
             future: None,
             wanted: None,
-            next_activation: 0,
             next_train_serial: 0,
             messages: base.messages.clone(),
-            dependents: RailwayDependents::new(base,result_store,visual_blocker),
+            dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
+            serial_source
         }
     }
 
@@ -69,11 +73,15 @@ impl TrainSet {
     }
 
     fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents) {
-        if self.wanted.as_ref().map(|x| x.train_ready() && !x.train_broken()).unwrap_or(false) && self.future.is_none() {
+        let desperate = self.future.is_none() && self.current.is_none();
+        let train_good_enough = self.wanted.as_ref().map(|x| {
+            let train_ready_enough = x.train_ready() || (desperate && x.train_half_ready());
+            train_ready_enough && !x.train_broken()
+        }).unwrap_or(false);
+        if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
                 let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
-                wanted.set_active(events,self.next_activation,speed);
-                self.next_activation += 1;
+                wanted.set_active(events,speed);
                 self.future = Some(wanted);
                 self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_carriages(),events);
                 self.draw_notify_viewport(events);
@@ -96,11 +104,11 @@ impl TrainSet {
             }
         }
         if new_target_needed {
-            if let Some(wanted) = self.wanted.take() {
-                events.draw_drop_train(&wanted);
+            if let Some(mut wanted) = self.wanted.take() {
+                wanted.discard(events);
             }
             self.next_train_serial +=1;
-            let wanted = Train::new(self.next_train_serial,&train_id,events,viewport,&self.messages)?;
+            let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&train_id,events,viewport,&self.messages,&self.serial_source)?;
             events.draw_create_train(&wanted);
             self.wanted = Some(wanted);
         }
@@ -132,7 +140,7 @@ impl TrainSet {
     pub(super) fn transition_complete(&mut self, events: &mut RailwayEvents) {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
-            current.set_inactive();
+            current.discard(events);
             events.draw_drop_train(&current);
         }
         self.current = self.future.take();
@@ -146,7 +154,6 @@ impl TrainSet {
         let mut events = RailwayEvents::new();
         if let Some(wanted) = &mut self.wanted {
             /* wanted may be ready now */
-            wanted.check_if_ready();
             self.try_advance_wanted_to_future(&mut events);
         }
         if let Some(train) = &mut self.future {

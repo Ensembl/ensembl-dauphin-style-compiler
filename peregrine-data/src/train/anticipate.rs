@@ -1,18 +1,23 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use commander::CommanderStream;
+use peregrine_toolkit::sync::needed::Needed;
 
 use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
-use super::{train::{Train}, trainextent::TrainExtent};
+use super::{carriage::CarriageSerialSource, train::{Train}, trainextent::TrainExtent};
 
 #[derive(Clone)]
 struct AnticipatedCarriages {
+    try_lifecycle: Needed,
+    serial_source: CarriageSerialSource,
     hot_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
     warm_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
 }
 
 impl AnticipatedCarriages {
-    fn new() -> AnticipatedCarriages {
+    fn new(try_lifecycle: &Needed, serial_source: &CarriageSerialSource) -> AnticipatedCarriages {
         AnticipatedCarriages {
+            try_lifecycle: try_lifecycle.clone(),
+            serial_source: serial_source.clone(),
             hot_carriages: Arc::new(Mutex::new(HashMap::new())),
             warm_carriages: Arc::new(Mutex::new(HashMap::new()))
         }
@@ -34,7 +39,7 @@ impl AnticipatedCarriages {
         let carriage_id = CarriageExtent::new(&train_id,index);
         if self.contains(&carriage_id,batch) { return None; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
-        let carriage = Carriage::new(&carriage_id,&train_track_config_list,None);
+        let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_id,&train_track_config_list,None);
         self.insert(&carriage_id,&carriage,batch);
         return Some(carriage);
     }
@@ -167,15 +172,19 @@ enum AnticipateTask {
 
 #[derive(Clone)]
 pub(crate) struct Anticipate {
+    try_lifecycle: Needed,
+    serial_source: CarriageSerialSource,
     position: Arc<Mutex<Option<AnticipatePosition>>>,
     stream: CommanderStream<AnticipateTask>
 }
 
 impl Anticipate {
-    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &LaneStore) -> Anticipate {
+    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &LaneStore, serial_source: &CarriageSerialSource) -> Anticipate {
         let stream = CommanderStream::new();
         run_anticipator(&base,&result_store,&stream);
         Anticipate {
+            try_lifecycle: try_lifecycle.clone(),
+            serial_source: serial_source.clone(),
             position: Arc::new(Mutex::new(None)),
             stream
         }
@@ -190,7 +199,7 @@ impl Anticipate {
         if let Some(old_position) = self.position.lock().unwrap().as_ref() {
             if &new_position == old_position { return; }
         }
-        let mut carriages = AnticipatedCarriages::new();
+        let mut carriages = AnticipatedCarriages::new(&self.try_lifecycle,&self.serial_source);
         if self.lightweight() {
             new_position.derive(&mut carriages,2,true);
         } else {

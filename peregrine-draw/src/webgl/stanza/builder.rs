@@ -7,7 +7,9 @@ use super::stanza::{AttribSource, ProcessStanza};
 use web_sys::WebGlRenderingContext;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 use crate::util::message::Message;
+use crate::webgl::global::WebGlGlobal;
 
 pub trait ProcessStanzaAddable {
     fn add(&mut self, handle: &AttribHandle, values: Vec<f32>, dims: usize) -> Result<(),Message>;
@@ -56,15 +58,31 @@ impl ProcessStanzaBuilder {
         Ok(out)
     }
 
-    pub(crate) fn make_stanzas(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
+    pub(crate) async fn make_stanzas(&self, gl: &Arc<Mutex<WebGlGlobal>>, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
         if *self.active.borrow() {
             return Err(Message::CodeInvariantFailed(format!("attempt to make while campaign still open")));
         }
-        let mut out = self.elements.iter()
-            .map(|x| 
-                x.borrow().make_stanza(attribs.data(),context,aux_array))
-                .collect::<Result<Vec<_>,_>>()?;
-        out.append(&mut self.arrays.iter().map(|x| x.make_stanza(attribs.data(),context,aux_array)).collect::<Result<_,_>>()?);
+        let mut out = vec![];
+        for element in &self.elements {
+            out.push(element.borrow().make_stanza(attribs.data(),gl).await?);
+        }
+        for array in &self.arrays {
+            out.push(array.make_stanza(attribs.data(),gl).await?);
+        }
+        Ok(out.drain(..).filter(|x| x.is_some()).map(|x| x.unwrap()).collect())
+    }
+
+    pub(crate) fn make_stanzas_sync(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, attribs: &KeyedValues<AttribHandle,Attribute>) -> Result<Vec<ProcessStanza>,Message> {
+        if *self.active.borrow() {
+            return Err(Message::CodeInvariantFailed(format!("attempt to make while campaign still open")));
+        }
+        let mut out = vec![];
+        for element in &self.elements {
+            out.push(element.borrow().make_stanza_sync(attribs.data(),context,aux_array)?);
+        }
+        for array in &self.arrays {
+            out.push(array.make_stanza_sync(attribs.data(),context,aux_array)?);
+        }
         Ok(out.drain(..).filter(|x| x.is_some()).map(|x| x.unwrap()).collect())
     }
 }

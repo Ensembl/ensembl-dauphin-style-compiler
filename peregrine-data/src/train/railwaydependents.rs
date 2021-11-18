@@ -1,10 +1,10 @@
 use std::sync::Mutex;
 
-use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::blocker::{Blocker, Lockout}};
+use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
 use crate::{AllotmentMetadataReport, Carriage, LaneStore, PeregrineCoreBase, PlayingField};
 
-use super::{anticipate::Anticipate, railwayevent::RailwayEvents, train::Train};
+use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,
@@ -16,9 +16,9 @@ pub struct RailwayDependents {
 }
 
 impl RailwayDependents {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker) -> RailwayDependents {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, serial_source: &CarriageSerialSource, visual_blocker: &Blocker, try_lifecycle: &Needed) -> RailwayDependents {
         RailwayDependents {
-            anticipate: Anticipate::new(base,result_store),
+            anticipate: Anticipate::new(base,try_lifecycle,result_store,serial_source),
             playing_field: MutexOnChange::new(),
             metadata: MutexOnChange::new(),
             visual_blocker: visual_blocker.clone(),

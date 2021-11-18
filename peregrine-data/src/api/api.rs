@@ -53,8 +53,13 @@ impl PlayingField {
 
 pub trait PeregrineIntegration {
     fn set_assets(&mut self, assets: Assets);
+
     fn create_train(&mut self, train: &Train);
     fn drop_train(&mut self, train: &Train);
+
+    fn create_carriage(&mut self, carriage: &Carriage);
+    fn drop_carriage(&mut self, carriage: &Carriage);
+
     fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage>;
     fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool);

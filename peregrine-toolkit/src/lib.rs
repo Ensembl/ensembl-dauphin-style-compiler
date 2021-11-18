@@ -2,10 +2,10 @@ pub mod js {
     pub mod exception;
 }
 pub mod sync {
+    pub mod asynconce;
     pub mod blocker;
     pub mod needed;
     pub mod pacer;
-    pub mod smartdrop;
 }
 pub mod plumbing {
     pub mod distributor;

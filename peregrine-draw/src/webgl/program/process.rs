@@ -1,11 +1,14 @@
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use crate::shape::layers::layer::ProgramCharacter;
 use crate::webgl::{ ProcessStanzaBuilder, ProcessStanza };
 use super::program::{ Program, ProgramBuilder };
 use super::session::SessionMetric;
 use super::uniform::{ UniformHandle, UniformValues };
 use super::texture::{ TextureValues, TextureHandle };
+use commander::cdr_tick;
 use keyed::KeyedData;
+use peregrine_toolkit::lock;
 use crate::webgl::util::handle_context_errors;
 use crate::stage::stage::{ ReadStage, ProgramStage };
 use crate::webgl::{ FlatId };
@@ -44,8 +47,32 @@ impl ProcessBuilder {
         &mut self.stanza_builder
     }
 
-    pub(crate) fn build(self, gl: &mut WebGlGlobal, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
-        let gl_ref = gl.refs();
+    pub(crate) async fn build(self, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+        let mut lgl = lock!(gl);
+        let gl_ref = lgl.refs();
+        let program = self.builder.make(gl_ref.context,gl_ref.gpuspec)?;
+        drop(lgl);
+        cdr_tick(0).await;
+        let mut uniforms = program.make_uniforms();
+        for (name,value) in self.uniforms {
+            uniforms.get_mut(&name).set_value(&value)?;
+            cdr_tick(0).await;
+        }
+        let mut textures = program.make_textures();
+        for (name,value) in self.textures {
+            let handle = self.builder.get_texture_handle(&name)?;
+            let mut lgl = lock!(gl);
+            let gl_ref = lgl.refs();
+            textures.get_mut(&handle).set_value(gl_ref.flat_store,&value)?;
+            drop(lgl);
+            cdr_tick(0).await;
+        }
+        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character).await
+    }
+
+    pub(crate) fn build_sync(self, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+        let mut lgl = lock!(gl);
+        let gl_ref = lgl.refs();
         let program = self.builder.make(gl_ref.context,gl_ref.gpuspec)?;
         let mut uniforms = program.make_uniforms();
         for (name,value) in self.uniforms {
@@ -54,10 +81,9 @@ impl ProcessBuilder {
         let mut textures = program.make_textures();
         for (name,value) in self.textures {
             let handle = self.builder.get_texture_handle(&name)?;
-            let gl_ref = gl.refs();
             textures.get_mut(&handle).set_value(gl_ref.flat_store,&value)?;
         }
-        Process::new(gl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character)
+        Process::new_sync(&mut lgl,program,&self.builder,self.stanza_builder,uniforms,textures,left,character)
     }
 }
 
@@ -72,9 +98,23 @@ pub struct Process {
 }
 
 impl Process {
-    fn new(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+    async fn new(gl: &Arc<Mutex<WebGlGlobal>>, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
+        let stanzas = program.make_stanzas(gl,&stanza_builder).await?;
+        let program_stage = ProgramStage::new(&builder)?;
+        Ok(Process {
+            program,
+            stanzas,
+            program_stage,
+            uniforms,
+            textures,
+            left,
+            character: character.clone()
+        })
+    }
+
+    fn new_sync(gl: &mut WebGlGlobal, program: Rc<Program>, builder: &Rc<ProgramBuilder>, stanza_builder: ProcessStanzaBuilder, uniforms: KeyedData<UniformHandle,UniformValues>, textures: KeyedData<TextureHandle,TextureValues>, left: f64, character: &ProgramCharacter) -> Result<Process,Message> {
         let gl_ref = gl.refs();
-        let stanzas = program.make_stanzas(gl_ref.context,gl_ref.aux_array,&stanza_builder)?;
+        let stanzas = program.make_stanzas_sync(gl_ref.context,gl_ref.aux_array,&stanza_builder)?;
         let program_stage = ProgramStage::new(&builder)?;
         Ok(Process {
             program,

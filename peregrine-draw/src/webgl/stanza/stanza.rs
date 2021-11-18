@@ -1,9 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 use super::super::program::attribute::{ AttribHandle, AttributeValues };
-use commander::cdr_current_time;
+use commander::cdr_tick;
 use js_sys::Float32Array;
 use keyed::{ KeyedData };
+use peregrine_toolkit::lock;
 use web_sys::{ WebGlBuffer, WebGlRenderingContext };
+use crate::webgl::global::WebGlGlobal;
 use crate::webgl::util::handle_context_errors;
 use crate::webgl::Attribute;
 use crate::util::message::Message;
@@ -59,28 +61,80 @@ impl ProcessStanza {
         self.attribs.len()
     }
 
-    pub(super) fn new_elements(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+    async fn make_attribs(gl: &Arc<Mutex<WebGlGlobal>>, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<KeyedData<AttribHandle,(AttribSource,AttributeValues)>,Message> {
+        let mut a_values = KeyedData::new();
+        for (k,v) in attribs.items() {
+            let mut lgl = lock!(gl);
+            let gl_refs = lgl.refs();
+            let value = AttributeValues::new(values.get(&k),&v.get(),gl_refs.context,gl_refs.aux_array)?;
+            drop(lgl);
+            cdr_tick(0).await;
+            a_values.insert(&k,value);
+        }
+        attribs.map(|k,v| 
+            Ok((v.clone(),a_values.remove(&k).unwrap()))
+        )
+    }
+
+    fn make_attribs_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<KeyedData<AttribHandle,(AttribSource,AttributeValues)>,Message> {
+        let mut a_values = KeyedData::new();
+        for (k,v) in attribs.items() {
+            let value = AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?;
+            a_values.insert(&k,value);
+        }
+        attribs.map(|k,v| 
+            Ok((v.clone(),a_values.remove(&k).unwrap()))
+        )
+    }
+
+    pub(super) fn new_elements_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
         if index.len() > 0 {
             Ok(Some(ProcessStanza {
                 index: Some(create_index_buffer(context,index)?),
                 len: index.len(),
-                attribs: attribs.map(|k,v| 
-                    Ok((v.clone(),AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?))
-                )?
+                attribs: ProcessStanza::make_attribs_sync(context,aux_array,values,attribs)?
             }))
         } else {
             Ok(None)
         }
     }
 
-    pub(super) fn new_array(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+    pub(super) fn new_array_sync(context: &WebGlRenderingContext, aux_array: &Float32Array, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
         if len > 0 {
             Ok(Some(ProcessStanza {
                 index: None,
                 len,
-                attribs: attribs.map(|k,v| {
-                    Ok((v.clone(),AttributeValues::new(values.get(&k),&v.get(),context,aux_array)?))
-                })?
+                attribs: ProcessStanza::make_attribs_sync(context,aux_array,values,attribs)?
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub(super) async fn new_elements(gl: &Arc<Mutex<WebGlGlobal>>, index: &[u16], values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+        if index.len() > 0 {
+            let mut lgl = lock!(gl);
+            let gl_refs = lgl.refs();
+            let index_buffer = create_index_buffer(&gl_refs.context,index)?;
+            drop(lgl);
+            cdr_tick(0).await;
+            let attribs = ProcessStanza::make_attribs(gl,values,attribs).await?;
+            Ok(Some(ProcessStanza {
+                index: Some(index_buffer),
+                len: index.len(),
+                attribs
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub(super) async fn new_array(gl: &Arc<Mutex<WebGlGlobal>>, len: usize, values: &KeyedData<AttribHandle,Attribute>, attribs: &KeyedData<AttribHandle,AttribSource>) -> Result<Option<ProcessStanza>,Message> {
+        if len > 0 {
+            Ok(Some(ProcessStanza {
+                index: None,
+                len,
+                attribs: ProcessStanza::make_attribs(gl,values,attribs).await?
             }))
         } else {
             Ok(None)

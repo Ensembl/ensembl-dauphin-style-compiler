@@ -132,7 +132,7 @@ impl PeregrineInnerAPI {
         });
         let webgl = Arc::new(Mutex::new(WebGlGlobal::new(&dom,&config.draw)?));
         let stage = Arc::new(Mutex::new(Stage::new()));
-        let trainset = GlRailway::new(&config.draw,&stage.lock().unwrap())?;
+        let trainset = GlRailway::new(&commander,&config.draw,&stage.lock().unwrap())?;
         let report = Report::new(&config.draw,&message_sender)?;
         let target_reporter = TargetReporter::new(&commander,&config.draw,&report)?;
         let mut input = Input::new(queue_blocker);

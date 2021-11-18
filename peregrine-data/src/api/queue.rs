@@ -25,7 +25,8 @@ pub enum ApiMessage {
     Jump(String,PromiseFuture<Option<(StickId,f64,f64)>>),
     ReportMetric(Channel,MetricReport),
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
-    SetAssets(Assets)
+    SetAssets(Assets),
+    TryLifecycleTrains,
 }
 
 struct ApiQueueCampaign {
@@ -93,6 +94,10 @@ impl ApiQueueCampaign {
             },
             ApiMessage::SetAssets(assets) => {
                 *data.base.assets.lock().unwrap() = assets;
+            },
+            ApiMessage::TryLifecycleTrains => {
+                let train_set = data.train_set.clone();
+                train_set.try_lifecycle_trains(data);
             }
         }
     }

@@ -82,7 +82,7 @@ impl Needed {
         self.0.lock().unwrap().set();
     }
 
-    pub fn is_needed(&mut self) -> bool {
+    pub fn is_needed(&self) -> bool {
         self.0.lock().unwrap().is_needed()
     }
 

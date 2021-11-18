@@ -1,5 +1,6 @@
 use js_sys::Float32Array;
 use web_sys::{ WebGlProgram, WebGlRenderingContext };
+use crate::webgl::global::WebGlGlobal;
 use crate::webgl::{GPUSpec, ProcessStanza, ProcessStanzaBuilder, make_program};
 use super::attribute::{ Attribute, AttribHandle, AttributeProto };
 use keyed::{ KeyedValues, KeyedData };
@@ -10,6 +11,7 @@ use super::source::SourceInstrs;
 use crate::util::message::Message;
 use std::rc::Rc;
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 
 pub struct ProgramBuilder {
     program: RefCell<Option<Rc<Program>>>,
@@ -125,8 +127,12 @@ impl Program {
         self.textures.data().map::<_,_,()>(|_,t| Ok(TextureValues::new(t.clone()))).unwrap()
     }
 
-    pub(super) fn make_stanzas(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
-        stanza_builder.make_stanzas(context,aux_array,&self.attribs)
+    pub(super) async fn make_stanzas(&self, gl: &Arc<Mutex<WebGlGlobal>>, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
+        stanza_builder.make_stanzas(gl,&self.attribs).await
+    }
+
+    pub(super) fn make_stanzas_sync(&self, context: &WebGlRenderingContext, aux_array: &Float32Array, stanza_builder: &ProcessStanzaBuilder) -> Result<Vec<ProcessStanza>,Message> {
+        stanza_builder.make_stanzas_sync(context,aux_array,&self.attribs)
     }
 
     pub(crate) fn select_program(&self, context: &WebGlRenderingContext) -> Result<(),Message> {

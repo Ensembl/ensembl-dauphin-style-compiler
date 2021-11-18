@@ -17,7 +17,8 @@ enum RailwayEvent {
     DrawNotifyViewport(Viewport,bool),
     DrawNotifyPlayingField(PlayingField),
     DrawCreateTrain(Train),
-    DrawDropTrain(Train)
+    DrawDropTrain(Train),
+    DrawDropCarriage(Carriage)
 }
 
 #[derive(Clone)]
@@ -27,6 +28,8 @@ impl RailwayEvents {
     pub(super) fn new() -> RailwayEvents {
         RailwayEvents(Arc::new(Mutex::new(vec![])))
     }
+
+    pub fn len(&self) -> usize { lock!(self.0).len() }
 
     pub(super) fn load_train_data(&mut self, train: &Train) {
         self.0.lock().unwrap().push(RailwayEvent::LoadTrainData(train.clone()));
@@ -64,6 +67,10 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::DrawDropTrain(train.clone()));
     }
 
+    pub(super) fn draw_drop_carriage(&mut self, carriage: &Carriage) {
+        self.0.lock().unwrap().push(RailwayEvent::DrawDropCarriage(carriage.clone()));
+    }
+
     pub(super) fn run_events(&mut self, objects: &mut PeregrineCore) -> Vec<Carriage> {
         let events : Vec<RailwayEvent> = self.0.lock().unwrap().drain(..).collect();
         let mut errors = vec![];
@@ -99,7 +106,11 @@ impl RailwayEvents {
                 },
                 RailwayEvent::DrawDropTrain(train) => {
                     lock!(objects.base.integration).drop_train(&train);
+                },
+                RailwayEvent::DrawDropCarriage(carriage) => {
+                    lock!(objects.base.integration).drop_carriage(&carriage);
                 }
+
             }
         }
         if let Some((train,max,speed)) = transition {
