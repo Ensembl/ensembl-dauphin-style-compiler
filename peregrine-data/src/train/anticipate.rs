@@ -82,11 +82,12 @@ impl AnticipatePosition {
     fn derive(&self, carriages: &mut AnticipatedCarriages, limit: i64, batch: bool) {
         /* out */
         let mut new_scale = self.scale.clone();
-        for _ in 0..12.min(limit) {
+        for up in 0..12.min(limit) {
             new_scale = new_scale.next_scale();
+            let width = 2;
             let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
-            let start = (base_index - 2).max(0);
-            for offset in 0..5 {
+            let start = (base_index - width).max(0);
+            for offset in 0..(2*width+1) {
                 let index = start+offset;
                 if index < 0 { continue; }
                 carriages.make_carriage(&self.layout,&new_scale,index as u64,batch);

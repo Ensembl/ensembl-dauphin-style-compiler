@@ -68,22 +68,28 @@ impl GLCarriage {
                 drawing
             })
         })));
-        our_carriage.preflight_freewheel();
+        our_carriage.preflight_freewheel(carriage);
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, carriage: &Carriage) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
-        drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())
+        drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())?;
+        if carriage.is_moribund() {
+            use web_sys::console;
+            console::log_1(&format!("moribund").into());
+        }        
+        Ok(())
     }
 
-    pub fn preflight_freewheel(&self) {
+    pub fn preflight_freewheel(&self, carriage: &Carriage) {
         let self2 = self.clone();
         let commander = lock!(self.0).commander.clone();
-        commander.add::<Message>("load", 3, None, None, Box::pin(async move {
-            self2.preflight().await
+        let carriage = carriage.clone();
+        commander.add::<Message>("load", 0, None, None, Box::pin(async move {
+            self2.preflight(&carriage).await
         }));
     }
 

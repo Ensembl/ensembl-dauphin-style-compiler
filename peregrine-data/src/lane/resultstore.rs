@@ -30,7 +30,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     payloads.insert("net_time".to_string(),Box::new(net_ms.clone()) as Box<dyn Any>);
     let start = cdr_current_time();
     base.dauphin.run_program(&program_loader,PgDauphinTaskSpec {
-        prio: if mode.high_priority() { 1 } else { 9 },
+        prio: if mode.high_priority() { 2 } else { 9 },
         slot: None,
         timeout: None,
         program_name: request.track().track().program_name().clone(),
