@@ -12,6 +12,7 @@ use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentReq
  #[derive(Clone,PartialEq,Eq,Hash)]
  enum MTVariety {
     Track,
+    TrackWindow,
     Wallpaper
 }
 
@@ -31,6 +32,8 @@ impl MTSpecifier {
         let secondary = remove_secondary(&mut spec);
         if let Some(main) = trim_suffix("wallpaper",&spec) {
             MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth, secondary }
+        } else if let Some(main) = trim_suffix("window",&spec) {
+            MTSpecifier { name: main.to_string(), variety: MTVariety::TrackWindow, depth, secondary }    
         } else {
             MTSpecifier { name: spec.to_string(), variety: MTVariety::Track, depth, secondary }
         }
@@ -39,6 +42,7 @@ impl MTSpecifier {
     fn sized(&self) -> bool {
         match self.variety {
             MTVariety::Track => true,
+            MTVariety::TrackWindow => false,
             MTVariety::Wallpaper => false
         }
     }
@@ -48,16 +52,18 @@ impl MTSpecifier {
 
     fn coord_system(&self, reverse: bool) -> CoordinateSystem {
         match (&self.variety,reverse) {
-            (MTVariety::Track,false)     => CoordinateSystem::Tracking,
-            (MTVariety::Track,true)      => CoordinateSystem::TrackingBottom,
-            (MTVariety::Wallpaper,false) => CoordinateSystem::Window,
-            (MTVariety::Wallpaper,true)  => CoordinateSystem::WindowBottom
+            (MTVariety::Track,_)           => CoordinateSystem::Tracking,
+            (MTVariety::TrackWindow,false) => CoordinateSystem::TrackingWindow,
+            (MTVariety::TrackWindow,true)  => CoordinateSystem::TrackingWindowBottom,
+            (MTVariety::Wallpaper,false)   => CoordinateSystem::Window,
+            (MTVariety::Wallpaper,true)    => CoordinateSystem::WindowBottom
         }
     }
 
     fn get_secondary(&self, default_secondary: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         match self.variety {
             MTVariety::Track => 0,
+            MTVariety::TrackWindow => 0,
             MTVariety::Wallpaper => {
                 let secondary = self.secondary.as_ref().map(|s| secondary_store.lookup(s)).flatten();
                 secondary.map(|p| p.offset).unwrap_or(default_secondary)

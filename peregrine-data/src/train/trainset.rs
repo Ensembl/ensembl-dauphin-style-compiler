@@ -95,7 +95,7 @@ impl TrainSet {
         }
     }
 
-    fn maybe_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+    fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         let train_id = TrainExtent::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
         let mut new_target_needed = true;
         if let Some(quiescent) = self.quiescent_target() {
@@ -117,8 +117,8 @@ impl TrainSet {
 
     pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
-        /* maybe we need to change where we're heading? */
-        self.maybe_new_wanted(events,viewport)?;
+        /* maybe we need to change the wanted train? */
+        self.try_new_wanted(events,viewport)?;
         /* dependents need to know we moved */
         if let Some(train) = self.quiescent_target() {
             self.dependents.position_was_updated(train,viewport.position()?);

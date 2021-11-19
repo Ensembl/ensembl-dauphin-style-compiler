@@ -119,8 +119,8 @@ impl Stain {
             rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
                 SpaceBase::new(vec![ParameterValue::Constant(0.)],
                                      vec![ParameterValue::Constant(0.)],vec![ParameterValue::Variable(pos.3,0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Constant(-1.)])
+                SpaceBase::new(vec![ParameterValue::Constant(1.)],
+                                     vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Constant(0.)])
             )));
             /* length of top of shape from top of screen to that shape */
             let pos = self.area.tlbr().clone();

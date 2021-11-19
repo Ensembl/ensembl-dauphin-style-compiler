@@ -57,3 +57,9 @@ stmt draw_focus_swatch(allotment_value) {
     swatch_patina := patina_filled(simple_colour(direct_colour(88,168,249,255)));
     rectangle(spacebase(0,-16,0),spacebase(0,16,5),swatch_patina,allotment_value);
 }
+
+stmt red_dotted(pstart,pend,pallotment) {
+    dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),5,5,0.25),1);
+    rectangle(spacebase(pstart,0,0),spacebase(pstart,-1,0),dots_patina,pallotment);
+    rectangle(spacebase(pend,0,0),spacebase(pend,-1,0),dots_patina,pallotment);
+}

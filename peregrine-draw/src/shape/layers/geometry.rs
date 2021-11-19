@@ -48,7 +48,7 @@ impl GeometryYielder {
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum TrianglesGeometry {
     Tracking,
-    TrackingBottom,
+    TrackingWindow,
     Window
 }
 
@@ -71,7 +71,7 @@ impl EnumerableKey for GeometryProgramName {
         Enumerable(match self {
             GeometryProgramName::Wiggle => 0,
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => 1,
-            GeometryProgramName::Triangles(TrianglesGeometry::TrackingBottom) => 2,
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => 2,
             GeometryProgramName::Triangles(TrianglesGeometry::Window) => 3,
         },4)
     }
@@ -86,6 +86,10 @@ impl GeometryProgramName {
     }
 
     pub(crate) fn get_source(&self) -> SourceInstrs {
+        /* Most actual data, tracks etc. Follows movements around the region. Optimised for minimal GPU work.
+         * Cannot do anything relative to the screen bottom to minimise the number of buffers required:
+         * rulers etc need to use TrackingWindow.
+         */
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
@@ -113,22 +117,27 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
-            GeometryProgramName::Triangles(TrianglesGeometry::TrackingBottom) => vec![
+            /* Data which follows movements around the region but which isn't well-enough behaved for
+             * Tracking which mainly means things relative to the bottom of the screen. Can also be used
+             * for anything which Tracking is used for (strictly more expressive) but not optimised.
+             */
+            GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
                 UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
+                AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
                         return uModel * uTransform * vec4(
-                            (p.z -uStageHpos) * uStageZoom + 
-                                        p.x / uSize.x,
-                            (p.y - uStageVpos) / uSize.y - 1.0, 
-                            p.a, 1.0);
+
+                                                            (p.z -uStageHpos) * uStageZoom + 
+                                                            p.x / uSize.x,
+                                                          p.y/uSize.y+p.a*2.0-1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
-                    gl_Position = transform(aCoords);
+                    gl_Position = transform(aCoords)
                 "),
                 Conditional::new("need-origin",vec![
                     AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
@@ -139,6 +148,8 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
+            /* Data relative to the window, which doesn't follow the movements of the region.
+             */
             GeometryProgramName::Triangles(TrianglesGeometry::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
@@ -163,6 +174,8 @@ impl GeometryProgramName {
                     ")
                 ]),
             ],
+            /* Wiggle tracks.
+             */
             GeometryProgramName::Wiggle => vec![
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
                 AttributeProto::new(PR_LOW,GLArity::Vec2,"aData"),

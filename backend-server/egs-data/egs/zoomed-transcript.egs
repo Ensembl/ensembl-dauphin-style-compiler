@@ -245,7 +245,5 @@ draw_track_category("G",allotments_cat);
 draw_focus_swatch(allotments_cat[@==4]);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","track-window:red-dots"][(@==1)==(get_switch(["track","focus"]))]);
-dots_patina := patina_hollow(barred(direct_colour(255,255,255,255),direct_colour(255,0,0,255),5,5,0.25),1);
-rectangle(spacebase(focus_start,0,0),spacebase(focus_start,-1,0),dots_patina,dots_allotment);
-rectangle(spacebase(focus_end,0,0),spacebase(focus_end,-1,0),dots_patina,dots_allotment);
+dots_allotment := use_allotment(["","track-window:red-dots:window[56]"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_start,focus_end,dots_allotment);

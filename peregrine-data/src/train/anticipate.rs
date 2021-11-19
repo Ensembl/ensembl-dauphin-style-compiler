@@ -205,9 +205,9 @@ impl Anticipate {
             new_position.derive(&mut carriages,2,true);
         } else {
             new_position.derive(&mut carriages,4,true);
-            new_position.derive(&mut carriages,4,false);
+            new_position.derive(&mut carriages,8,false);
             new_position.derive(&mut carriages,100,true);
-            new_position.derive(&mut carriages,100,false);
+            //new_position.derive(&mut carriages,100,false);
         }
         *self.position.lock().unwrap() = Some(new_position);
         for task in carriages.carriages() {

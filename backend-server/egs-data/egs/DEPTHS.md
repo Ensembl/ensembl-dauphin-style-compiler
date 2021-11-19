@@ -59,6 +59,7 @@ sit at 0. Broad ranges are reserved for background, chrome, etc, which are then 
 
 * +54 -- vertical padding ruler should go over (rhs)
 * +55 -- ruler
-* +56 -- vertical padding ruler should go under (lhs)
+* +56 -- dotted line
+* +57 -- vertical padding ruler should go under (lhs)
 * +58 -- "bp" at top and bottom left
 * +60 -- vertical padding contents (category letters)

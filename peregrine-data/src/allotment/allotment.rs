@@ -5,17 +5,35 @@ use crate::{SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum CoordinateSystem {
     Tracking,
-    TrackingBottom,
+    TrackingWindow,
+    TrackingWindowBottom,
     Window,
     WindowBottom,
     SidewaysLeft,
     SidewaysRight
 }
 
+// XXX to pregerine-draw
 impl CoordinateSystem {
     pub fn is_tracking(&self) -> bool {
         match self {
-            CoordinateSystem::Tracking | CoordinateSystem::TrackingBottom => true,
+            CoordinateSystem::Tracking | CoordinateSystem::TrackingWindow | CoordinateSystem::TrackingWindowBottom => true,
+            _ => false
+        }
+    }
+
+    pub fn packed_format(&self) -> bool {
+        match self {
+            CoordinateSystem::Tracking => true,
+            _ => false
+        }
+    }
+
+    pub fn negative_pixels(&self) -> bool {
+        match self {
+            CoordinateSystem::TrackingWindowBottom => true,
+            CoordinateSystem::WindowBottom => true,
+            CoordinateSystem::SidewaysRight => true,
             _ => false
         }
     }

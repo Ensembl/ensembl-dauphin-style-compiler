@@ -113,20 +113,57 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSyste
     for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("sba1",allotments.iter(area.len()))?) {
         let top_left = allotment.transform_spacebase(&top_left);
         let bottom_right = allotment.transform_spacebase(&bottom_right);
-        let (mut x0,mut y0,mut x1,mut y1) = (top_left.tangent,top_left.normal,bottom_right.tangent,bottom_right.normal);
-        let (mut bx0,mut by0,mut bx1,mut by1) = (top_left.base-applied_left,0.,bottom_right.base-applied_left,0.);
-        if !coord_system.is_tracking() {
-            if x0 < 0. { x0 = -x0-1.; bx0 = 1.; }
-            if x1 < 0. { x1 = -x1-1.; bx1 = 1.; }
-            if y0 < 0. { y0 = -y0-1.; by0 = 1.; }
-            if y1 < 0. { y1 = -y1-1.; by1 = 1.; }
-            if coord_system.flip_xy() {
-                rectangle4(&mut data, y0,x0, y1,x1,by0,bx0,by1,bx1,width);
-            } else {
-                rectangle4(&mut data, x0,y0, x1,y1,bx0,by0,bx1,by1,width);
-            }    
+        let (t_0,t_1,mut n_0,mut n_1) = (top_left.tangent,bottom_right.tangent,top_left.normal,bottom_right.normal);
+        let (mut b_0,mut b_1) = (top_left.base,bottom_right.base);
+        /* 
+         * All coordinate systems have a principal direction. This is almost always horizontal however for things drawn
+         * "sideways" (eg blanking boxes at left and right) it is vertical.
+         * 
+         * In the principal direction there is a "base" coordinate. For tracking co-ordinate systems this is the base-
+         * pair position. For non-tracking coordinate systems, it is zero at the left and one at the right. There is
+         * also a "tangent" co-ordinate in the principal direction which is measured in pixels and added on. This is to
+         * allow non-scaling itmes (eg labels) and to ensure minimum sizes for things that would be very small.
+         * 
+         * In the non-principal direction there is the "normal" co-ordinate. In non-tracking co-ordinate systems, t
+         * his wraps to -1 at the bottom, -2 is one pixel above that, and so on. So a line from zero to minus-one is 
+         * from the top to the bottom.
+         * 
+         * Some non-tracking co-ordinate systems are "negative". These implicitly negate the normal co-ordinate, so that
+         * top-is-bottom and bottom-is-top, for exmaple making the top and bottom ruler exact copies.
+         * 
+         * There are two formats for webgl, packed and unpacked. We use (x,y) and (z,a) as pairs. x,y are always
+         * scaled per pixel. z is base co-oridnate or proportion-of-screen in the x direction, depending if
+         * tracking or not. a is depth in the packed format, proportion of screen in the y direction if not.
+         */
+        /* Make tracking and non-tracking equivalent by subtracting bp centre. */
+        if coord_system.is_tracking() {
+            b_0 -= applied_left;
+            b_1 -= applied_left;
+        }
+        if coord_system.packed_format() {
+            /* We're packed, so that's enough. No negaite co-ordinate nonsense allowed for us. */
+            rectangle4(&mut data, 
+                t_0,n_0, t_1,n_1,
+                b_0,depth,b_1,depth,
+                width);
         } else {
-            rectangle4(&mut data, x0,y0, x1,y1,bx0,depth,bx1,depth,width);    
+            /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
+            let (mut f_0,mut f_1) = (0.,0.);
+            /* whole coord-system is negative, flip it */
+            if coord_system.negative_pixels() {
+                let (a,b) = (n_0,n_1);
+                n_0 = -b-1.;
+                n_1 = -a-1.;
+            }
+            /* negative values indicate "from end" so fix 1px difference (-1 is first rev. pixel and set f appropriately) */
+            if n_0 < 0. { n_0 += 1.; f_0 = 1.; }
+            if n_1 < 0. { n_1 += 1.; f_1 = 1.; }
+            /* maybe flip x&y if sideways, either way draw it. */
+            if coord_system.flip_xy() {
+                rectangle4(&mut data, n_0,t_0, n_1,t_1,f_0,b_0,f_1,b_1,width);
+            } else {
+                rectangle4(&mut data, t_0,n_0, t_1,n_1,b_0,f_0,b_1,f_1,width);
+            }
         }
     }
     Ok(data)
