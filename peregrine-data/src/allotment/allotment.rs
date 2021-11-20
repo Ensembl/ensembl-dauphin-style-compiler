@@ -22,13 +22,6 @@ impl CoordinateSystem {
         }
     }
 
-    pub fn packed_format(&self) -> bool {
-        match self {
-            CoordinateSystem::Tracking => true,
-            _ => false
-        }
-    }
-
     pub fn negative_pixels(&self) -> bool {
         match self {
             CoordinateSystem::TrackingWindowBottom => true,
@@ -47,6 +40,7 @@ impl CoordinateSystem {
 }
 
 pub trait AllotmentImpl {
+    fn coord_system(&self) -> CoordinateSystem;
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
     fn depth(&self) -> i8;
@@ -69,4 +63,5 @@ impl Allotment {
     }
 
     pub fn depth(&self) -> i8 { self.0.depth() }
+    pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
 }

@@ -1,10 +1,11 @@
 use std::sync::Arc;
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::{AllotmentImpl, CoordinateSystem}, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::AllotmentRequestImpl, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
     metadata: AllotmentMetadata,
+    coord_system: CoordinateSystem,
     secondary: i64,
     top: i64,
     offset: i64,
@@ -15,9 +16,10 @@ pub struct OffsetAllotment {
 }
 
 impl OffsetAllotment {
-    pub(crate) fn new(metadata: &AllotmentMetadata, secondary: i64, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> OffsetAllotment {
+    pub(crate) fn new(coord_system: &CoordinateSystem, metadata: &AllotmentMetadata, secondary: i64, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> OffsetAllotment {
         let secret = metadata.get_i64("secret-track").unwrap_or(0) != 0;
         OffsetAllotment {
+            coord_system: coord_system.clone(),
             metadata: metadata.clone(),
             secondary, top, offset, size, depth, secret, reverse
         }
@@ -61,16 +63,18 @@ impl AllotmentImpl for OffsetAllotment {
     }
 
     fn depth(&self) -> i8 { self.depth }
+
+    fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }
 
 #[derive(Clone)]
 pub struct OffsetAllotmentRequest(Arc<BaseAllotmentRequest<OffsetAllotment>>,i8,bool,String);
 
 impl LinearGroupEntry for OffsetAllotmentRequest {
-    fn make(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+    fn make(&self, secondary: i64, offset: i64, _secondary_store: &SecondaryPositionStore) -> i64 {
         let offset = self.0.best_offset(offset);
         let size = self.0.best_height();
-        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.metadata(),secondary,offset,offset,size,self.1,self.2)));
+        self.0.set_allotment(Arc::new(OffsetAllotment::new(&self.0.coord_system(),&self.0.metadata(),secondary,offset,offset,size,self.1,self.2)));
         self.0.max_used()
     }
 

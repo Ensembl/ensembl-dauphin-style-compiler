@@ -1,5 +1,5 @@
 use peregrine_data::{CoordinateSystem, DirectColour};
-use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry, TrianglesTransform}};
+use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -13,39 +13,51 @@ pub(crate) enum ShapeCategory {
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct DrawGroup {
-    coord_system: CoordinateSystem,
-    depth: i8,
+    geometry: TrianglesGeometry,
     shape_category: ShapeCategory
 }
 
+fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
+    match coord_system {
+        CoordinateSystem::Tracking => TrianglesGeometry::Tracking,
+        CoordinateSystem::TrackingWindow => TrianglesGeometry::TrackingWindow,
+        CoordinateSystem::TrackingWindowBottom => TrianglesGeometry::TrackingWindow,
+        CoordinateSystem::Window => TrianglesGeometry::Window,
+        CoordinateSystem::WindowBottom => TrianglesGeometry::Window,
+        CoordinateSystem::SidewaysLeft => TrianglesGeometry::Window,
+        CoordinateSystem::SidewaysRight =>  TrianglesGeometry::Window,
+    }
+}
+
 impl DrawGroup {
-    pub(crate) fn new(coord_system: &CoordinateSystem, depth: i8, shape_category: &ShapeCategory) -> DrawGroup {
+    pub(crate) fn new(coord_system: &CoordinateSystem, shape_category: &ShapeCategory) -> DrawGroup {
+        let geometry = geometry(coord_system);
         DrawGroup {
-            coord_system: coord_system.clone(),
-            depth,
+            geometry,
             shape_category: shape_category.clone()
         }
     }
 
-    pub(super) fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
+    pub(crate) fn packed_format(&self) -> bool {
+        match self.geometry_process_name() {
+            GeometryProcessName::Triangles(TrianglesGeometry::Tracking) => true,
+            _ => false
+        }
+    }
+
     pub(crate) fn shape_category(&self) -> &ShapeCategory { &self.shape_category }
+    pub(crate) fn is_tracking(&self) -> bool {
+        match self.geometry {
+            TrianglesGeometry::Tracking | TrianglesGeometry::TrackingWindow => true,
+            _ => false
+        }
+    }
 
     pub(crate) fn geometry_process_name(&self) -> GeometryProcessName {
-        let (system,transform) = match self.coord_system() {
-            CoordinateSystem::Tracking => (TrianglesGeometry::Tracking,TrianglesTransform::Identity),
-            CoordinateSystem::TrackingWindow => (TrianglesGeometry::TrackingWindow,TrianglesTransform::NegativeY),
-            CoordinateSystem::TrackingWindowBottom => (TrianglesGeometry::TrackingWindow,TrianglesTransform::NegativeY),
-            CoordinateSystem::Window => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
-            CoordinateSystem::WindowBottom => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
-            CoordinateSystem::SidewaysLeft => (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
-            CoordinateSystem::SidewaysRight =>  (TrianglesGeometry::Window,TrianglesTransform::NegativeY),
-        };
-        GeometryProcessName::Triangles(system,transform)
+        GeometryProcessName::Triangles(self.geometry.clone())
     }
 
     pub(crate) fn geometry_yielder(&self) -> GeometryYielder {
-        GeometryYielder::new(self.geometry_process_name(),self.depth())
+        GeometryYielder::new(self.geometry_process_name())
     }
-
-    pub fn depth(&self) -> i8 { self.depth }
 }

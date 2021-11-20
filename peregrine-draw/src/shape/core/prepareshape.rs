@@ -94,7 +94,7 @@ impl ShapeDemerge for GLCategoriser {
     type X = DrawGroup;
 
     fn categorise(&self, allotment: &AllotmentRequest) -> Self::X {
-        DrawGroup::new(&allotment.coord_system(),allotment.depth(),&ShapeCategory::Other)
+        DrawGroup::new(&allotment.coord_system(),&ShapeCategory::Other)
     }
 
     fn categorise_with_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
@@ -109,7 +109,7 @@ impl ShapeDemerge for GLCategoriser {
         } else {
             ShapeCategory::SolidColour
         };
-        DrawGroup::new(&allotment.coord_system(),allotment.depth(),&category)        
+        DrawGroup::new(&allotment.coord_system(),&category)        
     }
 }
 

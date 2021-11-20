@@ -68,8 +68,6 @@ impl Layer {
         let shape_program = self.shape_program(&character)?; 
         geometry.set(shape_program.get_geometry())?;
         patina.set(shape_program.get_patina())?;
-        let adder = shape_program.get_geometry().clone();
-        shape_program.get_geometry_process_name().clone().apply_to_process(&adder,shape_program.get_process_mut())?;
         Ok(self.store.get_mut(&character).unwrap().get_process_mut())
     }
 

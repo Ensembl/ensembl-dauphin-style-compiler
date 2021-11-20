@@ -1,7 +1,7 @@
 use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::allotmentrequest::AllotmentRequestImpl};
 use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
@@ -101,7 +101,7 @@ impl LinearGroupEntry for MainTrackRequest {
         }
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary,secondary_store);
-            request.set_allotment(Arc::new(OffsetAllotment::new(request.metadata(),our_secondary,offset,best_offset,best_height,specifier.depth,self.reverse)));
+            request.set_allotment(Arc::new(OffsetAllotment::new(&request.coord_system(),request.metadata(),our_secondary,offset,best_offset,best_height,specifier.depth,self.reverse)));
         }
         best_height
     }

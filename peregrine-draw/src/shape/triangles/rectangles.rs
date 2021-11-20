@@ -102,14 +102,14 @@ impl Rectangles {
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 }
 
-fn add_spacebase4(point: &SpaceBase<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>, depth: f64) -> Result<Vec<f32>,Message> {
+fn add_spacebase4(point: &SpaceBase<f64>, group: &DrawGroup, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
     let area = SpaceBaseArea::new(point.clone(),point.clone());
-    add_spacebase_area4(&area,coord_system,allotments,left,width,depth)
+    add_spacebase_area4(&area,group,allotments,left,width)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSystem, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>,depth: f64)-> Result<Vec<f32>,Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64>, group: &DrawGroup, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
-    let applied_left = if coord_system.is_tracking() { left } else { 0. };
+    let mut depths = vec![];
     for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("sba1",allotments.iter(area.len()))?) {
         let top_left = allotment.transform_spacebase(&top_left);
         let bottom_right = allotment.transform_spacebase(&bottom_right);
@@ -136,37 +136,42 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, coord_system: &CoordinateSyste
          * tracking or not. a is depth in the packed format, proportion of screen in the y direction if not.
          */
         /* Make tracking and non-tracking equivalent by subtracting bp centre. */
-        if coord_system.is_tracking() {
-            b_0 -= applied_left;
-            b_1 -= applied_left;
+        if group.is_tracking() {
+            b_0 -= left;
+            b_1 -= left;
         }
-        if coord_system.packed_format() {
+        let gl_depth = 1.0 - (allotment.depth() as f64+128.) / 255.;
+        if group.packed_format() {
             /* We're packed, so that's enough. No negaite co-ordinate nonsense allowed for us. */
             rectangle4(&mut data, 
                 t_0,n_0, t_1,n_1,
-                b_0,depth,b_1,depth,
+                b_0,gl_depth,b_1,gl_depth,
                 width);
         } else {
+            let num_points = if width.is_some() { 8 } else { 4 };
+            for _ in 0..num_points {
+                depths.push(gl_depth as f32);
+            }
             /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
             let (mut f_0,mut f_1) = (0.,0.);
             /* whole coord-system is negative, flip it */
-            if coord_system.negative_pixels() {
+            if allotment.coord_system().negative_pixels() {
                 let (a,b) = (n_0,n_1);
                 n_0 = -b-1.;
                 n_1 = -a-1.;
             }
-            /* negative values indicate "from end" so fix 1px difference (-1 is first rev. pixel and set f appropriately) */
+            /* negative values indicate "from end" so fix 1px difference (-1 is first rev. pixel) and set f appropriately */
             if n_0 < 0. { n_0 += 1.; f_0 = 1.; }
             if n_1 < 0. { n_1 += 1.; f_1 = 1.; }
             /* maybe flip x&y if sideways, either way draw it. */
-            if coord_system.flip_xy() {
+            if allotment.coord_system().flip_xy() {
                 rectangle4(&mut data, n_0,t_0, n_1,t_1,f_0,b_0,f_1,b_1,width);
             } else {
                 rectangle4(&mut data, t_0,n_0, t_1,n_1,b_0,f_0,b_1,f_1,width);
             }
         }
     }
-    Ok(data)
+    Ok((data,depths))
 }
 
 impl DynamicShape for Rectangles {
@@ -176,11 +181,10 @@ impl DynamicShape for Rectangles {
 
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
         let area = self.location.apply(variables);
-        let gl_depth = 1.0 - (self.kind.depth() as f64+128.) / 255.;
-        let data = add_spacebase_area4(&area,&self.kind.coord_system(),&self.allotments,self.left,self.width,gl_depth)?;
-        self.program.add_data4(&mut self.elements,data,self.kind.depth())?;
+        let (data,depth) = add_spacebase_area4(&area,&self.kind,&self.allotments,self.left,self.width)?;
+        self.program.add_data4(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
-            let data= add_spacebase4(&area.middle_base(),&self.kind.coord_system(),&self.allotments,self.left,self.width,gl_depth)?;
+            let (data,_)= add_spacebase4(&area.middle_base(),&self.kind,&self.allotments,self.left,self.width)?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())

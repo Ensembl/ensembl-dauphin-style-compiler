@@ -20,14 +20,13 @@ impl GeometryAdder {
 
 pub struct GeometryYielder {
     name: GeometryProcessName,
-    priority: i8,
     link: Option<Box<dyn Any>>
 }
 
 impl GeometryYielder {
-    pub(crate) fn new(name: GeometryProcessName, priority: i8) -> GeometryYielder {
+    pub(crate) fn new(name: GeometryProcessName) -> GeometryYielder {
         GeometryYielder {
-            name, priority,
+            name,
             link: None
         }
     }
@@ -38,7 +37,6 @@ impl GeometryYielder {
     }
 
     pub(crate) fn name(&self) -> &GeometryProcessName { &self.name }
-    pub(crate) fn priority(&self) -> i8 { self.priority }
     pub(crate) fn set(&mut self, program: &GeometryAdder) -> Result<(),Message> {
         self.link = Some(program.to_any());
         Ok(())
@@ -52,12 +50,7 @@ pub enum TrianglesGeometry {
     Window
 }
 
-#[derive(Clone,PartialEq,Eq,Hash,Debug)]
-pub enum TrianglesTransform {
-    Identity,
-    NegativeX,
-    NegativeY,
-    NegativeXY
+impl TrianglesGeometry {
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
@@ -94,11 +87,10 @@ impl GeometryProgramName {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
-                UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(
+                        return uModel * vec4(
                             (p.z -uStageHpos) * uStageZoom + 
                                         p.x / uSize.x,
                             (uStageVpos - p.y) / uSize.y + 1.0, 
@@ -124,16 +116,15 @@ impl GeometryProgramName {
             GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
-                UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(
+                        return uModel * vec4(
 
                                                             (p.z -uStageHpos) * uStageZoom + 
                                                             p.x / uSize.x,
-                                                          p.y/uSize.y+p.a*2.0-1.0,    aDepth,1.0);
+                                                          -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -153,13 +144,12 @@ impl GeometryProgramName {
             GeometryProgramName::Triangles(TrianglesGeometry::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
                 AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
-                UniformProto::new_vertex(PR_LOW,GLArity::Matrix4,"uTransform"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
-                        return uModel * uTransform * vec4(p.x/uSize.x+p.z*2.0-1.0,
-                                                          p.y/uSize.y+p.a*2.0-1.0,    aDepth,1.0);
+                        return uModel * vec4(p.x/uSize.x+p.z*2.0-1.0,
+                                                          -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("
@@ -193,52 +183,22 @@ impl GeometryProgramName {
 #[derive(Clone,PartialEq,Eq,Hash,Debug)]
 pub(crate) enum GeometryProcessName {
     Wiggle,
-    Triangles(TrianglesGeometry,TrianglesTransform)
+    Triangles(TrianglesGeometry)
 }
 
 impl GeometryProcessName {
     pub(crate) fn key(&self) -> String {
         match self {
-            GeometryProcessName::Triangles(g,t) => format!("{:?}-{:?}",g,t),
+            GeometryProcessName::Triangles(g) => format!("{:?}",g),
             GeometryProcessName::Wiggle => "wiggle".to_string()
         }
     }
 
     pub(crate) fn get_program_name(&self) -> GeometryProgramName {
         match self {
-            GeometryProcessName::Triangles(g,_) => GeometryProgramName::Triangles(g.clone()),
+            GeometryProcessName::Triangles(g) => GeometryProgramName::Triangles(g.clone()),
             GeometryProcessName::Wiggle => GeometryProgramName::Wiggle
         }
-    }
-
-    pub(crate) fn apply_to_process(&self, geometry: &GeometryAdder, process: &mut ProcessBuilder) -> Result<(),Message> {
-        match geometry {
-            GeometryAdder::Triangles(adder) => {
-                if let Some(handle) = &adder.transform {
-                    match self {
-                        GeometryProcessName::Wiggle => {},
-                        GeometryProcessName::Triangles(_,transform) => {
-                            match transform {
-                                TrianglesTransform::NegativeX => {
-                                    process.set_uniform(handle,vec![-1.,0.,0.,0., 0.,1.,0.,0., 0.,0.,1.,0., 0.,0.,0.,1.])?;
-                                },
-                                TrianglesTransform::Identity => {
-                                    process.set_uniform(handle,vec![1.,0.,0.,0., 0.,1.,0.,0., 0.,0.,1.,0., 0.,0.,0.,1.])?;
-                                },
-                                TrianglesTransform::NegativeY => {
-                                    process.set_uniform(handle,vec![1.,0.,0.,0., 0.,-1.,0.,0., 0.,0.,1.,0., 0.,0.,0.,1.])?;
-                                },
-                                TrianglesTransform::NegativeXY => {
-                                    process.set_uniform(handle,vec![-1.,0.,0.,0., 0.,-1.,0.,0., 0.,0.,1.,0., 0.,0.,0.,1.])?;
-                                },
-                            }
-                        }
-                    }
-                }
-            }
-            GeometryAdder::Wiggle(_) => {}
-        }
-        Ok(())
     }
 }
 

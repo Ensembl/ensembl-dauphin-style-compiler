@@ -4,8 +4,7 @@ use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaEl
 pub struct TriangleAdder {
     pub coords: AttribHandle,
     pub origin_coords: Option<AttribHandle>,
-    pub depth: Option<AttribHandle>,
-    pub transform: Option<UniformHandle>
+    pub depth: Option<AttribHandle>
 }
 
 impl TriangleAdder {
@@ -13,15 +12,13 @@ impl TriangleAdder {
         Ok(TriangleAdder {
             coords: builder.get_attrib_handle("aCoords")?,
             origin_coords: builder.try_get_attrib_handle("aOriginCoords"),
-            depth: builder.try_get_attrib_handle("aDepth"),
-            transform: builder.try_get_uniform_handle("uTransform")
+            depth: builder.try_get_attrib_handle("aDepth")
         })
     }
 
-    pub(super) fn add_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depth: i8) -> Result<(),Message> {
-        let gl_depth = 1.0 - (depth as f32+128.) / 255.;
+    pub(super) fn add_data4(&self, elements: &mut ProcessStanzaElements, data: Vec<f32>, depths: Vec<f32>) -> Result<(),Message> {
         if let Some(depth) = &self.depth {
-            elements.add(depth, vec![gl_depth;data.len()/4], 1)?;
+            elements.add(depth, depths, 1)?;
         }
         elements.add(&self.coords,data,4)?;
         Ok(())

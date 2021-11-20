@@ -120,7 +120,7 @@ impl RequestQueue {
         let self2 = self.clone();
         add_task(&commander,PgCommanderTaskSpec {
             name,
-            prio: 4,
+            prio: 1,
             timeout: None,
             slot: None,
             task: Box::pin(self2.main_loop()),
