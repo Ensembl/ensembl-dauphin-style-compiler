@@ -22,18 +22,29 @@ impl Railway {
 
     async fn load_carriages(&self, objects: &mut PeregrineCore, mut carriages: Vec<Carriage>) {
         let mut loads = vec![];
+        let commander= objects.base.commander.clone();
         for carriage in carriages.drain(..) {
-            loads.push(async {
-                let mut carriage = carriage;
-                let r = carriage.load(&objects.base,&objects.agent_store.lane_store,LoadMode::RealTime).await;
-                if r.is_ok() && !carriage.is_moribund() {
-                    lock!(objects.base.integration).create_carriage(&carriage);
-                }
-                r
-            });
+            let objects2 = objects.clone();
+            let handle = add_task(&commander,PgCommanderTaskSpec {
+                    name: format!("single carriage loader"),
+                    prio: 1,
+                    slot: None,
+                    timeout: None,
+                    task: Box::pin(async move {
+                        let mut carriage = carriage;
+                        let r = carriage.load(&objects2.base,&objects2.agent_store.lane_store,LoadMode::RealTime).await;
+                        if r.is_ok() && !carriage.is_moribund() {
+                            lock!(objects2.base.integration).create_carriage(&carriage);
+                        }
+                        Ok(r)        
+                    }),
+                    stats: false
+                });
+            loads.push(handle);
         }
         for future in loads {
-            let r = future.await;
+            let r = future.finish_future().await;
+            let r = future.take_result().unwrap();
             if let Err(e) = r {
                 self.messages.send(e.clone());
             }

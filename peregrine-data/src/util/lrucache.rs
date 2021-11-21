@@ -2,7 +2,7 @@ use std::hash::{ Hash, Hasher };
 use std::collections::hash_map::DefaultHasher;
 use std::marker::PhantomData;
 
-/* 4-bit true LRU via bitmask: see lrugen.py */
+/* 4-bit true-LRU via bitmask: see lrugen.py */
 const CACHE_LRU : [u8;64] = [
   3,  3,  9,  3,  3,  9,  3,  3,
   9,  9,  9,  0,  9,  9,  9,  0,

@@ -19,13 +19,26 @@ impl AnticipateTask {
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {
             let load_mode = load_mode.clone();
-            handles.push(async move {
-                carriage.load(&base,&result_store,load_mode.clone()).await
+            let result_store = result_store.clone();
+            let base2 = base.clone();
+            let handle = add_task(&base.commander,PgCommanderTaskSpec {
+                name: format!("data program"),
+                prio: 9,
+                slot: None,
+                timeout: None,
+                stats: false,
+                task: Box::pin(async move {
+                    carriage.load(&base2,&result_store,load_mode.clone()).await
+                })
             });
+            handles.push(handle);
         }
+        use web_sys::console;
+        console::log_1(&format!("waiting").into());
         for handle in handles {
-            handle.await?;
+            handle.finish_future().await;
         }
+        console::log_1(&format!("waited").into());
         Ok(())
     }
 }
@@ -80,12 +93,11 @@ impl Anticipate {
         carriages.push(carriage);
     }
 
-    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount: i64) -> Result<Vec<Carriage>,DataMessage> {
+    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<Carriage>,DataMessage> {
         let mut carriages = vec![];
-        let width = 6;
         let base_index = extent.index();
-        for offset in -width..(width+1) {
-            for delta in 0..amount {
+        for offset in -amount_width..(amount_width+1) {
+            for delta in 0..amount_depth {
                 /* out */
                 let new_scale = extent.train().scale().delta_scale(delta);
                 if let Some(new_scale) = &new_scale {
@@ -100,20 +112,17 @@ impl Anticipate {
                 }
             }
         }
-        //
         Ok(carriages)
     }
 
 
-    fn build_tasks(&self, extent: &CarriageExtent, amount: i64, network_only: bool) -> Result<(),DataMessage> {
+    fn build_tasks(&self, extent: &CarriageExtent, amount_depth: i64, amount_width: i64, network_only: bool) -> Result<(),DataMessage> {
         let layout = extent.train().layout().clone();
-        let carriages = self.build_carriages(&layout,extent,amount)?;
+        let carriages = self.build_carriages(&layout,extent,amount_depth,amount_width)?;
         if network_only {
             self.stream.add(AnticipateTask::new(carriages,true));
         } else {
-            for carriage in carriages {
-                self.stream.add(AnticipateTask::new(vec![carriage],false));
-            }
+            self.stream.add(AnticipateTask::new(carriages,false));
         }
         Ok(())
     }
@@ -124,12 +133,13 @@ impl Anticipate {
         }
         self.stream.clear();
         if self.lightweight() {
-            self.build_tasks(extent,2,false)?;
+            self.build_tasks(extent,2,2,false)?;
         } else {
-            self.build_tasks(extent,4,true)?;
-            self.build_tasks(extent,4,false)?;
-            self.build_tasks(extent,20,true)?;
-            self.build_tasks(extent,20,false)?;
+            self.build_tasks(extent,8,0,true)?;
+            self.build_tasks(extent,8,0,false)?;
+            self.build_tasks(extent,8,2,false)?;
+            self.build_tasks(extent,30,2,false)?;
+            self.build_tasks(extent,30,6,false)?;
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
         Ok(())

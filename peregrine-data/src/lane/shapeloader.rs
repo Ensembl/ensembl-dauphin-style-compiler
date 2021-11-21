@@ -33,7 +33,7 @@ pub(crate) async fn load_shapes(base: &PeregrineCoreBase, result_store: &LaneSto
         let lane_store = lane_store.clone();
         add_task(&base.commander,PgCommanderTaskSpec {
             name: format!("data program"),
-            prio: if mode.high_priority() { 2 } else { 9 },
+            prio: if mode.high_priority() { 2 } else { 5 },
             slot: None,
             timeout: None,
             stats: false,

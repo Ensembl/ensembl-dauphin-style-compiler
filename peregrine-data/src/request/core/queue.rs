@@ -83,7 +83,7 @@ impl RequestQueueData {
 pub struct RequestQueue(Arc<Mutex<RequestQueueData>>);
 
 impl RequestQueue {
-    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64]) -> Result<RequestQueue,DataMessage> {
+    pub fn new(commander: &PgCommander, receiver: &PayloadReceiverCollection, integration: &Rc<Box<dyn ChannelIntegration>>, version: &VersionMetadata, channel: &Channel, priority: &PacketPriority, messages: &MessageSender, pacing: &[f64], cdr_priority: u8) -> Result<RequestQueue,DataMessage> {
         let out = RequestQueue(Arc::new(Mutex::new(RequestQueueData {
             receiver: receiver.clone(),
             pending_send: CommanderStream::new(),
@@ -97,7 +97,7 @@ impl RequestQueue {
             realtime_block: None,
             realtime_block_check: None
         })));
-        out.start(commander)?;
+        out.start(commander,cdr_priority)?;
         Ok(out)
     }
     
@@ -113,14 +113,14 @@ impl RequestQueue {
         lock!(self.0).pending_send.add((request,stream));
     }
 
-    fn start(&self, commander: &PgCommander) -> Result<(),DataMessage> {
+    fn start(&self, commander: &PgCommander, prio: u8) -> Result<(),DataMessage> {
         let data = lock!(self.0);
         let name = format!("backend: '{}' {}",data.channel.to_string(),data.priority.to_string());
         drop(data);
         let self2 = self.clone();
         add_task(&commander,PgCommanderTaskSpec {
             name,
-            prio: 5,
+            prio,
             timeout: None,
             slot: None,
             task: Box::pin(self2.main_loop()),
@@ -141,7 +141,7 @@ impl RequestQueue {
             PacketPriority::Batch => { 
                 let first = pending.get().await;
                 cdr_timer(100.).await;
-                let mut more = pending.get_multi_nowait(Some(20)).await;
+                let mut more = pending.get_multi_nowait(Some(100)).await;
                 more.insert(0,first);
                 more
             }

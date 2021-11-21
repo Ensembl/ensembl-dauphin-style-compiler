@@ -84,6 +84,13 @@ impl RequestManagerData {
         }
     }
 
+    fn get_priority(&self, priority: &PacketPriority) -> u8 {
+        match priority {
+            PacketPriority::Batch => 5,
+            PacketPriority::RealTime => 3
+        }
+    }
+
     fn get_queue(&mut self, channel: &Channel, priority: &PacketPriority) -> Result<RequestQueue,DataMessage> {
         let mut channel = channel.clone();
         let mut priority = priority.clone();
@@ -93,7 +100,7 @@ impl RequestManagerData {
             if missing {
                 let commander = self.commander.clone();
                 let integration = self.integration.clone(); // Rc why? XXX
-                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority))?;
+                let mut queue = RequestQueue::new(&commander,&self.receiver,&integration,&self.version,&channel,&priority,&self.messages,self.get_pace(&priority),self.get_priority(&priority))?;
                 match priority {
                     PacketPriority::RealTime => {
                         queue.set_realtime_block(&self.real_time_lock);
