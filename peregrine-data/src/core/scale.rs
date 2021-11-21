@@ -24,16 +24,13 @@ impl Scale {
         (bp_in_carriage,bp_in_carriage*2-1)
     }
 
-    pub fn prev_scale(&self) -> Option<Scale> {
-        if self.0 > 0 {
-            Some(Scale(self.0-1))
+    pub fn delta_scale(&self, amt: i64) -> Option<Scale> {
+        let new_scale = (self.0 as i64) + amt;
+        if new_scale >= 0 {
+            Some(Scale(new_scale as u64))
         } else {
             None
         }
-    }
-
-    pub fn next_scale(&self) -> Scale {
-        Scale(self.0+1)
     }
 
     pub fn get_index(&self) -> u64 {

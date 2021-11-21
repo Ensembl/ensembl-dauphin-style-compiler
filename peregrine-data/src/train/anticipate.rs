@@ -62,7 +62,7 @@ impl AnticipatedCarriages {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(PartialEq,Eq)]
-struct AnticipatePosition {
+struct AnticipatePosition { // XXX = carriageextent
     scale: Scale,
     index: u64,
     layout: Layout,
@@ -79,39 +79,31 @@ impl AnticipatePosition {
         }
     }
 
+    fn derive_scale(&self, carriages: &mut AnticipatedCarriages, scale: &Scale, offset: i64, batch: bool) {
+        let base_index = scale.convert_index(&self.scale,self.index) as i64;
+        let index = (base_index+offset).max(0);
+        if index < 0 { return; }
+        carriages.make_carriage(&self.layout,&scale,index as u64,batch);
+    }
+
     fn derive(&self, carriages: &mut AnticipatedCarriages, limit: i64, batch: bool) {
-        /* out */
-        let mut new_scale = self.scale.clone();
-        for up in 0..8.min(limit) {
-            new_scale = new_scale.next_scale();
-            let width = 2;
-            let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
-            let start = (base_index - width).max(0);
-            for offset in 0..(2*width+1) {
-                let index = start+offset;
-                if index < 0 { continue; }
-                carriages.make_carriage(&self.layout,&new_scale,index as u64,batch);
-            }
-        }
-        /* in */
-        let mut new_scale = Some(self.scale.clone());
-        for _index in 0..5.min(limit) {
-            new_scale = new_scale.as_ref().and_then(|s| s.prev_scale());
-            if let Some(new_scale) = &new_scale {
-                for offset in 0..5 {
-                    let delta = (offset as i64)-2;
-                    let mut index = new_scale.convert_index(&self.scale,self.index) as i64;
-                    index += delta;
-                    if index < 0 { continue; }
-                    carriages.make_carriage(&self.layout,&new_scale,index as u64,batch);
+        let width = 2;
+        for offset in -width..(width+1) {
+            for delta in 0..12.min(limit) {
+                /* out */
+                let new_scale = self.scale.delta_scale(delta);
+                if let Some(new_scale) = &new_scale {
+                    self.derive_scale(carriages,new_scale,offset,batch);
                 }
+                /* in */
+                let new_scale = self.scale.delta_scale(-delta);
+                if let Some(new_scale) = &new_scale {
+                    self.derive_scale(carriages,new_scale,offset,batch);
+                }
+                /* left/right */
+                self.derive_scale(carriages,&self.scale,-offset-width,batch);
+                self.derive_scale(carriages,&self.scale,offset+width,batch);
             }
-        }
-        /* left/right */
-        for offset in 2..9.min(limit) {
-            let index = self.index as i64 + (offset/2) * if offset%2 == 0 { 1 } else { -1 };
-            if index < 0 { continue; }
-            carriages.make_carriage(&self.layout,&self.scale,index as u64,batch);
         }
     }
 }
@@ -128,9 +120,9 @@ async fn anticipator(base: PeregrineCoreBase, result_store: LaneStore, stream: C
                     let handle = add_task(&base.commander,PgCommanderTaskSpec {
                         name: format!("data program net"),
                         prio: 9,
-                        slot: None,
+                        slot: None, // XXX remove
                         timeout: None,
-                        stats: false,
+                        stats: false, // XXX remove
                         task: Box::pin(async move {
                             carriage.load(&base2,&result_store,LoadMode::Network).await.ok();
                             Ok(())
@@ -205,11 +197,12 @@ impl Anticipate {
             new_position.derive(&mut carriages,2,true);
         } else {
             new_position.derive(&mut carriages,4,true);
-            new_position.derive(&mut carriages,8,false);
-            new_position.derive(&mut carriages,100,true);
-            new_position.derive(&mut carriages,100,false);
+            new_position.derive(&mut carriages,4,false);
+            new_position.derive(&mut carriages,12,true);
+            new_position.derive(&mut carriages,12,false);
         }
         *self.position.lock().unwrap() = Some(new_position);
+        self.stream.clear();
         for task in carriages.carriages() {
             self.stream.add(task);
         }

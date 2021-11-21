@@ -80,13 +80,13 @@ impl ProgramRegion {
         if let Some(scale_range) = &self.scale {
             if let Some(max_jump) = self.max_scale_jump {
                 let input = input.get_index();
-                let last_idx = scale_range.1.prev_scale().map(|s| s.get_index()).unwrap_or(0);
+                let last_idx = scale_range.1.delta_scale(-1).map(|s| s.get_index()).unwrap_or(0);
                 let deficit = last_idx - input;
                 let deficit = (deficit/max_jump) * max_jump;
                 let output = max(scale_range.0.get_index(),last_idx-deficit);
                 Scale::new(output)
             } else {
-                scale_range.1.prev_scale().unwrap_or_else(|| Scale::new(0))
+                scale_range.1.delta_scale(-1).unwrap_or_else(|| Scale::new(0))
             }
         } else {
             Scale::new(100)
