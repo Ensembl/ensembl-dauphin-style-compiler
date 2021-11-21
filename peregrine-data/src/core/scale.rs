@@ -1,6 +1,8 @@
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;
 
+const MILESTONE_GAP : u64 = 4;
+
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);
 
@@ -36,6 +38,15 @@ impl Scale {
 
     pub fn get_index(&self) -> u64 {
         self.0
+    }
+
+    pub fn is_milestone(&self) -> bool {
+        self.0 % MILESTONE_GAP == 0
+    }
+
+    pub fn to_milestone(&self) -> Scale {
+        let new_scale = ((self.0+MILESTONE_GAP-1)/MILESTONE_GAP)*MILESTONE_GAP; // round up
+        Scale(new_scale)
     }
 
     pub fn bp_in_carriage(&self) -> u64 {

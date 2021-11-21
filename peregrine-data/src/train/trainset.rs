@@ -2,7 +2,7 @@ use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
 use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase};
 use crate::api::MessageSender;
-use crate::core::{Scale, Viewport};
+use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
 use super::train::{ Train };
 use super::carriage::{Carriage, CarriageSerialSource};
@@ -21,6 +21,7 @@ pub struct TrainSet {
     current: Option<Train>,
     future: Option<Train>,
     wanted: Option<Train>,
+    target: Option<TrainExtent>,
     next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
@@ -34,6 +35,7 @@ impl TrainSet {
             current: None,
             future: None,
             wanted: None,
+            target: None,
             next_train_serial: 0,
             messages: base.messages.clone(),
             dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
@@ -82,9 +84,11 @@ impl TrainSet {
             if let Some(mut wanted) = self.wanted.take() {
                 let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,speed);
+                let viewport = wanted.viewport();
                 self.future = Some(wanted);
                 self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_carriages(),events);
                 self.draw_notify_viewport(events);
+                self.try_new_wanted(events,&viewport);
             }
         }
     }
@@ -95,29 +99,68 @@ impl TrainSet {
         }
     }
 
-    fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        let train_id = TrainExtent::new(viewport.layout()?,&Scale::new_bp_per_screen(viewport.bp_per_screen()?));
-        let mut new_target_needed = true;
+    fn wanted_is_relevant_milestone(&self, old_layout: &Layout) -> bool {
+        if self.wanted.is_none() {
+            /* nothing in wanted */
+            return false;
+        }
+        let wanted = self.wanted.as_ref().unwrap();
+        if !wanted.extent().scale().is_milestone(){
+            /* wanted is not a milestone */
+            return false;
+        }
+        if wanted.extent().layout() != old_layout {
+            /* wanted is irrelevant milestone */
+            return false;
+        }
+        true
+    }
+
+    fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
+        let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
         if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.extent() == train_id {
-                new_target_needed = false;
+            if quiescent.extent() == extent {
+                return Ok(()); //no need for a target, we're heading to the right place
             }
         }
-        if new_target_needed {
-            if let Some(mut wanted) = self.wanted.take() {
-                wanted.discard(events);
-            }
-            self.next_train_serial +=1;
-            let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&train_id,events,viewport,&self.messages,&self.serial_source)?;
-            events.draw_create_train(&wanted);
-            self.wanted = Some(wanted);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
+        self.target = Some(extent);
+        Ok(())
+    }
+
+    /* Never discard a milestone (with our layout). If discarding anything, convert to relevant milestone.
+     * Prevents thrashing of scales when busy.
+    */
+    fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
+        if self.target.is_none() { return Ok(()); }
+        let target = self.target.as_ref().unwrap();
+        /* it would be best if we were at a new target, but how busy are we? */
+        if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
+        /* drop old wanted and make milestone, if necessary */      
+        let mut scale = target.scale().clone();
+        if let Some(mut wanted) = self.wanted.take() {
+            scale = scale.to_milestone();
+            wanted.discard(events);
         }
+        /* where are we headed? */
+        let extent = TrainExtent::new(target.layout(),&scale);
+        /* if this we are heading exactly for the target, drop it for future calls */
+        if &extent == target {
+            self.target.take();
+        }
+        /* do it */
+        self.next_train_serial +=1;
+        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
+        events.draw_create_train(&wanted);
+        self.wanted = Some(wanted);
         Ok(())
     }
 
     pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
         /* maybe we need to change the wanted train? */
+        self.try_set_target(viewport)?;
         self.try_new_wanted(events,viewport)?;
         /* dependents need to know we moved */
         if let Some(train) = self.quiescent_target() {

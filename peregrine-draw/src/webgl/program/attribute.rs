@@ -77,7 +77,7 @@ fn create_buffer(context: &WebGlRenderingContext, aux_array: &Float32Array, valu
     context.buffer_data_with_opt_array_buffer(
         WebGlRenderingContext::ARRAY_BUFFER,
         Some(&values_js.subarray(0,values.len() as u32).buffer()),
-        WebGlRenderingContext::STATIC_DRAW
+        WebGlRenderingContext::DYNAMIC_DRAW
     );
     handle_context_errors(context)?;
     Ok(buffer)
@@ -96,7 +96,7 @@ fn replace_buffer(context: &WebGlRenderingContext, buffer: &WebGlBuffer, aux_arr
     context.buffer_data_with_opt_array_buffer(
         WebGlRenderingContext::ARRAY_BUFFER,
         Some(&values_js.subarray(0,values.len() as u32).buffer()),
-        WebGlRenderingContext::STATIC_DRAW
+        WebGlRenderingContext::DYNAMIC_DRAW
     );
     handle_context_errors(context)?;
     Ok(())

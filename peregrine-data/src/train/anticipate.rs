@@ -82,7 +82,7 @@ impl AnticipatePosition {
     fn derive(&self, carriages: &mut AnticipatedCarriages, limit: i64, batch: bool) {
         /* out */
         let mut new_scale = self.scale.clone();
-        for up in 0..12.min(limit) {
+        for up in 0..8.min(limit) {
             new_scale = new_scale.next_scale();
             let width = 2;
             let base_index = new_scale.convert_index(&self.scale,self.index) as i64;
@@ -207,7 +207,7 @@ impl Anticipate {
             new_position.derive(&mut carriages,4,true);
             new_position.derive(&mut carriages,8,false);
             new_position.derive(&mut carriages,100,true);
-            //new_position.derive(&mut carriages,100,false);
+            new_position.derive(&mut carriages,100,false);
         }
         *self.position.lock().unwrap() = Some(new_position);
         for task in carriages.carriages() {
