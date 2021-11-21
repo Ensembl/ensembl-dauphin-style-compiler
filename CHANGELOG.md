@@ -1,3 +1,24 @@
+# 0.1.0
+  * Bugfixes
+    * Report "bad stick" immediately, don't retry
+    * Chromosome switch bug (wrong size used during switching)
+  * Reduce technical debt to allow speed improvements
+    * Rational use of depths: prevents layering bugs
+    * Start recording metrics for WebGL buffers
+    * Rewrite "railway" code, cleaner and more rational
+    * Priority fixes
+    * Rationalised and co-ordinated co-ordinate systems
+  * Code tidying and improvements for large chromosomes
+    * Less fuzzy display of very zoomed-out chromosomes
+    * Manage absence of wheat contig file gracefully
+    * Reduced reliance on spot colours
+    * Tweak number of levels requiring data fetch
+    * Shrink and rationalise buffer usage
+    * Allow async even in webgl code
+  * Increased protocol version to 6
+    * Verified 0.0.12 works with 0.1.0 backend
+  * REGRESSION: display juddery (already fixed in 0.1.1)
+
 # 0.0.12
 
   * Select correct designated transcript in backend
