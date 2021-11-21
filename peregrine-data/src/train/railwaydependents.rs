@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{AllotmentMetadataReport, Carriage, LaneStore, PeregrineCoreBase, PlayingField};
+use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, LaneStore, PeregrineCoreBase, PlayingField};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
@@ -59,8 +59,8 @@ impl RailwayDependents {
         }
     }
 
-    pub(super) fn position_was_updated(&self, train: &Train, position: f64) {
-        self.anticipate.anticipate(train,position);
+    pub(super) fn position_was_updated(&self, carriage_extent: &CarriageExtent) {
+        self.anticipate.anticipate(carriage_extent);
     }
 
     pub(super) fn carriages_loaded(&self, quiescent: Option<&Train>, carriages: &[Carriage], events: &mut RailwayEvents) {

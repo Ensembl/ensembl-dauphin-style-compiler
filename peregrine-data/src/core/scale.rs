@@ -1,7 +1,7 @@
 use std::fmt::{ self, Display, Formatter };
 use serde_cbor::Value as CborValue;
 
-const MILESTONE_GAP : u64 = 4;
+const MILESTONE_GAP : u64 = 3;
 
 #[derive(Clone,Debug,Eq,PartialEq,Hash)]
 pub struct Scale(u64);

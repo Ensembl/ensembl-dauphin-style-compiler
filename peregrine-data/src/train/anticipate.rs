@@ -1,144 +1,32 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use peregrine_toolkit::sync::needed::Needed;
+use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
+use super::{carriage::CarriageSerialSource, trainextent::TrainExtent};
 
-use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList, train::carriage};
-use super::{carriage::CarriageSerialSource, train::{Train}, trainextent::TrainExtent};
-
-#[derive(Clone)]
-struct AnticipatedCarriages {
-    try_lifecycle: Needed,
-    serial_source: CarriageSerialSource,
-    hot_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
-    warm_carriages: Arc<Mutex<HashMap<CarriageExtent,Carriage>>>,
+struct AnticipateTask {
+    carriages: Vec<Carriage>,
+    batch: bool
 }
 
-impl AnticipatedCarriages {
-    fn new(try_lifecycle: &Needed, serial_source: &CarriageSerialSource) -> AnticipatedCarriages {
-        AnticipatedCarriages {
-            try_lifecycle: try_lifecycle.clone(),
-            serial_source: serial_source.clone(),
-            hot_carriages: Arc::new(Mutex::new(HashMap::new())),
-            warm_carriages: Arc::new(Mutex::new(HashMap::new()))
+impl AnticipateTask {
+    fn new(carriages: Vec<Carriage>, batch: bool) -> AnticipateTask {
+        AnticipateTask { carriages, batch }
+    }
+
+    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore) -> Result<(),DataMessage> {
+        let mut handles = vec![];
+        let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
+        for mut carriage in self.carriages.drain(..) {
+            let load_mode = load_mode.clone();
+            handles.push(async move {
+                carriage.load(&base,&result_store,load_mode.clone()).await
+            });
         }
-    }
-
-    fn insert(&mut self, id: &CarriageExtent, carriage: &Carriage, batch: bool) {
-        let carriages = if batch { &mut self.warm_carriages } else { &mut self.hot_carriages };
-        carriages.lock().unwrap().insert(id.clone(),carriage.clone());
-    }
-
-    fn contains(&self, id: &CarriageExtent, batch: bool) -> bool {
-        if self.hot_carriages.lock().unwrap().contains_key(id) { return true; }
-        if !batch { return false; }
-        self.warm_carriages.lock().unwrap().contains_key(id)
-    }
-
-    fn make_carriage(&mut self, layout: &Layout, scale: &Scale, index: u64, batch: bool) -> Option<Carriage> {
-        let train_id = TrainExtent::new(layout,&scale);
-        let carriage_id = CarriageExtent::new(&train_id,index);
-        if self.contains(&carriage_id,batch) { return None; }
-        let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
-        let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_id,&train_track_config_list,None);
-        self.insert(&carriage_id,&carriage,batch);
-        return Some(carriage);
-    }
-
-    fn carriages(&self) -> Vec<AnticipateTask> {
-        let mut out = vec![];
-        out.extend(self.hot_carriages.lock().unwrap().values().cloned().map(|carriage|
-            AnticipateTask::Carriage(carriage,true)));
-        out.push(AnticipateTask::Wait);
-        out.extend(self.warm_carriages.lock().unwrap().values().cloned().map(|carriage|
-            AnticipateTask::Carriage(carriage,true)));
-        out.push(AnticipateTask::Wait);
-        out
-    }
-
-    fn warm_carriages(&self) -> Vec<Carriage> {
-        self.warm_carriages.lock().unwrap().values().cloned().collect()
-    }
-}
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(PartialEq,Eq)]
-struct AnticipatePosition { // XXX = carriageextent
-    scale: Scale,
-    index: u64,
-    layout: Layout,
-}
-
-impl AnticipatePosition {
-    fn new(train: &Train, position: f64) -> AnticipatePosition {
-        let train_extent = train.extent();
-        let scale = train_extent.scale();
-        AnticipatePosition {
-            scale: scale.clone(),
-            index: scale.carriage(position),
-            layout: train_extent.layout().clone()
+        for handle in handles {
+            handle.await?;
         }
-    }
-
-    fn derive_scale(&self, carriages: &mut AnticipatedCarriages, scale: &Scale, offset: i64, batch: bool) {
-        let base_index = scale.convert_index(&self.scale,self.index) as i64;
-        let index = (base_index+offset).max(0);
-        if index < 0 { return; }
-        carriages.make_carriage(&self.layout,&scale,index as u64,batch);
-    }
-
-    fn derive(&self, carriages: &mut AnticipatedCarriages, limit: i64, batch: bool) {
-        let width = 2;
-        for offset in -width..(width+1) {
-            for delta in 0..12.min(limit) {
-                /* out */
-                let new_scale = self.scale.delta_scale(delta);
-                if let Some(new_scale) = &new_scale {
-                    self.derive_scale(carriages,new_scale,offset,batch);
-                }
-                /* in */
-                let new_scale = self.scale.delta_scale(-delta);
-                if let Some(new_scale) = &new_scale {
-                    self.derive_scale(carriages,new_scale,offset,batch);
-                }
-                /* left/right */
-                self.derive_scale(carriages,&self.scale,-offset-width,batch);
-                self.derive_scale(carriages,&self.scale,offset+width,batch);
-            }
-        }
-    }
-}
-
-async fn anticipator(base: PeregrineCoreBase, result_store: LaneStore, stream: CommanderStream<AnticipateTask>) -> Result<(),DataMessage> {
-    let mut handles = vec![];
-    loop {
-        let task = stream.get().await;
-        match task {
-            AnticipateTask::Carriage(mut carriage,batch) => {
-                if batch {
-                    let base2 = base.clone();
-                    let result_store = result_store.clone();
-                    let handle = add_task(&base.commander,PgCommanderTaskSpec {
-                        name: format!("data program net"),
-                        prio: 9,
-                        slot: None, // XXX remove
-                        timeout: None,
-                        stats: false, // XXX remove
-                        task: Box::pin(async move {
-                            carriage.load(&base2,&result_store,LoadMode::Network).await.ok();
-                            Ok(())
-                        })
-                    });
-                    handles.push(handle);
-                } else {
-                    carriage.load(&base,&result_store,LoadMode::Batch).await.ok();    
-                }
-            },
-            AnticipateTask::Wait => {
-                for handle in handles.drain(..) {
-                    handle.finish_future().await;
-                }
-            }
-        }
+        Ok(())
     }
 }
 
@@ -146,28 +34,24 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &LaneStore, stream: &
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
-    add_task(&base.commander,PgCommanderTaskSpec {
+    add_task::<()>(&base.commander,PgCommanderTaskSpec {
         name: format!("anticipator"),
         prio: 9,
         slot: None,
         timeout: None,
         stats: false,
         task: Box::pin(async move {
-            anticipator(base2,result_store,stream).await
+            loop {
+                stream.get().await.run(&base2,&result_store).await?;
+            }
         })
     });
 }
 
-enum AnticipateTask {
-    Carriage(Carriage,bool),
-    Wait
-}
-
-#[derive(Clone)]
-pub(crate) struct Anticipate {
+pub struct Anticipate {
     try_lifecycle: Needed,
     serial_source: CarriageSerialSource,
-    position: Arc<Mutex<Option<AnticipatePosition>>>,
+    extent: Arc<Mutex<Option<CarriageExtent>>>,
     stream: CommanderStream<AnticipateTask>
 }
 
@@ -178,7 +62,7 @@ impl Anticipate {
         Anticipate {
             try_lifecycle: try_lifecycle.clone(),
             serial_source: serial_source.clone(),
-            position: Arc::new(Mutex::new(None)),
+            extent: Arc::new(Mutex::new(None)),
             stream
         }
     }
@@ -187,24 +71,67 @@ impl Anticipate {
         cfg!(debug_assertions)
     }
 
-    pub(crate) fn anticipate(&self, train: &Train, position: f64) {
-        let new_position = AnticipatePosition::new(train,position);
-        if let Some(old_position) = self.position.lock().unwrap().as_ref() {
-            if &new_position == old_position { return; }
+    fn build_carriage(&self, carriages: &mut Vec<Carriage>, layout: &Layout, scale: &Scale, index: i64) {
+        if index < 0 { return; }
+        let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
+        let train_extent = TrainExtent::new(layout,scale);
+        let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
+        let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_extent,&train_track_config_list,None,true);
+        carriages.push(carriage);
+    }
+
+    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount: i64) -> Result<Vec<Carriage>,DataMessage> {
+        let mut carriages = vec![];
+        let width = 6;
+        let base_index = extent.index();
+        for offset in -width..(width+1) {
+            for delta in 0..amount {
+                /* out */
+                let new_scale = extent.train().scale().delta_scale(delta);
+                if let Some(new_scale) = &new_scale {
+                    let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
+                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                }
+                /* in */
+                let new_scale = extent.train().scale().delta_scale(-delta);
+                if let Some(new_scale) = &new_scale {
+                    let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
+                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                }
+            }
         }
-        let mut carriages = AnticipatedCarriages::new(&self.try_lifecycle,&self.serial_source);
-        if self.lightweight() {
-            new_position.derive(&mut carriages,2,true);
+        //
+        Ok(carriages)
+    }
+
+
+    fn build_tasks(&self, extent: &CarriageExtent, amount: i64, network_only: bool) -> Result<(),DataMessage> {
+        let layout = extent.train().layout().clone();
+        let carriages = self.build_carriages(&layout,extent,amount)?;
+        if network_only {
+            self.stream.add(AnticipateTask::new(carriages,true));
         } else {
-            new_position.derive(&mut carriages,4,true);
-            new_position.derive(&mut carriages,4,false);
-            new_position.derive(&mut carriages,12,true);
-            new_position.derive(&mut carriages,12,false);
+            for carriage in carriages {
+                self.stream.add(AnticipateTask::new(vec![carriage],false));
+            }
         }
-        *self.position.lock().unwrap() = Some(new_position);
+        Ok(())
+    }
+
+    pub(crate) fn anticipate(&self, extent: &CarriageExtent) -> Result<(),DataMessage> {
+        if let Some(old_extent) = self.extent.lock().unwrap().as_ref() {
+            if extent == old_extent { return Ok(()); }
+        }
         self.stream.clear();
-        for task in carriages.carriages() {
-            self.stream.add(task);
+        if self.lightweight() {
+            self.build_tasks(extent,2,false)?;
+        } else {
+            self.build_tasks(extent,4,true)?;
+            self.build_tasks(extent,4,false)?;
+            self.build_tasks(extent,20,true)?;
+            self.build_tasks(extent,20,false)?;
         }
+        *self.extent.lock().unwrap() = Some(extent.clone());
+        Ok(())
     }
 }

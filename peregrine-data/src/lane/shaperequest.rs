@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use crate::core::{ Scale, StickId };
 use crate::switch::trackconfig::TrackConfig;
 use crate::switch::track::Track;
@@ -45,26 +46,54 @@ impl Region {
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ShapeRequest {
+pub struct ShapeRequestCore {
     region: Region,
     track: TrackConfig
 }
 
+#[derive(Clone)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct ShapeRequest {
+    core: ShapeRequestCore,
+    warm: bool
+}
+
+impl Hash for ShapeRequest {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.core.hash(state);
+    }
+}
+
+impl PartialEq for ShapeRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.core == other.core
+    }
+}
+
+impl Eq for ShapeRequest {}
+
 impl ShapeRequest {
-    pub fn new(region: &Region, track: &TrackConfig) -> ShapeRequest {
+    pub fn new(region: &Region, track: &TrackConfig, warm: bool) -> ShapeRequest {
         ShapeRequest {
-            region: region.clone(),
-            track: track.clone()
+            core: ShapeRequestCore {
+                region: region.clone(),
+                track: track.clone(),
+            },
+            warm
         }
     }
 
-    pub fn region(&self) -> &Region { &self.region }
-    pub fn track(&self) -> &TrackConfig { &self.track }
+    pub fn region(&self) -> &Region { &self.core.region }
+    pub fn track(&self) -> &TrackConfig { &self.core.track }
+    pub fn warm(&self) -> bool { self.warm }
 
     pub fn better_request(&self) -> ShapeRequest {
         ShapeRequest {
-            region: self.region.best_region(self.track.track()),
-            track: self.track.clone()
+            core: ShapeRequestCore {
+                region: self.core.region.best_region(self.core.track.track()),
+                track: self.core.track.clone(),
+            },
+            warm: self.warm
         }
     }
 }

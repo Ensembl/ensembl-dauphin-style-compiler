@@ -170,7 +170,7 @@ impl Train {
     pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.0.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
-        self.0.lock().unwrap().set_active(&self.clone(),carriage_event,speed);
+        lock!(self.0).set_active(&self.clone(),carriage_event,speed);
     }
 
     pub(super) fn discard(&mut self, events: &mut RailwayEvents) {
@@ -179,7 +179,7 @@ impl Train {
     }
 
     pub(super) fn set_position(&self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
-        self.0.lock().unwrap().set_position(carriage_event,viewport)?;
+        lock!(self.0).set_position(carriage_event,viewport)?;
         Ok(())
     }
 

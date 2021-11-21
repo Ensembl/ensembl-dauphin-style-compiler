@@ -15,7 +15,8 @@ use super::railwayevent::RailwayEvents;
 #[derive(Clone)]
 struct UnloadedCarriage {
     config: TrainTrackConfigList,
-    messages: Option<MessageSender>
+    messages: Option<MessageSender>,
+    warm: bool
 }
 
 impl UnloadedCarriage {
@@ -25,7 +26,7 @@ impl UnloadedCarriage {
         let track_list = self.config.list_tracks();
         for track in track_list {
             if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config));
+                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config,self.warm));
             }
         }
         shape_requests
@@ -78,7 +79,7 @@ pub struct Carriage {
 }
 
 impl Carriage {
-    pub(crate) fn new(try_lifecycle: &Needed, serial_source: &CarriageSerialSource, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>) -> Carriage {
+    pub(crate) fn new(try_lifecycle: &Needed, serial_source: &CarriageSerialSource, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> Carriage {
         Carriage {
             try_lifecycle: try_lifecycle.clone(),
             moribund: Arc::new(Mutex::new(false)),
@@ -86,7 +87,8 @@ impl Carriage {
             extent: extent.clone(),
             state: Arc::new(Mutex::new(CarriageState::Unloaded(UnloadedCarriage {
                 config: configs.clone(),
-                messages: messages.cloned()
+                messages: messages.cloned(),
+                warm
             })))
         }
     }

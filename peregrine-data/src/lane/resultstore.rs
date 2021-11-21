@@ -90,7 +90,7 @@ impl LaneStore {
     pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
         // XXX both caches separate sizes
         let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,LoadMode::RealTime);
-        let filtered_cache = make_filtered_cache(MemoizedType::Cache(32),unfiltered_cache);
+        let filtered_cache = make_filtered_cache(MemoizedType::Cache(cache_size),unfiltered_cache);
         let batch_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Batch);
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
         let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Network);

@@ -1,6 +1,6 @@
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{CarriageSpeed, LaneStore, PeregrineCoreBase};
+use crate::{CarriageExtent, CarriageSpeed, LaneStore, PeregrineCoreBase};
 use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
@@ -164,7 +164,9 @@ impl TrainSet {
         self.try_new_wanted(events,viewport)?;
         /* dependents need to know we moved */
         if let Some(train) = self.quiescent_target() {
-            self.dependents.position_was_updated(train,viewport.position()?);
+            let central_index = train.extent().scale().carriage(viewport.position()?);
+            let central_carriage = CarriageExtent::new(&train.extent(),central_index);
+            self.dependents.position_was_updated(&central_carriage);
         }
         /* All the trains get the new position */
         let viewport_stick = viewport.layout()?.stick();
