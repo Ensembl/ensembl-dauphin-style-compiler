@@ -42,10 +42,10 @@ stmt gene_std(p) {
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
     new_allotment(p,"track:focus",-1000000,"focus","1");
-    new_allotment(p,"track:gene-other-fwd",-1100,"gene-other-fwd","1");
-    new_allotment(p,"track:gene-pc-fwd",-1000,"gene-pc-fwd","1");
-    new_allotment(p,"track:gene-pc-rev",1100,"gene-pc-rev","1");
-    new_allotment(p,"track:gene-other-rev",1000,"gene-other-rev","1");
+    new_allotment(p,"track:gene-other-fwd",-1000,"gene-other-fwd","1");
+    new_allotment(p,"track:gene-pc-fwd",-1100,"gene-pc-fwd","1");
+    new_allotment(p,"track:gene-pc-rev",1000,"gene-pc-rev","1");
+    new_allotment(p,"track:gene-other-rev",1100,"gene-other-rev","1");
 }
 
 /* TOP-LEVEL */
