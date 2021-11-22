@@ -1,3 +1,10 @@
+# 0.1.1
+  * Reduce unnecessary draw groups for efficiency and code cleanliness
+  * Milestone trains for smooth scrolling at speed
+  * Fix anticipation code to make "lo" more effective following metrics analysis
+  * Fix priority inversion stalling focus change instructions
+  * Remove accidentally-retained console.log()s
+
 # 0.1.0
   * Bugfixes
     * Report "bad stick" immediately, don't retry
