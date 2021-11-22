@@ -72,7 +72,7 @@ fn show_versions(supports: Option<&[u32]>, version: u32)  {
 }
 
 #[cfg(not(any(force_show_incoming,debug_assertions)))]
-fn show_versions(supports: Option<&[u32]>) {}
+fn show_versions(supports: Option<&[u32]>, version: u32) {}
 
 /* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {
