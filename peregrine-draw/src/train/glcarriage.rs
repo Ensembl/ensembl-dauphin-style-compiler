@@ -121,7 +121,7 @@ impl GLCarriage {
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
         use web_sys::console;
-        console::log_1(&format!("discard at {}",self.extent().train().scale().get_index()).into());
+        //console::log_1(&format!("discard at {}",self.extent().train().scale().get_index()).into());
         let state = lock!(self.0);
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.discard(gl)?;

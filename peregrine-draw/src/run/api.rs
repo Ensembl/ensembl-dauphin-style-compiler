@@ -245,7 +245,7 @@ impl PeregrineAPI {
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();
-        commander.add("draw-api",15,None,None,Box::pin(async move { self2.step(inner).await }));
+        commander.add("draw-api",0,None,None,Box::pin(async move { self2.step(inner).await }));
         Ok(commander)
     }
 }
