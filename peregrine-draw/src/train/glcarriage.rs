@@ -65,6 +65,8 @@ impl GLCarriage {
                 let drawing = Drawing::new(Some(scale),carriage.shapes(),&gl,carriage.extent().left_right().0,&VariableValues::new(),&assets).await;
                 carriage.set_ready();
                 redraw_needed.set();
+                //use web_sys::console;
+                //console::log_1(&format!("ready at {}",carriage.extent().train().scale().get_index()).into());        
                 drawing
             })
         })));
@@ -72,15 +74,11 @@ impl GLCarriage {
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self, carriage: &Carriage) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, _carriage: &Carriage) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
         drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())?;
-        if carriage.is_moribund() {
-            use web_sys::console;
-            console::log_1(&format!("moribund").into());
-        }        
         Ok(())
     }
 
@@ -122,6 +120,8 @@ impl GLCarriage {
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
+        use web_sys::console;
+        console::log_1(&format!("discard at {}",self.extent().train().scale().get_index()).into());
         let state = lock!(self.0);
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.discard(gl)?;

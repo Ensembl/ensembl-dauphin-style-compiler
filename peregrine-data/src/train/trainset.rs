@@ -75,6 +75,7 @@ impl TrainSet {
     }
 
     fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents) {
+        use web_sys::console;
         let desperate = self.future.is_none() && self.current.is_none();
         let train_good_enough = self.wanted.as_ref().map(|x| {
             let train_ready_enough = x.train_ready() || (desperate && x.train_half_ready());
@@ -82,6 +83,7 @@ impl TrainSet {
         }).unwrap_or(false);
         if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
+                //console::log_1(&format!("wanted[{}] -> future",wanted.extent().scale().get_index()).into());
                 let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,speed);
                 let viewport = wanted.viewport();
@@ -150,8 +152,10 @@ impl TrainSet {
             self.target.take();
         }
         /* do it */
+        use web_sys::console;
         self.next_train_serial +=1;
         let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
+        //console::log_1(&format!("wanted[{}]",wanted.extent().scale().get_index()).into());
         events.draw_create_train(&wanted);
         self.wanted = Some(wanted);
         Ok(())

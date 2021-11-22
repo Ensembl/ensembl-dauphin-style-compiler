@@ -109,11 +109,9 @@ impl TrainData {
     }
 
     fn train_ready(&self) -> bool { 
-        if self.max.is_none() { return false; }    
-        if let Some(carriages) = &self.carriages {
-            if carriages.ready() && self.max.is_some() && carriages.size() > 0 {
-                return true;
-            }
+        if !self.train_half_ready() { return false; }
+        if let Some(central) = self.central_carriage() {
+            if central.ready() { return true; }
         }
         false
     }
