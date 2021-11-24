@@ -1,0 +1,9 @@
+[package]
+name = "earp_console"
+version = "0.0.0"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+edition="2018"
+
+[dependencies]
+earp_runtime= { path = "../earp-runtime" }
+futures="*"
