@@ -15,7 +15,7 @@ mod test {
     use earp_runtime::EarpArgument;
     use earp_runtime::EarpFunction;
     use earp_runtime::EarpProgram;
-    use earp_runtime::EarpResultRegister;
+    use earp_runtime::EarpOutcome;
     use earp_runtime::EarpReturn;
     use earp_runtime::EarpRuntime;
     use earp_runtime::EarpStatement;
@@ -59,12 +59,12 @@ mod test {
         let univ_stmt = EarpStatement::new(&add,vec![
             EarpArgument::Literal(Arc::new(Box::new(40_f64))),
             EarpArgument::Literal(Arc::new(Box::new(2_f64)))
-        ],EarpResultRegister::Var(1));
+        ],EarpOutcome::Var(1));
         let n2s_stmt = EarpStatement::new(&num_to_string,vec![
             EarpArgument::Var(1)
-        ],EarpResultRegister::Var(0));
+        ],EarpOutcome::Var(0));
         let print_stmt = EarpStatement::new(&print,vec![EarpArgument::Var(0)],
-        EarpResultRegister::None);
+        EarpOutcome::None);
         let program = EarpProgram::new(vec![univ_stmt,n2s_stmt,print_stmt]);
         /**/
         let runtime = EarpRuntime::new(program);

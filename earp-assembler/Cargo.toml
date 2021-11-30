@@ -7,3 +7,6 @@ edition="2018"
 [dependencies]
 earp_runtime= { path = "../earp-runtime" }
 futures="*"
+pest="*"
+pest_consume="*"
+pest_derive="*"

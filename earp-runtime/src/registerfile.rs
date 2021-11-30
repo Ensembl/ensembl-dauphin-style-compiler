@@ -67,23 +67,23 @@ pub enum EarpReturn {
 }
 
 #[derive(Clone)]
-pub enum EarpResultRegister {
+pub enum EarpOutcome {
     Var(usize),
     UpVar(usize),
     None
 }
 
-impl EarpResultRegister {
+impl EarpOutcome {
     fn set(&self, frames: &mut Vec<EarpFrame>, value: Arc<Box<dyn Any>>) {
         let len = frames.len();
         match self {
-            EarpResultRegister::Var(index) => {
+            EarpOutcome::Var(index) => {
                 frames[len-1].set(*index,value);
             },
-            EarpResultRegister::UpVar(index) => {
+            EarpOutcome::UpVar(index) => {
                 frames[len-2].set(*index,value);
             },
-            EarpResultRegister::None => {}
+            EarpOutcome::None => {}
         }
     }
 }
@@ -114,15 +114,15 @@ impl EarpArgument {
 pub struct EarpStatement {
     function: EarpFunction,
     arguments: Vec<EarpArgument>,
-    result_register: EarpResultRegister
+    outcome: EarpOutcome
 }
 
 impl EarpStatement {
-    pub fn new(function: &EarpFunction, arguments: Vec<EarpArgument>, result_register: EarpResultRegister) -> EarpStatement {
+    pub fn new(function: &EarpFunction, arguments: Vec<EarpArgument>, outcome: EarpOutcome) -> EarpStatement {
         EarpStatement {
             function: function.clone(),
             arguments,
-            result_register
+            outcome
         }
     }
 
@@ -139,7 +139,7 @@ impl EarpStatement {
         let ret = self.function.call(values);
         match ret {
             EarpReturn::Value(v) => {
-                self.result_register.set(frames,v);
+                self.outcome.set(frames,v);
                 EarpReturn::None
             },
             ret => ret
@@ -284,13 +284,13 @@ mod test {
         });
         let here_to_r0_stmt = EarpStatement::new(&clone,vec![
             EarpArgument::Here
-        ],EarpResultRegister::Var(0));
-        let nop_stmt = EarpStatement::new(&nop,vec![],EarpResultRegister::None);
+        ],EarpOutcome::Var(0));
+        let nop_stmt = EarpStatement::new(&nop,vec![],EarpOutcome::None);
         let n2s_stmt = EarpStatement::new(&num_to_string,vec![
             EarpArgument::Var(0)
-        ],EarpResultRegister::Var(0));
+        ],EarpOutcome::Var(0));
         let print_stmt = EarpStatement::new(&print,vec![EarpArgument::Var(0)],
-        EarpResultRegister::None);
+        EarpOutcome::None);
         let program = EarpProgram::new(vec![nop_stmt.clone(),nop_stmt.clone(),nop_stmt,here_to_r0_stmt,n2s_stmt,print_stmt]);
         /**/
         let runtime = EarpRuntime::new(program);

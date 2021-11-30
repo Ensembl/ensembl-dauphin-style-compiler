@@ -1,0 +1,86 @@
+//
+// general
+//
+
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ &"\n" }
+
+identifier = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
+integer = @{ ASCII_DIGIT+ }
+
+//
+// declaration lines
+//
+instruction_set = _{ identifier ~ "/" ~ integer }
+instructions_declaration = { "$instructions" ~ (instruction_set | (identifier ~ instruction_set)) }
+
+declaration = { instructions_declaration }
+
+//
+// operand: floats
+//
+float = @{
+    "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT*)?
+    ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
+}
+float_tagged = ${ float ~ "_f" }
+
+//
+// operand: sreings
+//
+plain_char = @{ !("\"" | "\\") ~ ANY }
+escaped_char = @{ "\"" | "\\" | "a" | "b" | "f" | "n" | "r" | "t" | "v" }
+hex_escape = @{ ASCII_HEX_DIGIT{1,6} }
+
+character = { plain_char | "\\" ~ escaped_char | "\\" ~ ("u{" ~ hex_escape ~ "}") }
+
+string = ${ "\"" ~ character* ~ "\"" }
+
+//
+// operand: literals
+//
+boolean = @{ "true" | "false" }
+literal = _{ boolean | float_tagged | integer | string }
+
+//
+// operand: relative offsets
+//
+relplus = { "+" ~ integer }
+relminus = { "-" ~ integer }
+relative = { "@" ~ (relplus|relminus)? }
+
+//
+// operand: registers
+//
+register = ${ "r" ~ integer }
+upregister = ${ "u" ~ integer }
+
+//
+// operand: label references
+//
+labelref = ${ "." ~ identifier }
+rellabelf = ${ "." ~ integer ~ "f" }
+rellabelr = ${ "." ~ integer ~ "r" }
+
+//
+// instructions
+//
+operand = { register | upregister | literal | rellabelr | rellabelf | labelref | relative }
+opcode = ${ (identifier ~ ":" ~ identifier) | identifier }
+instruction = { opcode ~ (operand ~ ("," ~ operand)*)? }
+
+//
+// program lines
+//
+program_label = ${ "program:" ~ identifier ~ ":" }
+label = ${ identifier ~ ":" }
+rellabel = ${ integer ~ ":" }
+program_line = _{ instruction | program_label | label | rellabel }
+
+//
+// global
+//
+declaration_section = { ((declaration ~ NEWLINE)| NEWLINE)* }
+program_section = { ((program_line ~ NEWLINE)|NEWLINE)* }
+
+document = { SOI ~ declaration_section ~ program_section ~ EOI }
