@@ -1,3 +1,8 @@
+# 0.1.2
+  * Fix default tack order
+  * Cleanly handle possibility of 404s (and other unexpected status codes) from BE
+  * Cleanly fail on jump target not found
+
 # 0.1.1
   * Reduce unnecessary draw groups for efficiency and code cleanliness
   * Milestone trains for smooth scrolling at speed
