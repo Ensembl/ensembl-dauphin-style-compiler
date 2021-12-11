@@ -56,9 +56,20 @@ impl AnimationQueue {
         })
     }
 
-    pub(super) fn queue_clear(&mut self) {
+    pub(super) fn remove_pending_actions(&mut self) {
         self.intention_lockout = None;
-        self.animation_queue.clear();
+        let mut new_queue = VecDeque::new();
+        for entry in self.animation_queue.drain(..) {
+            match entry {
+                QueueEntry::Size(_) |
+                QueueEntry::Report |
+                QueueEntry::LockReports => {
+                    new_queue.push_back(entry);
+                }
+                _ => {}
+            }
+        }
+        self.animation_queue = new_queue;
     }
 
     pub(super) fn queue_add(&mut self, entry: QueueEntry) {

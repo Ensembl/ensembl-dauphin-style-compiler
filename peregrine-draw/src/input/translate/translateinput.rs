@@ -116,7 +116,7 @@ impl InputTranslatorState {
 
     fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
-        self.queue.queue_clear();
+        self.queue.remove_pending_actions();
         /* three strategies:
          * 1. target is smaller: make short move, and then zoom in
          * 2. target is bigger: zoom out to common scale, and make short move
