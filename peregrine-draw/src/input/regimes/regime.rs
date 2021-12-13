@@ -38,6 +38,21 @@ enum RegimeObject {
     ZoomX(ZoomXRegime)
 }
 
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for RegimeObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Set(arg0) => f.debug_tuple("Set").finish(),
+            Self::W(arg0) => f.debug_tuple("W").finish(),
+            Self::UserPull(arg0) => f.debug_tuple("UserPull").finish(),
+            Self::InstructedPull(arg0) => f.debug_tuple("InstructedPull").finish(),
+            Self::SelfPull(arg0) => f.debug_tuple("SelfPull").finish(),
+            Self::None(arg0) => f.debug_tuple("None").finish(),
+            Self::ZoomX(arg0) => f.debug_tuple("ZoomX").finish(),
+        }
+    }
+}
+
 impl RegimeObject {
     fn as_trait_mut(&mut self) -> &mut dyn RegimeTrait {
         match self {

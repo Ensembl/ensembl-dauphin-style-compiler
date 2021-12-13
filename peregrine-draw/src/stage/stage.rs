@@ -56,7 +56,7 @@ impl ProgramStage {
         self.model_matrix(stage)).into());  
         */
         let mut position = stage.x.position()?;
-        let mut bp_per_screen = stage.x.bp_per_screen2()? as f64;
+        let mut bp_per_screen = stage.x.bp_per_screen()? as f64;
         /* allow for squeeze */
         let x_size = stage.x.drawable_size()?;
         let squeeze = stage.x.squeeze()?;

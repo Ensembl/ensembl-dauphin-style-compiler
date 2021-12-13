@@ -233,7 +233,7 @@ impl PeregrineInnerAPI {
         console::log_1(&format!("received debug action {}",index).into());
         if index == 9 {
             let stage = self.stage.lock().unwrap();
-            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen2()).into());
+            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
         } else if index == 8 {
             self.sound.play("bell");
         }

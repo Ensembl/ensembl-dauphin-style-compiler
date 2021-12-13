@@ -21,6 +21,8 @@
         <button id="jump-zar1l">jump zar1l</button>
         <button id="jump-wheat">jump TraesCS3D02G273600</button>
         <button id="jump-ecoli">jump E. coli b2614</button>
+        <button id="jump-bug">jump bug</button>
+        <button id="jump-no-bug">jump no bug</button>
         <button id="create-error">create error</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
@@ -218,6 +220,16 @@
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+        };
+        document.getElementById("jump-no-bug").onclick = function() {
+          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.wait();
+          genome_browser.goto(79537455,79545455);
+        };
+        document.getElementById("jump-bug").onclick = function() {
+          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.wait();
+          genome_browser.goto(379537455,379545455);
         };
         document.getElementById("create-error").onclick = function() {
           //genome_browser.jump("focus:none");

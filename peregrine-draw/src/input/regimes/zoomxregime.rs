@@ -45,8 +45,9 @@ impl ZoomXRegime {
             } else if pos < new_bp/2. {
                 new_bp = pos*2.;
             }
+            new_bp = new_bp.max(size);
         }
-        new_bp
+        new_bp.min(self.min_bp)
     }
 }
 

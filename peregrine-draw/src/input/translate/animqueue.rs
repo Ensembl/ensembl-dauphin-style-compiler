@@ -39,7 +39,7 @@ pub(super) struct AnimationQueue {
     intention_lockout: Option<Lockout>,
     animation_current: Option<QueueEntry>,
     size: Option<f64>,
-    max_zoom_in_bp: f64,
+    min_bp_per_screen: f64,
     target_reporter: TargetReporter
 }
 
@@ -51,7 +51,7 @@ impl AnimationQueue {
             intention_lockout: None,
             animation_current: None,
             size: None,
-            max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
+            min_bp_per_screen: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
             target_reporter: target_reporter.clone()
         })
     }
@@ -156,7 +156,7 @@ impl AnimationQueue {
         if zoom_out == 2 {
             out.push(Endstop::MaxZoomOut);
         }
-        if measure.bp_per_screen < self.max_zoom_in_bp + 0.5 {
+        if measure.bp_per_screen < self.min_bp_per_screen + 0.5 {
             out.push(Endstop::MaxZoomIn);
         }
         out.sort();
