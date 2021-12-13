@@ -19,20 +19,20 @@ use std::sync::{ Arc, Mutex };
 #[derive(Clone)]
 struct DrawMessageQueue {
     queue: CommanderStream<DrawMessage>,
-    blocker: Blocker
+    syncer: Blocker
 }
 
 impl DrawMessageQueue {
     fn new() -> DrawMessageQueue {
-        let blocker = Blocker::new();
-        blocker.set_freewheel(true);
+        let syncer = Blocker::new();
+        syncer.set_freewheel(true);
         DrawMessageQueue {
             queue: CommanderStream::new(),
-            blocker
+            syncer
         }
     }
 
-    fn blocker(&self) -> &Blocker { &self.blocker }
+    fn syncer(&self) -> &Blocker { &self.syncer }
 
     fn add(&self, message: DrawMessage) {
         self.queue.add(message);
@@ -40,13 +40,13 @@ impl DrawMessageQueue {
 
     async fn get(&self) -> DrawMessage {
         let message = self.queue.get().await;
-        self.blocker.wait().await;
-        self.blocker.set_freewheel(true);
+        self.syncer.wait().await;
+        self.syncer.set_freewheel(true);
         message
     }
 
     fn sync(&self) {
-        self.blocker.set_freewheel(false);
+        self.syncer.set_freewheel(false);
     }
 }
 
@@ -120,7 +120,7 @@ impl DrawMessage {
             },
             DrawMessage::SetArtificial(name,down) => {
                 draw.set_artificial(&name,down);
-            }
+            },
             DrawMessage::SetY(y) => {
                 draw.set_y(y);
             },
@@ -233,7 +233,7 @@ impl PeregrineAPI {
         dev_warning();
         loop {
             let message = self.queue.get().await;
-            message.run(&mut draw,&self.queue.blocker())?;
+            message.run(&mut draw,&self.queue.syncer())?;
         }
     }
 
@@ -241,7 +241,7 @@ impl PeregrineAPI {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.blocker())?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer())?;
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();

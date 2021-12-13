@@ -224,6 +224,7 @@ impl PeregrineInnerAPI {
     }
 
     pub(crate) fn set_stick(&self, stick: &StickId) {
+        self.stage.lock().unwrap().soon_stick(stick);
         self.data_api.set_stick(stick);
         self.target_reporter.set_stick(stick.get_id());
     }

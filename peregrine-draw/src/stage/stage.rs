@@ -123,8 +123,16 @@ impl Stage {
         out
     }
 
-    pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
-
+    pub fn ready(&self) -> bool { self.stick.is_some() && self.x.ready() && self.y.ready() }
+    
+    pub fn soon_stick(&mut self, stick: &StickId) {
+        if let Some(old_stick) = &self.stick {
+            if stick != old_stick {
+                self.stick = None;
+            }
+        }
+    }
+    
     pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
     pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }
