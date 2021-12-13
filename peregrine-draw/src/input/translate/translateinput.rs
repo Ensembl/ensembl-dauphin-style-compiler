@@ -185,6 +185,7 @@ impl InputTranslatorState {
 
     fn set_limit(&mut self, limit: f64) {
         self.queue.queue_add(QueueEntry::Size(limit));
+        self.update_needed();
     }
 }
 
