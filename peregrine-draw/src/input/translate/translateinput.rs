@@ -129,7 +129,7 @@ impl InputTranslatorState {
             if screenful_move < 2. { // XXX config
                 /* strategy 2 */
                 self.queue.queue_add(QueueEntry::LockReports);
-                self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+                self.queue.queue_add(QueueEntry::ZoomTo(None,bp_per_screen,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
@@ -148,7 +148,7 @@ impl InputTranslatorState {
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+                self.queue.queue_add(QueueEntry::ZoomTo(Some(centre),bp_per_screen,cadence.clone()));
                 self.queue.queue_add(QueueEntry::Wait);
                 self.queue.queue_add(QueueEntry::Report);
                 self.update_needed();
@@ -160,13 +160,13 @@ impl InputTranslatorState {
         let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
         let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
         self.queue.queue_add(QueueEntry::LockReports);
-        self.queue.queue_add(QueueEntry::ZoomTo(outzoom_bp_per_screen,cadence.clone()));
+        self.queue.queue_add(QueueEntry::ZoomTo(None,outzoom_bp_per_screen,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
-        self.queue.queue_add(QueueEntry::ZoomTo(bp_per_screen,cadence.clone()));
+        self.queue.queue_add(QueueEntry::ZoomTo(Some(centre),bp_per_screen,cadence.clone()));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::Report);
         self.update_needed();

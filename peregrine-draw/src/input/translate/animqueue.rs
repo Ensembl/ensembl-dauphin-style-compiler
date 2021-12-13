@@ -22,7 +22,7 @@ pub(super) enum QueueEntry {
     MoveW(f64,f64),
     ShiftTo(f64,Cadence),
     ShiftByZoomTo(f64,Cadence),
-    ZoomTo(f64,Cadence),
+    ZoomTo(Option<f64>,f64,Cadence),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
     BrakeX,
@@ -107,12 +107,16 @@ impl AnimationQueue {
             QueueEntry::ShiftByZoomTo(amt,_cadence) => {
                 self.regime.regime_zoomx(measure).set(measure,*amt);
             },
-            QueueEntry::ZoomTo(amt,cadence) => {
-                match cadence {
-                    Cadence::UserInput => { self.regime.regime_user_drag(measure).zoom_to(*amt); },
-                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).zoom_to(*amt); },
-                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).zoom_to(*amt); }
+            QueueEntry::ZoomTo(pos,zoom,cadence) => {
+                let regime = match cadence {
+                    Cadence::UserInput => { self.regime.regime_user_drag(measure) },
+                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure) },
+                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure) }
+                };
+                if let Some(pos) = pos {
+                    regime.shift_to(*pos);
                 }
+                regime.zoom_to(*zoom);
             },
             QueueEntry::ShiftMore(amt) => {
                 self.regime.regime_user_drag(measure).shift_more(&measure,*amt);
