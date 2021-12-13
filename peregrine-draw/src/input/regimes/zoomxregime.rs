@@ -37,17 +37,19 @@ impl ZoomXRegime {
         self.zoom_x.move_to(centre);
     }
 
-    fn fixed_bp(&self, pos: f64, bp: f64) -> f64 {
-        let mut new_bp = bp;
+    fn fixed_bp(&self, pos: f64, bp: f64) -> Option<f64> {
         if let Some(size) = self.size {
-            if pos + new_bp/2. > size {
-                new_bp = (size-pos)*2.;
-            } else if pos < new_bp/2. {
-                new_bp = pos*2.;
+            let at_right = pos + bp/2. > size;
+            let at_left = pos < bp/2.;
+            match (at_left,at_right) {
+                (false,false) => Some(bp),
+                (true,false) => Some(pos*2.),
+                (false,true) => Some((size-pos)*2.),
+                (true,true) => None
             }
-            new_bp = new_bp.max(size);
+        } else {
+            Some(bp)
         }
-        new_bp.min(self.min_bp)
     }
 }
 
@@ -71,8 +73,11 @@ impl RegimeTrait for ZoomXRegime {
         let new_pos = self.zoom_x.apply_spring(measure.x_bp,total_dt);
         if let Some(new_pos) = new_pos {
             /* increase bp-per-screen to accommodate it */
-            let new_bp = self.fixed_bp(new_pos,measure.bp_per_screen);
-            return TickResult::Update(Some(new_pos),Some(new_bp));
+            if let Some(new_bp) = self.fixed_bp(new_pos,measure.bp_per_screen) {
+                return TickResult::Update(Some(new_pos),Some(new_bp));
+            } else {
+                return TickResult::Finished;
+            }
         }
         TickResult::Update(None,None)
     }
