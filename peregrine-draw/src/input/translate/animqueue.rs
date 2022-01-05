@@ -20,6 +20,7 @@ pub(super) enum Cadence {
 pub(super) enum QueueEntry {
     Set(f64,f64),
     MoveW(f64,f64),
+    Goto(f64,f64),
     ShiftTo(f64,Cadence),
     ShiftByZoomTo(f64,Cadence),
     ZoomTo(Option<f64>,f64,Cadence),
@@ -96,6 +97,9 @@ impl AnimationQueue {
             },
             QueueEntry::MoveW(centre,scale) => {
                 self.regime.regime_w(measure).set(measure,*centre,*scale);
+            },
+            QueueEntry::Goto(centre,scale) => {
+                self.regime.regime_goto(measure).goto(*centre,*scale);
             },
             QueueEntry::ShiftTo(amt,cadence) => {
                 match cadence {

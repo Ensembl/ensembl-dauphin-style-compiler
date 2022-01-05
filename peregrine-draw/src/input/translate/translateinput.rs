@@ -115,6 +115,12 @@ impl InputTranslatorState {
     }
 
     fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
+
+        self.queue.queue_add(QueueEntry::Goto(centre,bp_per_screen));
+        self.update_needed();
+        return Ok(());
+
+        /* XXX needs to be reimplemented properly and moved into GotoRegime */
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.queue.remove_pending_actions();
         /* three strategies:

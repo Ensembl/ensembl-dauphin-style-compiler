@@ -22,6 +22,7 @@ mod input {
 
     mod regimes {
         pub(crate) mod regime;
+        mod gotoregime;
         mod dragregime;
         mod setregime;
         mod zoomxregime;
