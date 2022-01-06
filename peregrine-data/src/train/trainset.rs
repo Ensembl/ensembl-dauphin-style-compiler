@@ -152,7 +152,6 @@ impl TrainSet {
             self.target.take();
         }
         /* do it */
-        use web_sys::console;
         self.next_train_serial +=1;
         let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
         //console::log_1(&format!("wanted[{}]",wanted.extent().scale().get_index()).into());
