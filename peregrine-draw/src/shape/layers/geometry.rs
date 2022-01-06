@@ -4,7 +4,7 @@ use super::super::core::wigglegeometry::WiggleAdder;
 use crate::shape::layers::consts::{ PR_DEF, PR_LOW };
 use crate::shape::triangles::triangleadder::TriangleAdder;
 use crate::util::enummap::{Enumerable, EnumerableKey};
-use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProcessBuilder, ProgramBuilder, SourceInstrs, Statement, UniformProto, Varying};
+use crate::webgl::{AttributeProto, Conditional, Declaration, GLArity, Header, ProcessBuilder, ProgramBuilder, SourceInstrs, Statement, Varying};
 use web_sys::{ WebGlRenderingContext };
 use crate::util::message::Message;
 
@@ -86,7 +86,7 @@ impl GeometryProgramName {
         SourceInstrs::new(match self {
             GeometryProgramName::Triangles(TrianglesGeometry::Tracking) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
+                AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
                     {
@@ -101,7 +101,7 @@ impl GeometryProgramName {
                     gl_Position = transform(aCoords);
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
                         vec4 x = transform(aOriginCoords);
@@ -115,7 +115,7 @@ impl GeometryProgramName {
              */
             GeometryProgramName::Triangles(TrianglesGeometry::TrackingWindow) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
+                AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
@@ -131,7 +131,7 @@ impl GeometryProgramName {
                     gl_Position = transform(aCoords)
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
                         vec4 x = transform(aOriginCoords);
@@ -143,7 +143,7 @@ impl GeometryProgramName {
              */
             GeometryProgramName::Triangles(TrianglesGeometry::Window) => vec![
                 Header::new(WebGlRenderingContext::TRIANGLES),
-                AttributeProto::new(PR_LOW,GLArity::Vec4,"aCoords"),
+                AttributeProto::new(PR_DEF,GLArity::Vec4,"aCoords"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Declaration::new_vertex("
                     vec4 transform(in vec4 p)
@@ -156,7 +156,7 @@ impl GeometryProgramName {
                     gl_Position = transform(aCoords)
                 "),
                 Conditional::new("need-origin",vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aOriginCoords"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec4,"aOriginCoords"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vOrigin"),    
                     Statement::new_vertex("
                         vec4 x = transform(aOriginCoords);
@@ -168,7 +168,7 @@ impl GeometryProgramName {
              */
             GeometryProgramName::Wiggle => vec![
                 Header::new(WebGlRenderingContext::TRIANGLE_STRIP),
-                AttributeProto::new(PR_LOW,GLArity::Vec2,"aData"),
+                AttributeProto::new(PR_DEF,GLArity::Vec2,"aData"),
                 AttributeProto::new(PR_LOW,GLArity::Scalar,"aDepth"),
                 Statement::new_vertex("
                     gl_Position = uModel * vec4(

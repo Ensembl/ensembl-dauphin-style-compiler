@@ -67,7 +67,7 @@ impl PatinaProgramName {
         SourceInstrs::new(
             match self {
                 PatinaProgramName::Direct => vec![
-                    AttributeProto::new(PR_LOW,GLArity::Vec4,"aVertexColour"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec4,"aVertexColour"),
                     Varying::new(PR_LOW,GLArity::Vec4,"vColour"),
                     Statement::new_vertex("vColour = aVertexColour"),
                     Statement::new_fragment("gl_FragColor = vColour"),
@@ -92,8 +92,8 @@ impl PatinaProgramName {
                 ],
                 PatinaProgramName::FreeTexture => vec![
                     TextureProto::new("uSampler","uSamplerSize"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aTextureCoord"),
-                    AttributeProto::new(PR_LOW,GLArity::Vec2,"aMaskCoord"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aTextureCoord"),
+                    AttributeProto::new(PR_DEF,GLArity::Vec2,"aMaskCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vTextureCoord"),
                     Varying::new(PR_DEF,GLArity::Vec2,"vMaskCoord"),
                     Statement::new_vertex("vTextureCoord = aTextureCoord"),
