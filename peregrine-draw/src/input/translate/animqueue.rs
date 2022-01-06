@@ -11,16 +11,14 @@ use crate::input::regimes::regime::Regime;
 
 #[derive(Clone)]
 pub(super) enum Cadence {
-    #[allow(unused)]
-    UserInput,
-    Instructed,
-    SelfPropelled
+    Step,
+    Smooth
 }
 
 #[derive(Debug)]
 pub(super) enum QueueEntry {
     Set(f64,f64),
-    Goto(f64,f64),
+    Goto(Option<f64>,Option<f64>),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
     BrakeX,

@@ -142,8 +142,10 @@ impl GotoRegime {
         }
     }
 
-    pub(crate) fn goto(&mut self, x: f64, bp: f64) {
+    pub(crate) fn goto(&mut self, x: Option<f64>, bp: Option<f64>) {        
         if let Some((start_x,start_bp)) = &self.start {
+            let x = x.unwrap_or(*start_x);
+            let bp = bp.unwrap_or(*start_bp);
             let instance = GotoInstance::new(self,(*start_x,x),(*start_bp,bp));
             self.goto = Some(instance);
         }

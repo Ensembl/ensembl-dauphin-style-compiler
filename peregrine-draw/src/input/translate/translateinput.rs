@@ -117,7 +117,16 @@ impl InputTranslatorState {
     fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
         self.queue.remove_pending_actions();
         self.queue.queue_add(QueueEntry::LockReports);
-        self.queue.queue_add(QueueEntry::Goto(centre,bp_per_screen));
+        match cadence {
+            Cadence::Smooth => {
+                self.queue.queue_add(QueueEntry::Goto(Some(centre),Some(bp_per_screen)));
+            },
+            Cadence::Step => {
+                self.queue.queue_add(QueueEntry::Goto(Some(centre),None));
+                self.queue.queue_add(QueueEntry::Wait);
+                self.queue.queue_add(QueueEntry::Goto(None,Some(bp_per_screen)));
+            }
+        }
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::Report);
         self.update_needed();
@@ -127,7 +136,7 @@ impl InputTranslatorState {
     fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         let ready = inner.stage().lock().unwrap().ready();
         if ready {
-            self.animate_to(inner,centre,bp_per_screen,&Cadence::SelfPropelled)?;
+            self.animate_to(inner,centre,bp_per_screen,&Cadence::Smooth)?;
         } else {
             self.goto_not_ready(inner,centre,bp_per_screen)?;
         }
@@ -219,7 +228,7 @@ impl InputTranslator {
         match event.details {
             InputEventKind::AnimatePosition => {
                 // XXX y
-                state.animate_to(inner,centre,scale,&Cadence::Instructed)?;
+                state.animate_to(inner,centre,scale,&Cadence::Step)?;
             },
             _ => {}
         }
