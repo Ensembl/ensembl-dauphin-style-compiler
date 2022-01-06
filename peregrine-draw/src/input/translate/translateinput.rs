@@ -2,7 +2,7 @@ use std::{sync::{ Arc, Mutex }};
 use commander::cdr_tick;
 use js_sys::Date;
 use peregrine_toolkit::sync::{blocker::{Blocker, Lockout}, needed::{Needed, NeededLock}};
-use crate::{ PeregrineInnerAPI, input::translate::measure::Measure, run::report::Report };
+use crate::{ PeregrineInnerAPI, run::report::Report };
 use crate::run::{ PgPeregrineConfig };
 use crate::input::{InputEvent, InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
@@ -115,68 +115,13 @@ impl InputTranslatorState {
     }
 
     fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
-
-        self.queue.queue_add(QueueEntry::Goto(centre,bp_per_screen));
-        self.update_needed();
-        return Ok(());
-
-        /* XXX needs to be reimplemented properly and moved into GotoRegime */
-        let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(()); };
         self.queue.remove_pending_actions();
-        /* three strategies:
-         * 1. target is smaller: make short move, and then zoom in
-         * 2. target is bigger: zoom out to common scale, and make short move
-         * 3. outzoom to target scale, shift, and zoom in again
-         */
-         if bp_per_screen > measure.bp_per_screen {
-            /* we are getting more bp per screen, ie zooming out: can use strategies 2 or 3 */
-            /* to test if we can use 2: how many screenfuls must we move at the FINAL scale? */
-            let screenful_move = (centre-measure.x_bp).abs() / bp_per_screen;
-            if screenful_move < 2. { // XXX config
-                /* strategy 2 */
-                self.queue.queue_add(QueueEntry::LockReports);
-                self.queue.queue_add(QueueEntry::ZoomTo(None,bp_per_screen,cadence.clone()));
-                self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
-                self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::Report);
-                self.update_needed();
-                return Ok(());
-            }
-        } else {
-            /* we are getting fewer bp per screen, ie zooming in: can use strategies 1 or 3 */
-            /* to test if we can use 1: how many screenfuls must we move at the ORIGINAL scale? */
-            let screenful_move = (centre-measure.x_bp).abs() / measure.bp_per_screen;
-            if screenful_move < 2. { // XXX config
-                /* strategy 1 */
-                self.queue.queue_add(QueueEntry::LockReports);
-                self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
-                self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
-                self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::ZoomTo(Some(centre),bp_per_screen,cadence.clone()));
-                self.queue.queue_add(QueueEntry::Wait);
-                self.queue.queue_add(QueueEntry::Report);
-                self.update_needed();
-                return Ok(());
-            }
-        }
-        /* strategy 3 */
-        let rightmost = (centre+bp_per_screen/2.).max(measure.x_bp+measure.bp_per_screen/2.);
-        let leftmost = (centre-bp_per_screen/2.).min(measure.x_bp-measure.bp_per_screen/2.);
-        let outzoom_bp_per_screen = (rightmost-leftmost)*2.;
         self.queue.queue_add(QueueEntry::LockReports);
-        self.queue.queue_add(QueueEntry::ZoomTo(None,outzoom_bp_per_screen,cadence.clone()));
-        self.queue.queue_add(QueueEntry::Wait);
-        self.queue.queue_add(QueueEntry::ShiftTo(centre,cadence.clone()));
-        self.queue.queue_add(QueueEntry::Wait);
-        self.queue.queue_add(QueueEntry::ShiftByZoomTo(centre,cadence.clone()));
-        self.queue.queue_add(QueueEntry::Wait);
-        self.queue.queue_add(QueueEntry::ZoomTo(Some(centre),bp_per_screen,cadence.clone()));
+        self.queue.queue_add(QueueEntry::Goto(centre,bp_per_screen));
         self.queue.queue_add(QueueEntry::Wait);
         self.queue.queue_add(QueueEntry::Report);
         self.update_needed();
-        Ok(())
+        return Ok(());
     }
 
     fn goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {

@@ -25,8 +25,6 @@ mod input {
         mod gotoregime;
         mod dragregime;
         mod setregime;
-        mod zoomxregime;
-        mod windowregime;
     }
 
     pub(crate) mod translate {

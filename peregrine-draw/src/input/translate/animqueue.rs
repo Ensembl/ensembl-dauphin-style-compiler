@@ -17,13 +17,10 @@ pub(super) enum Cadence {
     SelfPropelled
 }
 
+#[derive(Debug)]
 pub(super) enum QueueEntry {
     Set(f64,f64),
-    MoveW(f64,f64),
     Goto(f64,f64),
-    ShiftTo(f64,Cadence),
-    ShiftByZoomTo(f64,Cadence),
-    ZoomTo(Option<f64>,f64,Cadence),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
     BrakeX,
@@ -95,32 +92,8 @@ impl AnimationQueue {
             QueueEntry::Set(centre,scale) => {
                 self.regime.regime_set(measure).set(*centre,*scale);
             },
-            QueueEntry::MoveW(centre,scale) => {
-                self.regime.regime_w(measure).set(measure,*centre,*scale);
-            },
             QueueEntry::Goto(centre,scale) => {
                 self.regime.regime_goto(measure).goto(*centre,*scale);
-            },
-            QueueEntry::ShiftTo(amt,cadence) => {
-                match cadence {
-                    Cadence::UserInput => { self.regime.regime_user_drag(measure).shift_to(*amt); },
-                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).shift_to(*amt); },
-                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).shift_to(*amt); }
-                }
-            },
-            QueueEntry::ShiftByZoomTo(amt,_cadence) => {
-                self.regime.regime_zoomx(measure).set(measure,*amt);
-            },
-            QueueEntry::ZoomTo(pos,zoom,cadence) => {
-                let regime = match cadence {
-                    Cadence::UserInput => { self.regime.regime_user_drag(measure) },
-                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure) },
-                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure) }
-                };
-                if let Some(pos) = pos {
-                    regime.shift_to(*pos);
-                }
-                regime.zoom_to(*zoom);
             },
             QueueEntry::ShiftMore(amt) => {
                 self.regime.regime_user_drag(measure).shift_more(&measure,*amt);
@@ -130,11 +103,9 @@ impl AnimationQueue {
             },
             QueueEntry::BrakeX => {
                 if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_x(); }
-                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_x(); }
             },
             QueueEntry::BrakeZ => { 
                 if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_z(); }
-                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_z(); }
             },
             QueueEntry::Size(size) => {
                 self.regime.set_size(measure,*size);
