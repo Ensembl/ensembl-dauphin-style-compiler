@@ -115,13 +115,14 @@ impl Regime {
         let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
         let goto_rho_config = config.get_f64(&PgConfigKey::GotoRho)?;
         let goto_v_config = config.get_f64(&PgConfigKey::GotoV)?;
+        let goto_max_s_config = config.get_f64(&PgConfigKey::GotoMaxS)?;
         instructed_drag_config.0.vel_min *= 100.;
         instructed_drag_config.0.force_min *= 100.;
         Ok(Regime {
             object: RegimeObject::None(RegimeNone()),
             set_creator: SetRegimeCreator(),
             user_drag_creator: DragRegimeCreator(user_drag_config.0,user_drag_config.1),
-            goto_creator: GotoRegimeCreator { rho: goto_rho_config, v: goto_v_config },
+            goto_creator: GotoRegimeCreator { rho: goto_rho_config, v: goto_v_config, max_s: goto_max_s_config },
             size: None
         })
     }

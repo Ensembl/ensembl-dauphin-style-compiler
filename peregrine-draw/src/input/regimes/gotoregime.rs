@@ -6,6 +6,7 @@ use super::regime::{RegimeCreator, RegimeTrait, TickResult};
  */
 
 pub(super) struct GotoRegimeCreator {
+    pub max_s: f64,
     pub rho: f64,
     pub v: f64
 }
@@ -14,13 +15,23 @@ impl RegimeCreator for GotoRegimeCreator {
     type Object = GotoRegime;
 
     fn create(&self) -> Self::Object {
-        GotoRegime::new(self.rho,self.v)
+        GotoRegime::new(self.rho,self.v,self.max_s)
     }
 }
 
 trait GotoAlgortihm {
     fn total_distance(&self) -> f64;
     fn tick(&self, s: f64) -> (f64,f64);
+}
+
+struct SimpleGoto {
+    x: f64,
+    bp: f64
+}
+
+impl GotoAlgortihm for SimpleGoto {
+    fn total_distance(&self) -> f64 { 0. }
+    fn tick(&self, _s: f64) -> (f64,f64) { (self.x,self.bp) }
 }
 
 struct FullGoto {
@@ -107,11 +118,14 @@ struct GotoInstance {
 
 impl GotoInstance {
     fn new(regime: &GotoRegime, x: (f64,f64), bp: (f64,f64)) -> GotoInstance {
-        let algorithm : Box<dyn GotoAlgortihm> = if x.0 == x.1 {
+        let mut algorithm : Box<dyn GotoAlgortihm> = if x.0 == x.1 {
             Box::new(ZoomOnlyGoto::new(regime,x.0,bp))
         } else {
             Box::new(FullGoto::new(regime,x,bp))
         };
+        if algorithm.total_distance() > regime.max_s {
+            algorithm = Box::new(SimpleGoto { x: x.1, bp: bp.1 });
+        }
         GotoInstance {
             t_seen: 0.,
             s: algorithm.total_distance(),
@@ -141,16 +155,17 @@ impl GotoInstance {
 pub(crate) struct GotoRegime {
     rho: f64,
     v: f64,
+    max_s: f64,
     start: Option<(f64,f64)>,
     goto: Option<GotoInstance>
 }
 
 impl GotoRegime {
-    pub(crate) fn new(rho: f64, v: f64) -> GotoRegime {
+    pub(crate) fn new(rho: f64, v: f64, max_s: f64) -> GotoRegime {
         GotoRegime {
             goto: None,
             start: None,
-            rho, v
+            rho, v, max_s
         }
     }
 

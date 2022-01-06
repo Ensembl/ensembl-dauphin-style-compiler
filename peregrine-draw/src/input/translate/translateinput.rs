@@ -107,7 +107,7 @@ impl InputTranslatorState {
         Ok(())
     }
 
-    fn goto_not_ready(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
+    fn just_goto(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64) -> Result<(),Message> {
         inner.set_x(centre);
         inner.set_bp_per_screen(bp_per_screen);
         self.target_reporter.force_report();
@@ -140,7 +140,7 @@ impl InputTranslatorState {
         if ready {
             self.animate_to(inner,centre,bp_per_screen,&Cadence::Smooth)?;
         } else {
-            self.goto_not_ready(inner,centre,bp_per_screen)?;
+            self.just_goto(inner,centre,bp_per_screen)?;
         }
         Ok(())
     }
