@@ -26,7 +26,8 @@ pub(super) enum QueueEntry {
     Wait,
     Size(f64),
     Report,
-    LockReports
+    LockReports,
+    Sketchy(bool)
 }
 
 pub(super) struct AnimationQueue {
@@ -36,7 +37,7 @@ pub(super) struct AnimationQueue {
     animation_current: Option<QueueEntry>,
     size: Option<f64>,
     min_bp_per_screen: f64,
-    target_reporter: TargetReporter
+    target_reporter: TargetReporter,
 }
 
 impl AnimationQueue {
@@ -58,6 +59,7 @@ impl AnimationQueue {
         for entry in self.animation_queue.drain(..) {
             match entry {
                 QueueEntry::Size(_) |
+                QueueEntry::Sketchy(_) |
                 QueueEntry::Report |
                 QueueEntry::LockReports => {
                     new_queue.push_back(entry);
@@ -80,7 +82,7 @@ impl AnimationQueue {
         self.regime.tick(inner,total_dt)
     }
 
-    fn run_one_queue_entry(&mut self, measure: &Measure, entry: &QueueEntry) {
+    fn run_one_queue_entry(&mut self, measure: &Measure, entry: &QueueEntry, inner: & PeregrineInnerAPI) {
         self.regime.update_settings(measure);
         match &entry {
             QueueEntry::LockReports => {
@@ -104,6 +106,9 @@ impl AnimationQueue {
             },
             QueueEntry::BrakeZ => { 
                 if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_z(); }
+            },
+            QueueEntry::Sketchy(yn) => {
+                inner.set_sketchy(*yn);
             },
             QueueEntry::Size(size) => {
                 self.regime.set_size(measure,*size);
@@ -166,7 +171,7 @@ impl AnimationQueue {
             let current = self.animation_current.take();
             let measure = if let Some(measure) = Measure::new(inner)? { measure } else { break; };
             if let Some(entry) = &current {
-                self.run_one_queue_entry(&measure,entry);
+                self.run_one_queue_entry(&measure,entry,inner);
             }
             self.report_targets(&measure,report);
             self.animation_current = current;

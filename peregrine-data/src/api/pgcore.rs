@@ -169,4 +169,8 @@ impl PeregrineCore {
     pub fn general_metric(&self, name: &str, tags: Vec<(String,String)>, values: Vec<(String,f64)>) {
         self.base.queue.push(ApiMessage::GeneralMetric(name.to_string(),tags,values))
     }
+
+    pub fn set_sketchy(&self, yn: bool) {
+        self.base.queue.push(ApiMessage::Sketchy(yn));
+    }
 }

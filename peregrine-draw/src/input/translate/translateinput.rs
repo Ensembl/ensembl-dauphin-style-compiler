@@ -117,6 +117,7 @@ impl InputTranslatorState {
     fn animate_to(&mut self, inner: &mut PeregrineInnerAPI, centre: f64, bp_per_screen: f64, cadence: &Cadence) -> Result<(),Message> {
         self.queue.remove_pending_actions();
         self.queue.queue_add(QueueEntry::LockReports);
+        self.queue.queue_add(QueueEntry::Sketchy(true));
         match cadence {
             Cadence::Smooth => {
                 self.queue.queue_add(QueueEntry::Goto(Some(centre),Some(bp_per_screen)));
@@ -128,6 +129,7 @@ impl InputTranslatorState {
             }
         }
         self.queue.queue_add(QueueEntry::Wait);
+        self.queue.queue_add(QueueEntry::Sketchy(false));
         self.queue.queue_add(QueueEntry::Report);
         self.update_needed();
         return Ok(());

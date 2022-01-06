@@ -180,6 +180,10 @@ impl PeregrineInnerAPI {
         self.data_api.set_switch(path);
     }
 
+    pub(crate) fn set_sketchy(&self, yn: bool) {
+        self.data_api.set_sketchy(yn);
+    }
+
     pub(crate) fn clear_switch(&self, path: &[&str]) {
         self.data_api.clear_switch(path);
     }

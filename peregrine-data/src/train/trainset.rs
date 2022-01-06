@@ -25,6 +25,8 @@ pub struct TrainSet {
     next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
+    viewport: Option<Viewport>,
+    sketchy: bool
 }
 
 impl TrainSet {
@@ -39,7 +41,9 @@ impl TrainSet {
             next_train_serial: 0,
             messages: base.messages.clone(),
             dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
-            serial_source
+            serial_source,
+            viewport: None,
+            sketchy: false
         }
     }
 
@@ -75,7 +79,6 @@ impl TrainSet {
     }
 
     fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents) {
-        use web_sys::console;
         let desperate = self.future.is_none() && self.current.is_none();
         let train_good_enough = self.wanted.as_ref().map(|x| {
             let train_ready_enough = x.train_ready() || (desperate && x.train_half_ready());
@@ -83,7 +86,6 @@ impl TrainSet {
         }).unwrap_or(false);
         if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                //console::log_1(&format!("wanted[{}] -> future",wanted.extent().scale().get_index()).into());
                 let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,speed);
                 let viewport = wanted.viewport();
@@ -139,22 +141,32 @@ impl TrainSet {
         let target = self.target.as_ref().unwrap();
         /* it would be best if we were at a new target, but how busy are we? */
         if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
-        /* drop old wanted and make milestone, if necessary */      
+        /* where do we want to head? */
         let mut scale = target.scale().clone();
         if let Some(mut wanted) = self.wanted.take() {
             scale = scale.to_milestone();
-            wanted.discard(events);
         }
-        /* where are we headed? */
+        if self.sketchy {
+            scale = scale.to_milestone();
+        }
         let extent = TrainExtent::new(target.layout(),&scale);
-        /* if this we are heading exactly for the target, drop it for future calls */
+        /* if we are now heading exactly for the target, drop it for future calls */
         if &extent == target {
             self.target.take();
+        }
+        /* drop old wanted and make milestone, if necessary */      
+        if let Some(mut wanted) = self.wanted.take() {
+            wanted.discard(events);
+        }
+        if let Some(quiescent) = self.quiescent_target() {
+            if quiescent.extent() == extent {
+                /* is this where we were heading anyway? */
+                return Ok(());
+            }    
         }
         /* do it */
         self.next_train_serial +=1;
         let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
-        //console::log_1(&format!("wanted[{}]",wanted.extent().scale().get_index()).into());
         events.draw_create_train(&wanted);
         self.wanted = Some(wanted);
         Ok(())
@@ -162,6 +174,7 @@ impl TrainSet {
 
     pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
+        self.viewport = Some(viewport.clone());
         /* maybe we need to change the wanted train? */
         self.try_set_target(viewport)?;
         self.try_new_wanted(events,viewport)?;
@@ -219,5 +232,16 @@ impl TrainSet {
 
     pub(super) fn update_dependents(&self) {
         self.dependents.busy(!(self.future.is_none() && self.wanted.is_none()));
+    }
+
+    pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<RailwayEvents,DataMessage> {
+        let mut events = RailwayEvents::new();
+        self.sketchy = yn;
+        if !yn {
+            if let Some(viewport) = self.viewport.clone() {
+                self.set_position(&mut events,&viewport)?;
+            }
+        }
+        Ok(events)
     }
 }
