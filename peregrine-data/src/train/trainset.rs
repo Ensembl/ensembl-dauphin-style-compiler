@@ -202,6 +202,11 @@ impl TrainSet {
         Ok(())
     }
 
+    fn reset_position(&mut self, events: &mut RailwayEvents) -> Result<(),DataMessage> {
+        if !self.viewport.is_some() { return Ok(()); }
+        self.set_position(events,&self.viewport.as_ref().cloned().unwrap())
+    }
+
     pub(super) fn transition_complete(&mut self, events: &mut RailwayEvents) {
         /* retire current and make future current */
         if let Some(mut current) = self.current.take() {
@@ -242,9 +247,7 @@ impl TrainSet {
         let mut events = RailwayEvents::new();
         self.sketchy = yn;
         if !yn {
-            if let Some(viewport) = self.viewport.clone() {
-                self.set_position(&mut events,&viewport)?;
-            }
+            self.reset_position(&mut events)?;
         }
         Ok(events)
     }
@@ -253,9 +256,7 @@ impl TrainSet {
         let mut events = RailwayEvents::new();
         self.validity_counter += 1;
         /* create events */
-        if let Some(viewport) = self.viewport.clone() {
-            self.set_position(&mut events,&viewport)?;
-        }
+        self.reset_position(&mut events)?;
         Ok(events)
     }
 }
