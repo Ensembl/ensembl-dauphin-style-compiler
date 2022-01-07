@@ -54,6 +54,7 @@ mod integration {
 }
 
 mod run {
+    mod buildconfig;
     pub mod api;
     mod config;
     mod dom;

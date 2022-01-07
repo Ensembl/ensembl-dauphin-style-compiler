@@ -3,6 +3,7 @@ use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
+use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
 use super::{config::DebugFlag };
 use commander::CommanderStream;
@@ -104,7 +105,6 @@ fn dev_warning() {
         console::warn_1(&line.trim().into());  
     }
 }
-
 
 #[cfg(not(force_show_incoming))]
 fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { config.get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages)) }
@@ -223,11 +223,8 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
-        let git_tag = env!("GIT_TAG");
-        let git_tag = if git_tag != "" { format!("tag {}",git_tag) } else { format!("no tag") };
         if show_incoming(draw.config())? {
-            console::log_1(&format!("compilation: git {:?} ({}) build time {:?} build host {:?}",
-                env!("GIT_HASH"),git_tag,env!("BUILD_TIME"),env!("BUILD_HOST")).into());
+            console::log_1(&format!("version {} {} {}",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME")).into());
         }
         #[cfg(debug_assertions)]
         dev_warning();
