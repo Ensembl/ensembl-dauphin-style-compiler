@@ -26,7 +26,7 @@ float = @{
 float_tagged = ${ float ~ "_f" }
 
 //
-// operand: sreings
+// operand: strings
 //
 plain_char = @{ !("\"" | "\\") ~ ANY }
 escaped_char = @{ "\"" | "\\" | "a" | "b" | "f" | "n" | "r" | "t" | "v" }

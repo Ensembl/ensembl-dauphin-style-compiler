@@ -50,6 +50,7 @@ version = "0.0.0"
 dependencies = [
  "earp_runtime",
  "futures",
+ "minicbor",
  "pest",
  "pest_consume",
  "pest_derive",
@@ -177,6 +178,12 @@ name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "308cc39be01b73d0d18f82a0e7b2a3df85245f84af96fdddc5d202d27e47b86a"
+
+[[package]]
+name = "minicbor"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f87f3e31e61ba3695668b1de137268177e1f7e38743d5f6e811c50e7ce4c047b"
 
 [[package]]
 name = "opaque-debug"

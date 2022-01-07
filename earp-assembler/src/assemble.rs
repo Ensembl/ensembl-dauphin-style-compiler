@@ -1,37 +1,13 @@
 use std::{collections::{HashMap}};
-use crate::{context::EarpAssemblerContext, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyOperand, EarpAssemblyStatement}, rellabels::RelativeLabelContext};
+use crate::{ command::EarpOperand, context::EarpAssemblerContext, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyOperand, EarpAssemblyStatement}, rellabels::RelativeLabelContext};
 
-pub(crate) enum EarpOperand {
-    Register(usize),
-    UpRegister(usize),
-    String(String),
-    Boolean(bool),
-    Integer(i64),
-    Float(f64),
-}
-
-impl EarpOperand {
-    fn new(value: &EarpAssemblyOperand, context: &Assemble) -> Result<EarpOperand,EarpAssemblerError> {
-        Ok(match value {
-            EarpAssemblyOperand::Register(r) => EarpOperand::Register(*r),
-            EarpAssemblyOperand::UpRegister(r) => EarpOperand::UpRegister(*r),
-            EarpAssemblyOperand::String(s) => EarpOperand::String(s.clone()),
-            EarpAssemblyOperand::Boolean(b) => EarpOperand::Boolean(*b),
-            EarpAssemblyOperand::Integer(n) => EarpOperand::Integer(*n),
-            EarpAssemblyOperand::Float(f) => EarpOperand::Float(*f),
-            EarpAssemblyOperand::Location(loc) => EarpOperand::Integer(context.resolve_label(loc)?)
-        })
-    }
-}
-
-struct Assemble<'t> {
+pub(crate) struct Assemble<'t> {
     context: &'t EarpAssemblerContext,
     pc: i64,
     max_pc: i64,
-    entry_points: HashMap<String,i64>,
+    earp_file: EarpFileWriter,
     labels: HashMap<String,i64>,
     rel_labels: RelativeLabelContext,
-    instructions: Vec<(u64,Vec<EarpOperand>)>
 }
 
 impl<'t> Assemble<'t> {
@@ -40,10 +16,9 @@ impl<'t> Assemble<'t> {
             context,
             pc: 0,
             max_pc: 0,
-            entry_points: HashMap::new(),
+            earp_file: EarpFileWriter::new(),
             labels: HashMap::new(),
             rel_labels: RelativeLabelContext::new(),
-            instructions: vec![]
         }
     }
 
@@ -51,7 +26,7 @@ impl<'t> Assemble<'t> {
         self.pc = 0;
     }
 
-    fn resolve_label(&self, location: &EarpAssemblyLocation) -> Result<i64,EarpAssemblerError> {
+    pub(crate) fn resolve_label(&self, location: &EarpAssemblyLocation) -> Result<i64,EarpAssemblerError> {
         let label = match location {
             EarpAssemblyLocation::Here(delta) => {
                 return Ok(self.pc+*delta);
@@ -81,7 +56,7 @@ impl<'t> Assemble<'t> {
                 if self.labels.contains_key(program) {
                     return Err(EarpAssemblerError::DuplicateLabel(format!("program:{}",program)));
                 }
-                self.entry_points.insert(program.to_string(),self.pc);
+                self.earp_file.add_entry_point(program,self.pc);
             },
             EarpAssemblyStatement::Label(label) => {
                 if self.labels.contains_key(label) {
@@ -105,22 +80,23 @@ impl<'t> Assemble<'t> {
                 let prefix = prefix.as_ref().map(|x| x.as_str());
                 let opcode = self.context.instruction_suite().lookup(prefix,&identifier)?;
                 let operands = arguments.iter().map(|x| EarpOperand::new(x,&self)).collect::<Result<Vec<_>,_>>()?;
-                self.instructions.push((opcode,operands));
+                self.earp_file.add_instruction(opcode,&operands);
                 self.pc += 1;
             },
             _ => {}
         }
         Ok(())
     }
-
-    fn into_instructions(self) -> Vec<(u64,Vec<EarpOperand>)> {
-        self.instructions
+    
+    fn into_earpfile(self) -> EarpFileWriter {
+        self.earp_file
     }
 }
 
+// XXX assets
 // XXX check operand types
 // XXX line numbers
-pub(crate) fn assemble(context: &EarpAssemblerContext, statements: &[EarpAssemblyStatement]) -> Result<Vec<(u64,Vec<EarpOperand>)>,EarpAssemblerError> {
+pub(crate) fn assemble(context: &EarpAssemblerContext, statements: &[EarpAssemblyStatement]) -> Result<EarpFileWriter,EarpAssemblerError> {
     let mut assemble = Assemble::new(context);
     assemble.reset();
     for stmt in statements {
@@ -130,5 +106,5 @@ pub(crate) fn assemble(context: &EarpAssemblerContext, statements: &[EarpAssembl
     for stmt in statements {
         assemble.add_instructions(stmt)?;
     }
-    Ok(assemble.into_instructions())
+    Ok(assemble.into_earpfile())
 }

@@ -1,7 +1,10 @@
-use minicbor::{Encoder};
+use std::io::Write;
+use minicbor::{Encoder, Encode};
+
 
 use crate::{parser::EarpAssemblyOperand, error::EarpAssemblerError, assemble::Assemble};
 
+#[derive(Clone)]
 pub(crate) enum EarpOperand {
     Register(usize),
     UpRegister(usize),
@@ -24,19 +27,20 @@ impl EarpOperand {
         })
     }
 
-    /* up to 23 gets single byte, ie *; rx,*; ux,* */
     fn type_value(&self) -> u64 {
         match self {
             EarpOperand::Register(_) => { 1 },
             EarpOperand::UpRegister(_) => { 2 },
             EarpOperand::String(_) => { 3 },
-            EarpOperand::Boolean(_) => { 4 },
-            EarpOperand::Integer(_) => { 5 },
-            EarpOperand::Float(_) => { 6 },
+            EarpOperand::Boolean(_) => { 3 },
+            EarpOperand::Integer(_) => { 3 },
+            EarpOperand::Float(_) => { 3 },
         }
     }
+}
 
-    fn encode(&self, encoder: &mut Encoder<&mut Vec<u8>>) -> Result<(),minicbor::encode::Error<std::io::Error>> {
+impl Encode for EarpOperand {
+    fn encode<W: minicbor::encode::Write>(&self, encoder: &mut Encoder<W>) -> Result<(), minicbor::encode::Error<W::Error>> {
         match self {
             EarpOperand::Register(v) => { encoder.i64(*v as i64)?; },
             EarpOperand::UpRegister(v) => { encoder.i64(*v as i64)?; },
@@ -55,16 +59,17 @@ impl EarpCommand {
     fn type_value(&self) -> u64 {
         let mut out = 0;
         for arg in &self.1 {
-            out = out*8 + arg.type_value();
+            out = out*4 + arg.type_value();
         }
         out
     }
+}
 
-    pub(crate) fn encode(&self, encoder: &mut Encoder<&mut Vec<u8>>) -> Result<(),minicbor::encode::Error<std::io::Error>> {
-        encoder.u64(self.0)?;
-        encoder.u64(self.type_value())?;
+impl Encode for EarpCommand {
+    fn encode<W: minicbor::encode::Write>(&self, encoder: &mut Encoder<W>) -> Result<(), minicbor::encode::Error<W::Error>> {
+        encoder.u64(self.0)?.u64(self.type_value())?;
         for arg in &self.1 {
-            arg.encode(encoder)?;
+            encoder.encode(arg)?;
         }
         Ok(())
     }

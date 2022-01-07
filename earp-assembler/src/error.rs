@@ -5,7 +5,8 @@ pub(crate) enum EarpAssemblerError {
     DuplicateLabel(String),
     BadOpcodeMap(String),
     UnknownOpcode(String),
-    UnknownLabel(String)
+    UnknownLabel(String),
+    EncodingError(String)
 }
 
 impl Debug for EarpAssemblerError {
@@ -15,6 +16,7 @@ impl Debug for EarpAssemblerError {
             Self::DuplicateLabel(arg0) => f.debug_tuple("DuplicateLabel").field(arg0).finish(),
             Self::UnknownOpcode(arg0) => f.debug_tuple("UnknownOpcode").field(arg0).finish(),
             Self::UnknownLabel(arg0) => f.debug_tuple("UnknownLabel").field(arg0).finish(),
+            Self::EncodingError(arg0) => f.debug_tuple("EncodingError").field(arg0).finish(),
             Self::BadOpcodeMap(arg0) => {
                 write!(f,"{}",arg0)?;
                 Ok(())

@@ -1,5 +1,7 @@
 mod assemble;
+mod command;
 mod context;
+mod earpfile;
 mod error;
 mod parser;
 mod opcodemap;
