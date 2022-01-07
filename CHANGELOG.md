@@ -1,3 +1,12 @@
+# 0.1.3
+  * Fix various scrolling bugs
+    * Bug-fixes in chromosome switching
+    * Enforce size/position limits in more places
+    * Use van Wijk and Nuij's hyperbolic space algorithm for moves and pans rather than pile of buggy heuistics
+    * Use fade not animate for very long moves even if on same stick.
+  * Misc draw speed bugfixes and instrumentation
+  * Fixed version strings so that they survive CI/CD
+
 # 0.1.2
   * Fix default tack order
   * Cleanly handle possibility of 404s (and other unexpected status codes) from BE
