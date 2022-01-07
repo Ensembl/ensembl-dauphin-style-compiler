@@ -27,7 +27,8 @@ pub enum ApiMessage {
     GeneralMetric(String,Vec<(String,String)>,Vec<(String,f64)>),
     SetAssets(Assets),
     TryLifecycleTrains,
-    Sketchy(bool)
+    Sketchy(bool),
+    Invalidate
 }
 
 struct ApiQueueCampaign {
@@ -103,6 +104,10 @@ impl ApiQueueCampaign {
             ApiMessage::Sketchy(yn) => {
                 let train_set = data.train_set.clone();
                 train_set.set_sketchy(data,yn);
+            },
+            ApiMessage::Invalidate => {
+                let train_set = data.train_set.clone();
+                train_set.invalidate(data);
             }
         }
     }

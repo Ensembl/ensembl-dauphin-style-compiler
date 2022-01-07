@@ -21,7 +21,7 @@ impl RegimeCreator for GotoRegimeCreator {
 
 trait GotoAlgortihm {
     fn total_distance(&self) -> f64;
-    fn tick(&self, s: f64) -> (f64,f64);
+    fn tick(&self, s: f64) -> (f64,f64,bool);
 }
 
 struct SimpleGoto {
@@ -31,7 +31,7 @@ struct SimpleGoto {
 
 impl GotoAlgortihm for SimpleGoto {
     fn total_distance(&self) -> f64 { 0. }
-    fn tick(&self, _s: f64) -> (f64,f64) { (self.x,self.bp) }
+    fn tick(&self, _s: f64) -> (f64,f64,bool) { (self.x,self.bp,true) }
 }
 
 struct FullGoto {
@@ -76,10 +76,10 @@ impl FullGoto {
 impl GotoAlgortihm for FullGoto {
     fn total_distance(&self) -> f64 { self.s }
 
-    fn tick(&self, s: f64) -> (f64,f64) {
+    fn tick(&self, s: f64) -> (f64,f64,bool) {
         let s = if self.reverse { self.s-s } else { s };
         let r = self.rho*s+self.r0;
-        (self.alpha * r.tanh() - self.beta , self.gamma / r.cosh() )
+        (self.alpha * r.tanh() - self.beta , self.gamma / r.cosh() , false)
     }
 }
 
@@ -104,7 +104,7 @@ impl ZoomOnlyGoto {
 
 impl GotoAlgortihm for ZoomOnlyGoto {
     fn total_distance(&self) -> f64 { self.s }
-    fn tick(&self, s: f64) -> (f64,f64) { (self.u,self.w0*((self.k_rho * s).exp())) }
+    fn tick(&self, s: f64) -> (f64,f64,bool) { (self.u,self.w0*((self.k_rho * s).exp()),false) }
 }
 
 struct GotoInstance {
@@ -140,7 +140,7 @@ impl GotoInstance {
         self.times.push(total_dt as u64);
         self.t_seen += total_dt;
         let s = self.t_seen * self.v;
-        let (x,bp) = self.algorithm.tick(s.min(self.s));
+        let (x,bp,force_fade) = self.algorithm.tick(s.min(self.s));
         let finished = s >= self.s;
         #[cfg(show_goto_speeds)]
         if finished && self.times.len() > 0 {
@@ -148,7 +148,7 @@ impl GotoInstance {
             self.times.sort();
             console::log_1(&format!("95%={}",self.times[self.times.len()*95/100]).into());
         }
-        (TickResult::Update(Some(x),Some(bp)),finished)
+        (TickResult::Update(Some(x),Some(bp),force_fade),finished)
     }
 }
 

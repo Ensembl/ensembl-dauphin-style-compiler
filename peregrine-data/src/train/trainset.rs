@@ -22,11 +22,13 @@ pub struct TrainSet {
     future: Option<Train>,
     wanted: Option<Train>,
     target: Option<TrainExtent>,
+    target_validity_counter: u64,
     next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
     viewport: Option<Viewport>,
-    sketchy: bool
+    sketchy: bool,
+    validity_counter: u64
 }
 
 impl TrainSet {
@@ -43,7 +45,9 @@ impl TrainSet {
             dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
             serial_source,
             viewport: None,
-            sketchy: false
+            sketchy: false,
+            validity_counter: 1,
+            target_validity_counter: 0
         }
     }
 
@@ -86,7 +90,7 @@ impl TrainSet {
         }).unwrap_or(false);
         if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
+                let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,speed);
                 let viewport = wanted.viewport();
                 self.future = Some(wanted);
@@ -121,21 +125,23 @@ impl TrainSet {
     }
 
     fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
+        let target_has_bad_validity_counter = self.validity_counter != self.target_validity_counter;
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
         let extent = TrainExtent::new(viewport.layout()?,&best_scale);
         if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.extent() == extent {
+            if quiescent.extent() == extent && !target_has_bad_validity_counter {
                 return Ok(()); //no need for a target, we're heading to the right place
             }
         }
         let extent = TrainExtent::new(viewport.layout()?,&best_scale);
         self.target = Some(extent);
+        self.target_validity_counter = self.validity_counter;
         Ok(())
     }
 
     /* Never discard a milestone (with our layout). If discarding anything, convert to relevant milestone.
      * Prevents thrashing of scales when busy.
-    */
+     */
     fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if self.target.is_none() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
@@ -143,30 +149,28 @@ impl TrainSet {
         if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
         /* where do we want to head? */
         let mut scale = target.scale().clone();
-        if let Some(mut wanted) = self.wanted.take() {
-            scale = scale.to_milestone();
-        }
-        if self.sketchy {
+        if self.wanted.is_some() || self.sketchy {
             scale = scale.to_milestone();
         }
         let extent = TrainExtent::new(target.layout(),&scale);
-        /* if we are now heading exactly for the target, drop it for future calls */
-        if &extent == target {
-            self.target.take();
-        }
         /* drop old wanted and make milestone, if necessary */      
         if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);
         }
-        if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.extent() == extent {
-                /* is this where we were heading anyway? */
+        if let Some(quiescent) = self.quiescent_target().cloned() {
+            /* if we are now heading exactly for the target, drop it for future calls */
+            let target_validity_matches_quiescent = quiescent.validity_counter() == self.target_validity_counter;
+            if &extent == target && target_validity_matches_quiescent {
+                self.target.take();
+            }
+            /* is this where we were heading anyway? */
+            if quiescent.extent() == extent && target_validity_matches_quiescent {
                 return Ok(());
             }    
         }
         /* do it */
         self.next_train_serial +=1;
-        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
+        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source,self.target_validity_counter)?;
         events.draw_create_train(&wanted);
         self.wanted = Some(wanted);
         Ok(())
@@ -241,6 +245,16 @@ impl TrainSet {
             if let Some(viewport) = self.viewport.clone() {
                 self.set_position(&mut events,&viewport)?;
             }
+        }
+        Ok(events)
+    }
+
+    pub(super) fn invalidate(&mut self) -> Result<RailwayEvents,DataMessage> {
+        let mut events = RailwayEvents::new();
+        self.validity_counter += 1;
+        /* create events */
+        if let Some(viewport) = self.viewport.clone() {
+            self.set_position(&mut events,&viewport)?;
         }
         Ok(events)
     }

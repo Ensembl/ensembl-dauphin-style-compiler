@@ -85,6 +85,6 @@ impl RegimeTrait for DragRegime {
         }
         /**/
         self.update_settings(measure);
-        TickResult::Update(new_x,new_bp)
+        TickResult::Update(new_x,new_bp,false)
     }
 }

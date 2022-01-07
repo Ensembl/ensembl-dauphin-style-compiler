@@ -34,7 +34,7 @@ impl RegimeTrait for SetRegime {
 
     fn tick(&mut self, _measure: &Measure, _total_dt: f64) -> TickResult {
         if let Some((x,bp)) = self.target.take() {
-            TickResult::Update(Some(x),Some(bp))
+            TickResult::Update(Some(x),Some(bp),false)
         } else {
             TickResult::Finished
         }

@@ -115,4 +115,12 @@ impl Railway {
         self.run_events(events,objects);
         Ok(())
     }
+
+    pub fn invalidate(&self, objects: &mut PeregrineCore) -> Result<(),DataMessage> {
+        let mut train_set = lock!(self.train_set);
+        let events = train_set.invalidate()?;
+        drop(train_set);
+        self.run_events(events,objects);
+        Ok(())
+    }
 }

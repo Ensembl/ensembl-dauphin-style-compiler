@@ -204,7 +204,11 @@ impl PeregrineInnerAPI {
         self.messages.add(callback);
         self.message_sender.add(Message::Ready);
     }
-    
+
+    pub(crate) fn invalidate(&mut self) {
+        self.data_api.invalidate();
+    }
+
     pub(crate) fn set_x(&mut self, x: f64) {
         self.data_api.set_position(x);
         self.target_reporter.set_x(x);

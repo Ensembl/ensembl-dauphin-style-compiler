@@ -3,7 +3,7 @@ use super::{dragregime::{DragRegime, DragRegimeCreator}, setregime::{SetRegime, 
 
 pub(crate) enum TickResult {
     Finished,
-    Update(Option<f64>,Option<f64>)
+    Update(Option<f64>,Option<f64>,bool)
 }
 
 pub(super) trait RegimeCreator {
@@ -135,14 +135,17 @@ impl Regime {
         let mut finished = false;
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(true); };
         self.update_settings(&measure);
-        let (new_x,new_bp) = match self.object.as_trait_mut().tick(&measure,total_dt) {
-            TickResult::Update(x,bp) => (x,bp),
+        let (new_x,new_bp,invalidate) = match self.object.as_trait_mut().tick(&measure,total_dt) {
+            TickResult::Update(x,bp,force_fade) => (x,bp,force_fade),
             TickResult::Finished => {
                 self.object = RegimeObject::None(RegimeNone());
                 finished = true;
-                (None,None)
+                (None,None,false)
             }
         };
+        if invalidate {
+            inner.invalidate();
+        }
         if let Some(new_x) = new_x {
             inner.set_x(new_x);
         }
