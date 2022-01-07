@@ -46,16 +46,24 @@ impl JumpStore {
             prio: 4,
             timeout: None,
             slot: None,
-            task: Box::pin(async move { 
-                let (stick,left,right) = self2.get(&location).await?.as_ref().clone();
-                let left = left as f64;
-                let right = right as f64;
-                promise.satisfy(Some((StickId::new(&stick),(left+right)/2.,right-left)));
+            task: Box::pin(async move {
+                let result = match self2.get(&location).await {
+                    Ok(result) => {
+                        let (stick,left,right) = result.as_ref();
+                        let left = *left as f64;
+                        let right = *right as f64;
+                        Some((StickId::new(&stick),(left+right)/2.,right-left))
+                    },
+                    Err(e) => {
+                        self2.1.messages.send(e);
+                        None
+                    }
+                };
+                promise.satisfy(result);
                 Ok(())
             }),
             stats: false
         });
         async_complete_task(&self.1.commander,&self.1.messages,handle, |e| (e,false));
-
     }
 }

@@ -45,7 +45,6 @@ fn stage_ok<T: Clone>(x: &Option<T>) -> Result<T,Message> {
 pub trait ReadStageAxis {
     fn position(&self) -> Result<f64,Message>;
     fn bp_per_screen(&self) -> Result<f64,Message>;
-    fn bp_per_screen2(&self) -> Result<f64,Message>;
     fn container_size(&self) -> Result<f64,Message>;
     fn scale_shift(&self) -> Result<(f32,f32),Message>;
     fn squeeze(&self) -> Result<(f32,f32),Message>;
@@ -65,7 +64,7 @@ pub struct UnitConverter {
 }
 
 impl UnitConverter {
-    pub fn move_to(&self, position: f64,) -> UnitConverter {
+    pub fn move_to(&self, position: f64) -> UnitConverter {
         UnitConverter {
             position,
             bp_per_screen: self.bp_per_screen,
@@ -197,20 +196,22 @@ impl StageAxis {
     pub fn set_position(&mut self, x: f64) { self.position = Some(x); self.changed(); }
     pub fn set_size(&mut self, x: f64) { self.size = Some(x); self.recompute_scale_shift(); self.changed(); }
     pub fn set_drawable_size(&mut self, x: f64) { self.draw_size = Some(x); self.recompute_scale_shift(); self.changed(); }
-    pub fn set_bp_per_screen(&mut self, z: f64) { self.bp_per_screen = Some(z); self.changed(); }
+    pub fn set_bp_per_screen(&mut self, z: f64) { 
+        self.bp_per_screen = Some(z); 
+        self.changed();
+    }
 }
 
 impl ReadStageAxis for StageAxis {
     fn position(&self) -> Result<f64,Message> { stage_ok(&self.position) }
     fn bp_per_screen(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
-    fn bp_per_screen2(&self) -> Result<f64,Message> { stage_ok(&self.bp_per_screen) }
     fn container_size(&self) -> Result<f64,Message> { stage_ok(&self.size) }
     fn drawable_size(&self) -> Result<f64,Message> { stage_ok(&self.draw_size) }
     fn scale_shift(&self) -> Result<(f32,f32),Message> { stage_ok(&self.scale_shift) }
     fn squeeze(&self) -> Result<(f32,f32),Message> { stage_ok(&Some(self.squeeze)) }
     fn left_right(&self) -> Result<(f64,f64),Message> {
         let pos = self.position()?;
-        let bp_per_screen = self.bp_per_screen2()?;
+        let bp_per_screen = self.bp_per_screen()?;
         Ok((pos-bp_per_screen/2.-1.,pos+bp_per_screen/2.+1.))
     }
 

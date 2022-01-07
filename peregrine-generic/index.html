@@ -20,6 +20,10 @@
         <button id="jump-fry">jump fry</button>
         <button id="jump-zar1l">jump zar1l</button>
         <button id="jump-wheat">jump TraesCS3D02G273600</button>
+        <button id="jump-ecoli">jump E. coli b2614</button>
+        <button id="jump-bug">jump bug</button>
+        <button id="jump-no-bug">jump no bug</button>
+        <button id="jump-no-bug-zoom">jump no bug zoom</button>
         <button id="create-error">create error</button>
         <br/>
         <div style="width: 200px; word-break: break-all;">current: <span id="current"></span></div>
@@ -57,7 +61,9 @@
           "keys.pull-left": "a ArrowLeft",
           "keys.pull-right": "d ArrowRight",
           "keys.pull-in": "w ArrowUp",
-          "keys.pull-out": "s ArrowDown" 
+          "keys.pull-out": "s ArrowDown",
+          "zoom.goto.rho": "1.41",
+          "zoom.goto.v": "0.003",
         });
         var labels = {};
         var tracks_on = {};
@@ -209,9 +215,29 @@
         document.getElementById("jump-wheat").onclick = function() {
           genome_browser.jump("focus:triticum_aestivum_GCA_900519105_1:TraesCS3D02G273600");
           genome_browser.wait();
+          genome_browser.set_switch(["focus","gene"]);
+          genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+        };
+        document.getElementById("jump-ecoli").onclick = function() {
+          genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+        };
+        document.getElementById("jump-no-bug").onclick = function() {
+          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.wait();
+          genome_browser.goto(79537455,79545455);
+        };
+        document.getElementById("jump-no-bug-zoom").onclick = function() {
+          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.wait();
+          genome_browser.goto(79536455,79546455);
+        };
+        document.getElementById("jump-bug").onclick = function() {
+          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.wait();
+          genome_browser.goto(69537455,69545455);
         };
         document.getElementById("create-error").onclick = function() {
           //genome_browser.jump("focus:none");

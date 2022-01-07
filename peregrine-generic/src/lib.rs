@@ -192,7 +192,7 @@ impl GenomeBrowser {
     }
 
     pub fn receive_message(message: &JsValue) {
-        console::log_1(&format!("{:?}",message).into());
+        console::log_1(&format!("received {:?}",message).into());
     }
         
     pub fn set_artificial(&self, name: &str, start: bool) {

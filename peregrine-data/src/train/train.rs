@@ -24,11 +24,12 @@ struct TrainData {
     max: Option<u64>,
     carriages: Option<CarriageSet>,
     messages: MessageSender,
-    track_configs: TrainTrackConfigList
+    track_configs: TrainTrackConfigList,
+    validity_counter: u64
 }
 
 impl TrainData {
-    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource) -> Result<TrainData,DataMessage> {
+    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource, validity_counter: u64) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let mut out = TrainData {
             try_lifecycle: try_lifecycle.clone(),
@@ -40,11 +41,14 @@ impl TrainData {
             carriages: Some(CarriageSet::new()),
             max: None,
             messages: messages.clone(),
-            track_configs: train_track_config_list
+            track_configs: train_track_config_list,
+            validity_counter
         };
         out.set_position(carriage_event,viewport)?;
         Ok(out)
     }
+
+    fn validity_counter(&self) -> u64 { self.validity_counter }
 
     fn set_active(&mut self, train: &Train, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
         self.active = true;
@@ -147,8 +151,8 @@ pub struct TrainSerial(u64);
 pub struct Train(Arc<Mutex<TrainData>>,MessageSender,TrainSerial);
 
 impl Train {
-    pub(super) fn new(try_lifecycle: &Needed, serial: u64, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource) -> Result<Train,DataMessage> {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,try_lifecycle,carriage_event,viewport,&messages,serial_source)?)),messages.clone(),TrainSerial(serial));
+    pub(super) fn new(try_lifecycle: &Needed, serial: u64, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource, validity_counter: u64) -> Result<Train,DataMessage> {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,try_lifecycle,carriage_event,viewport,&messages,serial_source,validity_counter)?)),messages.clone(),TrainSerial(serial));
         carriage_event.load_train_data(&out);
         Ok(out)
     }
@@ -159,9 +163,18 @@ impl Train {
         lock!(self.0).each_current_carriage(state,cb);
     }
 
+    pub(super) fn speed_limit(&self, other: &Train) -> CarriageSpeed {
+        if self.validity_counter() == other.validity_counter() {
+            self.extent().speed_limit(&other.extent())
+        } else {
+            CarriageSpeed::Slow
+        }
+    }
+
     pub fn extent(&self) -> TrainExtent { self.0.lock().unwrap().extent().clone() }
     pub fn viewport(&self) -> Viewport { self.0.lock().unwrap().viewport().clone() }
     pub fn is_active(&self) -> bool { self.0.lock().unwrap().is_active() }
+    pub(super) fn validity_counter(&self) -> u64 { self.0.lock().unwrap().validity_counter() }
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_half_ready(&self) -> bool { self.0.lock().unwrap().train_half_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }

@@ -22,9 +22,13 @@ pub struct TrainSet {
     future: Option<Train>,
     wanted: Option<Train>,
     target: Option<TrainExtent>,
+    target_validity_counter: u64,
     next_train_serial: u64,
     messages: MessageSender,
     dependents: RailwayDependents,
+    viewport: Option<Viewport>,
+    sketchy: bool,
+    validity_counter: u64
 }
 
 impl TrainSet {
@@ -39,7 +43,11 @@ impl TrainSet {
             next_train_serial: 0,
             messages: base.messages.clone(),
             dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
-            serial_source
+            serial_source,
+            viewport: None,
+            sketchy: false,
+            validity_counter: 1,
+            target_validity_counter: 0
         }
     }
 
@@ -75,7 +83,6 @@ impl TrainSet {
     }
 
     fn try_advance_wanted_to_future(&mut self, events: &mut RailwayEvents) {
-        use web_sys::console;
         let desperate = self.future.is_none() && self.current.is_none();
         let train_good_enough = self.wanted.as_ref().map(|x| {
             let train_ready_enough = x.train_ready() || (desperate && x.train_half_ready());
@@ -83,8 +90,7 @@ impl TrainSet {
         }).unwrap_or(false);
         if train_good_enough && self.future.is_none() {
             if let Some(mut wanted) = self.wanted.take() {
-                //console::log_1(&format!("wanted[{}] -> future",wanted.extent().scale().get_index()).into());
-                let speed = self.current.as_ref().map(|x| x.extent().speed_limit(&wanted.extent())).unwrap_or(CarriageSpeed::Quick);
+                let speed = self.current.as_ref().map(|x| x.speed_limit(&wanted)).unwrap_or(CarriageSpeed::Quick);
                 wanted.set_active(events,speed);
                 let viewport = wanted.viewport();
                 self.future = Some(wanted);
@@ -119,43 +125,52 @@ impl TrainSet {
     }
 
     fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
+        let target_has_bad_validity_counter = self.validity_counter != self.target_validity_counter;
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
         let extent = TrainExtent::new(viewport.layout()?,&best_scale);
         if let Some(quiescent) = self.quiescent_target() {
-            if quiescent.extent() == extent {
+            if quiescent.extent() == extent && !target_has_bad_validity_counter {
                 return Ok(()); //no need for a target, we're heading to the right place
             }
         }
         let extent = TrainExtent::new(viewport.layout()?,&best_scale);
         self.target = Some(extent);
+        self.target_validity_counter = self.validity_counter;
         Ok(())
     }
 
     /* Never discard a milestone (with our layout). If discarding anything, convert to relevant milestone.
      * Prevents thrashing of scales when busy.
-    */
+     */
     fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if self.target.is_none() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
         /* it would be best if we were at a new target, but how busy are we? */
         if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
-        /* drop old wanted and make milestone, if necessary */      
+        /* where do we want to head? */
         let mut scale = target.scale().clone();
-        if let Some(mut wanted) = self.wanted.take() {
+        if self.wanted.is_some() || self.sketchy {
             scale = scale.to_milestone();
+        }
+        let extent = TrainExtent::new(target.layout(),&scale);
+        /* drop old wanted and make milestone, if necessary */      
+        if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);
         }
-        /* where are we headed? */
-        let extent = TrainExtent::new(target.layout(),&scale);
-        /* if this we are heading exactly for the target, drop it for future calls */
-        if &extent == target {
-            self.target.take();
+        if let Some(quiescent) = self.quiescent_target().cloned() {
+            /* if we are now heading exactly for the target, drop it for future calls */
+            let target_validity_matches_quiescent = quiescent.validity_counter() == self.target_validity_counter;
+            if &extent == target && target_validity_matches_quiescent {
+                self.target.take();
+            }
+            /* is this where we were heading anyway? */
+            if quiescent.extent() == extent && target_validity_matches_quiescent {
+                return Ok(());
+            }    
         }
         /* do it */
-        use web_sys::console;
         self.next_train_serial +=1;
-        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source)?;
-        //console::log_1(&format!("wanted[{}]",wanted.extent().scale().get_index()).into());
+        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source,self.target_validity_counter)?;
         events.draw_create_train(&wanted);
         self.wanted = Some(wanted);
         Ok(())
@@ -163,6 +178,7 @@ impl TrainSet {
 
     pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
+        self.viewport = Some(viewport.clone());
         /* maybe we need to change the wanted train? */
         self.try_set_target(viewport)?;
         self.try_new_wanted(events,viewport)?;
@@ -184,6 +200,11 @@ impl TrainSet {
         /* tell dependents */
         self.draw_notify_viewport(events);
         Ok(())
+    }
+
+    fn reset_position(&mut self, events: &mut RailwayEvents) -> Result<(),DataMessage> {
+        if !self.viewport.is_some() { return Ok(()); }
+        self.set_position(events,&self.viewport.as_ref().cloned().unwrap())
     }
 
     pub(super) fn transition_complete(&mut self, events: &mut RailwayEvents) {
@@ -220,5 +241,22 @@ impl TrainSet {
 
     pub(super) fn update_dependents(&self) {
         self.dependents.busy(!(self.future.is_none() && self.wanted.is_none()));
+    }
+
+    pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<RailwayEvents,DataMessage> {
+        let mut events = RailwayEvents::new();
+        self.sketchy = yn;
+        if !yn {
+            self.reset_position(&mut events)?;
+        }
+        Ok(events)
+    }
+
+    pub(super) fn invalidate(&mut self) -> Result<RailwayEvents,DataMessage> {
+        let mut events = RailwayEvents::new();
+        self.validity_counter += 1;
+        /* create events */
+        self.reset_position(&mut events)?;
+        Ok(events)
     }
 }

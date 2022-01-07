@@ -3,6 +3,7 @@ use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
+use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
 use super::{config::DebugFlag };
 use commander::CommanderStream;
@@ -19,20 +20,20 @@ use std::sync::{ Arc, Mutex };
 #[derive(Clone)]
 struct DrawMessageQueue {
     queue: CommanderStream<DrawMessage>,
-    blocker: Blocker
+    syncer: Blocker
 }
 
 impl DrawMessageQueue {
     fn new() -> DrawMessageQueue {
-        let blocker = Blocker::new();
-        blocker.set_freewheel(true);
+        let syncer = Blocker::new();
+        syncer.set_freewheel(true);
         DrawMessageQueue {
             queue: CommanderStream::new(),
-            blocker
+            syncer
         }
     }
 
-    fn blocker(&self) -> &Blocker { &self.blocker }
+    fn syncer(&self) -> &Blocker { &self.syncer }
 
     fn add(&self, message: DrawMessage) {
         self.queue.add(message);
@@ -40,13 +41,13 @@ impl DrawMessageQueue {
 
     async fn get(&self) -> DrawMessage {
         let message = self.queue.get().await;
-        self.blocker.wait().await;
-        self.blocker.set_freewheel(true);
+        self.syncer.wait().await;
+        self.syncer.set_freewheel(true);
         message
     }
 
     fn sync(&self) {
-        self.blocker.set_freewheel(false);
+        self.syncer.set_freewheel(false);
     }
 }
 
@@ -105,7 +106,6 @@ fn dev_warning() {
     }
 }
 
-
 #[cfg(not(force_show_incoming))]
 fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { config.get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages)) }
 
@@ -120,7 +120,7 @@ impl DrawMessage {
             },
             DrawMessage::SetArtificial(name,down) => {
                 draw.set_artificial(&name,down);
-            }
+            },
             DrawMessage::SetY(y) => {
                 draw.set_y(y);
             },
@@ -223,17 +223,14 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
-        let git_tag = env!("GIT_TAG");
-        let git_tag = if git_tag != "" { format!("tag {}",git_tag) } else { format!("no tag") };
         if show_incoming(draw.config())? {
-            console::log_1(&format!("compilation: git {:?} ({}) build time {:?} build host {:?}",
-                env!("GIT_HASH"),git_tag,env!("BUILD_TIME"),env!("BUILD_HOST")).into());
+            console::log_1(&format!("version {} {} {}",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME")).into());
         }
         #[cfg(debug_assertions)]
         dev_warning();
         loop {
             let message = self.queue.get().await;
-            message.run(&mut draw,&self.queue.blocker())?;
+            message.run(&mut draw,&self.queue.syncer())?;
         }
     }
 
@@ -241,7 +238,7 @@ impl PeregrineAPI {
         let commander = PgCommanderWeb::new()?;
         commander.start();
         let configs = config.build();
-        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.blocker())?;
+        let mut inner = PeregrineInnerAPI::new(&configs,&dom,&commander,self.queue.syncer())?;
         run_animations(&mut inner,&dom)?;
         run_mouse_move(&mut inner,&dom)?;
         let self2 = self.clone();

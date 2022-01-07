@@ -107,4 +107,20 @@ impl Railway {
             self.run_events(events,objects);
         }
     }
+
+    pub fn set_sketchy(&self, objects: &mut PeregrineCore, yn: bool) -> Result<(),DataMessage> {
+        let mut train_set = lock!(self.train_set);
+        let events = train_set.set_sketchy(yn)?;
+        drop(train_set);
+        self.run_events(events,objects);
+        Ok(())
+    }
+
+    pub fn invalidate(&self, objects: &mut PeregrineCore) -> Result<(),DataMessage> {
+        let mut train_set = lock!(self.train_set);
+        let events = train_set.invalidate()?;
+        drop(train_set);
+        self.run_events(events,objects);
+        Ok(())
+    }
 }

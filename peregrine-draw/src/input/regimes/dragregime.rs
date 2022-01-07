@@ -26,14 +26,6 @@ impl DragRegime {
         DragRegime { x, z, zoom_centre: None, size: None }
     }
 
-    pub(crate) fn shift_to(&mut self, x: f64) {
-        self.x.move_to(x);
-    }
-
-    pub(crate) fn zoom_to(&mut self, amount: f64) {
-        self.z.move_to(amount);
-    }
-
     pub(crate) fn shift_more(&mut self, measure: &Measure, amount_px: f64) {
         if !self.x.is_active() {
             self.x.move_to(measure.x_bp);
@@ -93,6 +85,6 @@ impl RegimeTrait for DragRegime {
         }
         /**/
         self.update_settings(measure);
-        TickResult::Update(new_x,new_bp)
+        TickResult::Update(new_x,new_bp,false)
     }
 }

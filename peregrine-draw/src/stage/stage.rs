@@ -56,7 +56,7 @@ impl ProgramStage {
         self.model_matrix(stage)).into());  
         */
         let mut position = stage.x.position()?;
-        let mut bp_per_screen = stage.x.bp_per_screen2()? as f64;
+        let mut bp_per_screen = stage.x.bp_per_screen()? as f64;
         /* allow for squeeze */
         let x_size = stage.x.drawable_size()?;
         let squeeze = stage.x.squeeze()?;
@@ -123,8 +123,16 @@ impl Stage {
         out
     }
 
-    pub fn ready(&self) -> bool { self.x.ready() && self.y.ready() }
-
+    pub fn ready(&self) -> bool { self.stick.is_some() && self.x.ready() && self.y.ready() }
+    
+    pub fn soon_stick(&mut self, stick: &StickId) {
+        if let Some(old_stick) = &self.stick {
+            if stick != old_stick {
+                self.stick = None;
+            }
+        }
+    }
+    
     pub fn redraw_needed(&self) -> Needed { self.redraw_needed.clone() }
 
     pub fn stick(&self) -> Option<&StickId> { self.stick.as_ref() }

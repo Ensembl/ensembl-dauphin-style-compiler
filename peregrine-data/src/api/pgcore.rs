@@ -146,6 +146,10 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::RadioSwitch(path.iter().map(|x| x.to_string()).collect(),yn));
     }
 
+    pub fn invalidate(&self) {
+        self.base.queue.push(ApiMessage::Invalidate);
+    }
+
     pub fn set_position(&self, pos: f64) {
         self.base.queue.push(ApiMessage::SetPosition(pos));
     }
@@ -168,5 +172,9 @@ impl PeregrineCore {
 
     pub fn general_metric(&self, name: &str, tags: Vec<(String,String)>, values: Vec<(String,f64)>) {
         self.base.queue.push(ApiMessage::GeneralMetric(name.to_string(),tags,values))
+    }
+
+    pub fn set_sketchy(&self, yn: bool) {
+        self.base.queue.push(ApiMessage::Sketchy(yn));
     }
 }

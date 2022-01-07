@@ -90,7 +90,7 @@ impl Viewport {
                                                                     self.layout().map(|x| x.size()),
                                                                     self.position.as_mut(),
                                                                     self.bp_per_screen.as_mut()) {
-            limit_value(bp_per_screen,0.,size as f64);
+            limit_value(bp_per_screen,1.,size as f64);
             limit_value(position,*bp_per_screen/2.,(size as f64)-*bp_per_screen/2.);
         }
     }

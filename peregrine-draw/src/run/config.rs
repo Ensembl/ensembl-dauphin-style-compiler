@@ -83,6 +83,9 @@ pub enum PgConfigKey {
     EndstopSound, // bell or not?
     MinHoldDragSize, // min bp-per-screen ratio for valid hold-drag
     TargetReportTime, // time between unforced target (intention) reports
+    GotoRho, // Wijk and Nuij's rho parameter for goto animations: higher means perfer more zoom
+    GotoV, // Wijk and Nuij's V parameter for goto animations: overall animation speed
+    GotoMaxS, // Maximum value of Wijk and Nuij's S parameter before bailing and using a fade
 }
 
 #[cfg(not(debug_assertions))]
@@ -151,6 +154,9 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::ZoomMaxSpeed, name: "zoom.max-speed", default: &PgConfigValue::Float(1./10.) },
             ConfigKeyInfo { key: PgConfigKey::AutomatedZoomMaxSpeed, name: "zoom.max-speed.auto", default: &PgConfigValue::Float(4.) },
             ConfigKeyInfo { key: PgConfigKey::ZoomAcceleration, name: "zoom.acceleration", default: &PgConfigValue::Float(1./300.) },
+            ConfigKeyInfo { key: PgConfigKey::GotoRho, name: "zoom.goto.rho", default: &PgConfigValue::Float(1.41) },
+            ConfigKeyInfo { key: PgConfigKey::GotoV, name: "zoom.goto.v", default: &PgConfigValue::Float(0.003) },
+            ConfigKeyInfo { key: PgConfigKey::GotoMaxS, name: "zoom.goto.s.max", default: &PgConfigValue::Float(5.) },
             ConfigKeyInfo { key: PgConfigKey::WheelSensitivity, name: "wheel.sensitivity", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
@@ -165,7 +171,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::EndstopSound, name: "report.sound.endstop", default: &PgConfigValue::StaticStr("bell") },
             ConfigKeyInfo { key: PgConfigKey::MinHoldDragSize, name: "animate.min-hold-drag-size", default: &PgConfigValue::Float(0.01) },
             ConfigKeyInfo { key: PgConfigKey::TargetReportTime, name: "report.target-update-time", default: &PgConfigValue::Float(5000.) },
-            ]};
+        ]};
 }
 
 fn string_to_float(value_str: &str) -> Result<f64,String> {

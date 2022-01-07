@@ -11,18 +11,14 @@ use crate::input::regimes::regime::Regime;
 
 #[derive(Clone)]
 pub(super) enum Cadence {
-    #[allow(unused)]
-    UserInput,
-    Instructed,
-    SelfPropelled
+    Step,
+    Smooth
 }
 
+#[derive(Debug)]
 pub(super) enum QueueEntry {
     Set(f64,f64),
-    MoveW(f64,f64),
-    ShiftTo(f64,Cadence),
-    ShiftByZoomTo(f64,Cadence),
-    ZoomTo(f64,Cadence),
+    Goto(Option<f64>,Option<f64>),
     ShiftMore(f64),
     ZoomMore(f64,Option<f64>),
     BrakeX,
@@ -30,7 +26,8 @@ pub(super) enum QueueEntry {
     Wait,
     Size(f64),
     Report,
-    LockReports
+    LockReports,
+    Sketchy(bool)
 }
 
 pub(super) struct AnimationQueue {
@@ -39,8 +36,8 @@ pub(super) struct AnimationQueue {
     intention_lockout: Option<Lockout>,
     animation_current: Option<QueueEntry>,
     size: Option<f64>,
-    max_zoom_in_bp: f64,
-    target_reporter: TargetReporter
+    min_bp_per_screen: f64,
+    target_reporter: TargetReporter,
 }
 
 impl AnimationQueue {
@@ -51,14 +48,26 @@ impl AnimationQueue {
             intention_lockout: None,
             animation_current: None,
             size: None,
-            max_zoom_in_bp: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
+            min_bp_per_screen: config.get_f64(&PgConfigKey::MinBpPerScreen)?,
             target_reporter: target_reporter.clone()
         })
     }
 
-    pub(super) fn queue_clear(&mut self) {
+    pub(super) fn remove_pending_actions(&mut self) {
         self.intention_lockout = None;
-        self.animation_queue.clear();
+        let mut new_queue = VecDeque::new();
+        for entry in self.animation_queue.drain(..) {
+            match entry {
+                QueueEntry::Size(_) |
+                QueueEntry::Sketchy(_) |
+                QueueEntry::Report |
+                QueueEntry::LockReports => {
+                    new_queue.push_back(entry);
+                }
+                _ => {}
+            }
+        }
+        self.animation_queue = new_queue;
     }
 
     pub(super) fn queue_add(&mut self, entry: QueueEntry) {
@@ -73,7 +82,7 @@ impl AnimationQueue {
         self.regime.tick(inner,total_dt)
     }
 
-    fn run_one_queue_entry(&mut self, measure: &Measure, entry: &QueueEntry) {
+    fn run_one_queue_entry(&mut self, measure: &Measure, entry: &QueueEntry, inner: & PeregrineInnerAPI) {
         self.regime.update_settings(measure);
         match &entry {
             QueueEntry::LockReports => {
@@ -83,25 +92,8 @@ impl AnimationQueue {
             QueueEntry::Set(centre,scale) => {
                 self.regime.regime_set(measure).set(*centre,*scale);
             },
-            QueueEntry::MoveW(centre,scale) => {
-                self.regime.regime_w(measure).set(measure,*centre,*scale);
-            },
-            QueueEntry::ShiftTo(amt,cadence) => {
-                match cadence {
-                    Cadence::UserInput => { self.regime.regime_user_drag(measure).shift_to(*amt); },
-                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).shift_to(*amt); },
-                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).shift_to(*amt); }
-                }
-            },
-            QueueEntry::ShiftByZoomTo(amt,_cadence) => {
-                self.regime.regime_zoomx(measure).set(measure,*amt);
-            },
-            QueueEntry::ZoomTo(amt,cadence) => {
-                match cadence {
-                    Cadence::UserInput => { self.regime.regime_user_drag(measure).zoom_to(*amt); },
-                    Cadence::Instructed => { self.regime.regime_instructed_drag(measure).zoom_to(*amt); },
-                    Cadence::SelfPropelled => { self.regime.regime_self_drag(measure).zoom_to(*amt); }
-                }
+            QueueEntry::Goto(centre,scale) => {
+                self.regime.regime_goto(measure).goto(*centre,*scale);
             },
             QueueEntry::ShiftMore(amt) => {
                 self.regime.regime_user_drag(measure).shift_more(&measure,*amt);
@@ -111,11 +103,12 @@ impl AnimationQueue {
             },
             QueueEntry::BrakeX => {
                 if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_x(); }
-                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_x(); }
             },
             QueueEntry::BrakeZ => { 
                 if let Some(drag) = self.regime.try_regime_user_drag() { drag.brake_z(); }
-                if let Some(drag) = self.regime.try_regime_self_drag() { drag.brake_z(); }
+            },
+            QueueEntry::Sketchy(yn) => {
+                inner.set_sketchy(*yn);
             },
             QueueEntry::Size(size) => {
                 self.regime.set_size(measure,*size);
@@ -145,7 +138,7 @@ impl AnimationQueue {
         if zoom_out == 2 {
             out.push(Endstop::MaxZoomOut);
         }
-        if measure.bp_per_screen < self.max_zoom_in_bp + 0.5 {
+        if measure.bp_per_screen < self.min_bp_per_screen + 0.5 {
             out.push(Endstop::MaxZoomIn);
         }
         out.sort();
@@ -173,12 +166,12 @@ impl AnimationQueue {
         loop {
             if self.exit_due_to_waiting() { break; }
             self.animation_current = self.animation_queue.pop_front();
-            if self.animation_current.is_none() {break; }
+            if self.animation_current.is_none() { break; }
             /* do it */
             let current = self.animation_current.take();
             let measure = if let Some(measure) = Measure::new(inner)? { measure } else { break; };
             if let Some(entry) = &current {
-                self.run_one_queue_entry(&measure,entry);
+                self.run_one_queue_entry(&measure,entry,inner);
             }
             self.report_targets(&measure,report);
             self.animation_current = current;

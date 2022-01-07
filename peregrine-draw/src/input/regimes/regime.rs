@@ -1,9 +1,9 @@
 use crate::{Message, PeregrineInnerAPI, input::translate::{axisphysics::{AxisPhysicsConfig, Scaling}, measure::Measure}, run::{PgConfigKey, PgPeregrineConfig}};
-use super::{dragregime::{DragRegime, DragRegimeCreator}, setregime::{SetRegime, SetRegimeCreator}, windowregime::{WRegime, WRegimeCreator}, zoomxregime::{ZoomXRegime, ZoomXRegimeCreator}};
+use super::{dragregime::{DragRegime, DragRegimeCreator}, setregime::{SetRegime, SetRegimeCreator}, gotoregime::{GotoRegime, GotoRegimeCreator}};
 
 pub(crate) enum TickResult {
     Finished,
-    Update(Option<f64>,Option<f64>)
+    Update(Option<f64>,Option<f64>,bool)
 }
 
 pub(super) trait RegimeCreator {
@@ -30,24 +30,30 @@ impl RegimeTrait for RegimeNone {
 
 enum RegimeObject {
     Set(SetRegime),
-    W(WRegime),
     UserPull(DragRegime),
-    InstructedPull(DragRegime),
-    SelfPull(DragRegime),
     None(RegimeNone),
-    ZoomX(ZoomXRegime)
+    Goto(GotoRegime)
+}
+
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for RegimeObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Set(_) => f.debug_tuple("Set").finish(),
+            Self::UserPull(_) => f.debug_tuple("UserPull").finish(),
+            Self::None(_) => f.debug_tuple("None").finish(),
+            Self::Goto(_) => f.debug_tuple("Goto").finish(),
+        }
+    }
 }
 
 impl RegimeObject {
     fn as_trait_mut(&mut self) -> &mut dyn RegimeTrait {
         match self {
             RegimeObject::Set(r) => r,
-            RegimeObject::W(r) => r,
             RegimeObject::UserPull(r) => r,
-            RegimeObject::InstructedPull(r) => r,
-            RegimeObject::SelfPull(r) => r,
             RegimeObject::None(r) => r,
-            RegimeObject::ZoomX(r) => r
+            RegimeObject::Goto(r) => r,
         }
     }
 }
@@ -74,11 +80,8 @@ fn make_drag_axis_config(config: &PgPeregrineConfig, lethargy_key: &PgConfigKey)
 pub(crate) struct Regime {
     object: RegimeObject,
     set_creator: SetRegimeCreator,
-    w_creator: WRegimeCreator,
     user_drag_creator: DragRegimeCreator,
-    instructed_drag_creator: DragRegimeCreator,
-    self_drag_creator: DragRegimeCreator,
-    zoomx_creator: ZoomXRegimeCreator,
+    goto_creator: GotoRegimeCreator,
     size: Option<f64>
 }
 
@@ -110,40 +113,39 @@ impl Regime {
         let mut instructed_drag_config = make_drag_axis_config(config,&PgConfigKey::InstructedDragLethargy)?;
         let self_drag_config = make_drag_axis_config(config,&PgConfigKey::SelfDragLethargy)?;
         let w_config = make_axis_config(config,&PgConfigKey::WindowLethargy)?;
-        let zoomx_config = instructed_drag_config.0.clone();
+        let goto_rho_config = config.get_f64(&PgConfigKey::GotoRho)?;
+        let goto_v_config = config.get_f64(&PgConfigKey::GotoV)?;
+        let goto_max_s_config = config.get_f64(&PgConfigKey::GotoMaxS)?;
         instructed_drag_config.0.vel_min *= 100.;
         instructed_drag_config.0.force_min *= 100.;
         Ok(Regime {
             object: RegimeObject::None(RegimeNone()),
             set_creator: SetRegimeCreator(),
-            w_creator: WRegimeCreator(w_config),
             user_drag_creator: DragRegimeCreator(user_drag_config.0,user_drag_config.1),
-            instructed_drag_creator: DragRegimeCreator(instructed_drag_config.0,instructed_drag_config.1),
-            self_drag_creator: DragRegimeCreator(self_drag_config.0,self_drag_config.1),
-            zoomx_creator: ZoomXRegimeCreator(zoomx_config),
+            goto_creator: GotoRegimeCreator { rho: goto_rho_config, v: goto_v_config, max_s: goto_max_s_config },
             size: None
         })
     }
 
     set_regime!(regime_set,try_regime_set,SetRegime,Set,set_creator);
-    set_regime!(regime_w,try_regime_w,WRegime,W,w_creator);
     set_regime!(regime_user_drag,try_regime_user_drag,DragRegime,UserPull,user_drag_creator);
-    set_regime!(regime_instructed_drag,try_regime_instructed_drag,DragRegime,InstructedPull,instructed_drag_creator);
-    set_regime!(regime_self_drag,try_regime_self_drag,DragRegime,SelfPull,self_drag_creator);
-    set_regime!(regime_zoomx,try_regime_zoomx,ZoomXRegime,ZoomX,zoomx_creator);
+    set_regime!(regime_goto,try_regime_goto,GotoRegime,Goto,goto_creator);
 
     pub(crate) fn tick(&mut self, inner: &mut PeregrineInnerAPI, total_dt: f64) -> Result<bool,Message> {
         let mut finished = false;
         let measure = if let Some(measure) = Measure::new(inner)? { measure } else { return Ok(true); };
         self.update_settings(&measure);
-        let (new_x,new_bp) = match self.object.as_trait_mut().tick(&measure,total_dt) {
-            TickResult::Update(x,bp) => (x,bp),
+        let (new_x,new_bp,invalidate) = match self.object.as_trait_mut().tick(&measure,total_dt) {
+            TickResult::Update(x,bp,force_fade) => (x,bp,force_fade),
             TickResult::Finished => {
                 self.object = RegimeObject::None(RegimeNone());
                 finished = true;
-                (None,None)
+                (None,None,false)
             }
         };
+        if invalidate {
+            inner.invalidate();
+        }
         if let Some(new_x) = new_x {
             inner.set_x(new_x);
         }

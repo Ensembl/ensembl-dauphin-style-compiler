@@ -22,10 +22,9 @@ mod input {
 
     mod regimes {
         pub(crate) mod regime;
+        mod gotoregime;
         mod dragregime;
         mod setregime;
-        mod zoomxregime;
-        mod windowregime;
     }
 
     pub(crate) mod translate {
@@ -55,6 +54,7 @@ mod integration {
 }
 
 mod run {
+    mod buildconfig;
     pub mod api;
     mod config;
     mod dom;

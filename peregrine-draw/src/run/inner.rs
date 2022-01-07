@@ -180,6 +180,10 @@ impl PeregrineInnerAPI {
         self.data_api.set_switch(path);
     }
 
+    pub(crate) fn set_sketchy(&self, yn: bool) {
+        self.data_api.set_sketchy(yn);
+    }
+
     pub(crate) fn clear_switch(&self, path: &[&str]) {
         self.data_api.clear_switch(path);
     }
@@ -200,7 +204,11 @@ impl PeregrineInnerAPI {
         self.messages.add(callback);
         self.message_sender.add(Message::Ready);
     }
-    
+
+    pub(crate) fn invalidate(&mut self) {
+        self.data_api.invalidate();
+    }
+
     pub(crate) fn set_x(&mut self, x: f64) {
         self.data_api.set_position(x);
         self.target_reporter.set_x(x);
@@ -224,6 +232,7 @@ impl PeregrineInnerAPI {
     }
 
     pub(crate) fn set_stick(&self, stick: &StickId) {
+        self.stage.lock().unwrap().soon_stick(stick);
         self.data_api.set_stick(stick);
         self.target_reporter.set_stick(stick.get_id());
     }
@@ -233,7 +242,7 @@ impl PeregrineInnerAPI {
         console::log_1(&format!("received debug action {}",index).into());
         if index == 9 {
             let stage = self.stage.lock().unwrap();
-            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen2()).into());
+            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
         } else if index == 8 {
             self.sound.play("bell");
         }

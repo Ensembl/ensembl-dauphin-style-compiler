@@ -6,6 +6,8 @@
  */
 
 use std::collections::HashMap;
+use js_sys::Boolean;
+use js_sys::Map;
 use web_sys::{CanvasRenderingContext2d, Document, HtmlCanvasElement};
 use crate::{ util::Message };
 use wasm_bindgen::JsCast;
@@ -21,7 +23,7 @@ pub struct HtmlFlatCanvas {
 
 impl HtmlFlatCanvas {
     fn new(document: &Document, x: u32, y: u32) -> Result<HtmlFlatCanvas,Message> {
-        let element = document.create_element("canvas").map_err(|e| Message::ConfusedWebBrowser(format!("cannot create canvas")))?;
+        let element = document.create_element("canvas").map_err(|_| Message::ConfusedWebBrowser(format!("cannot create canvas")))?;
         let element =  element.dyn_into::<HtmlCanvasElement>().map_err(|_| Message::ConfusedWebBrowser("could not cast canvas to HtmlCanvasElement".to_string()))?;
         element.set_width(x);
         element.set_height(y);
@@ -36,8 +38,12 @@ impl HtmlFlatCanvas {
     pub fn size(&self) -> (u32,u32) { self.size }
 
     pub fn context(&self) -> Result<CanvasRenderingContext2d,Message> {
+        let context_options = Map::new();
+        context_options.set(&JsValue::from_str("alpha"),&Boolean::from(JsValue::FALSE));
+        context_options.set(&JsValue::from_str("desynchronized"),&Boolean::from(JsValue::TRUE));
         self.element
-            .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
+            .get_context_with_context_options("2d",&context_options)
+            .map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))
     }
