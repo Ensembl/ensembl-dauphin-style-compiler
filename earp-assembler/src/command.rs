@@ -1,6 +1,4 @@
-use std::io::Write;
 use minicbor::{Encoder, Encode};
-
 
 use crate::{parser::EarpAssemblyOperand, error::EarpAssemblerError, assemble::Assemble};
 

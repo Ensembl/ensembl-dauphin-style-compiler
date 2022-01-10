@@ -1,5 +1,5 @@
 WHITESPACE = _{ " " | "\t" }
-COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ &"\n" }
+COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ "\n" }
 
 set = { ASCII_ALPHANUMERIC+ }
 version = { (ASCII_DIGIT+) }

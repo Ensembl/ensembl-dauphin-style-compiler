@@ -1,0 +1,9 @@
+[package]
+name = "peregrine_cli_toolkit"
+version = "0.0.0"
+authors = ["ensembl-webteam@ebi.ac.uk"]
+edition = "2018"
+
+[dependencies]
+anyhow="*"
+clap="3.0.5"

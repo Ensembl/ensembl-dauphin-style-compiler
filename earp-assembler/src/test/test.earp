@@ -2,6 +2,7 @@ $instructions std/0
 $instructions c console/0
 
 ; test program
+; test program
 program:test1:
     label:
         copy r0, "hello, \"world\""

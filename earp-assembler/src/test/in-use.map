@@ -1,0 +1,25 @@
+;
+; core features, introduced in version 0 
+; 
+set: std/0, std/1
+
+0 copy
+1 goto
+2 push
+3 pop
+4 if
+5 halt
+7 push
+
+set: std/1
+
+6 more
+
+;
+; console, however that is implemented
+;
+set: console/0
+
+0 info
+1 warn
+2 error

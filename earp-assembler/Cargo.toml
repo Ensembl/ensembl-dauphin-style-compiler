@@ -11,3 +11,5 @@ pest="*"
 pest_consume="*"
 pest_derive="*"
 minicbor={ version="*", features=["std"] }
+clap = { version = "*", features = ["derive"] }
+peregrine_cli_toolkit = { version = "*", path = "../peregrine-cli-toolkit" }

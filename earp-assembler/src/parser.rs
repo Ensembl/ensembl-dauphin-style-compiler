@@ -1,15 +1,15 @@
-use std::{any::Any, borrow::Cow, sync::Arc};
-
 use pest_consume::{Error, Parser, match_nodes};
 
-#[derive(Clone)]
+use crate::error::EarpAssemblerError;
+
+#[derive(Clone,Debug,PartialEq)]
 pub(crate) enum EarpAssemblyLocation {
     Here(i64),
     Label(String),
     RelativeLabel(String,bool)
 }
 
-#[derive(Clone)]
+#[derive(Clone,Debug,PartialEq)]
 pub(crate) enum EarpAssemblyOperand {
     Register(usize),
     UpRegister(usize),
@@ -20,9 +20,10 @@ pub(crate) enum EarpAssemblyOperand {
     Location(EarpAssemblyLocation)
 }
 
+#[derive(Debug,PartialEq)]
 pub(crate) enum EarpAssemblyStatement {
     Program(String),
-    InstructionsDecl(Option<String>,String,String),
+    InstructionsDecl(Option<String>,String,u64),
     Instruction(Option<String>,String,Vec<EarpAssemblyOperand>),
     Label(String),
     RelativeLabel(String),
@@ -58,9 +59,9 @@ impl AssemblerParser {
     fn instructions_declaration(input: Node) -> PestResult<EarpAssemblyStatement> {
         Ok(match_nodes!(input.into_children();
             [identifier(set),integer(version)] =>
-                EarpAssemblyStatement::InstructionsDecl(None,set.to_string(),version.to_string()),
+                EarpAssemblyStatement::InstructionsDecl(None,set.to_string(),version),
             [identifier(prefix),identifier(set),integer(version)] => 
-                EarpAssemblyStatement::InstructionsDecl(Some(prefix.to_string()),set.to_string(),version.to_string())
+                EarpAssemblyStatement::InstructionsDecl(Some(prefix.to_string()),set.to_string(),version)
         ))
     }
 
@@ -152,7 +153,12 @@ impl AssemblerParser {
 
     /* LABEL REFERENCES */
 
-    fn labelref(input: Node) -> PestResult<&str> { Ok(input.as_str()) }
+    fn labelref(input: Node) -> PestResult<&str> {
+        Ok(match_nodes!(input.into_children();
+            [identifier(id)] => id
+        ))
+    }
+
     fn rellabelf(input: Node) -> PestResult<u64> { Ok(match_nodes!(input.into_children(); [integer(v)] => v )) } 
     fn rellabelr(input: Node) -> PestResult<u64> { Ok(match_nodes!(input.into_children(); [integer(v)] => v )) } 
 
@@ -220,12 +226,68 @@ impl AssemblerParser {
 
     fn document(input: Node) -> PestResult<Vec<EarpAssemblyStatement>> {
         Ok(match_nodes!(input.into_children();
-            [declaration_section(mut d),program_section(mut p)] => { d.append(&mut p); d }
+            [declaration_section(mut d),program_section(mut p),EOI] => { d.append(&mut p); d }
         ))
     }
 }
 
-pub(crate) fn earp_parse(contents: &str) -> PestResult<Vec<EarpAssemblyStatement>> {
+fn earp_parse(contents: &str) -> PestResult<Vec<EarpAssemblyStatement>> {
     let input = AssemblerParser::parse(Rule::document, contents)?.single()?;
     AssemblerParser::document(input)
+}
+
+pub(crate) fn load_source_file(source: &str) -> Result<Vec<EarpAssemblyStatement>,EarpAssemblerError> {
+    earp_parse(source).map_err(|e| EarpAssemblerError::SyntaxError(e.to_string()))
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{testutil::no_error, parser::{EarpAssemblyStatement, EarpAssemblyOperand, EarpAssemblyLocation}};
+
+    use super::earp_parse;
+
+    #[test]
+    fn parse_smoke() {
+        assert_eq!(no_error(earp_parse(include_str!("test/test.earp"))),
+            vec![
+                EarpAssemblyStatement::InstructionsDecl(None,"std".to_string(),0),
+                EarpAssemblyStatement::InstructionsDecl(Some("c".to_string()),"console".to_string(),0),
+
+                EarpAssemblyStatement::Program("test1".to_string()),
+                EarpAssemblyStatement::Label("label".to_string()),
+                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                    EarpAssemblyOperand::Register(0),
+                    EarpAssemblyOperand::String("hello, \"world\"".to_string())]),
+                EarpAssemblyStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
+                    EarpAssemblyOperand::Register(0)]),
+                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
+                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("label".to_string()))]),
+
+                EarpAssemblyStatement::Program("test2".to_string()),
+                EarpAssemblyStatement::RelativeLabel("1".to_string()),
+                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                    EarpAssemblyOperand::Register(0),
+                    EarpAssemblyOperand::String("hello, \"world\"\n".to_string())]),
+                EarpAssemblyStatement::Instruction(None, "push".to_string(), vec![]),
+                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                    EarpAssemblyOperand::Register(1),
+                    EarpAssemblyOperand::UpRegister(0)]),
+                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                    EarpAssemblyOperand::Register(0),
+                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(2))]),    
+                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
+                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("printer".to_string()))]),    
+                EarpAssemblyStatement::Instruction(None, "pop".to_string(), vec![]),
+                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
+                    EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("1".to_string(),false))]),
+
+                EarpAssemblyStatement::Label("printer".to_string()),
+                EarpAssemblyStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
+                    EarpAssemblyOperand::Register(1)]),
+                EarpAssemblyStatement::Instruction(Some("c".to_string()), "warn".to_string(), vec![
+                    EarpAssemblyOperand::Register(1)]),
+                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
+                    EarpAssemblyOperand::Register(0)]),    
+        ]);
+    }
 }

@@ -1,30 +1,29 @@
 use std::{collections::{HashMap}};
-use crate::{ command::EarpOperand, context::EarpAssemblerContext, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyOperand, EarpAssemblyStatement}, rellabels::RelativeLabelContext};
+use crate::{ command::EarpOperand, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyStatement}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::EarpInstructionSetIdentifier, setmapper::SetMapper};
 
 pub(crate) struct Assemble<'t> {
-    context: &'t EarpAssemblerContext,
     pc: i64,
     max_pc: i64,
-    earp_file: EarpFileWriter,
+    earp_file: EarpFileWriter<'t>,
     labels: HashMap<String,i64>,
     rel_labels: RelativeLabelContext,
+    lookup: Lookup
 }
 
 impl<'t> Assemble<'t> {
-    fn new(context: &'t EarpAssemblerContext) -> Assemble<'t> {
+    fn new(suite: &'t Suite) -> Assemble<'t> {
+        let set_mapper = SetMapper::new(suite);
         Assemble {
-            context,
             pc: 0,
             max_pc: 0,
-            earp_file: EarpFileWriter::new(),
+            earp_file: EarpFileWriter::new(suite),
             labels: HashMap::new(),
             rel_labels: RelativeLabelContext::new(),
+            lookup: Lookup::new()
         }
     }
 
-    fn reset(&mut self) {
-        self.pc = 0;
-    }
+    fn reset(&mut self) { self.pc = 0; }
 
     pub(crate) fn resolve_label(&self, location: &EarpAssemblyLocation) -> Result<i64,EarpAssemblerError> {
         let label = match location {
@@ -72,32 +71,33 @@ impl<'t> Assemble<'t> {
         Ok(())
     }
 
-
     fn add_instructions(&mut self, statement: &EarpAssemblyStatement) -> Result<(),EarpAssemblerError> {
         self.rel_labels.fix_labels(self.pc, &mut self.labels);
         match statement {
             EarpAssemblyStatement::Instruction(prefix,identifier,arguments) => {
                 let prefix = prefix.as_ref().map(|x| x.as_str());
-                let opcode = self.context.instruction_suite().lookup(prefix,&identifier)?;
+                let opcode = self.lookup.lookup(self.earp_file.set_mapper_mut(),&prefix,&identifier)?;
                 let operands = arguments.iter().map(|x| EarpOperand::new(x,&self)).collect::<Result<Vec<_>,_>>()?;
                 self.earp_file.add_instruction(opcode,&operands);
                 self.pc += 1;
+            },
+            EarpAssemblyStatement::InstructionsDecl(prefix,name,version) => {
+                self.lookup.add_mapping(prefix, &EarpInstructionSetIdentifier(name.to_string(),*version));
             },
             _ => {}
         }
         Ok(())
     }
     
-    fn into_earpfile(self) -> EarpFileWriter {
-        self.earp_file
-    }
+    fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 }
 
+// XXX prefix collisions
 // XXX assets
 // XXX check operand types
 // XXX line numbers
-pub(crate) fn assemble(context: &EarpAssemblerContext, statements: &[EarpAssemblyStatement]) -> Result<EarpFileWriter,EarpAssemblerError> {
-    let mut assemble = Assemble::new(context);
+pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[EarpAssemblyStatement]) -> Result<EarpFileWriter<'t>,EarpAssemblerError> {
+    let mut assemble = Assemble::new(suite);
     assemble.reset();
     for stmt in statements {
         assemble.set_labels(stmt)?;

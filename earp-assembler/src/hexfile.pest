@@ -1,0 +1,10 @@
+WHITESPACE = _{ " " | "\t" | "\n" }
+COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ "\n" }
+
+hex64 = @{ ASCII_HEX_DIGIT{1,16}+ }
+hex8 = @{ ASCII_HEX_DIGIT{1,2}+ }
+
+offset = ${ "@" ~ hex64 }
+unit = { offset | hex8 }
+
+contents = { unit* ~ EOI }

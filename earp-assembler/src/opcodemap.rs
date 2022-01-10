@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use pest_consume::{ match_nodes, Parser, Error };
-use crate::{instructionset::{EarpInstructionSet, EarpInstructionSetIdentifier}, instructionsuite::EarpInstructionSuite};
+use crate::{instructionset::{EarpInstructionSet, EarpInstructionSetIdentifier}, error::EarpAssemblerError};
 
 #[derive(Parser)]
 #[grammar = "opcodemap.pest"]
@@ -19,8 +19,8 @@ impl EarpOpcodeMapParser {
     fn set(input: Node) -> PestResult<&str> { Ok(input.as_str()) }
     fn name(input: Node) -> PestResult<&str> { Ok(input.as_str()) }
 
-    fn version(input: Node) -> PestResult<u32> {
-        input.as_str().parse::<u32>() .map_err(|e| input.error(e))
+    fn version(input: Node) -> PestResult<u64> {
+        input.as_str().parse::<u64>() .map_err(|e| input.error(e))
     }
 
     fn opcode(input: Node) -> PestResult<u64> {
@@ -53,7 +53,7 @@ impl EarpOpcodeMapParser {
                 for (opcode,name) in lines {
                     for set in &mut sets {
                         let set = out.entry(set.identifier().clone()).or_insert_with(|| EarpInstructionSet::new(set.identifier()));
-                        set.add(name,opcode).map_err(|e| node.error(e))?;
+                        set.add(name,opcode).map_err(|e| node.error(e.to_string()))?;
                     }
                 }
                 ()
@@ -80,7 +80,14 @@ impl EarpOpcodeMapParser {
     }
 }
 
-pub(crate) fn load_opcode_map(map: &str) -> PestResult<Vec<EarpInstructionSet>> {
+fn parse_opcode_map(map: &str) -> PestResult<Vec<EarpInstructionSet>> {
     let input = EarpOpcodeMapParser::parse(Rule::document, map)?.single()?;
     EarpOpcodeMapParser::document(input)
 }
+
+
+pub(crate) fn load_opcode_map(map: &str) -> Result<Vec<EarpInstructionSet>,EarpAssemblerError> {
+    parse_opcode_map(map).map_err(|e| EarpAssemblerError::BadOpcodeMap(e.to_string()))
+}
+
+// effectively tested by tests in instructionset.rs
