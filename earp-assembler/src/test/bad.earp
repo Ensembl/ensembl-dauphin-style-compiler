@@ -1,0 +1,18 @@
+copy r0, --0.0e0_f
+copy r0, 0.0e1.1_f
+copy r0, 0.0e1._f
+copy r0, "hello\Z"
+copy r0, "hello\u{"
+copy r0, "hello\u}{"
+copy r0, "hello\u{hi}"
+copy r0, @+
+copy r0, @-
+copy r0, @+a
+copy r0, @++
+copy r0, test
+copy r0, .2rr
+copy r0, .2x
+program:test2
+progra:test2:
+:
+-1:

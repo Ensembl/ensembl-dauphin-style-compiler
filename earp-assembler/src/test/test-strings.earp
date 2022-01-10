@@ -1,0 +1,16 @@
+$instructions std/0
+
+program:test5:
+
+    copy r0, "hello"
+    copy r0, "hello\\"
+
+    copy r0, "hello\a"
+    copy r0, "hello\b"
+    copy r0, "hello\f"
+    copy r0, "hello\n"
+    copy r0, "hello\r"
+    copy r0, "hello\t"
+    copy r0, "hello\v"
+    copy r0,"x\u{0001}x"
+    copy r0,"\u{20AC}z"

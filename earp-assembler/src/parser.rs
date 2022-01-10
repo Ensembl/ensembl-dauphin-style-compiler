@@ -226,7 +226,7 @@ impl AssemblerParser {
 
     fn document(input: Node) -> PestResult<Vec<EarpAssemblyStatement>> {
         Ok(match_nodes!(input.into_children();
-            [declaration_section(mut d),program_section(mut p),EOI] => { d.append(&mut p); d }
+            [declaration_section(mut d),program_section(mut p),_EOI] => { d.append(&mut p); d }
         ))
     }
 }
@@ -242,7 +242,9 @@ pub(crate) fn load_source_file(source: &str) -> Result<Vec<EarpAssemblyStatement
 
 #[cfg(test)]
 mod test {
-    use crate::{testutil::no_error, parser::{EarpAssemblyStatement, EarpAssemblyOperand, EarpAssemblyLocation}};
+    use std::cmp::Ordering;
+
+    use crate::{testutil::{no_error}, parser::{EarpAssemblyStatement, EarpAssemblyOperand, EarpAssemblyLocation}};
 
     use super::earp_parse;
 
@@ -289,5 +291,132 @@ mod test {
                 EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
                     EarpAssemblyOperand::Register(0)]),    
         ]);
+    }
+
+    fn operands(stmts: Vec<EarpAssemblyStatement>) -> Vec<EarpAssemblyOperand> {
+        let mut values = vec![];
+        for stmt in &stmts {
+            match stmt {
+                EarpAssemblyStatement::Instruction(prefix,name,args) => {
+                    assert_eq!(&None,prefix);
+                    assert_eq!("copy",name);
+                    assert_eq!(2,args.len());
+                    assert_eq!(EarpAssemblyOperand::Register(0),args[0]);
+                    values.push(args[1].clone());
+                },
+                _ => {}
+            }
+        }
+        values
+    }
+
+    #[test]
+    fn test_parse_floats() {
+        let p = no_error(earp_parse(include_str!("test/test-floats.earp")));
+        let values = operands(p);
+
+        let mut cmps = vec![
+            0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,
+            5.,5.,-5.,  5.5,5.5,-5.5,  550000., 550000.,-550000.,
+            550000., 550000.,-550000.,  0.000055,  0.000055,  -0.000055
+            ];
+        cmps.reverse();
+        for arg in &values {
+            let got = match arg {
+                EarpAssemblyOperand::Float(x) => x,
+                _ => { assert!(false); panic!(); }
+            };
+            let cmp = cmps.pop().unwrap();
+            if cmp.partial_cmp(got) != Some(Ordering::Equal) {
+                println!("{} vs {}\n",got,cmp);
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_bad() {
+        let bads = include_str!("test/bad.earp");
+        for bad in bads.lines() {
+            if !bad.is_empty() {
+                if let Ok(p) = earp_parse(bad) {
+                    println!("bad success '{}': {:?}",bad,p);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_no_decls() {
+        no_error(earp_parse(include_str!("test/nodecls.earp")));
+    }
+
+    #[test]
+    fn test_no_prog() {
+        no_error(earp_parse(include_str!("test/noprog.earp")));
+    }
+
+    #[test]
+    fn test_empty() {
+        no_error(earp_parse(include_str!("test/empty.earp")));
+    }
+
+    #[test]
+    fn test_parse_strings() {
+        let p = no_error(earp_parse(include_str!("test/test-strings.earp")));
+        let values = operands(p);
+
+        let mut cmps = vec![
+            "hello", "hello\\", 
+            "hello\0007","hello\0010","hello\0014","hello\n","hello\r","hello\t","hello\0013",
+            "x\u{0001}x","\u{20AC}z"
+        ];
+        cmps.reverse();
+        for arg in &values {
+            let got = match arg {
+                EarpAssemblyOperand::String(x) => x,
+                _ => { assert!(false); panic!(); }
+            };
+            let cmp = cmps.pop().unwrap();
+            if cmp != got {
+                println!("{:?} vs {:?}\n",got,cmp);
+                assert!(false);
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_misc() {
+        assert_eq!(no_error(earp_parse(include_str!("test/test-misc.earp"))),
+        vec![
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Boolean(true)]),
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Boolean(false)]),
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(0))]),    
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(31))]),    
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(-42))]),                
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("test".to_string()))]),
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("2".to_string(),false))]),
+            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
+                EarpAssemblyOperand::Register(0),
+                EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("32".to_string(),true))]),
+            EarpAssemblyStatement::Program("test2".to_string()),
+            EarpAssemblyStatement::Label("program".to_string()),
+            EarpAssemblyStatement::RelativeLabel("1".to_string()),
+            EarpAssemblyStatement::RelativeLabel("23".to_string()),
+            ]);
     }
 }

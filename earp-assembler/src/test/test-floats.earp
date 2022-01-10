@@ -1,0 +1,36 @@
+$instructions std/0
+
+program:test5:
+
+    ; floats
+    copy r0, 0_f
+    copy r0, +0_f
+    copy r0, -0_f
+    copy r0, 0.0_f
+    copy r0, +0.0_f
+    copy r0, -0.0_f
+    copy r0, 0.0e0_f
+    copy r0, +0.0e0_f
+    copy r0, -0.0e0_f
+    copy r0, 0.0e+0_f
+    copy r0, +0.0e+0_f
+    copy r0, -0.0e+0_f
+    copy r0, 0.0e-0_f
+    copy r0, +0.0e-0_f
+    copy r0, -0.0e-0_f
+
+    copy r0, 5_f
+    copy r0, +5_f
+    copy r0, -5_f
+    copy r0, 5.5_f
+    copy r0, +5.5_f
+    copy r0, -5.5_f
+    copy r0, 5.5e5_f
+    copy r0, +5.5e5_f
+    copy r0, -5.5e5_f
+    copy r0, 5.5e+5_f
+    copy r0, +5.5e+5_f
+    copy r0, -5.5e+5_f
+    copy r0, 5.5e-5_f
+    copy r0, +5.5e-5_f
+    copy r0, -5.5e-5_f

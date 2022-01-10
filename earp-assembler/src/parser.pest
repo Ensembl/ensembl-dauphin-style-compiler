@@ -20,7 +20,7 @@ declaration = { instructions_declaration }
 // operand: floats
 //
 float = @{
-    "-"? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT*)?
+    ("+"|"-")? ~ ("0" | ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) ~ ("." ~ ASCII_DIGIT*)?
     ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)?
 }
 float_tagged = ${ float ~ "_f" }
@@ -32,7 +32,7 @@ plain_char = @{ !("\"" | "\\") ~ ANY }
 escaped_char = @{ "\"" | "\\" | "a" | "b" | "f" | "n" | "r" | "t" | "v" }
 hex_escape = @{ ASCII_HEX_DIGIT{1,6} }
 
-character = { plain_char | "\\" ~ escaped_char | "\\" ~ ("u{" ~ hex_escape ~ "}") }
+character = { "\\" ~ escaped_char | "\\" ~ ("u{" ~ hex_escape ~ "}") | plain_char }
 
 string = ${ "\"" ~ character* ~ "\"" }
 
@@ -75,12 +75,12 @@ instruction = { opcode ~ (operand ~ ("," ~ operand)*)? }
 program_label = ${ "program:" ~ identifier ~ ":" }
 label = ${ identifier ~ ":" }
 rellabel = ${ integer ~ ":" }
-program_line = { program_label | label | rellabel | instruction }
+program_line = { (program_label | label | rellabel | instruction) ~ &(WHITESPACE|NEWLINE) }
 
 //
 // global
 //
-declaration_section = { ((declaration ~ NEWLINE)| NEWLINE)* }
-program_section = { ((program_line ~ NEWLINE)|NEWLINE)* }
+declaration_section = { (declaration ~ (NEWLINE+|EOI))* }
+program_section = { (program_line ~ (NEWLINE+|EOI))* }
 
 document = { SOI ~ declaration_section ~ program_section ~ EOI }

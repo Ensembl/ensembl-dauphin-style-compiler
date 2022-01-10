@@ -1,0 +1,13 @@
+copy r0, true
+copy r0, false
+copy r0, @
+copy r0, @+31
+copy r0, @-42
+copy r0, .test
+copy r0, .2r
+copy r0, .32f
+
+program:test2:
+program:
+1:
+23:
