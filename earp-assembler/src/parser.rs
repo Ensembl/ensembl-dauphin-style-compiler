@@ -231,7 +231,7 @@ impl AssemblerParser {
     }
 }
 
-fn earp_parse(contents: &str) -> PestResult<Vec<EarpAssemblyStatement>> {
+pub(crate) fn earp_parse(contents: &str) -> PestResult<Vec<EarpAssemblyStatement>> {
     let input = AssemblerParser::parse(Rule::document, contents)?.single()?;
     AssemblerParser::document(input)
 }

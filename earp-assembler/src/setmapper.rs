@@ -1,8 +1,7 @@
+use minicbor::{Encode, Encoder};
 use std::collections::HashMap;
 
-use minicbor::{Encode, Encoder};
-
-use crate::{instructionset::{EarpInstructionSetIdentifier, EarpInstructionSet}, suite::Suite, error::EarpAssemblerError};
+use crate::{instructionset::{EarpInstructionSetIdentifier, EarpInstructionSet}, suite::Suite};
 
 pub(crate) struct SetMapper<'t> {
     offsets: HashMap<EarpInstructionSetIdentifier,u64>,
@@ -43,7 +42,11 @@ impl<'t> SetMapper<'t> {
 impl<'t> Encode for SetMapper<'t> {
     fn encode<W: minicbor::encode::Write>(&self, encoder: &mut Encoder<W>) -> Result<(), minicbor::encode::Error<W::Error>> {
         encoder.begin_array()?;
-        for (id,offset) in self.offsets.iter() {
+        let mut ids = self.offsets.keys().collect::<Vec<_>>();
+        ids.sort();
+        for id in &ids {
+            let offset = self.offsets.get(id).unwrap();
+            println!("{:?}={:?}",id,offset);
             encoder.str(&id.0)?;
             encoder.u64(id.1)?;
             encoder.u64(*offset)?;

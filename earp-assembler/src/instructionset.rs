@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, HashSet}, fmt::Display};
 use crate::error::EarpAssemblerError;
 
-#[derive(Debug,Clone,PartialEq,Eq,Hash)]
+#[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd, Ord)]
 pub(crate) struct EarpInstructionSetIdentifier(pub String,pub u64);
 
 impl Display for EarpInstructionSetIdentifier {

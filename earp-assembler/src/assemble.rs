@@ -1,5 +1,5 @@
 use std::{collections::{HashMap}};
-use crate::{ command::EarpOperand, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyStatement}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::EarpInstructionSetIdentifier, setmapper::SetMapper};
+use crate::{ command::EarpOperand, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyStatement}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::EarpInstructionSetIdentifier};
 
 pub(crate) struct Assemble<'t> {
     pc: i64,
@@ -12,7 +12,6 @@ pub(crate) struct Assemble<'t> {
 
 impl<'t> Assemble<'t> {
     fn new(suite: &'t Suite) -> Assemble<'t> {
-        let set_mapper = SetMapper::new(suite);
         Assemble {
             pc: 0,
             max_pc: 0,
@@ -92,6 +91,7 @@ impl<'t> Assemble<'t> {
     fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 }
 
+// XXX include
 // XXX prefix collisions
 // XXX assets
 // XXX check operand types
@@ -107,4 +107,30 @@ pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[EarpAssemblyStatement
         assemble.add_instructions(stmt)?;
     }
     Ok(assemble.into_earpfile())
+}
+
+#[cfg(test)]
+mod test {
+    use minicbor::Encoder;
+    use peregrine_cli_toolkit::hexdump;
+
+    use crate::{testutil::no_error, suite::Suite, opcodemap::load_opcode_map, parser::earp_parse, hexfile::load_hexfile};
+
+    use super::assemble;
+
+    #[test]
+    fn assemble_smoke() {
+        let mut suite = Suite::new();
+        for set in no_error(load_opcode_map(include_str!("maps/standard.map"))) {
+            suite.add(set);
+        }
+        let source = no_error(earp_parse(include_str!("test/test.earp")));
+        let file = no_error(assemble(&suite,&source));
+        let mut out = vec![];
+        let mut encoder = Encoder::new(&mut out);
+        no_error(encoder.encode(&file));
+        let cmp = no_error(load_hexfile(include_str!("test/smoke-earp.hex")));
+        print!("{}",hexdump(&out));
+        assert_eq!(cmp,out);
+    }
 }

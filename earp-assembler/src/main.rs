@@ -21,6 +21,7 @@ use opcodemap::load_opcode_map;
 use options::{parse_config, Config};
 use parser::{EarpAssemblyStatement, load_source_file};
 use suite::Suite;
+use assemble::assemble;
 
 fn debug(config: &Config, str: &str) {
     if config.verbose > 1 {
@@ -69,6 +70,7 @@ fn run(config: &Config) -> Result<(),EarpAssemblerError> {
         load_opcode_map_file(config, &mut suite, &format!("'{}'",filename), &filedata)?;
     }
     let source = load_sources(config)?;
+    let earp_file = assemble(&suite,&source)?;
     Ok(())
 }
 

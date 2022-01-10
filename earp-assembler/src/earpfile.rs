@@ -6,9 +6,24 @@ use crate::{command::{EarpOperand, EarpCommand}, error::EarpAssemblerError, setm
 
 const EARPFILE_MAGIC : &str = "EARP0";
 
+struct EntryPoints(HashMap<String,i64>);
+
+impl<'t> Encode for EntryPoints {
+    fn encode<W: minicbor::encode::Write>(&self, encoder: &mut Encoder<W>) -> Result<(), minicbor::encode::Error<W::Error>> {
+        let mut ids = self.0.keys().collect::<Vec<_>>();
+        ids.sort();
+        encoder.begin_map()?;
+        for id in ids {
+            encoder.str(id)?.i64(*self.0.get(id).unwrap())?;
+        }
+        encoder.end()?;
+        Ok(())
+    }
+}
+
 pub(crate) struct EarpFileWriter<'t> {
     set_mapper: SetMapper<'t>,
-    entry_points: HashMap<String,i64>,
+    entry_points: EntryPoints,
     instructions: Vec<EarpCommand>
 }
 
@@ -16,7 +31,7 @@ impl<'t> EarpFileWriter<'t> {
     pub(crate) fn new(suite: &'t Suite) -> EarpFileWriter<'t> {
         EarpFileWriter {
             set_mapper: SetMapper::new(suite),
-            entry_points: HashMap::new(),
+            entry_points: EntryPoints(HashMap::new()),
             instructions: vec![]
         }
     }
@@ -28,7 +43,7 @@ impl<'t> EarpFileWriter<'t> {
     }
 
     pub(crate) fn add_entry_point(&mut self, name: &str, pc: i64) {
-        self.entry_points.insert(name.to_string(),pc);
+        self.entry_points.0.insert(name.to_string(),pc);
     }
 
     pub(crate) fn assemble(&self) -> Result<Vec<u8>,EarpAssemblerError> {
