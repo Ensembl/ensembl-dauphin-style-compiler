@@ -2,7 +2,7 @@ use minicbor::{Encoder, Encode};
 
 use crate::{parser::EarpAssemblyOperand, error::EarpAssemblerError, assemble::Assemble};
 
-#[derive(Clone)]
+#[derive(Clone,Debug,PartialEq)]
 pub(crate) enum EarpOperand {
     Register(usize),
     UpRegister(usize),
@@ -51,10 +51,11 @@ impl Encode for EarpOperand {
     }
 }
 
+#[derive(Clone,Debug,PartialEq)]
 pub(crate) struct EarpCommand(pub u64,pub Vec<EarpOperand>);
 
 impl EarpCommand {
-    fn type_value(&self) -> u64 {
+    pub(crate) fn type_value(&self) -> u64 {
         let mut out = 0;
         for arg in &self.1 {
             out = out*4 + arg.type_value();

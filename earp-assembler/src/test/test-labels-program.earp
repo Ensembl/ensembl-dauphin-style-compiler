@@ -1,0 +1,7 @@
+$instructions std/0
+
+program:test1:
+program:test2:
+    halt
+program:test3:
+    halt

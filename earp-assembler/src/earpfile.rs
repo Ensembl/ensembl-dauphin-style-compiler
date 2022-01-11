@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use minicbor::{Encoder, Encode};
 
-use crate::{command::{EarpOperand, EarpCommand}, error::EarpAssemblerError, setmapper::SetMapper, instructionset::EarpInstructionSetIdentifier, suite::Suite};
+use crate::{command::{EarpOperand, EarpCommand}, setmapper::SetMapper, suite::Suite, error::EarpAssemblerError};
 
 const EARPFILE_MAGIC : &str = "EARP0";
 
@@ -46,12 +46,11 @@ impl<'t> EarpFileWriter<'t> {
         self.entry_points.0.insert(name.to_string(),pc);
     }
 
-    pub(crate) fn assemble(&self) -> Result<Vec<u8>,EarpAssemblerError> {
-        let mut bytes = vec![];
-        let mut encoder = Encoder::new(&mut bytes);
-        encoder.encode(self).map_err(|e| EarpAssemblerError::EncodingError(e.to_string()))?;
-        Ok(bytes)
-    }
+    #[cfg(test)]
+    pub(crate) fn commands(&self) -> &[EarpCommand] { &self.instructions }
+
+    #[cfg(test)]
+    pub(crate) fn entry_points(&self) -> &HashMap<String,i64> { &self.entry_points.0 }
 }
 
 impl<'t> Encode for EarpFileWriter<'t> {

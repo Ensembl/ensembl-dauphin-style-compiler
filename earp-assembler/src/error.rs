@@ -1,7 +1,5 @@
 use std::fmt::{ Debug, Display };
 
-use pest_consume::Error;
-
 #[derive(Clone)]
 pub(crate) enum EarpAssemblerError {
     OpcodeInUse(String),
@@ -12,7 +10,8 @@ pub(crate) enum EarpAssemblerError {
     EncodingError(String),
     BadHexFile(String),
     FileError(String),
-    SyntaxError(String)
+    SyntaxError(String),
+    BadHereLabel(String)
 }
 
 #[derive(Clone)]
@@ -25,7 +24,8 @@ pub(crate) enum AssemblerErrorType {
     EncodingError,
     BadHexFile,
     FileError,
-    SyntaxError
+    SyntaxError,
+    BadHereLabel
 }
 
 impl AssemblerErrorType {
@@ -39,7 +39,8 @@ impl AssemblerErrorType {
             AssemblerErrorType::EncodingError => "Encoding Error",
             AssemblerErrorType::BadHexFile => "BadHex File",
             AssemblerErrorType::FileError => "File Error",
-            AssemblerErrorType::SyntaxError => "Syntax Error"
+            AssemblerErrorType::SyntaxError => "Syntax Error",
+            AssemblerErrorType::BadHereLabel => "Bad Here Label"
         }
     }
 
@@ -54,6 +55,7 @@ impl AssemblerErrorType {
             AssemblerErrorType::BadHexFile => EarpAssemblerError::BadHexFile(msg),
             AssemblerErrorType::FileError => EarpAssemblerError::FileError(msg),
             AssemblerErrorType::SyntaxError => EarpAssemblerError::SyntaxError(msg),
+            AssemblerErrorType::BadHereLabel => EarpAssemblerError::BadHereLabel(msg),
         }
     }
 }
@@ -72,6 +74,7 @@ impl EarpAssemblerError {
             EarpAssemblerError::BadHexFile(s) => Burst(AssemblerErrorType::BadHexFile,s),
             EarpAssemblerError::FileError(s) => Burst(AssemblerErrorType::FileError,s),
             EarpAssemblerError::SyntaxError(s) => Burst(AssemblerErrorType::SyntaxError,s),
+            EarpAssemblerError::BadHereLabel(s) => Burst(AssemblerErrorType::BadHereLabel,s),
         }
     }
 

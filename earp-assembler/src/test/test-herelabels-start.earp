@@ -1,0 +1,4 @@
+$instructions std/0
+
+halt
+goto @-2

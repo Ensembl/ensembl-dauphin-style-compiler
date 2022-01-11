@@ -1,0 +1,15 @@
+$instructions std/0
+
+    halt
+1:
+    goto .1r
+    goto .1r
+    goto .1f
+    goto .1f
+1:
+    goto .1r
+    goto .1r
+    goto .1f
+    goto .1f
+1:
+    halt

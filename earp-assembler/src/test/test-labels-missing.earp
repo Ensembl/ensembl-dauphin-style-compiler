@@ -1,0 +1,5 @@
+$instructions std/0
+
+    halt
+    goto .label
+    

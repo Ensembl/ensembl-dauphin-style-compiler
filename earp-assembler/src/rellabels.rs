@@ -24,6 +24,7 @@ impl RelativeLabelContext {
         }
         /* A label 0 is added, meaning 0f was from last definition (or start) to this point, pointing here  */
         let start_of_fwd_ref_here = *self.prev.get(label).unwrap_or(&0);
+        self.prev.insert(label.to_string(),position);
         self.entry(start_of_fwd_ref_here).insert(format!("{}f",label),Some(position));
         /* ... but no further */
         self.entry(position).insert(format!("{}f",label),None);
@@ -31,8 +32,8 @@ impl RelativeLabelContext {
         self.entry(position).insert(format!("{}r",label), Some(position));
     }
 
-    pub(crate) fn fix_labels(&self, position: i64, labels: &mut HashMap<String,i64>) {
-        if let Some(changes) = self.labels.get(&position) {
+    pub(crate) fn fix_labels(&self, current_position: i64, labels: &mut HashMap<String,i64>) {
+        if let Some(changes) = self.labels.get(&current_position) {
             for (label,position) in changes.iter() {
                 if let Some(position) = position {
                     labels.insert(label.to_string(),*position);

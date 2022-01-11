@@ -1,0 +1,18 @@
+$instructions std/0
+
+    goto .2f
+1:
+    goto .1r
+    goto .1r
+    goto .1f
+    goto .2f
+1:
+2:
+1:
+    goto .2r
+    goto .1r
+    goto .1f
+    goto .1f
+1:
+    goto .2r
+
