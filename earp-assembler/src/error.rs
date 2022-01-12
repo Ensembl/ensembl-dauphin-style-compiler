@@ -1,7 +1,7 @@
 use std::fmt::{ Debug, Display };
 
 #[derive(Clone)]
-pub(crate) enum EarpAssemblerError {
+pub(crate) enum AssemblerError {
     OpcodeInUse(String),
     DuplicateLabel(String),
     BadOpcodeMap(String),
@@ -11,7 +11,9 @@ pub(crate) enum EarpAssemblerError {
     BadHexFile(String),
     FileError(String),
     SyntaxError(String),
-    BadHereLabel(String)
+    BadHereLabel(String),
+    CannotSerialize(String),
+    DuplicateOpcode(String)
 }
 
 #[derive(Clone)]
@@ -25,7 +27,9 @@ pub(crate) enum AssemblerErrorType {
     BadHexFile,
     FileError,
     SyntaxError,
-    BadHereLabel
+    BadHereLabel,
+    CannotSerialize,
+    DuplicateOpcode
 }
 
 impl AssemblerErrorType {
@@ -40,69 +44,81 @@ impl AssemblerErrorType {
             AssemblerErrorType::BadHexFile => "BadHex File",
             AssemblerErrorType::FileError => "File Error",
             AssemblerErrorType::SyntaxError => "Syntax Error",
-            AssemblerErrorType::BadHereLabel => "Bad Here Label"
+            AssemblerErrorType::BadHereLabel => "Bad Here Label",
+            AssemblerErrorType::CannotSerialize => "Cannot Serialize",
+            AssemblerErrorType::DuplicateOpcode => "Duplicate Opcode"
         }
     }
 
-    fn unburst(&self, msg: String) -> EarpAssemblerError {
+    fn unburst(&self, msg: String) -> AssemblerError {
         match self {
-            AssemblerErrorType::OpcodeInUse => EarpAssemblerError::OpcodeInUse(msg),
-            AssemblerErrorType::DuplicateLabel => EarpAssemblerError::DuplicateLabel(msg),
-            AssemblerErrorType::BadOpcodeMap => EarpAssemblerError::BadOpcodeMap(msg),
-            AssemblerErrorType::UnknownOpcode => EarpAssemblerError::UnknownOpcode(msg),
-            AssemblerErrorType::UnknownLabel => EarpAssemblerError::UnknownLabel(msg),
-            AssemblerErrorType::EncodingError => EarpAssemblerError::EncodingError(msg),
-            AssemblerErrorType::BadHexFile => EarpAssemblerError::BadHexFile(msg),
-            AssemblerErrorType::FileError => EarpAssemblerError::FileError(msg),
-            AssemblerErrorType::SyntaxError => EarpAssemblerError::SyntaxError(msg),
-            AssemblerErrorType::BadHereLabel => EarpAssemblerError::BadHereLabel(msg),
+            AssemblerErrorType::OpcodeInUse => AssemblerError::OpcodeInUse(msg),
+            AssemblerErrorType::DuplicateLabel => AssemblerError::DuplicateLabel(msg),
+            AssemblerErrorType::BadOpcodeMap => AssemblerError::BadOpcodeMap(msg),
+            AssemblerErrorType::UnknownOpcode => AssemblerError::UnknownOpcode(msg),
+            AssemblerErrorType::UnknownLabel => AssemblerError::UnknownLabel(msg),
+            AssemblerErrorType::EncodingError => AssemblerError::EncodingError(msg),
+            AssemblerErrorType::BadHexFile => AssemblerError::BadHexFile(msg),
+            AssemblerErrorType::FileError => AssemblerError::FileError(msg),
+            AssemblerErrorType::SyntaxError => AssemblerError::SyntaxError(msg),
+            AssemblerErrorType::BadHereLabel => AssemblerError::BadHereLabel(msg),
+            AssemblerErrorType::CannotSerialize => AssemblerError::CannotSerialize(msg),
+            AssemblerErrorType::DuplicateOpcode => AssemblerError::DuplicateOpcode(msg),
         }
     }
 }
 
 struct Burst(AssemblerErrorType,String);
 
-impl EarpAssemblerError {    
+impl AssemblerError {    
     fn burst(self) -> Burst {
         match self {
-            EarpAssemblerError::OpcodeInUse(s) => Burst(AssemblerErrorType::OpcodeInUse,s),
-            EarpAssemblerError::DuplicateLabel(s) => Burst(AssemblerErrorType::DuplicateLabel,s),
-            EarpAssemblerError::BadOpcodeMap(s) => Burst(AssemblerErrorType::BadOpcodeMap,s),
-            EarpAssemblerError::UnknownOpcode(s) => Burst(AssemblerErrorType::UnknownOpcode,s),
-            EarpAssemblerError::UnknownLabel(s) => Burst(AssemblerErrorType::UnknownLabel,s),
-            EarpAssemblerError::EncodingError(s) => Burst(AssemblerErrorType::EncodingError,s),
-            EarpAssemblerError::BadHexFile(s) => Burst(AssemblerErrorType::BadHexFile,s),
-            EarpAssemblerError::FileError(s) => Burst(AssemblerErrorType::FileError,s),
-            EarpAssemblerError::SyntaxError(s) => Burst(AssemblerErrorType::SyntaxError,s),
-            EarpAssemblerError::BadHereLabel(s) => Burst(AssemblerErrorType::BadHereLabel,s),
+            AssemblerError::OpcodeInUse(s) => Burst(AssemblerErrorType::OpcodeInUse,s),
+            AssemblerError::DuplicateLabel(s) => Burst(AssemblerErrorType::DuplicateLabel,s),
+            AssemblerError::BadOpcodeMap(s) => Burst(AssemblerErrorType::BadOpcodeMap,s),
+            AssemblerError::UnknownOpcode(s) => Burst(AssemblerErrorType::UnknownOpcode,s),
+            AssemblerError::UnknownLabel(s) => Burst(AssemblerErrorType::UnknownLabel,s),
+            AssemblerError::EncodingError(s) => Burst(AssemblerErrorType::EncodingError,s),
+            AssemblerError::BadHexFile(s) => Burst(AssemblerErrorType::BadHexFile,s),
+            AssemblerError::FileError(s) => Burst(AssemblerErrorType::FileError,s),
+            AssemblerError::SyntaxError(s) => Burst(AssemblerErrorType::SyntaxError,s),
+            AssemblerError::BadHereLabel(s) => Burst(AssemblerErrorType::BadHereLabel,s),
+            AssemblerError::CannotSerialize(s) => Burst(AssemblerErrorType::CannotSerialize,s),
+            AssemblerError::DuplicateOpcode(s) => Burst(AssemblerErrorType::DuplicateOpcode,s),
         }
     }
 
-    pub(crate) fn add_context(&self, context: &str) -> EarpAssemblerError {
+    pub(crate) fn add_context(&self, context: &str) -> AssemblerError {
         let burst = self.clone().burst();
         burst.0.unburst(format!("{}:\n{}",context,burst.1))
     }
 }
 
-impl Debug for EarpAssemblerError {
+impl Debug for AssemblerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let burst = self.clone().burst();
         write!(f,"{}: {}",burst.0.kind(),burst.1)
     }
 }
 
-impl Display for EarpAssemblerError {
+impl Display for AssemblerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{:?}",self)
     }
 }
 
-pub(crate) fn opcode_error(prefix: Option<String>, name: &str) -> EarpAssemblerError {
-    EarpAssemblerError::UnknownOpcode(
-        if let Some(prefix) = prefix {
-            format!("{}:{}",prefix,name)
-        } else {
-            name.to_string()
-        }
-    )
+fn error_fmt(prefix: &Option<String>, name: &str) -> String {
+    if let Some(prefix) = prefix {
+        format!("{}:{}",prefix,name)
+    } else {
+        name.to_string()
+    }
+}
+
+pub(crate) fn unknown_opcode_error(prefix: &Option<String>, name: &str) -> AssemblerError {
+    AssemblerError::UnknownOpcode(error_fmt(prefix,name))
+}
+
+pub(crate) fn duplicate_opcode_error(prefix: &Option<String>, name: &str) -> AssemblerError {
+    AssemblerError::DuplicateOpcode(error_fmt(prefix,name))
 }

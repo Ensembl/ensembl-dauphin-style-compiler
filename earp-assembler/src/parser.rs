@@ -1,32 +1,42 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::error::EarpAssemblerError;
+use crate::error::AssemblerError;
 
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum EarpAssemblyLocation {
+pub(crate) enum AssemblyLocation {
     Here(i64),
     Label(String),
     RelativeLabel(String,bool)
 }
 
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum EarpAssemblyOperand {
+pub(crate) enum ParseOperand {
     Register(usize),
     UpRegister(usize),
     String(String),
     Boolean(bool),
     Integer(i64),
     Float(f64),
-    Location(EarpAssemblyLocation)
+    Location(AssemblyLocation)
 }
 
 #[derive(Debug,PartialEq)]
-pub(crate) enum EarpAssemblyStatement {
+pub(crate) enum ParseStatement {
     Program(String),
     InstructionsDecl(Option<String>,String,u64),
-    Instruction(Option<String>,String,Vec<EarpAssemblyOperand>),
+    Instruction(Option<String>,String,Vec<ParseOperand>),
     Label(String),
     RelativeLabel(String),
+    Noop
+}
+
+impl ParseStatement {
+    fn is_noop(&self) -> bool {
+        match self {
+            ParseStatement::Noop => true,
+            _ => false
+        }
+    }
 }
 
 #[derive(Parser)]
@@ -56,21 +66,23 @@ impl AssemblerParser {
      * DECLARATIONS
      */
 
-    fn instructions_declaration(input: Node) -> PestResult<EarpAssemblyStatement> {
+    fn instructions_declaration(input: Node) -> PestResult<ParseStatement> {
         Ok(match_nodes!(input.into_children();
             [identifier(set),integer(version)] =>
-                EarpAssemblyStatement::InstructionsDecl(None,set.to_string(),version),
+                ParseStatement::InstructionsDecl(None,set.to_string(),version),
             [identifier(prefix),identifier(set),integer(version)] => 
-                EarpAssemblyStatement::InstructionsDecl(Some(prefix.to_string()),set.to_string(),version)
+                ParseStatement::InstructionsDecl(Some(prefix.to_string()),set.to_string(),version)
         ))
     }
 
-    fn declaration(input: Node) -> PestResult<EarpAssemblyStatement> {
-        Ok(match_nodes!(input.into_children(); [instructions_declaration(d)] => d ))
+    fn declaration(input: Node) -> PestResult<ParseStatement> {
+        Ok(match_nodes!(input.into_children(); [instructions_declaration(d)] => d , [] => ParseStatement::Noop ))
     }
 
-    fn declaration_section(input: Node) -> PestResult<Vec<EarpAssemblyStatement>> {
-        Ok(match_nodes!(input.into_children(); [declaration(d)..] => d.collect() ))
+    fn declaration_section(input: Node) -> PestResult<Vec<ParseStatement>> {
+        Ok(match_nodes!(input.into_children(); [declaration(d)..] => {
+            d.filter(|x| !x.is_noop()).collect()
+        }))
     }
 
     /*
@@ -164,18 +176,18 @@ impl AssemblerParser {
 
     /* OPERANDS */
 
-    fn operand(input: Node) -> PestResult<EarpAssemblyOperand> {
+    fn operand(input: Node) -> PestResult<ParseOperand> {
         Ok(match_nodes!(input.into_children();
-            [register(r)] => EarpAssemblyOperand::Register(r as usize),
-            [upregister(r)] => EarpAssemblyOperand::UpRegister(r as usize),
-            [boolean(b)] => EarpAssemblyOperand::Boolean(b),
-            [float_tagged(f)] => EarpAssemblyOperand::Float(f),
-            [integer(n)] => EarpAssemblyOperand::Integer(n as i64),
-            [string(s)] => EarpAssemblyOperand::String(s),
-            [rellabelr(b)] => EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel(b.to_string(),false)),
-            [rellabelf(b)] => EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel(b.to_string(),true)),
-            [labelref(b)] => EarpAssemblyOperand::Location(EarpAssemblyLocation::Label(b.to_string())),
-            [relative(r)] => EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(r))
+            [register(r)] => ParseOperand::Register(r as usize),
+            [upregister(r)] => ParseOperand::UpRegister(r as usize),
+            [boolean(b)] => ParseOperand::Boolean(b),
+            [float_tagged(f)] => ParseOperand::Float(f),
+            [integer(n)] => ParseOperand::Integer(n as i64),
+            [string(s)] => ParseOperand::String(s),
+            [rellabelr(b)] => ParseOperand::Location(AssemblyLocation::RelativeLabel(b.to_string(),false)),
+            [rellabelf(b)] => ParseOperand::Location(AssemblyLocation::RelativeLabel(b.to_string(),true)),
+            [labelref(b)] => ParseOperand::Location(AssemblyLocation::Label(b.to_string())),
+            [relative(r)] => ParseOperand::Location(AssemblyLocation::Here(r))
         ))
     }
 
@@ -192,10 +204,10 @@ impl AssemblerParser {
 
     /* INSTRUCTIONS */
 
-    fn instruction(input: Node) -> PestResult<EarpAssemblyStatement> {
+    fn instruction(input: Node) -> PestResult<ParseStatement> {
         Ok(match_nodes!(input.into_children();
             [opcode((prefix,instr)),operand(operands)..] => 
-                EarpAssemblyStatement::Instruction(prefix.map(|x| x.to_string()),instr.to_string(),operands.collect())
+                ParseStatement::Instruction(prefix.map(|x| x.to_string()),instr.to_string(),operands.collect())
         ))
     }
 
@@ -207,44 +219,47 @@ impl AssemblerParser {
 
     /* PROGRAM LINES */
 
-    fn program_line(input: Node) -> PestResult<EarpAssemblyStatement> {
+    fn program_line(input: Node) -> PestResult<ParseStatement> {
         Ok(match_nodes!(input.into_children();
             [instruction(instr)] => instr,
-            [program_label(prog)] => EarpAssemblyStatement::Program(prog.to_string()),
-            [label(b)] => EarpAssemblyStatement::Label(b.to_string()),
-            [rellabel(b)] => EarpAssemblyStatement::RelativeLabel(b)
+            [program_label(prog)] => ParseStatement::Program(prog.to_string()),
+            [label(b)] => ParseStatement::Label(b.to_string()),
+            [rellabel(b)] => ParseStatement::RelativeLabel(b),
+            [] => ParseStatement::Noop
         ))
     }
 
-    fn program_section(input: Node) -> PestResult<Vec<EarpAssemblyStatement>> {
-        Ok(match_nodes!(input.into_children(); [program_line(d)..] => d.collect() ))
+    fn program_section(input: Node) -> PestResult<Vec<ParseStatement>> {
+        Ok(match_nodes!(input.into_children(); [program_line(d)..] => { 
+            d.filter(|x| !x.is_noop()).collect() 
+        } ))
     }
 
     /*
      * DOCUMENT
      */
 
-    fn document(input: Node) -> PestResult<Vec<EarpAssemblyStatement>> {
+    fn document(input: Node) -> PestResult<Vec<ParseStatement>> {
         Ok(match_nodes!(input.into_children();
             [declaration_section(mut d),program_section(mut p),_EOI] => { d.append(&mut p); d }
         ))
     }
 }
 
-pub(crate) fn earp_parse(contents: &str) -> PestResult<Vec<EarpAssemblyStatement>> {
+pub(crate) fn earp_parse(contents: &str) -> PestResult<Vec<ParseStatement>> {
     let input = AssemblerParser::parse(Rule::document, contents)?.single()?;
     AssemblerParser::document(input)
 }
 
-pub(crate) fn load_source_file(source: &str) -> Result<Vec<EarpAssemblyStatement>,EarpAssemblerError> {
-    earp_parse(source).map_err(|e| EarpAssemblerError::SyntaxError(e.to_string()))
+pub(crate) fn load_source_file(source: &str) -> Result<Vec<ParseStatement>,AssemblerError> {
+    earp_parse(source).map_err(|e| AssemblerError::SyntaxError(e.to_string()))
 }
 
 #[cfg(test)]
 mod test {
     use std::cmp::Ordering;
 
-    use crate::{testutil::{no_error}, parser::{EarpAssemblyStatement, EarpAssemblyOperand, EarpAssemblyLocation}};
+    use crate::{testutil::{no_error}, parser::{ParseStatement, ParseOperand, AssemblyLocation}};
 
     use super::earp_parse;
 
@@ -252,56 +267,56 @@ mod test {
     fn parse_smoke() {
         assert_eq!(no_error(earp_parse(include_str!("test/test.earp"))),
             vec![
-                EarpAssemblyStatement::InstructionsDecl(None,"std".to_string(),0),
-                EarpAssemblyStatement::InstructionsDecl(Some("c".to_string()),"console".to_string(),0),
+                ParseStatement::InstructionsDecl(None,"std".to_string(),0),
+                ParseStatement::InstructionsDecl(Some("c".to_string()),"console".to_string(),0),
 
-                EarpAssemblyStatement::Program("test1".to_string()),
-                EarpAssemblyStatement::Label("label".to_string()),
-                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                    EarpAssemblyOperand::Register(0),
-                    EarpAssemblyOperand::String("hello, \"world\"".to_string())]),
-                EarpAssemblyStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
-                    EarpAssemblyOperand::Register(0)]),
-                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
-                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("label".to_string()))]),
+                ParseStatement::Program("test1".to_string()),
+                ParseStatement::Label("label".to_string()),
+                ParseStatement::Instruction(None, "copy".to_string(), vec![
+                    ParseOperand::Register(0),
+                    ParseOperand::String("hello, \"world\"".to_string())]),
+                ParseStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
+                    ParseOperand::Register(0)]),
+                ParseStatement::Instruction(None, "goto".to_string(), vec![
+                    ParseOperand::Location(AssemblyLocation::Label("label".to_string()))]),
 
-                EarpAssemblyStatement::Program("test2".to_string()),
-                EarpAssemblyStatement::RelativeLabel("1".to_string()),
-                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                    EarpAssemblyOperand::Register(0),
-                    EarpAssemblyOperand::String("hello, \"world\"\n".to_string())]),
-                EarpAssemblyStatement::Instruction(None, "push".to_string(), vec![]),
-                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                    EarpAssemblyOperand::Register(1),
-                    EarpAssemblyOperand::UpRegister(0)]),
-                EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                    EarpAssemblyOperand::Register(0),
-                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(2))]),    
-                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
-                    EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("printer".to_string()))]),    
-                EarpAssemblyStatement::Instruction(None, "pop".to_string(), vec![]),
-                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
-                    EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("1".to_string(),false))]),
+                ParseStatement::Program("test2".to_string()),
+                ParseStatement::RelativeLabel("1".to_string()),
+                ParseStatement::Instruction(None, "copy".to_string(), vec![
+                    ParseOperand::Register(0),
+                    ParseOperand::String("hello, \"world\"\n".to_string())]),
+                ParseStatement::Instruction(None, "push".to_string(), vec![]),
+                ParseStatement::Instruction(None, "copy".to_string(), vec![
+                    ParseOperand::Register(1),
+                    ParseOperand::UpRegister(0)]),
+                ParseStatement::Instruction(None, "copy".to_string(), vec![
+                    ParseOperand::Register(0),
+                    ParseOperand::Location(AssemblyLocation::Here(2))]),    
+                ParseStatement::Instruction(None, "goto".to_string(), vec![
+                    ParseOperand::Location(AssemblyLocation::Label("printer".to_string()))]),    
+                ParseStatement::Instruction(None, "pop".to_string(), vec![]),
+                ParseStatement::Instruction(None, "goto".to_string(), vec![
+                    ParseOperand::Location(AssemblyLocation::RelativeLabel("1".to_string(),false))]),
 
-                EarpAssemblyStatement::Label("printer".to_string()),
-                EarpAssemblyStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
-                    EarpAssemblyOperand::Register(1)]),
-                EarpAssemblyStatement::Instruction(Some("c".to_string()), "warn".to_string(), vec![
-                    EarpAssemblyOperand::Register(1)]),
-                EarpAssemblyStatement::Instruction(None, "goto".to_string(), vec![
-                    EarpAssemblyOperand::Register(0)]),    
+                ParseStatement::Label("printer".to_string()),
+                ParseStatement::Instruction(Some("c".to_string()), "info".to_string(), vec![
+                    ParseOperand::Register(1)]),
+                ParseStatement::Instruction(Some("c".to_string()), "warn".to_string(), vec![
+                    ParseOperand::Register(1)]),
+                ParseStatement::Instruction(None, "goto".to_string(), vec![
+                    ParseOperand::Register(0)]),    
         ]);
     }
 
-    fn operands(stmts: Vec<EarpAssemblyStatement>) -> Vec<EarpAssemblyOperand> {
+    fn operands(stmts: Vec<ParseStatement>) -> Vec<ParseOperand> {
         let mut values = vec![];
         for stmt in &stmts {
             match stmt {
-                EarpAssemblyStatement::Instruction(prefix,name,args) => {
+                ParseStatement::Instruction(prefix,name,args) => {
                     assert_eq!(&None,prefix);
                     assert_eq!("copy",name);
                     assert_eq!(2,args.len());
-                    assert_eq!(EarpAssemblyOperand::Register(0),args[0]);
+                    assert_eq!(ParseOperand::Register(0),args[0]);
                     values.push(args[1].clone());
                 },
                 _ => {}
@@ -312,7 +327,7 @@ mod test {
 
     #[test]
     fn test_parse_floats() {
-        let p = no_error(earp_parse(include_str!("test/test-floats.earp")));
+        let p = no_error(earp_parse(include_str!("test/parser/floats.earp")));
         let values = operands(p);
 
         let mut cmps = vec![
@@ -323,7 +338,7 @@ mod test {
         cmps.reverse();
         for arg in &values {
             let got = match arg {
-                EarpAssemblyOperand::Float(x) => x,
+                ParseOperand::Float(x) => x,
                 _ => { assert!(false); panic!(); }
             };
             let cmp = cmps.pop().unwrap();
@@ -336,7 +351,7 @@ mod test {
 
     #[test]
     fn test_bad() {
-        let bads = include_str!("test/bad.earp");
+        let bads = include_str!("test/parser/bad.earp");
         for bad in bads.lines() {
             if !bad.is_empty() {
                 if let Ok(p) = earp_parse(bad) {
@@ -348,22 +363,22 @@ mod test {
 
     #[test]
     fn test_no_decls() {
-        no_error(earp_parse(include_str!("test/nodecls.earp")));
+        no_error(earp_parse(include_str!("test/parser/nodecls.earp")));
     }
 
     #[test]
     fn test_no_prog() {
-        no_error(earp_parse(include_str!("test/noprog.earp")));
+        no_error(earp_parse(include_str!("test/parser/noprog.earp")));
     }
 
     #[test]
     fn test_empty() {
-        no_error(earp_parse(include_str!("test/empty.earp")));
+        no_error(earp_parse(include_str!("test/parser/empty.earp")));
     }
 
     #[test]
     fn test_parse_strings() {
-        let p = no_error(earp_parse(include_str!("test/test-strings.earp")));
+        let p = no_error(earp_parse(include_str!("test/parser/strings.earp")));
         let values = operands(p);
 
         let mut cmps = vec![
@@ -374,7 +389,7 @@ mod test {
         cmps.reverse();
         for arg in &values {
             let got = match arg {
-                EarpAssemblyOperand::String(x) => x,
+                ParseOperand::String(x) => x,
                 _ => { assert!(false); panic!(); }
             };
             let cmp = cmps.pop().unwrap();
@@ -387,36 +402,52 @@ mod test {
 
     #[test]
     fn test_parse_misc() {
-        assert_eq!(no_error(earp_parse(include_str!("test/test-misc.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("test/parser/misc.earp"))),
         vec![
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Boolean(true)]),
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Boolean(false)]),
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(0))]),    
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(31))]),    
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::Here(-42))]),                
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::Label("test".to_string()))]),
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("2".to_string(),false))]),
-            EarpAssemblyStatement::Instruction(None, "copy".to_string(), vec![
-                EarpAssemblyOperand::Register(0),
-                EarpAssemblyOperand::Location(EarpAssemblyLocation::RelativeLabel("32".to_string(),true))]),
-            EarpAssemblyStatement::Program("test2".to_string()),
-            EarpAssemblyStatement::Label("program".to_string()),
-            EarpAssemblyStatement::RelativeLabel("1".to_string()),
-            EarpAssemblyStatement::RelativeLabel("23".to_string()),
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Boolean(true)]),
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Boolean(false)]),
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::Here(0))]),    
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::Here(31))]),    
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::Here(-42))]),                
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::Label("test".to_string()))]),
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::RelativeLabel("2".to_string(),false))]),
+            ParseStatement::Instruction(None, "copy".to_string(), vec![
+                ParseOperand::Register(0),
+                ParseOperand::Location(AssemblyLocation::RelativeLabel("32".to_string(),true))]),
+            ParseStatement::Program("test2".to_string()),
+            ParseStatement::Label("program".to_string()),
+            ParseStatement::RelativeLabel("1".to_string()),
+            ParseStatement::RelativeLabel("23".to_string()),
+        ]);
+    }
+
+    #[test]
+    fn test_no_eol() {
+        assert_eq!(no_error(earp_parse(include_str!("test/parser/no-eol.earp"))),
+            vec![
+                ParseStatement::Instruction(None,"halt".to_string(),vec![])
+            ]);
+    }
+    
+    #[test]
+    fn test_no_eol2() {
+        assert_eq!(no_error(earp_parse(include_str!("test/parser/no-eol2.earp"))),
+            vec![
+                ParseStatement::InstructionsDecl(None,"std".to_string(),0)
             ]);
     }
 }

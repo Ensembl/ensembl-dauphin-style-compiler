@@ -1,10 +1,10 @@
 use minicbor::{Encode, Encoder};
 use std::collections::HashMap;
 
-use crate::{instructionset::{EarpInstructionSetIdentifier, EarpInstructionSet}, suite::Suite};
+use crate::{instructionset::{InstructionSetId, InstructionSet}, suite::Suite};
 
 pub(crate) struct SetMapper<'t> {
-    offsets: HashMap<EarpInstructionSetIdentifier,u64>,
+    offsets: HashMap<InstructionSetId,u64>,
     next_offset: u64,
     suite: &'t Suite
 }
@@ -18,7 +18,7 @@ impl<'t> SetMapper<'t> {
         }
     }
 
-    fn offset_for(&mut self, set: &EarpInstructionSet) -> u64 {
+    fn offset_for(&mut self, set: &InstructionSet) -> u64 {
         if !self.offsets.contains_key(set.identifier()) {
             self.offsets.insert(set.identifier().clone(),self.next_offset);
             self.next_offset += set.next_opcode();    
@@ -26,11 +26,11 @@ impl<'t> SetMapper<'t> {
         *self.offsets.get(set.identifier()).unwrap()
     }
 
-    fn lookup_real(&mut self, set: &EarpInstructionSet, name: &str) -> Option<u64> {
+    fn lookup_real(&mut self, set: &InstructionSet, name: &str) -> Option<u64> {
         set.lookup(name).map(|x| x+self.offset_for(set))
     }
 
-    pub(crate) fn lookup(&mut self, id: &EarpInstructionSetIdentifier, name: &str) -> Option<u64> {
+    pub(crate) fn lookup(&mut self, id: &InstructionSetId, name: &str) -> Option<u64> {
         if let Some(set) = self.suite.get(id) {
             self.lookup_real(set,name)
         } else {
@@ -46,7 +46,6 @@ impl<'t> Encode for SetMapper<'t> {
         ids.sort();
         for id in &ids {
             let offset = self.offsets.get(id).unwrap();
-            println!("{:?}={:?}",id,offset);
             encoder.str(&id.0)?;
             encoder.u64(id.1)?;
             encoder.u64(*offset)?;

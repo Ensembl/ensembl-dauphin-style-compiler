@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use pest_consume::{ match_nodes, Parser, Error };
-use crate::{instructionset::{EarpInstructionSet, EarpInstructionSetIdentifier}, error::EarpAssemblerError};
+use crate::{instructionset::{InstructionSet, InstructionSetId}, error::AssemblerError};
 
 #[derive(Parser)]
 #[grammar = "opcodemap.pest"]
@@ -27,13 +27,13 @@ impl EarpOpcodeMapParser {
         input.as_str().parse::<u64>() .map_err(|e| input.error(e))
     }
 
-    fn identifier(input: Node) -> PestResult<EarpInstructionSet> {
+    fn identifier(input: Node) -> PestResult<InstructionSet> {
         Ok(match_nodes!(input.into_children();
-            [set(s),version(v)] => EarpInstructionSet::new(&EarpInstructionSetIdentifier(s.to_string(),v))
+            [set(s),version(v)] => InstructionSet::new(&InstructionSetId(s.to_string(),v))
         ))
     }
 
-    fn identifiers(input: Node) -> PestResult<Vec<EarpInstructionSet>> {
+    fn identifiers(input: Node) -> PestResult<Vec<InstructionSet>> {
         Ok(match_nodes!(input.into_children();
             [identifier(id)..] => id.collect()
         ))
@@ -45,14 +45,14 @@ impl EarpOpcodeMapParser {
         ))
     }
 
-    fn section(input: Node) -> PestResult<Vec<EarpInstructionSet>> {
+    fn section(input: Node) -> PestResult<Vec<InstructionSet>> {
         let mut out = HashMap::new();
         let node = input.clone();
         match_nodes!(input.into_children();
             [identifiers(mut sets),map_line(lines)..] => { 
                 for (opcode,name) in lines {
                     for set in &mut sets {
-                        let set = out.entry(set.identifier().clone()).or_insert_with(|| EarpInstructionSet::new(set.identifier()));
+                        let set = out.entry(set.identifier().clone()).or_insert_with(|| InstructionSet::new(set.identifier()));
                         set.add(name,opcode).map_err(|e| node.error(e.to_string()))?;
                     }
                 }
@@ -62,14 +62,14 @@ impl EarpOpcodeMapParser {
         Ok(out.drain().map(|(_,v)| v).collect())
     }
 
-    fn document(input: Node) -> PestResult<Vec<EarpInstructionSet>> {
+    fn document(input: Node) -> PestResult<Vec<InstructionSet>> {
         let mut out = HashMap::new();
         let node = input.clone();
         match_nodes!(input.into_children();
             [section(sections)..,_EOI] => { 
                 for section in sections {
                     for in_set in &section {
-                        let set = out.entry(in_set.identifier().clone()).or_insert_with(|| EarpInstructionSet::new(in_set.identifier()));
+                        let set = out.entry(in_set.identifier().clone()).or_insert_with(|| InstructionSet::new(in_set.identifier()));
                         set.merge(in_set).map_err(|e| node.error(e))?;
                     }
                 }
@@ -80,14 +80,14 @@ impl EarpOpcodeMapParser {
     }
 }
 
-fn parse_opcode_map(map: &str) -> PestResult<Vec<EarpInstructionSet>> {
+fn parse_opcode_map(map: &str) -> PestResult<Vec<InstructionSet>> {
     let input = EarpOpcodeMapParser::parse(Rule::document, map)?.single()?;
     EarpOpcodeMapParser::document(input)
 }
 
 
-pub(crate) fn load_opcode_map(map: &str) -> Result<Vec<EarpInstructionSet>,EarpAssemblerError> {
-    parse_opcode_map(map).map_err(|e| EarpAssemblerError::BadOpcodeMap(e.to_string()))
+pub(crate) fn load_opcode_map(map: &str) -> Result<Vec<InstructionSet>,AssemblerError> {
+    parse_opcode_map(map).map_err(|e| AssemblerError::BadOpcodeMap(e.to_string()))
 }
 
 // effectively tested by tests in instructionset.rs

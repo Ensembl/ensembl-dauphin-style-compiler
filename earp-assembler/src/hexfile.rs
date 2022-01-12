@@ -1,6 +1,6 @@
 use pest_consume::{ match_nodes, Parser, Error };
 
-use crate::error::EarpAssemblerError;
+use crate::error::AssemblerError;
 
 enum Unit {
     Offset(u64),
@@ -58,16 +58,16 @@ fn parse_hexfile(map: &str) -> PestResult<Vec<Unit>> {
     HexFileParser::contents(input)
 }
 
-pub(crate) fn load_hexfile(map: &str) -> Result<Vec<u8>,EarpAssemblerError> {
+pub(crate) fn load_hexfile(map: &str) -> Result<Vec<u8>,AssemblerError> {
     let units = parse_hexfile(map).map_err(|e|
-        EarpAssemblerError::BadHexFile(format!("hexfile parse error: {}",e))
+        AssemblerError::BadHexFile(format!("hexfile parse error: {}",e))
     )?;
     let mut out = vec![];
     for unit in units.iter() {
         match unit {
             Unit::Offset(offset) => {
                 if *offset != out.len() as u64 {
-                    return Err(EarpAssemblerError::BadHexFile(format!("encountered @{:04x} at 0x{:04x}",offset,out.len())));
+                    return Err(AssemblerError::BadHexFile(format!("encountered @{:04x} at 0x{:04x}",offset,out.len())));
                 }
             },
             Unit::Data(d) => {
@@ -85,20 +85,20 @@ mod test {
 
     #[test]
     fn hexfile_smoke() {
-        let data = include_str!("test/smoke.hex");
+        let data = include_str!("test/hexfile/smoke.hex");
         let hex = no_error(load_hexfile(data));
         assert_eq!(vec![0,1,2,3,4],hex);
     }
 
     #[test]
     fn hexfile_bad_offset() {
-        let data = include_str!("test/bad-offset.hex");
+        let data = include_str!("test/hexfile/bad-offset.hex");
         assert!(yes_error(load_hexfile(data)).to_string().contains("encountered @0005 at 0x0004"));
     }
 
     #[test]
     fn hexfile_empty() {
-        let data = include_str!("test/empty.hex");
+        let data = include_str!("test/hexfile/empty.hex");
         let hex = no_error(load_hexfile(data));
         assert_eq!(Vec::<u8>::new(),hex);
     }

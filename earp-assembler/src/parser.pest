@@ -14,7 +14,7 @@ integer = @{ ASCII_DIGIT+ }
 instruction_set = _{ identifier ~ "/" ~ integer }
 instructions_declaration = { "$instructions" ~ (instruction_set | (identifier ~ instruction_set)) }
 
-declaration = { instructions_declaration }
+declaration = { (instructions_declaration)? ~ &(NEWLINE|EOI) }
 
 //
 // operand: floats
@@ -75,12 +75,12 @@ instruction = { opcode ~ (operand ~ ("," ~ operand)*)? }
 program_label = ${ "program:" ~ identifier ~ ":" }
 label = ${ identifier ~ ":" }
 rellabel = ${ integer ~ ":" }
-program_line = { (program_label | label | rellabel | instruction) ~ &(WHITESPACE|NEWLINE) }
+program_line = { (program_label | label | rellabel | instruction)? ~ &(EOI|NEWLINE) }
 
 //
 // global
 //
-declaration_section = { (declaration ~ (NEWLINE+|EOI))* }
-program_section = { (program_line ~ (NEWLINE+|EOI))* }
+declaration_section = { (declaration ~ NEWLINE)* ~ (declaration ~ &EOI)? }
+program_section = { (program_line ~ NEWLINE)* ~ (program_line ~ &EOI)? }
 
 document = { SOI ~ declaration_section ~ program_section ~ EOI }

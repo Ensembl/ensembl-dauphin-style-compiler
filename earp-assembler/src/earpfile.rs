@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use minicbor::{Encoder, Encode};
 
-use crate::{command::{EarpOperand, EarpCommand}, setmapper::SetMapper, suite::Suite, error::EarpAssemblerError};
+use crate::{command::{Operand, Command}, setmapper::SetMapper, suite::Suite};
 
 const EARPFILE_MAGIC : &str = "EARP0";
 
@@ -24,7 +24,7 @@ impl<'t> Encode for EntryPoints {
 pub(crate) struct EarpFileWriter<'t> {
     set_mapper: SetMapper<'t>,
     entry_points: EntryPoints,
-    instructions: Vec<EarpCommand>
+    instructions: Vec<Command>
 }
 
 impl<'t> EarpFileWriter<'t> {
@@ -38,8 +38,8 @@ impl<'t> EarpFileWriter<'t> {
 
     pub(crate) fn set_mapper_mut(&mut self) -> &mut SetMapper<'t> { &mut self.set_mapper }
 
-    pub(crate) fn add_instruction(&mut self, opcode: u64, operands: &[EarpOperand]) {
-        self.instructions.push(EarpCommand(opcode,operands.iter().cloned().collect()));
+    pub(crate) fn add_instruction(&mut self, opcode: u64, operands: &[Operand]) {
+        self.instructions.push(Command(opcode,operands.iter().cloned().collect()));
     }
 
     pub(crate) fn add_entry_point(&mut self, name: &str, pc: i64) {
@@ -47,7 +47,7 @@ impl<'t> EarpFileWriter<'t> {
     }
 
     #[cfg(test)]
-    pub(crate) fn commands(&self) -> &[EarpCommand] { &self.instructions }
+    pub(crate) fn commands(&self) -> &[Command] { &self.instructions }
 
     #[cfg(test)]
     pub(crate) fn entry_points(&self) -> &HashMap<String,i64> { &self.entry_points.0 }

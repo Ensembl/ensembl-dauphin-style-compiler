@@ -1,9 +1,9 @@
 use std::{collections::HashMap};
 
-use crate::instructionset::{EarpInstructionSetIdentifier, EarpInstructionSet};
+use crate::instructionset::{InstructionSetId, InstructionSet};
 
 pub(crate) struct Suite {
-    sets: HashMap<EarpInstructionSetIdentifier,EarpInstructionSet>
+    sets: HashMap<InstructionSetId,InstructionSet>
 }
 
 impl Suite {
@@ -13,11 +13,11 @@ impl Suite {
         }
     }
 
-    pub(crate) fn add(&mut self, set: EarpInstructionSet) {
+    pub(crate) fn add(&mut self, set: InstructionSet) {
         self.sets.insert(set.identifier().clone(),set);
     }
 
-    pub(crate) fn get(&self, id: &EarpInstructionSetIdentifier) -> Option<&EarpInstructionSet> {
+    pub(crate) fn get(&self, id: &InstructionSetId) -> Option<&InstructionSet> {
         self.sets.get(id)
     }
 }

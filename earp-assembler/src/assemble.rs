@@ -1,5 +1,5 @@
 use std::{collections::{HashMap}};
-use crate::{ command::EarpOperand, earpfile::EarpFileWriter, error::EarpAssemblerError, parser::{EarpAssemblyLocation, EarpAssemblyStatement, EarpAssemblyOperand}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::EarpInstructionSetIdentifier};
+use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::InstructionSetId};
 
 pub(crate) struct Assemble<'t> {
     pc: i64,
@@ -24,19 +24,19 @@ impl<'t> Assemble<'t> {
 
     fn reset(&mut self) { self.pc = 0; }
 
-    pub(crate) fn resolve_label(&self, location: &EarpAssemblyLocation) -> Result<i64,EarpAssemblerError> {
+    pub(crate) fn resolve_label(&self, location: &AssemblyLocation) -> Result<i64,AssemblerError> {
         let label = match location {
-            EarpAssemblyLocation::Here(delta) => {
+            AssemblyLocation::Here(delta) => {
                 let target = self.pc+delta;
                 if target < 0 || target >= self.max_pc {
-                    return Err(EarpAssemblerError::BadHereLabel("Here label out of range".to_string()));
+                    return Err(AssemblerError::BadHereLabel("Here label out of range".to_string()));
                 }
                 return Ok(target);
             },
-            EarpAssemblyLocation::Label(label) => {
+            AssemblyLocation::Label(label) => {
                 label.to_string()
             },
-            EarpAssemblyLocation::RelativeLabel(label,fwd) => {
+            AssemblyLocation::RelativeLabel(label,fwd) => {
                 let suffix = if *fwd { "f" } else { "r" };
                 format!("{}{}",label,suffix)
             }
@@ -44,29 +44,29 @@ impl<'t> Assemble<'t> {
         if let Some(location) = self.labels.get(&label) {
             Ok(*location)
         } else {
-            Err(EarpAssemblerError::UnknownLabel(label))
+            Err(AssemblerError::UnknownLabel(label))
         }
     }
 
-    fn set_labels(&mut self, statement: &EarpAssemblyStatement) -> Result<(),EarpAssemblerError> {
+    fn set_labels(&mut self, statement: &ParseStatement) -> Result<(),AssemblerError> {
         match statement {
-            EarpAssemblyStatement::Instruction(_,_,_) => {
+            ParseStatement::Instruction(_,_,_) => {
                 self.pc += 1;
                 self.max_pc += 1;
             },
-            EarpAssemblyStatement::Program(program) => {
+            ParseStatement::Program(program) => {
                 if self.labels.contains_key(program) {
-                    return Err(EarpAssemblerError::DuplicateLabel(format!("program:{}",program)));
+                    return Err(AssemblerError::DuplicateLabel(format!("program:{}",program)));
                 }
                 self.earp_file.add_entry_point(program,self.pc);
             },
-            EarpAssemblyStatement::Label(label) => {
+            ParseStatement::Label(label) => {
                 if self.labels.contains_key(label) {
-                    return Err(EarpAssemblerError::DuplicateLabel(label.to_string()))
+                    return Err(AssemblerError::DuplicateLabel(label.to_string()))
                 }
                 self.labels.insert(label.to_string(),self.pc);
             },
-            EarpAssemblyStatement::RelativeLabel(label) => {
+            ParseStatement::RelativeLabel(label) => {
                 self.rel_labels.add_label(self.pc,label);
             },
             _ => {}
@@ -74,18 +74,18 @@ impl<'t> Assemble<'t> {
         Ok(())
     }
 
-    fn add_instructions(&mut self, statement: &EarpAssemblyStatement) -> Result<(),EarpAssemblerError> {
+    fn add_instructions(&mut self, statement: &ParseStatement) -> Result<(),AssemblerError> {
         match statement {
-            EarpAssemblyStatement::Instruction(prefix,identifier,arguments) => {
+            ParseStatement::Instruction(prefix,identifier,arguments) => {
                 self.rel_labels.fix_labels(self.pc, &mut self.labels);
                 let prefix = prefix.as_ref().map(|x| x.as_str());
                 let opcode = self.lookup.lookup(self.earp_file.set_mapper_mut(),&prefix,&identifier)?;
-                let operands = arguments.iter().map(|x| EarpOperand::new(x,&self)).collect::<Result<Vec<_>,_>>()?;
+                let operands = arguments.iter().map(|x| Operand::new(x,&self)).collect::<Result<Vec<_>,_>>()?;
                 self.earp_file.add_instruction(opcode,&operands);
                 self.pc += 1;
             },
-            EarpAssemblyStatement::InstructionsDecl(prefix,name,version) => {
-                self.lookup.add_mapping(prefix, &EarpInstructionSetIdentifier(name.to_string(),*version));
+            ParseStatement::InstructionsDecl(prefix,name,version) => {
+                self.lookup.add_mapping(prefix, &InstructionSetId(name.to_string(),*version));
             },
             _ => {}
         }
@@ -95,7 +95,7 @@ impl<'t> Assemble<'t> {
     fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 }
 
-fn assemble_instructions<'t>(suite: &'t Suite, statements: &[EarpAssemblyStatement]) -> Result<Assemble<'t>,EarpAssemblerError> {
+fn assemble_instructions<'t>(suite: &'t Suite, statements: &[ParseStatement]) -> Result<Assemble<'t>,AssemblerError> {
     let mut assemble = Assemble::new(suite);
     assemble.reset();
     for stmt in statements {
@@ -109,12 +109,10 @@ fn assemble_instructions<'t>(suite: &'t Suite, statements: &[EarpAssemblyStateme
 }
 
 // XXX include
-// XXX prefix collisions
 // XXX assets
 // XXX check operand types
 // XXX line numbers
-// XXX no eof
-pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[EarpAssemblyStatement]) -> Result<EarpFileWriter<'t>,EarpAssemblerError> {
+pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[ParseStatement]) -> Result<EarpFileWriter<'t>,AssemblerError> {
     Ok(assemble_instructions(suite,statements)?.into_earpfile())
 }
 
@@ -123,7 +121,7 @@ mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error}, suite::Suite, opcodemap::load_opcode_map, parser::{earp_parse, load_source_file}, hexfile::load_hexfile, error::EarpAssemblerError, command::{EarpCommand, EarpOperand}};
+    use crate::{testutil::{no_error, yes_error}, suite::Suite, opcodemap::load_opcode_map, parser::{earp_parse, load_source_file}, hexfile::load_hexfile, error::AssemblerError, command::{Command, Operand}};
 
     use super::{assemble, assemble_instructions};
 
@@ -135,7 +133,7 @@ mod test {
         suite
     }
 
-    fn build<'t>(suite: &'t Suite, contents: &str) -> Result<Vec<EarpCommand>,EarpAssemblerError> {
+    fn build<'t>(suite: &'t Suite, contents: &str) -> Result<Vec<Command>,AssemblerError> {
         let source = load_source_file(contents)?;
         Ok(assemble(suite,&source)?.commands().to_vec())
     }
@@ -148,7 +146,7 @@ mod test {
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&file));
-        let cmp = no_error(load_hexfile(include_str!("test/smoke-earp.hex")));
+        let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
@@ -156,24 +154,24 @@ mod test {
     #[test]
     fn test_labels() {
         let suite = test_suite();
-        let source = no_error(build(&suite,include_str!("test/test-labels.earp")));
+        let source = no_error(build(&suite,include_str!("test/assembler-labels/labels.earp")));
         assert_eq!(source,vec![
-            EarpCommand(5, vec![]),
-            EarpCommand(5, vec![]),
-            EarpCommand(1, vec![EarpOperand::Integer(1)])]);
+            Command(5, vec![]),
+            Command(5, vec![]),
+            Command(1, vec![Operand::Integer(1)])]);
     }
 
     #[test]
     fn test_labels_dup() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/test-labels-dup.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("test/assembler-labels/dup.earp"))).to_string();
         assert!(err.to_lowercase().contains("duplicate label"));
     }
 
     #[test]
     fn test_labels_missing() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/test-labels-missing.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("test/assembler-labels/missing.earp"))).to_string();
         assert!(err.to_lowercase().contains("unknown label"));
     }
 
@@ -184,7 +182,7 @@ mod test {
             if cmd.0 == 1 {
                 assert_eq!(cmd.1.len(),1);
                 match cmd.1[0] {
-                    EarpOperand::Integer(v) => { gotos.push(v); },
+                    Operand::Integer(v) => { gotos.push(v); },
                     _ => {}
                 }
             }
@@ -194,54 +192,54 @@ mod test {
 
     #[test]
     fn test_rel_labels() {
-        assert_eq!(vec![1,1,5,5,5,5,9,9],get_gotos(include_str!("test/test-rel-labels.earp")));
+        assert_eq!(vec![1,1,5,5,5,5,9,9],get_gotos(include_str!("test/assembler-labels/rel.earp")));
     }
 
     #[test]
     fn test_rel_labels_too_soon() {
         let suite = test_suite();
-        yes_error(build(&suite,include_str!("test/test-rel-labels-too-soon.earp")));
+        yes_error(build(&suite,include_str!("test/assembler-labels/rel-too-soon.earp")));
     }
 
     #[test]
     fn test_rel_labels_too_late() {
         let suite = test_suite();
-        yes_error(build(&suite,include_str!("test/test-rel-labels-too-late.earp")));
+        yes_error(build(&suite,include_str!("test/assembler-labels/rel-too-late.earp")));
     }
 
     #[test]
     fn test_rel_labels_multi() {
-        assert_eq!(vec![5,1,1,5,5,5,5,9,9,5],get_gotos(include_str!("test/test-rel-labels-multi.earp")));
+        assert_eq!(vec![5,1,1,5,5,5,5,9,9,5],get_gotos(include_str!("test/assembler-labels/rel-multi.earp")));
     }
 
     #[test]
     fn test_here_labels() {
-        assert_eq!(vec![0,2,0,3,5,3],get_gotos(include_str!("test/test-herelabels.earp")));
+        assert_eq!(vec![0,2,0,3,5,3],get_gotos(include_str!("test/assembler-labels/here.earp")));
     }
 
     #[test]
     fn test_here_labels_start() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/test-herelabels-start.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("test/assembler-labels/here-start.earp"))).to_string();
         assert!(err.to_lowercase().contains("bad here"));
     }
 
     #[test]
     fn test_here_labels_end() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/test-herelabels-end.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("test/assembler-labels/here-end.earp"))).to_string();
         assert!(err.to_lowercase().contains("bad here"));
     }
 
     #[test]
     fn test_opcode_mapping() {
         let mut suite = Suite::new();
-        for set in no_error(load_opcode_map(include_str!("test/full-test.map"))) {
+        for set in no_error(load_opcode_map(include_str!("test/assembler/full-test.map"))) {
             suite.add(set);
         }
-        let commands = no_error(build(&suite,include_str!("test/opcode-mapping.earp")));
+        let commands = no_error(build(&suite,include_str!("test/assembler/opcode-mapping.earp")));
         let mut opcodes= vec![];
-        for EarpCommand(opcode,_) in &commands {
+        for Command(opcode,_) in &commands {
             opcodes.push(*opcode);
         }
         assert_eq!(vec![
@@ -254,7 +252,7 @@ mod test {
     #[test]
     fn test_program_label() {
         let suite = test_suite();
-        let source = no_error(load_source_file(include_str!("test/test-labels-program.earp")));
+        let source = no_error(load_source_file(include_str!("test/assembler-labels/labels-program.earp")));
         let earp_file = no_error(assemble_instructions(&suite,&source)).into_earpfile();
         let mut out = vec![];
         for (label,pc) in earp_file.entry_points() {
@@ -282,7 +280,7 @@ mod test {
     #[test]
     fn test_type_value() {
         let suite = test_suite();
-        let source = no_error(build(&suite,include_str!("test/test-shape.earp")));
+        let source = no_error(build(&suite,include_str!("test/assembler/shape.earp")));
         let mut shapes = vec![];
         for shape in &source {
             shapes.push(unshape(shape.type_value()));
@@ -306,4 +304,23 @@ mod test {
 
         ],shapes);        
     }
+
+    #[test]
+    fn test_collide_ok() {
+        let mut suite = Suite::new();
+        for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
+            suite.add(set);
+        }
+        no_error(build(&suite,include_str!("test/assembler/collide-ok.earp")));
+    }
+
+    #[test]
+    fn test_collide_bad() {
+        let mut suite = Suite::new();
+        for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
+            suite.add(set);
+        }
+        let e = yes_error(build(&suite,include_str!("test/assembler/collide-bad.earp")));
+        assert!(e.to_string().to_lowercase().contains("duplicate"));
+    }    
 }

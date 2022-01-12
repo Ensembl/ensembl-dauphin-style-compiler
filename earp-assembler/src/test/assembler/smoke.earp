@@ -3,6 +3,7 @@ $instructions c console/0
 
 ; test program
 program:test1:
+
     label:
         copy r0, "hello, \"world\""
         c.info r0
@@ -10,14 +11,17 @@ program:test1:
 
 ; simple test of calling conventions
 program:test2:
+
     1:
         copy r0, "hello, \"world\"\n"
+
         push
         copy r1, u0
         copy r0, @+2
         goto .printer
         pop
         goto .1r
+
     printer:
         c.info r1
         c.warn r1

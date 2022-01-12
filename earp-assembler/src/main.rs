@@ -14,42 +14,49 @@ mod suite;
 #[cfg(test)]
 mod testutil;
 
-use std::{process::exit, fs::read_to_string};
+use std::{process::exit, fs::{read_to_string, self}};
 
-use error::EarpAssemblerError;
+use earpfile::EarpFileWriter;
+use error::AssemblerError;
+use minicbor::Encoder;
 use opcodemap::load_opcode_map;
 use options::{parse_config, Config};
-use parser::{EarpAssemblyStatement, load_source_file};
+use parser::{ParseStatement, load_source_file};
 use suite::Suite;
 use assemble::assemble;
 
-fn debug(config: &Config, str: &str) {
-    if config.verbose > 1 {
+fn debug(config: &Config, str: &str, min: u32) {
+    if config.verbose >= min {
         println!("{}",str);
     }
 }
 
-fn load_file(path: &str) -> Result<String,EarpAssemblerError> {
-    read_to_string(path).map_err(|e|  EarpAssemblerError::FileError(e.to_string()))
+fn load_file(path: &str) -> Result<String,AssemblerError> {
+    read_to_string(path).map_err(|e|  AssemblerError::FileError(e.to_string()))
 }
 
-fn load_opcode_map_file(config: &Config, suite: &mut Suite, name: &str, contents: &str) -> Result<(),EarpAssemblerError> {
-    debug(config,"Loading default maps"); 
+fn save_file(config: &Config, path: &str, data: &Vec<u8>) -> Result<(),AssemblerError> {
+    debug(config,&format!("Writing {}",path),1);
+    fs::write(path,data).map_err(|e|  AssemblerError::FileError(e.to_string()))
+}
+
+fn load_opcode_map_file(config: &Config, suite: &mut Suite, name: &str, contents: &str) -> Result<(),AssemblerError> {
+    debug(config,"Loading default maps",2); 
     let maps = load_opcode_map(contents)
         .map_err(|e| e.add_context(&format!("ERROR: loading {}",name)))?;
     for map in maps {
-        debug(config,&format!("Loading instruction set map {}",map.identifier().to_string()));
+        debug(config,&format!("Loading instruction set map {}",map.identifier().to_string()),2);
         suite.add(map);
     }
     Ok(())
 }
 
-fn load_source(path: &str) -> Result<Vec<EarpAssemblyStatement>,EarpAssemblerError> {
+fn load_source(path: &str) -> Result<Vec<ParseStatement>,AssemblerError> {
     let filedata = load_file(path)?;
     load_source_file(&filedata)
 }
 
-fn load_sources(config: &Config) -> Result<Vec<EarpAssemblyStatement>,EarpAssemblerError> {
+fn load_sources(config: &Config) -> Result<Vec<ParseStatement>,AssemblerError> {
     let mut out = vec![];
     for path in &config.source_files {
         out.append(&mut load_source(path)?);
@@ -57,7 +64,16 @@ fn load_sources(config: &Config) -> Result<Vec<EarpAssemblyStatement>,EarpAssemb
     Ok(out)
 }
 
-fn run(config: &Config) -> Result<(),EarpAssemblerError> {
+fn write_earp_file(config: &Config, earp_file: &EarpFileWriter) -> Result<(),AssemblerError> {
+    let mut out = vec![];
+    let mut encoder = Encoder::new(&mut out);
+    encoder.encode(earp_file)
+        .map_err(|e| AssemblerError::CannotSerialize(e.to_string()))?;
+    save_file(&config,&config.object_file,&out)?;
+    Ok(())
+}
+
+fn run(config: &Config) -> Result<(),AssemblerError> {
     if config.verbose > 0 {
         println!("Assembling output file {}",config.object_file);
     }
@@ -71,6 +87,7 @@ fn run(config: &Config) -> Result<(),EarpAssemblerError> {
     }
     let source = load_sources(config)?;
     let earp_file = assemble(&suite,&source)?;
+    write_earp_file(config,&earp_file)?;
     Ok(())
 }
 

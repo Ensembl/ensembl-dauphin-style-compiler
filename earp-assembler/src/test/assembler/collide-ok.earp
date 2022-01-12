@@ -1,0 +1,4 @@
+$instructions std/0
+$instructions test/0
+
+copy
