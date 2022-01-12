@@ -3,7 +3,7 @@
 //
 
 WHITESPACE = _{ " " | "\t" }
-COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ &"\n" }
+COMMENT = _{ ";" ~ (!"\n" ~ ANY)* ~ &("\n"|EOI) }
 
 identifier = @{ ASCII_ALPHA ~ ASCII_ALPHANUMERIC* }
 integer = @{ ASCII_DIGIT+ }
@@ -14,7 +14,12 @@ integer = @{ ASCII_DIGIT+ }
 instruction_set = _{ identifier ~ "/" ~ integer }
 instructions_declaration = { "$instructions" ~ (instruction_set | (identifier ~ instruction_set)) }
 
-declaration = { (instructions_declaration)? ~ &(NEWLINE|EOI) }
+asset_format = { "raw" | "string" | "hex" }
+asset_source = { "file" }
+asset_path = { ( !(WHITESPACE|"\n") ~ ANY )+ }
+asset_declaration = { "$asset" ~ identifier ~ asset_format ~ asset_source ~ asset_path }
+
+declaration = { (instructions_declaration|asset_declaration)? ~ &(NEWLINE|EOI) }
 
 //
 // operand: floats

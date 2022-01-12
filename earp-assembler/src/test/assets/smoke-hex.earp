@@ -1,0 +1,8 @@
+$instructions std/0
+
+$asset test hex file hex-asset.txt
+
+; test program
+program:test:
+    halt
+

@@ -31,7 +31,7 @@ impl<'t> SetMapper<'t> {
     }
 
     pub(crate) fn lookup(&mut self, id: &InstructionSetId, name: &str) -> Option<u64> {
-        if let Some(set) = self.suite.get(id) {
+        if let Some(set) = self.suite.get_instruction_set(id) {
             self.lookup_real(set,name)
         } else {
             None

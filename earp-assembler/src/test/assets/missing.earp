@@ -1,0 +1,7 @@
+$instructions std/0
+
+$asset test raw file missing-raw-asset.bin
+
+; test program
+program:test:
+    halt

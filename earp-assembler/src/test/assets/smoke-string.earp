@@ -1,0 +1,8 @@
+$instructions std/0
+
+$asset test string file string-asset.txt
+
+; test program
+program:test:
+    halt
+

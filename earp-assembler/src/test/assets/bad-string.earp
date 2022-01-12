@@ -1,0 +1,8 @@
+$instructions std/0
+
+$asset test string file raw-asset.bin
+
+; test program
+program:test:
+    halt
+

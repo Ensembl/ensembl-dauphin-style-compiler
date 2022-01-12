@@ -7,18 +7,20 @@ pub(crate) struct Assemble<'t> {
     earp_file: EarpFileWriter<'t>,
     labels: HashMap<String,i64>,
     rel_labels: RelativeLabelContext,
-    lookup: Lookup
+    lookup: Lookup,
+    file_path: Option<String>
 }
 
 impl<'t> Assemble<'t> {
-    fn new(suite: &'t Suite) -> Assemble<'t> {
+    fn new(suite: &'t Suite, file_path: Option<&str>) -> Assemble<'t> {
         Assemble {
             pc: 0,
             max_pc: 0,
             earp_file: EarpFileWriter::new(suite),
             labels: HashMap::new(),
             rel_labels: RelativeLabelContext::new(),
-            lookup: Lookup::new()
+            lookup: Lookup::new(),
+            file_path: file_path.map(|x| x.to_string())
         }
     }
 
@@ -87,6 +89,9 @@ impl<'t> Assemble<'t> {
             ParseStatement::InstructionsDecl(prefix,name,version) => {
                 self.lookup.add_mapping(prefix, &InstructionSetId(name.to_string(),*version));
             },
+            ParseStatement::AssetDecl(name,format,source,path) => {
+                self.earp_file.assets_mut().add(name,format,source,path,&self.file_path)?;
+            },
             _ => {}
         }
         Ok(())
@@ -95,8 +100,8 @@ impl<'t> Assemble<'t> {
     fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 }
 
-fn assemble_instructions<'t>(suite: &'t Suite, statements: &[ParseStatement]) -> Result<Assemble<'t>,AssemblerError> {
-    let mut assemble = Assemble::new(suite);
+fn assemble_instructions<'t>(suite: &'t Suite, statements: &[ParseStatement], file_path: Option<&str>) -> Result<Assemble<'t>,AssemblerError> {
+    let mut assemble = Assemble::new(suite,file_path);
     assemble.reset();
     for stmt in statements {
         assemble.set_labels(stmt)?;
@@ -112,8 +117,8 @@ fn assemble_instructions<'t>(suite: &'t Suite, statements: &[ParseStatement]) ->
 // XXX assets
 // XXX check operand types
 // XXX line numbers
-pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[ParseStatement]) -> Result<EarpFileWriter<'t>,AssemblerError> {
-    Ok(assemble_instructions(suite,statements)?.into_earpfile())
+pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[ParseStatement], file_path: Option<&str>) -> Result<EarpFileWriter<'t>,AssemblerError> {
+    Ok(assemble_instructions(suite,statements,file_path)?.into_earpfile())
 }
 
 #[cfg(test)]
@@ -121,28 +126,15 @@ mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error}, suite::Suite, opcodemap::load_opcode_map, parser::{earp_parse, load_source_file}, hexfile::load_hexfile, error::AssemblerError, command::{Command, Operand}};
+    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, parser::{earp_parse, load_source_file}, hexfile::load_hexfile, command::{Command, Operand}};
 
     use super::{assemble, assemble_instructions};
-
-    fn test_suite() -> Suite {
-        let mut suite = Suite::new();
-        for set in no_error(load_opcode_map(include_str!("test/test.map"))) {
-            suite.add(set);
-        }
-        suite
-    }
-
-    fn build<'t>(suite: &'t Suite, contents: &str) -> Result<Vec<Command>,AssemblerError> {
-        let source = load_source_file(contents)?;
-        Ok(assemble(suite,&source)?.commands().to_vec())
-    }
 
     #[test]
     fn assemble_smoke() {
         let suite = test_suite();
         let source = no_error(earp_parse(include_str!("test/test.earp")));
-        let file = no_error(assemble(&suite,&source));
+        let file = no_error(assemble(&suite,&source,None));
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&file));
@@ -235,7 +227,7 @@ mod test {
     fn test_opcode_mapping() {
         let mut suite = Suite::new();
         for set in no_error(load_opcode_map(include_str!("test/assembler/full-test.map"))) {
-            suite.add(set);
+            suite.add_instruction_set(set);
         }
         let commands = no_error(build(&suite,include_str!("test/assembler/opcode-mapping.earp")));
         let mut opcodes= vec![];
@@ -253,7 +245,7 @@ mod test {
     fn test_program_label() {
         let suite = test_suite();
         let source = no_error(load_source_file(include_str!("test/assembler-labels/labels-program.earp")));
-        let earp_file = no_error(assemble_instructions(&suite,&source)).into_earpfile();
+        let earp_file = no_error(assemble_instructions(&suite,&source,None)).into_earpfile();
         let mut out = vec![];
         for (label,pc) in earp_file.entry_points() {
             out.push((label.to_string(),*pc));
@@ -309,7 +301,7 @@ mod test {
     fn test_collide_ok() {
         let mut suite = Suite::new();
         for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
-            suite.add(set);
+            suite.add_instruction_set(set);
         }
         no_error(build(&suite,include_str!("test/assembler/collide-ok.earp")));
     }
@@ -318,7 +310,7 @@ mod test {
     fn test_collide_bad() {
         let mut suite = Suite::new();
         for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
-            suite.add(set);
+            suite.add_instruction_set(set);
         }
         let e = yes_error(build(&suite,include_str!("test/assembler/collide-bad.earp")));
         assert!(e.to_string().to_lowercase().contains("duplicate"));

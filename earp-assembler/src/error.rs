@@ -13,7 +13,8 @@ pub(crate) enum AssemblerError {
     SyntaxError(String),
     BadHereLabel(String),
     CannotSerialize(String),
-    DuplicateOpcode(String)
+    DuplicateOpcode(String),
+    DuplicateAssetName(String)
 }
 
 #[derive(Clone)]
@@ -29,7 +30,8 @@ pub(crate) enum AssemblerErrorType {
     SyntaxError,
     BadHereLabel,
     CannotSerialize,
-    DuplicateOpcode
+    DuplicateOpcode,
+    DuplicateAssetName
 }
 
 impl AssemblerErrorType {
@@ -41,12 +43,13 @@ impl AssemblerErrorType {
             AssemblerErrorType::UnknownOpcode => "Unknown Opcode",
             AssemblerErrorType::UnknownLabel => "Unknown Label",
             AssemblerErrorType::EncodingError => "Encoding Error",
-            AssemblerErrorType::BadHexFile => "BadHex File",
+            AssemblerErrorType::BadHexFile => "Bad Hex File",
             AssemblerErrorType::FileError => "File Error",
             AssemblerErrorType::SyntaxError => "Syntax Error",
             AssemblerErrorType::BadHereLabel => "Bad Here Label",
             AssemblerErrorType::CannotSerialize => "Cannot Serialize",
-            AssemblerErrorType::DuplicateOpcode => "Duplicate Opcode"
+            AssemblerErrorType::DuplicateOpcode => "Duplicate Opcode",
+            AssemblerErrorType::DuplicateAssetName => "Duplicate Asset Name"
         }
     }
 
@@ -64,6 +67,7 @@ impl AssemblerErrorType {
             AssemblerErrorType::BadHereLabel => AssemblerError::BadHereLabel(msg),
             AssemblerErrorType::CannotSerialize => AssemblerError::CannotSerialize(msg),
             AssemblerErrorType::DuplicateOpcode => AssemblerError::DuplicateOpcode(msg),
+            AssemblerErrorType::DuplicateAssetName => AssemblerError::DuplicateAssetName(msg),
         }
     }
 }
@@ -85,12 +89,13 @@ impl AssemblerError {
             AssemblerError::BadHereLabel(s) => Burst(AssemblerErrorType::BadHereLabel,s),
             AssemblerError::CannotSerialize(s) => Burst(AssemblerErrorType::CannotSerialize,s),
             AssemblerError::DuplicateOpcode(s) => Burst(AssemblerErrorType::DuplicateOpcode,s),
+            AssemblerError::DuplicateAssetName(s) => Burst(AssemblerErrorType::DuplicateAssetName,s),
         }
     }
 
     pub(crate) fn add_context(&self, context: &str) -> AssemblerError {
         let burst = self.clone().burst();
-        burst.0.unburst(format!("{}:\n{}",context,burst.1))
+        burst.0.unburst(format!("{}: {}",context,burst.1))
     }
 }
 

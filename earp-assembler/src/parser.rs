@@ -1,6 +1,6 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::error::AssemblerError;
+use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}};
 
 #[derive(Clone,Debug,PartialEq)]
 pub(crate) enum AssemblyLocation {
@@ -22,8 +22,10 @@ pub(crate) enum ParseOperand {
 
 #[derive(Debug,PartialEq)]
 pub(crate) enum ParseStatement {
-    Program(String),
     InstructionsDecl(Option<String>,String,u64),
+    AssetDecl(String,AssetFormat,AssetSource,String),
+    /**/
+    Program(String),
     Instruction(Option<String>,String,Vec<ParseOperand>),
     Label(String),
     RelativeLabel(String),
@@ -75,8 +77,38 @@ impl AssemblerParser {
         ))
     }
 
+    fn asset_format(input: Node) -> PestResult<AssetFormat> {
+        match input.as_str() {
+            "raw" => Ok(AssetFormat::Raw),
+            "hex" => Ok(AssetFormat::Hex),
+            "string" => Ok(AssetFormat::String),
+            _ => Err(input.error("disallowed asset format (parser bug"))
+        }
+    }
+
+    fn asset_source(input: Node) -> PestResult<AssetSource> {
+        match input.as_str() {
+            "file" => Ok(AssetSource::File),
+            _ => Err(input.error("disallowed asset source (parser bug"))
+        }
+    }
+
+    fn asset_path(input: Node) -> PestResult<String> { Ok(input.as_str().to_string()) }
+
+    //identifier ~ asset_source ~ asset_source ~ asset_path
+    fn asset_declaration(input: Node) -> PestResult<ParseStatement> {
+        Ok(match_nodes!(input.into_children();
+            [identifier(prefix),asset_format(format),asset_source(source),asset_path(path)] => 
+            ParseStatement::AssetDecl(prefix.to_string(),format,source,path)
+        ))
+    }
+
     fn declaration(input: Node) -> PestResult<ParseStatement> {
-        Ok(match_nodes!(input.into_children(); [instructions_declaration(d)] => d , [] => ParseStatement::Noop ))
+        Ok(match_nodes!(input.into_children();
+            [instructions_declaration(d)] => d,
+            [asset_declaration(d)] => d,
+            [] => ParseStatement::Noop
+        ))
     }
 
     fn declaration_section(input: Node) -> PestResult<Vec<ParseStatement>> {

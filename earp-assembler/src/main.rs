@@ -1,7 +1,9 @@
 mod assemble;
+mod assets;
 mod command;
 mod earpfile;
 mod error;
+mod fileassets;
 mod hexfile;
 mod instructionset;
 mod lookup;
@@ -46,7 +48,7 @@ fn load_opcode_map_file(config: &Config, suite: &mut Suite, name: &str, contents
         .map_err(|e| e.add_context(&format!("ERROR: loading {}",name)))?;
     for map in maps {
         debug(config,&format!("Loading instruction set map {}",map.identifier().to_string()),2);
-        suite.add(map);
+        suite.add_instruction_set(map);
     }
     Ok(())
 }
@@ -86,8 +88,11 @@ fn run(config: &Config) -> Result<(),AssemblerError> {
         load_opcode_map_file(config, &mut suite, &format!("'{}'",filename), &filedata)?;
     }
     let source = load_sources(config)?;
-    let earp_file = assemble(&suite,&source)?;
-    write_earp_file(config,&earp_file)?;
+    // XXX multi
+    if config.source_files.len() > 0 {
+        let earp_file = assemble(&suite,&source,Some(&config.source_files[0]))?;
+        write_earp_file(config,&earp_file)?;    
+    }
     Ok(())
 }
 
