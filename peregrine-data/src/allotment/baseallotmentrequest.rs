@@ -6,10 +6,12 @@ use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{All
 pub(super) fn remove_bracketed(spec: &mut String, start: &str, end: &str) -> Option<String> {
     let mut depth = None;
     if let Some(start) = spec.find(start) {
-        if let Some(end) = spec[start..].find(end).map(|x| x+start) {
+        if let Some(end) = spec[(start+1)..].find(end).map(|x| x+start+1) {
             depth = Some(spec[(start+1)..end].to_string());
             let mut new_spec = spec[0..start].to_string();
-            new_spec.push_str(&spec[end+1..].to_string());
+            if spec.len() > end {
+                new_spec.push_str(&spec[end+1..].to_string());
+            }
             *spec = new_spec;
         }
     }
@@ -22,6 +24,10 @@ pub(super) fn remove_depth(spec: &mut String) -> i8 {
 
 pub(super) fn remove_secondary(spec: &mut String) -> Option<String> {
     remove_bracketed(spec,"{","}")
+}
+
+pub(super) fn remove_group(spec: &mut String) -> Option<String> {
+    remove_bracketed(spec,"\"","\"")
 }
 
 pub(super) fn trim_prefix(prefix: &str, name: &str) -> Option<String> {
@@ -97,6 +103,7 @@ impl<T> BaseAllotmentRequest<T> {
 impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
     fn name(&self) -> String {
         let mut out = self.metadata.name().to_string();
+        remove_group(&mut out);
         remove_secondary(&mut out);
         remove_depth(&mut out);
         out

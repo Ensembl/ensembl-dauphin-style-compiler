@@ -44,18 +44,27 @@ switch_names := [
 enabled_tracks := get_switch(switch_names[]);
 
 potential_tracks := ["track:gene-other-rev[4]","track:gene-pc-rev[4]","track:gene-other-fwd[4]","track:gene-pc-fwd[4]","track:focus[4]"];
-use_allotments(allotments,enabled_tracks,potential_tracks);
+
+use_allotment_names(allotment_names,enabled_tracks,potential_tracks);
+
+use_allotment_names(allotment_text_names,enabled_tracks,[
+    "track:gene-other-rev","track:gene-pc-rev",
+    "track:gene-other-fwd","track:gene-pc-fwd",
+    "track:focus"
+]);
+
+/*
+use_allotments(allotments_text,enabled_tracks,[
+    "track:gene-other-rev","track:gene-pc-rev",
+    "track:gene-other-fwd","track:gene-pc-fwd",
+    "track:focus"
+]);
+*/
 
 use_allotments(allotments_wallpaper,enabled_tracks,[
     "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
     "track:gene-other-fwd:wallpaper[-10]","track:gene-pc-fwd:wallpaper[-10]",
     "track:focus:wallpaper[-10]"
-]);
-
-use_allotments(allotments_text,enabled_tracks,[
-    "track:gene-other-rev","track:gene-pc-rev",
-    "track:gene-other-fwd","track:gene-pc-fwd",
-    "track:focus"
 ]);
 
 tracks_used_cat := ["","","","",""];
@@ -82,12 +91,12 @@ allotment_idx#[focus_id==focus_gene] := 4;
 
 allotments_cat := [use_allotment(tracks_used_cat[])];
 
-allotment := index(allotment_idx,allotments);
-text_allotment := index(allotment_idx,allotments_text);
-
 track_name := index(allotment_idx,potential_tracks);
 
-alienate(allotment);
+allotment := use_allotment(index(allotment_idx,allotment_names));
+//allotment := use_allotment(append_group(index(allotment_idx,allotment_names),gene_id));
+text_allotment := use_allotment(index(allotment_idx,allotment_text_names));
+//text_allotment := index(allotment_idx,allotments_text);
 
 /* 
  * focus object

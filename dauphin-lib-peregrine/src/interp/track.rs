@@ -13,6 +13,7 @@ simple_interp_command!(AddAllotmentInterpCommand,AddAllotmentDeserializer,10,7,(
 simple_interp_command!(DataSourceInterpCommand,DataSourceDeserializer,8,1,(0));
 simple_interp_command!(SetSwitchInterpCommand,SetSwitchDeserializer,33,4,(0,1,2,3));
 simple_interp_command!(ClearSwitchInterpCommand,ClearSwitchDeserializer,34,4,(0,1,2,3));
+simple_interp_command!(AppendGroupInterpCommand,AppendGroupDeserializer,47,3,(0,1,2));
 
 impl InterpCommand for NewLaneInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -190,5 +191,23 @@ impl InterpCommand for DataSourceInterpCommand {
     fn execute(&self, _context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let cmd = self.clone();
         Ok(CommandResult::AsyncResult(AsyncBlock::new(Box::new(|context| Box::pin(data_source(context,cmd))))))
+    }
+}
+
+impl InterpCommand for AppendGroupInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let allotments = registers.get_strings(&self.1)?.to_vec();
+        let groups = registers.get_strings(&self.2)?.to_vec();
+        let mut out = vec![];
+        for (allotment,group) in allotments.iter().zip(groups.iter().cycle()) {
+            if allotment.is_empty() {
+                out.push("".to_string());
+            } else {
+                out.push(format!("{}\"{}\"",allotment,group));
+            }
+        }
+        registers.write(&self.0, InterpValue::Strings(out));
+        Ok(CommandResult::SyncResult())
     }
 }

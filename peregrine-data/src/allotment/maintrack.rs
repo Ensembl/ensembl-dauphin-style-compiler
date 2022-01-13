@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::allotmentrequest::AllotmentRequestImpl};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}, offsetallotment::OffsetAllotment};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix, remove_group}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}, offsetallotment::OffsetAllotment};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -30,6 +30,11 @@ impl MTSpecifier {
         let mut spec = spec.to_string();
         let depth = remove_depth(&mut spec);
         let secondary = remove_secondary(&mut spec);
+        let group = remove_group(&mut spec);
+        if let Some(group) = group {
+            use web_sys::console;
+            console::log_1(&format!("group: {}",group).into());
+        }
         if let Some(main) = trim_suffix("wallpaper",&spec) {
             MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth, secondary }
         } else if let Some(main) = trim_suffix("window",&spec) {

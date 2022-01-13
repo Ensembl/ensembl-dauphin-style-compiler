@@ -130,6 +130,7 @@ func alternate(number) becomes number;
 func classify(string,number) becomes string;
 func split_string(string) becomes vec(string);
 func base_flip(string) becomes string;
+func append_group(string,string) becomes string;
 
 expr delta_seq(stream,name) delta(zigzag(lesqlite2(inflate_bytes(data_stream(stream,name)))));
 expr string_seq(stream,name) split_string(inflate_string(data_stream(stream,name)))[];
