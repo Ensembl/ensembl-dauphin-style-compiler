@@ -2,6 +2,7 @@ use std::{collections::HashMap};
 
 use crate::{instructionset::{InstructionSetId}, error::{AssemblerError, unknown_opcode_error, duplicate_opcode_error}, setmapper::SetMapper};
 
+#[derive(Clone,Debug)]
 pub(crate) struct Lookup {
     mappings: HashMap<Option<String>,Vec<InstructionSetId>>,
     cache: HashMap<(Option<String>,String),Option<u64>>

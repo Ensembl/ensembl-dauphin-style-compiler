@@ -1,6 +1,6 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}};
+use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}, assemble::AssembleFile, fileloader::FileLoader};
 
 #[derive(Clone,Debug,PartialEq)]
 pub(crate) enum AssemblyLocation {
@@ -20,7 +20,7 @@ pub(crate) enum ParseOperand {
     Location(AssemblyLocation)
 }
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug)]
 pub(crate) enum ParseStatement {
     InstructionsDecl(Option<String>,String,u64),
     AssetDecl(String,AssetFormat,AssetSource,String),
@@ -29,7 +29,24 @@ pub(crate) enum ParseStatement {
     Instruction(Option<String>,String,Vec<ParseOperand>),
     Label(String),
     RelativeLabel(String),
-    Noop
+    Noop,
+    Include(String,Option<AssembleFile>)
+}
+
+#[cfg(test)]
+impl PartialEq for ParseStatement {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::InstructionsDecl(l0, l1, l2), Self::InstructionsDecl(r0, r1, r2)) => l0 == r0 && l1 == r1 && l2 == r2,
+            (Self::AssetDecl(l0, l1, l2, l3), Self::AssetDecl(r0, r1, r2, r3)) => l0 == r0 && l1 == r1 && l2 == r2 && l3 == r3,
+            (Self::Program(l0), Self::Program(r0)) => l0 == r0,
+            (Self::Instruction(l0, l1, l2), Self::Instruction(r0, r1, r2)) => l0 == r0 && l1 == r1 && l2 == r2,
+            (Self::Label(l0), Self::Label(r0)) => l0 == r0,
+            (Self::RelativeLabel(l0), Self::RelativeLabel(r0)) => l0 == r0,
+            (Self::Include(l0, _), Self::Include(r0, r1)) => l0 == r0,
+            _ => core::mem::discriminant(self) == core::mem::discriminant(other),
+        }
+    }
 }
 
 impl ParseStatement {
@@ -251,12 +268,15 @@ impl AssemblerParser {
 
     /* PROGRAM LINES */
 
+    fn include(input: Node) -> PestResult<String> { Ok(match_nodes!(input.into_children(); [asset_path(path)] => path.to_string() )) } 
+
     fn program_line(input: Node) -> PestResult<ParseStatement> {
         Ok(match_nodes!(input.into_children();
             [instruction(instr)] => instr,
             [program_label(prog)] => ParseStatement::Program(prog.to_string()),
             [label(b)] => ParseStatement::Label(b.to_string()),
             [rellabel(b)] => ParseStatement::RelativeLabel(b),
+            [include(path)] => ParseStatement::Include(path.to_string(),None),
             [] => ParseStatement::Noop
         ))
     }
@@ -480,6 +500,17 @@ mod test {
         assert_eq!(no_error(earp_parse(include_str!("test/parser/no-eol2.earp"))),
             vec![
                 ParseStatement::InstructionsDecl(None,"std".to_string(),0)
+            ]);
+    }
+
+    #[test]
+    fn test_parse_include() {
+        assert_eq!(no_error(earp_parse(include_str!("test/parser/include.earp"))),
+            vec![
+                ParseStatement::Program("test1".to_string()),
+                ParseStatement::Include("include-1.earp".to_string(),None),
+                ParseStatement::Program("test2".to_string()),
+                ParseStatement::Include("include-2.earp".to_string(),None)
             ]);
     }
 }

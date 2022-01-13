@@ -1,9 +1,10 @@
 use std::{collections::HashMap};
 
-use crate::{instructionset::{InstructionSetId, InstructionSet}, assets::{AssetSource, AssetLoader}};
+use crate::{instructionset::{InstructionSetId, InstructionSet}, assets::{AssetSource, AssetLoader}, fileloader::FileLoader};
 
 pub(crate) struct Suite {
     sets: HashMap<InstructionSetId,InstructionSet>,
+    source_loader: FileLoader,
     asset_loaders: HashMap<AssetSource,Box<dyn AssetLoader>>
 }
 
@@ -11,6 +12,7 @@ impl Suite {
     pub(crate) fn new() -> Suite {
         Suite {
             sets: HashMap::new(),
+            source_loader: FileLoader::new(),
             asset_loaders: HashMap::new()
         }
     }
@@ -30,4 +32,7 @@ impl Suite {
     pub(crate) fn get_loader(&self, source: &AssetSource) -> Option<&Box<dyn AssetLoader>> {
         self.asset_loaders.get(source)
     }
+
+    pub(crate) fn source_loader(&self) -> &FileLoader { &self.source_loader }
+    pub(crate) fn source_loader_mut(&mut self) -> &mut FileLoader { &mut self.source_loader }
 }

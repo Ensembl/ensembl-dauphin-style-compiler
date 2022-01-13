@@ -1,4 +1,4 @@
-use crate::{opcodemap::load_opcode_map, suite::Suite, assemble::assemble, parser::load_source_file, command::Command, error::AssemblerError, fileassets::FileAssetLoader, assets::AssetSource};
+use crate::{opcodemap::load_opcode_map, suite::Suite, assemble::{Assemble}, command::Command, error::AssemblerError, assets::AssetSource, fileloader::FileLoader};
 
 pub fn no_error<T,E>(res: Result<T, E>) -> T where E: ToString {
     match res {
@@ -24,7 +24,7 @@ pub fn yes_error<T,E>(res: Result<T, E>) -> E {
 
 pub(crate) fn test_suite() -> Suite {
     let mut suite = Suite::new();
-    let mut file_asset_loader = FileAssetLoader::new();
+    let mut file_asset_loader = FileLoader::new();
     file_asset_loader.add_search_path(".");
     suite.add_loader(AssetSource::File,file_asset_loader);
     for set in no_error(load_opcode_map(include_str!("test/test.map"))) {
@@ -34,6 +34,8 @@ pub(crate) fn test_suite() -> Suite {
 }
 
 pub(crate) fn build<'t>(suite: &'t Suite, contents: &str) -> Result<Vec<Command>,AssemblerError> {
-    let source = load_source_file(contents)?;
-    Ok(assemble(suite,&source,None)?.commands().to_vec())
+    let mut assembler = Assemble::new(&suite);
+    assembler.add_source(contents,None)?;
+    assembler.assemble()?;
+    Ok(assembler.into_earpfile().commands().to_vec())
 }

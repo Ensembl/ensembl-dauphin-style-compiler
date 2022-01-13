@@ -1,6 +1,6 @@
 use minicbor::{Encoder, Encode};
 
-use crate::{parser::ParseOperand, error::AssemblerError, assemble::Assemble};
+use crate::{parser::ParseOperand, error::AssemblerError, assemble::{Assemble, AssembleFile}};
 
 #[derive(Clone,Debug,PartialEq)]
 pub(crate) enum Operand {
@@ -13,7 +13,7 @@ pub(crate) enum Operand {
 }
 
 impl Operand {
-    pub(crate) fn new(value: &ParseOperand, context: &Assemble) -> Result<Operand,AssemblerError> {
+    pub(crate) fn new(value: &ParseOperand, assemble: &Assemble, context: &AssembleFile) -> Result<Operand,AssemblerError> {
         Ok(match value {
             ParseOperand::Register(r) => Operand::Register(*r),
             ParseOperand::UpRegister(r) => Operand::UpRegister(*r),
@@ -21,7 +21,7 @@ impl Operand {
             ParseOperand::Boolean(b) => Operand::Boolean(*b),
             ParseOperand::Integer(n) => Operand::Integer(*n),
             ParseOperand::Float(f) => Operand::Float(*f),
-            ParseOperand::Location(loc) => Operand::Integer(context.resolve_label(loc)?)
+            ParseOperand::Location(loc) => Operand::Integer(context.resolve_label(assemble,loc)?)
         })
     }
 

@@ -3,7 +3,7 @@ mod assets;
 mod command;
 mod earpfile;
 mod error;
-mod fileassets;
+mod fileloader;
 mod hexfile;
 mod instructionset;
 mod lookup;
@@ -25,7 +25,7 @@ use opcodemap::load_opcode_map;
 use options::{parse_config, Config};
 use parser::{ParseStatement, load_source_file};
 use suite::Suite;
-use assemble::assemble;
+use assemble::{Assemble};
 
 fn debug(config: &Config, str: &str, min: u32) {
     if config.verbose >= min {
@@ -53,19 +53,7 @@ fn load_opcode_map_file(config: &Config, suite: &mut Suite, name: &str, contents
     Ok(())
 }
 
-fn load_source(path: &str) -> Result<Vec<ParseStatement>,AssemblerError> {
-    let filedata = load_file(path)?;
-    load_source_file(&filedata)
-}
-
-fn load_sources(config: &Config) -> Result<Vec<ParseStatement>,AssemblerError> {
-    let mut out = vec![];
-    for path in &config.source_files {
-        out.append(&mut load_source(path)?);
-    }
-    Ok(out)
-}
-
+// XXX source root
 fn write_earp_file(config: &Config, earp_file: &EarpFileWriter) -> Result<(),AssemblerError> {
     let mut out = vec![];
     let mut encoder = Encoder::new(&mut out);
@@ -80,19 +68,20 @@ fn run(config: &Config) -> Result<(),AssemblerError> {
         println!("Assembling output file {}",config.object_file);
     }
     let mut suite = Suite::new();
-    if !config.no_default_maps {   
+    suite.source_loader_mut().add_search_path(".");
+    if !config.no_default_maps {
         load_opcode_map_file(config, &mut suite, "default maps", include_str!("maps/standard.map"))?;
     }
     for filename in &config.additional_maps {
         let filedata = load_file(filename)?;
         load_opcode_map_file(config, &mut suite, &format!("'{}'",filename), &filedata)?;
     }
-    let source = load_sources(config)?;
-    // XXX multi
-    if config.source_files.len() > 0 {
-        let earp_file = assemble(&suite,&source,Some(&config.source_files[0]))?;
-        write_earp_file(config,&earp_file)?;    
+    let mut assembler = Assemble::new(&suite);
+    for source_file in &config.source_files {
+        assembler.add_source(&load_file(&source_file)?,Some(source_file))?;
     }
+    assembler.assemble()?;
+    write_earp_file(config,&assembler.into_earpfile())?;
     Ok(())
 }
 

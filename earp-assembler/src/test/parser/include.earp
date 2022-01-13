@@ -1,0 +1,9 @@
+; test program
+program:test1:
+
+    $include include-1.earp
+
+; simple test of calling conventions
+program:test2:
+
+    $include include-2.earp

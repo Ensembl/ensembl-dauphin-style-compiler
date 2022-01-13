@@ -75,12 +75,17 @@ opcode = ${ (identifier ~ "." ~ identifier) | identifier }
 instruction = { opcode ~ (operand ~ ("," ~ operand)*)? }
 
 //
+// include
+//
+include = { "$include" ~ asset_path }
+
+//
 // program lines
 //
 program_label = ${ "program:" ~ identifier ~ ":" }
 label = ${ identifier ~ ":" }
 rellabel = ${ integer ~ ":" }
-program_line = { (program_label | label | rellabel | instruction)? ~ &(EOI|NEWLINE) }
+program_line = { (program_label | label | rellabel | instruction | include)? ~ &(EOI|NEWLINE) }
 
 //
 // global

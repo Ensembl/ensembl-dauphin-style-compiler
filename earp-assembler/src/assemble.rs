@@ -1,36 +1,30 @@
-use std::{collections::{HashMap}};
-use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::InstructionSetId};
+use std::{collections::{HashMap}, mem::replace, path::Path};
+use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement, load_source_file}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::InstructionSetId, assets::{AssetLoad}};
 
-pub(crate) struct Assemble<'t> {
-    pc: i64,
-    max_pc: i64,
-    earp_file: EarpFileWriter<'t>,
-    labels: HashMap<String,i64>,
+#[derive(Debug)]
+pub(crate) struct AssembleFile {
+    statements: Vec<ParseStatement>,
     rel_labels: RelativeLabelContext,
     lookup: Lookup,
     file_path: Option<String>
 }
 
-impl<'t> Assemble<'t> {
-    fn new(suite: &'t Suite, file_path: Option<&str>) -> Assemble<'t> {
-        Assemble {
-            pc: 0,
-            max_pc: 0,
-            earp_file: EarpFileWriter::new(suite),
-            labels: HashMap::new(),
+impl AssembleFile {
+    fn new(contents: &str, file_path: Option<&str>) -> Result<AssembleFile,AssemblerError> {
+        let statements = load_source_file(contents)?;
+        Ok(AssembleFile {
+            statements,
             rel_labels: RelativeLabelContext::new(),
             lookup: Lookup::new(),
             file_path: file_path.map(|x| x.to_string())
-        }
+        })
     }
 
-    fn reset(&mut self) { self.pc = 0; }
-
-    pub(crate) fn resolve_label(&self, location: &AssemblyLocation) -> Result<i64,AssemblerError> {
+    pub(crate) fn resolve_label(&self, assemble:&Assemble, location: &AssemblyLocation) -> Result<i64,AssemblerError> {
         let label = match location {
             AssemblyLocation::Here(delta) => {
-                let target = self.pc+delta;
-                if target < 0 || target >= self.max_pc {
+                let target = assemble.pc+delta;
+                if target < 0 || target >= assemble.max_pc {
                     return Err(AssemblerError::BadHereLabel("Here label out of range".to_string()));
                 }
                 return Ok(target);
@@ -43,101 +37,169 @@ impl<'t> Assemble<'t> {
                 format!("{}{}",label,suffix)
             }
         };
-        if let Some(location) = self.labels.get(&label) {
+        if let Some(location) = assemble.labels.get(&label) {
             Ok(*location)
         } else {
             Err(AssemblerError::UnknownLabel(label))
         }
     }
 
-    fn set_labels(&mut self, statement: &ParseStatement) -> Result<(),AssemblerError> {
-        match statement {
-            ParseStatement::Instruction(_,_,_) => {
-                self.pc += 1;
-                self.max_pc += 1;
-            },
-            ParseStatement::Program(program) => {
-                if self.labels.contains_key(program) {
-                    return Err(AssemblerError::DuplicateLabel(format!("program:{}",program)));
-                }
-                self.earp_file.add_entry_point(program,self.pc);
-            },
-            ParseStatement::Label(label) => {
-                if self.labels.contains_key(label) {
-                    return Err(AssemblerError::DuplicateLabel(label.to_string()))
-                }
-                self.labels.insert(label.to_string(),self.pc);
-            },
-            ParseStatement::RelativeLabel(label) => {
-                self.rel_labels.add_label(self.pc,label);
-            },
-            _ => {}
+    fn find_includes(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
+        let self_path = self.file_path.clone();
+        for statement in &mut self.statements {
+            match statement {
+                ParseStatement::Include(path,file) => {
+                    // XXX relative to current only on include!
+                    let source_file = assemble.suite.source_loader().make_load_file(path, &self_path,false)?;
+                    let assemble_file= AssembleFile::new(&source_file.load_string()?,Some(source_file.file_path()))?;
+                    file.replace(assemble_file);
+                },
+                _ => {}
+            }
         }
         Ok(())
     }
 
-    fn add_instructions(&mut self, statement: &ParseStatement) -> Result<(),AssemblerError> {
-        match statement {
-            ParseStatement::Instruction(prefix,identifier,arguments) => {
-                self.rel_labels.fix_labels(self.pc, &mut self.labels);
-                let prefix = prefix.as_ref().map(|x| x.as_str());
-                let opcode = self.lookup.lookup(self.earp_file.set_mapper_mut(),&prefix,&identifier)?;
-                let operands = arguments.iter().map(|x| Operand::new(x,&self)).collect::<Result<Vec<_>,_>>()?;
-                self.earp_file.add_instruction(opcode,&operands);
-                self.pc += 1;
-            },
-            ParseStatement::InstructionsDecl(prefix,name,version) => {
-                self.lookup.add_mapping(prefix, &InstructionSetId(name.to_string(),*version));
-            },
-            ParseStatement::AssetDecl(name,format,source,path) => {
-                self.earp_file.assets_mut().add(name,format,source,path,&self.file_path)?;
-            },
-            _ => {}
+    fn set_labels(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
+        for statement in &mut self.statements {
+            match statement {
+                ParseStatement::Instruction(_,_,_) => {
+                    assemble.pc += 1;
+                    assemble.max_pc += 1;
+                },
+                ParseStatement::Program(program) => {
+                    if assemble.labels.contains_key(program) {
+                        return Err(AssemblerError::DuplicateLabel(format!("program:{}",program)));
+                    }
+                    assemble.earp_file.add_entry_point(program,assemble.pc);
+                },
+                ParseStatement::Label(label) => {
+                    if assemble.labels.contains_key(label) {
+                        return Err(AssemblerError::DuplicateLabel(label.to_string()))
+                    }
+                    assemble.labels.insert(label.to_string(),assemble.pc);
+                },
+                ParseStatement::RelativeLabel(label) => {
+                    self.rel_labels.add_label(assemble.pc,label);
+                },
+                ParseStatement::Include(_,Some(include)) => {
+                    include.set_labels(assemble)?;
+                },
+                _ => {}
+            }
         }
         Ok(())
     }
-    
-    fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
+
+    fn add_instructions(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
+        let mut statements = replace(&mut self.statements,vec![]);
+        for statement in &mut statements {
+            match statement {
+                ParseStatement::Instruction(prefix,identifier,arguments) => {
+                    self.rel_labels.fix_labels(assemble.pc, &mut assemble.labels);
+                    let prefix = prefix.as_ref().map(|x| x.as_str());
+                    let opcode = self.lookup.lookup(assemble.earp_file.set_mapper_mut(),&prefix,&identifier)?;
+                    let operands = arguments.iter().map(|x| Operand::new(x,assemble,self)).collect::<Result<Vec<_>,_>>()?;
+                    assemble.earp_file.add_instruction(opcode,&operands);
+                    assemble.pc += 1;
+                },
+                ParseStatement::InstructionsDecl(prefix,name,version) => {
+                    self.lookup.add_mapping(prefix, &InstructionSetId(name.to_string(),*version));
+                },
+                ParseStatement::AssetDecl(name,format,source,path) => {
+                    assemble.earp_file.assets_mut().add(name,format,source,path,&self.file_path)?;
+                },
+                ParseStatement::Include(_,Some(include)) => {
+                    include.add_instructions(assemble)?;
+                },
+                _ => {}
+            }
+        }
+        self.statements = statements;
+        Ok(())
+    }
+
+    fn step_resolve(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
+        self.set_labels(assemble)?;
+        Ok(())
+    }
+
+    fn step_generate(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
+        self.add_instructions(assemble)?;
+        self.rel_labels.finish(&mut assemble.labels);
+        Ok(())
+    }
 }
 
-fn assemble_instructions<'t>(suite: &'t Suite, statements: &[ParseStatement], file_path: Option<&str>) -> Result<Assemble<'t>,AssemblerError> {
-    let mut assemble = Assemble::new(suite,file_path);
-    assemble.reset();
-    for stmt in statements {
-        assemble.set_labels(stmt)?;
+// TEST smoke, rel label bounds, label no-bounds, set bounds
+pub(crate) struct Assemble<'t> {
+    pc: i64,
+    max_pc: i64,
+    labels: HashMap<String,i64>,
+    source: Vec<AssembleFile>,
+    earp_file: EarpFileWriter<'t>,
+    suite: &'t Suite
+}
+
+impl<'t> Assemble<'t> {
+    pub(crate) fn new(suite: &'t Suite) -> Assemble<'t> {
+        Assemble {
+            pc: 0,
+            max_pc: 0,
+            labels: HashMap::new(),
+            source: vec![],
+            earp_file: EarpFileWriter::new(suite),
+            suite
+        }
     }
-    assemble.reset();
-    for stmt in statements {
-        assemble.add_instructions(stmt)?;
+
+    fn reset(&mut self) { self.pc = 0; }
+
+    pub(crate) fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
+
+    pub(crate) fn add_source(&mut self, contents: &str, file_path: Option<&str>) -> Result<(),AssemblerError> {
+        self.source.push(AssembleFile::new(&contents,file_path)?);
+        Ok(())
     }
-    Ok(assemble)
+
+    pub(crate) fn assemble(&mut self) -> Result<(),AssemblerError> {
+        let mut sources = replace(&mut self.source,vec![]);
+        for source in &mut sources {
+            source.find_includes(self)?;
+        }
+        self.reset();
+        for source in &mut sources {
+            source.step_resolve(self)?;
+        }
+        self.reset();
+        for source in &mut sources {
+            source.step_generate(self)?;
+        }
+        self.source = sources;
+        Ok(())
+    }
 }
 
 // XXX include
-// XXX assets
 // XXX check operand types
 // XXX line numbers
-pub(crate) fn assemble<'t>(suite: &'t Suite, statements: &[ParseStatement], file_path: Option<&str>) -> Result<EarpFileWriter<'t>,AssemblerError> {
-    Ok(assemble_instructions(suite,statements,file_path)?.into_earpfile())
-}
 
 #[cfg(test)]
 mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, parser::{earp_parse, load_source_file}, hexfile::load_hexfile, command::{Command, Operand}};
-
-    use super::{assemble, assemble_instructions};
+    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::Assemble};
 
     #[test]
     fn assemble_smoke() {
         let suite = test_suite();
-        let source = no_error(earp_parse(include_str!("test/test.earp")));
-        let file = no_error(assemble(&suite,&source,None));
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/test.earp"),None));
+        no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
-        no_error(encoder.encode(&file));
+        no_error(encoder.encode(&assembler.into_earpfile()));
         let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
@@ -244,8 +306,10 @@ mod test {
     #[test]
     fn test_program_label() {
         let suite = test_suite();
-        let source = no_error(load_source_file(include_str!("test/assembler-labels/labels-program.earp")));
-        let earp_file = no_error(assemble_instructions(&suite,&source,None)).into_earpfile();
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/assembler-labels/labels-program.earp"),None));
+        no_error(assembler.assemble());
+        let earp_file = assembler.into_earpfile();
         let mut out = vec![];
         for (label,pc) in earp_file.entry_points() {
             out.push((label.to_string(),*pc));
@@ -314,5 +378,19 @@ mod test {
         }
         let e = yes_error(build(&suite,include_str!("test/assembler/collide-bad.earp")));
         assert!(e.to_string().to_lowercase().contains("duplicate"));
-    }    
+    }
+
+    #[test]
+    fn test_include_smoke() {
+        let mut suite = test_suite();
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/include.earp"),Some("src/test/includer/include.earp")));
+        no_error(assembler.assemble());
+        let mut out = vec![];
+        let mut encoder = Encoder::new(&mut out);
+        no_error(encoder.encode(&assembler.into_earpfile()));
+        let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
+        print!("{}",hexdump(&out));
+        assert_eq!(cmp,out);
+    }
 }

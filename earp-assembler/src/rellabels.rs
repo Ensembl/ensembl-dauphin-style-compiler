@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(Clone,Debug,PartialEq)]
 pub(crate) struct RelativeLabelContext {
     prev: HashMap<String,i64>,
     labels: HashMap<i64,HashMap<String,Option<i64>>>
@@ -41,6 +42,13 @@ impl RelativeLabelContext {
                     labels.remove(label);
                 }
             }    
+        }
+    }
+
+    pub(crate) fn finish(&self, labels: &mut HashMap<String,i64>) {
+        for (label,_) in self.prev.iter() {
+            labels.remove(&format!("{}f",label));
+            labels.remove(&format!("{}r",label));
         }
     }
 }
