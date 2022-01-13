@@ -5,20 +5,22 @@ use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, 
 use peregrine_toolkit::lock;
 
 use super::baseallotmentrequest::trim_prefix;
+use super::lineargroup::lineargroup::{LinearGroup};
+use super::lineargroup::offsetbuilder::LinearOffsetBuilder;
+use super::lineargroup::secondary::SecondaryPositionStore;
 use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
-use super::lineargroup::{LinearOffsetBuilder, LinearRequestGroup, SecondaryPositionStore};
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
-    main: LinearRequestGroup<MainTrackRequestCreator>,
-    top_tracks: LinearRequestGroup<MainTrackRequestCreator>,
-    bottom_tracks: LinearRequestGroup<MainTrackRequestCreator>,
-    window_tracks: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    window_tracks_bottom: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    left: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    right: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    window: LinearRequestGroup<OffsetAllotmentRequestCreator>,
-    window_bottom: LinearRequestGroup<OffsetAllotmentRequestCreator>,
+    main: LinearGroup<MainTrackRequestCreator>,
+    top_tracks: LinearGroup<MainTrackRequestCreator>,
+    bottom_tracks: LinearGroup<MainTrackRequestCreator>,
+    window_tracks: LinearGroup<OffsetAllotmentRequestCreator>,
+    window_tracks_bottom: LinearGroup<OffsetAllotmentRequestCreator>,
+    left: LinearGroup<OffsetAllotmentRequestCreator>,
+    right: LinearGroup<OffsetAllotmentRequestCreator>,
+    window: LinearGroup<OffsetAllotmentRequestCreator>,
+    window_bottom: LinearGroup<OffsetAllotmentRequestCreator>,
     playingfield: PlayingField
 }
 
@@ -109,15 +111,15 @@ impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                main: LinearRequestGroup::new(MainTrackRequestCreator(false)),
-                top_tracks: LinearRequestGroup::new(MainTrackRequestCreator(false)),
-                bottom_tracks: LinearRequestGroup::new(MainTrackRequestCreator(false)),
-                left: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
-                right: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
-                window: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
-                window_bottom: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::WindowBottom,false)),
-                window_tracks: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindow,false)),
-                window_tracks_bottom: LinearRequestGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindowBottom,false)),
+                main: LinearGroup::new(MainTrackRequestCreator(false)),
+                top_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
+                bottom_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
+                left: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
+                right: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
+                window: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
+                window_bottom: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::WindowBottom,false)),
+                window_tracks: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindow,false)),
+                window_tracks_bottom: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindowBottom,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest()),
                 playingfield: PlayingField::empty()
             })),

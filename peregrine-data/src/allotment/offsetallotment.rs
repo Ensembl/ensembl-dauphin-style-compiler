@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::AllotmentRequestImpl, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{LinearAllotmentImpl, LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::AllotmentRequestImpl, baseallotmentrequest::{BaseAllotmentRequest, remove_depth}, lineargroup::{lineargroup::{LinearAllotmentImpl, LinearGroupEntry, LinearGroupEntryCreator}, secondary::SecondaryPositionStore}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct OffsetAllotment {
@@ -96,8 +96,8 @@ impl LinearGroupEntry for OffsetAllotmentRequest {
 
 pub struct OffsetAllotmentRequestCreator(pub CoordinateSystem, pub bool);
 
-impl LinearAllotmentRequestCreatorImpl for OffsetAllotmentRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+impl LinearGroupEntryCreator for OffsetAllotmentRequestCreator {
+    fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
         let mut name =full_path.to_string();
         let depth = remove_depth(&mut name);
         let metadata = metadata.get(full_path).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(full_path,0)));

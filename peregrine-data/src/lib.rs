@@ -1,10 +1,15 @@
 mod allotment {
+    mod lineargroup {
+        pub(crate) mod secondary;
+        pub(super) mod offsetbuilder;
+        pub(crate) mod lineargroup;
+    }
+
     pub(crate) mod allotment;
     pub(crate) mod allotmentmetadata;
     pub(crate) mod allotmentrequest;
     pub(crate) mod baseallotmentrequest;
     pub(crate) mod dustbinallotment;
-    pub(crate) mod lineargroup;
     pub(crate) mod maintrack;
     pub(crate) mod offsetallotment;
     pub(crate) mod universe;

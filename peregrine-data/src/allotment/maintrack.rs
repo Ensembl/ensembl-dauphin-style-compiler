@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::{Hash}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::allotmentrequest::AllotmentRequestImpl};
-use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix, remove_group}, lineargroup::{LinearAllotmentRequestCreatorImpl, LinearGroupEntry, SecondaryPositionStore}, offsetallotment::OffsetAllotment};
+use super::{allotment::CoordinateSystem, baseallotmentrequest::{BaseAllotmentRequest, remove_depth, remove_secondary, trim_suffix, remove_group}, offsetallotment::OffsetAllotment, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupEntryCreator}, secondary::SecondaryPositionStore}};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -140,8 +140,8 @@ impl LinearGroupEntry for MainTrackRequest {
 
 pub struct MainTrackRequestCreator(pub bool);
 
-impl LinearAllotmentRequestCreatorImpl for MainTrackRequestCreator {
-    fn make(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+impl LinearGroupEntryCreator for MainTrackRequestCreator {
+    fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
