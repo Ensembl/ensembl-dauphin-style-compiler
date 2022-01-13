@@ -1,8 +1,8 @@
 stages:
-  - build_wasm
+  - build
 
 # Builds wasm files
-.build:
+.build_wasm:
   stage: build
   image: rust:1.57
 
