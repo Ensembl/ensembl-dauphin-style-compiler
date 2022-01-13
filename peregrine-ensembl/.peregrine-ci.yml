@@ -13,7 +13,7 @@ stages:
 
   script:
     - RUSTFLAGS="--cfg=console --cfg=force_show_incoming"
-    - wasm-pack build --target web --dev
+    - wasm-pack build --target web --release
     - ls pkg/
 
   rules:
@@ -38,3 +38,12 @@ Build-npm:
       changes: 
         - peregrine-ensembl/*
 
+  after_script:
+    - echo "BUILD_JOB_ID=${CI_JOB_ID}" >> build_wasm.env
+
+  artifacts:
+    name: build_wasm_artifacts
+    paths:
+      - pkg/
+    reports:
+      dotenv: build_wasm.env
