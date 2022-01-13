@@ -11,6 +11,7 @@ stages:
     - cd peregrine-ensembl
   script:
     - echo "Running build"
+    - cargo install
     - ./build.sh
     - ls pkg/
 
