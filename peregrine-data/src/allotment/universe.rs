@@ -4,24 +4,33 @@ use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
-use super::baseallotmentrequest::trim_prefix;
+use super::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use super::lineargroup::lineargroup::{LinearGroup};
 use super::lineargroup::offsetbuilder::LinearOffsetBuilder;
 use super::lineargroup::secondary::SecondaryPositionStore;
-use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator, offsetallotment::OffsetAllotmentRequestCreator};
+use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator};
 
 struct UniverseData {
     dustbin: Arc<DustbinAllotmentRequest>,
     main: LinearGroup<MainTrackRequestCreator>,
     top_tracks: LinearGroup<MainTrackRequestCreator>,
     bottom_tracks: LinearGroup<MainTrackRequestCreator>,
-    window_tracks: LinearGroup<OffsetAllotmentRequestCreator>,
-    window_tracks_bottom: LinearGroup<OffsetAllotmentRequestCreator>,
-    left: LinearGroup<OffsetAllotmentRequestCreator>,
-    right: LinearGroup<OffsetAllotmentRequestCreator>,
-    window: LinearGroup<OffsetAllotmentRequestCreator>,
-    window_bottom: LinearGroup<OffsetAllotmentRequestCreator>,
+    window_tracks: LinearGroup<BoxAllotmentLinearGroupHelper>,
+    window_tracks_bottom: LinearGroup<BoxAllotmentLinearGroupHelper>,
+    left: LinearGroup<BoxAllotmentLinearGroupHelper>,
+    right: LinearGroup<BoxAllotmentLinearGroupHelper>,
+    window: LinearGroup<BoxAllotmentLinearGroupHelper>,
+    window_bottom: LinearGroup<BoxAllotmentLinearGroupHelper>,
     playingfield: PlayingField
+}
+
+pub(super) fn trim_prefix(prefix: &str, name: &str) -> Option<String> {
+    if let Some(start) = name.find(":") {
+        if &name[0..start] == prefix {
+            return Some(name[start+1..].to_string());
+        }
+    }
+    None
 }
 
 impl UniverseData {
@@ -114,12 +123,12 @@ impl Universe {
                 main: LinearGroup::new(MainTrackRequestCreator(false)),
                 top_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
                 bottom_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
-                left: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysLeft,false)),
-                right: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::SidewaysRight,true)),
-                window: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::Window,false)),
-                window_bottom: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::WindowBottom,false)),
-                window_tracks: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindow,false)),
-                window_tracks_bottom: LinearGroup::new(OffsetAllotmentRequestCreator(CoordinateSystem::TrackingWindowBottom,false)),
+                left: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::SidewaysLeft,false)),
+                right: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::SidewaysRight,true)),
+                window: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::Window,false)),
+                window_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::WindowBottom,false)),
+                window_tracks: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindow,false)),
+                window_tracks_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindowBottom,false)),
                 dustbin: Arc::new(DustbinAllotmentRequest()),
                 playingfield: PlayingField::empty()
             })),

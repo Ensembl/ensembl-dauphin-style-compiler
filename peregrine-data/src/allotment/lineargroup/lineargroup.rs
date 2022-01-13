@@ -1,34 +1,47 @@
-use std::{collections::HashMap, sync::{Arc}};
-use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest, allotment::{allotment::AllotmentImpl}};
+use std::{collections::HashMap, hash::Hash, sync::{Arc}};
+use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
 
 use super::{secondary::{SecondaryPositionStore}, offsetbuilder::LinearOffsetBuilder};
 
-pub trait LinearAllotmentImpl : AllotmentImpl {
-    fn max(&self) -> i64;
-    fn up(self: Arc<Self>) -> Arc<dyn LinearAllotmentImpl>;
-}
+/* A LinearGroup organises multiple requests along a linear axis and presents a single interface to the Universe.
+ *
+ * A LinearGroup has an associated LinearGroupHelper to allow type-specific behaviours. Specifically a LinearGroupHelper:
+ * 1. can map from a spec to a key representing the corresponding entry at this level;
+ * 2. can create new LinearGroupEntries with behaviour specific for the type;
+ * 3. specifies whether the coordinates are top-to-bottom or bottom-to-top.
+ * 
+ * When requested the LinearGroupHelper creates something which implemenrs LinearGroupEntry. This object is stored
+ * inside the linear group and:
+ * 1. Can accept delegated allotment request creation decisions;
+ * 2. Can return metadata to satisfy the universe's demands for metadata;
+ * 3. Will be called via allot() with information concerning its final position once allotment takes place;
+ * 4. Can return a priority for ordering decisions;
+ * 5. Can return a name for use in secondaty axis allignment.
+ */
 
 pub trait LinearGroupEntry {
     fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn make(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
-    fn name(&self) -> &str;
+    fn allot(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
+    fn name_for_secondary(&self) -> &str;
     fn priority(&self) -> i64;
     fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
 
-pub trait LinearGroupEntryCreator {
+pub trait LinearGroupHelper {
+    type Key : PartialEq + Eq + Hash + Clone;
+
     fn is_reverse(&self) -> bool;
-    fn base(&self, name: &str) -> String;
+    fn entry_key(&self, full_name: &str) -> Self::Key;
     fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
 }
 
-pub(crate) struct LinearGroup<C> {
-    entries: HashMap<String,Arc<dyn LinearGroupEntry>>,
+pub(crate) struct LinearGroup<C: LinearGroupHelper> {
+    entries: HashMap<C::Key,Arc<dyn LinearGroupEntry>>,
     creator: Box<C>,
     max: i64
 }
 
-impl<C: LinearGroupEntryCreator> LinearGroup<C> {
+impl<C: LinearGroupHelper> LinearGroup<C> {
     pub(crate) fn new(creator: C) -> LinearGroup<C> {
         LinearGroup {
             entries: HashMap::new(),
@@ -37,9 +50,9 @@ impl<C: LinearGroupEntryCreator> LinearGroup<C> {
         }
     }
 
-    fn get_entry_for(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str, full_path: &str) -> &Arc<dyn LinearGroupEntry> {
+    fn get_entry_for(&mut self, allotment_metadata: &AllotmentMetadataStore, full_name: &str, full_path: &str) -> &Arc<dyn LinearGroupEntry> {
         let (creator,entries) = (&mut self.creator, &mut self.entries);
-        entries.entry(creator.base(name)).or_insert_with(|| {
+        entries.entry(creator.entry_key(full_name)).or_insert_with(|| {
             creator.make_linear_group_entry(&allotment_metadata,&full_path)
         })
     }
@@ -67,8 +80,8 @@ impl<C: LinearGroupEntryCreator> LinearGroup<C> {
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
             let offset_amt = offset.size(self.creator.is_reverse());
-            let size = entry.make(secondary,offset_amt,secondary_store);
-            secondary_store.add(entry.name(),offset_amt, size,self.creator.is_reverse());
+            let size = entry.allot(secondary,offset_amt,secondary_store);
+            secondary_store.add(entry.name_for_secondary(),offset_amt, size,self.creator.is_reverse());
             offset.advance(size,self.creator.is_reverse());
         }
         self.max = offset.total_size();

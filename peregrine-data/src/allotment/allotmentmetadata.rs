@@ -24,6 +24,10 @@ impl AllotmentMetadataStore {
     pub fn get(&self, name: &str) -> Option<AllotmentMetadata> {
         self.metadata.lock().unwrap().get(name).cloned()
     }
+
+    pub fn get_or_default(&self, name: &str) -> AllotmentMetadata {
+        self.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)))
+    }
 }
 
 #[derive(Debug,Clone)]
