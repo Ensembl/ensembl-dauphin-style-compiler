@@ -10,10 +10,11 @@ stages:
   before_script:
     - cd peregrine-ensembl
     - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -y
 
   script:
-    - ./build.sh
+    - RUSTFLAGS="--cfg=console --cfg=force_show_incoming"
+    - wasm-pack build --target web --dev
     - ls pkg/
 
   rules:
