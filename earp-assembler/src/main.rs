@@ -18,12 +18,13 @@ mod testutil;
 
 use std::{process::exit, fs::{read_to_string, self}};
 
+use assets::AssetSource;
 use earpfile::EarpFileWriter;
 use error::AssemblerError;
+use fileloader::FileLoader;
 use minicbor::Encoder;
 use opcodemap::load_opcode_map;
 use options::{parse_config, Config};
-use parser::{ParseStatement, load_source_file};
 use suite::Suite;
 use assemble::{Assemble};
 
@@ -53,7 +54,6 @@ fn load_opcode_map_file(config: &Config, suite: &mut Suite, name: &str, contents
     Ok(())
 }
 
-// XXX source root
 fn write_earp_file(config: &Config, earp_file: &EarpFileWriter) -> Result<(),AssemblerError> {
     let mut out = vec![];
     let mut encoder = Encoder::new(&mut out);
@@ -63,12 +63,26 @@ fn write_earp_file(config: &Config, earp_file: &EarpFileWriter) -> Result<(),Ass
     Ok(())
 }
 
+fn prepare_suite(config: &Config) -> Suite {
+    let mut suite = Suite::new();
+    suite.source_loader_mut().add_search_path(".");
+    for path in &config.source_paths {
+        suite.source_loader_mut().add_search_path(path);
+    }
+    let mut file_asset_loader = FileLoader::new();
+    file_asset_loader.add_search_path(".");
+    for path in &config.asset_paths {
+        file_asset_loader.add_search_path(path);
+    }
+    suite.add_loader(AssetSource::File,file_asset_loader);
+    suite
+}
+
 fn run(config: &Config) -> Result<(),AssemblerError> {
     if config.verbose > 0 {
         println!("Assembling output file {}",config.object_file);
     }
-    let mut suite = Suite::new();
-    suite.source_loader_mut().add_search_path(".");
+    let mut suite = prepare_suite(config);
     if !config.no_default_maps {
         load_opcode_map_file(config, &mut suite, "default maps", include_str!("maps/standard.map"))?;
     }
@@ -78,7 +92,7 @@ fn run(config: &Config) -> Result<(),AssemblerError> {
     }
     let mut assembler = Assemble::new(&suite);
     for source_file in &config.source_files {
-        assembler.add_source(&load_file(&source_file)?,Some(source_file))?;
+        assembler.add_file(source_file)?;
     }
     assembler.assemble()?;
     write_earp_file(config,&assembler.into_earpfile())?;

@@ -1,0 +1,7 @@
+$instructions std/0
+
+program:test1:
+
+    goto .test
+
+    $include labels-1.earp

@@ -1,0 +1,5 @@
+$instructions std/0
+
+program:test1:
+
+    $include find-me.earp

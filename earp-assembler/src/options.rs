@@ -9,6 +9,8 @@ pub(crate) struct Config {
     pub source_files: Vec<String>,
     pub no_default_maps: bool,
     pub additional_maps: Vec<String>,
+    pub asset_paths: Vec<String>,
+    pub source_paths: Vec<String>,
     pub object_file: String,
     pub verbose: u32
 }
@@ -18,12 +20,22 @@ pub(crate) fn parse_config() -> Result<Config,String> {
         source_files: vec![],
         no_default_maps: false,
         additional_maps: vec![],
+        source_paths: vec![],
+        asset_paths: vec![],
         object_file: "out.earp".to_string(),
         verbose: 0
     };
     config_from_options::<_,String>(&mut config,vec![
         ConfigOption::new("source file","source",Some("s"),Some("source.searp"),true,|c: &mut Config, v| {
             c.source_files.push(v.to_string());
+            Ok(())
+        }),
+        ConfigOption::new("source search path","source-path",Some("P"),Some("directory"),true,|c: &mut Config, v| {
+            c.source_paths.push(v.to_string());
+            Ok(())
+        }),
+        ConfigOption::new("asset search path","asset-path",Some("A"),Some("directory"),true,|c: &mut Config, v| {
+            c.asset_paths.push(v.to_string());
             Ok(())
         }),
         ConfigOption::new("no default map files","no-default-maps",None,None,false,|c: &mut Config,_| {

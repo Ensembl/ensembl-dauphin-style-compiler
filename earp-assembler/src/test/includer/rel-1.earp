@@ -1,0 +1,3 @@
+$instructions std/0
+
+    goto .1r

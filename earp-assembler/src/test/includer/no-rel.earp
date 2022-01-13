@@ -1,0 +1,7 @@
+$instructions std/0
+
+program:test1:
+
+1:
+    halt
+    $include rel-1.earp

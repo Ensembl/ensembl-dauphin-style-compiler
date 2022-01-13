@@ -1,6 +1,6 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}, assemble::AssembleFile, fileloader::FileLoader};
+use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}, assemble::AssembleFile};
 
 #[derive(Clone,Debug,PartialEq)]
 pub(crate) enum AssemblyLocation {
@@ -43,7 +43,7 @@ impl PartialEq for ParseStatement {
             (Self::Instruction(l0, l1, l2), Self::Instruction(r0, r1, r2)) => l0 == r0 && l1 == r1 && l2 == r2,
             (Self::Label(l0), Self::Label(r0)) => l0 == r0,
             (Self::RelativeLabel(l0), Self::RelativeLabel(r0)) => l0 == r0,
-            (Self::Include(l0, _), Self::Include(r0, r1)) => l0 == r0,
+            (Self::Include(l0, _), Self::Include(r0, _)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }

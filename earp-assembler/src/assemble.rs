@@ -1,10 +1,11 @@
-use std::{collections::{HashMap}, mem::replace, path::Path};
+use std::{collections::{HashMap}, mem::replace};
 use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement, load_source_file}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::InstructionSetId, assets::{AssetLoad}};
 
 #[derive(Debug)]
 pub(crate) struct AssembleFile {
     statements: Vec<ParseStatement>,
-    rel_labels: RelativeLabelContext,
+    rel_label_maker: RelativeLabelContext,
+    rel_labels: HashMap<String,i64>,
     lookup: Lookup,
     file_path: Option<String>
 }
@@ -14,14 +15,15 @@ impl AssembleFile {
         let statements = load_source_file(contents)?;
         Ok(AssembleFile {
             statements,
-            rel_labels: RelativeLabelContext::new(),
+            rel_label_maker: RelativeLabelContext::new(),
+            rel_labels: HashMap::new(),
             lookup: Lookup::new(),
             file_path: file_path.map(|x| x.to_string())
         })
     }
 
     pub(crate) fn resolve_label(&self, assemble:&Assemble, location: &AssemblyLocation) -> Result<i64,AssemblerError> {
-        let label = match location {
+        let (source,label) = match location {
             AssemblyLocation::Here(delta) => {
                 let target = assemble.pc+delta;
                 if target < 0 || target >= assemble.max_pc {
@@ -30,14 +32,14 @@ impl AssembleFile {
                 return Ok(target);
             },
             AssemblyLocation::Label(label) => {
-                label.to_string()
+                (&assemble.labels,label.to_string())
             },
             AssemblyLocation::RelativeLabel(label,fwd) => {
                 let suffix = if *fwd { "f" } else { "r" };
-                format!("{}{}",label,suffix)
+                (&self.rel_labels,format!("{}{}",label,suffix))
             }
         };
-        if let Some(location) = assemble.labels.get(&label) {
+        if let Some(location) = source.get(&label) {
             Ok(*location)
         } else {
             Err(AssemblerError::UnknownLabel(label))
@@ -49,7 +51,6 @@ impl AssembleFile {
         for statement in &mut self.statements {
             match statement {
                 ParseStatement::Include(path,file) => {
-                    // XXX relative to current only on include!
                     let source_file = assemble.suite.source_loader().make_load_file(path, &self_path,false)?;
                     let assemble_file= AssembleFile::new(&source_file.load_string()?,Some(source_file.file_path()))?;
                     file.replace(assemble_file);
@@ -80,7 +81,7 @@ impl AssembleFile {
                     assemble.labels.insert(label.to_string(),assemble.pc);
                 },
                 ParseStatement::RelativeLabel(label) => {
-                    self.rel_labels.add_label(assemble.pc,label);
+                    self.rel_label_maker.add_label(assemble.pc,label);
                 },
                 ParseStatement::Include(_,Some(include)) => {
                     include.set_labels(assemble)?;
@@ -96,7 +97,7 @@ impl AssembleFile {
         for statement in &mut statements {
             match statement {
                 ParseStatement::Instruction(prefix,identifier,arguments) => {
-                    self.rel_labels.fix_labels(assemble.pc, &mut assemble.labels);
+                    self.rel_label_maker.fix_labels(assemble.pc, &mut self.rel_labels);
                     let prefix = prefix.as_ref().map(|x| x.as_str());
                     let opcode = self.lookup.lookup(assemble.earp_file.set_mapper_mut(),&prefix,&identifier)?;
                     let operands = arguments.iter().map(|x| Operand::new(x,assemble,self)).collect::<Result<Vec<_>,_>>()?;
@@ -126,12 +127,10 @@ impl AssembleFile {
 
     fn step_generate(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
         self.add_instructions(assemble)?;
-        self.rel_labels.finish(&mut assemble.labels);
         Ok(())
     }
 }
 
-// TEST smoke, rel label bounds, label no-bounds, set bounds
 pub(crate) struct Assemble<'t> {
     pc: i64,
     max_pc: i64,
@@ -162,6 +161,12 @@ impl<'t> Assemble<'t> {
         Ok(())
     }
 
+    pub(crate) fn add_file(&mut self, file_path: &str) -> Result<(),AssemblerError> {
+        let loader = self.suite.source_loader().make_load_file(file_path, &None, true)?;
+        let contents = loader.load_string()?;
+        self.add_source(&contents,Some(loader.file_path()))
+    }
+
     pub(crate) fn assemble(&mut self) -> Result<(),AssemblerError> {
         let mut sources = replace(&mut self.source,vec![]);
         for source in &mut sources {
@@ -180,7 +185,6 @@ impl<'t> Assemble<'t> {
     }
 }
 
-// XXX include
 // XXX check operand types
 // XXX line numbers
 
@@ -189,7 +193,7 @@ mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::Assemble};
+    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::{Assemble}};
 
     #[test]
     fn assemble_smoke() {
@@ -382,7 +386,7 @@ mod test {
 
     #[test]
     fn test_include_smoke() {
-        let mut suite = test_suite();
+        let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
         no_error(assembler.add_source(&include_str!("test/includer/include.earp"),Some("src/test/includer/include.earp")));
         no_error(assembler.assemble());
@@ -392,5 +396,65 @@ mod test {
         let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
+    }
+
+    #[test]
+    fn test_include_labels() {
+        let suite = test_suite();
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/labels.earp"),Some("src/test/includer/labels.earp")));
+        no_error(assembler.assemble());
+    }
+
+    #[test]
+    fn test_include_labels_dup() {
+        let suite = test_suite();
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/labels-dup.earp"),Some("src/test/includer/labels-dup.earp")));
+        let e = yes_error(assembler.assemble()).to_string();
+        assert!(e.to_lowercase().contains("duplicate label"));
+        assert!(e.to_lowercase().contains("test"));
+    }
+
+    #[test]
+    fn test_include_labels_no_rel() {
+        let suite = test_suite();
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/no-rel.earp"),Some("src/test/includer/no-rel.earp")));
+        let e = yes_error(assembler.assemble()).to_string();
+        assert!(e.to_lowercase().contains("unknown label"));
+        assert!(e.to_lowercase().contains("1r"));
+    }
+
+    #[test]
+    fn test_local_on_include() {
+        let mut suite = test_suite();
+        suite.source_loader_mut().add_search_path("1");
+        suite.source_loader_mut().add_search_path("2");
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/2/local.earp"),Some("src/test/includer/2/local.earp")));
+        no_error(assembler.assemble());
+    }
+
+    #[test]
+    fn test_no_search_on_include_1() {
+        let mut suite = test_suite();
+        suite.source_loader_mut().add_search_path("1");
+        suite.source_loader_mut().add_search_path("2");
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/1/no-search.earp"),Some("src/test/includer/1/no-search.earp")));
+        let e = yes_error(assembler.assemble()).to_string();
+        assert!(e.contains("no such path"))
+    }
+
+    #[test]
+    fn test_no_search_on_include_2() {
+        let mut suite = test_suite();
+        suite.source_loader_mut().add_search_path("1");
+        suite.source_loader_mut().add_search_path("2");
+        let mut assembler = Assemble::new(&suite);
+        no_error(assembler.add_source(&include_str!("test/includer/2/no-search.earp"),Some("src/test/includer/2/no-search.earp")));
+        no_error(assembler.assemble());
+
     }
 }

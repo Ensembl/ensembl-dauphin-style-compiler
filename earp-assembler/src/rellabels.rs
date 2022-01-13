@@ -44,11 +44,4 @@ impl RelativeLabelContext {
             }    
         }
     }
-
-    pub(crate) fn finish(&self, labels: &mut HashMap<String,i64>) {
-        for (label,_) in self.prev.iter() {
-            labels.remove(&format!("{}f",label));
-            labels.remove(&format!("{}r",label));
-        }
-    }
 }
