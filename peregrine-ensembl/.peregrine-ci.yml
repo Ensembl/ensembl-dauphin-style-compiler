@@ -19,3 +19,18 @@ stages:
 
 Build-WASM:
   extends: .build_wasm
+
+# Build node package
+Build-npm:
+  stage: deploy
+  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
+
+  script:
+    - echo "Trigger Build node package here"
+
+
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
+      changes: 
+        - peregrine-ensembl/*
+
