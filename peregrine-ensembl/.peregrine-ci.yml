@@ -1,0 +1,19 @@
+stages:
+  - build_wasm
+
+# Builds wasm files
+.build:
+  stage: build
+  image: rust:1.57
+
+  script:
+    - echo "Running build"
+    - ./build.sh
+    - ls -l pkg/
+
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
+
+
+Build:
+  extends: .build_wasm
