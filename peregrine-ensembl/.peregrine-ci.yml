@@ -1,9 +1,10 @@
 stages:
-  - build
+  - build_docker
+  - deploy
 
 # Builds wasm files
 .build_wasm:
-  stage: build
+  stage: build_docker
   image: rust:1.57
 
   script:
