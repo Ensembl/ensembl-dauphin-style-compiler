@@ -9,12 +9,12 @@ stages:
   script:
     - echo "Running build"
     - ./build.sh
-    - ls -l pkg/
+    - ls pkg/
 
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
       changes: 
         - peregrine-ensembl/*
 
-Build:
+Build-WASM:
   extends: .build_wasm
