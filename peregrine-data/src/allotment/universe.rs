@@ -95,7 +95,7 @@ impl UniverseData {
         self.window_tracks_bottom.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         /* update playing fields */
         self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
-        self.playingfield.union(&PlayingField::new_squeeze(left_offset.fwd(),right_offset.fwd()));
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.total_size(),right_offset.total_size()));
     }
 
     fn playingfield(&self) -> &PlayingField { &self.playingfield }

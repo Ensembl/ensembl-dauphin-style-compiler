@@ -66,13 +66,12 @@ impl<C: LinearGroupEntryCreator> LinearGroup<C> {
         let mut sorted_requests = self.entries.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
-            let offset_amt = if self.creator.is_reverse() { offset.rev() } else { offset.fwd() };
+            let offset_amt = offset.size(self.creator.is_reverse());
             let size = entry.make(secondary,offset_amt,secondary_store);
             secondary_store.add(entry.name(),offset_amt, size,self.creator.is_reverse());
-            offset.advance_fwd(size);
-            if self.creator.is_reverse() { offset.advance_rev(size); }
+            offset.advance(size,self.creator.is_reverse());
         }
-        self.max = offset.fwd();
+        self.max = offset.total_size();
     }
 
     pub(crate) fn max(&self) -> i64 { self.max }
