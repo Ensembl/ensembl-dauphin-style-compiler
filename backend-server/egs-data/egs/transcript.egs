@@ -78,44 +78,17 @@ potential_tracks := [
     "track:gene-other-fwd","track:gene-pc-fwd",
     "track:focus"
 ];
-use_allotments(allotments,enabled_tracks,potential_tracks);
 
-use_allotments(blanking_allotments,enabled_tracks,[
-    "track:gene-other-rev[-1]","track:gene-pc-rev[-1]",
-    "track:gene-other-fwd[-1]","track:gene-pc-fwd[-1]",
-    "track:focus[-1]"
-]);
+use_allotment_names(allotment_names,enabled_tracks,potential_tracks);
+use_allotment_names(blanking_allotment_names,enabled_tracks,[append_depth(potential_tracks[],-1)]);
+use_allotment_names(allotment_under_names,enabled_tracks,[append_depth(potential_tracks[],-2)]);
+use_allotment_names(allotment_far_under_names,enabled_tracks,[append_depth(potential_tracks[],-3)]);
+use_allotment_names(allotment_over_names,enabled_tracks,[append_depth(potential_tracks[],2)]);
+use_allotment_names(allotment_very_over_names,enabled_tracks,[append_depth(potential_tracks[],3)]);
 
-use_allotments(allotments_under,enabled_tracks,[
-    "track:gene-other-rev[-2]","track:gene-pc-rev[-2]",
-    "track:gene-other-fwd[-2]","track:gene-pc-fwd[-2]",
-    "track:focus[-2]"
-]);
+force_allotment(allotment_names[]);
 
-use_allotments(allotments_far_under,enabled_tracks,[
-    "track:gene-other-rev[-3]","track:gene-pc-rev[-3]",
-    "track:gene-other-fwd[-3]","track:gene-pc-fwd[-3]",
-    "track:focus[-3]"
-]);
-
-use_allotments(allotments_over,enabled_tracks,[
-    "track:gene-other-rev[2]","track:gene-pc-rev[2]",
-    "track:gene-other-fwd[2]","track:gene-pc-fwd[2]",
-    "track:focus[2]"
-]);
-
-use_allotments(allotments_very_over,enabled_tracks,[
-    "track:gene-other-rev[3]","track:gene-pc-rev[3]",
-    "track:gene-other-fwd[3]","track:gene-pc-fwd[3]",
-    "track:focus[3]"
-]);
-
-use_allotments(allotments_wallpaper,enabled_tracks,[
-    "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
-    "track:gene-other-fwd:wallpaper[-10]","track:gene-pc-fwd:wallpaper[-10]",
-    "track:focus:wallpaper[-10]"
-]);
-
+use_allotments(allotments_wallpaper,enabled_tracks,[append_depth(potential_tracks[],-10)]);
 use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
 
 /*
@@ -135,9 +108,9 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 
-allotment := index(allotment_idx,allotments);
-allotment_under := index(allotment_idx,allotments_under);
-allotment_far_under := index(allotment_idx,allotments_far_under);
+allotment := use_allotment(append_group(index(allotment_idx,allotment_names),gene_id));
+allotment_under := use_allotment(append_group(index(allotment_idx,allotment_under_names),gene_id));
+allotment_far_under := use_allotment(append_group(index(allotment_idx,allotment_far_under_names),gene_id));
 
 alienate(allotment);
 
@@ -156,11 +129,13 @@ exon_allotment_idx := len([exon_start]) (*) 0;
 exon_allotment_idx#[exon_strand > 0] (+=) 2;
 exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
 exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
-exon_allotment := index(exon_allotment_idx,allotments_over);
 
-exon_allotment_over := index(exon_allotment_idx,allotments_very_over);
+exon_gene_ids := index(exon_gene_indexes,[gene_id]);
+notice(format([exon_gene_ids]));
 
-blanking_exon_allotment := index(exon_allotment_idx,blanking_allotments);
+exon_allotment := use_allotment(append_group(index(exon_allotment_idx,allotment_over_names),exon_gene_ids));
+exon_allotment_over := use_allotment(append_group(index(exon_allotment_idx,allotment_very_over_names),exon_gene_ids));
+blanking_exon_allotment := use_allotment(append_group(index(exon_allotment_idx,blanking_allotment_names),exon_gene_ids));
 
 thick_exon_allotment := exon_allotment_over#[thick_exons];
 

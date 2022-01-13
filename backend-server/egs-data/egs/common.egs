@@ -9,10 +9,15 @@ stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     our_allotments := [use_allotment(tracks_used[])];
 }
 
-stmt use_allotment_names(our_allotments_names,enabled_tracks,potential_tracks) {
+stmt use_allotment_names(our_allotments,enabled_tracks,potential_tracks) {
     tracks_used := ["","","","",""];
     tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
-    our_allotments_names := tracks_used;
+    our_allotments := [tracks_used[]];
+}
+
+stmt force_allotment(forced_names) {
+    x := use_allotment(forced_names);
+    alienate(x);
 }
 
 gene_cat_allotments := [

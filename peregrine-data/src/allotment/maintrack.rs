@@ -28,12 +28,13 @@ struct MTSpecifier {
 impl MTSpecifier {
     fn new(spec: &str) -> MTSpecifier {
         let mut spec = spec.to_string();
+        let xxx_spec = spec.to_string();
         let depth = remove_depth(&mut spec);
         let secondary = remove_secondary(&mut spec);
         let group = remove_group(&mut spec);
         if let Some(group) = group {
             use web_sys::console;
-            console::log_1(&format!("group: {}",group).into());
+            console::log_1(&format!("{}",xxx_spec).into());
         }
         if let Some(main) = trim_suffix("wallpaper",&spec) {
             MTSpecifier { name: main.to_string(), variety: MTVariety::Wallpaper, depth, secondary }
