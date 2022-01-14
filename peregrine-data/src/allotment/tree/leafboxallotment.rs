@@ -1,4 +1,4 @@
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::core::allotment::AllotmentImpl};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::{core::allotment::AllotmentImpl}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct LeafBoxAllotment {
@@ -14,12 +14,13 @@ pub struct LeafBoxAllotment {
 }
 
 impl LeafBoxAllotment {
-    pub(crate) fn new(coord_system: &CoordinateSystem, metadata: &AllotmentMetadata, secondary: i64, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> LeafBoxAllotment {
+    pub(crate) fn new(coord_system: &CoordinateSystem, metadata: &AllotmentMetadata, secondary: &Option<i64>, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> LeafBoxAllotment {
         let secret = metadata.get_i64("secret-track").unwrap_or(0) != 0;
         LeafBoxAllotment {
             coord_system: coord_system.clone(),
             metadata: metadata.clone(),
-            secondary, top, offset, size, depth, secret, reverse
+            secondary: secondary.unwrap_or(0).clone(),
+            top, offset, size, depth, secret, reverse
         }
     }
 
@@ -48,7 +49,6 @@ impl AllotmentImpl for LeafBoxAllotment {
         if self.reverse {
             let offset = (self.offset + self.size) as f64;
             values.iter().map(|x| x.map(|y| offset-y)).collect()
-    
         } else {
             let offset = self.offset as f64;
             values.iter().map(|x| x.map(|y| y+offset)).collect()

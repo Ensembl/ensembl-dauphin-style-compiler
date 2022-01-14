@@ -90,21 +90,21 @@ impl UniverseData {
         /* Left and Right */
         let mut secondary = SecondaryPositionStore::new();
         let mut left_offset = LinearOffsetBuilder::new();
-        self.left.allot(0,&mut left_offset,&mut secondary);
+        self.left.allot(&None,&mut left_offset,&mut secondary);
         let mut right_offset = LinearOffsetBuilder::new();
-        self.right.allot(0,&mut right_offset, &mut secondary);
+        self.right.allot(&None,&mut right_offset, &mut secondary);
         let left = left_offset.size();
         /* Main run */
         let mut top_offset = LinearOffsetBuilder::new();
         let mut bottom_offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(left,&mut top_offset, &mut secondary);
-        self.main.allot(left,&mut top_offset,&mut secondary);
-        self.bottom_tracks.allot(left,&mut bottom_offset,&mut secondary);
+        self.top_tracks.allot(&Some(left),&mut top_offset, &mut secondary);
+        self.main.allot(&Some(left),&mut top_offset,&mut secondary);
+        self.bottom_tracks.allot(&Some(left),&mut bottom_offset,&mut secondary);
         /* window etc */
-        self.window.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_bottom.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_tracks.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_tracks_bottom.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window_tracks.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window_tracks_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         /* update playing fields */
         self.playingfield = PlayingField::new_height(top_offset.size()+bottom_offset.size());
         self.playingfield.union(&PlayingField::new_squeeze(left_offset.size(),right_offset.size()));

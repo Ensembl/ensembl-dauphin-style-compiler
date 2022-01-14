@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::SecondaryPositionStore, lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}}};
 
 use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_height, tree_best_offset}, maintrackspec::MTSpecifier};
 
@@ -27,7 +27,7 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn allot(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+    fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         let mut best_offset_val = 0;
         let mut best_height_val = 0;
         let requests = lock!(self.requests);
@@ -38,8 +38,8 @@ impl LinearGroupEntry for MainTrackRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            let our_secondary = specifier.get_secondary(secondary,secondary_store);
-            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
+            let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
+            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
         }
         best_height_val
     }
@@ -86,6 +86,4 @@ impl LinearGroupHelper for MainTrackLinearHelper {
         let specifier = MTSpecifier::new(name);
         specifier.base().name().to_string()
     }
-
-    fn is_reverse(&self) -> bool { self.0 }
 }

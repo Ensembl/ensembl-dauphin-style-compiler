@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec}, lineargroup::{secondary::SecondaryPositionStore, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
+use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec}, lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
 use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_offset, tree_best_height}};
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ impl BoxLinearEntry {
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
-    fn allot(&self, secondary: i64, offset: i64, _secondary_store: &SecondaryPositionStore) -> i64 {
+    fn allot(&self, secondary: &Option<i64>, offset: i64, _secondary_store: &SecondaryPositionStore) -> i64 {
         let offset = tree_best_offset(&self.request,offset);
         let size = tree_best_height(&self.request);
         self.request.set_allotment(Arc::new(LeafBoxAllotment::new(&self.request.coord_system(),&self.request.metadata(),secondary,offset,offset,size,self.depth,self.reverse)));
@@ -58,6 +58,4 @@ impl LinearGroupHelper for BoxAllotmentLinearGroupHelper {
     }
 
     fn entry_key(&self, name: &str) -> BasicAllotmentSpec { BasicAllotmentSpec::from_spec(name).depthless() }
-
-    fn is_reverse(&self) -> bool { self.1 }
 }

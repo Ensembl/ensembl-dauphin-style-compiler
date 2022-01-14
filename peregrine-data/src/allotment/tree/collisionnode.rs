@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, h
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::SecondaryPositionStore}, core::allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
+use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
 
 use super::{leafboxallotment::LeafBoxAllotment, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
 
@@ -36,7 +36,7 @@ impl LinearGroupEntry for CollisionNodeRequest {
         }
     }
 
-    fn allot(&self, secondary: i64, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+    fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         let mut best_offset_val = 0;
         let mut best_height_val = 0;
         let requests = lock!(self.requests);
@@ -47,8 +47,8 @@ impl LinearGroupEntry for CollisionNodeRequest {
             }
         }
         for (specifier,request) in requests.iter() {
-            let our_secondary = specifier.get_secondary(secondary,secondary_store);
-            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
+            let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
+            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
         }
         best_height_val
     }
@@ -76,7 +76,6 @@ pub(crate) struct CollisionNodeLinearHelper(pub bool);
 impl LinearGroupHelper for CollisionNodeLinearHelper {
     type Key = Option<String>;
 
-    fn is_reverse(&self) -> bool { self.0 }
     fn entry_key(&self, full_name: &str) -> Option<String> { MTSpecifier::new(&full_name).base().group().clone() }
 
     fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {

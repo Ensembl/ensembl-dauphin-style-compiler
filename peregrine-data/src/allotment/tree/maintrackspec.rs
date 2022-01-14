@@ -1,4 +1,4 @@
-use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::SecondaryPositionStore}, CoordinateSystem};
+use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionStore}}, CoordinateSystem};
 
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     if let Some(start) = name.rfind(":") {
@@ -62,13 +62,12 @@ impl MTSpecifier {
         }
     }
 
-    pub(super) fn get_secondary(&self, default_secondary: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+    pub(super) fn get_secondary(&self, secondary_store: &SecondaryPositionStore) -> Option<i64> {
         match self.variety {
-            MTVariety::Track => 0,
-            MTVariety::TrackWindow => 0,
+            MTVariety::Track => None,
+            MTVariety::TrackWindow => None,
             MTVariety::Wallpaper => {
-                let secondary = self.base.secondary().as_ref().map(|s| secondary_store.lookup(s)).flatten();
-                secondary.map(|p| p.offset).unwrap_or(default_secondary)
+                self.base.secondary().as_ref().and_then(|s| secondary_store.lookup(s))
             }
         }
     }
