@@ -4,14 +4,16 @@ use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
+use super::baseallotmentrequest::{BaseAllotmentRequest};
+use super::dustbinallotment::DustbinAllotment;
 use super::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use super::lineargroup::lineargroup::{LinearGroup};
 use super::lineargroup::offsetbuilder::LinearOffsetBuilder;
 use super::lineargroup::secondary::SecondaryPositionStore;
-use super::{dustbinallotment::DustbinAllotmentRequest,  maintrack::MainTrackRequestCreator};
+use super::{maintrack::MainTrackRequestCreator};
 
 struct UniverseData {
-    dustbin: Arc<DustbinAllotmentRequest>,
+    dustbin: Arc<BaseAllotmentRequest<DustbinAllotment>>,
     main: LinearGroup<MainTrackRequestCreator>,
     top_tracks: LinearGroup<MainTrackRequestCreator>,
     bottom_tracks: LinearGroup<MainTrackRequestCreator>,
@@ -129,7 +131,7 @@ impl Universe {
                 window_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::WindowBottom,false)),
                 window_tracks: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindow,false)),
                 window_tracks_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindowBottom,false)),
-                dustbin: Arc::new(DustbinAllotmentRequest()),
+                dustbin: Arc::new(BaseAllotmentRequest::new_dustbin()),
                 playingfield: PlayingField::empty()
             })),
             allotment_metadata: allotment_metadata.clone()

@@ -41,7 +41,7 @@ impl BasicAllotmentSpec {
         let group = remove_group(&mut spec);
         BasicAllotmentSpec { name: spec, depth, secondary, group }
     }
-    
+
     pub(crate) fn with_name(&self, name: &str) -> BasicAllotmentSpec {
         let mut spec = self.clone();
         spec.name = name.to_string();

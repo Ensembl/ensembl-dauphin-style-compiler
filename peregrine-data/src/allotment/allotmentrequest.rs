@@ -21,7 +21,7 @@ impl PartialEq for AllotmentRequest {
 impl Eq for AllotmentRequest {}
 
 pub trait AllotmentRequestImpl {
-    fn name(&self) -> String;
+    fn name(&self) -> &str;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;

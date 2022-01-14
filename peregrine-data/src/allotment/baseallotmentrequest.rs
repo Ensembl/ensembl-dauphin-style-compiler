@@ -1,10 +1,12 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
-use crate::{Allotment, AllotmentMetadata, DataMessage};
-use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec};
+use crate::{Allotment, AllotmentMetadata, DataMessage, AllotmentMetadataRequest, spacebase::spacebase::SpaceBasePoint, SpaceBasePointRef};
+use super::{allotment::{AllotmentImpl, CoordinateSystem}, allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, dustbinallotment::DustbinAllotment};
 
 pub struct BaseAllotmentRequest<T> {
     metadata: AllotmentMetadata,
+    name: String,
+    priority: i64,
     allotment: Mutex<Option<Arc<T>>>,
     coord_system: CoordinateSystem,
     depth: i8,
@@ -14,6 +16,8 @@ pub struct BaseAllotmentRequest<T> {
 impl<T> BaseAllotmentRequest<T> {
     pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, depth: i8) -> BaseAllotmentRequest<T> {
         BaseAllotmentRequest {
+            name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
+            priority: metadata.priority(),
             metadata: metadata.clone(),
             allotment: Mutex::new(None),
             depth,
@@ -23,7 +27,9 @@ impl<T> BaseAllotmentRequest<T> {
     }
 
     pub fn set_allotment(&self, value: Arc<T>) {
-        *self.allotment.lock().unwrap() = Some(value);
+        if &self.name != "" {
+            *self.allotment.lock().unwrap() = Some(value);
+        }
     }
 
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
@@ -35,12 +41,9 @@ impl<T> BaseAllotmentRequest<T> {
 }
 
 impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T> {
-    fn name(&self) -> String {
-        BasicAllotmentSpec::from_spec(self.metadata.name()).name().to_string()
-    }
-
-    fn is_dustbin(&self) -> bool { false }
-    fn priority(&self) -> i64 { self.metadata.priority() }
+    fn name(&self) -> &str { &self.name }
+    fn is_dustbin(&self) -> bool { &self.name == "" }
+    fn priority(&self) -> i64 { self.priority }
     fn depth(&self) -> i8 { self.depth }
     fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 
@@ -57,4 +60,18 @@ impl<T: AllotmentImpl + 'static> AllotmentRequestImpl for BaseAllotmentRequest<T
     }
 
     fn up(self: Arc<Self>) -> Arc<dyn AllotmentRequestImpl> { self }
+}
+
+impl BaseAllotmentRequest<DustbinAllotment> {
+    pub fn new_dustbin() -> BaseAllotmentRequest<DustbinAllotment> {
+        BaseAllotmentRequest {
+            name: String::new(),
+            priority: 0,
+            metadata: AllotmentMetadata::new(AllotmentMetadataRequest::dustbin()),
+            allotment: Mutex::new(None),
+            depth: 0,
+            coord_system: CoordinateSystem::Window,
+            max: Mutex::new(0)
+        }
+    }
 }
