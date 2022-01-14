@@ -93,20 +93,21 @@ impl UniverseData {
         self.left.allot(0,&mut left_offset,&mut secondary);
         let mut right_offset = LinearOffsetBuilder::new();
         self.right.allot(0,&mut right_offset, &mut secondary);
-        let left = self.left.max();
+        let left = left_offset.size();
         /* Main run */
-        let mut offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(left,&mut offset, &mut secondary);
-        self.main.allot(left,&mut offset,&mut secondary);
-        self.bottom_tracks.allot(left,&mut offset,&mut secondary);
+        let mut top_offset = LinearOffsetBuilder::new();
+        let mut bottom_offset = LinearOffsetBuilder::new();
+        self.top_tracks.allot(left,&mut top_offset, &mut secondary);
+        self.main.allot(left,&mut top_offset,&mut secondary);
+        self.bottom_tracks.allot(left,&mut bottom_offset,&mut secondary);
         /* window etc */
         self.window.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         self.window_bottom.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         self.window_tracks.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         self.window_tracks_bottom.allot(0,&mut LinearOffsetBuilder::dud(0),&mut secondary);
         /* update playing fields */
-        self.playingfield = PlayingField::new_height(self.bottom_tracks.max());
-        self.playingfield.union(&PlayingField::new_squeeze(left_offset.total_size(),right_offset.total_size()));
+        self.playingfield = PlayingField::new_height(top_offset.size()+bottom_offset.size());
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.size(),right_offset.size()));
     }
 
     fn playingfield(&self) -> &PlayingField { &self.playingfield }

@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
 use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest};
 
-use super::{secondary::{SecondaryPositionStore}, offsetbuilder::LinearOffsetBuilder};
+use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBuilder}};
 
 /* A LinearGroup organises multiple requests along a linear axis and presents a single interface to the Universe.
  *
@@ -38,16 +38,14 @@ pub trait LinearGroupHelper {
 
 pub(crate) struct LinearGroup<C: LinearGroupHelper> {
     entries: HashMap<C::Key,Arc<dyn LinearGroupEntry>>,
-    creator: Box<C>,
-    max: i64
+    creator: Box<C>
 }
 
 impl<C: LinearGroupHelper> LinearGroup<C> {
     pub(crate) fn new(creator: C) -> LinearGroup<C> {
         LinearGroup {
             entries: HashMap::new(),
-            creator: Box::new(creator),
-            max: 0
+            creator: Box::new(creator)
         }
     }
 
@@ -80,13 +78,10 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         let mut sorted_requests = self.entries.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
-            let offset_amt = offset.size(self.creator.is_reverse());
+            let offset_amt = offset.size();
             let size = entry.allot(secondary,offset_amt,secondary_store);
             secondary_store.add(entry.name_for_secondary(),offset_amt, size,self.creator.is_reverse());
-            offset.advance(size,self.creator.is_reverse());
+            offset.advance(size);
         }
-        self.max = offset.total_size();
     }
-
-    pub(crate) fn max(&self) -> i64 { self.max }
 }

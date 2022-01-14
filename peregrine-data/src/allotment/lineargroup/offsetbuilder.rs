@@ -1,30 +1,19 @@
 pub struct LinearOffsetBuilder {
-    size: [i64;2],
+    size: i64,
     dud: bool
 }
 
 impl LinearOffsetBuilder {
-    pub fn new() -> LinearOffsetBuilder {
-        LinearOffsetBuilder {
-            size: [0,0],
-            dud: false
-        }
-    }
+    pub fn real_new(size: i64, dud: bool) -> LinearOffsetBuilder { LinearOffsetBuilder { size, dud } }
 
-    pub fn dud(offset: i64) -> LinearOffsetBuilder {
-        LinearOffsetBuilder {
-            size: [offset,0],
-            dud: true
-        }
-    }
+    pub fn new() -> LinearOffsetBuilder { LinearOffsetBuilder::real_new(0,false) }
+    pub fn dud(size: i64) -> LinearOffsetBuilder { LinearOffsetBuilder::real_new(size,true) }
 
-    pub fn advance(&mut self, amt: i64, fwd: bool) {
+    pub fn advance(&mut self, amt: i64) {
         if !self.dud {
-            self.size[if fwd {1} else {0}] += amt;
+            self.size += amt;
         }
     }
 
-
-    pub fn size(&self, fwd: bool) -> i64 { self.size[if fwd { 1 } else { 0 }] }
-    pub fn total_size(&self) -> i64 { self.size[0] + self.size[1] }
+    pub fn size(&self) -> i64 { self.size }
 }
