@@ -101,7 +101,7 @@ impl PartialEq for AllotmentMetadata {
 impl Eq for AllotmentMetadata {}
 
 impl AllotmentMetadata {
-    pub(super) fn new(builder: AllotmentMetadataRequest) -> AllotmentMetadata {
+    pub(crate) fn new(builder: AllotmentMetadataRequest) -> AllotmentMetadata {
         AllotmentMetadata {
             hash: builder.hash_value(),
             metadata: Arc::new(builder)

@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest};
-
-use super::{leafboxallotment::LeafBoxAllotment, lineargroup::{secondary::SecondaryPositionStore, lineargroup::{LinearGroupHelper, LinearGroupEntry}}, baseallotmentrequest::{BaseAllotmentRequest}, basicallotmentspec::{BasicAllotmentSpec}, allotmentrequest::AllotmentRequestImpl, treeallotment::{tree_best_offset, tree_best_height}};
+use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec}, lineargroup::{secondary::SecondaryPositionStore, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
+use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_offset, tree_best_height}};
 
 #[derive(Clone)]
 struct BoxLinearEntry {
-    request: Arc<BaseAllotmentRequest<LeafBoxAllotment>>,
+    request: Arc<AllotmentRequestImpl<LeafBoxAllotment>>,
     depth: i8,
     reverse: bool,
     name_for_secondary: String
@@ -15,7 +14,7 @@ struct BoxLinearEntry {
 impl BoxLinearEntry {
     fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, coord_system: &CoordinateSystem, reverse: bool) -> BoxLinearEntry {
         BoxLinearEntry {
-            request: Arc::new(BaseAllotmentRequest::new(metadata,coord_system,spec.depth())),
+            request: Arc::new(AllotmentRequestImpl::new(metadata,coord_system,spec.depth())),
             depth: spec.depth(),
             reverse,
             name_for_secondary: spec.name().to_string()

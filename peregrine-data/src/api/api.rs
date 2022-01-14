@@ -1,5 +1,4 @@
-use crate::Scale;
-use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
+use crate::{Scale, AllotmentMetadataReport};
 use crate::core::channel::ChannelIntegration;
 use crate::{DataMessage};
 use crate::train::{ Carriage, Train };

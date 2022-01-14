@@ -1,8 +1,6 @@
-use std::sync::Mutex;
+use crate::{CoordinateSystem, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-
-use super::{baseallotmentrequest::BaseAllotmentRequest, allotment::AllotmentImpl};
+use super::{allotment::AllotmentImpl};
 
 pub(crate) struct DustbinAllotment;
 

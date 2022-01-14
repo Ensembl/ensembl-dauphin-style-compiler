@@ -3,14 +3,14 @@ use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
+use crate::AllotmentRequest;
 use crate::Assets;
 use crate::Colour;
+use crate::CoordinateSystem;
 use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
-use crate::allotment::allotment::CoordinateSystem;
-use crate::allotment::allotmentrequest::AllotmentRequest;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;

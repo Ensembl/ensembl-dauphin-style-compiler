@@ -5,17 +5,23 @@ mod allotment {
         pub(crate) mod lineargroup;
     }
 
-    pub(crate) mod allotment;
-    pub(crate) mod allotmentmetadata;
-    pub(crate) mod allotmentrequest;
-    pub(crate) mod basicallotmentspec;
-    pub(crate) mod baseallotmentrequest;
-    pub(crate) mod leafboxlinearentry;
-    pub(crate) mod dustbinallotment;
-    pub(crate) mod maintrack;
-    pub(crate) mod leafboxallotment;
-    pub(crate) mod treeallotment;
-    pub(crate) mod universe;
+    pub(crate) mod core {
+        pub(crate) mod allotment;
+        pub(crate) mod allotmentmetadata;
+        pub(crate) mod allotmentrequest;
+        pub(crate) mod basicallotmentspec;
+        pub(crate) mod dustbinallotment;
+        pub(crate) mod universe;    
+    }
+
+    mod tree {
+        pub(crate) mod collisionnode;
+        pub(crate) mod leafboxallotment;
+        pub(crate) mod leafboxlinearentry;    
+        pub(crate) mod maintrack;
+        pub(crate) mod maintrackspec;
+        pub(crate) mod treeallotment;    
+    }
 }
 
 mod api {
@@ -210,12 +216,12 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
 };
-pub use self::allotment::allotment::{ Allotment, CoordinateSystem };
-pub use self::allotment::allotmentrequest::AllotmentRequest;
-pub use self::allotment::allotmentmetadata::{
+pub use self::allotment::core::allotment::{ Allotment, CoordinateSystem };
+pub use self::allotment::core::allotmentrequest::AllotmentRequest;
+pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
 };
-pub use self::allotment::universe::Universe;
+pub use self::allotment::core::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };

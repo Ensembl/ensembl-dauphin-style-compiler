@@ -1,22 +1,22 @@
 use std::sync::{Arc, Mutex};
 
+use crate::allotment::lineargroup::lineargroup::LinearGroup;
+use crate::allotment::lineargroup::offsetbuilder::LinearOffsetBuilder;
+use crate::allotment::lineargroup::secondary::SecondaryPositionStore;
+use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
+use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
-use super::baseallotmentrequest::{BaseAllotmentRequest};
+use super::allotmentrequest::AllotmentRequestImpl;
 use super::dustbinallotment::DustbinAllotment;
-use super::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
-use super::lineargroup::lineargroup::{LinearGroup};
-use super::lineargroup::offsetbuilder::LinearOffsetBuilder;
-use super::lineargroup::secondary::SecondaryPositionStore;
-use super::{maintrack::MainTrackRequestCreator};
 
 struct UniverseData {
-    dustbin: Arc<BaseAllotmentRequest<DustbinAllotment>>,
-    main: LinearGroup<MainTrackRequestCreator>,
-    top_tracks: LinearGroup<MainTrackRequestCreator>,
-    bottom_tracks: LinearGroup<MainTrackRequestCreator>,
+    dustbin: Arc<AllotmentRequestImpl<DustbinAllotment>>,
+    main: LinearGroup<MainTrackLinearHelper>,
+    top_tracks: LinearGroup<MainTrackLinearHelper>,
+    bottom_tracks: LinearGroup<MainTrackLinearHelper>,
     window_tracks: LinearGroup<BoxAllotmentLinearGroupHelper>,
     window_tracks_bottom: LinearGroup<BoxAllotmentLinearGroupHelper>,
     left: LinearGroup<BoxAllotmentLinearGroupHelper>,
@@ -122,16 +122,16 @@ impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                main: LinearGroup::new(MainTrackRequestCreator(false)),
-                top_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
-                bottom_tracks: LinearGroup::new(MainTrackRequestCreator(false)),
+                main: LinearGroup::new(MainTrackLinearHelper(false)),
+                top_tracks: LinearGroup::new(MainTrackLinearHelper(false)),
+                bottom_tracks: LinearGroup::new(MainTrackLinearHelper(false)),
                 left: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::SidewaysLeft,false)),
                 right: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::SidewaysRight,true)),
                 window: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::Window,false)),
                 window_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::WindowBottom,false)),
                 window_tracks: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindow,false)),
                 window_tracks_bottom: LinearGroup::new(BoxAllotmentLinearGroupHelper(CoordinateSystem::TrackingWindowBottom,false)),
-                dustbin: Arc::new(BaseAllotmentRequest::new_dustbin()),
+                dustbin: Arc::new(AllotmentRequestImpl::new_dustbin()),
                 playingfield: PlayingField::empty()
             })),
             allotment_metadata: allotment_metadata.clone()

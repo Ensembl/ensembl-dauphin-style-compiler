@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
-use crate::allotment::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
 use super::carriage::{Carriage, CarriageSerialSource};
 use super::carriageset::CarriageSet;
@@ -10,7 +9,7 @@ use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{PgCommanderTaskSpec};
+use crate::{PgCommanderTaskSpec, AllotmentMetadataReport};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 

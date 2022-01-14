@@ -1,5 +1,6 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
-use crate::{AllotmentMetadata, AllotmentMetadataStore, AllotmentRequest};
+
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest};
 
 use super::{secondary::{SecondaryPositionStore}, offsetbuilder::LinearOffsetBuilder};
 

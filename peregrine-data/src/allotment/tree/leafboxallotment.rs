@@ -1,5 +1,4 @@
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-use super::{allotment::{AllotmentImpl, CoordinateSystem}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::core::allotment::AllotmentImpl};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct LeafBoxAllotment {
