@@ -2,14 +2,14 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, h
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
+use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
 
-use super::{leafboxallotment::LeafBoxAllotment, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
+use super::{leafboxtransformer::LeafBoxTransformer, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
 
 pub struct CollisionNodeRequest {
     metadata: AllotmentMetadata,
     group: Option<String>,
-    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafBoxAllotment>>>>,
+    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafBoxTransformer>>>>,
     reverse: bool
 }
 
@@ -25,17 +25,6 @@ impl CollisionNodeRequest {
 }
 
 impl LinearGroupEntry for CollisionNodeRequest {
-    fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<crate::AllotmentMetadata>) {
-        let requests = lock!(self.requests);
-        for (_,request) in requests.iter() {
-            let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
-            if let Some(allotment) = request.base_allotment() {
-                allotment.add_metadata(&mut full_metadata);
-            }
-            out.push(AllotmentMetadata::new(full_metadata));
-        }
-    }
-
     fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         let mut best_offset_val = 0;
         let mut best_height_val = 0;
@@ -48,7 +37,7 @@ impl LinearGroupEntry for CollisionNodeRequest {
         }
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
+            request.set_allotment(Arc::new(LeafBoxTransformer::new(&request.coord_system(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
         }
         best_height_val
     }
@@ -69,6 +58,8 @@ impl LinearGroupEntry for CollisionNodeRequest {
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }
+
+    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, _out: &mut Vec<AllotmentMetadata>) {}
 }
 
 pub(crate) struct CollisionNodeLinearHelper(pub bool);

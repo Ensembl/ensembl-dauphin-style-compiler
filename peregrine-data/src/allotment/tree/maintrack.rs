@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}}};
 
-use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_height, tree_best_offset}, maintrackspec::MTSpecifier};
+use super::{leafboxtransformer::LeafBoxTransformer, treeallotment::{tree_best_height, tree_best_offset}, maintrackspec::MTSpecifier};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -12,7 +12,7 @@ use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_height
 
 pub struct MainTrackRequest {
     metadata: AllotmentMetadata,
-    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafBoxAllotment>>>>,
+    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafBoxTransformer>>>>,
     reverse: bool
 }
 
@@ -39,22 +39,18 @@ impl LinearGroupEntry for MainTrackRequest {
         }
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            request.set_allotment(Arc::new(LeafBoxAllotment::new(&request.coord_system(),request.metadata(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
+            request.set_allotment(Arc::new(LeafBoxTransformer::new(&request.coord_system(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
         }
         best_height_val
     }
 
-    fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+        let mut new = AllotmentMetadataRequest::rebuild(&self.metadata);
         let requests = lock!(self.requests);
-        for (specifier,request) in requests.iter() {
-            let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
-            if specifier.sized() { // XXX wallpaper metadata
-                if let Some(allotment) = request.base_allotment() {
-                    allotment.add_metadata(&mut full_metadata);
-                }
-            }
-            out.push(AllotmentMetadata::new(full_metadata));
+        for (_,request) in requests.iter() {
+            request.add_allotment_metadata_values(&mut new);
         }
+        out.push(AllotmentMetadata::new(new));
     }
 
     fn name_for_secondary(&self) -> &str { self.metadata.name() }

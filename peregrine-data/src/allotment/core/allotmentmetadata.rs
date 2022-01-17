@@ -31,10 +31,47 @@ impl AllotmentMetadataStore {
 }
 
 #[derive(Debug,Clone)]
+pub enum MetadataMergeStrategy {
+    Replace,
+    Keep,
+    Minimum,
+    Maximum
+}
+
+#[derive(Debug,Clone)]
+struct MetadataValue {
+    strategy: MetadataMergeStrategy,
+    value: String    
+}
+
+impl MetadataValue {
+    fn merge_numeric<F>(self,new: MetadataValue, use_new_pred: F) -> Option<MetadataValue> where F: FnOnce(f64,f64) -> bool {
+        let old_number = self.value.parse::<f64>().ok();
+        let new_number = new.value.parse::<f64>().ok();
+        let use_new = match (old_number,new_number) {
+            (Some(old),Some(new)) => use_new_pred(old,new),
+            (Some(_),None) => false,
+            (None,Some(_)) => true,
+            (None,None) => { return None; }
+        };
+        if use_new { Some(new) } else { Some(self) }
+    }
+
+    fn merge(self, new: MetadataValue) -> Option<MetadataValue> {
+        match self.strategy {
+            MetadataMergeStrategy::Replace => Some(new),
+            MetadataMergeStrategy::Keep => Some(self),
+            MetadataMergeStrategy::Maximum => self.merge_numeric(new,|old,new| old < new),
+            MetadataMergeStrategy::Minimum => self.merge_numeric(new,|old,new| old >= new)
+        }
+    }
+}
+
+#[derive(Debug,Clone)]
 pub struct AllotmentMetadataRequest {
     name: String,
     priority: i64,
-    pairs: HashMap<String,String>
+    pairs: HashMap<String,MetadataValue>
 }
 
 impl AllotmentMetadataRequest {
@@ -59,8 +96,22 @@ impl AllotmentMetadataRequest {
         }
     }
 
-    pub fn add_pair(&mut self, key: &str, value: &str) {
-        self.pairs.insert(key.to_string(),value.to_string());
+    pub fn merge(&mut self, other: &AllotmentMetadata) {
+        for (key,value) in other.metadata.pairs.iter() {
+            self.add_pair(key, &value.value,&value.strategy);
+        }
+    }
+
+    pub fn add_pair(&mut self, key: &str, value: &str, merge: &MetadataMergeStrategy) {
+        let new = MetadataValue { value: value.to_string(), strategy: merge.clone() };
+        let value = if let Some(old) = self.pairs.remove(key) {
+            old.merge(new)
+        } else {
+            Some(new)
+        };
+        if let Some(value) = value {
+            self.pairs.insert(key.to_string(),value);
+        }
     }
 
     fn hash_value(&self) -> u64 {
@@ -70,14 +121,16 @@ impl AllotmentMetadataRequest {
         pairs_key.sort();
         for k in pairs_key {
             k.hash(&mut state);
-            self.pairs.get(k).unwrap().hash(&mut state);
+            self.pairs.get(k).map(|x| &x.value).unwrap().hash(&mut state);
         }
         self.priority.hash(&mut state);
         state.finish()
     }
 
     pub fn name(&self) -> &str { &self.name }
-    fn summarize(&self) -> HashMap<String,String> { self.pairs.clone() }
+    fn summarize(&self) -> HashMap<String,String> {
+        self.pairs.iter().map(|(k,v)| (k.clone(),v.value.clone())).collect()
+    }
 }
 
 #[derive(Clone,Debug)]
@@ -111,7 +164,7 @@ impl AllotmentMetadata {
     pub fn name(&self) -> &str { &self.metadata.name }
     pub fn priority(&self) -> i64 { self.metadata.priority }
 
-    pub fn get(&self, name: &str) -> Option<&String> { self.metadata.pairs.get(name) }
+    pub fn get(&self, name: &str) -> Option<&String> { self.metadata.pairs.get(name).as_ref().map(|x| &x.value) }
     pub fn get_i64(&self, name: &str) -> Option<i64> { self.get(name).map(|x| x.parse().ok()).flatten() }
 
     pub fn summarize(&self) -> HashMap<String,String> {

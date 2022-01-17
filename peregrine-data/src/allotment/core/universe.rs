@@ -76,14 +76,6 @@ impl UniverseData {
 
     fn get_all_metadata(&self,allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         self.main.get_all_metadata(allotment_metadata,out);
-        self.top_tracks.get_all_metadata(allotment_metadata,out);
-        self.bottom_tracks.get_all_metadata(allotment_metadata,out);
-        self.window.get_all_metadata(allotment_metadata,out);
-        self.window_bottom.get_all_metadata(allotment_metadata,out);
-        self.window_tracks.get_all_metadata(allotment_metadata,out);
-        self.window_tracks_bottom.get_all_metadata(allotment_metadata,out);
-        self.left.get_all_metadata(allotment_metadata,out);
-        self.right.get_all_metadata(allotment_metadata,out);
     }
 
     fn allot(&mut self) {

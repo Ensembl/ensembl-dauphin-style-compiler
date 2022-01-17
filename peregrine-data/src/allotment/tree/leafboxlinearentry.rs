@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl, AgnosticAllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec}, lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
-use super::{leafboxallotment::LeafBoxAllotment, treeallotment::{tree_best_offset, tree_best_height}};
+use crate::{CoordinateSystem, AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
+use super::{leafboxtransformer::LeafBoxTransformer, treeallotment::{tree_best_offset, tree_best_height}};
 
 #[derive(Clone)]
 struct BoxLinearEntry {
-    request: Arc<AllotmentRequestImpl<LeafBoxAllotment>>,
+    request: Arc<AllotmentRequestImpl<LeafBoxTransformer>>,
+    metadata: AllotmentMetadata,
     depth: i8,
     reverse: bool,
     name_for_secondary: String
@@ -15,6 +16,7 @@ impl BoxLinearEntry {
     fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, coord_system: &CoordinateSystem, reverse: bool) -> BoxLinearEntry {
         BoxLinearEntry {
             request: Arc::new(AllotmentRequestImpl::new(metadata,coord_system,spec.depth())),
+            metadata: metadata.clone(),
             depth: spec.depth(),
             reverse,
             name_for_secondary: spec.name().to_string()
@@ -26,16 +28,8 @@ impl LinearGroupEntry for BoxLinearEntry {
     fn allot(&self, secondary: &Option<i64>, offset: i64, _secondary_store: &SecondaryPositionStore) -> i64 {
         let offset = tree_best_offset(&self.request,offset);
         let size = tree_best_height(&self.request);
-        self.request.set_allotment(Arc::new(LeafBoxAllotment::new(&self.request.coord_system(),&self.request.metadata(),secondary,offset,offset,size,self.depth,self.reverse)));
+        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(&self.request.coord_system(),secondary,offset,offset,size,self.depth,self.reverse)));
         self.request.max_used()
-    }
-
-    fn get_all_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
-        let mut full_metadata = AllotmentMetadataRequest::rebuild(self.request.metadata());
-        if let Some(allotment) = self.request.base_allotment() {
-            allotment.add_metadata(&mut full_metadata);
-        }
-        out.push(AllotmentMetadata::new(full_metadata));
     }
 
     fn name_for_secondary(&self) -> &str { &self.name_for_secondary }
@@ -43,6 +37,16 @@ impl LinearGroupEntry for BoxLinearEntry {
 
     fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
         Some(AllotmentRequest::upcast(self.request.clone()))
+    }
+
+    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+        let secret = self.metadata.get_i64("secret-track").unwrap_or(0) != 0;
+        if secret { return; }
+        if let Some(allotment) = self.request.transformer() {
+            let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
+            allotment.add_transform_metadata(&mut full_metadata);
+            out.push(AllotmentMetadata::new(full_metadata));
+        }
     }
 }
 

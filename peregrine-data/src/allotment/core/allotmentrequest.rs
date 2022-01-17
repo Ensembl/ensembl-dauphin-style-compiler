@@ -5,7 +5,7 @@ use peregrine_toolkit::lock;
 use super::basicallotmentspec::BasicAllotmentSpec;
 use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest};
 
-use super::allotment::AllotmentImpl;
+use super::allotment::Transformer;
 use super::{allotment::CoordinateSystem, dustbinallotment::DustbinAllotment};
 
 impl Hash for AllotmentRequest {
@@ -24,22 +24,22 @@ impl PartialEq for AllotmentRequest {
 
 impl Eq for AllotmentRequest {}
 
-pub trait AgnosticAllotmentRequestImpl {
+pub trait GenericAllotmentRequestImpl {
     fn name(&self) -> &str;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;
-    fn up(self: Arc<Self>) -> Arc<dyn AgnosticAllotmentRequestImpl>;
+    fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl>;
     fn register_usage(&self, max: i64);
     fn coord_system(&self) -> CoordinateSystem;
     fn depth(&self) -> i8;
 }
 
 #[derive(Clone)]
-pub struct AllotmentRequest(Arc<dyn AgnosticAllotmentRequestImpl>);
+pub struct AllotmentRequest(Arc<dyn GenericAllotmentRequestImpl>);
 
 impl AllotmentRequest {
-    pub(crate) fn upcast<T>(request: Arc<T>) -> AllotmentRequest where T: AgnosticAllotmentRequestImpl + 'static + ?Sized {
+    pub(crate) fn upcast<T>(request: Arc<T>) -> AllotmentRequest where T: GenericAllotmentRequestImpl + 'static + ?Sized {
         AllotmentRequest(request.up())
     }
 
@@ -59,23 +59,23 @@ impl std::fmt::Debug for AllotmentRequest {
     }
 }
 
-pub struct AllotmentRequestImpl<T> {
+pub struct AllotmentRequestImpl<T: Transformer> {
     metadata: AllotmentMetadata,
     name: String,
     priority: i64,
-    allotment: Mutex<Option<Arc<T>>>,
+    transformer: Mutex<Option<Arc<T>>>,
     coord_system: CoordinateSystem,
     depth: i8,
     max: Mutex<i64>
 }
 
-impl<T> AllotmentRequestImpl<T> {
+impl<T: Transformer> AllotmentRequestImpl<T> {
     pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, depth: i8) -> AllotmentRequestImpl<T> {
         AllotmentRequestImpl {
             name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
             priority: metadata.priority(),
             metadata: metadata.clone(),
-            allotment: Mutex::new(None),
+            transformer: Mutex::new(None),
             depth,
             coord_system: coord_system.clone(),
             max: Mutex::new(0)
@@ -84,19 +84,25 @@ impl<T> AllotmentRequestImpl<T> {
 
     pub fn set_allotment(&self, value: Arc<T>) {
         if &self.name != "" {
-            *self.allotment.lock().unwrap() = Some(value);
+            *self.transformer.lock().unwrap() = Some(value);
         }
     }
 
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_used(&self) -> i64 { *self.max.lock().unwrap() }
 
-    pub fn base_allotment(&self) -> Option<Arc<T>> {
-        self.allotment.lock().unwrap().as_ref().cloned()
+    pub fn transformer(&self) -> Option<Arc<T>> {
+        self.transformer.lock().unwrap().as_ref().cloned()
+    }
+
+    pub fn add_allotment_metadata_values(&self, metadata: &mut AllotmentMetadataRequest) {
+        if let Some(transformer) = lock!(self.transformer).as_ref() {
+            transformer.add_transform_metadata(metadata);
+        }
     }
 }
 
-impl<T: AllotmentImpl + 'static> AgnosticAllotmentRequestImpl for AllotmentRequestImpl<T> {
+impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestImpl<T> {
     fn name(&self) -> &str { &self.name }
     fn is_dustbin(&self) -> bool { &self.name == "" }
     fn priority(&self) -> i64 { self.priority }
@@ -104,7 +110,7 @@ impl<T: AllotmentImpl + 'static> AgnosticAllotmentRequestImpl for AllotmentReque
     fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
-        match self.allotment.lock().unwrap().clone() {
+        match self.transformer.lock().unwrap().clone() {
             Some(imp) => Ok(Allotment::new(imp)),
             None => Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name())))
         }
@@ -115,7 +121,7 @@ impl<T: AllotmentImpl + 'static> AgnosticAllotmentRequestImpl for AllotmentReque
         *self_max = (*self_max).max(max)
     }
 
-    fn up(self: Arc<Self>) -> Arc<dyn AgnosticAllotmentRequestImpl> { self }
+    fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl> { self }
 }
 
 impl AllotmentRequestImpl<DustbinAllotment> {
@@ -124,7 +130,7 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             name: String::new(),
             priority: 0,
             metadata: AllotmentMetadata::new(AllotmentMetadataRequest::dustbin()),
-            allotment: Mutex::new(None),
+            transformer: Mutex::new(None),
             depth: 0,
             coord_system: CoordinateSystem::Window,
             max: Mutex::new(0)

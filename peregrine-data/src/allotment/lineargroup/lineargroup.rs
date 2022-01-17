@@ -21,7 +21,7 @@ use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBui
  */
 
 pub trait LinearGroupEntry {
-    fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
+    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
     fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
     fn name_for_secondary(&self) -> &str;
     fn priority(&self) -> i64;
@@ -68,8 +68,8 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
     }
 
     pub(crate) fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
-        for (_,request) in self.entries.iter() {
-            request.get_all_metadata(allotment_metadata,out);
+        for (_,entry) in &self.entries {
+            entry.get_entry_metadata(allotment_metadata,out);
         }
     }
 

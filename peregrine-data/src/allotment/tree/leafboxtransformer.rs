@@ -1,39 +1,30 @@
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::{core::allotment::AllotmentImpl}};
+use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct LeafBoxAllotment {
-    metadata: AllotmentMetadata,
+pub struct LeafBoxTransformer {
     coord_system: CoordinateSystem,
     secondary: i64,
     top: i64,
     offset: i64,
     size: i64,
     depth: i8,
-    secret: bool,
     reverse: bool
 }
 
-impl LeafBoxAllotment {
-    pub(crate) fn new(coord_system: &CoordinateSystem, metadata: &AllotmentMetadata, secondary: &Option<i64>, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> LeafBoxAllotment {
-        let secret = metadata.get_i64("secret-track").unwrap_or(0) != 0;
-        LeafBoxAllotment {
+impl LeafBoxTransformer {
+    pub(crate) fn new(coord_system: &CoordinateSystem, secondary: &Option<i64>, top: i64, offset: i64, size: i64, depth: i8, reverse: bool) -> LeafBoxTransformer {
+        LeafBoxTransformer {
             coord_system: coord_system.clone(),
-            metadata: metadata.clone(),
             secondary: secondary.unwrap_or(0).clone(),
-            top, offset, size, depth, secret, reverse
+            top, offset, size, depth, reverse
         }
     }
 
-    pub(super) fn add_metadata(&self, full_metadata: &mut AllotmentMetadataRequest) {
-        if !self.secret {
-            full_metadata.add_pair("type","track");
-            full_metadata.add_pair("offset",&self.top.to_string());
-            full_metadata.add_pair("height",&self.size.to_string());
-        }
-    }
+    pub(super) fn top(&self) -> i64 { self.top }
+    pub(super) fn size(&self) -> i64 { self.size }
 }
 
-impl AllotmentImpl for LeafBoxAllotment {
+impl Transformer for LeafBoxTransformer {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
         let mut output = input.make();
         if self.reverse {
@@ -55,7 +46,14 @@ impl AllotmentImpl for LeafBoxAllotment {
         }
     }
 
-    fn depth(&self) -> i8 { self.depth }
+    fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest) {
+        let top = self.top();
+        let bottom = self.top()+self.size();
+        out.add_pair("type","track",&MetadataMergeStrategy::Replace);
+        out.add_pair("offset",&top.to_string(),&MetadataMergeStrategy::Minimum);
+        out.add_pair("height",&(bottom-top).to_string(),&MetadataMergeStrategy::Maximum);
+    }
 
+    fn depth(&self) -> i8 { self.depth }
     fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }

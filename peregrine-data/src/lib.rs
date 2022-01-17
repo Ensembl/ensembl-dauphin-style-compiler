@@ -16,7 +16,7 @@ mod allotment {
 
     mod tree {
         pub(crate) mod collisionnode;
-        pub(crate) mod leafboxallotment;
+        pub(crate) mod leafboxtransformer;
         pub(crate) mod leafboxlinearentry;    
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;
@@ -219,7 +219,7 @@ pub use self::shape::{
 pub use self::allotment::core::allotment::{ Allotment, CoordinateSystem };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
-    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport
+    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
 };
 pub use self::allotment::core::universe::Universe;
 pub use self::switch::switch::{ Switches };

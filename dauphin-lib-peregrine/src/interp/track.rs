@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{AllotmentMetadataRequest, Channel};
+use peregrine_data::{AllotmentMetadataRequest, Channel, MetadataMergeStrategy};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult, AsyncBlock };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -86,7 +86,7 @@ impl InterpCommand for AddAllotmentInterpCommand {
             let mut metadata = AllotmentMetadataRequest::new(name,*prio as i64);
             for (key,values) in &pairs {
                 if values.len() > 0 {
-                    metadata.add_pair(key,&values[i%values.len()]);
+                    metadata.add_pair(key,&values[i%values.len()],&MetadataMergeStrategy::Replace);
                 }
             }
             allotment_metadata.add(metadata);

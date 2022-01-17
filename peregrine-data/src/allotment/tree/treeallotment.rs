@@ -1,12 +1,12 @@
-use crate::allotment::core::allotmentrequest::AllotmentRequestImpl;
+use crate::allotment::core::{allotmentrequest::AllotmentRequestImpl, allotment::Transformer};
 
-pub fn tree_best_offset<T>(this: &AllotmentRequestImpl<T>, offset: i64) -> i64 {
+pub fn tree_best_offset<T: Transformer>(this: &AllotmentRequestImpl<T>, offset: i64) -> i64 {
     let metadata = this.metadata();
     let padding_top = metadata.get_i64("padding-top").unwrap_or(0);
     offset + padding_top
 }
 
-pub fn tree_best_height<T>(this: &AllotmentRequestImpl<T>) -> i64 {
+pub fn tree_best_height<T: Transformer>(this: &AllotmentRequestImpl<T>) -> i64 {
     let metadata = this.metadata();
     let mut height = this.max_used().max(0);
     if let Some(padding_top) = metadata.get_i64("padding-top") {
