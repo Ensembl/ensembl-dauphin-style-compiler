@@ -1,4 +1,6 @@
-use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionResolver}}};
+use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionResolver}}, CoordinateSystem};
+
+use super::leafboxtransformer::LeafGeometry;
 
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     if let Some(start) = name.rfind(":") {
@@ -60,5 +62,16 @@ impl MTSpecifier {
                 self.base.secondary().as_ref().and_then(|s| secondary_store.lookup(s))
             }
         }
+    }
+
+    pub(super) fn our_geometry(&self, input: &LeafGeometry) -> LeafGeometry {
+        let coord_system = match (&self.variety,input.reverse()) {
+            (MTVariety::Track,_)           => CoordinateSystem::Tracking,
+            (MTVariety::TrackWindow,false) => CoordinateSystem::TrackingWindow,
+            (MTVariety::TrackWindow,true)  => CoordinateSystem::TrackingWindowBottom,
+            (MTVariety::Wallpaper,false)   => CoordinateSystem::Window,
+            (MTVariety::Wallpaper,true)    => CoordinateSystem::WindowBottom
+        };
+        input.with_new_coord_system(&coord_system)
     }
 }

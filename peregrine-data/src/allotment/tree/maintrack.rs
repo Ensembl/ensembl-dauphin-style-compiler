@@ -28,8 +28,8 @@ impl MainTrackRequest {
 
 impl LinearGroupEntry for MainTrackRequest {
     fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
-        let mut allot_box = AllotmentBox::empty();
         let requests = lock!(self.requests);
+        let mut allot_box = AllotmentBox::empty();
         for (specifier,request) in requests.iter() {
             if specifier.sized() {
                 allot_box = allot_box.merge(&AllotmentBox::new(request.metadata(),request.max_used()));
@@ -38,7 +38,7 @@ impl LinearGroupEntry for MainTrackRequest {
         let total_offset = offset.size() + allot_box.top_space();
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            let transformer = LeafBoxTransformer::new(geometry,&our_secondary,total_offset,allot_box.height(),request.depth());
+            let transformer = LeafBoxTransformer::new(&request.geometry(),&our_secondary,total_offset,allot_box.height(),request.depth());
             request.set_allotment(Arc::new(transformer));
         }
         offset.advance(allot_box.height());
@@ -60,7 +60,8 @@ impl LinearGroupEntry for MainTrackRequest {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
-            Arc::new(AllotmentRequestImpl::new(&self.metadata,geometry,specifier.base().depth()))
+            let our_geometry = specifier.our_geometry(geometry);
+            Arc::new(AllotmentRequestImpl::new(&self.metadata,&our_geometry,specifier.base().depth()))
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }

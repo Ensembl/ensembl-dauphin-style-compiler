@@ -116,7 +116,7 @@ impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
         let main_geometry = LeafGeometry::new(CoordinateSystem::Tracking,false);
         let left_geometry = LeafGeometry::new(CoordinateSystem::SidewaysLeft,false);
-        let right_geometry = LeafGeometry::new(CoordinateSystem::SidewaysLeft,true);
+        let right_geometry = LeafGeometry::new(CoordinateSystem::SidewaysRight,true);
         let window_geometry = LeafGeometry::new(CoordinateSystem::Window,false);
         let window_bottom_geometry = LeafGeometry::new(CoordinateSystem::WindowBottom,false);
         let wintrack_geometry = LeafGeometry::new(CoordinateSystem::TrackingWindow,false);

@@ -89,6 +89,7 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
         }
     }
 
+    pub fn geometry(&self) -> &LeafGeometry { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_used(&self) -> i64 { *self.max.lock().unwrap() }
 

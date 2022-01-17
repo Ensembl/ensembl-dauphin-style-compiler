@@ -12,6 +12,14 @@ impl LeafGeometry {
         LeafGeometry { coord_system, reverse }
     }
 
+    pub fn with_new_coord_system(&self, coord_system: &CoordinateSystem) -> LeafGeometry {
+        LeafGeometry {
+            coord_system: coord_system.clone(),
+            reverse: self.reverse
+        }
+    }
+
+    pub fn reverse(&self) -> bool { self.reverse }
     pub fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }
 
