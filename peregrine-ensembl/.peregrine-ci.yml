@@ -34,7 +34,7 @@ stages:
 Build-WASM:
   extends: .build_wasm
 
-# Build node package
+# Build node package in downstream pipeline
 Build-npm:
   stage: deploy
   variables:
