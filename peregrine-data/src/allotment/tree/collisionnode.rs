@@ -2,30 +2,30 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, h
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
+use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
 
-use super::{leafboxtransformer::LeafBoxTransformer, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
+use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
 
 pub struct CollisionNodeRequest {
     metadata: AllotmentMetadata,
     group: Option<String>,
     requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafBoxTransformer>>>>,
-    reverse: bool
+    geometry: LeafGeometry
 }
 
 impl CollisionNodeRequest {
-    fn new(metadata: &AllotmentMetadata, group: &Option<String>, reverse: bool) -> CollisionNodeRequest {
+    fn new(metadata: &AllotmentMetadata, group: &Option<String>, geometry: &LeafGeometry) -> CollisionNodeRequest {
         CollisionNodeRequest {
             metadata: metadata.clone(),
             group: group.clone(),
             requests: Mutex::new(HashMap::new()),
-            reverse
+            geometry: geometry.clone()
         }
     }
 }
 
 impl LinearGroupEntry for CollisionNodeRequest {
-    fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
         let mut best_offset_val = 0;
         let mut best_height_val = 0;
         let requests = lock!(self.requests);
@@ -37,7 +37,7 @@ impl LinearGroupEntry for CollisionNodeRequest {
         }
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            request.set_allotment(Arc::new(LeafBoxTransformer::new(&request.coord_system(),&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth(),self.reverse)));
+            request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth())));
         }
         best_height_val
     }
@@ -50,11 +50,11 @@ impl LinearGroupEntry for CollisionNodeRequest {
         h.finish() as i64
     }
 
-    fn make_request(&self, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<crate::AllotmentRequest> {
+    fn make_request(&self, geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<crate::AllotmentRequest> {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
-            Arc::new(AllotmentRequestImpl::new(&self.metadata,&specifier.coord_system(false),specifier.base().depth()))
+            Arc::new(AllotmentRequestImpl::new(&self.metadata,geometry,specifier.base().depth()))
         });
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }
@@ -62,17 +62,17 @@ impl LinearGroupEntry for CollisionNodeRequest {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, _out: &mut Vec<AllotmentMetadata>) {}
 }
 
-pub(crate) struct CollisionNodeLinearHelper(pub bool);
+pub(crate) struct CollisionNodeLinearHelper;
 
 impl LinearGroupHelper for CollisionNodeLinearHelper {
     type Key = Option<String>;
 
     fn entry_key(&self, full_name: &str) -> Option<String> { MTSpecifier::new(&full_name).base().group().clone() }
 
-    fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-        Arc::new(CollisionNodeRequest::new(&metadata,specifier.base().group(),self.0))
+        Arc::new(CollisionNodeRequest::new(&metadata,specifier.base().group(),geometry))
     }
 }

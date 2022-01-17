@@ -1,4 +1,4 @@
-use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionStore}}, CoordinateSystem};
+use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionStore}}};
 
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     if let Some(start) = name.rfind(":") {
@@ -49,16 +49,6 @@ impl MTSpecifier {
             MTVariety::Track => true,
             MTVariety::TrackWindow => false,
             MTVariety::Wallpaper => false
-        }
-    }
-
-    pub(super) fn coord_system(&self, reverse: bool) -> CoordinateSystem {
-        match (&self.variety,reverse) {
-            (MTVariety::Track,_)           => CoordinateSystem::Tracking,
-            (MTVariety::TrackWindow,false) => CoordinateSystem::TrackingWindow,
-            (MTVariety::TrackWindow,true)  => CoordinateSystem::TrackingWindowBottom,
-            (MTVariety::Wallpaper,false)   => CoordinateSystem::Window,
-            (MTVariety::Wallpaper,true)    => CoordinateSystem::WindowBottom
         }
     }
 

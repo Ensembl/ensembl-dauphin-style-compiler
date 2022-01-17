@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
-use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest};
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::tree::leafboxtransformer::LeafGeometry};
 
 use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBuilder}};
 
@@ -22,41 +22,45 @@ use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBui
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn allot(&self, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
     fn name_for_secondary(&self) -> &str;
     fn priority(&self) -> i64;
-    fn make_request(&self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
+    fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
 
 pub trait LinearGroupHelper {
     type Key : PartialEq + Eq + Hash + Clone;
 
     fn entry_key(&self, full_name: &str) -> Self::Key;
-    fn make_linear_group_entry(&self, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
+    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
 }
 
 pub(crate) struct LinearGroup<C: LinearGroupHelper> {
+    geometry: LeafGeometry,
     entries: HashMap<C::Key,Arc<dyn LinearGroupEntry>>,
     creator: Box<C>
 }
 
 impl<C: LinearGroupHelper> LinearGroup<C> {
-    pub(crate) fn new(creator: C) -> LinearGroup<C> {
+    pub(crate) fn new(geometry: &LeafGeometry, creator: C) -> LinearGroup<C> {
         LinearGroup {
+            geometry: geometry.clone(),
             entries: HashMap::new(),
             creator: Box::new(creator)
         }
     }
 
     fn get_entry_for(&mut self, allotment_metadata: &AllotmentMetadataStore, full_name: &str, full_path: &str) -> &Arc<dyn LinearGroupEntry> {
+        let geometry = self.geometry.clone();
         let (creator,entries) = (&mut self.creator, &mut self.entries);
         entries.entry(creator.entry_key(full_name)).or_insert_with(|| {
-            creator.make_linear_group_entry(&allotment_metadata,&full_path)
+            creator.make_linear_group_entry(&geometry,&allotment_metadata,&full_path)
         })
     }
 
     pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str, full_path: &str) -> Option<AllotmentRequest> {
-        self.get_entry_for(allotment_metadata,name,full_path).make_request(allotment_metadata,name)
+        let geometry = self.geometry.clone();
+        self.get_entry_for(allotment_metadata,name,full_path).make_request(&geometry,allotment_metadata,name)
     }
 
     pub(crate) fn union(&mut self, other: &LinearGroup<C>) {
@@ -78,7 +82,7 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
             let offset_amt = offset.size();
-            let size = entry.allot(secondary,offset_amt,secondary_store);
+            let size = entry.allot(&self.geometry,secondary,offset_amt,secondary_store);
             secondary_store.add(entry.name_for_secondary(),offset_amt);
             offset.advance(size);
         }

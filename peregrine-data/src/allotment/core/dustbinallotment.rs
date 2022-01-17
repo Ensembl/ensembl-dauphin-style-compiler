@@ -9,5 +9,5 @@ impl Transformer for DustbinAllotment {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> { input.make() }
     fn transform_yy(&self, _values: &[Option<f64>]) -> Vec<Option<f64>> { vec![] }
     fn depth(&self) -> i8 { 0 }
-    fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest) {}
+    fn add_transform_metadata(&self, _out: &mut AllotmentMetadataRequest) {}
 }

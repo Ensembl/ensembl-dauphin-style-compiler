@@ -3,6 +3,7 @@ use std::sync::Arc;
 use peregrine_toolkit::lock;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
+use crate::allotment::tree::leafboxtransformer::LeafGeometry;
 use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest};
 
 use super::allotment::Transformer;
@@ -64,20 +65,20 @@ pub struct AllotmentRequestImpl<T: Transformer> {
     name: String,
     priority: i64,
     transformer: Mutex<Option<Arc<T>>>,
-    coord_system: CoordinateSystem,
+    geometry: LeafGeometry,
     depth: i8,
     max: Mutex<i64>
 }
 
 impl<T: Transformer> AllotmentRequestImpl<T> {
-    pub fn new(metadata: &AllotmentMetadata, coord_system: &CoordinateSystem, depth: i8) -> AllotmentRequestImpl<T> {
+    pub fn new(metadata: &AllotmentMetadata, geometry: &LeafGeometry, depth: i8) -> AllotmentRequestImpl<T> {
         AllotmentRequestImpl {
             name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
             priority: metadata.priority(),
             metadata: metadata.clone(),
             transformer: Mutex::new(None),
             depth,
-            coord_system: coord_system.clone(),
+            geometry: geometry.clone(),
             max: Mutex::new(0)
         }
     }
@@ -107,7 +108,7 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
     fn is_dustbin(&self) -> bool { &self.name == "" }
     fn priority(&self) -> i64 { self.priority }
     fn depth(&self) -> i8 { self.depth }
-    fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
+    fn coord_system(&self) -> CoordinateSystem { self.geometry.coord_system().clone() }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         match self.transformer.lock().unwrap().clone() {
@@ -132,7 +133,7 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             metadata: AllotmentMetadata::new(AllotmentMetadataRequest::dustbin()),
             transformer: Mutex::new(None),
             depth: 0,
-            coord_system: CoordinateSystem::Window,
+            geometry: LeafGeometry::new(CoordinateSystem::Window,false),
             max: Mutex::new(0)
         }
     }
