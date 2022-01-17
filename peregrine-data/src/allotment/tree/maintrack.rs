@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionResolver}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{arbitrator::{Arbitrator, SymbolicAxis}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}}};
 
 use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, allotmentbox::AllotmentBox, maintrackspec::MTSpecifier};
 
@@ -27,7 +27,8 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
+    fn allot(&self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator) {
+        arbitrator.add_symbolic(&SymbolicAxis::ScreenVert, self.metadata.name(), offset.size());
         let requests = lock!(self.requests);
         let mut allot_box = AllotmentBox::empty();
         for (specifier,request) in requests.iter() {
@@ -37,8 +38,8 @@ impl LinearGroupEntry for MainTrackRequest {
         }
         let total_offset = offset.size() + allot_box.top_space();
         for (specifier,request) in requests.iter() {
-            let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            let transformer = LeafBoxTransformer::new(&request.geometry(),&our_secondary,total_offset,allot_box.height(),request.depth());
+            let secondary = specifier.arbitrator_horiz(arbitrator).or_else(|| secondary.clone()).unwrap_or(0);
+            let transformer = LeafBoxTransformer::new(&request.geometry(),secondary,total_offset,allot_box.height(),request.depth());
             request.set_allotment(Arc::new(transformer));
         }
         offset.advance(allot_box.height());
@@ -53,7 +54,6 @@ impl LinearGroupEntry for MainTrackRequest {
         out.push(AllotmentMetadata::new(new));
     }
 
-    fn name_for_secondary(&self) -> &str { self.metadata.name() }
     fn priority(&self) -> i64 { self.metadata.priority() }
 
     fn make_request(&self, geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {

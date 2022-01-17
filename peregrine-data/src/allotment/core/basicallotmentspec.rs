@@ -17,7 +17,7 @@ pub(super) fn remove_depth(spec: &mut String) -> i8 {
     remove_bracketed(spec,"[","]").map(|x| x.parse::<i8>().ok()).flatten().unwrap_or(0)
 }
 
-pub(super) fn remove_secondary(spec: &mut String) -> Option<String> {
+pub(super) fn remove_arbitrator(spec: &mut String) -> Option<String> {
     remove_bracketed(spec,"{","}")
 }
 
@@ -29,7 +29,7 @@ pub(super) fn remove_group(spec: &mut String) -> Option<String> {
 pub struct BasicAllotmentSpec {
     name: String,
     depth: i8,
-    secondary: Option<String>,
+    arbitrator: Option<String>,
     group: Option<String>
 }
 
@@ -37,9 +37,9 @@ impl BasicAllotmentSpec {
     pub(crate) fn from_spec(spec: &str) -> BasicAllotmentSpec {
         let mut spec = spec.to_string();
         let depth = remove_depth(&mut spec);
-        let secondary = remove_secondary(&mut spec);
+        let arbitrator = remove_arbitrator(&mut spec);
         let group = remove_group(&mut spec);
-        BasicAllotmentSpec { name: spec, depth, secondary, group }
+        BasicAllotmentSpec { name: spec, depth, arbitrator, group }
     }
 
     pub(crate) fn with_name(&self, name: &str) -> BasicAllotmentSpec {
@@ -57,5 +57,5 @@ impl BasicAllotmentSpec {
     pub(crate) fn group(&self) -> &Option<String> { &self.group }
     pub(crate) fn name(&self) -> &str { &self.name }
     pub(crate) fn depth(&self) -> i8 { self.depth }
-    pub(crate) fn secondary(&self) -> &Option<String> { &self.secondary }
+    pub(crate) fn arbitrator(&self) -> &Option<String> { &self.arbitrator }
 }

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::allotment::lineargroup::lineargroup::LinearGroup;
 use crate::allotment::lineargroup::offsetbuilder::LinearOffsetBuilder;
-use crate::allotment::lineargroup::secondary::{SecondaryPositionResolver};
+use crate::allotment::lineargroup::arbitrator::{Arbitrator};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leafboxtransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
@@ -81,23 +81,23 @@ impl UniverseData {
 
     fn allot(&mut self) {
         /* Left and Right */
-        let mut secondary = SecondaryPositionResolver::new();
+        let mut arbitrator = Arbitrator::new();
         let mut left_offset = LinearOffsetBuilder::new();
-        self.left.allot(&None,&mut left_offset,&mut secondary);
+        self.left.allot(&None,&mut left_offset,&mut arbitrator);
         let mut right_offset = LinearOffsetBuilder::new();
-        self.right.allot(&None,&mut right_offset, &mut secondary);
+        self.right.allot(&None,&mut right_offset, &mut arbitrator);
         let left = left_offset.size();
         /* Main run */
         let mut top_offset = LinearOffsetBuilder::new();
         let mut bottom_offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(&Some(left),&mut top_offset, &mut secondary);
-        self.main.allot(&Some(left),&mut top_offset,&mut secondary);
-        self.bottom_tracks.allot(&Some(left),&mut bottom_offset,&mut secondary);
+        self.top_tracks.allot(&Some(left),&mut top_offset, &mut arbitrator);
+        self.main.allot(&Some(left),&mut top_offset,&mut arbitrator);
+        self.bottom_tracks.allot(&Some(left),&mut bottom_offset,&mut arbitrator);
         /* window etc */
-        self.window.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_tracks.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
-        self.window_tracks_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut secondary);
+        self.window.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
+        self.window_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
+        self.window_tracks.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
+        self.window_tracks_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
         /* update playing fields */
         self.playingfield = PlayingField::new_height(top_offset.size()+bottom_offset.size());
         self.playingfield.union(&PlayingField::new_squeeze(left_offset.size(),right_offset.size()));

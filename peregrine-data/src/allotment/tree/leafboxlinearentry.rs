@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{secondary::{SecondaryPositionResolver}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{arbitrator::{Arbitrator, SymbolicAxis}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
 use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, allotmentbox::AllotmentBox};
 
 #[derive(Clone)]
@@ -8,7 +8,7 @@ struct BoxLinearEntry {
     request: Arc<AllotmentRequestImpl<LeafBoxTransformer>>,
     metadata: AllotmentMetadata,
     depth: i8,
-    name_for_secondary: String
+    name_for_arbitrator: String
 }
 
 impl BoxLinearEntry {
@@ -17,20 +17,20 @@ impl BoxLinearEntry {
             request: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth())),
             metadata: metadata.clone(),
             depth: spec.depth(),
-            name_for_secondary: spec.name().to_string()
+            name_for_arbitrator: spec.name().to_string()
         } 
     }
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
+    fn allot(&self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator) {
+        arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, offset.size());
         let allot_box = AllotmentBox::new(&self.request.metadata(),self.request.max_used());
         let top_offset = offset.size() + allot_box.top_space();
-        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,secondary,top_offset,allot_box.height(),self.depth)));
+        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(self.request.geometry(),secondary.unwrap_or(0),top_offset,allot_box.height(),self.depth)));
         offset.advance(self.request.max_used());
     }
 
-    fn name_for_secondary(&self) -> &str { &self.name_for_secondary }
     fn priority(&self) -> i64 { self.request.metadata().priority() }
 
     fn make_request(&self, _geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {

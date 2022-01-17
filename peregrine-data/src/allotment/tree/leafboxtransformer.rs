@@ -33,11 +33,10 @@ pub struct LeafBoxTransformer {
 }
 
 impl LeafBoxTransformer {
-    pub(crate) fn new(geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, size: i64, depth: i8) -> LeafBoxTransformer {
+    pub(crate) fn new(geometry: &LeafGeometry, secondary: i64, offset: i64, size: i64, depth: i8) -> LeafBoxTransformer {
         LeafBoxTransformer {
             geometry: geometry.clone(),
-            secondary: secondary.unwrap_or(0).clone(),
-            offset, size, depth
+            secondary, offset, size, depth
         }
     }
 }

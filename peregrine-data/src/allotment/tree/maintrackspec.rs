@@ -1,4 +1,4 @@
-use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::secondary::{SecondaryPositionResolver}}, CoordinateSystem};
+use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::arbitrator::{Arbitrator, SymbolicAxis}}, CoordinateSystem};
 
 use super::leafboxtransformer::LeafGeometry;
 
@@ -54,12 +54,12 @@ impl MTSpecifier {
         }
     }
 
-    pub(super) fn get_secondary(&self, secondary_store: &SecondaryPositionResolver) -> Option<i64> {
+    pub(super) fn arbitrator_horiz(&self, arbitrator: &Arbitrator) -> Option<i64> {
         match self.variety {
             MTVariety::Track => None,
             MTVariety::TrackWindow => None,
             MTVariety::Wallpaper => {
-                self.base.secondary().as_ref().and_then(|s| secondary_store.lookup(s))
+                self.base.arbitrator().as_ref().and_then(|s| arbitrator.lookup_symbolic(&SymbolicAxis::ScreenHoriz,s))
             }
         }
     }

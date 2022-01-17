@@ -1,6 +1,6 @@
 mod allotment {
     mod lineargroup {
-        pub(crate) mod secondary;
+        pub(crate) mod arbitrator;
         pub(super) mod offsetbuilder;
         pub(crate) mod lineargroup;
     }
