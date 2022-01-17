@@ -1,24 +1,8 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
-use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::tree::leafboxtransformer::LeafGeometry};
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::leaftransformer::LeafGeometry, core::arbitrator::Arbitrator}};
 
-use super::{arbitrator::{Arbitrator}, offsetbuilder::{LinearOffsetBuilder}};
-
-/* A LinearGroup organises multiple requests along a linear axis and presents a single interface to the Universe.
- *
- * A LinearGroup has an associated LinearGroupHelper to allow type-specific behaviours. Specifically a LinearGroupHelper:
- * 1. can map from a spec to a key representing the corresponding entry at this level;
- * 2. can create new LinearGroupEntries with behaviour specific for the type;
- * 3. specifies whether the coordinates are top-to-bottom or bottom-to-top.
- * 
- * When requested the LinearGroupHelper creates something which implemenrs LinearGroupEntry. This object is stored
- * inside the linear group and:
- * 1. Can accept delegated allotment request creation decisions;
- * 2. Can return metadata to satisfy the universe's demands for metadata;
- * 3. Will be called via allot() with information concerning its final position once allotment takes place;
- * 4. Can return a priority for ordering decisions;
- * 5. Can return a name for use in secondaty axis allignment.
- */
+use super::{offsetbuilder::{LinearOffsetBuilder}};
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);

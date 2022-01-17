@@ -24,7 +24,7 @@ impl LeafGeometry {
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct LeafBoxTransformer {
+pub struct LeafTransformer {
     geometry: LeafGeometry,
     secondary: i64,
     offset: i64,
@@ -32,16 +32,16 @@ pub struct LeafBoxTransformer {
     depth: i8,
 }
 
-impl LeafBoxTransformer {
-    pub(crate) fn new(geometry: &LeafGeometry, secondary: i64, offset: i64, size: i64, depth: i8) -> LeafBoxTransformer {
-        LeafBoxTransformer {
+impl LeafTransformer {
+    pub(crate) fn new(geometry: &LeafGeometry, secondary: i64, offset: i64, size: i64, depth: i8) -> LeafTransformer {
+        LeafTransformer {
             geometry: geometry.clone(),
             secondary, offset, size, depth
         }
     }
 }
 
-impl Transformer for LeafBoxTransformer {
+impl Transformer for LeafTransformer {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
         let mut output = input.make();
         if self.geometry.reverse {

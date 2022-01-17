@@ -1,5 +1,8 @@
-use crate::AllotmentMetadata;
+use std::sync::Arc;
 
+use crate::{AllotmentMetadata, allotment::core::{allotmentrequest::AllotmentRequestImpl, allotment::Transformer}};
+
+#[derive(Clone)]
 pub struct AllotmentBox {
     padding_top: i64,
     padding_bottom: i64,
@@ -34,6 +37,16 @@ impl AllotmentBox {
             internal_height: self.internal_height.max(other.internal_height),
             min_height
         }
+    }
+
+    pub fn merge_requests<'a,F,T>(&'a self, requests: F) -> AllotmentBox where F: Iterator<Item=&'a Arc<AllotmentRequestImpl<T>>>, T: Transformer + 'a {
+        let mut out = self.clone();
+        for request in requests {
+            if !request.ghost() {
+                out = out.merge(&AllotmentBox::new(request.metadata(),request.max_used()));
+            }
+        }
+        out
     }
 
     pub fn top_space(&self) -> i64 { self.padding_top }

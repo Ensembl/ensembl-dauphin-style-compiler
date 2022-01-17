@@ -1,11 +1,11 @@
 mod allotment {
     mod lineargroup {
-        pub(crate) mod arbitrator;
         pub(super) mod offsetbuilder;
         pub(crate) mod lineargroup;
     }
 
     pub(crate) mod core {
+        pub(crate) mod arbitrator;
         pub(crate) mod allotment;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod allotmentrequest;
@@ -15,7 +15,7 @@ mod allotment {
     }
 
     mod tree {
-        pub(crate) mod leafboxtransformer;
+        pub(crate) mod leaftransformer;
         pub(crate) mod leafboxlinearentry;    
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;

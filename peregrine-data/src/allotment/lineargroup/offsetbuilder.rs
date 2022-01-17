@@ -4,7 +4,7 @@ pub struct LinearOffsetBuilder {
 }
 
 impl LinearOffsetBuilder {
-    pub fn real_new(size: i64, dud: bool) -> LinearOffsetBuilder { LinearOffsetBuilder { size, dud } }
+    fn real_new(size: i64, dud: bool) -> LinearOffsetBuilder { LinearOffsetBuilder { size, dud } }
 
     pub fn new() -> LinearOffsetBuilder { LinearOffsetBuilder::real_new(0,false) }
     pub fn dud(size: i64) -> LinearOffsetBuilder { LinearOffsetBuilder::real_new(size,true) }
@@ -15,5 +15,5 @@ impl LinearOffsetBuilder {
         }
     }
 
-    pub fn size(&self) -> i64 { self.size }
+    pub fn primary(&self) -> i64 { self.size }
 }

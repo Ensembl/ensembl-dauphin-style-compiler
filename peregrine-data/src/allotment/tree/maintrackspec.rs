@@ -1,6 +1,6 @@
-use crate::{allotment::{core::basicallotmentspec::BasicAllotmentSpec, lineargroup::arbitrator::{Arbitrator, SymbolicAxis}}, CoordinateSystem};
+use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis}}}, CoordinateSystem};
 
-use super::leafboxtransformer::LeafGeometry;
+use super::leaftransformer::LeafGeometry;
 
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     if let Some(start) = name.rfind(":") {

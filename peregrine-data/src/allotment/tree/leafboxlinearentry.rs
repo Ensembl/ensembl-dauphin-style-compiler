@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{arbitrator::{Arbitrator, SymbolicAxis}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
-use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, allotmentbox::AllotmentBox};
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
+use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::AllotmentBox};
 
 #[derive(Clone)]
 struct BoxLinearEntry {
-    request: Arc<AllotmentRequestImpl<LeafBoxTransformer>>,
+    request: Arc<AllotmentRequestImpl<LeafTransformer>>,
     metadata: AllotmentMetadata,
     depth: i8,
     name_for_arbitrator: String
 }
 
 impl BoxLinearEntry {
-    fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec,geometry: &LeafGeometry) -> BoxLinearEntry {
+    fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, geometry: &LeafGeometry) -> BoxLinearEntry {
         BoxLinearEntry {
-            request: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth())),
+            request: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
             metadata: metadata.clone(),
             depth: spec.depth(),
             name_for_arbitrator: spec.name().to_string()
@@ -24,10 +24,10 @@ impl BoxLinearEntry {
 
 impl LinearGroupEntry for BoxLinearEntry {
     fn allot(&self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator) {
-        arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, offset.size());
+        arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, offset.primary());
         let allot_box = AllotmentBox::new(&self.request.metadata(),self.request.max_used());
-        let top_offset = offset.size() + allot_box.top_space();
-        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(self.request.geometry(),secondary.unwrap_or(0),top_offset,allot_box.height(),self.depth)));
+        let top_offset = offset.primary() + allot_box.top_space();
+        self.request.set_allotment(Arc::new(LeafTransformer::new(self.request.geometry(),secondary.unwrap_or(0),top_offset,allot_box.height(),self.depth)));
         offset.advance(self.request.max_used());
     }
 

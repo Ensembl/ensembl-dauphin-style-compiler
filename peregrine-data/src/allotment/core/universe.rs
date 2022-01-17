@@ -2,15 +2,15 @@ use std::sync::{Arc, Mutex};
 
 use crate::allotment::lineargroup::lineargroup::LinearGroup;
 use crate::allotment::lineargroup::offsetbuilder::LinearOffsetBuilder;
-use crate::allotment::lineargroup::arbitrator::{Arbitrator};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
-use crate::allotment::tree::leafboxtransformer::LeafGeometry;
+use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
 use peregrine_toolkit::lock;
 
 use super::allotmentrequest::AllotmentRequestImpl;
+use super::arbitrator::Arbitrator;
 use super::dustbinallotment::DustbinAllotment;
 
 struct UniverseData {
@@ -86,7 +86,7 @@ impl UniverseData {
         self.left.allot(&None,&mut left_offset,&mut arbitrator);
         let mut right_offset = LinearOffsetBuilder::new();
         self.right.allot(&None,&mut right_offset, &mut arbitrator);
-        let left = left_offset.size();
+        let left = left_offset.primary();
         /* Main run */
         let mut top_offset = LinearOffsetBuilder::new();
         let mut bottom_offset = LinearOffsetBuilder::new();
@@ -99,8 +99,8 @@ impl UniverseData {
         self.window_tracks.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
         self.window_tracks_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
         /* update playing fields */
-        self.playingfield = PlayingField::new_height(top_offset.size()+bottom_offset.size());
-        self.playingfield.union(&PlayingField::new_squeeze(left_offset.size(),right_offset.size()));
+        self.playingfield = PlayingField::new_height(top_offset.primary()+bottom_offset.primary());
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.primary(),right_offset.primary()));
     }
 
     fn playingfield(&self) -> &PlayingField { &self.playingfield }

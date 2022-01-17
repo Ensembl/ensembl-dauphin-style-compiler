@@ -3,7 +3,7 @@ use std::sync::Arc;
 use peregrine_toolkit::lock;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
-use crate::allotment::tree::leafboxtransformer::LeafGeometry;
+use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest};
 
 use super::allotment::Transformer;
@@ -67,17 +67,18 @@ pub struct AllotmentRequestImpl<T: Transformer> {
     transformer: Mutex<Option<Arc<T>>>,
     geometry: LeafGeometry,
     depth: i8,
-    max: Mutex<i64>
+    max: Mutex<i64>,
+    ghost: bool
 }
 
 impl<T: Transformer> AllotmentRequestImpl<T> {
-    pub fn new(metadata: &AllotmentMetadata, geometry: &LeafGeometry, depth: i8) -> AllotmentRequestImpl<T> {
+    pub fn new(metadata: &AllotmentMetadata, geometry: &LeafGeometry, depth: i8, ghost: bool) -> AllotmentRequestImpl<T> {
         AllotmentRequestImpl {
             name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
             priority: metadata.priority(),
             metadata: metadata.clone(),
             transformer: Mutex::new(None),
-            depth,
+            depth, ghost,
             geometry: geometry.clone(),
             max: Mutex::new(0)
         }
@@ -89,6 +90,7 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
         }
     }
 
+    pub fn ghost(&self) -> bool { self.ghost }
     pub fn geometry(&self) -> &LeafGeometry { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_used(&self) -> i64 { *self.max.lock().unwrap() }
@@ -134,6 +136,7 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             metadata: AllotmentMetadata::new(AllotmentMetadataRequest::dustbin()),
             transformer: Mutex::new(None),
             depth: 0,
+            ghost: true,
             geometry: LeafGeometry::new(CoordinateSystem::Window,false),
             max: Mutex::new(0)
         }
