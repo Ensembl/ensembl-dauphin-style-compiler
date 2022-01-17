@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-/* The SecondaryPositionStore stores the offsets of other elements for alingment.
+/* The SecondaryPositionResolver stores the offsets of other elements for alingment.
  */
 
-pub struct SecondaryPositionStore {
+pub struct SecondaryPositionResolver {
     position: HashMap<String,i64>
 }
 
-impl SecondaryPositionStore {
-    pub fn new() -> SecondaryPositionStore {
-        SecondaryPositionStore {
+impl SecondaryPositionResolver {
+    pub fn new() -> SecondaryPositionResolver {
+        SecondaryPositionResolver {
             position: HashMap::new()
         }
     }

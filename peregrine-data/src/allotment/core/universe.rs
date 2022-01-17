@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::allotment::lineargroup::lineargroup::LinearGroup;
 use crate::allotment::lineargroup::offsetbuilder::LinearOffsetBuilder;
-use crate::allotment::lineargroup::secondary::SecondaryPositionStore;
+use crate::allotment::lineargroup::secondary::{SecondaryPositionResolver};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leafboxtransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
@@ -81,7 +81,7 @@ impl UniverseData {
 
     fn allot(&mut self) {
         /* Left and Right */
-        let mut secondary = SecondaryPositionStore::new();
+        let mut secondary = SecondaryPositionResolver::new();
         let mut left_offset = LinearOffsetBuilder::new();
         self.left.allot(&None,&mut left_offset,&mut secondary);
         let mut right_offset = LinearOffsetBuilder::new();

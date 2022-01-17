@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}, collections::{HashMap, hash_map::DefaultHasher}, h
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionStore}}, core::allotmentrequest::{AllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
+use crate::{allotment::{lineargroup::{lineargroup::{LinearGroupHelper, LinearGroupEntry}, secondary::{SecondaryPositionResolver}, offsetbuilder::LinearOffsetBuilder}, core::allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}, AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentRequest};
 
-use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, maintrackspec::MTSpecifier, treeallotment::{tree_best_offset, tree_best_height}};
+use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, maintrackspec::MTSpecifier, allotmentbox::AllotmentBox};
 
 pub struct CollisionNodeRequest {
     metadata: AllotmentMetadata,
@@ -25,21 +25,21 @@ impl CollisionNodeRequest {
 }
 
 impl LinearGroupEntry for CollisionNodeRequest {
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
-        let mut best_offset_val = 0;
-        let mut best_height_val = 0;
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
+        let mut allot_box = AllotmentBox::empty();
         let requests = lock!(self.requests);
         for (specifier,request) in requests.iter() {
             if specifier.sized() {
-                best_offset_val = best_offset_val.max(tree_best_offset(&request,offset));
-                best_height_val = best_height_val.max(tree_best_height(&request));
+                allot_box = allot_box.merge(&AllotmentBox::new(request.metadata(),request.max_used()));
             }
         }
+        let total_offset = offset.size() + allot_box.top_space();
         for (specifier,request) in requests.iter() {
-            let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth())));
+            let our_secondary = specifier.base().secondary().as_ref().and_then(|s| secondary_store.lookup(s));
+            let transformer = LeafBoxTransformer::new(geometry,&our_secondary,total_offset,allot_box.height(),request.depth());
+            request.set_allotment(Arc::new(transformer));
         }
-        best_height_val
+        offset.advance(allot_box.height());
     }
 
     fn name_for_secondary(&self) -> &str { self.metadata.name() }

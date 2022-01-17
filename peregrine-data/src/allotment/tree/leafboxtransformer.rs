@@ -19,23 +19,19 @@ impl LeafGeometry {
 pub struct LeafBoxTransformer {
     geometry: LeafGeometry,
     secondary: i64,
-    top: i64,
     offset: i64,
     size: i64,
     depth: i8,
 }
 
 impl LeafBoxTransformer {
-    pub(crate) fn new(geometry: &LeafGeometry, secondary: &Option<i64>, top: i64, offset: i64, size: i64, depth: i8) -> LeafBoxTransformer {
+    pub(crate) fn new(geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, size: i64, depth: i8) -> LeafBoxTransformer {
         LeafBoxTransformer {
             geometry: geometry.clone(),
             secondary: secondary.unwrap_or(0).clone(),
-            top, offset, size, depth
+            offset, size, depth
         }
     }
-
-    pub(super) fn top(&self) -> i64 { self.top }
-    pub(super) fn size(&self) -> i64 { self.size }
 }
 
 impl Transformer for LeafBoxTransformer {
@@ -61,11 +57,9 @@ impl Transformer for LeafBoxTransformer {
     }
 
     fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest) {
-        let top = self.top();
-        let bottom = self.top()+self.size();
         out.add_pair("type","track",&MetadataMergeStrategy::Replace);
-        out.add_pair("offset",&top.to_string(),&MetadataMergeStrategy::Minimum);
-        out.add_pair("height",&(bottom-top).to_string(),&MetadataMergeStrategy::Maximum);
+        out.add_pair("offset",&self.offset.to_string(),&MetadataMergeStrategy::Minimum);
+        out.add_pair("height",&self.size.to_string(),&MetadataMergeStrategy::Maximum);
     }
 
     fn depth(&self) -> i8 { self.depth }

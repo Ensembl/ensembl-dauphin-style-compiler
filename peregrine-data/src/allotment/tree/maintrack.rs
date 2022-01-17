@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl}}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{secondary::{SecondaryPositionResolver}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}}}};
 
-use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, treeallotment::{tree_best_height, tree_best_offset}, maintrackspec::MTSpecifier};
+use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, allotmentbox::AllotmentBox, maintrackspec::MTSpecifier};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
@@ -27,21 +27,21 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64 {
-        let mut best_offset_val = 0;
-        let mut best_height_val = 0;
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
+        let mut allot_box = AllotmentBox::empty();
         let requests = lock!(self.requests);
         for (specifier,request) in requests.iter() {
             if specifier.sized() {
-                best_offset_val = best_offset_val.max(tree_best_offset(&request,offset));
-                best_height_val = best_height_val.max(tree_best_height(&request));
+                allot_box = allot_box.merge(&AllotmentBox::new(request.metadata(),request.max_used()));
             }
         }
+        let total_offset = offset.size() + allot_box.top_space();
         for (specifier,request) in requests.iter() {
             let our_secondary = specifier.get_secondary(secondary_store).or_else(|| secondary.clone());
-            request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,&our_secondary,offset,best_offset_val,best_height_val,specifier.base().depth())));
+            let transformer = LeafBoxTransformer::new(geometry,&our_secondary,total_offset,allot_box.height(),request.depth());
+            request.set_allotment(Arc::new(transformer));
         }
-        best_height_val
+        offset.advance(allot_box.height());
     }
 
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {

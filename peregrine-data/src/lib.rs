@@ -20,7 +20,7 @@ mod allotment {
         pub(crate) mod leafboxlinearentry;    
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;
-        pub(crate) mod treeallotment;    
+        pub(crate) mod allotmentbox;    
     }
 }
 

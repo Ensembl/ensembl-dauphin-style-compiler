@@ -2,7 +2,7 @@ use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
 use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::tree::leafboxtransformer::LeafGeometry};
 
-use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBuilder}};
+use super::{secondary::{SecondaryPositionResolver}, offsetbuilder::{LinearOffsetBuilder}};
 
 /* A LinearGroup organises multiple requests along a linear axis and presents a single interface to the Universe.
  *
@@ -22,7 +22,7 @@ use super::{secondary::{SecondaryPositionStore}, offsetbuilder::{LinearOffsetBui
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, secondary_store: &SecondaryPositionStore) -> i64;
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver);
     fn name_for_secondary(&self) -> &str;
     fn priority(&self) -> i64;
     fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
@@ -77,14 +77,13 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    pub(crate) fn allot(&mut self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &mut SecondaryPositionStore) {
+    pub(crate) fn allot(&mut self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &mut SecondaryPositionResolver) {
         let mut sorted_requests = self.entries.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
-            let offset_amt = offset.size();
-            let size = entry.allot(&self.geometry,secondary,offset_amt,secondary_store);
-            secondary_store.add(entry.name_for_secondary(),offset_amt);
-            offset.advance(size);
+            let offset_orig = offset.size();
+           entry.allot(&self.geometry,secondary,offset,secondary_store);
+            secondary_store.add(entry.name_for_secondary(),offset_orig);
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{secondary::{SecondaryPositionStore}, lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
-use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, treeallotment::{tree_best_offset, tree_best_height}};
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer}, lineargroup::{secondary::{SecondaryPositionResolver}, lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
+use super::{leafboxtransformer::{LeafBoxTransformer, LeafGeometry}, allotmentbox::AllotmentBox};
 
 #[derive(Clone)]
 struct BoxLinearEntry {
@@ -23,11 +23,11 @@ impl BoxLinearEntry {
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
-    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: i64, _secondary_store: &SecondaryPositionStore) -> i64 {
-        let offset = tree_best_offset(&self.request,offset);
-        let size = tree_best_height(&self.request);
-        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,secondary,offset,offset,size,self.depth)));
-        self.request.max_used()
+    fn allot(&self, geometry: &LeafGeometry, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, secondary_store: &SecondaryPositionResolver) {
+        let allot_box = AllotmentBox::new(&self.request.metadata(),self.request.max_used());
+        let top_offset = offset.size() + allot_box.top_space();
+        self.request.set_allotment(Arc::new(LeafBoxTransformer::new(geometry,secondary,top_offset,allot_box.height(),self.depth)));
+        offset.advance(self.request.max_used());
     }
 
     fn name_for_secondary(&self) -> &str { &self.name_for_secondary }
