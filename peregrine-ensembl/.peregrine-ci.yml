@@ -27,7 +27,7 @@ stages:
   artifacts:
     name: build_wasm_artifacts
     paths:
-      - pkg/
+      - peregrine-ensembl/pkg/
     reports:
       dotenv: build_wasm.env
 
