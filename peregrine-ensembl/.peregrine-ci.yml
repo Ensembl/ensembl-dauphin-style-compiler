@@ -16,30 +16,13 @@ stages:
     - wasm-pack build --target web --release
     - ls pkg/
 
-  rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
-      changes: 
-        - peregrine-ensembl/*
-
-Build-WASM:
-  extends: .build_wasm
-
-# Build node package
-Build-npm:
-  stage: deploy
-  image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
-
-  script:
-    - echo "Trigger Build node package here"
-
-
-  rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
-      changes: 
-        - peregrine-ensembl/*
-
   after_script:
     - echo "BUILD_JOB_ID=${CI_JOB_ID}" >> build_wasm.env
+
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
+      changes: 
+        - peregrine-ensembl/*
 
   artifacts:
     name: build_wasm_artifacts
@@ -47,3 +30,23 @@ Build-npm:
       - pkg/
     reports:
       dotenv: build_wasm.env
+
+Build-WASM:
+  extends: .build_wasm
+
+# Build node package
+Build-npm:
+  stage: deploy
+  variables:
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    WASM_BUILD_JOB_ID: ${BUILD_JOB_ID}
+
+  trigger:
+    project: ensembl-web/ensembl-genome-browser
+    branch: multi-project-pipeline
+
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
+      changes: 
+        - peregrine-ensembl/*
+
