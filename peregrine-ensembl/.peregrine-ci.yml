@@ -16,9 +16,6 @@ stages:
     - wasm-pack build --target web --release
     - ls pkg/
 
-  after_script:
-    - echo "BUILD_JOB_ID=${CI_JOB_ID}" >> build_wasm.env
-
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
       changes: 
@@ -28,8 +25,6 @@ stages:
     name: build_wasm_artifacts
     paths:
       - peregrine-ensembl/pkg/
-    reports:
-      dotenv: build_wasm.env
 
 Build-WASM:
   extends: .build_wasm
@@ -39,7 +34,6 @@ Build-npm:
   stage: deploy
   variables:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    WASM_BUILD_JOB_ID: ${BUILD_JOB_ID}
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
