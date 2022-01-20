@@ -29,7 +29,7 @@ impl CollideGroupRequest {
         let group = specifier.base().group();
         let mut hasher = DefaultHasher::new();
         group.hash(&mut hasher);
-        if hasher.finish() % 2 == 0 { 32 } else { 0 }
+        if hasher.finish() % 2 == 0 { 24 } else { 0 }
     }
 
     fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
