@@ -37,7 +37,7 @@ Build-npm:dev:
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
-    branch: $CI_COMMIT_REF_NAME
+    branch: dynamic-branch
 
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH != "master"'
