@@ -122,7 +122,7 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
 
     fn register_usage(&self, max: i64) {
         let mut self_max = lock!(self.max);
-        *self_max = (*self_max).max(max)
+        *self_max = (*self_max).max(max);
     }
 
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl> { self }

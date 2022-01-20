@@ -66,13 +66,13 @@ impl AllotmentBoxBuilder {
     }
 
     pub fn append(&mut self, child: AllotmentBox) {
-        child.set_container_offset(self.natural_height);
+        child.set_container_offset(self.natural_height + self.padding_top);
         self.natural_height += child.total_height();
         self.children.push(child);
     }
 
     pub fn overlay(&mut self, child: AllotmentBox) {
-        child.set_container_offset(0);
+        child.set_container_offset(self.padding_top);
         self.natural_height = self.natural_height.max(child.total_height());
         self.children.push(child);
     }
@@ -118,8 +118,8 @@ impl AllotmentBox {
         self.allot_box.apply_root(offset_from_root);
     }
 
-    fn apply_indent(&self, indent: i64) {
-        let indent = self.allot_box.self_indent.as_ref().map(|x| x.value()).unwrap_or(indent);
+    fn apply_indent(&self, container_indent: i64) {
+        let indent = self.allot_box.self_indent.as_ref().map(|x| x.value()).unwrap_or(container_indent);
         self.indent.set_value(indent);
         self.allot_box.apply_indent(indent);
     }

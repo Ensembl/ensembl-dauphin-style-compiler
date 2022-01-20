@@ -37,7 +37,10 @@ impl CollideGroupRequest {
         if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
             box_builder.set_self_indent(Some(&indent));
         }
-        AllotmentBox::new(box_builder)
+        let content_box = AllotmentBox::new(box_builder);
+        let transformer = LeafTransformer::new(&request.geometry(),&content_box,request.depth());
+        request.set_allotment(Arc::new(transformer));
+        content_box
     }
 
     fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
@@ -68,8 +71,6 @@ impl LinearGroupEntry for CollideGroupRequest {
         let mut child_boxes = vec![];
         for (specifier,request) in requests.iter() {
             let child_box = self.make_child_box(specifier,request,arbitrator);
-            let transformer = LeafTransformer::new(&request.geometry(),&child_box,request.depth());
-            request.set_allotment(Arc::new(transformer));
             child_boxes.push(child_box);
         }
         let mut builder = AllotmentBoxBuilder::empty(0);
