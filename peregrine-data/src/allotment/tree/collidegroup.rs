@@ -1,14 +1,9 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}}}};
 
 use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier};
-
-/* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
- * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]
- * where [depth] is the drawing priority, a possibly negative number
- */
 
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,
@@ -29,10 +24,32 @@ impl CollideGroupRequest {
             request.add_allotment_metadata_values(out);
         }
     }
+
+    fn calculate_offset(&self, specifier: &MTSpecifier) -> i64 {
+        let group = specifier.base().group();
+        let mut hasher = DefaultHasher::new();
+        group.hash(&mut hasher);
+        if hasher.finish() % 2 == 0 { 32 } else { 0 }
+    }
+
+    fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+        let mut box_builder = AllotmentBoxBuilder::empty(request.max_used());
+        if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
+            box_builder.set_self_indent(Some(&indent));
+        }
+        AllotmentBox::new(box_builder)
+    }
+
+    fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+        let mut builder = AllotmentBoxBuilder::empty(0);
+        builder.add_padding_top(self.calculate_offset(specifier));
+        builder.append(self.make_content_box(specifier,request,arbitrator));
+        AllotmentBox::new(builder)
+    }
 }
 
 impl LinearGroupEntry for CollideGroupRequest {
-    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {}
+    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, _out: &mut Vec<AllotmentMetadata>) {}
 
     fn priority(&self) -> i64 { self.metadata.priority() }
 
@@ -50,16 +67,12 @@ impl LinearGroupEntry for CollideGroupRequest {
         let requests = lock!(self.requests);
         let mut child_boxes = vec![];
         for (specifier,request) in requests.iter() {
-            let mut box_builder = AllotmentBoxBuilder::new(request.metadata(),request.max_used());
-            if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
-                box_builder.set_self_indent(Some(&indent));
-            }
-            let child_allotment = AllotmentBox::new(box_builder);
-            let transformer = LeafTransformer::new(&request.geometry(),&child_allotment,request.depth());
+            let child_box = self.make_child_box(specifier,request,arbitrator);
+            let transformer = LeafTransformer::new(&request.geometry(),&child_box,request.depth());
             request.set_allotment(Arc::new(transformer));
-            child_boxes.push(child_allotment);
+            child_boxes.push(child_box);
         }
-        let mut builder = AllotmentBoxBuilder::empty();
+        let mut builder = AllotmentBoxBuilder::empty(0);
         builder.overlay_all(child_boxes);
         AllotmentBox::new(builder)
     }

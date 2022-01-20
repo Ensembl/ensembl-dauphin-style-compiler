@@ -13,6 +13,13 @@ fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
+pub enum MTSection {
+    Header,
+    Main
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone,PartialEq,Eq,Hash)]
 enum MTVariety {
     Track,
     TrackWindow,
@@ -20,13 +27,15 @@ enum MTVariety {
 }
 
 impl MTVariety {
-    fn from_suffix(spec: &str) -> (MTVariety,String) {
+    fn from_suffix(spec: &str) -> (MTVariety,String,MTSection) {
         if let Some(main) = trim_suffix("wallpaper",&spec) {
-            (MTVariety::Wallpaper,main)
+            (MTVariety::Wallpaper,main,MTSection::Main)
         } else if let Some(main) = trim_suffix("window",&spec) {
-            (MTVariety::TrackWindow,main)
+            (MTVariety::TrackWindow,main,MTSection::Main)
+        } else if let Some(main) = trim_suffix("header",&spec) {
+            (MTVariety::Wallpaper,main,MTSection::Header)
         } else {
-            (MTVariety::Track,spec.to_string())
+            (MTVariety::Track,spec.to_string(),MTSection::Main)
         }
     }
 }
@@ -35,18 +44,20 @@ impl MTVariety {
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub(super) struct MTSpecifier {
     variety: MTVariety,
+    section: MTSection,
     base: BasicAllotmentSpec
 }
 
 impl MTSpecifier {
     pub(super) fn new(spec: &str) -> MTSpecifier {
         let base = BasicAllotmentSpec::from_spec(&spec);
-        let (variety,main) = MTVariety::from_suffix(&base.name());
+        let (variety,main,section) = MTVariety::from_suffix(&base.name());
         let base = base.with_name(&main);
-        MTSpecifier { variety, base }
+        MTSpecifier { variety, base, section }
     }
 
     pub(super) fn base(&self) -> &BasicAllotmentSpec { &self.base }
+    pub(super) fn section(&self) -> &MTSection { &self.section }
 
     pub(super) fn sized(&self) -> bool {
         match self.variety {

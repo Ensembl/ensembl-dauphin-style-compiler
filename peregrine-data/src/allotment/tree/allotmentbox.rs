@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use peregrine_toolkit::lock;
-
-use crate::{AllotmentMetadata, allotment::core::{allotmentrequest::AllotmentRequestImpl, allotment::Transformer, arbitrator::DelayedValue}};
+use crate::{AllotmentMetadata, allotment::core::arbitrator::DelayedValue};
 
 pub struct AllotmentBoxBuilder {
     padding_top: i64,
@@ -25,15 +23,19 @@ impl AllotmentBoxBuilder {
         }
     }
 
-    pub fn empty() -> AllotmentBoxBuilder {
+    pub fn empty(natural_height: i64) -> AllotmentBoxBuilder {
         AllotmentBoxBuilder {
             padding_top: 0,
             padding_bottom: 0,
             min_height: None,
-            natural_height: 0,
+            natural_height,
             children: vec![],
             self_indent: None
         }
+    }
+
+    pub fn add_padding_top(&mut self, amt: i64) {
+        self.padding_top += amt;
     }
 
     pub fn set_self_indent(&mut self, indent: Option<&DelayedValue>) {
@@ -46,7 +48,7 @@ impl AllotmentBoxBuilder {
 
     /* don't make visible except to AllotmentBox */
     fn padded_height(&self) -> i64 {
-        self.natural_height.max(self.min_height.unwrap_or(0))
+        self.unpadded_height() + self.padding_top + self.padding_bottom
     }
 
     /* don't make visible except to AllotmentBox */

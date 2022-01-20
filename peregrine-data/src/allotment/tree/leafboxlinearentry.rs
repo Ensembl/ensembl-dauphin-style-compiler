@@ -23,6 +23,10 @@ impl BoxLinearEntry {
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
+    fn make_request(&self, _geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
+        Some(AllotmentRequest::upcast(self.request.clone()))
+    }
+
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&self.request.metadata(),self.request.max_used()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
@@ -31,10 +35,6 @@ impl LinearGroupEntry for BoxLinearEntry {
     }
 
     fn priority(&self) -> i64 { self.request.metadata().priority() }
-
-    fn make_request(&self, _geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
-        Some(AllotmentRequest::upcast(self.request.clone()))
-    }
 
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         let secret = self.metadata.get_i64("secret-track").unwrap_or(0) != 0;
