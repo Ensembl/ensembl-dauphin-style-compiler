@@ -1,6 +1,6 @@
 stages:
   - build_docker
-  - deploy
+  - trigger_npm_build
 
 # Builds wasm files
 .build_wasm:
@@ -17,7 +17,7 @@ stages:
     - ls pkg/
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
+    - if: '$CI_DEPLOY_FREEZE == null'
       changes: 
         - peregrine-ensembl/*
 
@@ -30,17 +30,31 @@ Build-WASM:
   extends: .build_wasm
 
 # Build node package in downstream pipeline
-Build-npm:
-  stage: deploy
+Build-npm:dev:
+  stage: trigger_npm_build
   variables:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
-    branch: multi-project-pipeline
+    branch: $CI_COMMIT_REF_NAME
 
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "multi-project-build"'
-      changes: 
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH != "master"'
+      changes:
         - peregrine-ensembl/*
 
+# Build node package in downstream pipeline
+Build-npm:Live:
+  stage: trigger_npm_build
+  variables:
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+
+  trigger:
+    project: ensembl-web/ensembl-genome-browser
+    branch: main
+
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - peregrine-ensembl/*
