@@ -1,6 +1,6 @@
 stages:
   - build_docker
-  - trigger_npm_build
+  - deploy
 
 # Builds wasm files
 .build_wasm:
@@ -31,13 +31,13 @@ Build-WASM:
 
 # Build node package in downstream pipeline
 Build-npm:dev:
-  stage: trigger_npm_build
+  stage: deploy
   variables:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
-    branch: dynamic-branch
+    branch: $CI_COMMIT_REF_NAME
 
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH != "master"'
@@ -46,7 +46,7 @@ Build-npm:dev:
 
 # Build node package in downstream pipeline
 Build-npm:Live:
-  stage: trigger_npm_build
+  stage: deploy
   variables:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
 
