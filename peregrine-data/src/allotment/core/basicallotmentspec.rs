@@ -25,6 +25,7 @@ pub(super) fn remove_group(spec: &mut String) -> Option<String> {
     remove_bracketed(spec,"\"","\"")
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct BasicAllotmentSpec {
     name: String,

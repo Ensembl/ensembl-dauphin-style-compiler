@@ -1,6 +1,5 @@
 mod allotment {
     mod lineargroup {
-        pub(super) mod offsetbuilder;
         pub(crate) mod lineargroup;
     }
 
@@ -15,6 +14,7 @@ mod allotment {
     }
 
     mod tree {
+        pub(crate) mod collidegroup;
         pub(crate) mod leaftransformer;
         pub(crate) mod leafboxlinearentry;    
         pub(crate) mod maintrack;

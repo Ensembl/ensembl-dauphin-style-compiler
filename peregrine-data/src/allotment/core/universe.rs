@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::allotment::lineargroup::lineargroup::LinearGroup;
-use crate::allotment::lineargroup::offsetbuilder::LinearOffsetBuilder;
+use crate::allotment::tree::allotmentbox::{AllotmentBoxBuilder, AllotmentBox};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
@@ -27,38 +27,26 @@ struct UniverseData {
     playingfield: PlayingField
 }
 
-pub(super) fn trim_prefix(prefix: &str, name: &str) -> Option<String> {
-    if let Some(start) = name.find(":") {
-        if &name[0..start] == prefix {
-            return Some(name[start+1..].to_string());
-        }
-    }
-    None
-}
-
 impl UniverseData {
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
-        } else if let Some(suffix) = trim_prefix("track",name) {
-            self.main.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("track-top",name) {
-            self.top_tracks.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("track-bottom",name) {
-            self.bottom_tracks.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("track-window",name) {
-            self.window_tracks.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("window",name) {
-            self.window.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("window-bottom",name) {
-            self.window_bottom.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("track-window-bottom",name) {
-            self.window_tracks_bottom.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("left",name) {
-            self.left.make_request(allotment_metadata,&suffix,&name)
-        } else if let Some(suffix) = trim_prefix("right",name) {
-            self.right.make_request(allotment_metadata,&suffix,&name)
         } else {
+            if let Some(start) = name.find(":") {
+                let prefix = &name[0..start];
+                match prefix {
+                    "track" => { return self.main.make_request(allotment_metadata,&name); },
+                    "track-top" => { return self.top_tracks.make_request(allotment_metadata,&name); },
+                    "track-bottom" => { return self.bottom_tracks.make_request(allotment_metadata,&name); },
+                    "track-window" => { return self.window_tracks.make_request(allotment_metadata,&name); },
+                    "window" => { return self.window.make_request(allotment_metadata,&name); },
+                    "window-bottom" => { return self.window_bottom.make_request(allotment_metadata,&name); },
+                    "track-window-bottom" => { return self.window_tracks_bottom.make_request(allotment_metadata,&name); },
+                    "left" => { return self.left.make_request(allotment_metadata,&name); },
+                    "right" => { return self.right.make_request(allotment_metadata,&name); },
+                    _ => {} 
+                }
+            }
             None
         }
     }
@@ -80,27 +68,57 @@ impl UniverseData {
     }
 
     fn allot(&mut self) {
-        /* Left and Right */
         let mut arbitrator = Arbitrator::new();
-        let mut left_offset = LinearOffsetBuilder::new();
-        self.left.allot(&None,&mut left_offset,&mut arbitrator);
-        let mut right_offset = LinearOffsetBuilder::new();
-        self.right.allot(&None,&mut right_offset, &mut arbitrator);
-        let left = left_offset.primary();
-        /* Main run */
-        let mut top_offset = LinearOffsetBuilder::new();
-        let mut bottom_offset = LinearOffsetBuilder::new();
-        self.top_tracks.allot(&Some(left),&mut top_offset, &mut arbitrator);
-        self.main.allot(&Some(left),&mut top_offset,&mut arbitrator);
-        self.bottom_tracks.allot(&Some(left),&mut bottom_offset,&mut arbitrator);
-        /* window etc */
-        self.window.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
-        self.window_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
-        self.window_tracks.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
-        self.window_tracks_bottom.allot(&None,&mut LinearOffsetBuilder::dud(0),&mut arbitrator);
+
+        /*
+         * LEFT & RIGHT
+         */
+
+        /* left */
+        let mut left_offset_builder = AllotmentBoxBuilder::empty();
+        left_offset_builder.append_all(self.left.allot(&None,&mut arbitrator));
+        let left_offset = AllotmentBox::new(left_offset_builder);
+        left_offset.set_root(0);
+
+        /* right */
+        let mut right_offset_builder = AllotmentBoxBuilder::empty();
+        right_offset_builder.append_all(self.right.allot(&None,&mut arbitrator));
+        let right_offset = AllotmentBox::new(right_offset_builder);
+        right_offset.set_root(0);
+
+        let left = left_offset.total_height();
+
+        /*
+         * MAIN
+         */
+
+        /* main top */
+        let mut top_offset_builder = AllotmentBoxBuilder::empty();
+        top_offset_builder.append_all(self.top_tracks.allot(&Some(left),&mut arbitrator));
+        top_offset_builder.append_all(self.main.allot(&Some(left),&mut arbitrator));
+        let top_offset = AllotmentBox::new(top_offset_builder);
+        top_offset.set_root(0);
+
+        /* main bottom */
+        let mut bottom_offset_builder = AllotmentBoxBuilder::empty();
+        bottom_offset_builder.append_all(self.bottom_tracks.allot(&Some(left),&mut arbitrator));
+        let bottom_offset = AllotmentBox::new(bottom_offset_builder);
+        bottom_offset.set_root(0);
+
+        /*
+         * WINDOW
+         */
+        let mut window_builder = AllotmentBoxBuilder::empty();
+        window_builder.overlay_all(self.window.allot(&None,&mut arbitrator));
+        window_builder.overlay_all(self.window_bottom.allot(&None,&mut arbitrator));
+        window_builder.overlay_all(self.window_tracks.allot(&None,&mut arbitrator));
+        window_builder.overlay_all(self.window_tracks_bottom.allot(&None,&mut arbitrator));
+        let window = AllotmentBox::new(window_builder);
+        window.set_root(0);
+
         /* update playing fields */
-        self.playingfield = PlayingField::new_height(top_offset.primary()+bottom_offset.primary());
-        self.playingfield.union(&PlayingField::new_squeeze(left_offset.primary(),right_offset.primary()));
+        self.playingfield = PlayingField::new_height(top_offset.total_height()+bottom_offset.total_height());
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.total_height(),right_offset.total_height()));
     }
 
     fn playingfield(&self) -> &PlayingField { &self.playingfield }

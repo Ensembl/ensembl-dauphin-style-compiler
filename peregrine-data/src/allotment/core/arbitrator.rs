@@ -1,7 +1,27 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
+
+use peregrine_toolkit::lock;
 
 /* The Arbitrator stores the offsets of other elements for alingment.
  */
+
+pub struct DelayedValue {
+    source: Arc<Mutex<i64>>,
+    callback: Box<dyn Fn(i64) -> i64>
+}
+
+impl DelayedValue {
+    pub fn new<F>(source: &Arc<Mutex<i64>>, callback: F) -> DelayedValue where F: Fn(i64) -> i64 + 'static {
+        DelayedValue {
+            source: source.clone(),
+            callback: Box::new(callback)
+        }
+    }
+
+    pub fn value(&self) -> i64 {
+        (self.callback)(*lock!(self.source))
+    }
+}
 
  #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum SymbolicAxis {
@@ -10,7 +30,7 @@ pub enum SymbolicAxis {
 }
 
 pub struct Arbitrator {
-    position: HashMap<(SymbolicAxis,String),i64>
+    position: HashMap<(SymbolicAxis,String),DelayedValue>
 }
 
 impl Arbitrator {
@@ -21,10 +41,10 @@ impl Arbitrator {
     }
 
     pub fn lookup_symbolic(&self, axis: &SymbolicAxis, name: &str) -> Option<i64> {
-        self.position.get(&(axis.clone(),name.to_string())).cloned()
+        self.position.get(&(axis.clone(),name.to_string())).map(|x| x.value())
     }
 
-    pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, offset: i64) {
-        self.position.insert((axis.clone(),name.to_string()),offset);
+    pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, value: DelayedValue) {
+        self.position.insert((axis.clone(),name.to_string()),value);
     }
 }

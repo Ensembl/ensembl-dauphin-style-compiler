@@ -1,26 +1,25 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
-use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::leaftransformer::LeafGeometry, core::arbitrator::Arbitrator}};
-
-use super::{offsetbuilder::{LinearOffsetBuilder}};
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{leaftransformer::LeafGeometry, allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}};
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn allot(&self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator);
+    fn allot(&self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> AllotmentBox;
     fn priority(&self) -> i64;
     fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
 
 pub trait LinearGroupHelper {
     type Key : PartialEq + Eq + Hash + Clone;
+    type Value: LinearGroupEntry + 'static;
 
     fn entry_key(&self, full_name: &str) -> Self::Key;
-    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry>;
+    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<Self::Value>;
 }
 
-pub(crate) struct LinearGroup<C: LinearGroupHelper> {
+pub(crate) struct LinearGroup<C: LinearGroupHelper> where C::Value: 'static {
     geometry: LeafGeometry,
-    entries: HashMap<C::Key,Arc<dyn LinearGroupEntry>>,
+    entries: HashMap<C::Key,Arc<C::Value>>,
     creator: Box<C>
 }
 
@@ -33,17 +32,19 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    fn get_entry_for(&mut self, allotment_metadata: &AllotmentMetadataStore, full_name: &str, full_path: &str) -> &Arc<dyn LinearGroupEntry> {
+    pub fn iter(&self) -> impl Iterator<Item=(&C::Key,&Arc<C::Value>)> { self.entries.iter() }
+
+    fn get_entry_for(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> &Arc<C::Value> {
         let geometry = self.geometry.clone();
         let (creator,entries) = (&mut self.creator, &mut self.entries);
-        entries.entry(creator.entry_key(full_name)).or_insert_with(|| {
-            creator.make_linear_group_entry(&geometry,&allotment_metadata,&full_path)
+        entries.entry(creator.entry_key(name)).or_insert_with(|| {
+            creator.make_linear_group_entry(&geometry,&allotment_metadata,&name)
         })
     }
 
-    pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str, full_path: &str) -> Option<AllotmentRequest> {
+    pub fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         let geometry = self.geometry.clone();
-        self.get_entry_for(allotment_metadata,name,full_path).make_request(&geometry,allotment_metadata,name)
+        self.get_entry_for(allotment_metadata,name).make_request(&geometry,allotment_metadata,name)
     }
 
     pub(crate) fn union(&mut self, other: &LinearGroup<C>) {
@@ -60,11 +61,13 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    pub(crate) fn allot(&mut self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator) {
+    pub(crate) fn allot(&mut self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> Vec<AllotmentBox> {
+        let mut out = vec![];
         let mut sorted_requests = self.entries.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
-            entry.allot(secondary,offset,arbitrator);
+            out.push(entry.allot(secondary,arbitrator));
         }
+        out
     }
 }

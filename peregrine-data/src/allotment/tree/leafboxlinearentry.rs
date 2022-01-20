@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}, offsetbuilder::LinearOffsetBuilder}}};
-use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::AllotmentBox};
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
+use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
 
 #[derive(Clone)]
-struct BoxLinearEntry {
+pub struct BoxLinearEntry {
     request: Arc<AllotmentRequestImpl<LeafTransformer>>,
     metadata: AllotmentMetadata,
     depth: i8,
@@ -23,12 +23,11 @@ impl BoxLinearEntry {
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
-    fn allot(&self, secondary: &Option<i64>, offset: &mut LinearOffsetBuilder, arbitrator: &mut Arbitrator) {
-        arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, offset.primary());
-        let allot_box = AllotmentBox::new(&self.request.metadata(),self.request.max_used());
-        let top_offset = offset.primary() + allot_box.top_space();
-        self.request.set_allotment(Arc::new(LeafTransformer::new(self.request.geometry(),secondary.unwrap_or(0),top_offset,allot_box.height(),self.depth)));
-        offset.advance(self.request.max_used());
+    fn allot(&self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&self.request.metadata(),self.request.max_used()));
+        arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
+        self.request.set_allotment(Arc::new(LeafTransformer::new(self.request.geometry(),secondary.unwrap_or(0),&allot_box,self.depth)));
+        allot_box
     }
 
     fn priority(&self) -> i64 { self.request.metadata().priority() }
@@ -52,8 +51,9 @@ pub struct BoxAllotmentLinearGroupHelper;
 
 impl LinearGroupHelper for BoxAllotmentLinearGroupHelper {
     type Key = BasicAllotmentSpec;
+    type Value = BoxLinearEntry;
 
-    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<dyn LinearGroupEntry> {
+    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<BoxLinearEntry> {
         let spec = BasicAllotmentSpec::from_spec(full_path);
         let metadata = metadata.get_or_default(full_path);
         Arc::new(BoxLinearEntry::new(&metadata,&spec,geometry))

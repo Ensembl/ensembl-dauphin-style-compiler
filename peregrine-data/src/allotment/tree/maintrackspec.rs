@@ -11,6 +11,7 @@ fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     None
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 enum MTVariety {
     Track,
@@ -30,6 +31,7 @@ impl MTVariety {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub(super) struct MTSpecifier {
     variety: MTVariety,

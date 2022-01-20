@@ -79,6 +79,12 @@ potential_tracks := [
     "track:focus"
 ];
 
+potential_tracks_wallpaper := [
+    "track:gene-other-rev:wallpaper","track:gene-pc-rev:wallpaper",
+    "track:gene-other-fwd:wallpaper","track:gene-pc-fwd:wallpaper",
+    "track:focus:wallpaper"
+];
+
 use_allotment_names(allotment_names,enabled_tracks,potential_tracks);
 use_allotment_names(blanking_allotment_names,enabled_tracks,[append_depth(potential_tracks[],-1)]);
 use_allotment_names(allotment_under_names,enabled_tracks,[append_depth(potential_tracks[],-2)]);
@@ -88,7 +94,7 @@ use_allotment_names(allotment_very_over_names,enabled_tracks,[append_depth(poten
 
 force_allotment(allotment_names[]);
 
-use_allotments(allotments_wallpaper,enabled_tracks,[append_depth(potential_tracks[],-10)]);
+use_allotments(allotments_wallpaper,enabled_tracks,[append_depth(potential_tracks_wallpaper[],-10)]);
 use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
 
 /*
