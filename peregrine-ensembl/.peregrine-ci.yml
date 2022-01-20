@@ -14,7 +14,6 @@ stages:
   script:
     - RUSTFLAGS="--cfg=console --cfg=force_show_incoming"
     - wasm-pack build --target web --release
-    - ls pkg/
 
   rules:
     - if: '$CI_DEPLOY_FREEZE == null'
@@ -33,7 +32,7 @@ Build-WASM:
 Build-npm:dev:
   stage: deploy
   variables:
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    DSC_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
@@ -48,7 +47,7 @@ Build-npm:dev:
 Build-npm:Live:
   stage: deploy
   variables:
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    DSC_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
 
   trigger:
     project: ensembl-web/ensembl-genome-browser
