@@ -76,15 +76,15 @@ impl UniverseData {
 
         /* left */
         let mut left_offset_builder = AllotmentBoxBuilder::empty();
-        left_offset_builder.append_all(self.left.allot(&None,&mut arbitrator));
+        left_offset_builder.append_all(self.left.allot(&mut arbitrator));
         let left_offset = AllotmentBox::new(left_offset_builder);
-        left_offset.set_root(0);
+        left_offset.set_root(0,0);
 
         /* right */
         let mut right_offset_builder = AllotmentBoxBuilder::empty();
-        right_offset_builder.append_all(self.right.allot(&None,&mut arbitrator));
+        right_offset_builder.append_all(self.right.allot(&mut arbitrator));
         let right_offset = AllotmentBox::new(right_offset_builder);
-        right_offset.set_root(0);
+        right_offset.set_root(0,0);
 
         let left = left_offset.total_height();
 
@@ -94,27 +94,27 @@ impl UniverseData {
 
         /* main top */
         let mut top_offset_builder = AllotmentBoxBuilder::empty();
-        top_offset_builder.append_all(self.top_tracks.allot(&Some(left),&mut arbitrator));
-        top_offset_builder.append_all(self.main.allot(&Some(left),&mut arbitrator));
+        top_offset_builder.append_all(self.top_tracks.allot(&mut arbitrator));
+        top_offset_builder.append_all(self.main.allot(&mut arbitrator));
         let top_offset = AllotmentBox::new(top_offset_builder);
-        top_offset.set_root(0);
+        top_offset.set_root(0,left);
 
         /* main bottom */
         let mut bottom_offset_builder = AllotmentBoxBuilder::empty();
-        bottom_offset_builder.append_all(self.bottom_tracks.allot(&Some(left),&mut arbitrator));
+        bottom_offset_builder.append_all(self.bottom_tracks.allot(&mut arbitrator));
         let bottom_offset = AllotmentBox::new(bottom_offset_builder);
-        bottom_offset.set_root(0);
+        bottom_offset.set_root(0,left);
 
         /*
          * WINDOW
          */
         let mut window_builder = AllotmentBoxBuilder::empty();
-        window_builder.overlay_all(self.window.allot(&None,&mut arbitrator));
-        window_builder.overlay_all(self.window_bottom.allot(&None,&mut arbitrator));
-        window_builder.overlay_all(self.window_tracks.allot(&None,&mut arbitrator));
-        window_builder.overlay_all(self.window_tracks_bottom.allot(&None,&mut arbitrator));
+        window_builder.overlay_all(self.window.allot(&mut arbitrator));
+        window_builder.overlay_all(self.window_bottom.allot(&mut arbitrator));
+        window_builder.overlay_all(self.window_tracks.allot(&mut arbitrator));
+        window_builder.overlay_all(self.window_tracks_bottom.allot(&mut arbitrator));
         let window = AllotmentBox::new(window_builder);
-        window.set_root(0);
+        window.set_root(0,0);
 
         /* update playing fields */
         self.playingfield = PlayingField::new_height(top_offset.total_height()+bottom_offset.total_height());

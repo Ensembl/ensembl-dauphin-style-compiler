@@ -25,20 +25,18 @@ impl LeafGeometry {
     pub fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct LeafTransformer {
     geometry: LeafGeometry,
-    secondary: i64,
     allot_box: AllotmentBox,
     depth: i8,
 }
 
 impl LeafTransformer {
-    pub(crate) fn new(geometry: &LeafGeometry, secondary: i64, allot_box: &AllotmentBox, depth: i8) -> LeafTransformer {
+    pub(crate) fn new(geometry: &LeafGeometry, allot_box: &AllotmentBox, depth: i8) -> LeafTransformer {
         LeafTransformer {
             geometry: geometry.clone(),
             allot_box: allot_box.clone(),
-            secondary, depth
+            depth
         }
     }
 }
@@ -51,7 +49,7 @@ impl Transformer for LeafTransformer {
         } else {
             output.normal += self.allot_box.draw_top() as f64;
         }
-        output.tangent += self.secondary as f64;
+        output.tangent += self.allot_box.indent() as f64;
         output
     }
 

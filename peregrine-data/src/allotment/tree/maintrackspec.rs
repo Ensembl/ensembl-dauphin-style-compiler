@@ -1,4 +1,4 @@
-use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis}}}, CoordinateSystem};
+use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis, DelayedValue}}}, CoordinateSystem};
 
 use super::leaftransformer::LeafGeometry;
 
@@ -56,12 +56,12 @@ impl MTSpecifier {
         }
     }
 
-    pub(super) fn arbitrator_horiz(&self, arbitrator: &Arbitrator) -> Option<i64> {
+    pub(super) fn arbitrator_horiz(&self, arbitrator: &Arbitrator) -> Option<DelayedValue> {
         match self.variety {
             MTVariety::Track => None,
             MTVariety::TrackWindow => None,
             MTVariety::Wallpaper => {
-                self.base.arbitrator().as_ref().and_then(|s| arbitrator.lookup_symbolic(&SymbolicAxis::ScreenHoriz,s))
+                self.base.arbitrator().as_ref().and_then(|s| arbitrator.lookup_symbolic_delayed(&SymbolicAxis::ScreenHoriz,s).cloned())
             }
         }
     }

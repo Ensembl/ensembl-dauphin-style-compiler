@@ -4,7 +4,7 @@ use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotme
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
-    fn allot(&self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> AllotmentBox;
+    fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox;
     fn priority(&self) -> i64;
     fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
@@ -61,12 +61,12 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    pub(crate) fn allot(&mut self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> Vec<AllotmentBox> {
+    pub(crate) fn allot(&mut self, arbitrator: &mut Arbitrator) -> Vec<AllotmentBox> {
         let mut out = vec![];
         let mut sorted_requests = self.entries.values().collect::<Vec<_>>();
         sorted_requests.sort_by_cached_key(|r| r.priority());
         for entry in sorted_requests {
-            out.push(entry.allot(secondary,arbitrator));
+            out.push(entry.allot(arbitrator));
         }
         out
     }

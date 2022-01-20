@@ -60,7 +60,7 @@ impl LinearGroupEntry for MainTrackRequest {
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }
 
-    fn allot(&self, secondary: &Option<i64>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+    fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         /* new */
         /*
         let requests = lock!(self.requests2);
@@ -74,9 +74,12 @@ impl LinearGroupEntry for MainTrackRequest {
         let requests = lock!(self.requests);
         let mut child_boxes = vec![];
         for (specifier,request) in requests.iter() {
-            let secondary = specifier.arbitrator_horiz(arbitrator).or_else(|| secondary.clone()).unwrap_or(0);
-            let child_allotment = AllotmentBox::new(AllotmentBoxBuilder::new(request.metadata(),request.max_used()));
-            let transformer = LeafTransformer::new(&request.geometry(),secondary,&child_allotment,request.depth());
+            let mut box_builder = AllotmentBoxBuilder::new(request.metadata(),request.max_used());
+            if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
+                box_builder.set_self_indent(Some(&indent));
+            }
+            let child_allotment = AllotmentBox::new(box_builder);
+            let transformer = LeafTransformer::new(&request.geometry(),&child_allotment,request.depth());
             request.set_allotment(Arc::new(transformer));
             child_boxes.push(child_allotment);
         }

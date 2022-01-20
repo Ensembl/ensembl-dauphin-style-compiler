@@ -4,13 +4,13 @@ use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, allotment::core::{allotmentrequest::AllotmentRequestImpl, allotment::Transformer, arbitrator::DelayedValue}};
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct AllotmentBoxBuilder {
     padding_top: i64,
     padding_bottom: i64,
     min_height: Option<i64>,
     children: Vec<AllotmentBox>,
-    natural_height: i64
+    natural_height: i64,
+    self_indent: Option<DelayedValue>
 }
 
 impl AllotmentBoxBuilder {
@@ -20,7 +20,8 @@ impl AllotmentBoxBuilder {
             padding_bottom: metadata.get_i64("padding-bottom").unwrap_or(0),
             min_height: metadata.get_i64("min-height"),
             natural_height,
-            children: vec![]
+            children: vec![],
+            self_indent: None
         }
     }
 
@@ -30,8 +31,13 @@ impl AllotmentBoxBuilder {
             padding_bottom: 0,
             min_height: None,
             natural_height: 0,
-            children: vec![]
+            children: vec![],
+            self_indent: None
         }
+    }
+
+    pub fn set_self_indent(&mut self, indent: Option<&DelayedValue>) {
+        self.self_indent = indent.cloned();
     }
 
     fn unpadded_height(&self) -> i64 {
@@ -44,9 +50,16 @@ impl AllotmentBoxBuilder {
     }
 
     /* don't make visible except to AllotmentBox */
-    fn set_root(&self, container_offset: i64) {
+    fn apply_root(&self, container_offset: i64) {
         for child in &self.children {
-            child.set_root(container_offset);
+            child.apply_root(container_offset);
+        }
+    }
+
+    /* don't make visible except to AllotmentBox */
+    fn apply_indent(&self, indent: i64) {
+        for child in &self.children {
+            child.apply_indent(indent);
         }
     }
 
@@ -75,46 +88,59 @@ impl AllotmentBoxBuilder {
     }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct AllotmentBox {
-    offset_from_container: Arc<Mutex<i64>>,
-    offset_from_root: Arc<Mutex<i64>>,
-    allot_box: Arc<AllotmentBoxBuilder>
+    indent: DelayedValue,
+    offset_from_container: DelayedValue,
+    offset_from_root: DelayedValue,
+    allot_box: Arc<AllotmentBoxBuilder>,
 }
 
 impl AllotmentBox {
     pub fn new(builder: AllotmentBoxBuilder) -> AllotmentBox {
         AllotmentBox {
-            offset_from_container: Arc::new(Mutex::new(0)),
-            offset_from_root: Arc::new(Mutex::new(0)),
+            offset_from_container: DelayedValue::fixed(0),
+            offset_from_root: DelayedValue::fixed(0),
+            indent: DelayedValue::fixed(0),
             allot_box: Arc::new(builder)
         }
     }
 
     fn set_container_offset(&self, offset: i64) {
-        *lock!(self.offset_from_container) = offset;
+        self.offset_from_container.set_value(offset);
     }
 
-    pub fn set_root(&self, container_offset: i64) {
-        let offset_from_root= *lock!(self.offset_from_container) + container_offset;
-        *lock!(self.offset_from_root) = offset_from_root;
-        self.allot_box.set_root(offset_from_root);
+    fn apply_root(&self, container_offset: i64) {
+        let offset_from_root= self.offset_from_container.value() + container_offset;
+        self.offset_from_root.set_value(offset_from_root);
+        self.allot_box.apply_root(offset_from_root);
     }
 
-    pub fn top(&self) -> i64 { *lock!(self.offset_from_root) }
+    fn apply_indent(&self, indent: i64) {
+        let indent = self.allot_box.self_indent.as_ref().map(|x| x.value()).unwrap_or(indent);
+        self.indent.set_value(indent);
+        self.allot_box.apply_indent(indent);
+    }
+
+    pub fn set_root(&self, container_offset: i64, indent: i64) {
+        self.apply_root(container_offset);
+        self.apply_indent(indent);
+    }
+
+    pub fn top(&self) -> i64 { self.offset_from_root.value() }
     pub fn total_height(&self) -> i64 { self.allot_box.padded_height() }
     pub fn bottom(&self) -> i64 { self.top() + self.total_height() }
 
-    pub fn top_delayed(&self) -> DelayedValue {
-        DelayedValue::new(&self.offset_from_root,|x| x)
-    }
+    pub fn top_delayed(&self) -> DelayedValue { self.offset_from_root.clone() }
 
     pub fn bottom_delayed(&self) -> DelayedValue {
         let height = self.total_height();
-        DelayedValue::new(&self.offset_from_root,move |x| x + height)
+        DelayedValue::derived(&self.offset_from_root,move |x| x + height)
     }
 
     pub fn draw_top(&self) -> i64 { self.top() + self.allot_box.padding_top }
     pub fn draw_bottom(&self) -> i64 { self.draw_top() + self.allot_box.unpadded_height() }
+
+    pub fn indent_delayed(&self) -> DelayedValue { self.indent.clone() }
+    pub fn indent(&self) -> i64 { self.indent.value() }
 }
