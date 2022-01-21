@@ -225,9 +225,10 @@
           genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
         };
         document.getElementById("jump-no-bug").onclick = function() {
-          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
+          genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_GCA_000005845_2:b2614");
           genome_browser.wait();
-          genome_browser.goto(79537455,79545455);
+          genome_browser.set_switch(["focus","gene"]);
+          genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
         };
         document.getElementById("jump-no-bug-zoom").onclick = function() {
           genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
