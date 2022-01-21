@@ -110,12 +110,16 @@ impl UniverseData {
          */
         
         let mut window_builder = AllotmentBoxBuilder::empty(0);
+        let mut window_tracks_builder = AllotmentBoxBuilder::empty(0);
+        
         window_builder.overlay_all(self.window.allot(&mut arbitrator));
         window_builder.overlay_all(self.window_bottom.allot(&mut arbitrator));
-        window_builder.overlay_all(self.window_tracks.allot(&mut arbitrator));
-        window_builder.overlay_all(self.window_tracks_bottom.allot(&mut arbitrator));
+        window_tracks_builder.overlay_all(self.window_tracks.allot(&mut arbitrator));
+        window_tracks_builder.overlay_all(self.window_tracks_bottom.allot(&mut arbitrator));
         let window = AllotmentBox::new(window_builder);
+        let window_tracks = AllotmentBox::new(window_tracks_builder);
         window.set_root(0,0);
+        window_tracks.set_root(0,left);
 
         /* update playing fields */
         self.playingfield = PlayingField::new_height(top_offset.total_height()+bottom_offset.total_height());
