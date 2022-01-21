@@ -217,8 +217,8 @@ textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
-tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation","track","type"],
-                                      [[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],[track_name],["transcript"]][]);
+tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["gene_id","transcript_id","transcript_biotype","strand","designation","track","type"],
+                                      [[gene_id],[designated_transcript_id],[designated_transcript_biotype],[strand_string],[designated_transcript_designation],[track_name],["transcript"]][]);
 
 /* gene part */
 zmenu_tmpl := zmenu("[<light>Gene</light> {symbol}] / [<strong><focus>{id}</focus></strong>]");
