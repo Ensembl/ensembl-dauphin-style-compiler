@@ -154,7 +154,7 @@
           }
         });
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
-        genome_browser.set_stick("homo_sapiens_GCA_000001405_27:1");
+        genome_browser.set_stick("homo_sapiens_GCA_000001405_28:1");
         genome_browser.set_switch(["track","focus"]);
         genome_browser.set_switch(["track","focus","label"]);
         genome_browser.set_switch(["track","gene-pc-fwd"]);
@@ -195,19 +195,19 @@
         document.getElementById("id-labels").onclick = flipper(["track","gene-pc-fwd","label","id"],false);
 
         document.getElementById("jump-brca2").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000139618");
+          genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000139618");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000139618"]);
         };
         document.getElementById("jump-fry").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000073910");
+          genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000073910");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000073910"]);
         };
         document.getElementById("jump-zar1l").onclick = function() {
-          genome_browser.jump("focus:homo_sapiens_GCA_000001405_27:ENSG00000189167");
+          genome_browser.jump("focus:homo_sapiens_GCA_000001405_28:ENSG00000189167");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
           genome_browser.set_switch(["focus","gene","ENSG00000189167"]);
@@ -222,7 +222,7 @@
           genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_gca_000005845_GCA_000005845_2:b2614");
           genome_browser.wait();
           genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+          genome_browser.set_switch(["focus","gene","b2614"]);
         };
         document.getElementById("jump-no-bug").onclick = function() {
           genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_GCA_000005845_2:b2614");
