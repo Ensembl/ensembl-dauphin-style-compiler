@@ -31,7 +31,8 @@ pub trait GenericAllotmentRequestImpl {
     fn priority(&self) -> i64;
     fn allotment(&self) -> Result<Allotment,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl>;
-    fn register_usage(&self, max: i64);
+    fn set_max_y(&self, max: i64);
+    fn set_base_range(&self, used: &RangeUsed);
     fn coord_system(&self) -> CoordinateSystem;
     fn depth(&self) -> i8;
 }
@@ -50,13 +51,38 @@ impl AllotmentRequest {
     pub fn depth(&self) -> i8 { self.0.depth() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
     pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
-    pub fn register_usage(&self, max: i64) { self.0.register_usage(max); }
+    pub fn set_base_range(&self, used: &RangeUsed) { self.0.set_base_range(used); }
+    pub fn set_max_y(&self, max: i64) { self.0.set_max_y(max); }
 }
 
 #[cfg(debug_assertions)]
 impl std::fmt::Debug for AllotmentRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{{ AllotmentRequest name={} }}",self.name())
+    }
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+pub enum RangeUsed {
+    None,
+    All,
+    Part(f64,f64)
+}
+
+impl RangeUsed {
+    fn merge(&self, other: &RangeUsed) -> RangeUsed {
+        match (self,other) {
+            (RangeUsed::All,_) => RangeUsed::All,
+            (_,RangeUsed::All) => RangeUsed::All,
+            (RangeUsed::None,x) => x.clone(),
+            (x,RangeUsed::None) => x.clone(),
+            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => {
+                let (a1,b1) = if a1<b1 { (a1,b1) } else { (b1,a1) };
+                let (a2,b2) = if a2<b2 { (a2,b2) } else { (b2,a2) };
+                RangeUsed::Part(a1.min(*a2),b1.max(*b2))
+            }
+        }
     }
 }
 
@@ -68,6 +94,7 @@ pub struct AllotmentRequestImpl<T: Transformer> {
     geometry: LeafGeometry,
     depth: i8,
     max: Mutex<i64>,
+    base_range: Mutex<RangeUsed>,
     ghost: bool
 }
 
@@ -80,6 +107,7 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
             transformer: Mutex::new(None),
             depth, ghost,
             geometry: geometry.clone(),
+            base_range: Mutex::new(RangeUsed::None),
             max: Mutex::new(0)
         }
     }
@@ -93,7 +121,8 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
     pub fn ghost(&self) -> bool { self.ghost }
     pub fn geometry(&self) -> &LeafGeometry { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
-    pub fn max_used(&self) -> i64 { *self.max.lock().unwrap() }
+    pub fn max_y(&self) -> i64 { *self.max.lock().unwrap() }
+    pub fn base_range(&self) -> RangeUsed { lock!(self.base_range).clone() }
 
     pub fn transformer(&self) -> Option<Arc<T>> {
         self.transformer.lock().unwrap().as_ref().cloned()
@@ -120,9 +149,14 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
         }
     }
 
-    fn register_usage(&self, max: i64) {
+    fn set_max_y(&self, max: i64) {
         let mut self_max = lock!(self.max);
         *self_max = (*self_max).max(max);
+    }
+
+    fn set_base_range(&self, used: &RangeUsed) {
+        let mut range = lock!(self.base_range);
+        *range = range.merge(&used);
     }
 
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl> { self }
@@ -138,7 +172,8 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             depth: 0,
             ghost: true,
             geometry: LeafGeometry::new(CoordinateSystem::Window,false),
-            max: Mutex::new(0)
+            max: Mutex::new(0),
+            base_range: Mutex::new(RangeUsed::None)
         }
     }
 }

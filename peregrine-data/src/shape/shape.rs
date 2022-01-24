@@ -11,6 +11,7 @@ use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
+use crate::allotment::core::allotmentrequest::RangeUsed;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -70,26 +71,30 @@ impl ShapeDetails {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => {
                 for ((top_left,bottom_right),allotment) in shape.area().iter().zip(common.iter_allotments()) {
-                    allotment.register_usage(top_left.normal.ceil() as i64);
-                    allotment.register_usage(bottom_right.normal.ceil() as i64);
+                    allotment.set_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
+                    allotment.set_max_y(top_left.normal.ceil() as i64);
+                    allotment.set_max_y(bottom_right.normal.ceil() as i64);
                 }
             },
             ShapeDetails::Text(shape) => {
                 for (position,allotment) in shape.position().iter().zip(common.iter_allotments()) {
-                    allotment.register_usage((*position.normal + shape.pen().size() as f64).ceil() as i64);
+                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                    allotment.set_max_y((*position.normal + shape.pen().size() as f64).ceil() as i64);
                 }
             },
             ShapeDetails::Image(shape) => {
                 for (position,(allotment,asset_name)) in shape.position().iter().zip(common.iter_allotments().zip(shape.iter_names())) {
+                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     if let Some(asset) = assets.get(asset_name) {
                         if let Some(height) = asset.metadata_u32("height") {
-                            allotment.register_usage((position.normal + (height as f64)).ceil() as i64);
+                            allotment.set_max_y((position.normal + (height as f64)).ceil() as i64);
                         }
                     }
                 }
             },
             ShapeDetails::Wiggle(shape) => {
-                shape.allotment().register_usage(shape.plotter().0 as i64);
+                shape.allotment().set_base_range(&RangeUsed::All);
+                shape.allotment().set_max_y(shape.plotter().0 as i64);
             }
         }
         Ok(())

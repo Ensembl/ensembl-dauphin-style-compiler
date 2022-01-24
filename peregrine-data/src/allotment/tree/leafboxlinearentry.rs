@@ -28,7 +28,7 @@ impl LinearGroupEntry for BoxLinearEntry {
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.request.max_used()));
+        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.request.max_y()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
         self.request.set_allotment(Arc::new(LeafTransformer::new(self.request.geometry(),&allot_box,self.depth)));
         allot_box
