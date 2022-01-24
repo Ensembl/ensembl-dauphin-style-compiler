@@ -1,0 +1,24 @@
+;
+; core features, introduced in version 0 
+; 
+set: std/0, std/1
+
+0 copy   ra
+1 goto   *,j
+2 push   ra,ja,-
+3 pop    *
+4 if     ja
+5 halt   -
+
+set: std/1
+
+6 more   ra,ja,-
+
+;
+; console, however that is implemented
+;
+set: console/0
+
+0 info   a
+1 warn   a
+2 error  a
