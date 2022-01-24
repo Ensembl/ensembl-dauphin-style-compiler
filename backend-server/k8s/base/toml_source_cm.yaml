@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: new-genome-browser-source-toml-configmap
+data:
+  sources-ebi.toml: |
+    [source]
+    driver = "file"
+    root = <PATH_TO_DATAFILES>
