@@ -6,7 +6,7 @@ use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
-use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem};
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, Scale};
 use peregrine_toolkit::lock;
 
 use super::allotmentrequest::AllotmentRequestImpl;
@@ -67,8 +67,8 @@ impl UniverseData {
         self.main.get_all_metadata(allotment_metadata,out);
     }
 
-    fn allot(&mut self) {
-        let mut arbitrator = Arbitrator::new();
+    fn allot(&mut self, scale: Option<&Scale>) {
+        let mut arbitrator = Arbitrator::new(Some(1000.)); // XXX not 1000
 
         /*
          * LEFT & RIGHT
@@ -179,6 +179,7 @@ impl Universe {
         self_data.union(&other_data);
     }
 
-    pub fn allot(&self) { lock!(self.data).allot(); }
+    pub fn allot(&self, scale: Option<&Scale>) { lock!(self.data).allot(scale); }
+
     pub fn playingfield(&self) -> PlayingField { lock!(self.data).playingfield().clone() }
 }

@@ -2,6 +2,8 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::lock;
 
+use super::allotmentrequest::RangeUsed;
+
 /* The Arbitrator stores the offsets of other elements for alingment.
  */
 
@@ -47,13 +49,15 @@ pub enum SymbolicAxis {
 }
 
 pub struct Arbitrator {
-    position: HashMap<(SymbolicAxis,String),DelayedValue>
+    position: HashMap<(SymbolicAxis,String),DelayedValue>,
+    bp_per_px: Option<f64>
 }
 
 impl Arbitrator {
-    pub fn new() -> Arbitrator {
+    pub fn new(bp_per_px: Option<f64>) -> Arbitrator {
         Arbitrator {
-            position: HashMap::new()
+            position: HashMap::new(),
+            bp_per_px: bp_per_px.clone()
         }
     }
 
@@ -67,5 +71,13 @@ impl Arbitrator {
 
     pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, value: DelayedValue) {
         self.position.insert((axis.clone(),name.to_string()),value);
+    }
+
+    pub fn full_pixel_range(&self, base_range: &RangeUsed, pixel_range: &RangeUsed) -> RangeUsed {
+        if let Some(bp_per_px) = self.bp_per_px {
+            base_range.pixel_range(pixel_range,bp_per_px)
+        } else {
+            base_range.clone()
+        }
     }
 }

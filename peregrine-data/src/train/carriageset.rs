@@ -8,8 +8,8 @@ use crate::{CarriageExtent};
 use crate::api::MessageSender;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 
-const CARRIAGE_FLANK : u64 = 1;
-const MILESTONE_CARRIAGE_FLANK : u64 = 1;
+const CARRIAGE_FLANK : u64 = 0;
+const MILESTONE_CARRIAGE_FLANK : u64 = 0;
 
 pub struct CarriageSet {
     carriages: Vec<Carriage>,

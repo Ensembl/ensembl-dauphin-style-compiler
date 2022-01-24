@@ -4,7 +4,7 @@ use peregrine_toolkit::lock;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
-use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest};
+use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, Scale};
 
 use super::allotment::Transformer;
 use super::{allotment::CoordinateSystem, dustbinallotment::DustbinAllotment};
@@ -73,7 +73,7 @@ pub enum RangeUsed {
 }
 
 impl RangeUsed {
-    fn merge(&self, other: &RangeUsed) -> RangeUsed {
+    pub fn merge(&self, other: &RangeUsed) -> RangeUsed {
         match (self,other) {
             (RangeUsed::All,_) => RangeUsed::All,
             (_,RangeUsed::All) => RangeUsed::All,
@@ -83,6 +83,20 @@ impl RangeUsed {
                 let (a1,b1) = if a1<b1 { (a1,b1) } else { (b1,a1) };
                 let (a2,b2) = if a2<b2 { (a2,b2) } else { (b2,a2) };
                 RangeUsed::Part(a1.min(*a2),b1.max(*b2))
+            }
+        }
+    }
+
+    pub fn pixel_range(&self, pixel: &RangeUsed, bp_per_px: f64) -> RangeUsed {
+        match (self,pixel) {
+            (RangeUsed::All,_) => RangeUsed::All,
+            (_,RangeUsed::All) => RangeUsed::All,
+            (RangeUsed::None,x) => RangeUsed::None,
+            (x,RangeUsed::None) => x.clone(),
+            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => {
+                let a1p = a1 / bp_per_px;
+                let b1p = b1 / bp_per_px;
+                RangeUsed::Part(a1p.min(*a2),b1p.max(*b2))
             }
         }
     }

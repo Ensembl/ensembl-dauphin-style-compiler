@@ -130,7 +130,7 @@ impl Anticipate {
         }
         self.stream.clear();
         if self.lightweight() {
-            self.build_tasks(extent,2,2,false)?;
+            //self.build_tasks(extent,2,2,false)?;
         } else {
             self.build_tasks(extent,8,0,true)?;
             self.build_tasks(extent,8,0,false)?;

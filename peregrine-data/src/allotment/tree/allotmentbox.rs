@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadata, allotment::core::arbitrator::DelayedValue};
+use crate::{AllotmentMetadata, allotment::core::arbitrator::DelayedValue, Scale};
 
 pub struct AllotmentBoxBuilder {
     padding_top: i64,

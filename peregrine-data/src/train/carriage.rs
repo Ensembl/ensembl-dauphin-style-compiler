@@ -34,7 +34,8 @@ impl UnloadedCarriage {
 
     async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &LaneStore, mode: LoadMode) -> Result<Option<ShapeList>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
-        let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
+        let scale = extent.train().scale();
+        let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,scale,&mode).await;
         Ok(match shapes {
             Some(shapes) => {
                 if errors.len() != 0 {
