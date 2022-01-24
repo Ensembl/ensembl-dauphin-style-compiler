@@ -17,10 +17,36 @@ pub(crate) enum ArgType {
     Register
 }
 
+impl Display for ArgType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArgType::Any => write!(f,"any"),
+            ArgType::Jump => write!(f,"jump"),
+            ArgType::Register => write!(f,"register"),
+        }
+    }
+}
+
 #[derive(Debug,Clone,PartialEq)]
 pub(crate) enum ArgSpec {
     Any,
     Specific(Vec<Vec<ArgType>>)
+}
+
+impl Display for ArgSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArgSpec::Any => write!(f,"any"),
+            ArgSpec::Specific(s) => {
+                let mut groups_out = vec![];
+                for group in s {
+                    let group_out = group.iter().map(|x| format!("{}",x)).collect::<Vec<_>>();
+                    groups_out.push(format!("[{}]",group_out.join(", ")));
+                }
+                write!(f,"{}",groups_out.join(" or "))
+            }
+        }
+    }
 }
 
 #[derive(Debug,Clone)]
@@ -66,12 +92,8 @@ impl InstructionSet {
         self.opcodes.iter().map(|(k,(v,_))| (k.as_str(),*v))
     }
 
-    pub(crate) fn lookup(&self, opcode: &str) -> Option<u64> {
-        self.opcodes.get(opcode).map(|(v,_)| v).cloned()
-    }
-
-    pub(crate) fn lookup_argspec(&self, opcode: &str) -> Option<ArgSpec> {
-        self.opcodes.get(opcode).map(|(_,v)| v).cloned()
+    pub(crate) fn lookup(&self, opcode: &str) -> Option<(u64,ArgSpec)> {
+        self.opcodes.get(opcode).cloned()
     }
 }
 
@@ -82,6 +104,12 @@ mod test {
     use crate::opcodemap::load_opcode_map;
     use crate::testutil::{ no_error, yes_error };
 
+    use super::InstructionSet;
+
+    fn code_for(set: &InstructionSet, name: &str) -> Option<u64> {
+        set.lookup(name).map(|x| x.0)
+    }
+
     #[test]
     fn instruction_set_smoke() {
         let standard = no_error(load_opcode_map(include_str!("test/test.map")));
@@ -91,7 +119,7 @@ mod test {
         assert!(!ids.contains(&InstructionSetId("silly".to_string(),0)));
         for set in &standard {
             if set.identifier() == &InstructionSetId("std".to_string(),0) {
-                assert_eq!(Some(0),set.lookup("copy"));
+                assert_eq!(Some(0),code_for(set,"copy"));
                 assert_eq!(None,set.lookup("silly"));
                 let mut goto = None;
                 for (name,opcode) in set.opcodes() {
@@ -103,8 +131,8 @@ mod test {
                 assert_eq!(6,set.next_opcode());
             }
             if set.identifier() == &InstructionSetId("std".to_string(),1) {
-                assert_eq!(Some(0),set.lookup("copy"));
-                assert_eq!(Some(6),set.lookup("more"));                
+                assert_eq!(Some(0),code_for(set,"copy"));
+                assert_eq!(Some(6),code_for(set,"more"));
                 assert_eq!(7,set.next_opcode());
             }
         }
@@ -154,20 +182,20 @@ mod test {
         assert!(ids.contains(&InstructionSetId("std".to_string(),0)));
         for set in &standard {
             if set.identifier() == &InstructionSetId("std".to_string(),0) {
-                assert_eq!(Some(ArgSpec::Specific(vec![vec![ArgType::Register,ArgType::Any]])),set.lookup_argspec("copy"));
-                assert_eq!(Some(ArgSpec::Any),set.lookup_argspec("goto"));
+                assert_eq!(Some(ArgSpec::Specific(vec![vec![ArgType::Register,ArgType::Any]])),set.lookup("copy").map(|x| x.1));
+                assert_eq!(Some(ArgSpec::Any),set.lookup("goto").map(|x| x.1));
                 assert_eq!(Some(ArgSpec::Specific(vec![
                         vec![ArgType::Register,ArgType::Any],
                         vec![ArgType::Jump,ArgType::Any],
                         vec![],
-                    ])),set.lookup_argspec("push"));
-                assert_eq!(Some(ArgSpec::Any),set.lookup_argspec("pop"));                
+                    ])),set.lookup("push").map(|x| x.1));
+                assert_eq!(Some(ArgSpec::Any),set.lookup("pop").map(|x| x.1));                
                 assert_eq!(Some(ArgSpec::Specific(vec![
                         vec![ArgType::Jump,ArgType::Any],
-                    ])),set.lookup_argspec("if"));
+                    ])),set.lookup("if").map(|x| x.1));
                 assert_eq!(Some(ArgSpec::Specific(vec![
                         vec![],
-                    ])),set.lookup_argspec("halt"));
+                    ])),set.lookup("halt").map(|x| x.1));
             }
         }
     }

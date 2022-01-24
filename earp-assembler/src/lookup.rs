@@ -1,11 +1,11 @@
 use std::{collections::HashMap};
 
-use crate::{instructionset::{InstructionSetId}, error::{AssemblerError, unknown_opcode_error, duplicate_opcode_error}, setmapper::SetMapper};
+use crate::{instructionset::{InstructionSetId, ArgSpec}, error::{AssemblerError, unknown_opcode_error, duplicate_opcode_error}, setmapper::SetMapper};
 
 #[derive(Clone,Debug)]
 pub(crate) struct Lookup {
     mappings: HashMap<Option<String>,Vec<InstructionSetId>>,
-    cache: HashMap<(Option<String>,String),Option<u64>>
+    cache: HashMap<(Option<String>,String),Option<(u64,ArgSpec)>>
 }
 
 impl Lookup {
@@ -21,7 +21,7 @@ impl Lookup {
         self.cache.clear();
     }
 
-    fn real_lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<String>, name: &str) -> Result<Option<u64>,AssemblerError> {
+    fn real_lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<String>, name: &str) -> Result<Option<(u64,ArgSpec)>,AssemblerError> {
         let empty = vec![];
         let identifiers = self.mappings.get(&prefix).unwrap_or(&empty);
         let mut out = None;
@@ -36,17 +36,17 @@ impl Lookup {
         Ok(out)
     }
 
-    fn cached_lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<String>, name: &str) -> Result<Option<u64>,AssemblerError> {
+    fn cached_lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<String>, name: &str) -> Result<Option<(u64,ArgSpec)>,AssemblerError> {
         let key = (prefix.clone(),name.to_string());
         if let Some(opcode) = self.cache.get(&key) {
             return Ok(opcode.clone());
         }
         let opcode = self.real_lookup(set_mapper,&prefix,name)?;
-        self.cache.insert(key,opcode);
+        self.cache.insert(key,opcode.clone());
         Ok(opcode)
     }
 
-    pub(crate) fn lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<&str>, name: &str) -> Result<u64,AssemblerError> {
+    pub(crate) fn lookup(&mut self, set_mapper: &mut SetMapper, prefix: &Option<&str>, name: &str) -> Result<(u64,ArgSpec),AssemblerError> {
         let prefix = prefix.map(|x| x.to_string());
         self.cached_lookup(set_mapper,&prefix,name)?.ok_or_else(|| unknown_opcode_error(&prefix,name))
     }

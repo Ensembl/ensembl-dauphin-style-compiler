@@ -14,7 +14,8 @@ pub(crate) enum AssemblerError {
     BadHereLabel(String),
     CannotSerialize(String),
     DuplicateOpcode(String),
-    DuplicateAssetName(String)
+    DuplicateAssetName(String),
+    BadOperandTypes(String)
 }
 
 #[derive(Clone)]
@@ -31,7 +32,8 @@ pub(crate) enum AssemblerErrorType {
     BadHereLabel,
     CannotSerialize,
     DuplicateOpcode,
-    DuplicateAssetName
+    DuplicateAssetName,
+    BadOperandTypes
 }
 
 impl AssemblerErrorType {
@@ -49,7 +51,8 @@ impl AssemblerErrorType {
             AssemblerErrorType::BadHereLabel => "Bad Here Label",
             AssemblerErrorType::CannotSerialize => "Cannot Serialize",
             AssemblerErrorType::DuplicateOpcode => "Duplicate Opcode",
-            AssemblerErrorType::DuplicateAssetName => "Duplicate Asset Name"
+            AssemblerErrorType::DuplicateAssetName => "Duplicate Asset Name",
+            AssemblerErrorType::BadOperandTypes => "Bad Operand Types"
         }
     }
 
@@ -68,6 +71,7 @@ impl AssemblerErrorType {
             AssemblerErrorType::CannotSerialize => AssemblerError::CannotSerialize(msg),
             AssemblerErrorType::DuplicateOpcode => AssemblerError::DuplicateOpcode(msg),
             AssemblerErrorType::DuplicateAssetName => AssemblerError::DuplicateAssetName(msg),
+            AssemblerErrorType::BadOperandTypes => AssemblerError::BadOperandTypes(msg)
         }
     }
 }
@@ -90,6 +94,7 @@ impl AssemblerError {
             AssemblerError::CannotSerialize(s) => Burst(AssemblerErrorType::CannotSerialize,s),
             AssemblerError::DuplicateOpcode(s) => Burst(AssemblerErrorType::DuplicateOpcode,s),
             AssemblerError::DuplicateAssetName(s) => Burst(AssemblerErrorType::DuplicateAssetName,s),
+            AssemblerError::BadOperandTypes(s) => Burst(AssemblerErrorType::BadOperandTypes,s),
         }
     }
 

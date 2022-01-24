@@ -1,7 +1,7 @@
 use minicbor::{Encode, Encoder};
 use std::collections::HashMap;
 
-use crate::{instructionset::{InstructionSetId, InstructionSet}, suite::Suite};
+use crate::{instructionset::{InstructionSetId, InstructionSet, ArgSpec}, suite::Suite};
 
 pub(crate) struct SetMapper<'t> {
     offsets: HashMap<InstructionSetId,u64>,
@@ -26,11 +26,11 @@ impl<'t> SetMapper<'t> {
         *self.offsets.get(set.identifier()).unwrap()
     }
 
-    fn lookup_real(&mut self, set: &InstructionSet, name: &str) -> Option<u64> {
-        set.lookup(name).map(|x| x+self.offset_for(set))
+    fn lookup_real(&mut self, set: &InstructionSet, name: &str) -> Option<(u64,ArgSpec)> {
+        set.lookup(name).map(|x| (x.0+self.offset_for(set),x.1))
     }
 
-    pub(crate) fn lookup(&mut self, id: &InstructionSetId, name: &str) -> Option<u64> {
+    pub(crate) fn lookup(&mut self, id: &InstructionSetId, name: &str) -> Option<(u64,ArgSpec)> {
         if let Some(set) = self.suite.get_instruction_set(id) {
             self.lookup_real(set,name)
         } else {

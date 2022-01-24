@@ -3,19 +3,19 @@ $instructions s2 std/2
 $instructions s1 std/1
 $instructions console/0
 
-s0.copy
-s0.goto
+s0.copy r0,r1
+s0.goto r0
 s0.push
 s0.pop
 s0.halt
 
-s1.copy
-s1.goto
+s1.copy r0,r1
+s1.goto r0
 s1.push
 s1.pop
 s1.halt
 s1.more
 
-info
-warn
-error
+info r0
+warn r0
+error r0

@@ -1,5 +1,5 @@
 use std::{collections::{HashMap}, mem::replace};
-use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement, load_source_file}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::InstructionSetId, assets::{AssetLoad}};
+use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement, load_source_file, ParseOperand}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::{InstructionSetId, ArgSpec, ArgType}, assets::{AssetLoad}};
 
 #[derive(Debug)]
 pub(crate) struct AssembleFile {
@@ -92,6 +92,44 @@ impl AssembleFile {
         Ok(())
     }
 
+    fn try_arg(&self, argument: &ParseOperand, spec: &ArgType) -> bool {
+        let allow_jumps = match spec {
+            ArgType::Any => { return true; },
+            ArgType::Jump => { true },
+            ArgType::Register => { false }
+        };
+        match argument {
+            ParseOperand::Register(_) => true,
+            ParseOperand::UpRegister(_) => true,
+            ParseOperand::Location(_) => allow_jumps,
+            _ => false
+        }
+    }
+
+    fn try_argspec(&self, arguments: &[ParseOperand], specs: &[ArgType]) -> bool {
+        if arguments.len() != specs.len() { return false; }
+        for (arg,spec) in arguments.iter().zip(specs.iter()) {
+            if !self.try_arg(arg,spec) { return false; }
+        }
+        true
+    }
+
+    fn check_argspec(&self, arguments: &[ParseOperand], argspec: &ArgSpec) -> Result<(),AssemblerError> {
+        match argspec {
+            ArgSpec::Any => { Ok(()) },
+            ArgSpec::Specific(specific) => {
+                for bundle in specific.iter() {
+                    if self.try_argspec(arguments,bundle) {
+                        return Ok(());
+                    }
+                }
+                let got = arguments.iter().map(|x| x.type_display()).collect::<Vec<_>>();
+                let expected = format!("{}",argspec);
+                Err(AssemblerError::BadOperandTypes(format!("got [{}], expected {}",got.join(", "),expected)))
+            }
+        }
+    }
+
     fn add_instructions(&mut self, assemble: &mut Assemble) -> Result<(),AssemblerError> {
         let mut statements = replace(&mut self.statements,vec![]);
         for statement in &mut statements {
@@ -99,8 +137,11 @@ impl AssembleFile {
                 ParseStatement::Instruction(prefix,identifier,arguments) => {
                     self.rel_label_maker.fix_labels(assemble.pc, &mut self.rel_labels);
                     let prefix = prefix.as_ref().map(|x| x.as_str());
-                    let opcode = self.lookup.lookup(assemble.earp_file.set_mapper_mut(),&prefix,&identifier)?;
-                    let operands = arguments.iter().map(|x| Operand::new(x,assemble,self)).collect::<Result<Vec<_>,_>>()?;
+                    let (opcode,argspec) = self.lookup.lookup(assemble.earp_file.set_mapper_mut(),&prefix,&identifier)?;
+                    self.check_argspec(arguments,&argspec)?;
+                    let operands = arguments.iter()
+                        .map(|x| Operand::new(x,assemble,self))
+                        .collect::<Result<Vec<_>,_>>()?;
                     assemble.earp_file.add_instruction(opcode,&operands);
                     assemble.pc += 1;
                 },

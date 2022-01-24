@@ -1,48 +1,48 @@
 $instructions std/0
 
-copy 1
-copy 1_f
-copy false
-copy "hi"
+pop 1
+pop 1_f
+pop false
+pop "hi"
 
-copy
+pop
 
-copy r0
-copy u0
-copy 1
+pop r0
+pop u0
+pop 1
 
-copy r0, r0
-copy r0, u0
-copy r0, 1
+pop r0, r0
+pop r0, u0
+pop r0, 1
 
-copy u0, r0
-copy u0, u0
-copy u0, 1
+pop u0, r0
+pop u0, u0
+pop u0, 1
 
-copy 1, r0
-copy 1, u0
-copy 1, 1
+pop 1, r0
+pop 1, u0
+pop 1, 1
 
-copy r0, r0, r0
-copy r0, r0, u0
-copy r0, r0, 1
+pop r0, r0, r0
+pop r0, r0, u0
+pop r0, r0, 1
 
-copy r0, u0, r0
-copy r0, u0, u0
-copy r0, u0, 1
+pop r0, u0, r0
+pop r0, u0, u0
+pop r0, u0, 1
 
-copy r0, 1, r0
-copy r0, 1, u0
-copy r0, 1, 1
+pop r0, 1, r0
+pop r0, 1, u0
+pop r0, 1, 1
 
-copy u0, r0, r0
-copy u0, r0, u0
-copy u0, r0, 1
+pop u0, r0, r0
+pop u0, r0, u0
+pop u0, r0, 1
 
-copy u0, u0, r0
-copy u0, u0, u0
-copy u0, u0, 1
+pop u0, u0, r0
+pop u0, u0, u0
+pop u0, u0, 1
 
-copy u0, 1, r0
-copy u0, 1, u0
-copy u0, 1, 1
+pop u0, 1, r0
+pop u0, 1, u0
+pop u0, 1, 1

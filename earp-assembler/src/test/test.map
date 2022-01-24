@@ -6,7 +6,7 @@ set: std/0, std/1
 0 copy   ra
 1 goto   j
 2 push   -
-3 pop    -
+3 pop    *
 4 if     ja
 5 halt   -
 

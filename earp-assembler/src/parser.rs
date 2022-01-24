@@ -20,6 +20,20 @@ pub(crate) enum ParseOperand {
     Location(AssemblyLocation)
 }
 
+impl ParseOperand {
+    pub fn type_display(&self) -> &str {
+        match self {
+            ParseOperand::Register(_) => "register",
+            ParseOperand::UpRegister(_) => "upregister",
+            ParseOperand::String(_) => "string",
+            ParseOperand::Boolean(_) => "boolean",
+            ParseOperand::Integer(_) => "integer",
+            ParseOperand::Float(_) => "float",
+            ParseOperand::Location(_) => "location"
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) enum ParseStatement {
     InstructionsDecl(Option<String>,String,u64),
