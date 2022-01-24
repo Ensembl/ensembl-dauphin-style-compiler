@@ -7,9 +7,15 @@ identifier = ${ set ~ "/" ~ version }
 identifiers = { identifier ~ ("," ~ identifier)* }
 header_line = _{ "set:" ~ identifiers ~ "\n" }
 
+argany = { "*" }
+argnone = { "-" }
+argone = { "r" | "j" | "a" }
+argbunch = { argany | argnone | argone* }
+argspec = { argbunch ~ ("," ~ argbunch)* }
+
 opcode = @{ (ASCII_DIGIT)+ ~ &WHITESPACE }
-name = { ASCII_ALPHANUMERIC+ }
-map_line ={ opcode ~ name ~ "\n" }
+name = @{ ASCII_ALPHANUMERIC+ ~ &WHITESPACE }
+map_line ={ opcode ~ name ~ argspec ~ "\n" }
 
 section = { header_line ~ ("\n"|map_line)* }
 

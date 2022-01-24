@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use pest_consume::{ match_nodes, Parser, Error };
-use crate::{instructionset::{InstructionSet, InstructionSetId}, error::AssemblerError};
+use crate::{instructionset::{InstructionSet, InstructionSetId, ArgType, ArgSpec}, error::AssemblerError};
 
 #[derive(Parser)]
 #[grammar = "opcodemap.pest"]
@@ -39,9 +39,45 @@ impl EarpOpcodeMapParser {
         ))
     }
 
-    fn map_line(input: Node) -> PestResult<(u64,&str)> {
+    fn argany(_input: Node) -> PestResult<()> { Ok(()) }
+    fn argnone(_input: Node) -> PestResult<()> { Ok(()) }
+
+    fn argone(input: Node) -> PestResult<ArgType> {
+        match input.as_str() {
+            "r" => Ok(ArgType::Register),
+            "a" => Ok(ArgType::Any),
+            "j" => Ok(ArgType::Jump),
+            _ => Err(input.error("disallowed argument code"))
+        }
+    }
+
+    fn argbunch(input: Node) -> PestResult<Option<Vec<ArgType>>> {
         Ok(match_nodes!(input.into_children();
-            [opcode(p),name(n)] => (p,n)
+            [argnone(_)] => Some(vec![]),
+            [argone(s)..] => Some(s.collect()),
+            [argany(_)] => None
+        ))
+    }
+
+    fn argspec(input: Node) -> PestResult<ArgSpec> {
+        Ok(match_nodes!(input.into_children();
+            [argbunch(bunches)..] => {
+                let mut out = vec![];
+                for bunch in bunches {
+                    if let Some(argtype) = bunch {
+                        out.push(argtype);
+                    } else {
+                        return Ok(ArgSpec::Any)
+                    }
+                }
+                ArgSpec::Specific(out)
+            }
+        ))
+    }
+    
+    fn map_line(input: Node) -> PestResult<(u64,&str,ArgSpec)> {
+        Ok(match_nodes!(input.into_children();
+            [opcode(p),name(n),argspec(s)] => (p,n,s)
         ))
     }
 
@@ -50,10 +86,10 @@ impl EarpOpcodeMapParser {
         let node = input.clone();
         match_nodes!(input.into_children();
             [identifiers(mut sets),map_line(lines)..] => { 
-                for (opcode,name) in lines {
+                for (opcode,name,argspec) in lines {
                     for set in &mut sets {
                         let set = out.entry(set.identifier().clone()).or_insert_with(|| InstructionSet::new(set.identifier()));
-                        set.add(name,opcode).map_err(|e| node.error(e.to_string()))?;
+                        set.add(name,opcode,argspec.clone()).map_err(|e| node.error(e.to_string()))?;
                     }
                 }
                 ()

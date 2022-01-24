@@ -11,8 +11,21 @@ impl Display for InstructionSetId {
 }
 
 #[derive(Debug,Clone)]
+pub(crate) enum ArgType {
+    Any,
+    Jump,
+    Register
+}
+
+#[derive(Debug,Clone)]
+pub(crate) enum ArgSpec {
+    Any,
+    Specific(Vec<Vec<ArgType>>)
+}
+
+#[derive(Debug,Clone)]
 pub(crate) struct InstructionSet {
-    opcodes: HashMap<String,u64>,
+    opcodes: HashMap<String,(u64,ArgSpec)>,
     opcodes_used: HashSet<u64>,
     identifier: InstructionSetId
 }
@@ -26,18 +39,18 @@ impl InstructionSet {
         }
     }
 
-    pub(crate) fn add(&mut self, name: &str, opcode: u64) -> Result<(),AssemblerError> {
+    pub(crate) fn add(&mut self, name: &str, opcode: u64, argspecs: ArgSpec) -> Result<(),AssemblerError> {
         if self.opcodes.contains_key(name) || self.opcodes_used.contains(&opcode) {
             return Err(AssemblerError::OpcodeInUse(name.to_string()))
         }
-        self.opcodes.insert(name.to_string(),opcode);
+        self.opcodes.insert(name.to_string(),(opcode,argspecs));
         self.opcodes_used.insert(opcode);
         Ok(())
     }
 
     pub(crate) fn merge(&mut self, other: &InstructionSet) -> Result<(),AssemblerError> {
-        for (name,opcode) in other.opcodes() {
-            self.add(name,opcode)?;
+        for (name,(opcode,argspecs)) in other.opcodes.iter() {
+            self.add(name,*opcode,argspecs.clone())?;
         }
         Ok(())
     }
@@ -45,15 +58,15 @@ impl InstructionSet {
     pub(crate) fn identifier(&self) -> &InstructionSetId { &self.identifier }
 
     pub(crate) fn next_opcode(&self) -> u64 {
-        self.opcodes.iter().map(|(_,v)| *v+1).max().unwrap_or(0)
+        self.opcodes.iter().map(|(_,(v,_))| *v+1).max().unwrap_or(0)
     }
 
     pub(crate) fn opcodes(&self) -> impl Iterator<Item=(&str,u64)> {
-        self.opcodes.iter().map(|(k,v)| (k.as_str(),*v))
+        self.opcodes.iter().map(|(k,(v,_))| (k.as_str(),*v))
     }
 
     pub(crate) fn lookup(&self, opcode: &str) -> Option<u64> {
-        self.opcodes.get(opcode).cloned()
+        self.opcodes.get(opcode).map(|(v,_)| v).cloned()
     }
 }
 

@@ -3,13 +3,13 @@
 ; 
 set: std/0
 
-0 copy
-1 goto
-2 push
-3 pop
-4 if
-5 halt
+0 copy  ra
+1 goto  j
+2 push  -
+3 pop   -
+4 if    ja
+5 halt  -
 
 set: test/0
 
-6 halt
+6 halt  -
