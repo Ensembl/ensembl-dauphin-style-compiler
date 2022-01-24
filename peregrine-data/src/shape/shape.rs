@@ -72,14 +72,17 @@ impl ShapeDetails {
             ShapeDetails::SpaceBaseRect(shape) => {
                 for ((top_left,bottom_right),allotment) in shape.area().iter().zip(common.iter_allotments()) {
                     allotment.set_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
+                    allotment.set_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
                     allotment.set_max_y(top_left.normal.ceil() as i64);
                     allotment.set_max_y(bottom_right.normal.ceil() as i64);
                 }
             },
             ShapeDetails::Text(shape) => {
-                for (position,allotment) in shape.position().iter().zip(common.iter_allotments()) {
+                let size = shape.pen().size() as f64;
+                for ((position,allotment),text) in shape.position().iter().zip(common.iter_allotments()).zip(shape.iter_texts()) {
                     allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
-                    allotment.set_max_y((*position.normal + shape.pen().size() as f64).ceil() as i64);
+                    allotment.set_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
+                    allotment.set_max_y((*position.normal + size).ceil() as i64);
                 }
             },
             ShapeDetails::Image(shape) => {
@@ -88,6 +91,9 @@ impl ShapeDetails {
                     if let Some(asset) = assets.get(asset_name) {
                         if let Some(height) = asset.metadata_u32("height") {
                             allotment.set_max_y((position.normal + (height as f64)).ceil() as i64);
+                        }
+                        if let Some(width) = asset.metadata_u32("width") {
+                            allotment.set_pixel_range(&RangeUsed::Part(0.,(position.normal + (width as f64)).ceil()));
                         }
                     }
                 }

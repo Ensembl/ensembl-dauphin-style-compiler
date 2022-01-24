@@ -35,7 +35,7 @@ impl CollideGroupRequest {
     fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut box_builder = AllotmentBoxBuilder::empty(request.max_y());
         use web_sys::console;
-        //console::log_1(&format!("use range {:?}",request.base_range()).into());
+        //console::log_1(&format!("use base={:?} pixel={:?}",request.base_range(),request.pixel_range()).into());
         if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
             box_builder.set_self_indent(Some(&indent));
         }
