@@ -1,3 +1,9 @@
+# 0.1.4
+  * Remove annoying "double flash" on gene move
+  * Additional key in zmenu payload to link genes and transcripts
+  * Move data release on in standalone browser
+  * Fix accidentally-changed library hash
+
 # 0.1.3
   * Fix various scrolling bugs
     * Bug-fixes in chromosome switching

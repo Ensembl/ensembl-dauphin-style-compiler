@@ -37,8 +37,14 @@ spec:
         volumeMounts:
         - mountPath: /usr/data
           name: new-genome-browser-server-data-vol
+        - mountPath: /usr/src/app/config/sources-ebi.toml
+          name: source-toml-vol
+          subPath: sources-ebi.toml
       volumes:
         - name: new-genome-browser-server-data-vol
           nfs:
-            path: /ifs/public-r/ro/enswbsites
-            server: hx-isi-srv-vlan157.ebi.ac.uk
+            path: <NFS_PATH>
+            server: <NFS_SERVER>
+        - name: source-toml-vol
+          configMap:
+            name: new-genome-browser-source-toml-configmap

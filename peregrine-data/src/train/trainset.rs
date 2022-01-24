@@ -145,6 +145,12 @@ impl TrainSet {
     fn try_new_wanted(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if self.target.is_none() { return Ok(()); }
         let target = self.target.as_ref().unwrap();
+        let target_validity_matches_quiescent = if let Some(quiescent) = self.quiescent_target().cloned() {
+            /* if we are now heading exactly for the target, drop it for future calls */
+            quiescent.validity_counter() == self.target_validity_counter
+        } else {
+            true
+        };
         /* it would be best if we were at a new target, but how busy are we? */
         if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
         /* where do we want to head? */
@@ -159,7 +165,6 @@ impl TrainSet {
         }
         if let Some(quiescent) = self.quiescent_target().cloned() {
             /* if we are now heading exactly for the target, drop it for future calls */
-            let target_validity_matches_quiescent = quiescent.validity_counter() == self.target_validity_counter;
             if &extent == target && target_validity_matches_quiescent {
                 self.target.take();
             }
@@ -176,6 +181,16 @@ impl TrainSet {
         Ok(())
     }
 
+    fn min_quiescent_validity(&self) -> u64 {
+        if self.target.is_some() {
+            self.target_validity_counter
+        } else if let Some(quiescent) = self.quiescent_target() {
+            quiescent.validity_counter()
+        } else {
+            0
+        }
+    }
+
     pub(super) fn set_position(&mut self, events: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         if !viewport.ready() { return Ok(()); }
         self.viewport = Some(viewport.clone());
@@ -189,9 +204,10 @@ impl TrainSet {
             self.dependents.position_was_updated(&central_carriage);
         }
         /* All the trains get the new position */
+        let min_quiescent_validity = self.min_quiescent_validity();
         let viewport_stick = viewport.layout()?.stick();
         self.each_current_train(events,&|events,train| {
-            if viewport_stick == train.extent().layout().stick() {
+            if viewport_stick == train.extent().layout().stick() && train.validity_counter() >= min_quiescent_validity {
                 train.set_position(&mut events.clone(),viewport); // XXX error handling
             }
         });

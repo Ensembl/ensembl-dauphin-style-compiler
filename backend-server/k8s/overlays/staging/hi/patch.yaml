@@ -10,6 +10,8 @@ spec:
           envFrom:
           - configMapRef:
               name: new-genome-browser-server-configmap-hi
+          - configMapRef:
+              name: new-genome-browser-source-toml-configmap
       volumes:
         - name: new-genome-browser-server-data-vol
           nfs:

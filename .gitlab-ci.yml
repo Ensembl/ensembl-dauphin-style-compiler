@@ -1,2 +1,3 @@
 include: 
   - local: 'backend-server/.backend-server-ci.yml'
+  - local: 'peregrine-ensembl/.peregrine-ci.yml'

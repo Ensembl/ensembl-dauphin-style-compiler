@@ -85,8 +85,4 @@ impl CarriageSet {
             carriage.set_moribund(events);
         }        
     }
-
-    pub fn xxx(&self) -> String {
-        format!("{:?}",self.carriages.iter().map(|x| x.serial()).collect::<Vec<_>>())
-    }
 }
