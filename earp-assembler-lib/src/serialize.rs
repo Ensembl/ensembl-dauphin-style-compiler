@@ -8,20 +8,23 @@ fn repeat(c: &str, num: usize) -> String {
     (0..num).map(|_| c).collect::<String>()
 }
 
-fn split_at_end(c: &str) -> Vec<String> {
-    let mut c = c.to_string();
+fn split_at_end(input: &str) -> Vec<String> {
     let mut out = vec![];
-    while c.len() > LINE_LENGTH {
-        if let Some(space_index) = &c[0..LINE_LENGTH].rfind(" ") {
-            let (line,rest) = c.split_at(*space_index);
-            out.push(line.trim().to_string());
-            c = rest.trim().to_string();
-        } else {
-            out.push(c[0..LINE_LENGTH].trim().to_string());
-            c = c[LINE_LENGTH..].trim().to_string();
+    for line in input.lines() {
+        let mut all = line.to_string();
+        while all.len() > LINE_LENGTH {
+            if let Some(space_index) = &all[0..LINE_LENGTH].rfind(" ") {
+                let (head,rest) = all.split_at(*space_index);
+                out.push(head.trim().to_string());
+                all = rest.trim().to_string();
+            } else {
+                out.push(all[0..LINE_LENGTH].trim().to_string());
+                all = all[LINE_LENGTH..].trim().to_string();
+            }
         }
+        out.push(all.trim().to_string());    
     }
-    out.push(c);
+    println!("{:?} -> {:?}",input,out);
     out
 }
 
@@ -62,9 +65,9 @@ pub enum SerializeStatement {
 impl SerializeStatement {
     fn new_line(&self) -> bool {
         match self {
-            SerializeStatement::Noop => true,
-            SerializeStatement::InlineComment(_) => true,
-            _ => false
+            SerializeStatement::Noop => false,
+            SerializeStatement::InlineComment(_) => false,
+            _ => true
         }
     }
 
@@ -122,12 +125,12 @@ impl SerializeStatement {
             },
 
             SerializeStatement::InlineComment(comment) => {
-                line.comment.get_or_insert("".to_string()).push_str(comment);
+                line.comment.get_or_insert("".to_string()).push_str(&format!(" {}",comment));
             },
 
             SerializeStatement::BlockComment(comment) => {
-                for c in split_at_end(comment) {
-                    line.content(1,format!("; {}",c));
+                for c in split_at_end(comment).iter() {
+                    line.content(2,format!("; {}",c));
                 }
             },
 
@@ -146,7 +149,7 @@ impl SerializeStatement {
 
 struct OutputLine {
     tabs: usize,
-    content: String,
+    content: Vec<String>,
     comment: Option<String>
 }
 
@@ -154,28 +157,35 @@ impl OutputLine {
     fn new() -> OutputLine {
         OutputLine {
             tabs: 0,
-            content: "".to_string(),
+            content: vec![],
             comment: None
         }
     }
 
     fn content(&mut self, tabs: usize, content: String) {
         self.tabs = tabs;
-        self.content = content;
+        self.content.push(content);
     }
 
-    fn serialize(&self) -> String {
-        let mut out = String::new();
-        let initial_indent = TAB_OFFSETS[self.tabs.min(2)];
-        out.push_str(&repeat(" ",initial_indent));
-        out.push_str(&self.content);
-        if let Some(comment) = &self.comment {
-            let inline_comment_pos = (out.len()+1).max(INLINE_COMMENT_OFFSET);
-            let inline_comment_spaces = inline_comment_pos - out.len();
-            out.push_str(&repeat(" ",inline_comment_spaces));
-            out.push_str(&format!("; {}",comment));
+    fn serialize(&self) -> Vec<String> {
+        let empty = vec!["".to_string()];
+        let the_content = if self.content.len() != 0 { &self.content } else { &empty };
+        let mut out = vec![];
+        for (i,line) in the_content.iter().enumerate() {
+            let mut line_out = String::new();
+            let initial_indent = TAB_OFFSETS[self.tabs.min(2)];
+            line_out.push_str(&repeat(" ",initial_indent));
+            line_out.push_str(line);
+            if i == 0 {
+                if let Some(comment) = &self.comment {
+                    let inline_comment_pos = (line_out.len()+1).max(INLINE_COMMENT_OFFSET);
+                    let inline_comment_spaces = inline_comment_pos - line_out.len();
+                    line_out.push_str(&repeat(" ",inline_comment_spaces));
+                    line_out.push_str(&format!(";{}",comment));
+                }
+            }
+            out.push(line_out);
         }
-        out.push('\n');
         out
     }
 }
@@ -188,12 +198,148 @@ pub fn serialize(statements: &[SerializeStatement]) -> String {
         if statement.new_line() || lines.len() == 0 {
             if !phase.compatible(&prev_phase) {
                 lines.push(OutputLine::new());
-                lines.push(OutputLine::new());
             }
             lines.push(OutputLine::new());
         }
         statement.serialize(lines.last_mut().unwrap());
         prev_phase = phase;
     }
-    lines.iter().map(|line| line.serialize()).collect::<Vec<_>>().join("\n")
+    let mut lines_out = vec![];
+    for output in &lines {
+        let mut serials = output.serialize();
+        lines_out.append(&mut serials);
+    }
+    lines_out.push("".to_string());
+    lines_out.join("\n")
+}
+
+#[cfg(test)]
+mod test {
+    use std::{collections::hash_map::DefaultHasher, hash::Hash, iter::FromIterator};
+
+    use rand::{prelude::SmallRng, SeedableRng, RngCore};
+
+    use crate::{assets::AssetFormat, AssetSource, serialize, parser::{ParseOperand, AssemblyLocation}};
+
+    use super::SerializeStatement;
+
+    #[test]
+    fn serialize_smoke() {
+        let input = vec![
+            SerializeStatement::InstructionsDecl(None,"std".to_string(),0),
+            SerializeStatement::AssetDecl("test".to_string(),AssetFormat::Raw,AssetSource::File,"raw-asset.bin".to_string()),
+            SerializeStatement::TopBlockComment("test program".to_string()),
+            SerializeStatement::Program("test".to_string()),
+            SerializeStatement::Instruction(None,"halt".to_string(),vec![]),
+            SerializeStatement::Noop,
+            SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                ParseOperand::Register(0),
+                ParseOperand::Float(1.)
+            ]),
+            SerializeStatement::BlockComment("comment".to_string()),
+            SerializeStatement::Label("here".to_string()),
+            SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                ParseOperand::UpRegister(1),
+                ParseOperand::Boolean(true)
+            ]),
+            SerializeStatement::RelativeLabel("1".to_string()),
+            SerializeStatement::Include("path.earp".to_string()),
+            SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                ParseOperand::Location(AssemblyLocation::Here(0)),
+                ParseOperand::Location(AssemblyLocation::RelativeLabel("1".to_string(),false))
+            ]),
+            SerializeStatement::Blank,
+            SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                ParseOperand::Location(AssemblyLocation::Here(-1)),
+                ParseOperand::Location(AssemblyLocation::Label("here".to_string()))
+            ]),
+            SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                ParseOperand::Location(AssemblyLocation::Here(1)),
+                ParseOperand::Location(AssemblyLocation::RelativeLabel("1".to_string(),true))
+            ]),
+            SerializeStatement::InlineComment("comment".to_string()),
+            SerializeStatement::InlineComment("another".to_string())
+        ];
+        let output = serialize(&input);
+        println!("{}",output);
+        assert_eq!(include_str!("test/serialize/smoke.earp"),output);
+    }
+
+    const BASE_WORD : &str = "blobbyblahblahdoodah";
+
+    fn word(len: usize) -> String {
+        let mut out = String::new();
+        while len - out.len() > BASE_WORD.len() {
+            out.push_str(BASE_WORD);
+        }
+        out.push_str(&BASE_WORD[0..(len-out.len())]);
+        out
+    }
+
+    fn words(range: (u32,u32), num: usize, seed: u64) -> String {
+        let mut hasher = DefaultHasher::new();
+        seed.hash(&mut hasher);
+        let mut rng = SmallRng::seed_from_u64(seed);
+        let mut out = String::new();
+        for _ in 0..num {
+            let len = if range.0 == range.1 {
+                range.0
+            } else {
+                range.0 + (rng.next_u32() % (range.1-range.0))
+            };
+            out.push_str(&word(len as usize));
+            out.push(' ');
+        }
+        out
+    }
+
+    fn no_whitespace(input: &str) -> String {
+        String::from_iter(input.chars().filter(|x| !x.is_ascii_whitespace()))
+    }
+
+    fn linewrap_test(length: (u32,u32), cmp: &str) {
+        let mut input = vec![];
+        let mut all_the_words = String::new();
+        for seed in 0..20 {
+            let the_words = words(length,100,seed);
+            println!("words {}",the_words);
+            input.push(SerializeStatement::TopBlockComment(the_words.clone()));
+            input.push(SerializeStatement::Blank);
+            all_the_words.push_str(&the_words.trim());
+        }
+        let output = serialize(&input);
+        //fs::write("/tmp/x",output.clone());
+        assert_eq!(output,cmp);
+        let mut remade = String::new();
+        for line in output.lines() {
+            let line = line.trim();
+            let data = if line.starts_with("; ") { &line[2..] } else { &line };
+            remade.push_str(data.trim());
+            if !data.trim().is_empty() {
+                remade.push(' ');
+            }
+        }
+        println!("{}",output);
+        assert_eq!(&no_whitespace(&remade),&no_whitespace(&all_the_words));
+    }
+
+    #[test]
+    fn serialize_linewrap_smoke() {
+        linewrap_test((1,10), include_str!("test/serialize/wrapped.txt"));
+    }
+
+    #[test]
+    fn serialize_linewrap_long() {
+        linewrap_test((50,100), include_str!("test/serialize/wrapped-long.txt"));
+    }
+
+    #[test]
+    fn serialize_wrap_newlines() {
+        let input = vec![
+            SerializeStatement::TopBlockComment(include_str!("test/serialize/wrap-newlines.txt").to_string())
+        ];
+        let output = serialize(&input);
+        println!("{}",output);
+        assert_eq!(output,include_str!("test/serialize/wrap-newlines-out.earp"));
+    }
 }

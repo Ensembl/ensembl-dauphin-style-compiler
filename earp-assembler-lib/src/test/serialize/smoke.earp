@@ -1,0 +1,19 @@
+$instructions std/0
+$asset test raw file raw-asset.bin
+
+; test program
+program:test:
+
+        halt
+        copy r0, 1_f
+        ; comment
+    here:
+        copy u1, true 
+    1:
+
+$include path.earp
+
+        copy @+0, .1r 
+
+        copy @-1, .here
+        copy @+1, .1f                   ; comment another

@@ -515,9 +515,6 @@ mod test {
         }
     }
 
-    // XXX serializer
-    // XXX to library
-
     fn example_operands(bundle: &[ArgType], valid: bool, mut variety: u64) -> Option<String> {
         let mut out = vec![];
         for arg in bundle {

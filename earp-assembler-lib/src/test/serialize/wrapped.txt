@@ -1,0 +1,214 @@
+; blo bl blob blobbybl blobbyb blobb blobbybla blobbybla blobby b
+; blobbybl blobb blobbybla blobb bl bl blo blobbybl blo blobby bl blobb
+; blobby blobb blo bl blob b blobby bl blobbybl blobbybl blobbybl blobb
+; blo blobby blobb b blobbybl blo bl blobbybl blo blobby blobbyb bl blo
+; blo blob blobb blobb blobb bl blo bl blob blobbybla blobby blo
+; blobbybl blob blobby bl bl blobby blobbyb blobbyb blobbyb blobbyb
+; blobbyb blobbyb blobbybl bl blo blobby blob bl blob blobb b blobb blo
+; blobbybl blobbybl blo b blobby blobby blobbybla bl blobby blobb b
+; blobbyb blob blobbybl blob bl blobbybla blobb
+
+; blobbybl blobbyb blobby blobbyb blobbybla blobbybl b blobby bl b blob
+; blobby bl blobbybl blobbybl blobby blobbybla blobbyb blobbybla blo bl
+; blobb bl blobbybla blobbybla blobbybl blobbybla blobbyb blobbyb
+; blobbybla blobby blobb blobb blobbybla blobbyb blo b b blobbybl blob
+; blobbybla blobb blo blob blobby blobbybl blob blobbyb blobbybl blob
+; blo bl blobbybl blob blobbybl blobbybla b blobbybl b blobbyb
+; blobbybla b blob blob blo blob blo blo b blobbyb blobbybl blobbyb b
+; blobbybl blobbybl blobbybl bl blobbyb bl blobbybla blobbybl blob blob
+; b blob blo blobbybl blobbybl blobby blobbybla blobbyb blobbyb blobbyb
+; bl blobby blobbybl bl blobby blobbybl b
+
+; blo blobb blobbybla blobbyb blob b blobbyb blobbyb blobbybl b bl
+; blobbybl blobbybl blob b bl blobbybla bl b blo blobbyb blobbybla
+; blobbyb blobbyb bl blobbyb blob blobb blobbybla blob bl b blobbyb b
+; blob blobbyb bl blobb blobb b blobby blo blobby blobbybl blobby b b
+; blobby blobbybla blobby blob blo blo blobbyb b blobbybl blobbyb blobb
+; b b blo blobbybl blobb bl blobbybl blobbybla blobb blobbyb b b
+; blobbybla b bl bl blobby b b blobb blob blo b blo blob blobbybl
+; blobby blo blobb blobby blob blobbybl blobbyb blob blobbyb bl bl
+; blobb blobbybl blobb blo bl
+
+; blobbyb blobbybl blo blobbybla b bl blobbybl blobbyb blob blob b
+; blobbybla blobby blobbybla blob bl blobby blobbyb blo blobbybl b
+; blobb b blobbybla b blobb blobby blobbyb blobbybl blobby blob blob
+; blob blobbybla bl blobb blobbybla blobb blobbybl blobby blobb blo
+; blobbybl blob blobby blobbybla blobbybla blobby blobbybla blobbybl bl
+; blob b blob blo bl bl blobbybl blob blob blobbyb blobbyb blob blo bl
+; blob blobb blobbybla blobby blobbybl blob bl blobbybl blobbybl bl
+; blobbybl blo blobb blo bl blobby blobb blobbybla bl blob blobbyb b
+; blobbybla bl blobbybla blo blobbybla blobby blobbybla blobby blob
+; blobbybl blobbybl blobbybl blo
+
+; blob blobbybla blob blobby bl blobbyb blob b blobbyb blobbybla blo
+; blobb blobbybla blob blobbybl blobby blobbybl blobbyb blo b blobbyb
+; blobby blobby blobbyb blob blo blobbyb blobbybla blobbybl b blo blobb
+; blobbyb b blobbybl blobb blob blo blobbybl blobb blobbybl blobb
+; blobby bl bl blobbybl blobbybl blob blo blobb blobbyb blobby blobbyb
+; blobbybl b blo blob blo blo blobbybl blobb bl b blobbybl blo b
+; blobbybl blobb blobby b blobby blobbybl blobbyb blobbybl bl blobbybla
+; blobby blob blobbybla blob blobbybl b bl blobbyb blobbybla b blobb
+; blobbybl b b blobbybla blobby blobbyb blobbyb blobb blobbyb blobbyb
+; blob blo blo
+
+; blob blo blo blob blobby blob blob blob blobbyb blobb blobby
+; blobbybla bl b bl b blobby blob blobbybla blobb bl blobbybl blobbyb
+; bl blobb blobbyb blo blobbybl bl blob blobbybla blobbybla blobby
+; blobbyb blobb blo blobbybl blobbyb blobby blob blo blobbyb blobbybl
+; blobbybla blo bl blo blobbybla blo blobby blobbybla blobb blo b blob
+; blo blob bl blo blo blobby blobbyb blobby blobb blo blo blobb
+; blobbybl blobby blobb blobb b blobbybl blobbyb blobbybla b bl blo
+; blobbybl b blobbyb bl blobbyb blob blobby blo blobb blobbybla blobby
+; b blobbyb blobbybla blo blo blo blob blobb blobbyb blo b
+
+; blobbyb blobbybl blobbybla bl blobb blobbybl blo bl blobbybl
+; blobbybla b blobb blo blo blob blo blobbyb blo blobbyb blobb blo blob
+; blobb blo blobby blobbyb bl bl blobb blo blob blob blobbybla blobb
+; blobby blobbybla blobbybl blob blobby b blo blo b blobbybl blo blobby
+; blobbybl blobb blobbyb blo blobbybla blobby blobb blo blobby blobbyb
+; blo blobbyb bl blo blo blo blobbybl blobb blobbybl blobby blobbyb
+; blobby blobb blobb blobbybl blobbyb blo blobbybl blobbyb blobbyb
+; blobbybl blobb blobbybl blobbybla bl blobby blo blobby blo blobby
+; blobbybla blobbybla blob blobb blobbybl bl bl blobbyb blobbybl bl
+; blobby blo blobby blobbyb
+
+; blobbybla blob blobb b bl blobbyb blobbyb blobby bl blobby blobb blob
+; blob blobbybla blobbybla b blobbyb blobbyb blobbybla blobbybl blobbyb
+; blobbybl blobbyb blo blobbyb blob blo bl bl blobbybla blobbyb blobbyb
+; blobby blobbybla b blobb blob blobbybl blob b blobb blobbybla
+; blobbybla bl blob blo blob blobbyb blobby blobbybla blobb blobb
+; blobbyb blobby blobb blobbyb blobbybla blobb blobb bl blo blobb blobb
+; blob blobby blobby blo blobbyb bl blobby b blob bl bl blobbybl blo
+; blobby b blobb blobbyb blo blob blobbybl blobbybla blobbyb blob
+; blobby blobbybl bl blobby bl b blobbyb bl blobbybla blobbybl blobbybl
+; blo blob blobbybl
+
+; bl blobbybla bl b blobby blobbybl blobbybla b blobbybla blob blobby
+; blo blob blobbybla blob blobbybla blo blobbybl blob blobbyb blobbybl
+; blo blobby blobbyb blob b blobbybl blobbybla blobbybl blobbybla
+; blobbyb blobbybl blobbyb b blobbybl bl blob blobby blobbybl b
+; blobbybl blobby blobbyb b blob blobby blobbybl bl blob blobbyb
+; blobbyb blob blobby blobbyb blobbybla blobbybl blobbybl blobbybla bl
+; blobbyb blobbybl blobbybla b blobbybla b blobby blobbybla blobb blobb
+; blobbyb blo b blo blobbybla b blobby blobb blobbyb blobb blobb
+; blobbybl bl blob blobbybla blobb blobbybla b b blobbyb bl blobbyb
+; blobby blobbybla blobbybla bl b bl blobb blo b
+
+; blob blobb blob blobb blobbybla blo blob blobbybl b blobbybla
+; blobbybl blobby blobbybla blo blo blobbybl blobb blobb blobb blo b
+; blob blobb blobby blobbyb b blobb blobby b blobbybla blob bl blo blo
+; blobbybl blo blobby blob b blob blobb bl b blobbybl blob blobb b bl
+; blobbybl blobbybl bl b blo b b blobbyb b blobb blobbybla b blobb bl
+; blobbybla bl blob blobb bl blobbyb blobby blo blobbybl bl blobbybla
+; blobbybl b blobb blobbybla blobbybla blobbybla b blobbybl bl blobbyb
+; blobb bl blobby bl blobbybla b blobby b blobbyb blo b b bl blob bl
+; blob blobby
+
+; blobbyb blob blobby blobby blobbybl blobbybla blob b b blob bl
+; blobbybl blobby blob blobb blobbyb b blobbyb blo blob blobb blob b
+; blobbybla blo blobby blobbyb bl blobbybla blobbybl bl blobbyb b b b
+; bl blobbybla blobbyb blo blobbybla blobb bl blobbyb blobbybl blobbyb
+; blobbybl blobby blobbyb blobbybl bl blobbyb blobb bl blo blobbybla
+; blobbybla b blob blobbybla blo blobb blo blob blobby blob blobbybl
+; blob blo b blobbybl blo blob blob blobbyb blobb blo b blobbybl b
+; blobbybla blob bl bl blobby blobbyb blobby b blob blobb blo blobbybl
+; bl blobb bl blobbyb blobbyb blobby blob blobbyb blob
+
+; blobbybl blobby bl blobby blobby blobbybla blo b blobbybla blobbybla
+; blobbybla blobby b blo blobbyb blobby b blobbybl b b blob blobb b
+; blobbyb blobb b bl blobbybl blobbybla blobb blobbyb blob blobbybl
+; blobb blobbybl blobby blobb blobbybla bl blobb blo blobbybla
+; blobbybla blob blobbyb b blobb blobby blobbybla b bl blo blobby
+; blobbyb b blobby blobbybl blob blo blobbybla blob blobbyb blo
+; blobbybla b blo blobby blo blo blobbybla blob blobbybl blobb blobbyb
+; blobbyb blobbybl blo blobbybla blobbybla bl blo blobbyb blobbyb blobb
+; bl blobbybl blobby blobb blobby blobby bl blo blob blobbyb b blobby
+; blob blo blobb bl
+
+; blobb blobbyb bl blob blobbyb blobby b bl blobby blobbybl b blo blobb
+; blo blobbybl blobbybl blo blob blobbybla blobbybla blobb blobby
+; blobbyb blobb blobbybl blobb b bl blobbybl blobbybl b blobby b blo
+; blobbybla blo blob blo blobbyb blobbyb blobb blobbyb blobb blobby
+; blobbybla blobbybl blob blobbyb blobbyb blobb blobb blobbybl blo
+; blobb blobby blobbyb b blobbyb blobby blobbybl blob blo b b blo
+; blobbybla blobb blob b blobbybl blobbyb blobbyb blobb blob bl blob
+; blobb bl blobby blo bl blo blobbyb b blobbybl blobbybl blob blobbyb
+; blobbyb blobbybl blobbyb blobbyb bl blo b blobby blobbybla blobb blob
+; bl
+
+; bl blobb blobbybla b bl blob bl blo b b blobbyb blobbybl bl blobbybl
+; bl blobby b b blobbyb b blo blobbyb blob blo blobb blobbybla
+; blobbybla blobbybl blo blob blobbybla blobbyb blobbyb blobb blob bl
+; blobbybl blobbybla blobbybla bl blo blo blobbybl b blobbyb blobbybl
+; blo b bl bl b blobby blob b b blobb blobbybla blobby b blob bl
+; blobbyb b blo blo blobbyb bl blobbybla blobbybl blob blobbyb bl
+; blobbybla blobb blobbybla blobbyb blobb b blobby blobb blobby blobbyb
+; blob blobby bl blo blobbyb blobbybla blobbyb b blob b blobbybla
+; blobbybla blo blobbybla bl blobbybl b blobbyb
+
+; blobbybl blo blobb blobb b blo blob blo blobbybl blobbybl blobbyb
+; blob blobbybla bl blobbybla blob bl blo blob bl blobby blobbybl
+; blobbyb blobbybla blob blo blob blobby blo blo blobbyb blobb blob
+; blobbyb blo blobbybl b bl blobbybla blobbybla blobby blobbybl
+; blobbybl blo blo blobbybla blo bl blo blobbybl b blobb blobbybla
+; blobbybla blobbybl bl blobb blo blobbyb blobbybl bl blo blobby blobby
+; blobbybla blob b blo blobb blobb blobbyb blobbyb blobbybl bl blobb bl
+; blobby blobbybla bl bl b blobbybl blobbyb blobb blobbybla bl blobbyb
+; blob blobbyb blobb blob blo blobbybla blo blobby blob blobby
+; blobbybla blobby bl
+
+; blobb bl blobbyb blobb bl blobb blobbybl blobbyb blobbybla bl blo
+; blob blobbybl blobbybl blobbybla b blo blobbyb blo blobby bl blobbybl
+; blobby blobb bl blo blobby blobb blobbybla b blobb blob bl b b blobby
+; blobbybla blobbybl blobbybl blobby blob blobbyb blobbyb blobbybla
+; blobbybla blobby b blobbybla blobbyb blobbyb blobbybla bl blo blobb
+; bl b blobbyb blobbyb bl blobbybla b blo b blobbybl blobbybl blobbybla
+; blobbybla bl blobbyb blobbyb bl blobb blob blobbybla blo blobbybla bl
+; blobb blobbybl blobbybla blobby blob blobby blobbybla b blobby
+; blobbybl blobbyb blobby blo blobb blobbyb blobbyb blobbybla blobbybla
+; blo blob blobbyb bl blobbyb
+
+; blobbyb blo blobby bl blo bl blo blobbybla blobbyb blob blobbybl
+; blobbybl blobbybl b blobbybla bl bl blobby blobbybla blobby blobby b
+; blobbybla blobbybla blo blobb blobby bl blobby blobbyb blobb
+; blobbybla blobbybla b blobbybl blob blobbybla blobb b blobby
+; blobbybla bl blobbybla blobb b blobbyb b b blobb blobby blobbybla
+; blob blo bl blobb blob blobbybl blobbybl blobbybla blobbybla blobbyb
+; blob blobby blobbybl bl b b blobbybla blo blobbybla b bl blobbybl
+; blobbybla blobbybl blobby blobbybla blobbybla blobby blo blobbyb
+; blobbybla bl blobbybl blob blobb bl bl blobbybl blobb blobb blob
+; blobby b blobby blobb blobby blobby blob blobbyb
+
+; blobbyb blobby blobbybl blob bl blo blob blobbyb blo blobbybla blobby
+; b blob blobbyb blobby bl blobbybla blob blobbybl b blo blobbybla bl
+; blobb blob b bl blobbybla bl blobbybl blobbybl blobbybl blobbybla
+; blobbybl blobbybla blob b blobbyb blobbyb blob blobb blobbybla b
+; blobbybla b blo blobbybl blobby blobbybl blob blobbybla blobby
+; blobbyb blobbyb blobb blo blob blob blobbyb bl b blo blobb blobbybla
+; blobbybla blob blobbyb bl blobbyb blobbybl b b b blob blo blobby bl
+; blob blobby blo blobb blobbybla b blo blobbybla blobbybla blobbybla
+; blo blo blobby blobb blobbybl blob blobby blob bl bl blobb blobbybl
+; blobbybla
+
+; bl blobbybla blobbyb blobby b blobbybla blob blobbybl blobbybl
+; blobbybl bl blob blobbyb blobbyb blobbybl blobbybla blobbybl b
+; blobbyb blobbybl blob blob blobbybla blobbybla blobby blobbyb
+; blobbybla blobbybla blobbyb b blo b blo blo blo blobbybl blo bl blo
+; blobby blobbybla blobbyb bl bl blobbybl bl blobbybla blobbyb b
+; blobbybla blobbyb blobb blobbyb bl blobbybl b b blo blobbybl b blobb
+; blob b blobbyb b blob blobb blobbyb blob blobbybl blobbyb blobby blo
+; b blobbybl blobb blobbybla blobb blo blobby blobby blo blobbybl blob
+; blobbybl blobby blobbybla blobbybla blob bl blobbyb blobb blobbybl
+; blobbyb blob bl blobbybla bl b blobb
+
+; blo b bl blobbybl blobbybl blobbyb blobbybl blobbybla b blobb blobbyb
+; blobby blobbybla b blobbybl blobbyb blob blobb blobbybl blo blo
+; blobbyb blobbybla blobbyb blobbybl bl bl blobb blob blob blobbybla
+; blob blobby bl blobbybla b bl blobb blobbyb blob blobby blobby blob
+; blobbybla blobbybl blobbybla blobbybla blobbybla blobbybl bl b blobb
+; blobbybla b blob blobbybl b blo blobbybl b blo b blobbybl bl
+; blobbybla blobby blobbyb blobbybla blobby blobbybl blobbybla blobby
+; blobbybla blobb blob blobbyb blobbyb blobbyb blobb bl bl blo blo
+; blobbybla blobbyb blob blobbyb blob bl blobbybla blob blobbybl blob b
+; blob blobbyb blobbybl blo blobbybl blo
+
