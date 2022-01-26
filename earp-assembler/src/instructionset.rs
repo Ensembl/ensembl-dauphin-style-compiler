@@ -88,8 +88,8 @@ impl InstructionSet {
     }
 
     #[cfg(test)]
-    pub(crate) fn opcodes(&self) -> impl Iterator<Item=(&str,u64)> {
-        self.opcodes.iter().map(|(k,(v,_))| (k.as_str(),*v))
+    pub(crate) fn opcodes(&self) -> impl Iterator<Item=(&str,u64,ArgSpec)> {
+        self.opcodes.iter().map(|(k,(v,w))| (k.as_str(),*v,w.clone()))
     }
 
     pub(crate) fn lookup(&self, opcode: &str) -> Option<(u64,ArgSpec)> {
@@ -122,7 +122,7 @@ mod test {
                 assert_eq!(Some(0),code_for(set,"copy"));
                 assert_eq!(None,set.lookup("silly"));
                 let mut goto = None;
-                for (name,opcode) in set.opcodes() {
+                for (name,opcode,_) in set.opcodes() {
                     if name == "goto" {
                         goto = Some(opcode);
                     }

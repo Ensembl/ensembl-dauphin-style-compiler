@@ -226,15 +226,15 @@ impl<'t> Assemble<'t> {
     }
 }
 
-// XXX check operand types
-// XXX line numbers
+// XXX rename
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::{Assemble}};
+    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::{Assemble}, instructionset::{ArgSpec, ArgType}};
 
     #[test]
     fn assemble_smoke() {
@@ -497,5 +497,104 @@ mod test {
         no_error(assembler.add_source(&include_str!("test/includer/2/no-search.earp"),Some("src/test/includer/2/no-search.earp")));
         no_error(assembler.assemble());
 
+    }
+
+    const all_operands : &[&str] = &["\"hello\"","12","false","r3","u1",".x","@",".1r"];
+    const jump_operands :  &[&str] = &["r3","u1",".x","@",".1r"];
+    const reg_operands :  &[&str]  = &["r3","u1"];    
+
+    fn operand_list(arg: &ArgType, valid: bool) -> &[&str] {
+        if valid {
+            match arg {
+                ArgType::Any => all_operands,
+                ArgType::Jump => jump_operands,
+                ArgType::Register => reg_operands
+            }
+        } else {
+            all_operands
+        }
+    }
+
+    // XXX serializer
+    // XXX to library
+
+    fn example_operands(bundle: &[ArgType], valid: bool, mut variety: u64) -> Option<String> {
+        let mut out = vec![];
+        for arg in bundle {
+            let choice = operand_list(arg,valid);
+            let len = choice.len() as u64;
+            out.push(choice[(variety % len) as usize]);
+            variety /= len;
+        }
+        if variety == 0 {
+            Some(out.join(", "))
+        } else {
+            None
+        }
+    }
+
+    fn all_example_operands(bundle: &[ArgType], valid: bool) -> Vec<String> {
+        let mut out = vec![];
+        let mut variety = 0;
+        while let Some(result) = example_operands(bundle,valid,variety) {
+            out.push(result);
+            variety += 1;
+        }
+        out
+    }
+
+    fn prepare_instruction_bundle<'a>(suite: &'a Suite, name: &str, operand: &str) -> Assemble<'a> {
+        let mut assembler = Assemble::new(&suite);
+        let source = format!("{} {}",name,operand);
+        println!("testing \"{}\"",source);
+        let source = format!("$instructions std/1\n$instructions console/0\nx:\n 1:\n{}",source);
+        no_error(assembler.add_source(&source,None));
+        assembler
+    }
+
+    fn test_instruction_bundle(name: &str, operands: Vec<String>, valid: bool) {
+        println!("{} : {:?} {:?}",name,operands,valid);
+        let suite = test_suite();
+        for operand in operands {
+            let mut assembler = prepare_instruction_bundle(&suite,name,&operand);
+            if valid {
+                no_error(assembler.assemble());
+            } else {
+                yes_error(assembler.assemble());
+            }
+        }
+    }
+
+    #[test]
+    fn test_invalid_opcode() {
+        for instruction_set in no_error(load_opcode_map(include_str!("test/test.map"))) {
+            for (name,_,spec) in instruction_set.opcodes() {
+                /* check valid combinations */
+                match &spec {
+                    ArgSpec::Specific(s) => {
+                        /* test valid combinations */
+                        let mut all_good_examples = HashSet::new();
+                        let mut all_examples = HashSet::new();
+                        for bundle in s.iter() {
+                            let good_examples = all_example_operands(bundle,true);
+                            all_good_examples.extend(good_examples.iter().cloned());
+                            all_examples.extend(all_example_operands(bundle,false));
+                            test_instruction_bundle(name,good_examples,true);
+                        }
+                        /* test invalid examples */
+                        let bundle = all_examples.difference(&all_good_examples).cloned().collect::<Vec<_>>();
+                        test_instruction_bundle(name,bundle,false);
+                    },
+                    ArgSpec::Any => {
+                        for len in 0..3 {
+                            let bundle = vec![ArgType::Any;len];
+                            let operands = all_example_operands(&bundle,true);
+                            test_instruction_bundle(name,operands,true);
+                        }
+                    }
+                }
+                println!("{} -> {}",name,spec);
+            }
+        }    
     }
 }
