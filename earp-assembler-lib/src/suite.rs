@@ -2,14 +2,14 @@ use std::{collections::HashMap};
 
 use crate::{instructionset::{InstructionSetId, InstructionSet}, assets::{AssetSource, AssetLoader}, fileloader::FileLoader};
 
-pub(crate) struct Suite {
+pub struct Suite {
     sets: HashMap<InstructionSetId,InstructionSet>,
     source_loader: FileLoader,
     asset_loaders: HashMap<AssetSource,Box<dyn AssetLoader>>
 }
 
 impl Suite {
-    pub(crate) fn new() -> Suite {
+    pub fn new() -> Suite {
         Suite {
             sets: HashMap::new(),
             source_loader: FileLoader::new(),
@@ -17,7 +17,7 @@ impl Suite {
         }
     }
 
-    pub(crate) fn add_instruction_set(&mut self, set: InstructionSet) {
+    pub fn add_instruction_set(&mut self, set: InstructionSet) {
         self.sets.insert(set.identifier().clone(),set);
     }
 
@@ -25,7 +25,7 @@ impl Suite {
         self.sets.get(id)
     }
 
-    pub(crate) fn add_loader<L>(&mut self, source: AssetSource, loader: L) where L: AssetLoader + 'static {
+    pub fn add_loader<L>(&mut self, source: AssetSource, loader: L) where L: AssetLoader + 'static {
         self.asset_loaders.insert(source,Box::new(loader));
     }
 
@@ -33,6 +33,6 @@ impl Suite {
         self.asset_loaders.get(source)
     }
 
-    pub(crate) fn source_loader(&self) -> &FileLoader { &self.source_loader }
-    pub(crate) fn source_loader_mut(&mut self) -> &mut FileLoader { &mut self.source_loader }
+    pub fn source_loader(&self) -> &FileLoader { &self.source_loader }
+    pub fn source_loader_mut(&mut self) -> &mut FileLoader { &mut self.source_loader }
 }

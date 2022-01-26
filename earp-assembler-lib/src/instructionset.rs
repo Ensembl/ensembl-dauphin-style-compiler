@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, fmt::Display};
 use crate::error::AssemblerError;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd, Ord)]
-pub(crate) struct InstructionSetId(pub String,pub u64);
+pub struct InstructionSetId(pub String,pub u64);
 
 impl Display for InstructionSetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -50,7 +50,7 @@ impl Display for ArgSpec {
 }
 
 #[derive(Debug,Clone)]
-pub(crate) struct InstructionSet {
+pub struct InstructionSet {
     opcodes: HashMap<String,(u64,ArgSpec)>,
     opcodes_used: HashSet<u64>,
     identifier: InstructionSetId
@@ -81,7 +81,7 @@ impl InstructionSet {
         Ok(())
     }
 
-    pub(crate) fn identifier(&self) -> &InstructionSetId { &self.identifier }
+    pub fn identifier(&self) -> &InstructionSetId { &self.identifier }
 
     pub(crate) fn next_opcode(&self) -> u64 {
         self.opcodes.iter().map(|(_,(v,_))| *v+1).max().unwrap_or(0)

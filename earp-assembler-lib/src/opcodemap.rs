@@ -122,7 +122,7 @@ fn parse_opcode_map(map: &str) -> PestResult<Vec<InstructionSet>> {
 }
 
 
-pub(crate) fn load_opcode_map(map: &str) -> Result<Vec<InstructionSet>,AssemblerError> {
+pub fn load_opcode_map(map: &str) -> Result<Vec<InstructionSet>,AssemblerError> {
     parse_opcode_map(map).map_err(|e| AssemblerError::BadOpcodeMap(e.to_string()))
 }
 

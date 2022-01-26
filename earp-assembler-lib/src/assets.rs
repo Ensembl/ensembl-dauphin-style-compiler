@@ -4,7 +4,7 @@ use std::{collections::HashMap };
 use crate::{error::AssemblerError, hexfile::load_hexfile, suite::Suite};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
-pub(crate) enum AssetSource {
+pub enum AssetSource {
     File
 }
 
@@ -30,12 +30,12 @@ impl Encode for AssetData {
     }
 }
 
-pub(crate) trait AssetLoad {
+pub trait AssetLoad {
     fn load_bytes(&self) -> Result<Vec<u8>,AssemblerError>;
     fn load_string(&self) -> Result<String,AssemblerError>;
 }
 
-pub(crate) trait AssetLoader {
+pub trait AssetLoader {
     fn make_load<'a>(&'a self, path: &str, context_path: &Option<String>, search: bool) -> Result<Box<dyn AssetLoad + 'a>,AssemblerError>;
 }
 

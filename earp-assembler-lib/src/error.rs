@@ -1,7 +1,7 @@
 use std::fmt::{ Debug, Display };
 
 #[derive(Clone)]
-pub(crate) enum AssemblerError {
+pub enum AssemblerError {
     OpcodeInUse(String),
     DuplicateLabel(String),
     BadOpcodeMap(String),
@@ -98,7 +98,7 @@ impl AssemblerError {
         }
     }
 
-    pub(crate) fn add_context(&self, context: &str) -> AssemblerError {
+    pub fn add_context(&self, context: &str) -> AssemblerError {
         let burst = self.clone().burst();
         burst.0.unburst(format!("{}: {}",context,burst.1))
     }

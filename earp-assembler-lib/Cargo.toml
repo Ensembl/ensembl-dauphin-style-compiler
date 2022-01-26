@@ -1,11 +1,13 @@
 [package]
-name = "earp_assembler"
+name = "earp_assembler_lib"
 version = "0.0.0"
 authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
 edition="2018"
 
 [dependencies]
+pest="*"
+pest_consume="*"
+pest_derive="*"
 minicbor={ version="*", features=["std"] }
 clap = { version = "*", features = ["derive"] }
 peregrine_cli_toolkit = { version = "*", path = "../peregrine-cli-toolkit" }
-earp_assembler_lib = { version = "*", path = "../earp-assembler-lib" }

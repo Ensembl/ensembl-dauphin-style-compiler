@@ -2,18 +2,18 @@ use std::{io, fs::{read_to_string, read, metadata}, hash::{Hash}, path::{Path}, 
 
 use crate::{error::AssemblerError, assets::{AssetLoad, AssetLoader}};
 
-pub(crate) struct FileLoader {
+pub struct FileLoader {
     search_paths: Vec<String>
 }
 
 impl FileLoader {
-    pub(crate) fn new() -> FileLoader {
+    pub fn new() -> FileLoader {
         FileLoader {
             search_paths: vec![]
         }
     }
 
-    pub(crate) fn add_search_path(&mut self, path: &str) {
+    pub fn add_search_path(&mut self, path: &str) {
         self.search_paths.push(path.to_string());
     }
 

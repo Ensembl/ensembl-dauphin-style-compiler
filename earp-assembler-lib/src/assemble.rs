@@ -172,7 +172,7 @@ impl AssembleFile {
     }
 }
 
-pub(crate) struct Assemble<'t> {
+pub struct Assemble<'t> {
     pc: i64,
     max_pc: i64,
     labels: HashMap<String,i64>,
@@ -182,7 +182,7 @@ pub(crate) struct Assemble<'t> {
 }
 
 impl<'t> Assemble<'t> {
-    pub(crate) fn new(suite: &'t Suite) -> Assemble<'t> {
+    pub fn new(suite: &'t Suite) -> Assemble<'t> {
         Assemble {
             pc: 0,
             max_pc: 0,
@@ -195,20 +195,20 @@ impl<'t> Assemble<'t> {
 
     fn reset(&mut self) { self.pc = 0; }
 
-    pub(crate) fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
+    pub fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 
     pub(crate) fn add_source(&mut self, contents: &str, file_path: Option<&str>) -> Result<(),AssemblerError> {
         self.source.push(AssembleFile::new(&contents,file_path)?);
         Ok(())
     }
 
-    pub(crate) fn add_file(&mut self, file_path: &str) -> Result<(),AssemblerError> {
+    pub fn add_file(&mut self, file_path: &str) -> Result<(),AssemblerError> {
         let loader = self.suite.source_loader().make_load_file(file_path, &None, true)?;
         let contents = loader.load_string()?;
         self.add_source(&contents,Some(loader.file_path()))
     }
 
-    pub(crate) fn assemble(&mut self) -> Result<(),AssemblerError> {
+    pub fn assemble(&mut self) -> Result<(),AssemblerError> {
         let mut sources = replace(&mut self.source,vec![]);
         for source in &mut sources {
             source.find_includes(self)?;
@@ -499,19 +499,19 @@ mod test {
 
     }
 
-    const all_operands : &[&str] = &["\"hello\"","12","false","r3","u1",".x","@",".1r"];
-    const jump_operands :  &[&str] = &["r3","u1",".x","@",".1r"];
-    const reg_operands :  &[&str]  = &["r3","u1"];    
+    const ALL_OPERANDS : &[&str] = &["\"hello\"","12","false","r3","u1",".x","@",".1r"];
+    const JUMP_OPERANDS :  &[&str] = &["r3","u1",".x","@",".1r"];
+    const REG_OPERANDS :  &[&str]  = &["r3","u1"];    
 
     fn operand_list(arg: &ArgType, valid: bool) -> &[&str] {
         if valid {
             match arg {
-                ArgType::Any => all_operands,
-                ArgType::Jump => jump_operands,
-                ArgType::Register => reg_operands
+                ArgType::Any => ALL_OPERANDS,
+                ArgType::Jump => JUMP_OPERANDS,
+                ArgType::Register => REG_OPERANDS
             }
         } else {
-            all_operands
+            ALL_OPERANDS
         }
     }
 

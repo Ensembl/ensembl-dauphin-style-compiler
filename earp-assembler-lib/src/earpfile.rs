@@ -21,7 +21,7 @@ impl<'t> Encode for EntryPoints {
     }
 }
 
-pub(crate) struct EarpFileWriter<'t> {
+pub struct EarpFileWriter<'t> {
     set_mapper: SetMapper<'t>,
     entry_points: EntryPoints,
     instructions: Vec<Command>,

@@ -1,37 +1,30 @@
-mod assemble;
-mod assets;
-mod command;
-mod earpfile;
-mod error;
-mod fileloader;
-mod hexfile;
-mod instructionset;
-mod lookup;
-mod opcodemap;
 mod options;
-mod parser;
-mod rellabels;
-mod setmapper;
-mod suite;
-#[cfg(test)]
-mod testutil;
 
-use std::{process::exit, fs::{read_to_string, self}};
-
-use assets::AssetSource;
-use earpfile::EarpFileWriter;
-use error::AssemblerError;
-use fileloader::FileLoader;
 use minicbor::Encoder;
-use opcodemap::load_opcode_map;
+use std::{ fs::{ self, read_to_string }, process::exit };
+
+use earp_assembler_lib::{AssemblerError, Suite, EarpFileWriter, Assemble, AssetSource, FileLoader, load_opcode_map};
 use options::{parse_config, Config};
-use suite::Suite;
-use assemble::{Assemble};
 
 fn debug(config: &Config, str: &str, min: u32) {
     if config.verbose >= min {
         println!("{}",str);
     }
+}
+
+fn prepare_suite(config: &Config) -> Suite {
+    let mut suite = Suite::new();
+    suite.source_loader_mut().add_search_path(".");
+    for path in &config.source_paths {
+        suite.source_loader_mut().add_search_path(path);
+    }
+    let mut file_asset_loader = FileLoader::new();
+    file_asset_loader.add_search_path(".");
+    for path in &config.asset_paths {
+        file_asset_loader.add_search_path(path);
+    }
+    suite.add_loader(AssetSource::File,file_asset_loader);
+    suite
 }
 
 fn load_file(path: &str) -> Result<String,AssemblerError> {
@@ -61,21 +54,6 @@ fn write_earp_file(config: &Config, earp_file: &EarpFileWriter) -> Result<(),Ass
         .map_err(|e| AssemblerError::CannotSerialize(e.to_string()))?;
     save_file(&config,&config.object_file,&out)?;
     Ok(())
-}
-
-fn prepare_suite(config: &Config) -> Suite {
-    let mut suite = Suite::new();
-    suite.source_loader_mut().add_search_path(".");
-    for path in &config.source_paths {
-        suite.source_loader_mut().add_search_path(path);
-    }
-    let mut file_asset_loader = FileLoader::new();
-    file_asset_loader.add_search_path(".");
-    for path in &config.asset_paths {
-        file_asset_loader.add_search_path(path);
-    }
-    suite.add_loader(AssetSource::File,file_asset_loader);
-    suite
 }
 
 fn run(config: &Config) -> Result<(),AssemblerError> {
