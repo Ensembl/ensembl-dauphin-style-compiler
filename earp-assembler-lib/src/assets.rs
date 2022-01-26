@@ -1,5 +1,5 @@
 use minicbor::{encode::{Write, Error}, Encode, Encoder};
-use std::{collections::HashMap };
+use std::{collections::HashMap, fmt::Display };
 
 use crate::{error::AssemblerError, hexfile::load_hexfile, suite::Suite};
 
@@ -8,11 +8,31 @@ pub enum AssetSource {
     File
 }
 
+impl Display for AssetSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match  self {
+            AssetSource::File => "file"
+        };
+        write!(f,"{}",s)
+    }
+}
+
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum AssetFormat {
+pub enum AssetFormat {
     Raw,
     String,
     Hex
+}
+
+impl Display for AssetFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match  self {
+            AssetFormat::Hex => "hex",
+            AssetFormat::String => "string",
+            AssetFormat::Raw => "raw"
+        };
+        write!(f,"{}",s)
+    }
 }
 
 enum AssetData {

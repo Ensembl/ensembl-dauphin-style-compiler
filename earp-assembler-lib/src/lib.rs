@@ -10,6 +10,7 @@ mod lookup;
 mod opcodemap;
 mod parser;
 mod rellabels;
+mod serialize;
 mod setmapper;
 mod suite;
 #[cfg(test)]
@@ -21,4 +22,5 @@ pub use error::AssemblerError;
 pub use fileloader::FileLoader;
 pub use earpfile::EarpFileWriter;
 pub use opcodemap::load_opcode_map;
+pub use serialize::serialize;
 pub use suite::Suite;

@@ -3,14 +3,32 @@ use pest_consume::{Error, Parser, match_nodes};
 use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}, assemble::AssembleFile};
 
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum AssemblyLocation {
+pub enum AssemblyLocation {
     Here(i64),
     Label(String),
     RelativeLabel(String,bool)
 }
 
+impl ToString for AssemblyLocation {
+    fn to_string(&self) -> String {
+        match self {
+            AssemblyLocation::Here(h) => format!("@{:+}",h),
+            AssemblyLocation::Label(label) => format!(".{}",label),
+            AssemblyLocation::RelativeLabel(label,fwd) => format!(".{}{}",label,if *fwd { "f" } else { "r "})
+        }
+    }
+}
+
+fn serialize_string(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.chars() {
+        out.push_str(&c.escape_default().to_string());
+    }
+    format!("\"{}\"",out)
+}
+
 #[derive(Clone,Debug,PartialEq)]
-pub(crate) enum ParseOperand {
+pub enum ParseOperand {
     Register(usize),
     UpRegister(usize),
     String(String),
@@ -18,6 +36,20 @@ pub(crate) enum ParseOperand {
     Integer(i64),
     Float(f64),
     Location(AssemblyLocation)
+}
+
+impl ToString for ParseOperand {
+    fn to_string(&self) -> String {
+        match self {
+            ParseOperand::Register(r) => format!("r{}",r),
+            ParseOperand::UpRegister(u) => format!("u{}",u),
+            ParseOperand::String(s) => serialize_string(s),
+            ParseOperand::Boolean(b) => (if *b { "true "} else { "false "}).to_string(),
+            ParseOperand::Integer(v) => format!("{}",v),
+            ParseOperand::Float(v) => format!("{}_f",*v),
+            ParseOperand::Location(h) => h.to_string()
+        }
+    }
 }
 
 impl ParseOperand {
