@@ -219,9 +219,8 @@ mod test {
 
     use rand::{prelude::SmallRng, SeedableRng, RngCore};
 
-    use crate::{assets::AssetFormat, AssetSource, serialize, parser::{ParseOperand, AssemblyLocation}};
-
-    use super::SerializeStatement;
+    use crate::{assets::AssetFormat, AssetSource, serialize::{INLINE_COMMENT_OFFSET}, parser::{ParseOperand, AssemblyLocation}};
+    use super::{serialize, SerializeStatement };
 
     #[test]
     fn serialize_smoke() {
@@ -341,5 +340,50 @@ mod test {
         let output = serialize(&input);
         println!("{}",output);
         assert_eq!(output,include_str!("test/serialize/wrap-newlines-out.earp"));
+    }
+
+    #[test]
+    fn serialize_longlines() {
+        const RANGE : usize = 10;
+        const INSTR_LEN: usize = 19; // "copy r0, \"...\"" + 8 spaces
+        let mut input = vec![];
+        for delta in 0..(2*RANGE)+1 {
+            input.push(
+                SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                    ParseOperand::Register(0),
+                    ParseOperand::String(word(INLINE_COMMENT_OFFSET+delta-RANGE-INSTR_LEN))
+                ])
+            );
+            input.push(
+                SerializeStatement::InlineComment("comment".to_string())
+            );
+        }
+        let output = serialize(&input);
+        println!("{}",output);
+        assert_eq!(&output,include_str!("test/serialize/longlines.earp"));
+    }
+
+    #[test]
+    fn serialize_string() {
+        const TESTS: &[&str] = &[
+            "hello",
+            "hello\n",
+            "hello\r",
+            "hello world",
+            "hello\0world",
+            "hello\u{20AC}world"
+        ];
+        let mut input = vec![];
+        for test in TESTS {
+            input.push(
+                SerializeStatement::Instruction(None,"copy".to_string(),vec![
+                    ParseOperand::Register(0),
+                    ParseOperand::String(test.to_string())
+                ])
+            );
+        }
+        let output = serialize(&input);
+        println!("{}",output);
+        assert_eq!(&output,include_str!("test/serialize/strings.earp"));
     }
 }

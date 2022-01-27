@@ -1,0 +1,6 @@
+        copy r0, "hello"
+        copy r0, "hello\n"
+        copy r0, "hello\r"
+        copy r0, "hello world"
+        copy r0, "hello\u{0}world"
+        copy r0, "hello\u{20ac}world"
