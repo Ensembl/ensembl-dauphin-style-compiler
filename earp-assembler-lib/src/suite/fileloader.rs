@@ -1,6 +1,6 @@
 use std::{io, fs::{read_to_string, read, metadata}, hash::{Hash}, path::{Path}, os::unix::prelude::MetadataExt};
 
-use crate::{error::AssemblerError, assets::{AssetLoad, AssetLoader}};
+use crate::{core::error::AssemblerError, suite::assets::{AssetLoad, AssetLoader}};
 
 pub struct FileLoader {
     search_paths: Vec<String>
@@ -107,7 +107,7 @@ impl AssetLoad for InputFile {
 mod test {
     use std::env::current_dir;
 
-    use crate::testutil::no_error;
+    use crate::core::testutil::no_error;
 
     use super::FileLoader;
 

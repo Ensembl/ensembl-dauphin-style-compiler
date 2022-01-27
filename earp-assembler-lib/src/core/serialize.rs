@@ -1,4 +1,4 @@
-use crate::{parser::ParseOperand, assets::AssetFormat, AssetSource};
+use crate::{suite::assets::AssetFormat, AssetSource, assemble::parser::ParseOperand};
 
 const TAB_OFFSETS : &[usize] = &[0,4,8];
 const INLINE_COMMENT_OFFSET : usize = 40;
@@ -219,8 +219,8 @@ mod test {
 
     use rand::{prelude::SmallRng, SeedableRng, RngCore};
 
-    use crate::{assets::AssetFormat, AssetSource, serialize::{INLINE_COMMENT_OFFSET}, parser::{ParseOperand, AssemblyLocation}};
-    use super::{serialize, SerializeStatement };
+    use crate::{suite::assets::AssetFormat, AssetSource, assemble::parser::{ParseOperand, AssemblyLocation}};
+    use super::{serialize, SerializeStatement, INLINE_COMMENT_OFFSET };
 
     #[test]
     fn serialize_smoke() {
@@ -261,7 +261,7 @@ mod test {
         ];
         let output = serialize(&input);
         println!("{}",output);
-        assert_eq!(include_str!("test/serialize/smoke.earp"),output);
+        assert_eq!(include_str!("../test/serialize/smoke.earp"),output);
     }
 
     const BASE_WORD : &str = "blobbyblahblahdoodah";
@@ -324,22 +324,22 @@ mod test {
 
     #[test]
     fn serialize_linewrap_smoke() {
-        linewrap_test((1,10), include_str!("test/serialize/wrapped.txt"));
+        linewrap_test((1,10), include_str!("../test/serialize/wrapped.txt"));
     }
 
     #[test]
     fn serialize_linewrap_long() {
-        linewrap_test((50,100), include_str!("test/serialize/wrapped-long.txt"));
+        linewrap_test((50,100), include_str!("../test/serialize/wrapped-long.txt"));
     }
 
     #[test]
     fn serialize_wrap_newlines() {
         let input = vec![
-            SerializeStatement::TopBlockComment(include_str!("test/serialize/wrap-newlines.txt").to_string())
+            SerializeStatement::TopBlockComment(include_str!("../test/serialize/wrap-newlines.txt").to_string())
         ];
         let output = serialize(&input);
         println!("{}",output);
-        assert_eq!(output,include_str!("test/serialize/wrap-newlines-out.earp"));
+        assert_eq!(output,include_str!("../test/serialize/wrap-newlines-out.earp"));
     }
 
     #[test]
@@ -360,7 +360,7 @@ mod test {
         }
         let output = serialize(&input);
         println!("{}",output);
-        assert_eq!(&output,include_str!("test/serialize/longlines.earp"));
+        assert_eq!(&output,include_str!("../test/serialize/longlines.earp"));
     }
 
     #[test]
@@ -384,6 +384,6 @@ mod test {
         }
         let output = serialize(&input);
         println!("{}",output);
-        assert_eq!(&output,include_str!("test/serialize/strings.earp"));
+        assert_eq!(&output,include_str!("../test/serialize/strings.earp"));
     }
 }

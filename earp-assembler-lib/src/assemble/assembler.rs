@@ -1,5 +1,7 @@
 use std::{collections::{HashMap}, mem::replace};
-use crate::{ command::Operand, earpfile::EarpFileWriter, error::AssemblerError, parser::{AssemblyLocation, ParseStatement, load_source_file, ParseOperand}, rellabels::RelativeLabelContext, suite::Suite, lookup::Lookup, instructionset::{InstructionSetId, ArgSpec, ArgType}, assets::{AssetLoad}};
+use crate::{core::error::AssemblerError, suite::suite::Suite, suite::{assets::{AssetLoad}, instructionset::InstructionSetId}, auxparsers::opcodemap::{ArgType, ArgSpec}, EarpFileWriter, earpfile::command::Operand};
+
+use super::{rellabels::RelativeLabelContext, parser::{ParseStatement, AssemblyLocation, load_source_file, ParseOperand}, lookup::Lookup};
 
 #[derive(Debug)]
 pub(crate) struct AssembleFile {
@@ -234,18 +236,18 @@ mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, yes_error, test_suite, build}, suite::Suite, opcodemap::load_opcode_map, hexfile::load_hexfile, command::{Command, Operand}, assemble::{Assemble}, instructionset::{ArgSpec, ArgType}};
+    use crate::{core::testutil::{no_error, yes_error, test_suite, build}, suite::suite::Suite, earpfile::command::{Command, Operand}, load_opcode_map, Assemble, auxparsers::{hexfile::load_hexfile, opcodemap::{ArgType, ArgSpec}}};
 
     #[test]
     fn assemble_smoke() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/test.earp"),None));
+        no_error(assembler.add_source(&include_str!("../test/test.earp"),None));
         no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&assembler.into_earpfile()));
-        let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
+        let cmp = no_error(load_hexfile(include_str!("../test/assembler/smoke-earp.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
@@ -253,7 +255,7 @@ mod test {
     #[test]
     fn test_labels() {
         let suite = test_suite();
-        let source = no_error(build(&suite,include_str!("test/assembler-labels/labels.earp")));
+        let source = no_error(build(&suite,include_str!("../test/assembler-labels/labels.earp")));
         assert_eq!(source,vec![
             Command(5, vec![]),
             Command(5, vec![]),
@@ -263,14 +265,14 @@ mod test {
     #[test]
     fn test_labels_dup() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/assembler-labels/dup.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("../test/assembler-labels/dup.earp"))).to_string();
         assert!(err.to_lowercase().contains("duplicate label"));
     }
 
     #[test]
     fn test_labels_missing() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/assembler-labels/missing.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("../test/assembler-labels/missing.earp"))).to_string();
         assert!(err.to_lowercase().contains("unknown label"));
     }
 
@@ -291,52 +293,52 @@ mod test {
 
     #[test]
     fn test_rel_labels() {
-        assert_eq!(vec![1,1,5,5,5,5,9,9],get_gotos(include_str!("test/assembler-labels/rel.earp")));
+        assert_eq!(vec![1,1,5,5,5,5,9,9],get_gotos(include_str!("../test/assembler-labels/rel.earp")));
     }
 
     #[test]
     fn test_rel_labels_too_soon() {
         let suite = test_suite();
-        yes_error(build(&suite,include_str!("test/assembler-labels/rel-too-soon.earp")));
+        yes_error(build(&suite,include_str!("../test/assembler-labels/rel-too-soon.earp")));
     }
 
     #[test]
     fn test_rel_labels_too_late() {
         let suite = test_suite();
-        yes_error(build(&suite,include_str!("test/assembler-labels/rel-too-late.earp")));
+        yes_error(build(&suite,include_str!("../test/assembler-labels/rel-too-late.earp")));
     }
 
     #[test]
     fn test_rel_labels_multi() {
-        assert_eq!(vec![5,1,1,5,5,5,5,9,9,5],get_gotos(include_str!("test/assembler-labels/rel-multi.earp")));
+        assert_eq!(vec![5,1,1,5,5,5,5,9,9,5],get_gotos(include_str!("../test/assembler-labels/rel-multi.earp")));
     }
 
     #[test]
     fn test_here_labels() {
-        assert_eq!(vec![0,2,0,3,5,3],get_gotos(include_str!("test/assembler-labels/here.earp")));
+        assert_eq!(vec![0,2,0,3,5,3],get_gotos(include_str!("../test/assembler-labels/here.earp")));
     }
 
     #[test]
     fn test_here_labels_start() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/assembler-labels/here-start.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("../test/assembler-labels/here-start.earp"))).to_string();
         assert!(err.to_lowercase().contains("bad here"));
     }
 
     #[test]
     fn test_here_labels_end() {
         let suite = test_suite();
-        let err = yes_error(build(&suite,include_str!("test/assembler-labels/here-end.earp"))).to_string();
+        let err = yes_error(build(&suite,include_str!("../test/assembler-labels/here-end.earp"))).to_string();
         assert!(err.to_lowercase().contains("bad here"));
     }
 
     #[test]
     fn test_opcode_mapping() {
         let mut suite = Suite::new();
-        for set in no_error(load_opcode_map(include_str!("test/assembler/full-test.map"))) {
+        for set in no_error(load_opcode_map(include_str!("../test/assembler/full-test.map"))) {
             suite.add_instruction_set(set);
         }
-        let commands = no_error(build(&suite,include_str!("test/assembler/opcode-mapping.earp")));
+        let commands = no_error(build(&suite,include_str!("../test/assembler/opcode-mapping.earp")));
         let mut opcodes= vec![];
         for Command(opcode,_) in &commands {
             opcodes.push(*opcode);
@@ -352,7 +354,7 @@ mod test {
     fn test_program_label() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assembler-labels/labels-program.earp"),None));
+        no_error(assembler.add_source(&include_str!("../test/assembler-labels/labels-program.earp"),None));
         no_error(assembler.assemble());
         let earp_file = assembler.into_earpfile();
         let mut out = vec![];
@@ -381,7 +383,7 @@ mod test {
     #[test]
     fn test_type_value() {
         let suite = test_suite();
-        let source = no_error(build(&suite,include_str!("test/assembler/shape.earp")));
+        let source = no_error(build(&suite,include_str!("../test/assembler/shape.earp")));
         let mut shapes = vec![];
         for shape in &source {
             shapes.push(unshape(shape.type_value()));
@@ -409,19 +411,19 @@ mod test {
     #[test]
     fn test_collide_ok() {
         let mut suite = Suite::new();
-        for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
+        for set in no_error(load_opcode_map(include_str!("../test/assembler/collide.map"))) {
             suite.add_instruction_set(set);
         }
-        no_error(build(&suite,include_str!("test/assembler/collide-ok.earp")));
+        no_error(build(&suite,include_str!("../test/assembler/collide-ok.earp")));
     }
 
     #[test]
     fn test_collide_bad() {
         let mut suite = Suite::new();
-        for set in no_error(load_opcode_map(include_str!("test/assembler/collide.map"))) {
+        for set in no_error(load_opcode_map(include_str!("../test/assembler/collide.map"))) {
             suite.add_instruction_set(set);
         }
-        let e = yes_error(build(&suite,include_str!("test/assembler/collide-bad.earp")));
+        let e = yes_error(build(&suite,include_str!("../test/assembler/collide-bad.earp")));
         assert!(e.to_string().to_lowercase().contains("duplicate"));
     }
 
@@ -429,12 +431,12 @@ mod test {
     fn test_include_smoke() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/include.earp"),Some("src/test/includer/include.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/include.earp"),Some("src/test/includer/include.earp")));
         no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&assembler.into_earpfile()));
-        let cmp = no_error(load_hexfile(include_str!("test/assembler/smoke-earp.hex")));
+        let cmp = no_error(load_hexfile(include_str!("../test/assembler/smoke-earp.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
@@ -443,7 +445,7 @@ mod test {
     fn test_include_labels() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/labels.earp"),Some("src/test/includer/labels.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/labels.earp"),Some("src/test/includer/labels.earp")));
         no_error(assembler.assemble());
     }
 
@@ -451,7 +453,7 @@ mod test {
     fn test_include_labels_dup() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/labels-dup.earp"),Some("src/test/includer/labels-dup.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/labels-dup.earp"),Some("src/test/includer/labels-dup.earp")));
         let e = yes_error(assembler.assemble()).to_string();
         assert!(e.to_lowercase().contains("duplicate label"));
         assert!(e.to_lowercase().contains("test"));
@@ -461,7 +463,7 @@ mod test {
     fn test_include_labels_no_rel() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/no-rel.earp"),Some("src/test/includer/no-rel.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/no-rel.earp"),Some("src/test/includer/no-rel.earp")));
         let e = yes_error(assembler.assemble()).to_string();
         assert!(e.to_lowercase().contains("unknown label"));
         assert!(e.to_lowercase().contains("1r"));
@@ -473,7 +475,7 @@ mod test {
         suite.source_loader_mut().add_search_path("1");
         suite.source_loader_mut().add_search_path("2");
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/2/local.earp"),Some("src/test/includer/2/local.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/2/local.earp"),Some("src/test/includer/2/local.earp")));
         no_error(assembler.assemble());
     }
 
@@ -483,7 +485,7 @@ mod test {
         suite.source_loader_mut().add_search_path("1");
         suite.source_loader_mut().add_search_path("2");
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/1/no-search.earp"),Some("src/test/includer/1/no-search.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/1/no-search.earp"),Some("src/test/includer/1/no-search.earp")));
         let e = yes_error(assembler.assemble()).to_string();
         assert!(e.contains("no such path"))
     }
@@ -494,7 +496,7 @@ mod test {
         suite.source_loader_mut().add_search_path("1");
         suite.source_loader_mut().add_search_path("2");
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/includer/2/no-search.earp"),Some("src/test/includer/2/no-search.earp")));
+        no_error(assembler.add_source(&include_str!("../test/includer/2/no-search.earp"),Some("src/test/includer/2/no-search.earp")));
         no_error(assembler.assemble());
 
     }
@@ -564,7 +566,7 @@ mod test {
 
     #[test]
     fn test_invalid_opcode() {
-        for instruction_set in no_error(load_opcode_map(include_str!("test/test.map"))) {
+        for instruction_set in no_error(load_opcode_map(include_str!("../test/test.map"))) {
             for (name,_,spec) in instruction_set.opcodes() {
                 /* check valid combinations */
                 match &spec {

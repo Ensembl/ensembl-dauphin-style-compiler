@@ -1,6 +1,8 @@
 use pest_consume::{Error, Parser, match_nodes};
 
-use crate::{error::AssemblerError, assets::{AssetSource, AssetFormat}, assemble::AssembleFile};
+use crate::{core::error::AssemblerError, suite::assets::{AssetSource, AssetFormat}};
+
+use super::assembler::AssembleFile;
 
 #[derive(Clone,Debug,PartialEq)]
 pub enum AssemblyLocation {
@@ -105,7 +107,7 @@ impl ParseStatement {
 }
 
 #[derive(Parser)]
-#[grammar = "parser.pest"]
+#[grammar = "assemble/parser.pest"]
 struct AssemblerParser;
 
 #[allow(unused)]
@@ -357,13 +359,13 @@ pub(crate) fn load_source_file(source: &str) -> Result<Vec<ParseStatement>,Assem
 mod test {
     use std::cmp::Ordering;
 
-    use crate::{testutil::{no_error}, parser::{ParseStatement, ParseOperand, AssemblyLocation}};
+    use crate::{core::testutil::{no_error}, assemble::parser::{ParseStatement, ParseOperand, AssemblyLocation}};
 
     use super::earp_parse;
 
     #[test]
     fn parse_smoke() {
-        assert_eq!(no_error(earp_parse(include_str!("test/test.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/test.earp"))),
             vec![
                 ParseStatement::InstructionsDecl(None,"std".to_string(),0),
                 ParseStatement::InstructionsDecl(Some("c".to_string()),"console".to_string(),0),
@@ -425,7 +427,7 @@ mod test {
 
     #[test]
     fn test_parse_floats() {
-        let p = no_error(earp_parse(include_str!("test/parser/floats.earp")));
+        let p = no_error(earp_parse(include_str!("../test//parser/floats.earp")));
         let values = operands(p);
 
         let mut cmps = vec![
@@ -449,7 +451,7 @@ mod test {
 
     #[test]
     fn test_bad() {
-        let bads = include_str!("test/parser/bad.earp");
+        let bads = include_str!("../test//parser/bad.earp");
         for bad in bads.lines() {
             if !bad.is_empty() {
                 if let Ok(p) = earp_parse(bad) {
@@ -461,22 +463,22 @@ mod test {
 
     #[test]
     fn test_no_decls() {
-        no_error(earp_parse(include_str!("test/parser/nodecls.earp")));
+        no_error(earp_parse(include_str!("../test//parser/nodecls.earp")));
     }
 
     #[test]
     fn test_no_prog() {
-        no_error(earp_parse(include_str!("test/parser/noprog.earp")));
+        no_error(earp_parse(include_str!("../test//parser/noprog.earp")));
     }
 
     #[test]
     fn test_empty() {
-        no_error(earp_parse(include_str!("test/parser/empty.earp")));
+        no_error(earp_parse(include_str!("../test//parser/empty.earp")));
     }
 
     #[test]
     fn test_parse_strings() {
-        let p = no_error(earp_parse(include_str!("test/parser/strings.earp")));
+        let p = no_error(earp_parse(include_str!("../test//parser/strings.earp")));
         let values = operands(p);
 
         let mut cmps = vec![
@@ -500,7 +502,7 @@ mod test {
 
     #[test]
     fn test_parse_misc() {
-        assert_eq!(no_error(earp_parse(include_str!("test/parser/misc.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/parser/misc.earp"))),
         vec![
             ParseStatement::Instruction(None, "copy".to_string(), vec![
                 ParseOperand::Register(0),
@@ -535,7 +537,7 @@ mod test {
 
     #[test]
     fn test_no_eol() {
-        assert_eq!(no_error(earp_parse(include_str!("test/parser/no-eol.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/parser/no-eol.earp"))),
             vec![
                 ParseStatement::Instruction(None,"halt".to_string(),vec![])
             ]);
@@ -543,7 +545,7 @@ mod test {
     
     #[test]
     fn test_no_eol2() {
-        assert_eq!(no_error(earp_parse(include_str!("test/parser/no-eol2.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/parser/no-eol2.earp"))),
             vec![
                 ParseStatement::InstructionsDecl(None,"std".to_string(),0)
             ]);
@@ -551,7 +553,7 @@ mod test {
 
     #[test]
     fn test_parse_include() {
-        assert_eq!(no_error(earp_parse(include_str!("test/parser/include.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/parser/include.earp"))),
             vec![
                 ParseStatement::Program("test1".to_string()),
                 ParseStatement::Include("include-1.earp".to_string(),None),

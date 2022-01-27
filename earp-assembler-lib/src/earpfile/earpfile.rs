@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use minicbor::{Encoder, Encode};
 
-use crate::{command::{Operand, Command}, setmapper::SetMapper, suite::Suite, assets::Assets};
+use crate::{suite::suite::Suite, suite::assets::Assets};
+
+use super::{setmapper::SetMapper, command::{Command, Operand}};
 
 const EARPFILE_MAGIC : &str = "EARP0";
 

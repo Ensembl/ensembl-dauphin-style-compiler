@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::{instructionset::{InstructionSetId, ArgSpec}, error::{AssemblerError, unknown_opcode_error, duplicate_opcode_error}, setmapper::SetMapper};
+use crate::{suite::instructionset::{InstructionSetId}, core::error::{AssemblerError, unknown_opcode_error, duplicate_opcode_error}, auxparsers::opcodemap::ArgSpec, earpfile::setmapper::SetMapper};
 
 #[derive(Clone,Debug)]
 pub(crate) struct Lookup {

@@ -1,4 +1,4 @@
-use crate::{opcodemap::load_opcode_map, suite::Suite, assemble::{Assemble}, command::Command, error::AssemblerError, assets::AssetSource, fileloader::FileLoader};
+use crate::{suite::suite::Suite, core::error::AssemblerError, suite::assets::AssetSource, suite::fileloader::FileLoader, load_opcode_map, Assemble, earpfile::command::Command};
 
 pub fn no_error<T,E>(res: Result<T, E>) -> T where E: ToString {
     match res {
@@ -27,7 +27,7 @@ pub(crate) fn test_suite() -> Suite {
     let mut file_asset_loader = FileLoader::new();
     file_asset_loader.add_search_path(".");
     suite.add_loader(AssetSource::File,file_asset_loader);
-    for set in no_error(load_opcode_map(include_str!("test/test.map"))) {
+    for set in no_error(load_opcode_map(include_str!("../test/test.map"))) {
         suite.add_instruction_set(set);
     }
     suite

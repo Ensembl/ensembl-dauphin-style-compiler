@@ -1,6 +1,6 @@
 use std::{collections::HashMap};
 
-use crate::{instructionset::{InstructionSetId, InstructionSet}, assets::{AssetSource, AssetLoader}, fileloader::FileLoader};
+use crate::{suite::instructionset::{InstructionSetId, InstructionSet}, suite::assets::{AssetSource, AssetLoader}, suite::fileloader::FileLoader};
 
 pub struct Suite {
     sets: HashMap<InstructionSetId,InstructionSet>,

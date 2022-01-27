@@ -1,5 +1,5 @@
 use std::{collections::{HashMap, HashSet}, fmt::Display};
-use crate::error::AssemblerError;
+use crate::{core::error::AssemblerError, auxparsers::opcodemap::ArgSpec};
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd, Ord)]
 pub struct InstructionSetId(pub String,pub u64);
@@ -7,45 +7,6 @@ pub struct InstructionSetId(pub String,pub u64);
 impl Display for InstructionSetId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{}/{}",self.0,self.1)
-    }
-}
-
-#[derive(Debug,Clone,PartialEq)]
-pub(crate) enum ArgType {
-    Any,
-    Jump,
-    Register
-}
-
-impl Display for ArgType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ArgType::Any => write!(f,"any"),
-            ArgType::Jump => write!(f,"jump"),
-            ArgType::Register => write!(f,"register"),
-        }
-    }
-}
-
-#[derive(Debug,Clone,PartialEq)]
-pub(crate) enum ArgSpec {
-    Any,
-    Specific(Vec<Vec<ArgType>>)
-}
-
-impl Display for ArgSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ArgSpec::Any => write!(f,"any"),
-            ArgSpec::Specific(s) => {
-                let mut groups_out = vec![];
-                for group in s {
-                    let group_out = group.iter().map(|x| format!("{}",x)).collect::<Vec<_>>();
-                    groups_out.push(format!("[{}]",group_out.join(", ")));
-                }
-                write!(f,"{}",groups_out.join(" or "))
-            }
-        }
     }
 }
 
@@ -99,12 +60,12 @@ impl InstructionSet {
 
 #[cfg(test)]
 mod test {
-    use crate::error::AssemblerError;
-    use crate::instructionset::{InstructionSetId, ArgSpec, ArgType};
-    use crate::opcodemap::load_opcode_map;
-    use crate::testutil::{ no_error, yes_error };
+    use crate::auxparsers::opcodemap::{ArgType, ArgSpec};
+    use crate::core::error::AssemblerError;
+    use crate::core::testutil::{ no_error, yes_error };
+    use crate::load_opcode_map;
 
-    use super::InstructionSet;
+    use super::{ InstructionSet, InstructionSetId };
 
     fn code_for(set: &InstructionSet, name: &str) -> Option<u64> {
         set.lookup(name).map(|x| x.0)
@@ -112,7 +73,7 @@ mod test {
 
     #[test]
     fn instruction_set_smoke() {
-        let standard = no_error(load_opcode_map(include_str!("test/test.map")));
+        let standard = no_error(load_opcode_map(include_str!("../test/test.map")));
         let ids = standard.iter().map(|x|x.identifier().clone()).collect::<Vec<_>>();
         assert!(ids.contains(&InstructionSetId("std".to_string(),0)));
         assert!(ids.contains(&InstructionSetId("std".to_string(),1)));
@@ -140,7 +101,7 @@ mod test {
 
     #[test]
     fn set_gap_test() {
-        let standard = no_error(load_opcode_map(include_str!("test/instructionset/gap.map")));
+        let standard = no_error(load_opcode_map(include_str!("../test/instructionset/gap.map")));
         let mut found = false;
         for set in &standard {
             if set.identifier() == &InstructionSetId("std".to_string(),0) {
@@ -153,7 +114,7 @@ mod test {
 
     #[test]
     fn instruction_in_use() {
-        let in_use = yes_error(load_opcode_map(include_str!("test/instructionset/in-use.map")));
+        let in_use = yes_error(load_opcode_map(include_str!("../test/instructionset/in-use.map")));
         let e = in_use.to_string();
         assert!(e.contains("Already In Use"));
         assert!(e.contains("push"));
@@ -165,7 +126,7 @@ mod test {
 
     #[test]
     fn instruction_number_in_use() {
-        let in_use = yes_error(load_opcode_map(include_str!("test/instructionset/number-in-use.map")));
+        let in_use = yes_error(load_opcode_map(include_str!("../test/instructionset/number-in-use.map")));
         let e = in_use.to_string();
         assert!(e.contains("Already In Use"));
         assert!(e.contains("halt"));
@@ -177,7 +138,7 @@ mod test {
 
     #[test]
     fn argspec_smoke() {
-        let standard = no_error(load_opcode_map(include_str!("test/instructionset/argspec.map")));
+        let standard = no_error(load_opcode_map(include_str!("../test/instructionset/argspec.map")));
         let ids = standard.iter().map(|x|x.identifier().clone()).collect::<Vec<_>>();
         assert!(ids.contains(&InstructionSetId("std".to_string(),0)));
         for set in &standard {

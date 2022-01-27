@@ -1,7 +1,7 @@
 use minicbor::{encode::{Write, Error}, Encode, Encoder};
 use std::{collections::HashMap, fmt::Display };
 
-use crate::{error::AssemblerError, hexfile::load_hexfile, suite::Suite};
+use crate::{core::error::AssemblerError, Suite, auxparsers::hexfile::load_hexfile};
 
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 pub enum AssetSource {
@@ -121,11 +121,11 @@ mod test {
     use minicbor::Encoder;
     use peregrine_cli_toolkit::hexdump;
 
-    use crate::{testutil::{no_error, test_suite, yes_error}, parser::{earp_parse, ParseStatement}, assets::{AssetSource, AssetFormat}, hexfile::load_hexfile, assemble::{Assemble}};
+    use crate::{core::testutil::{no_error, test_suite, yes_error}, suite::assets::{AssetSource, AssetFormat}, assemble::parser::{earp_parse, ParseStatement}, auxparsers::hexfile::load_hexfile, Assemble};
 
     #[test]
     fn test_asset_parse() {
-        assert_eq!(no_error(earp_parse(include_str!("test/assets/smoke.earp"))),
+        assert_eq!(no_error(earp_parse(include_str!("../test/assets/smoke.earp"))),
         vec![
             ParseStatement::InstructionsDecl(None, "std".to_string(), 0), 
             ParseStatement::AssetDecl("test".to_string(), AssetFormat::Raw, AssetSource::File, "raw-asset.bin".to_string()),
@@ -138,12 +138,12 @@ mod test {
     fn test_asset_assemble() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/smoke.earp"),Some("src/test/assets/assets.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/smoke.earp"),Some("src/test/assets/assets.earp")));
         no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&assembler.into_earpfile()));
-        let cmp = no_error(load_hexfile(include_str!("test/assets/smoke.hex")));
+        let cmp = no_error(load_hexfile(include_str!("../test/assets/smoke.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
@@ -152,7 +152,7 @@ mod test {
     fn test_asset_missing() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/missing.earp"),Some("src/test/assets/assets.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/missing.earp"),Some("src/test/assets/assets.earp")));
         let file = yes_error(assembler.assemble()).to_string();
         assert!(file.contains("missing-raw-asset.bin"));
         assert!(file.contains("no such path"));
@@ -162,7 +162,7 @@ mod test {
     fn test_asset_duplicate() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/duplicate.earp"),Some("src/test/assets/duplicate.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/duplicate.earp"),Some("src/test/assets/duplicate.earp")));
         let file = yes_error(assembler.assemble()).to_string();
         println!("{}",file);
         assert!(file.contains("test"));
@@ -173,12 +173,12 @@ mod test {
     fn test_string_asset_assemble() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/smoke-string.earp"),Some("src/test/assets/smoke-string.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/smoke-string.earp"),Some("src/test/assets/smoke-string.earp")));
         no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&assembler.into_earpfile()));
-        let cmp = no_error(load_hexfile(include_str!("test/assets/smoke-string.hex")));
+        let cmp = no_error(load_hexfile(include_str!("../test/assets/smoke-string.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
@@ -187,25 +187,25 @@ mod test {
     fn test_hex_asset_assemble() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/smoke-hex.earp"),Some("src/test/assets/smoke-hex.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/smoke-hex.earp"),Some("src/test/assets/smoke-hex.earp")));
         no_error(assembler.assemble());
         let mut out = vec![];
         let mut encoder = Encoder::new(&mut out);
         no_error(encoder.encode(&assembler.into_earpfile()));
-        let cmp = no_error(load_hexfile(include_str!("test/assets/smoke.hex")));
+        let cmp = no_error(load_hexfile(include_str!("../test/assets/smoke.hex")));
         print!("{}",hexdump(&out));
         assert_eq!(cmp,out);
     }
 
     #[test]
     fn test_asset_bad_source() {
-        let e = yes_error(earp_parse(include_str!("test/assets/bad-source.earp"))).to_string();
+        let e = yes_error(earp_parse(include_str!("../test/assets/bad-source.earp"))).to_string();
         assert!(e.contains("asset_source"));
     }
 
     #[test]
     fn test_asset_bad_format() {
-        let e = yes_error(earp_parse(include_str!("test/assets/bad-format.earp"))).to_string();
+        let e = yes_error(earp_parse(include_str!("../test/assets/bad-format.earp"))).to_string();
         assert!(e.contains("asset_format"));
     }
 
@@ -213,7 +213,7 @@ mod test {
     fn test_asset_bad_hex_file() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/bad-hexfile.earp"),Some("src/test/assets/bad-hexfile.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/bad-hexfile.earp"),Some("src/test/assets/bad-hexfile.earp")));
         let e = yes_error(assembler.assemble()).to_string();
         assert!(e.to_lowercase().contains("bad hex file"));
     }
@@ -222,7 +222,7 @@ mod test {
     fn test_asset_bad_string_file() {
         let suite = test_suite();
         let mut assembler = Assemble::new(&suite);
-        no_error(assembler.add_source(&include_str!("test/assets/bad-string.earp"),Some("src/test/assets/bad-string.earp")));
+        no_error(assembler.add_source(&include_str!("../test/assets/bad-string.earp"),Some("src/test/assets/bad-string.earp")));
         let e = yes_error(assembler.assemble()).to_string();
         assert!(e.to_lowercase().contains("stream did not contain valid utf-8"));
     }

@@ -1,6 +1,6 @@
 use pest_consume::{ match_nodes, Parser, Error };
 
-use crate::error::AssemblerError;
+use crate::core::error::AssemblerError;
 
 enum Unit {
     Offset(u64),
@@ -8,7 +8,7 @@ enum Unit {
 }
 
 #[derive(Parser)]
-#[grammar = "hexfile.pest"]
+#[grammar = "auxparsers/hexfile.pest"]
 struct HexFileParser;
 
 #[allow(unused)]
@@ -81,24 +81,24 @@ pub(crate) fn load_hexfile(map: &str) -> Result<Vec<u8>,AssemblerError> {
 #[cfg(test)]
 mod test {
     use super::load_hexfile;
-    use crate::testutil::{ no_error, yes_error };
+    use crate::core::testutil::{ no_error, yes_error };
 
     #[test]
     fn hexfile_smoke() {
-        let data = include_str!("test/hexfile/smoke.hex");
+        let data = include_str!("../test/hexfile/smoke.hex");
         let hex = no_error(load_hexfile(data));
         assert_eq!(vec![0,1,2,3,4],hex);
     }
 
     #[test]
     fn hexfile_bad_offset() {
-        let data = include_str!("test/hexfile/bad-offset.hex");
+        let data = include_str!("../test/hexfile/bad-offset.hex");
         assert!(yes_error(load_hexfile(data)).to_string().contains("encountered @0005 at 0x0004"));
     }
 
     #[test]
     fn hexfile_empty() {
-        let data = include_str!("test/hexfile/empty.hex");
+        let data = include_str!("../test/hexfile/empty.hex");
         let hex = no_error(load_hexfile(data));
         assert_eq!(Vec::<u8>::new(),hex);
     }

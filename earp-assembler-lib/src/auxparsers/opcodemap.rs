@@ -1,10 +1,49 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use pest_consume::{ match_nodes, Parser, Error };
-use crate::{instructionset::{InstructionSet, InstructionSetId, ArgType, ArgSpec}, error::AssemblerError};
+use crate::{suite::instructionset::{InstructionSet, InstructionSetId}, core::error::AssemblerError};
+
+#[derive(Debug,Clone,PartialEq)]
+pub(crate) enum ArgType {
+    Any,
+    Jump,
+    Register
+}
+
+impl Display for ArgType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArgType::Any => write!(f,"any"),
+            ArgType::Jump => write!(f,"jump"),
+            ArgType::Register => write!(f,"register"),
+        }
+    }
+}
+
+#[derive(Debug,Clone,PartialEq)]
+pub(crate) enum ArgSpec {
+    Any,
+    Specific(Vec<Vec<ArgType>>)
+}
+
+impl Display for ArgSpec {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ArgSpec::Any => write!(f,"any"),
+            ArgSpec::Specific(s) => {
+                let mut groups_out = vec![];
+                for group in s {
+                    let group_out = group.iter().map(|x| format!("{}",x)).collect::<Vec<_>>();
+                    groups_out.push(format!("[{}]",group_out.join(", ")));
+                }
+                write!(f,"{}",groups_out.join(" or "))
+            }
+        }
+    }
+}
 
 #[derive(Parser)]
-#[grammar = "opcodemap.pest"]
+#[grammar = "auxparsers/opcodemap.pest"]
 struct EarpOpcodeMapParser;
 
 #[allow(unused)]

@@ -1,7 +1,7 @@
 use minicbor::{Encode, Encoder};
 use std::collections::HashMap;
 
-use crate::{instructionset::{InstructionSetId, InstructionSet, ArgSpec}, suite::Suite};
+use crate::{suite::instructionset::{InstructionSetId, InstructionSet}, suite::suite::Suite, auxparsers::opcodemap::ArgSpec};
 
 pub(crate) struct SetMapper<'t> {
     offsets: HashMap<InstructionSetId,u64>,
