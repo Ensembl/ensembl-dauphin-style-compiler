@@ -199,7 +199,7 @@ impl<'t> Assemble<'t> {
 
     pub fn into_earpfile(self) -> EarpFileWriter<'t> { self.earp_file }
 
-    pub(crate) fn add_source(&mut self, contents: &str, file_path: Option<&str>) -> Result<(),AssemblerError> {
+    pub fn add_source(&mut self, contents: &str, file_path: Option<&str>) -> Result<(),AssemblerError> {
         self.source.push(AssembleFile::new(&contents,file_path)?);
         Ok(())
     }
@@ -377,7 +377,7 @@ mod test {
             out += c;
             v /= 4;
         }
-        out.chars().rev().collect::<String>()
+        out.chars().collect::<String>()
     }
 
     #[test]

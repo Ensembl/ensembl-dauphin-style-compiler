@@ -1,0 +1,17 @@
+;
+; core features, introduced in version 0 
+; 
+set: std/0
+
+0 copy   ra
+1 goto   j
+2 push   -
+3 pop    -
+4 if     ja
+5 halt   -
+
+set: test/0
+
+0 info   a
+1 warn   a
+2 error  a

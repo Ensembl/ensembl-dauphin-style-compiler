@@ -31,7 +31,7 @@ ff                              ; }
 
 @2F
 
-61 49  8d                       ; I ->
+61 49  9f                       ; I ->
 
 @32
 
@@ -41,7 +41,7 @@ ff                              ; }
 
 ;@=0 copy r0, "hello, \"world\""
 00  ; copy
-07  ; [rc]
+0d  ; [rc]
 00  ; r0
 6e 68 65 6c 6c 6f 2c 20 22 77 6f 72 6c 64 22 ; hello, "world"
 
@@ -67,7 +67,7 @@ ff                              ; }
 
 ;@=3 copy r0, "hello, \"world\"\n"
 00 ; copy
-07 ; [rc] 
+0d ; [rc] 
 00 ; r0
 6f 68 65 6c 6c 6f 2c 20 22 77 6f 72  6c 64 22 0a  ; hello, "world"
 
@@ -81,7 +81,7 @@ ff                              ; }
 
 ;@=5 copy r1, u0
 00 ; copy
-06 ; [ru]
+09 ; [ru]
 01 ; r1
 00 ; u0
 
@@ -89,7 +89,7 @@ ff                              ; }
 
 ;@=6 copy r0, @+2
 00 ; copy
-07 ; [rc]
+0d ; [rc]
 00 ; r0
 08 ; @+2 (@=8)
 
@@ -134,8 +134,12 @@ ff                              ; }
 
 @78
 
+ff ; end I
+
+@79
+
 61 41 bf ff ; A -> {}
 
-@7C
+@7D
 
-ff ; end
+ff; end

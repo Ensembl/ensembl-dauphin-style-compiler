@@ -57,7 +57,7 @@ pub(crate) struct Command(pub u64,pub Vec<Operand>);
 impl Command {
     pub(crate) fn type_value(&self) -> u64 {
         let mut out = 0;
-        for arg in &self.1 {
+        for arg in self.1.iter().rev() {
             out = out*4 + arg.type_value();
         }
         out

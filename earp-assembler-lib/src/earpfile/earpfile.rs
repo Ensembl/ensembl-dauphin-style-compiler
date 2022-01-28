@@ -64,7 +64,11 @@ impl<'t> Encode for EarpFileWriter<'t> {
             .str("M")?.str(EARPFILE_MAGIC)?
             .str("S")?.encode(&self.set_mapper)?
             .str("E")?.encode(&self.entry_points)?
-            .str("I")?.encode(&self.instructions)?
+            .str("I")?.begin_array()?;
+        for instr in &self.instructions {
+            encoder.encode(instr)?;
+        }
+        encoder.end()?
             .str("A")?.encode(&self.assets)?
             .end()?;
         Ok(())

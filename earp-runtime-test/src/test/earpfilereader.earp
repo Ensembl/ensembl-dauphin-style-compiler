@@ -1,0 +1,6 @@
+$instructions std/0
+$instructions test/0
+
+program:test:
+    info "Hello, world!"
+    halt

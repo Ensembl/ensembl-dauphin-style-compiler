@@ -1,0 +1,15 @@
+#
+# Whole package only exists due to irritating tooling issues
+#
+
+[package]
+name = "earp_runtime_test"
+version = "0.0.0"
+authors = ["Dan Sheppard <dan@ebi.ac.uk>"]
+edition="2018"
+
+[dependencies]
+earp_runtime = { version = "*", path = "../earp-runtime" }
+earp_assembler_lib = { version = "*", path = "../earp-assembler-lib" }
+minicbor={ version="*", features=["std"] }
+peregrine_cli_toolkit = { version = "*", path = "../peregrine-cli-toolkit" }
