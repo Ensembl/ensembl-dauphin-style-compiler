@@ -39,6 +39,7 @@ mod core {
     pub(crate) mod asset;
     mod config;
     mod layout;
+    pub(crate) mod pixelsize;
     pub(crate) mod programbundle;
     mod scale;
     pub mod stick;

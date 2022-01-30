@@ -1,5 +1,6 @@
 use crate::api::PeregrineCore;
 use crate::core::channel::Channel;
+use crate::core::pixelsize::PixelSize;
 use crate::core::{ StickId, Viewport };
 use crate::request::core::request::{BackendRequest, RequestVariant};
 use crate::request::messages::metricreq::MetricReport;
@@ -17,6 +18,7 @@ pub enum ApiMessage {
     SetPosition(f64),
     SetBpPerScreen(f64),
     SetStick(StickId),
+    SetMinPxPerCarriage(u32),
     Bootstrap(u64,Channel),
     SetSwitch(Vec<String>),
     ClearSwitch(Vec<String>),
@@ -57,6 +59,9 @@ impl ApiQueueCampaign {
             ApiMessage::SetBpPerScreen(scale) => {
                 self.viewport = self.viewport.set_bp_per_screen(scale);
             },
+            ApiMessage::SetMinPxPerCarriage(px) => {
+                self.viewport = self.viewport.set_pixel_size(&PixelSize::new(px))
+            }            
             ApiMessage::Jump(location,promise) => {
                 data.agent_store.jump_store.jump(&location,promise);
             },

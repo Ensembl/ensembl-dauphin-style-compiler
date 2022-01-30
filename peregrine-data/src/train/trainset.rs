@@ -127,13 +127,13 @@ impl TrainSet {
     fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
         let target_has_bad_validity_counter = self.validity_counter != self.target_validity_counter;
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
-        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
         if let Some(quiescent) = self.quiescent_target() {
             if quiescent.extent() == extent && !target_has_bad_validity_counter {
                 return Ok(()); //no need for a target, we're heading to the right place
             }
         }
-        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
         self.target = Some(extent);
         self.target_validity_counter = self.validity_counter;
         Ok(())
@@ -158,7 +158,7 @@ impl TrainSet {
         if self.wanted.is_some() || self.sketchy {
             scale = scale.to_milestone();
         }
-        let extent = TrainExtent::new(target.layout(),&scale);
+        let extent = TrainExtent::new(target.layout(),&scale,target.pixel_size());
         /* drop old wanted and make milestone, if necessary */      
         if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);

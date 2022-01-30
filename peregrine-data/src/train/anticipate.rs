@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::Layout, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
+use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
 use super::{carriage::CarriageSerialSource, trainextent::TrainExtent};
 
 struct AnticipateTask {
@@ -81,10 +81,10 @@ impl Anticipate {
         cfg!(debug_assertions)
     }
 
-    fn build_carriage(&self, carriages: &mut Vec<Carriage>, layout: &Layout, scale: &Scale, index: i64) {
+    fn build_carriage(&self, carriages: &mut Vec<Carriage>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
         if index < 0 { return; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
-        let train_extent = TrainExtent::new(layout,scale);
+        let train_extent = TrainExtent::new(layout,scale,pixel_size);
         let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
         let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_extent,&train_track_config_list,None,true);
         carriages.push(carriage);
@@ -99,13 +99,13 @@ impl Anticipate {
                 let new_scale = extent.train().scale().delta_scale(delta);
                 if let Some(new_scale) = &new_scale {
                     let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                    self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
                 }
                 /* in */
                 let new_scale = extent.train().scale().delta_scale(-delta);
                 if let Some(new_scale) = &new_scale {
                     let new_base_index = new_scale.convert_index(extent.train().scale(),base_index) as i64;
-                    self.build_carriage(&mut carriages,layout,new_scale,new_base_index+offset);
+                    self.build_carriage(&mut carriages,layout,new_scale,extent.train().pixel_size(),new_base_index+offset);
                 }
             }
         }
