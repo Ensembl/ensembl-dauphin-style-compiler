@@ -107,7 +107,7 @@ impl TrainSet {
         }
     }
 
-    fn wanted_is_relevant_milestone(&self, old_layout: &Layout) -> bool {
+    fn wanted_is_relevant_milestone(&self, suggested_layout: &Layout) -> bool {
         if self.wanted.is_none() {
             /* nothing in wanted */
             return false;
@@ -117,11 +117,21 @@ impl TrainSet {
             /* wanted is not a milestone */
             return false;
         }
-        if wanted.extent().layout() != old_layout {
+        if wanted.extent().layout() != suggested_layout {
             /* wanted is irrelevant milestone */
             return false;
         }
         true
+    }
+
+    fn wanted_only_trivially_different(&self, target: &TrainExtent) -> bool {
+        if self.wanted.is_none() {
+            /* nothing in wanted */
+            return false;
+        }
+        let wanted = self.wanted.as_ref().unwrap();
+        let wanted_train = wanted.extent();
+        wanted_train.trivially_equal_to(target)
     }
 
     fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
@@ -152,7 +162,8 @@ impl TrainSet {
             true
         };
         /* it would be best if we were at a new target, but how busy are we? */
-        if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
+        if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone
+        if self.wanted_only_trivially_different(target) { return Ok(()); } // difference is trivial
         /* where do we want to head? */
         let mut scale = target.scale().clone();
         if self.wanted.is_some() || self.sketchy {

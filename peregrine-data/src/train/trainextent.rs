@@ -34,4 +34,8 @@ impl TrainExtent {
             CarriageSpeed::Slow
         }
     }
+
+    pub(super) fn trivially_equal_to(&self, other: &TrainExtent) -> bool {
+        self.layout == other.layout && self.scale == other.scale
+    }
 }
