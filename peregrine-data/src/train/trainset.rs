@@ -1,6 +1,6 @@
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{CarriageExtent, CarriageSpeed, LaneStore, PeregrineCoreBase};
+use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase};
 use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
@@ -32,7 +32,7 @@ pub struct TrainSet {
 }
 
 impl TrainSet {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
         let serial_source = CarriageSerialSource::new();
         TrainSet {
             try_lifecycle: try_lifecycle.clone(),

@@ -27,4 +27,7 @@ impl PixelSize {
     pub(crate) fn new(px: u32) -> PixelSize {
         PixelSize(round_down(px),round_up(px))
     }
+
+    pub fn min_px_per_carriage(&self) -> u32 { self.0 }
+    pub fn max_px_per_carriage(&self) -> u32 { self.1 }
 }

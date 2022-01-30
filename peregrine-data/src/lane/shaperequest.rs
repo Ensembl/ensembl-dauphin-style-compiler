@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use crate::core::pixelsize::PixelSize;
 use crate::core::{ Scale, StickId };
 use crate::switch::trackconfig::TrackConfig;
 use crate::switch::track::Track;
@@ -48,7 +49,8 @@ impl Region {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ShapeRequestCore {
     region: Region,
-    track: TrackConfig
+    track: TrackConfig,
+    pixel_size: PixelSize
 }
 
 #[derive(Clone)]
@@ -73,11 +75,12 @@ impl PartialEq for ShapeRequest {
 impl Eq for ShapeRequest {}
 
 impl ShapeRequest {
-    pub fn new(region: &Region, track: &TrackConfig, warm: bool) -> ShapeRequest {
+    pub fn new(region: &Region, track: &TrackConfig, pixel_size: &PixelSize, warm: bool) -> ShapeRequest {
         ShapeRequest {
             core: ShapeRequestCore {
                 region: region.clone(),
                 track: track.clone(),
+                pixel_size: pixel_size.clone()
             },
             warm
         }
@@ -85,6 +88,7 @@ impl ShapeRequest {
 
     pub fn region(&self) -> &Region { &self.core.region }
     pub fn track(&self) -> &TrackConfig { &self.core.track }
+    pub fn pixel_size(&self) -> &PixelSize { &self.core.pixel_size }
     pub fn warm(&self) -> bool { self.warm }
 
     pub fn better_request(&self) -> ShapeRequest {
@@ -92,6 +96,7 @@ impl ShapeRequest {
             core: ShapeRequestCore {
                 region: self.core.region.best_region(self.core.track.track()),
                 track: self.core.track.clone(),
+                pixel_size: self.core.pixel_size.clone()
             },
             warm: self.warm
         }

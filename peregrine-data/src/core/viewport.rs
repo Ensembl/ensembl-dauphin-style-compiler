@@ -120,8 +120,6 @@ impl Viewport {
     }
 
     pub fn set_pixel_size(&self, pixel_size: &PixelSize) -> Viewport {
-        use web_sys::console;
-        //console::log_1(&format!("V pixel_size {:?}",pixel_size).into());
         let mut out = self.clone();
         out.pixel_size = Some(pixel_size.clone());
         out

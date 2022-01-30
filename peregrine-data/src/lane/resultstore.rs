@@ -80,14 +80,14 @@ fn make_filtered_cache(kind: MemoizedType, unfiltered_shapes_cache: Memoized<Sha
 }
 
 #[derive(Clone)]
-pub struct LaneStore {
+pub struct ShapeStore {
     realtime: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>,
     batch: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>,
     network: Memoized<ShapeRequest,Result<Arc<ShapeListBuilder>,DataMessage>>
 }
 
-impl LaneStore {
-    pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> LaneStore {
+impl ShapeStore {
+    pub fn new(cache_size: usize, base: &PeregrineCoreBase, program_loader: &ProgramLoader) -> ShapeStore {
         // XXX both caches separate sizes
         let unfiltered_cache = make_unfiltered_cache(MemoizedType::Cache(cache_size),base,program_loader,LoadMode::RealTime);
         let filtered_cache = make_filtered_cache(MemoizedType::Cache(cache_size),unfiltered_cache);
@@ -95,7 +95,7 @@ impl LaneStore {
         let batch_filtered_cache = make_filtered_cache(MemoizedType::None,batch_unfiltered_cache);
         let network_unfiltered_cache = make_unfiltered_cache(MemoizedType::None,base,program_loader,LoadMode::Network);
         let network_filtered_cache = make_filtered_cache(MemoizedType::None,network_unfiltered_cache);
-        LaneStore {
+        ShapeStore {
             realtime: filtered_cache,
             batch: batch_filtered_cache,
             network: network_filtered_cache,

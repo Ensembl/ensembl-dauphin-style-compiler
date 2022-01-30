@@ -1,7 +1,7 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{Carriage, CarriageExtent, DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
+use crate::{Carriage, CarriageExtent, DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, lane::shapeloader::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
 use super::{carriage::CarriageSerialSource, trainextent::TrainExtent};
 
 struct AnticipateTask {
@@ -14,7 +14,7 @@ impl AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
-    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore) -> Result<(),DataMessage> {
+    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
         let mut handles = vec![];
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {
@@ -40,7 +40,7 @@ impl AnticipateTask {
     }
 }
 
-fn run_anticipator(base: &PeregrineCoreBase, result_store: &LaneStore, stream: &CommanderStream<AnticipateTask>) {
+fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
@@ -66,7 +66,7 @@ pub struct Anticipate {
 }
 
 impl Anticipate {
-    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &LaneStore, serial_source: &CarriageSerialSource) -> Anticipate {
+    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore, serial_source: &CarriageSerialSource) -> Anticipate {
         let stream = CommanderStream::new();
         run_anticipator(&base,&result_store,&stream);
         Anticipate {

@@ -10,8 +10,6 @@ pub struct TrainExtent {
 
 impl TrainExtent {
     pub fn new(layout: &Layout, scale: &Scale, pixel_size: &PixelSize) -> TrainExtent {
-        use web_sys::console;
-        //console::log_1(&format!("T pixel size {:?}",pixel_size).into());
         TrainExtent {
             layout: layout.clone(),
             scale: scale.clone(),

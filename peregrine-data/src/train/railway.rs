@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
-use crate::{Carriage, DataMessage, LaneStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, lane::shapeloader::LoadMode};
+use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, lane::shapeloader::LoadMode};
 use super::{railwayevent::RailwayEvents, trainset::TrainSet};
 
 #[derive(Clone)]
@@ -11,7 +11,7 @@ pub struct Railway {
 }
 
 impl Railway {
-    pub fn new(base: &PeregrineCoreBase,result_store: &LaneStore, visual_blocker: &Blocker) -> Railway {
+    pub fn new(base: &PeregrineCoreBase,result_store: &ShapeStore, visual_blocker: &Blocker) -> Railway {
         let try_lifecycle = Needed::new();
         Railway {
             try_lifecycle: try_lifecycle.clone(),

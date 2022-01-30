@@ -20,6 +20,7 @@ simple_interp_command!(StripedInterpCommand,StripedDeserializer,36,6,(0,1,2,3,4,
 simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5));
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
+simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -28,6 +29,18 @@ impl InterpCommand for BpRangeInterpCommand {
         let registers = context.registers_mut();
         let min = region.min_value();
         let max = region.max_value();
+        registers.write(&self.0,InterpValue::Numbers(vec![min as f64, max as f64]));
+        Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for PpcInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let shape = get_instance::<ShapeRequest>(context,"request")?;
+        let pixel_size = shape.pixel_size();
+        let registers = context.registers_mut();
+        let min = pixel_size.min_px_per_carriage();
+        let max = pixel_size.max_px_per_carriage();
         registers.write(&self.0,InterpValue::Numbers(vec![min as f64, max as f64]));
         Ok(CommandResult::SyncResult())
     }

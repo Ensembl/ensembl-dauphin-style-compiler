@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::api::MessageSender;
-use crate::{CarriageExtent, LaneStore, PeregrineCoreBase};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase};
 use crate::lane::{ ShapeRequest };
 use crate::shape::{ ShapeList };
 use crate::util::message::DataMessage;
@@ -24,15 +24,16 @@ impl UnloadedCarriage {
         let mut shape_requests = vec![];
         let track_config_list = extent.train().layout().track_config_list();
         let track_list = self.config.list_tracks();
+        let pixel_size = extent.train().pixel_size();
         for track in track_list {
             if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config,self.warm));
+                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config,pixel_size,self.warm));
             }
         }
         shape_requests
     }
 
-    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &LaneStore, mode: LoadMode) -> Result<Option<ShapeList>,DataMessage> {
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<ShapeList>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
         let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
         Ok(match shapes {
@@ -136,7 +137,7 @@ impl Carriage {
         }
     }
 
-    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &LaneStore, mode: LoadMode) -> Result<(),DataMessage> {
+    pub(super) async fn load(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<(),DataMessage> {
         let unloaded = match &*lock!(self.state) {
             CarriageState::Unloaded(unloaded) => Some(unloaded.clone()),
             _ => None
