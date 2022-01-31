@@ -39,6 +39,7 @@ mod core {
     pub(crate) mod asset;
     mod config;
     mod layout;
+    pub(crate) mod pixelsize;
     pub(crate) mod programbundle;
     mod scale;
     pub mod stick;
@@ -79,7 +80,7 @@ mod lane {
     pub use self::programdata::ProgramData;
     pub use self::programname::ProgramName;
     pub use self::programregion::{ ProgramRegion, ProgramRegionBuilder };
-    pub use self::resultstore::{ LaneStore };
+    pub use self::resultstore::{ ShapeStore };
 }
 
 mod metric {
@@ -206,7 +207,7 @@ pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, Per
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
-pub use self::lane::{ Region, ProgramName, ProgramRegion, LaneStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
+pub use self::lane::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };

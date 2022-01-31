@@ -1,5 +1,5 @@
 use peregrine_toolkit::lock;
-use crate::{DataMessage, LaneStore, PeregrineCoreBase, PgCommanderTaskSpec, ShapeList, ShapeListBuilder, ShapeRequest, add_task, api::MessageSender, Scale};
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, ShapeList, ShapeListBuilder, ShapeRequest, add_task, api::MessageSender, Scale};
 
 #[derive(Clone)]
 pub enum LoadMode {
@@ -24,7 +24,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_shapes(base: &PeregrineCoreBase, result_store: &LaneStore, messages: Option<&MessageSender>, shape_requests: Vec<ShapeRequest>, scale: &Scale, mode: &LoadMode) -> (Option<ShapeList>,Vec<DataMessage>) {
+pub(crate) async fn load_shapes(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: Vec<ShapeRequest>, scale: &Scale, mode: &LoadMode) -> (Option<ShapeList>,Vec<DataMessage>) {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{

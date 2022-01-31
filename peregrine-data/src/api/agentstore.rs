@@ -4,7 +4,7 @@ use commander::FusePromise;
 use crate::PeregrineCoreBase;
 use crate::index::jumpstore::JumpStore;
 use crate::lane::programloader::ProgramLoader;
-use crate::{ AuthorityStore, StickStore, LaneStore, DataStore };
+use crate::{ AuthorityStore, StickStore, ShapeStore, DataStore };
 
 #[derive(Clone)]
 struct DelayedLoader<T> where T: Clone {
@@ -41,7 +41,7 @@ pub struct AgentStore {
     pub stick_authority_store: AuthorityStore,
     pub stick_store: StickStore,
     pub jump_store: JumpStore,
-    pub lane_store: LaneStore,
+    pub lane_store: ShapeStore,
     pub data_store: DataStore
 }
 
@@ -52,7 +52,7 @@ impl AgentStore {
         let program_loader = ProgramLoader::new(&base);
         let stick_authority_store = AuthorityStore::new(&base,&program_loader);
         let stick_store = StickStore::new(&base,&stick_authority_store);
-        let lane_store = LaneStore::new(1024,&base,&program_loader);
+        let lane_store = ShapeStore::new(1024,&base,&program_loader);
         let jump_store = JumpStore::new(&base,&stick_authority_store);
         AgentStore {
             program_loader, stick_authority_store, stick_store, jump_store, lane_store, data_store

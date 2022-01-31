@@ -119,7 +119,7 @@ impl PeregrineCore {
         self.base.queue.push(ApiMessage::Ready);
     }
 
-    /* called after someprograms to refresh state in-case tracks appeared */
+    /* called after some programs to refresh state in-case tracks appeared */
     pub(crate) fn regenerate_track_config(&self) {
         self.base.queue.push(ApiMessage::RegeneraateTrackConfig);
     }
@@ -156,6 +156,10 @@ impl PeregrineCore {
 
     pub fn set_bp_per_screen(&self, scale: f64) {
         self.base.queue.push(ApiMessage::SetBpPerScreen(scale));
+    }
+
+    pub fn set_min_px_per_carriage(&self, px: u32) {
+        self.base.queue.push(ApiMessage::SetMinPxPerCarriage(px));
     }
 
     pub fn set_stick(&self, stick: &StickId) {

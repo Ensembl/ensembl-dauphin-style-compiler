@@ -1,6 +1,6 @@
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{CarriageExtent, CarriageSpeed, LaneStore, PeregrineCoreBase};
+use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase};
 use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
@@ -32,7 +32,7 @@ pub struct TrainSet {
 }
 
 impl TrainSet {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &LaneStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
         let serial_source = CarriageSerialSource::new();
         TrainSet {
             try_lifecycle: try_lifecycle.clone(),
@@ -107,7 +107,7 @@ impl TrainSet {
         }
     }
 
-    fn wanted_is_relevant_milestone(&self, old_layout: &Layout) -> bool {
+    fn wanted_is_relevant_milestone(&self, suggested_layout: &Layout) -> bool {
         if self.wanted.is_none() {
             /* nothing in wanted */
             return false;
@@ -117,23 +117,33 @@ impl TrainSet {
             /* wanted is not a milestone */
             return false;
         }
-        if wanted.extent().layout() != old_layout {
+        if wanted.extent().layout() != suggested_layout {
             /* wanted is irrelevant milestone */
             return false;
         }
         true
     }
 
+    fn wanted_only_trivially_different(&self, target: &TrainExtent) -> bool {
+        if self.wanted.is_none() {
+            /* nothing in wanted */
+            return false;
+        }
+        let wanted = self.wanted.as_ref().unwrap();
+        let wanted_train = wanted.extent();
+        wanted_train.trivially_equal_to(target)
+    }
+
     fn try_set_target(&mut self, viewport: &Viewport) -> Result<(),DataMessage> {
         let target_has_bad_validity_counter = self.validity_counter != self.target_validity_counter;
         let best_scale = Scale::new_bp_per_screen(viewport.bp_per_screen()?);
-        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
         if let Some(quiescent) = self.quiescent_target() {
             if quiescent.extent() == extent && !target_has_bad_validity_counter {
                 return Ok(()); //no need for a target, we're heading to the right place
             }
         }
-        let extent = TrainExtent::new(viewport.layout()?,&best_scale);
+        let extent = TrainExtent::new(viewport.layout()?,&best_scale,viewport.pixel_size()?);
         self.target = Some(extent);
         self.target_validity_counter = self.validity_counter;
         Ok(())
@@ -152,13 +162,14 @@ impl TrainSet {
             true
         };
         /* it would be best if we were at a new target, but how busy are we? */
-        if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone  
+        if self.wanted_is_relevant_milestone(target.layout()) { return Ok(()); } // don't evict milestone
+        if self.wanted_only_trivially_different(target) { return Ok(()); } // difference is trivial
         /* where do we want to head? */
         let mut scale = target.scale().clone();
         if self.wanted.is_some() || self.sketchy {
             scale = scale.to_milestone();
         }
-        let extent = TrainExtent::new(target.layout(),&scale);
+        let extent = TrainExtent::new(target.layout(),&scale,target.pixel_size());
         /* drop old wanted and make milestone, if necessary */      
         if let Some(mut wanted) = self.wanted.take() {
             wanted.discard(events);
