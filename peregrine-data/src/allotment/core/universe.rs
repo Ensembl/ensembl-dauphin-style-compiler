@@ -6,6 +6,7 @@ use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
+use crate::core::pixelsize::PixelSize;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, Scale};
 use peregrine_toolkit::lock;
 
@@ -67,8 +68,23 @@ impl UniverseData {
         self.main.get_all_metadata(allotment_metadata,out);
     }
 
-    fn allot(&mut self, scale: Option<&Scale>) {
-        let mut arbitrator = Arbitrator::new(1./1000.); // XXX not 1000
+    fn real_calc_max_px_per_bp(&self, scale: &Scale, pixel_size: &PixelSize) -> f64 {
+        let bp_per_carriage = scale.bp_in_carriage() as f64;
+        let max_px_per_carriage = pixel_size.max_px_per_carriage() as f64;
+        max_px_per_carriage / bp_per_carriage
+    }
+
+    fn calc_max_px_per_bp(&self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) -> Option<f64> {
+        if let (Some(scale),Some(pixel_size)) = (scale,pixel_size) {
+            Some(self.real_calc_max_px_per_bp(scale,pixel_size))
+        } else {
+            None
+        }
+    }
+
+    fn allot(&mut self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) {
+        let max_px_per_bp = self.calc_max_px_per_bp(scale,pixel_size);
+        let mut arbitrator = Arbitrator::new(max_px_per_bp);
 
         /*
          * LEFT & RIGHT
@@ -179,7 +195,7 @@ impl Universe {
         self_data.union(&other_data);
     }
 
-    pub fn allot(&self, scale: Option<&Scale>) { lock!(self.data).allot(scale); }
+    pub fn allot(&self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) { lock!(self.data).allot(scale,pixel_size); }
 
     pub fn playingfield(&self) -> PlayingField { lock!(self.data).playingfield().clone() }
 }

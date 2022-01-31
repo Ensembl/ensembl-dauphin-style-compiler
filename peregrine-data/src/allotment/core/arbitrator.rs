@@ -50,11 +50,11 @@ pub enum SymbolicAxis {
 
 pub struct Arbitrator {
     position: HashMap<(SymbolicAxis,String),DelayedValue>,
-    max_px_per_bp: f64
+    max_px_per_bp: Option<f64>
 }
 
 impl Arbitrator {
-    pub fn new(max_px_per_bp: f64) -> Arbitrator {
+    pub fn new(max_px_per_bp: Option<f64>) -> Arbitrator {
         Arbitrator {
             position: HashMap::new(),
             max_px_per_bp
@@ -74,6 +74,10 @@ impl Arbitrator {
     }
 
     pub fn full_pixel_range(&self, base_range: &RangeUsed, pixel_range: &RangeUsed) -> RangeUsed {
-        base_range.pixel_range(pixel_range,self.max_px_per_bp)
+        if let Some(max_px_per_bp) = self.max_px_per_bp {
+            base_range.pixel_range(pixel_range,max_px_per_bp)
+        } else {
+            pixel_range.clone()
+        }
     }
 }

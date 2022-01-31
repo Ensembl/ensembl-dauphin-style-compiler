@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape>,
@@ -100,8 +100,8 @@ impl ShapeList {
         }
     }
 
-    pub fn new(builder: ShapeListBuilder, scale: Option<&Scale>) -> ShapeList {
-        builder.universe.allot(scale);
+    pub fn new(builder: ShapeListBuilder, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) -> ShapeList {
+        builder.universe.allot(scale,pixel_size);
         ShapeList {
             universe: builder.universe.clone(),
             shapes: Arc::new(builder.shapes)
