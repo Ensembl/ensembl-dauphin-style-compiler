@@ -68,7 +68,7 @@ impl UniverseData {
     }
 
     fn allot(&mut self, scale: Option<&Scale>) {
-        let mut arbitrator = Arbitrator::new(Some(1000.)); // XXX not 1000
+        let mut arbitrator = Arbitrator::new(1./1000.); // XXX not 1000
 
         /*
          * LEFT & RIGHT

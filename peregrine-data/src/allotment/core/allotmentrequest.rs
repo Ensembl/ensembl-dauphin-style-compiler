@@ -87,18 +87,25 @@ impl RangeUsed {
         }
     }
 
-    pub fn pixel_range(&self, pixel: &RangeUsed, bp_per_px: f64) -> RangeUsed {
-        match (self,pixel) {
+    pub fn plus(&self, other: &RangeUsed) -> RangeUsed {
+        match (self,other) {
             (RangeUsed::All,_) => RangeUsed::All,
             (_,RangeUsed::All) => RangeUsed::All,
-            (RangeUsed::None,x) => RangeUsed::None,
+            (RangeUsed::None,x) => x.clone(),
             (x,RangeUsed::None) => x.clone(),
-            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => {
-                let a1p = a1 / bp_per_px;
-                let b1p = b1 / bp_per_px;
-                RangeUsed::Part(a1p.min(*a2),b1p.max(*b2))
-            }
+            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => RangeUsed::Part(*a1+*a2,*b1+*b2)
         }
+    }
+
+    pub fn scale(&self, mul: f64) -> RangeUsed {
+        match self {
+            RangeUsed::Part(a,b) => RangeUsed::Part(a*mul,b*mul),
+            x => x.clone()
+        }
+    }
+
+    pub fn pixel_range(&self, pixel: &RangeUsed, max_px_per_bp: f64) -> RangeUsed {
+        pixel.plus(&self.scale(max_px_per_bp))
     }
 }
 
