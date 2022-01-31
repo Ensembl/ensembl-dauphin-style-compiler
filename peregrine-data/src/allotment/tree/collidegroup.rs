@@ -74,7 +74,11 @@ impl LinearGroupEntry for CollideGroupRequest {
         let requests = lock!(self.requests);
         let mut range_used = RangeUsed::None;
         for request in requests.values() {
-            let full_range = arbitrator.full_pixel_range(&request.base_range(),&request.pixel_range());
+            let full_range = if request.coord_system().is_tracking() {
+                arbitrator.full_pixel_range(&request.base_range(),&request.pixel_range())
+            } else {
+                request.pixel_range()
+            };
             range_used = range_used.merge(&full_range);
         }
         self.algorithm.add_entry(&range_used);
