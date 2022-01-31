@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, BTreeMap}, sync::Mutex};
 
-use crate::{suite::{suite::Suite, instructionset::InstructionSetId}, runtime::command::Command, core::error::EarpRuntimeError};
+use crate::{suite::{suite::Suite, instructionset::InstructionSetId}, runtime::command::Command, core::error::EarpError};
 
 pub struct Resolver<'a> {
     suite: &'a Suite,
@@ -30,16 +30,16 @@ impl<'a> Resolver<'a> {
             self.suite.lookup(id,offset-base)
         }).cloned()
     }
-    
+
     pub fn cached_lookup(&self, offset: u64) -> Option<Command> {
         self.cache.lock().unwrap().entry(offset).or_insert_with(||
             self.real_lookup(offset)
         ).clone()
     }
 
-    pub fn lookup(&self, offset: u64) -> Result<Command,EarpRuntimeError> {
+    pub fn lookup(&self, offset: u64) -> Result<Command,EarpError> {
         self.cached_lookup(offset).ok_or_else(||
-            EarpRuntimeError::BadOpcode(format!("offset"))
+            EarpError::BadOpcode(format!("offset"))
         )
     }
 }

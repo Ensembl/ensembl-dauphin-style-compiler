@@ -1,8 +1,16 @@
+pub mod commands {
+    pub mod baseutils;
+    pub mod simple;
+}
+
 pub mod runtime {
     pub mod command;
+    pub mod config;
     pub mod context;
+    pub mod stack;
     pub mod instruction;
     pub mod operand;
+    pub mod value;
 }
 
 pub mod core {

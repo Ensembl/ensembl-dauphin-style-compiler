@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{runtime::command::Command, core::error::EarpRuntimeError};
+use crate::{runtime::command::Command, core::error::EarpError};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub struct InstructionSetId(pub String, pub u64);
@@ -40,11 +40,11 @@ impl InstructionSet {
         self.commands[offset].as_ref()
     }
 
-    pub fn merge(&mut self, other: &InstructionSet) -> Result<(),EarpRuntimeError> {
+    pub fn merge(&mut self, other: &InstructionSet) -> Result<(),EarpError> {
         for (offset,command) in other.commands.iter().enumerate() {
             if let Some(command) = command {
                 if self.commands.get(offset).is_some() {
-                    return Err(EarpRuntimeError::DuplicateInstruction(
+                    return Err(EarpError::DuplicateInstruction(
                         format!("merging {} and {} at offset {}",self.id,other.id,offset)
                     ))
                 }

@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use minicbor::{Decoder, Decode};
 
-use crate::{core::error::EarpRuntimeError, runtime::operand::Operand};
+use crate::{core::error::EarpError, runtime::operand::Operand};
 
-use super::earpfilereader::{AssetData, EarpFileReader};
+use super::earpfilereader::{AssetData};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TopLevel {
@@ -15,8 +15,8 @@ pub struct TopLevel {
     pub(super) instructions: Vec<(u64,Vec<Operand>)>
 }
 
-pub(crate) fn map_error<T>(input: Result<T,minicbor::decode::Error>) -> Result<T,EarpRuntimeError> {
-    input.map_err(|e| EarpRuntimeError::BadEarpFile(e.to_string()))
+pub(crate) fn map_error<T>(input: Result<T,minicbor::decode::Error>) -> Result<T,EarpError> {
+    input.map_err(|e| EarpError::BadEarpFile(e.to_string()))
 }
 
 fn extract_varieties(mut input: usize) -> Vec<usize> {
