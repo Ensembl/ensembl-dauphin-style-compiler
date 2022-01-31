@@ -39,7 +39,7 @@ impl<'a> Resolver<'a> {
 
     pub fn lookup(&self, offset: u64) -> Result<Command,EarpError> {
         self.cached_lookup(offset).ok_or_else(||
-            EarpError::BadOpcode(format!("offset"))
+            EarpError::BadOpcode(format!("invalid offset: {}",offset))
         )
     }
 }
