@@ -1,4 +1,7 @@
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum EarpRuntimeError {
-    BadEarpFile(String)
+    BadEarpFile(String),
+    DuplicateInstruction(String),
+    BadOpcode(String),
+    BadMagic(String),
 }

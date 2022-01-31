@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use minicbor::{Decoder, Decode, decode::Error};
 
-use crate::core::error::EarpRuntimeError;
+use crate::{core::error::EarpRuntimeError, runtime::instruction::Instruction, suite::suite::Suite};
 
-use super::toplevel::{ TopLevel, map_error };
+use super::{toplevel::{ TopLevel, map_error, self }, resolver::Resolver};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum AssetData {
@@ -13,52 +13,45 @@ pub enum AssetData {
 
 const MAGIC_NUMBER : &str = "EARP0";
 
-#[derive(Clone,Debug,PartialEq)]
-pub(crate) enum Operand {
-    Register(usize),
-    UpRegister(usize),
-    String(String),
-    Boolean(bool),
-    Integer(i64),
-    Float(f64),
-}
-
-impl Operand {
-    pub(super) fn decode(variety: usize, decoder: &mut Decoder) -> Result<Operand,minicbor::decode::Error> {
-        Ok(if decoder.probe().i64().is_ok() {
-            let value = decoder.i64()?;
-            match variety {
-                1 => Operand::Register(value as usize),
-                2 => Operand::UpRegister(value as usize),
-                _ => Operand::Integer(value)
-            }
-        } else if decoder.probe().str().is_ok() {
-            Operand::String(decoder.str()?.to_string())
-        } else if decoder.probe().bool().is_ok() {
-            Operand::Boolean(decoder.bool()?)
-        } else if decoder.probe().f64().is_ok() {
-            Operand::Float(decoder.f64()?)
-        } else {
-            return Err(Error::Message("unexpected operand"));
-        })
-    }
-}
-
-pub struct InstructionSetId(pub String, pub i64);
-
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct EarpFileReader {
     entry_points: HashMap<String,i64>,
-    assets: HashMap<String,AssetData>
+    assets: HashMap<String,AssetData>,
+    instructions: Vec<Instruction>
 }
 
 impl EarpFileReader {
-    pub(super) fn from_top_level(entry_points: HashMap<String,i64>, assets: HashMap<String,AssetData>) -> Result<EarpFileReader,EarpRuntimeError> {
-        Ok(EarpFileReader { entry_points, assets })
+    fn magic_check(top_level: &TopLevel) -> Result<(),EarpRuntimeError> {
+        if let Some(magic_got) = &top_level.magic_got {
+            if magic_got != MAGIC_NUMBER {
+                Err(EarpRuntimeError::BadMagic(format!("Got {:?}, expected {:?}",magic_got,MAGIC_NUMBER)))
+            } else {
+                Ok(())
+            }
+        } else {
+            Err(EarpRuntimeError::BadMagic(format!("Missing, expected {:?}",MAGIC_NUMBER)))
+        }
     }
 
-    pub fn new(data: &[u8]) -> Result<EarpFileReader,EarpRuntimeError> {
+    fn resolve(suite: &Suite, top_level: &TopLevel) -> Result<Vec<Instruction>,EarpRuntimeError> {
+        let resolver = Resolver::new(suite,&top_level.sets);
+        let mut out = vec![];
+        for (offset,operands) in &top_level.instructions {
+            let command = resolver.lookup(*offset)?;
+            out.push(Instruction::new(&command,operands));
+        }
+        Ok(out)
+    }
+
+    pub fn new(suite: &Suite, data: &[u8]) -> Result<EarpFileReader,EarpRuntimeError> {
         let mut decoder = Decoder::new(data);
-        map_error(TopLevel::decode(&mut decoder))?.into_earpfile()
+        let top_level = map_error(TopLevel::decode(&mut decoder))?;
+        EarpFileReader::magic_check(&top_level)?;
+        let instructions = EarpFileReader::resolve(suite,&top_level)?;
+        Ok(EarpFileReader {
+            entry_points: top_level.entry_points,
+            assets: top_level.assets,
+            instructions
+        })
     }
 }

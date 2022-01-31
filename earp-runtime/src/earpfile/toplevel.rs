@@ -1,24 +1,18 @@
 use std::collections::HashMap;
 
-use minicbor::{Decoder, Decode, decode::Error};
+use minicbor::{Decoder, Decode};
 
-use crate::core::error::EarpRuntimeError;
+use crate::{core::error::EarpRuntimeError, runtime::operand::Operand};
 
-use super::earpfilereader::{AssetData, Operand, EarpFileReader};
+use super::earpfilereader::{AssetData, EarpFileReader};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TopLevel {
-    magic_got: Option<String>,
-    entry_points: HashMap<String,i64>,
-    assets: HashMap<String,AssetData>,
-    sets: Vec<(String,u64,u64)>,
-    instructions: Vec<(u64,Vec<Operand>)>
-}
-
-impl TopLevel {
-    pub(super) fn into_earpfile(self) -> Result<EarpFileReader,EarpRuntimeError> {
-        EarpFileReader::from_top_level(self.entry_points,self.assets)
-    }
+    pub(super) magic_got: Option<String>,
+    pub(super) entry_points: HashMap<String,i64>,
+    pub(super) assets: HashMap<String,AssetData>,
+    pub(super) sets: Vec<(String,u64,u64)>,
+    pub(super) instructions: Vec<(u64,Vec<Operand>)>
 }
 
 pub(crate) fn map_error<T>(input: Result<T,minicbor::decode::Error>) -> Result<T,EarpRuntimeError> {
