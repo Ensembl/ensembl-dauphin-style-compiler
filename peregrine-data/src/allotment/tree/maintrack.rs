@@ -22,7 +22,7 @@ impl MainTrackRequest {
         MainTrackRequest {
             metadata: metadata.clone(),
             header: Mutex::new(LinearGroup::new(&window_geometry,BoxAllotmentLinearGroupHelper)),
-            requests: Mutex::new(LinearGroup::new(geometry,CollideGroupLinearHelper))
+            requests: Mutex::new(LinearGroup::new(geometry,CollideGroupLinearHelper::new()))
         }
     }
 }
@@ -48,6 +48,10 @@ impl LinearGroupEntry for MainTrackRequest {
                 lock!(self.header).make_request(allotment_metadata,name)
             }
         }
+    }
+
+    fn bump(&self, arbitrator: &mut Arbitrator) {
+        lock!(self.requests).bump(arbitrator);
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
@@ -89,4 +93,6 @@ impl LinearGroupHelper for MainTrackLinearHelper {
         let specifier = MTSpecifier::new(name);
         specifier.base().name().to_string()
     }
+
+    fn bump(&self, arbitrator: &mut Arbitrator) {}
 }

@@ -6,8 +6,7 @@ use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
-use crate::core::pixelsize::PixelSize;
-use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, Scale};
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, Scale, CarriageExtent};
 use peregrine_toolkit::lock;
 
 use super::allotmentrequest::AllotmentRequestImpl;
@@ -68,23 +67,18 @@ impl UniverseData {
         self.main.get_all_metadata(allotment_metadata,out);
     }
 
-    fn real_calc_max_px_per_bp(&self, scale: &Scale, pixel_size: &PixelSize) -> f64 {
-        let bp_per_carriage = scale.bp_in_carriage() as f64;
-        let max_px_per_carriage = pixel_size.max_px_per_carriage() as f64;
-        max_px_per_carriage / bp_per_carriage
-    }
+    fn allot(&mut self, extent: Option<&CarriageExtent>) {
+        let mut arbitrator = Arbitrator::new(extent);
 
-    fn calc_max_px_per_bp(&self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) -> Option<f64> {
-        if let (Some(scale),Some(pixel_size)) = (scale,pixel_size) {
-            Some(self.real_calc_max_px_per_bp(scale,pixel_size))
-        } else {
-            None
-        }
-    }
-
-    fn allot(&mut self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) {
-        let max_px_per_bp = self.calc_max_px_per_bp(scale,pixel_size);
-        let mut arbitrator = Arbitrator::new(max_px_per_bp);
+        self.left.bump(&mut arbitrator);
+        self.right.bump(&mut arbitrator);
+        self.main.bump(&mut arbitrator);
+        self.top_tracks.bump(&mut arbitrator);
+        self.bottom_tracks.bump(&mut arbitrator);
+        self.window.bump(&mut arbitrator);
+        self.window_bottom.bump(&mut arbitrator);
+        self.window_tracks.bump(&mut arbitrator);
+        self.window_tracks_bottom.bump(&mut arbitrator);
 
         /*
          * LEFT & RIGHT
@@ -195,7 +189,7 @@ impl Universe {
         self_data.union(&other_data);
     }
 
-    pub fn allot(&self, scale: Option<&Scale>, pixel_size: Option<&PixelSize>) { lock!(self.data).allot(scale,pixel_size); }
+    pub fn allot(&self, extent: Option<&CarriageExtent>) { lock!(self.data).allot(extent); }
 
     pub fn playingfield(&self) -> PlayingField { lock!(self.data).playingfield().clone() }
 }

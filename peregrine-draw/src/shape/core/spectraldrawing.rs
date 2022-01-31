@@ -9,7 +9,7 @@ fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metada
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_metadata)?;
     }
-    Drawing::new_sync(None,ShapeList::new(shapes,None,None),gl,0.,variables,assets)
+    Drawing::new_sync(None,ShapeList::new(shapes,None),gl,0.,variables,assets)
 }
 
 #[derive(Clone)]

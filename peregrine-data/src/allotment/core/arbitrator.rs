@@ -2,7 +2,9 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::lock;
 
-use super::allotmentrequest::RangeUsed;
+use crate::CarriageExtent;
+
+use super::rangeused::RangeUsed;
 
 /* The Arbitrator stores the offsets of other elements for alingment.
  */
@@ -50,14 +52,26 @@ pub enum SymbolicAxis {
 
 pub struct Arbitrator {
     position: HashMap<(SymbolicAxis,String),DelayedValue>,
-    max_px_per_bp: Option<f64>
+    max_px_per_bp: Option<f64>,
+    bp_start: f64
 }
 
 impl Arbitrator {
-    pub fn new(max_px_per_bp: Option<f64>) -> Arbitrator {
+    fn real_calc_max_px_per_bp(extent: &CarriageExtent) -> f64 {
+        let bp_per_carriage = extent.train().scale().bp_in_carriage() as f64;
+        let max_px_per_carriage = extent.train().pixel_size().max_px_per_carriage() as f64;
+        max_px_per_carriage / bp_per_carriage
+    }
+
+    fn calc_max_px_per_bp(extent: Option<&CarriageExtent>) -> Option<f64> {
+        extent.map(|e| Arbitrator::real_calc_max_px_per_bp(e))
+    }
+
+    pub fn new(extent: Option<&CarriageExtent>) -> Arbitrator {
         Arbitrator {
             position: HashMap::new(),
-            max_px_per_bp
+            max_px_per_bp: Arbitrator::calc_max_px_per_bp(extent),
+            bp_start: extent.map(|x| x.left_right().0).unwrap_or(0.)
         }
     }
 
@@ -75,7 +89,7 @@ impl Arbitrator {
 
     pub fn full_pixel_range(&self, base_range: &RangeUsed, pixel_range: &RangeUsed) -> RangeUsed {
         if let Some(max_px_per_bp) = self.max_px_per_bp {
-            base_range.pixel_range(pixel_range,max_px_per_bp)
+            base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)
         } else {
             pixel_range.clone()
         }

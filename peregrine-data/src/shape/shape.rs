@@ -11,7 +11,7 @@ use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
-use crate::allotment::core::allotmentrequest::RangeUsed;
+use crate::allotment::core::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;

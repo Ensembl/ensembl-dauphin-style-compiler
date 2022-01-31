@@ -1,20 +1,24 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}};
 
 use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier};
 
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,
-    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafTransformer>>>>
+    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafTransformer>>>>,
+    algorithm: CollisionAlgorithmHolder,
+    bump_token: Mutex<Option<CollisionToken>>
 }
 
 impl CollideGroupRequest {
-    fn new(metadata: &AllotmentMetadata) -> CollideGroupRequest {
+    fn new(metadata: &AllotmentMetadata, algorithm: &CollisionAlgorithmHolder) -> CollideGroupRequest {
         CollideGroupRequest {
             metadata: metadata.clone(),
-            requests: Mutex::new(HashMap::new())
+            requests: Mutex::new(HashMap::new()),
+            algorithm: algorithm.clone(),
+            bump_token: Mutex::new(None)
         }
     }
 
@@ -34,9 +38,6 @@ impl CollideGroupRequest {
 
     fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut box_builder = AllotmentBoxBuilder::empty(request.max_y());
-        let full_range = arbitrator.full_pixel_range(&request.base_range(),&request.pixel_range());
-        use web_sys::console;
-        console::log_1(&format!("used base={:?} pixel={:?} all={:?}",request.base_range(),request.pixel_range(),full_range).into());
         if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
             box_builder.set_self_indent(Some(&indent));
         }
@@ -69,6 +70,16 @@ impl LinearGroupEntry for CollideGroupRequest {
         Some(AllotmentRequest::upcast(req_impl.clone()))
     }
 
+    fn bump(&self, arbitrator: &mut Arbitrator) {
+        let requests = lock!(self.requests);
+        let mut range_used = RangeUsed::None;
+        for request in requests.values() {
+            let full_range = arbitrator.full_pixel_range(&request.base_range(),&request.pixel_range());
+            range_used = range_used.merge(&full_range);
+        }
+        self.algorithm.add_entry(&range_used);
+    }
+
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let requests = lock!(self.requests);
         let mut child_boxes = vec![];
@@ -82,7 +93,55 @@ impl LinearGroupEntry for CollideGroupRequest {
     }
 }
 
-pub struct CollideGroupLinearHelper;
+pub struct CollisionToken(usize);
+
+struct CollisionAlgorithm {
+    ranges: Vec<RangeUsed>
+}
+
+impl CollisionAlgorithm {
+    fn new() -> CollisionAlgorithm {
+        CollisionAlgorithm {
+            ranges: vec![]
+        }
+    }
+
+    fn add_entry(&mut self, range: &RangeUsed) -> CollisionToken {
+        let token = CollisionToken(self.ranges.len());
+        self.ranges.push(range.clone());
+        token
+    }
+
+    fn bump(&mut self) {
+        use web_sys::console;
+        console::log_1(&format!("bumping {:?}",self.ranges).into());
+    }
+}
+
+#[derive(Clone)]
+pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>);
+
+impl CollisionAlgorithmHolder {
+    fn new() -> CollisionAlgorithmHolder {
+        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())))
+    }
+
+    fn add_entry(&self, range: &RangeUsed) -> CollisionToken {
+        lock!(self.0).add_entry(range)
+    }
+
+    fn bump(&self) {
+        lock!(self.0).bump();
+    }
+}
+
+pub struct CollideGroupLinearHelper(CollisionAlgorithmHolder);
+
+impl CollideGroupLinearHelper {
+    pub fn new() -> CollideGroupLinearHelper {
+        CollideGroupLinearHelper(CollisionAlgorithmHolder::new())
+    }
+}
 
 impl LinearGroupHelper for CollideGroupLinearHelper {
     type Key = Option<String>;
@@ -92,11 +151,15 @@ impl LinearGroupHelper for CollideGroupLinearHelper {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-        Arc::new(CollideGroupRequest::new(&metadata))
+        Arc::new(CollideGroupRequest::new(&metadata,&self.0))
     }
 
     fn entry_key(&self, name: &str) -> Option<String> {
         let specifier = MTSpecifier::new(name);
         specifier.base().group().clone()
+    }
+
+    fn bump(&self, arbitrator: &mut Arbitrator) {
+        self.0.bump();
     }
 }

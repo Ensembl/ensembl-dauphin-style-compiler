@@ -10,6 +10,7 @@ mod allotment {
         pub(crate) mod allotmentrequest;
         pub(crate) mod basicallotmentspec;
         pub(crate) mod dustbinallotment;
+        pub(crate) mod rangeused;
         pub(crate) mod universe;    
     }
 

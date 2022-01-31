@@ -27,6 +27,8 @@ impl LinearGroupEntry for BoxLinearEntry {
         Some(AllotmentRequest::upcast(self.request.clone()))
     }
 
+    fn bump(&self, arbitrator: &mut Arbitrator) {}
+
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.request.max_y()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
@@ -60,4 +62,6 @@ impl LinearGroupHelper for BoxAllotmentLinearGroupHelper {
     }
 
     fn entry_key(&self, name: &str) -> BasicAllotmentSpec { BasicAllotmentSpec::from_spec(name).depthless() }
+
+    fn bump(&self, arbitrator: &mut Arbitrator) {}
 }
