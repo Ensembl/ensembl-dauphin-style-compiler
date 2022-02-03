@@ -5,17 +5,14 @@ use std::fmt::Debug;
  * goto-first; prev; next; seek; insert; delete.
  */
 
-use bplustree::{iter::RawExclusiveIter, GenericBPlusTree};
-
-const IC : usize = 8;
-const LC : usize = 16;
+use crate::boom::{Boom, BoomCursorMut};
 
 struct WatermarkRequest<'a> {
-    iter: RawExclusiveIter<'a,i64,f64,IC,LC>,
+    iter: BoomCursorMut<'a>,
     start: i64,
     end: i64,
     own_height: f64,
-    after_pos: Option<i64>,
+    after_pos: Option<(i64,f64)>,
     max_existing_height: f64,
     pre_start_height: f64,
     final_masked_height: f64
@@ -24,7 +21,7 @@ struct WatermarkRequest<'a> {
 impl<'a> WatermarkRequest<'a> {
     fn new(watermark: &'a mut Watermark, start: i64, end: i64, height: f64) -> WatermarkRequest<'a> {
         WatermarkRequest {
-            iter: watermark.tree.raw_iter_mut(),
+            iter: watermark.tree.seek_mut(&start),
             start, end, own_height: height,
             after_pos: None,
             max_existing_height: 0.,
@@ -49,9 +46,8 @@ impl<'a> WatermarkRequest<'a> {
      * 3. If the height of this node matches the ultimately determined height of our new region we don't need to insert
      * a new entry, we just let it run on. To test for this, self.pre_start_height is set.
      */
-    fn investigate_pre_start(&mut self) {
-        self.iter.seek(&self.start);
-        if let Some(prev_height) = self.iter.prev().map(|(_,h)| *h) {
+     fn investigate_pre_start(&mut self) {
+        if let Some((prev_start,prev_height)) = self.iter.rewind() {
             /* there is a node before start */
             self.iter.next();
             self.max_existing_height = prev_height;
@@ -88,27 +84,28 @@ impl<'a> WatermarkRequest<'a> {
      */
     fn remove_one_old(&mut self) -> Option<i64> {
         if let Some((next_start,next_height)) = self.iter.next() {
-            if *next_start < self.end {
+            if next_start < self.end {
                 /* node is to be removed */
-                self.final_masked_height = *next_height;
-                if *next_start == self.start {
+                self.final_masked_height = next_height;
+                if next_start == self.start {
                     /* start coincident with ours so previous node doesn't contribute after all: no overlap */
                     self.max_existing_height = 0.;
                 }
-                self.max_existing_height = self.max_existing_height.max(*next_height);
-                return Some(*next_start);
+                self.max_existing_height = self.max_existing_height.max(next_height);
+                return Some(next_start);
             } else {
                 /* node which exists but is not to be removed */
-                self.after_pos = Some(*next_start);
+                self.after_pos = Some((next_start,next_height));
             }
         }
+        println!("max_existing {}",self.max_existing_height);
         None
     }
 
     /* call remove_one_old until it yields no more.*/
     fn remove_to_end(&mut self) {
         while let Some(remove) = self.remove_one_old() {
-            self.iter.remove(&remove);
+            self.iter.tree().remove(remove);
         }
     }
 
@@ -117,25 +114,35 @@ impl<'a> WatermarkRequest<'a> {
      */
     fn update_map_start(&mut self, new_height: f64) {
         if new_height != self.pre_start_height {
-            self.iter.insert(self.start,new_height);
+            self.iter.tree().insert(self.start,new_height);
         }
     }
 
-    /* Unless there is a node at end, we will be adding a new range to reesatblish the old height. Do we need
-     * to worry about this equalling the value of the next range after our insert (call it X)? The value we use for our
-     * new insert is always that of the final start before our range end. Before we started, this would have been the
-     * value immediately before X, so there would have already been a violation of the invariant (should have been
-     * merged). So this cannot happen.
-     * 
-     * The only thing we need worry about is if the next element starts at our end which means we shouldn't add a
-     * reestablishing range.
+    /* We probably need to add the previous final at our end position to re-establish it. Complexities:
+     * a. If the next value is at end and matches our new height, delete it and we are done.
+     * b. Otherwise, if there is such a value, leave it be.
+     * c. If there is no value, establish the resored value at end.
+     * d. If the subsequent value matches the newly-established value, delete that subsequent value.
      */
-    fn update_map_end(&mut self,) {
-        if let Some(after_start) = self.after_pos {
-            /* does a range already start at end? */
-            if after_start == self.end { return; }
+    fn update_map_end(&mut self, new_height: f64) {
+        if let Some((after_start,after_height)) = self.after_pos {
+            if after_start == self.end {
+                /* cases a&b */
+                if new_height == after_height {
+                    /* case a */
+                    self.iter.tree().remove(after_start);
+                }
+                return;
+            }
         }
-        self.iter.insert(self.end,self.final_masked_height);
+        /* cases c&d */
+        self.iter.tree().insert(self.end,self.final_masked_height);
+        if let Some((after_start,after_height)) = self.after_pos {
+            if after_height == self.final_masked_height {
+                /* case d */
+                self.iter.tree().remove(after_start);
+            }
+        }
     }
 
     fn add(&mut self) -> f64 {
@@ -143,13 +150,13 @@ impl<'a> WatermarkRequest<'a> {
         self.remove_to_end();
         let new_height = self.max_existing_height + self.own_height;
         self.update_map_start(new_height);
-        self.update_map_end();
+        self.update_map_end(new_height);
         self.max_existing_height
     }
 }
 
-struct Watermark {
-    tree: GenericBPlusTree<i64,f64,IC,LC>,
+pub struct Watermark {
+    tree: Boom,
     max_height: f64
 }
 
@@ -162,14 +169,14 @@ impl Debug for Watermark {
 }
 
 impl Watermark {
-    fn new() -> Watermark {
+    pub fn new() -> Watermark {
         Watermark {
-            tree: GenericBPlusTree::new(),
+            tree: Boom::new(),
             max_height: 0.
         }
     }
 
-    fn add(&mut self, start: i64, end: i64, height: f64) -> f64 {
+    pub fn add(&mut self, start: i64, end: i64, height: f64) -> f64 {
         let mut req = WatermarkRequest::new(self,start,end,height);
         let offset = req.add();
         drop(req);
@@ -177,17 +184,11 @@ impl Watermark {
         offset
     }
 
-    fn max_height(&self) -> f64 { self.max_height }
+    pub fn max_height(&self) -> f64 { self.max_height }
 
     #[cfg(any(debug_assertions,test))]
     fn readout_map(&self) -> Vec<(i64,f64)> {
-        let mut members = vec![];
-        let mut iter = self.tree.raw_iter();
-        iter.seek_to_first();
-        while let Some((start,height)) = iter.next() {
-            members.push((*start,*height));
-        }
-        members
+        self.tree.all().iter().map(|(k,v)| (*k,*v)).collect::<Vec<_>>()
     }
 }
 
@@ -228,6 +229,7 @@ mod test {
         for (start,end,height,offset) in inputs {
             assert_eq!(*offset,watermark.add(*start,*end,*height));
         }
+        println!("{:?}",watermark);
         assert_eq!(outputs,watermark.readout_map());
     }
 
@@ -246,9 +248,9 @@ mod test {
     #[test]
     fn test_prestart() {
         /* 1. if insert matches new region, no new entry is added */
-        test_once(&[(0,10,1.,0.),(10,20,1.,1.)],&[(0,1.),(20,0.)]);
+        test_once(&[(0,10,1.,0.),(10,20,1.,0.)],&[(0,1.),(20,0.)]);
         /* 2. if insert doesn't match new region, new entry is added */
-        test_once(&[(0,10,1.,0.),(10,20,2.,1.)],&[(0,1.),(10,2.),(20,0.)]);
+        test_once(&[(0,10,1.,0.),(10,20,2.,0.)],&[(0,1.),(10,2.),(20,0.)]);
     }
 
     #[test]
@@ -256,7 +258,7 @@ mod test {
         /* 1. Final height should be pre height if no underlying allocations */
         test_once(&[(0,10,1.,0.),(5,8,1.,1.)],&[(0,1.),(5,2.),(8,1.),(10,0.)]);
         /* 2. Final height should last height if there are underlying allocations */
-        test_once(&[(0,10,1.,0.),(1,2,2.,1.),(2,12,3.,1.),(5,8,1.,1.)],&[(0,1.),(1,3.),(2,4.),(5,5.),(8,3.),(12,0.)]);
+        test_once(&[(0,10,1.,0.),(1,2,2.,1.),(2,12,3.,1.),(5,8,1.,4.)],&[(0,1.),(1,3.),(2,4.),(5,5.),(8,4.),(12,0.)]);
     }
 
     #[test]
@@ -264,11 +266,11 @@ mod test {
         /* 1. with no previous, final height should be 0 if none underlying */
         test_once(&[(0,10,1.,0.)],&[(0,1.),(10,0.)]);
         /* 2. with no previous, start should be omitted if hegiht zero */
-        test_once(&[(0,10,0.,0.)],&[]);
+        test_once(&[(0,10,0.,0.)],&[(10,0.)]);
         /* 3. with no previous, max height should be zero if none underlying */
         test_once(&[(0,10,1.,0.)],&[(0,1.),(10,0.)]);
         /* 4. with no previous, max height should be non-zero if some underlying */
-        test_once(&[(5,6,1.,0.),(0,10,1.,1.)],&[(0,1.),(5,2.),(6,1.),(10,0.)]);
+        test_once(&[(5,6,1.,0.),(0,10,1.,1.)],&[(0,2.),(10,0.)]);
     }
 
     #[test]
@@ -279,9 +281,9 @@ mod test {
         /* 2. nodes should be removed if lying in our range if single */
         test_once(&[(0,1,1.,0.),(2,3,1.,0.),(8,9,1.,0.),(2,7,1.,1.)],
                  &[(0,1.),(1,0.),(2,2.),(7,0.),(8,1.),(9,0.)]);
-        /* 3. nothing should go wrong if nothing in gange */
-        test_once(&[(0,1,1.,0.),(8,9,1.,0.),(2,7,1.,1.)],
-                 &[(0,1.),(1,0.),(2,2.),(7,0.),(8,1.),(9,0.)]);
+        /* 3. nothing should go wrong if nothing in range */
+        test_once(&[(0,1,1.,0.),(8,9,1.,0.),(2,7,1.,0.)],
+                 &[(0,1.),(1,0.),(2,1.),(7,0.),(8,1.),(9,0.)]);
         /* 4. nodes should be removed if lying in our range if none after */
         test_once(&[(0,1,1.,0.),(2,3,1.,0.),(2,7,1.,1.)],
                  &[(0,1.),(1,0.),(2,2.),(7,0.)]);
@@ -292,11 +294,13 @@ mod test {
 
     #[test]
     fn test_map_end() {
-        /* 1. if there's a node exactly at our end don't add final height */
+        /* a. If the next value is at end and matches our new height, delete it and we are done. */
+        test_once(&[(5,10,2.,0.),(0,5,1.,0.),(0,5,1.,1.)],&[(0,2.),(10,0.)]);
+        /* b. Otherwise, if there is such a value, leave it be. */
+        test_once(&[(5,10,2.,0.),(0,5,1.,0.)],&[(0,1.),(5,2.),(10,0.)]);
+        /* c. If there is no value, establish the resored value at end. */
+        test_once(&[(6,10,2.,0.),(0,5,1.,0.)],&[(0,1.),(5,0.),(6,2.),(10,0.)]);
+        /* d. If the subsequent value matches the newly-established value, delete that subsequent value. */
         test_once(&[(5,10,1.,0.),(0,5,1.,0.)],&[(0,1.),(10,0.)]);
-        /* 2. otherwise, if there's a node after, add in final height */
-        test_once(&[(5,10,1.,0.),(0,4,1.,0.)],&[(0,1.),(4,0.),(5,1.),(10,0.)]);
-        /* 3. if no node after, add in final height */
-        test_once(&[(5,10,1.,0.)],&[(0,1.),(10,0.)]);
     }
 }

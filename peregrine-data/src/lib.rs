@@ -15,6 +15,7 @@ mod allotment {
     }
 
     mod tree {
+        pub(crate) mod collisionalgorithm;
         pub(crate) mod collidegroup;
         pub(crate) mod leaftransformer;
         pub(crate) mod leafboxlinearentry;    

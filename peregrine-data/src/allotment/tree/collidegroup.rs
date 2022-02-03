@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}};
 
-use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier};
+use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
 
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,
@@ -73,15 +73,17 @@ impl LinearGroupEntry for CollideGroupRequest {
     fn bump(&self, arbitrator: &mut Arbitrator) {
         let requests = lock!(self.requests);
         let mut range_used = RangeUsed::None;
+        let mut max_height = 0_f64;
         for request in requests.values() {
             let full_range = if request.coord_system().is_tracking() {
                 arbitrator.full_pixel_range(&request.base_range(),&request.pixel_range())
             } else {
                 request.pixel_range()
             };
+            max_height = max_height.max(request.max_y() as f64);
             range_used = range_used.merge(&full_range);
         }
-        self.algorithm.add_entry(&range_used);
+        self.algorithm.add_entry(&range_used,max_height);
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
@@ -94,48 +96,6 @@ impl LinearGroupEntry for CollideGroupRequest {
         let mut builder = AllotmentBoxBuilder::empty(0);
         builder.overlay_all(child_boxes);
         AllotmentBox::new(builder)
-    }
-}
-
-pub struct CollisionToken(usize);
-
-struct CollisionAlgorithm {
-    ranges: Vec<RangeUsed>
-}
-
-impl CollisionAlgorithm {
-    fn new() -> CollisionAlgorithm {
-        CollisionAlgorithm {
-            ranges: vec![]
-        }
-    }
-
-    fn add_entry(&mut self, range: &RangeUsed) -> CollisionToken {
-        let token = CollisionToken(self.ranges.len());
-        self.ranges.push(range.clone());
-        token
-    }
-
-    fn bump(&mut self) {
-        use web_sys::console;
-        console::log_1(&format!("bumping {:?}",self.ranges).into());
-    }
-}
-
-#[derive(Clone)]
-pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>);
-
-impl CollisionAlgorithmHolder {
-    fn new() -> CollisionAlgorithmHolder {
-        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())))
-    }
-
-    fn add_entry(&self, range: &RangeUsed) -> CollisionToken {
-        lock!(self.0).add_entry(range)
-    }
-
-    fn bump(&self) {
-        lock!(self.0).bump();
     }
 }
 

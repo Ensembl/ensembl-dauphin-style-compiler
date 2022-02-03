@@ -33,8 +33,8 @@ pub trait GenericAllotmentRequestImpl {
     fn allotment(&self) -> Result<Allotment,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl>;
     fn set_max_y(&self, max: i64);
-    fn set_base_range(&self, used: &RangeUsed);
-    fn set_pixel_range(&self, used: &RangeUsed);
+    fn set_base_range(&self, used: &RangeUsed<f64>);
+    fn set_pixel_range(&self, used: &RangeUsed<f64>);
     fn coord_system(&self) -> CoordinateSystem;
     fn depth(&self) -> i8;
 }
@@ -53,8 +53,8 @@ impl AllotmentRequest {
     pub fn depth(&self) -> i8 { self.0.depth() }
     pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
     pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
-    pub fn set_base_range(&self, used: &RangeUsed) { self.0.set_base_range(used); }
-    pub fn set_pixel_range(&self, used: &RangeUsed) { self.0.set_pixel_range(used); }
+    pub fn set_base_range(&self, used: &RangeUsed<f64>) { self.0.set_base_range(used); }
+    pub fn set_pixel_range(&self, used: &RangeUsed<f64>) { self.0.set_pixel_range(used); }
     pub fn set_max_y(&self, max: i64) { self.0.set_max_y(max); }
 }
 
@@ -67,8 +67,8 @@ impl std::fmt::Debug for AllotmentRequest {
 
 pub struct AllotmentRequestExperience<T: Transformer> {
     transformer: Option<Arc<T>>,
-    base_range: RangeUsed,
-    pixel_range: RangeUsed,
+    base_range: RangeUsed<f64>,
+    pixel_range: RangeUsed<f64>,
     max_y: i64
 }
 
@@ -88,11 +88,11 @@ impl<T: Transformer> AllotmentRequestExperience<T> {
     fn max_y(&self) -> i64 { self.max_y }
     fn set_max_y(&mut self, max: i64) { self.max_y = self.max_y.max(max); }
 
-    fn base_range(&self) -> &RangeUsed { &self.base_range }
-    fn set_base_range(&mut self, used: &RangeUsed) { self.base_range = self.base_range.merge(&used); }
+    fn base_range(&self) -> &RangeUsed<f64> { &self.base_range }
+    fn set_base_range(&mut self, used: &RangeUsed<f64>) { self.base_range = self.base_range.merge(&used); }
 
-    fn pixel_range(&self) -> &RangeUsed { &self.pixel_range }
-    fn set_pixel_range(&mut self, used: &RangeUsed) { self.pixel_range = self.pixel_range.merge(&used); }
+    fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
+    fn set_pixel_range(&mut self, used: &RangeUsed<f64>) { self.pixel_range = self.pixel_range.merge(&used); }
 
     fn add_allotment_metadata_values(&mut self, metadata: &mut AllotmentMetadataRequest) {
         if let Some(xformer) = &mut self.transformer {
@@ -132,8 +132,8 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
     pub fn geometry(&self) -> &LeafGeometry { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_y(&self) -> i64 { lock!(self.experience).max_y() }
-    pub fn base_range(&self) -> RangeUsed { lock!(self.experience).base_range().clone() }
-    pub fn pixel_range(&self) -> RangeUsed { lock!(self.experience).pixel_range().clone() }
+    pub fn base_range(&self) -> RangeUsed<f64> { lock!(self.experience).base_range().clone() }
+    pub fn pixel_range(&self) -> RangeUsed<f64> { lock!(self.experience).pixel_range().clone() }
 
     pub fn transformer(&self) -> Option<Arc<T>> { lock!(self.experience).transformer().clone() }
 
@@ -157,8 +157,8 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
     }
 
     fn set_max_y(&self, max: i64) { lock!(self.experience).set_max_y(max); }
-    fn set_base_range(&self, used: &RangeUsed) { lock!(self.experience).set_base_range(used); }
-    fn set_pixel_range(&self, used: &RangeUsed) { lock!(self.experience).set_pixel_range(used); }
+    fn set_base_range(&self, used: &RangeUsed<f64>) { lock!(self.experience).set_base_range(used); }
+    fn set_pixel_range(&self, used: &RangeUsed<f64>) { lock!(self.experience).set_pixel_range(used); }
 
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl> { self }
 }

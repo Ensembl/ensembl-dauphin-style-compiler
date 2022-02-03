@@ -1,53 +1,72 @@
+use std::ops::{Add, Mul};
+
+fn partial_ord<T: PartialOrd>(a: T, b: T) -> (T,T) {
+    if a < b { (a,b) } else { (b,a) }
+}
+
+fn partial_min<T: PartialOrd>(a: T, b: T) -> T { partial_ord(a,b).0 }
+fn partial_max<T: PartialOrd>(a: T, b: T) -> T { partial_ord(a,b).1 }
+
+
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
-pub enum RangeUsed {
+pub enum RangeUsed<T> {
     None,
     All,
-    Part(f64,f64)
+    Part(T,T)
 }
 
 // XXX could this be merged with native ranges?
-impl RangeUsed {
-    pub fn merge(&self, other: &RangeUsed) -> RangeUsed {
+impl<T: Clone+PartialOrd+Add<Output=T>+Mul<Output=T>> RangeUsed<T> {
+    pub fn merge(&self, other: &RangeUsed<T>) -> RangeUsed<T> {
         match (self,other) {
             (RangeUsed::All,_) => RangeUsed::All,
             (_,RangeUsed::All) => RangeUsed::All,
             (RangeUsed::None,x) => x.clone(),
             (x,RangeUsed::None) => x.clone(),
             (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => {
-                let (a1,b1) = if a1<b1 { (a1,b1) } else { (b1,a1) };
-                let (a2,b2) = if a2<b2 { (a2,b2) } else { (b2,a2) };
-                RangeUsed::Part(a1.min(*a2),b1.max(*b2))
+                let (a1,b1) = partial_ord(a1,b1);
+                let (a2,b2) = partial_ord(a2,b2);
+                RangeUsed::Part(partial_min(a1,a2).clone(),partial_max(b1,b2).clone())
             }
         }
     }
 
-    pub fn plus(&self, other: &RangeUsed) -> RangeUsed {
+    pub fn plus(&self, other: &RangeUsed<T>) -> RangeUsed<T> {
         match (self,other) {
             (RangeUsed::All,_) => RangeUsed::All,
             (_,RangeUsed::All) => RangeUsed::All,
             (RangeUsed::None,x) => x.clone(),
             (x,RangeUsed::None) => x.clone(),
-            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) => RangeUsed::Part(*a1+*a2,*b1+*b2)
+            (RangeUsed::Part(a1,b1), RangeUsed::Part(a2,b2)) =>
+                RangeUsed::Part(a1.clone()+a2.clone(),b1.clone()+b2.clone())
         }
     }
 
-    pub fn plus_scalar(&self, delta: f64) -> RangeUsed {
+    pub fn plus_scalar(&self, delta: T) -> RangeUsed<T> {
         match self {
             RangeUsed::None => RangeUsed::None,
             RangeUsed::All => RangeUsed::All,
-            RangeUsed::Part(a,b) => RangeUsed::Part(a+delta,b+delta)
+            RangeUsed::Part(a,b) => RangeUsed::Part(a.clone()+delta.clone(),b.clone()+delta)
         }
     }
 
-    pub fn scale(&self, mul: f64) -> RangeUsed {
+    pub fn scale(&self, mul: T) -> RangeUsed<T> {
         match self {
-            RangeUsed::Part(a,b) => RangeUsed::Part(a*mul,b*mul),
+            RangeUsed::Part(a,b) => RangeUsed::Part(a.clone()*mul.clone(),b.clone()*mul),
             x => x.clone()
         }
     }
 
-    pub fn pixel_range(&self, pixel: &RangeUsed, max_px_per_bp: f64) -> RangeUsed {
+    pub fn pixel_range(&self, pixel: &RangeUsed<T>, max_px_per_bp: T) -> RangeUsed<T> {
         pixel.plus(&self.scale(max_px_per_bp))
+    }
+
+    pub fn into<F,U>(&self, cb: F) -> RangeUsed<U> where F: Fn(&T) -> U {
+        match self {
+            RangeUsed::None => RangeUsed::None,
+            RangeUsed::All => RangeUsed::All,
+            RangeUsed::Part(a,b) => RangeUsed::Part(cb(a),cb(b))
+        }        
     }
 }

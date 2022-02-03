@@ -12,6 +12,7 @@ pub mod plumbing {
     pub mod onchange;
 }
 
+pub mod boom;
 pub mod cbor;
 pub mod refs;
 pub mod url;

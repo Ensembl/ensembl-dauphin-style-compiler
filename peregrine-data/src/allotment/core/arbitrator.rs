@@ -87,7 +87,7 @@ impl Arbitrator {
         self.position.insert((axis.clone(),name.to_string()),value);
     }
 
-    pub fn full_pixel_range(&self, base_range: &RangeUsed, pixel_range: &RangeUsed) -> RangeUsed {
+    pub fn full_pixel_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
         if let Some(max_px_per_bp) = self.max_px_per_bp {
             base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)
         } else {
