@@ -11,6 +11,7 @@ wasm-bindgen="*"
 serde="*"
 serde_cbor="*"
 serde_derive="*"
+bplustree="*"
 
 [dependencies.commander]
 version="*"

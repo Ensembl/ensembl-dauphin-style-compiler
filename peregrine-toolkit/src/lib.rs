@@ -15,3 +15,4 @@ pub mod plumbing {
 pub mod cbor;
 pub mod refs;
 pub mod url;
+pub mod watermark;
