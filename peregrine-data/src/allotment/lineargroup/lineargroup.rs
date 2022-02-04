@@ -19,10 +19,16 @@ pub trait LinearGroupHelper {
     fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<Self::Value>;
 }
 
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+
+identitynumber!(IDS);
+
 pub(crate) struct LinearGroup<C: LinearGroupHelper> where C::Value: 'static {
     geometry: LeafGeometry,
     entries: HashMap<C::Key,Arc<C::Value>>,
-    creator: Box<C>
+    creator: Box<C>,
+    id: u64
 }
 
 impl<C: LinearGroupHelper> LinearGroup<C> {
@@ -30,7 +36,8 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         LinearGroup {
             geometry: geometry.clone(),
             entries: HashMap::new(),
-            creator: Box::new(creator)
+            creator: Box::new(creator),
+            id: IDS.next()
         }
     }
 
@@ -64,6 +71,8 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
     }
 
     pub(crate) fn bump(&mut self, arbitrator: &mut Arbitrator) {
+        use web_sys::console;
+        console::log_1(&format!("LinearGroup bumping {}",self.id).into());
         for (_,entry) in &self.entries {
             entry.bump(arbitrator);
         }

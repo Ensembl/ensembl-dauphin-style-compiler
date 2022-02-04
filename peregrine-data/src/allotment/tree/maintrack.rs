@@ -10,10 +10,13 @@ use super::{leaftransformer::{LeafGeometry}, allotmentbox::{AllotmentBox, Allotm
  * where [depth] is the drawing priority, a possibly negative number
  */
 
+identitynumber!(IDS3);
+
 pub struct MainTrackRequest {
     metadata: AllotmentMetadata,
     header: Mutex<LinearGroup<BoxAllotmentLinearGroupHelper>>,
-    requests: Mutex<LinearGroup<CollideGroupLinearHelper>>
+    requests: Mutex<LinearGroup<CollideGroupLinearHelper>>,
+    id: u64
 }
 
 impl MainTrackRequest {
@@ -22,7 +25,8 @@ impl MainTrackRequest {
         MainTrackRequest {
             metadata: metadata.clone(),
             header: Mutex::new(LinearGroup::new(&window_geometry,BoxAllotmentLinearGroupHelper)),
-            requests: Mutex::new(LinearGroup::new(geometry,CollideGroupLinearHelper::new()))
+            requests: Mutex::new(LinearGroup::new(geometry,CollideGroupLinearHelper)),
+            id: IDS3.next()
         }
     }
 }
@@ -51,6 +55,8 @@ impl LinearGroupEntry for MainTrackRequest {
     }
 
     fn bump(&self, arbitrator: &mut Arbitrator) {
+        use web_sys::console;
+        console::log_1(&format!("MaintrackRequestEntry bump {}",self.id).into());
         lock!(self.requests).bump(arbitrator);
     }
 
@@ -76,17 +82,30 @@ impl LinearGroupEntry for MainTrackRequest {
     }
 }
 
-pub struct MainTrackLinearHelper;
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+
+pub struct MainTrackLinearHelper(u64);
+identitynumber!(IDS);
+
+impl MainTrackLinearHelper {
+    pub fn new() -> MainTrackLinearHelper {
+        MainTrackLinearHelper(IDS.next())
+    }
+}
 
 impl LinearGroupHelper for MainTrackLinearHelper {
     type Key = String;
     type Value = MainTrackRequest;
 
     fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<MainTrackRequest> {
+        use web_sys::console;
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-        Arc::new(MainTrackRequest::new(&metadata,geometry))
+        let out = Arc::new(MainTrackRequest::new(&metadata,geometry));
+        console::log_1(&format!("make_linear_group_entry for {} returning {}",self.0,out.id).into());
+        out
     }
 
     fn entry_key(&self, name: &str) -> String {
@@ -94,5 +113,8 @@ impl LinearGroupHelper for MainTrackLinearHelper {
         specifier.base().name().to_string()
     }
 
-    fn bump(&self, arbitrator: &mut Arbitrator) {}
+    fn bump(&self, arbitrator: &mut Arbitrator) {
+        use web_sys::console;
+        console::log_1(&format!("MainTrackLinearHelper bumping {}",self.0).into());
+    }
 }

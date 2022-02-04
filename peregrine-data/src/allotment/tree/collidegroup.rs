@@ -8,16 +8,14 @@ use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{All
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,
     requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafTransformer>>>>,
-    algorithm: CollisionAlgorithmHolder,
     bump_token: Mutex<Option<CollisionToken>>
 }
 
 impl CollideGroupRequest {
-    fn new(metadata: &AllotmentMetadata, algorithm: &CollisionAlgorithmHolder) -> CollideGroupRequest {
+    fn new(metadata: &AllotmentMetadata) -> CollideGroupRequest {
         CollideGroupRequest {
             metadata: metadata.clone(),
             requests: Mutex::new(HashMap::new()),
-            algorithm: algorithm.clone(),
             bump_token: Mutex::new(None)
         }
     }
@@ -83,7 +81,7 @@ impl LinearGroupEntry for CollideGroupRequest {
             max_height = max_height.max(request.max_y() as f64);
             range_used = range_used.merge(&full_range);
         }
-        self.algorithm.add_entry(&range_used,max_height);
+        arbitrator.bumper().add_entry(&range_used,max_height);
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
@@ -99,13 +97,7 @@ impl LinearGroupEntry for CollideGroupRequest {
     }
 }
 
-pub struct CollideGroupLinearHelper(CollisionAlgorithmHolder);
-
-impl CollideGroupLinearHelper {
-    pub fn new() -> CollideGroupLinearHelper {
-        CollideGroupLinearHelper(CollisionAlgorithmHolder::new())
-    }
-}
+pub struct CollideGroupLinearHelper;
 
 impl LinearGroupHelper for CollideGroupLinearHelper {
     type Key = Option<String>;
@@ -115,7 +107,7 @@ impl LinearGroupHelper for CollideGroupLinearHelper {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));
-        Arc::new(CollideGroupRequest::new(&metadata,&self.0))
+        Arc::new(CollideGroupRequest::new(&metadata))
     }
 
     fn entry_key(&self, name: &str) -> Option<String> {
@@ -124,6 +116,6 @@ impl LinearGroupHelper for CollideGroupLinearHelper {
     }
 
     fn bump(&self, arbitrator: &mut Arbitrator) {
-        self.0.bump();
+        arbitrator.bumper().bump();
     }
 }

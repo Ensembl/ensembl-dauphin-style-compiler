@@ -24,7 +24,9 @@ struct UniverseData {
     right: LinearGroup<BoxAllotmentLinearGroupHelper>,
     window: LinearGroup<BoxAllotmentLinearGroupHelper>,
     window_bottom: LinearGroup<BoxAllotmentLinearGroupHelper>,
-    playingfield: PlayingField
+    playingfield: PlayingField,
+    allotted: bool,
+    id: u64
 }
 
 impl UniverseData {
@@ -68,6 +70,13 @@ impl UniverseData {
     }
 
     fn allot(&mut self, extent: Option<&CarriageExtent>) {
+        use web_sys::console;
+        console::log_1(&format!("allot universe {}",self.id).into());
+        if self.allotted {
+            console::log_1(&format!("ALREADY ALLOTTED!").into());
+        }
+        self.allotted = true;
+
         let mut arbitrator = Arbitrator::new(extent);
 
         self.left.bump(&mut arbitrator);
@@ -139,6 +148,10 @@ impl UniverseData {
     fn playingfield(&self) -> &PlayingField { &self.playingfield }
 }
 
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+identitynumber!(IDS);
+
 #[derive(Clone)]
 pub struct Universe {
     data: Arc<Mutex<UniverseData>>,
@@ -156,9 +169,9 @@ impl Universe {
         let wintrack_bottom_geometry = LeafGeometry::new(CoordinateSystem::TrackingWindowBottom,false);
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                main: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
-                top_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
-                bottom_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
+                main: LinearGroup::new(&main_geometry,MainTrackLinearHelper::new()),
+                top_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper::new()),
+                bottom_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper::new()),
                 left: LinearGroup::new(&left_geometry,BoxAllotmentLinearGroupHelper),
                 right: LinearGroup::new(&right_geometry,BoxAllotmentLinearGroupHelper),
                 window: LinearGroup::new(&window_geometry,BoxAllotmentLinearGroupHelper),
@@ -166,7 +179,9 @@ impl Universe {
                 window_tracks: LinearGroup::new(&wintrack_geometry,BoxAllotmentLinearGroupHelper),
                 window_tracks_bottom: LinearGroup::new(&wintrack_bottom_geometry,BoxAllotmentLinearGroupHelper),
                 dustbin: Arc::new(AllotmentRequestImpl::new_dustbin()),
-                playingfield: PlayingField::empty()
+                playingfield: PlayingField::empty(),
+                allotted: false,
+                id: IDS.next()
             })),
             allotment_metadata: allotment_metadata.clone()
         }
