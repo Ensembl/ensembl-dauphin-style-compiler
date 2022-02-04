@@ -101,6 +101,8 @@ impl ShapeList {
     }
 
     pub fn new(builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> ShapeList {
+        use web_sys::console;
+        console::log_1(&format!("allot (shapelist)").into());
         builder.universe.allot(extent);
         ShapeList {
             universe: builder.universe.clone(),

@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::lock;
 
-use crate::CarriageExtent;
+use crate::{CarriageExtent, allotment::tree::collisionalgorithm::CollisionAlgorithmHolder};
 
 use super::rangeused::RangeUsed;
 
@@ -50,13 +50,12 @@ pub enum SymbolicAxis {
     ScreenVert
 }
 
-pub struct Arbitrator {
-    position: HashMap<(SymbolicAxis,String),DelayedValue>,
+struct BpPxConverter {
     max_px_per_bp: Option<f64>,
     bp_start: f64
 }
 
-impl Arbitrator {
+impl BpPxConverter {
     fn real_calc_max_px_per_bp(extent: &CarriageExtent) -> f64 {
         let bp_per_carriage = extent.train().scale().bp_in_carriage() as f64;
         let max_px_per_carriage = extent.train().pixel_size().max_px_per_carriage() as f64;
@@ -64,19 +63,57 @@ impl Arbitrator {
     }
 
     fn calc_max_px_per_bp(extent: Option<&CarriageExtent>) -> Option<f64> {
-        extent.map(|e| Arbitrator::real_calc_max_px_per_bp(e))
+        extent.map(|e| BpPxConverter::real_calc_max_px_per_bp(e))
     }
 
-    pub fn new(extent: Option<&CarriageExtent>) -> Arbitrator {
-        Arbitrator {
-            position: HashMap::new(),
-            max_px_per_bp: Arbitrator::calc_max_px_per_bp(extent),
+    fn new(extent: Option<&CarriageExtent>) -> BpPxConverter {
+        BpPxConverter {
+            max_px_per_bp: BpPxConverter::calc_max_px_per_bp(extent),
             bp_start: extent.map(|x| x.left_right().0).unwrap_or(0.)
         }
     }
 
+    pub fn full_pixel_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
+        if let Some(max_px_per_bp) = self.max_px_per_bp {
+            base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)
+        } else {
+            pixel_range.clone()
+        }
+    }
+}
+
+pub struct Arbitrator<'a> {
+    parent: Option<&'a mut Arbitrator<'a>>,
+    bumper: CollisionAlgorithmHolder,
+    position: HashMap<(SymbolicAxis,String),DelayedValue>,
+    bp_px: Arc<BpPxConverter>
+}
+
+impl<'a> Arbitrator<'a> {
+    pub fn new(extent: Option<&CarriageExtent>) -> Arbitrator {
+        Arbitrator {
+            parent: None,
+            bumper: CollisionAlgorithmHolder::new(),
+            position: HashMap::new(),
+            bp_px: Arc::new(BpPxConverter::new(extent)),
+        }
+    }
+
+    pub fn make_sub_arbitrator<'x: 'a>(&'x mut self) -> Arbitrator<'x> {
+        Arbitrator {
+            position: HashMap::new(),
+            bumper: CollisionAlgorithmHolder::new(),
+            bp_px: self.bp_px.clone(),
+            parent: Some(self)
+        }
+    }
+
+    pub fn bumper(&mut self) -> &mut CollisionAlgorithmHolder { &mut self.bumper }
+
     pub fn lookup_symbolic_delayed(&self, axis: &SymbolicAxis, name: &str) -> Option<&DelayedValue> {
-        self.position.get(&(axis.clone(),name.to_string()))
+        self.position.get(&(axis.clone(),name.to_string())).or_else(|| {
+            self.parent.as_ref().and_then(|p| p.lookup_symbolic_delayed(axis,name))
+        })
     }
 
     pub fn lookup_symbolic(&self, axis: &SymbolicAxis, name: &str) -> Option<i64> {
@@ -88,10 +125,6 @@ impl Arbitrator {
     }
 
     pub fn full_pixel_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
-        if let Some(max_px_per_bp) = self.max_px_per_bp {
-            base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)
-        } else {
-            pixel_range.clone()
-        }
+        self.bp_px.full_pixel_range(base_range,pixel_range)
     }
 }

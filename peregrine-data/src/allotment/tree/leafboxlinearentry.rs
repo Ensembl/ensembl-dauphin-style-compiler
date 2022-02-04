@@ -5,7 +5,7 @@ use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{All
 
 #[derive(Clone)]
 pub struct BoxLinearEntry {
-    request: Arc<AllotmentRequestImpl<LeafTransformer>>,
+    transformer: Arc<AllotmentRequestImpl<LeafTransformer>>,
     metadata: AllotmentMetadata,
     depth: i8,
     name_for_arbitrator: String
@@ -14,7 +14,7 @@ pub struct BoxLinearEntry {
 impl BoxLinearEntry {
     fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, geometry: &LeafGeometry) -> BoxLinearEntry {
         BoxLinearEntry {
-            request: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
+            transformer: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
             metadata: metadata.clone(),
             depth: spec.depth(),
             name_for_arbitrator: spec.name().to_string()
@@ -24,24 +24,24 @@ impl BoxLinearEntry {
 
 impl LinearGroupEntry for BoxLinearEntry {
     fn make_request(&self, _geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
-        Some(AllotmentRequest::upcast(self.request.clone()))
+        Some(AllotmentRequest::upcast(self.transformer.clone()))
     }
 
     fn bump(&self, arbitrator: &mut Arbitrator) {}
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.request.max_y()));
+        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.transformer.max_y()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
-        self.request.set_allotment(Arc::new(LeafTransformer::new(self.request.geometry(),&allot_box,self.depth)));
+        self.transformer.set_allotment(Arc::new(LeafTransformer::new(self.transformer.geometry(),&allot_box,self.depth)));
         allot_box
     }
 
-    fn priority(&self) -> i64 { self.request.metadata().priority() }
+    fn priority(&self) -> i64 { self.transformer.metadata().priority() }
 
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         let secret = self.metadata.get_i64("secret-track").unwrap_or(0) != 0;
         if secret { return; }
-        if let Some(allotment) = self.request.transformer() {
+        if let Some(allotment) = self.transformer.transformer() {
             let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
             allotment.add_transform_metadata(&mut full_metadata);
             out.push(AllotmentMetadata::new(full_metadata));

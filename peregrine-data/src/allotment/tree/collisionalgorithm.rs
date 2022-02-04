@@ -3,19 +3,40 @@ use peregrine_toolkit::lock;
 
 use crate::allotment::core::rangeused::RangeUsed;
 use peregrine_toolkit::watermark::Watermark;
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
 
-pub(crate) enum CollisionToken {
-    All(usize),
-    Part(usize),
-    None
+#[derive(Clone)]
+pub(crate) struct CollisionToken(Arc<Mutex<f64>>);
+
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for CollisionToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",*lock!(self.0))
+    }
 }
 
-#[cfg_attr(debug_assertions,derive(Debug))]
+impl CollisionToken {
+    fn new(value: f64) -> CollisionToken {
+        CollisionToken(Arc::new(Mutex::new(value)))
+    }
+
+    fn set(&self, value: f64) { *lock!(self.0) = value; }
+    pub fn get(&self) -> f64 { *lock!(self.0) }
+}
+
 struct Part {
     tiebreak: usize,
     interval: Range<i64>,
-    offset: Option<f64>,
-    height: f64
+    height: f64,
+    token: CollisionToken
+}
+
+#[cfg(debug_assertions)]
+impl std::fmt::Debug for Part {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"Part{}({}-{}:{})={:?}",self.tiebreak,self.interval.start,self.interval.end,self.height,self.token)
+    }
 }
 
 impl Eq for Part {}
@@ -44,76 +65,85 @@ impl Ord for Part {
     }
 }
 
+identitynumber!(IDS);
+
 struct CollisionAlgorithm {
+    bumped: bool,
     all_wm: f64,
-    alls: Vec<f64>,
-    parts: Vec<Part>
+    parts: Vec<Part>,
+    xxx_tokens: Vec<CollisionToken>,
+    id: u64
 }
 
 impl CollisionAlgorithm {
     fn new() -> CollisionAlgorithm {
         CollisionAlgorithm {
+            bumped: false,
             all_wm: 0.,
-            alls: vec![],
-            parts: vec![]
+            parts: vec![],
+            xxx_tokens: vec![],
+            id: IDS.next()
         }
     }
 
     fn add_entry(&mut self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
         match range {
-            RangeUsed::None => { CollisionToken::None },
+            RangeUsed::None => { CollisionToken::new(0.) },
             RangeUsed::All => {
-                self.alls.push(self.all_wm);
                 self.all_wm += height;
-                CollisionToken::All(&self.alls.len()-1)
+                CollisionToken::new(self.all_wm)
             },
             RangeUsed::Part(a,b) => {
                 let interval = (*a as i64)..(*b as i64);
-                self.parts.push(Part { interval, offset: None, height, tiebreak: self.parts.len() });
-                CollisionToken::Part(&self.parts.len()-1)
+                let token = CollisionToken::new(0.);
+                self.parts.push(Part {
+                    interval,
+                    height, 
+                    tiebreak: self.parts.len(),
+                    token: token.clone()
+                });
+                self.xxx_tokens.push(token.clone());
+                token
             }
         }
     }
 
-    fn position(&self, token: &CollisionToken) -> f64 {
-        match token {
-            CollisionToken::All(offset) => self.alls[*offset],
-            CollisionToken::Part(offset) => self.parts[*offset].offset.unwrap_or(0.),
-            CollisionToken::None => 0.
-        }
-    }
-
     fn bump(&mut self) {
+        use web_sys::console;
+        console::log_1(&format!("bumping {}!",self.id).into());
+        if self.bumped {
+            console::log_1(&format!("ALREADY BUMPED {}!",self.id).into());
+        }
+        self.bumped = true;
         /* sort parts into decreasing size order */
         self.parts.sort();
         self.parts.reverse();
         let mut watermark = Watermark::new();
         for part in &mut self.parts {
-            part.offset = Some(watermark.add(part.interval.start,part.interval.end,part.height) + self.all_wm);
+            part.token.set(watermark.add(part.interval.start,part.interval.end,part.height) + self.all_wm);
         }
         self.all_wm += watermark.max_height();
-        use web_sys::console;
-        console::log_1(&format!("bumping {:?} {:?}",self.alls,self.parts).into());
+        console::log_1(&format!("bumping {:?} {:?} all_wm={}",self.xxx_tokens,self.parts,self.all_wm).into());
     }
 }
 
+identitynumber!(IDS2);
+
 #[derive(Clone)]
-pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>);
+pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>,u64);
 
 impl CollisionAlgorithmHolder {
-    pub(super) fn new() -> CollisionAlgorithmHolder {
-        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())))
+    pub(crate) fn new() -> CollisionAlgorithmHolder {
+        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())),IDS2.next())
     }
 
-    pub(super) fn add_entry(&self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
+    pub(crate) fn add_entry(&self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
         lock!(self.0).add_entry(range,height)
     }
 
-    pub(super) fn position(&self, token: &CollisionToken) -> f64 {
-        lock!(self.0).position(token)
-    }
-
-    pub(super) fn bump(&self) {
+    pub(crate) fn bump(&self) {
+        use web_sys::console;
+        console::log_1(&format!("bumping holder {}",self.1).into());
         lock!(self.0).bump();
     }
 }
