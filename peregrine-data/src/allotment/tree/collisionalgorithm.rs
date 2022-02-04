@@ -3,8 +3,6 @@ use peregrine_toolkit::lock;
 
 use crate::allotment::core::rangeused::RangeUsed;
 use peregrine_toolkit::watermark::Watermark;
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
 
 #[derive(Clone)]
 pub(crate) struct CollisionToken(Arc<Mutex<f64>>);
@@ -65,24 +63,16 @@ impl Ord for Part {
     }
 }
 
-identitynumber!(IDS);
-
 struct CollisionAlgorithm {
-    bumped: bool,
-    all_wm: f64,
-    parts: Vec<Part>,
-    xxx_tokens: Vec<CollisionToken>,
-    id: u64
+    watermark: f64,
+    parts: Vec<Part>
 }
 
 impl CollisionAlgorithm {
     fn new() -> CollisionAlgorithm {
         CollisionAlgorithm {
-            bumped: false,
-            all_wm: 0.,
-            parts: vec![],
-            xxx_tokens: vec![],
-            id: IDS.next()
+            watermark: 0.,
+            parts: vec![]
         }
     }
 
@@ -90,8 +80,8 @@ impl CollisionAlgorithm {
         match range {
             RangeUsed::None => { CollisionToken::new(0.) },
             RangeUsed::All => {
-                self.all_wm += height;
-                CollisionToken::new(self.all_wm)
+                self.watermark += height;
+                CollisionToken::new(self.watermark)
             },
             RangeUsed::Part(a,b) => {
                 let interval = (*a as i64)..(*b as i64);
@@ -102,39 +92,29 @@ impl CollisionAlgorithm {
                     tiebreak: self.parts.len(),
                     token: token.clone()
                 });
-                self.xxx_tokens.push(token.clone());
                 token
             }
         }
     }
 
     fn bump(&mut self) {
-        use web_sys::console;
-        console::log_1(&format!("bumping {}!",self.id).into());
-        if self.bumped {
-            console::log_1(&format!("ALREADY BUMPED {}!",self.id).into());
-        }
-        self.bumped = true;
         /* sort parts into decreasing size order */
         self.parts.sort();
         self.parts.reverse();
         let mut watermark = Watermark::new();
         for part in &mut self.parts {
-            part.token.set(watermark.add(part.interval.start,part.interval.end,part.height) + self.all_wm);
+            part.token.set(watermark.add(part.interval.start,part.interval.end,part.height) + self.watermark);
         }
-        self.all_wm += watermark.max_height();
-        console::log_1(&format!("bumping {:?} {:?} all_wm={}",self.xxx_tokens,self.parts,self.all_wm).into());
+        self.watermark += watermark.max_height();
     }
 }
 
-identitynumber!(IDS2);
-
 #[derive(Clone)]
-pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>,u64);
+pub struct CollisionAlgorithmHolder(Arc<Mutex<CollisionAlgorithm>>);
 
 impl CollisionAlgorithmHolder {
     pub(crate) fn new() -> CollisionAlgorithmHolder {
-        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())),IDS2.next())
+        CollisionAlgorithmHolder(Arc::new(Mutex::new(CollisionAlgorithm::new())))
     }
 
     pub(crate) fn add_entry(&self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
@@ -142,8 +122,6 @@ impl CollisionAlgorithmHolder {
     }
 
     pub(crate) fn bump(&self) {
-        use web_sys::console;
-        console::log_1(&format!("bumping holder {}",self.1).into());
         lock!(self.0).bump();
     }
 }

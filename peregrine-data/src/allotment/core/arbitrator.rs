@@ -83,7 +83,7 @@ impl BpPxConverter {
 }
 
 pub struct Arbitrator<'a> {
-    parent: Option<&'a mut Arbitrator<'a>>,
+    parent: Option<&'a Arbitrator<'a>>,
     bumper: CollisionAlgorithmHolder,
     position: HashMap<(SymbolicAxis,String),DelayedValue>,
     bp_px: Arc<BpPxConverter>
@@ -99,7 +99,7 @@ impl<'a> Arbitrator<'a> {
         }
     }
 
-    pub fn make_sub_arbitrator<'x: 'a>(&'x mut self) -> Arbitrator<'x> {
+    pub fn make_sub_arbitrator<'x: 'a>(&'x self) -> Arbitrator<'x> {
         Arbitrator {
             position: HashMap::new(),
             bumper: CollisionAlgorithmHolder::new(),

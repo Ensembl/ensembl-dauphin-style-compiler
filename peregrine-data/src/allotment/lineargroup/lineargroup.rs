@@ -14,21 +14,16 @@ pub trait LinearGroupHelper {
     type Key : PartialEq + Eq + Hash + Clone;
     type Value: LinearGroupEntry + 'static;
 
+    fn pre_bump<'a>(&self, _arbitrator: &'a Arbitrator<'a>) -> Option<Arbitrator<'a>> { None }
     fn bump(&self, arbitrator: &mut Arbitrator);
     fn entry_key(&self, full_name: &str) -> Self::Key;
     fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<Self::Value>;
 }
 
-use lazy_static::lazy_static;
-use identitynumber::identitynumber;
-
-identitynumber!(IDS);
-
 pub(crate) struct LinearGroup<C: LinearGroupHelper> where C::Value: 'static {
     geometry: LeafGeometry,
     entries: HashMap<C::Key,Arc<C::Value>>,
-    creator: Box<C>,
-    id: u64
+    creator: Box<C>
 }
 
 impl<C: LinearGroupHelper> LinearGroup<C> {
@@ -36,8 +31,7 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         LinearGroup {
             geometry: geometry.clone(),
             entries: HashMap::new(),
-            creator: Box::new(creator),
-            id: IDS.next()
+            creator: Box::new(creator)
         }
     }
 
@@ -70,13 +64,19 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    pub(crate) fn bump(&mut self, arbitrator: &mut Arbitrator) {
-        use web_sys::console;
-        console::log_1(&format!("LinearGroup bumping {}",self.id).into());
+    fn real_bump(&mut self, arbitrator: &mut Arbitrator) {
         for (_,entry) in &self.entries {
             entry.bump(arbitrator);
         }
         self.creator.bump(arbitrator);
+    }
+
+    pub(crate) fn bump(&mut self, arbitrator: &mut Arbitrator) {
+        if let Some(mut sub_arbitrator) = self.creator.pre_bump(arbitrator) {
+            self.real_bump(&mut sub_arbitrator);
+        } else {
+            self.real_bump(arbitrator);
+        }
     }
 
     pub(crate) fn allot(&mut self, arbitrator: &mut Arbitrator) -> Vec<AllotmentBox> {

@@ -115,6 +115,10 @@ impl LinearGroupHelper for CollideGroupLinearHelper {
         specifier.base().group().clone()
     }
 
+    fn pre_bump<'a>(&self, arbitrator: &'a Arbitrator<'a>) -> Option<Arbitrator<'a>> {
+        Some(arbitrator.make_sub_arbitrator())
+    }
+
     fn bump(&self, arbitrator: &mut Arbitrator) {
         arbitrator.bumper().bump();
     }
