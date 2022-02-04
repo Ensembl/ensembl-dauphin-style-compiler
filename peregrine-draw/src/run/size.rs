@@ -56,6 +56,11 @@ impl SizeManagerState {
     fn check_container_size(&mut self) -> bool {
         let size = self.dom.canvas_frame().get_bounding_client_rect();
         let (x,y) = (size.width().round() as u32,size.height().round() as u32);
+        if x == 0 || y == 0 {
+            use web_sys::console;
+            console::log_1(&format!("browser disappeared XXX signal this").into());
+            return false;
+        }
         let out = self.container_size.map(|(old_x,old_y)| {
             old_x != x || old_y != y
         }).unwrap_or(true);
