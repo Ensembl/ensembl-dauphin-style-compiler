@@ -27,13 +27,6 @@ impl CollideGroupRequest {
         }
     }
 
-    fn calculate_offset(&self, specifier: &MTSpecifier) -> i64 {
-        let group = specifier.base().group();
-        let mut hasher = DefaultHasher::new();
-        group.hash(&mut hasher);
-        if hasher.finish() % 2 == 0 { 24 } else { 0 }
-    }
-
     fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut box_builder = AllotmentBoxBuilder::empty(request.max_y());
         if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
@@ -47,7 +40,7 @@ impl CollideGroupRequest {
 
     fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut builder = AllotmentBoxBuilder::empty(0);
-        builder.add_padding_top(self.calculate_offset(specifier));
+        builder.add_padding_top(lock!(self.bump_token).as_ref().map(|x| x.get()).unwrap_or(0.) as i64);
         builder.append(self.make_content_box(specifier,request,arbitrator));
         AllotmentBox::new(builder)
     }
@@ -81,7 +74,7 @@ impl LinearGroupEntry for CollideGroupRequest {
             max_height = max_height.max(request.max_y() as f64);
             range_used = range_used.merge(&full_range);
         }
-        arbitrator.bumper().add_entry(&range_used,max_height);
+        *lock!(self.bump_token) = Some(arbitrator.bumper().add_entry(&range_used,max_height));
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
