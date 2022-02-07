@@ -1,9 +1,10 @@
 use std::ops::{Add, Div};
 use std::sync::Arc;
+use std::hash::Hash;
 
 use crate::spacebase::parametric::Flattenable;
 use crate::util::eachorevery::{EachOrEveryMut, EachOrEveryGroupCompatible};
-use crate::{EachOrEvery, ParameterValue, Substitutions, DataFilter, AllotmentRequest};
+use crate::{EachOrEvery, ParameterValue, Substitutions, DataFilter, AllotmentRequest, SpaceBase, HoleySpaceBase};
 
 use super::parametric::{ParametricType};
 
@@ -151,6 +152,13 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         }
     }
 
+    pub fn xxx_to_original(self) -> HoleySpaceBase<X> {
+        match self {
+            HoleySpaceBase2::Parametric(x) => HoleySpaceBase::Parametric(x.xxx_to_original()),
+            HoleySpaceBase2::Simple(x) => HoleySpaceBase::Simple(x.xxx_to_original()),
+        }
+    }
+
     pub fn len(&self) -> usize {
         match self {
             HoleySpaceBase2::Simple(x) => x.len(),
@@ -171,6 +179,21 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
                 x.make_base_filter(min_value,max_value),
             HoleySpaceBase2::Parametric(x) =>
                 x.make_base_filter(ParameterValue::Constant(min_value),ParameterValue::Constant(max_value))
+        }
+    }
+
+    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
+        match self {
+            HoleySpaceBase2::Simple(x) => x.allotment.demerge(cb),
+            HoleySpaceBase2::Parametric(x) => x.allotment.demerge(|x| cb(x.param_default()))
+        }
+    }
+
+    // XXX should allow parameterisable Allotments, as long as they don't change CoordSystem.
+    pub fn allotments(&self) -> EachOrEvery<Y> {
+        match self {
+            HoleySpaceBase2::Simple(x) => x.allotments().clone(),
+            HoleySpaceBase2::Parametric(x) => x.allotments().map(|x| x.param_default().clone())
         }
     }
 }
@@ -233,6 +256,61 @@ impl<X: Clone, Y: Clone> PartialSpaceBase2<X,Y> {
     }
 }
 
+fn xxx_to_eoe<X: PartialEq>(mut input: Vec<X>) -> EachOrEvery<X> {
+    let mut single_value = None;
+    for v in &input {
+        if let Some(old) = single_value {
+            if old != v { return EachOrEvery::Each(Arc::new(input)); }
+        } else {
+            single_value = Some(v);
+        }
+    }
+    if let Some(v) = input.pop() {
+        EachOrEvery::Every(v)
+    } else {
+        EachOrEvery::Each(Arc::new(vec![]))
+    }
+}
+
+fn xxx_from_eoe<X: Clone>(input: EachOrEvery<X>) -> Vec<X> {
+    match input {
+        EachOrEvery::Each(mut x) => Arc::make_mut(&mut x).clone(),
+        EachOrEvery::Every(x) => vec![x]
+    }
+}
+
+impl<X: Clone + PartialEq, Y: Clone> SpaceBase2<X,Y> {
+    pub fn xxx_from_original(mut positions: SpaceBase<X>, allotments: EachOrEvery<Y>) -> SpaceBase2<X,Y> {
+        if let Some(a_len) = allotments.len() {
+            if a_len != 0 {
+                return SpaceBase2 {
+                    base: xxx_to_eoe(Arc::make_mut(&mut positions.base).clone()),
+                    normal: xxx_to_eoe(Arc::make_mut(&mut positions.normal).clone()),
+                    tangent: xxx_to_eoe(Arc::make_mut(&mut positions.tangent).clone()),
+                    allotment: allotments,
+                    len: a_len.max(positions.len())
+                };
+            }
+        }
+        SpaceBase2 {
+            base: EachOrEvery::Each(Arc::new(vec![])),
+            normal:EachOrEvery::Each(Arc::new(vec![])),
+            tangent: EachOrEvery::Each(Arc::new(vec![])),
+            allotment: allotments,
+            len: 0
+        }
+    }
+
+    pub fn xxx_to_original(self) -> SpaceBase<X> {
+        SpaceBase {
+            base: Arc::new(xxx_from_eoe(self.base)),
+            normal: Arc::new(xxx_from_eoe(self.normal)),
+            tangent: Arc::new(xxx_from_eoe(self.tangent)),
+            max_len: self.len
+        }
+    }
+}
+
 impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
     pub fn len(&self) -> usize { self.len }
 
@@ -260,6 +338,8 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         out.len = if let Some(len) = compat.len() { len } else { return None; };
         Some(out)
     }
+
+    pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
 
     pub fn iter<'a>(&'a self) -> SpaceBase2Iterator<'a,X,Y> {
         let base = self.base.iter(self.len).unwrap();
@@ -294,6 +374,17 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
             allotment: self.allotment.map(&cb2),
             len: self.len
         }
+    }
+
+    pub fn map_all_results<F,G,A: Clone,B: Clone,E>(&mut self, cb: F, cb2: G) -> Result<SpaceBase2<A,B>,E> 
+                where F: Fn(&X) -> Result<A,E>, G: Fn(&Y) -> Result<B,E> {
+        Ok(SpaceBase2 {
+            base: self.base.map_results(&cb)?,
+            tangent: self.tangent.map_results(&cb)?,
+            normal: self.normal.map_results(&cb)?,
+            allotment: self.allotment.map_results(&cb2)?,
+            len: self.len
+        })
     }
 
     pub fn update_tangent<'a,F>(&mut self, cb: F) where F: FnMut(&mut X) {

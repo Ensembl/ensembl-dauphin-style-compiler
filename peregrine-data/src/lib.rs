@@ -163,6 +163,7 @@ pub(crate) mod spacebase {
 
     pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
     pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
+    pub use self::spacebase2::{ SpaceBase2, HoleySpaceBase2 };
     pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
 }
 
@@ -236,7 +237,8 @@ pub use self::util::eachorevery::EachOrEvery;
 pub use self::spacebase::{ 
     SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
     SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
-    SpaceBaseParameterLocation, HollowEdge, Variable
+    SpaceBaseParameterLocation, HollowEdge, Variable,
+    SpaceBase2, HoleySpaceBase2
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;
