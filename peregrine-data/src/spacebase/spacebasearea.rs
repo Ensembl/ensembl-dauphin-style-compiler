@@ -43,12 +43,12 @@ impl<X: Clone> ParametricType<SpaceBaseAreaParameterLocation> for SpaceBaseArea<
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBaseArea {
-    Simple(SpaceBaseArea<f64>),
-    Parametric(SpaceBaseArea<ParameterValue<f64>>)
+pub enum HoleySpaceBaseArea<X: Clone> {
+    Simple(SpaceBaseArea<X>),
+    Parametric(SpaceBaseArea<ParameterValue<X>>)
 }
 
-impl HoleySpaceBaseArea {
+impl<X: Clone + PartialOrd> HoleySpaceBaseArea<X> {
     pub fn len(&self) -> usize {
         match self {
             HoleySpaceBaseArea::Simple(x) => x.len(),
@@ -56,14 +56,14 @@ impl HoleySpaceBaseArea {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea {
+    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea<X> {
         match self {
             HoleySpaceBaseArea::Simple(x) => HoleySpaceBaseArea::Simple(x.filter(filter)),
             HoleySpaceBaseArea::Parametric(x) => HoleySpaceBaseArea::Parametric(x.filter(filter))
         }
     }
 
-    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
         match self {
             HoleySpaceBaseArea::Simple(x) =>
                 x.make_base_filter(min_value,max_value),
@@ -73,11 +73,11 @@ impl HoleySpaceBaseArea {
     }
 }
 
-impl Flattenable for HoleySpaceBaseArea {
+impl<X: Clone> Flattenable for HoleySpaceBaseArea<X> {
     type Location = SpaceBaseAreaParameterLocation;
-    type Target = SpaceBaseArea<f64>;
+    type Target = SpaceBaseArea<X>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<f64> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<X> where F: Fn(Self::Location) -> L {
         match self {
             HoleySpaceBaseArea::Simple(x) => x.clone(),
             HoleySpaceBaseArea::Parametric(x) => x.flatten(subs,cb)

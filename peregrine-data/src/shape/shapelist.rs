@@ -51,17 +51,17 @@ impl ShapeListBuilder {
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         self.extend(RectangleShape::new(area,patina,allotments)?);
         Ok(())
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
+    pub fn add_text(&mut self, position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         self.extend(TextShape::new(position,pen,text,allotments)?);
         Ok(())
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
+    pub fn add_image(&mut self, position: HoleySpaceBase<f64>, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         self.extend(ImageShape::new(position,images,allotments)?);
         Ok(())
     }

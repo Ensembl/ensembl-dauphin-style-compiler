@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::spacebase::parametric::Flattenable;
 use crate::util::eachorevery::{EachOrEveryMut, EachOrEveryGroupCompatible};
-use crate::{EachOrEvery, ParameterValue, Substitutions, DataFilter};
+use crate::{EachOrEvery, ParameterValue, Substitutions, DataFilter, AllotmentRequest};
 
 use super::parametric::{ParametricType};
 
@@ -136,17 +136,17 @@ impl<X,Y: Clone> ParametricType<SpaceBase2AllotmentParameterLocation> for SpaceB
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBase2 {
-    Simple(SpaceBase2<f64,String>),
-    Parametric(SpaceBase2<ParameterValue<f64>,ParameterValue<String>>)
+pub enum HoleySpaceBase2<X: Clone,Y: Clone> {
+    Simple(SpaceBase2<X,Y>),
+    Parametric(SpaceBase2<ParameterValue<X>,ParameterValue<Y>>)
 }
 
-impl HoleySpaceBase2 {
-    pub fn default_values(&self) -> SpaceBase2<f64,String> {
+impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
+    pub fn default_values(&self) -> SpaceBase2<X,Y> {
         match self {
             HoleySpaceBase2::Simple(x) => x.clone(),
             HoleySpaceBase2::Parametric(x) => {
-                x.clone().map_all(|x| *x.param_default(),|y| y.param_default().clone())
+                x.clone().map_all(|x| x.param_default().clone(),|y| y.param_default().clone())
             }
         }
     }
@@ -158,14 +158,14 @@ impl HoleySpaceBase2 {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBase2 {
+    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBase2<X,Y> {
         match self {
             HoleySpaceBase2::Simple(x) => HoleySpaceBase2::Simple(x.filter(filter)),
             HoleySpaceBase2::Parametric(x) => HoleySpaceBase2::Parametric(x.filter(filter))
         }
     }
 
-    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
         match self {
             HoleySpaceBase2::Simple(x) =>
                 x.make_base_filter(min_value,max_value),
@@ -175,11 +175,11 @@ impl HoleySpaceBase2 {
     }
 }
 
-impl Flattenable for HoleySpaceBase2 {
+impl<X: Clone,Y: Clone> Flattenable for HoleySpaceBase2<X,Y> {
     type Location = SpaceBase2ParameterLocation;
-    type Target = SpaceBase2<f64,String>;
+    type Target = SpaceBase2<X,Y>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<f64,String> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<X,Y> where F: Fn(Self::Location) -> L {
         match self {
             HoleySpaceBase2::Simple(x) => x.clone(),
             HoleySpaceBase2::Parametric(x) => x.flatten(subs,cb)
@@ -216,8 +216,6 @@ impl<X: Clone,Y: Clone> Clone for SpaceBase2<X,Y> {
 }
 
 pub struct PartialSpaceBase2<X,Y>(SpaceBase2<X,Y>);
-
-
 
 impl<X: Clone, Y: Clone> PartialSpaceBase2<X,Y> {
     pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> PartialSpaceBase2<X,Y> {

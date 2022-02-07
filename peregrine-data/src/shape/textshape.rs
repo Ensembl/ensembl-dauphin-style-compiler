@@ -4,20 +4,20 @@ use std::hash::Hash;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TextShape {
-    position: HoleySpaceBase,
+    position: HoleySpaceBase<f64>,
     pen: Pen,
     text: EachOrEvery<String>
 }
 
 impl TextShape {
-    pub fn new_details(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>) -> Option<TextShape> {
+    pub fn new_details(position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>) -> Option<TextShape> {
         if !text.compatible(position.len()) { return None; }
         Some(TextShape {
             position, pen, text
         })
     }
 
-    pub fn new(position: HoleySpaceBase, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
         let mut out = vec![];
         let len = position.len();
         let details = eoe_throw("new_text",TextShape::new_details(position,pen,text))?;
@@ -33,7 +33,7 @@ impl TextShape {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn pen(&self) -> &Pen { &self.pen }
-    pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
+    pub fn holey_position(&self) -> &HoleySpaceBase<f64> { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {

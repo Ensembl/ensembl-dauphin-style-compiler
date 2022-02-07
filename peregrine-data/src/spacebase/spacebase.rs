@@ -99,17 +99,17 @@ impl<X: Clone> ParametricType<SpaceBaseParameterLocation> for SpaceBase<X> {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBase {
-    Simple(SpaceBase<f64>),
-    Parametric(SpaceBase<ParameterValue<f64>>)
+pub enum HoleySpaceBase<X: Clone> {
+    Simple(SpaceBase<X>),
+    Parametric(SpaceBase<ParameterValue<X>>)
 }
 
-impl HoleySpaceBase {
-    pub fn default_values(&self) -> SpaceBase<f64> {
+impl<X: Clone + PartialOrd> HoleySpaceBase<X> {
+    pub fn default_values(&self) -> SpaceBase<X> {
         match self {
             HoleySpaceBase::Simple(x) => x.clone(),
             HoleySpaceBase::Parametric(x) => {
-                x.clone().map_into(|x| *x.param_default())
+                x.clone().map_into(|x| x.param_default().clone())
             }
         }
     }
@@ -121,14 +121,14 @@ impl HoleySpaceBase {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBase {
+    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBase<X> {
         match self {
             HoleySpaceBase::Simple(x) => HoleySpaceBase::Simple(x.filter(filter)),
             HoleySpaceBase::Parametric(x) => HoleySpaceBase::Parametric(x.filter(filter))
         }
     }
 
-    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
         match self {
             HoleySpaceBase::Simple(x) =>
                 x.make_base_filter(min_value,max_value),
@@ -138,11 +138,11 @@ impl HoleySpaceBase {
     }
 }
 
-impl Flattenable for HoleySpaceBase {
+impl<X: Clone> Flattenable for HoleySpaceBase<X> {
     type Location = SpaceBaseParameterLocation;
-    type Target = SpaceBase<f64>;
+    type Target = SpaceBase<X>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<f64> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(Self::Location) -> L {
         match self {
             HoleySpaceBase::Simple(x) => x.clone(),
             HoleySpaceBase::Parametric(x) => x.flatten(subs,cb)

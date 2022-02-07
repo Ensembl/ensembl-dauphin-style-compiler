@@ -4,19 +4,19 @@ use std::hash::Hash;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ImageShape {
-    position: HoleySpaceBase,
+    position: HoleySpaceBase<f64>,
     names: EachOrEvery<String>
 }
 
 impl ImageShape {
-    pub fn new_details(position: HoleySpaceBase, names: EachOrEvery<String>) -> Option<ImageShape> {
+    pub fn new_details(position: HoleySpaceBase<f64>, names: EachOrEvery<String>) -> Option<ImageShape> {
         if !names.compatible(position.len()) { return None; }
         Some(ImageShape {
             position, names
         })
     }
 
-    pub fn new(position: HoleySpaceBase, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
         let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
@@ -32,7 +32,7 @@ impl ImageShape {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
-    pub fn holey_position(&self) -> &HoleySpaceBase { &self.position }
+    pub fn holey_position(&self) -> &HoleySpaceBase<f64> { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {

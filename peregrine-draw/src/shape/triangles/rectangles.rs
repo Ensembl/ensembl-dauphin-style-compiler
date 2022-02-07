@@ -63,13 +63,13 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea, allotments: &EachOrEvery<Allotment>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea<f64>, allotments: &EachOrEvery<Allotment>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,subs,edge.clone());
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &EachOrEvery<Allotment>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase<f64>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &EachOrEvery<Allotment>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,subs,x_sizes,y_sizes);
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,left,hollow,kind)

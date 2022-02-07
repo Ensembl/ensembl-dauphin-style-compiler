@@ -4,19 +4,19 @@ use std::hash::Hash;
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RectangleShape {
-    area: HoleySpaceBaseArea,
+    area: HoleySpaceBaseArea<f64>,
     patina: Patina
 }
 
 impl RectangleShape {
-    pub fn new_details(area: HoleySpaceBaseArea, patina: Patina) -> Option<RectangleShape> {
+    pub fn new_details(area: HoleySpaceBaseArea<f64>, patina: Patina) -> Option<RectangleShape> {
         if !patina.compatible(area.len()) { return None; }
         Some(RectangleShape {
             area, patina
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
         let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina))?;
@@ -32,7 +32,7 @@ impl RectangleShape {
 
     pub fn len(&self) -> usize { self.area.len() }
     pub fn patina(&self) -> &Patina { &self.patina }
-    pub fn holey_area(&self) -> &HoleySpaceBaseArea { &self.area }
+    pub fn holey_area(&self) -> &HoleySpaceBaseArea<f64> { &self.area }
     pub fn area(&self) -> SpaceBaseArea<f64> { self.area.extract().0 }
 
     pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape {

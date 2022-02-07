@@ -1,5 +1,5 @@
 use std::{ops::{Add, Div, Sub}, sync::Arc};
-use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}};
+use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}, AllotmentRequest};
 use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}, spacebase2::{SpaceBase2, SpaceBase2ParameterLocation, SpaceBase2NumericParameterLocation, SpaceBase2AllotmentParameterLocation, SpaceBase2Iterator, SpaceBase2PointRef, PartialSpaceBase2}};
 
 pub struct SpaceBaseArea2<X,Y>(SpaceBase2<X,Y>,SpaceBase2<X,Y>,usize);
@@ -57,12 +57,12 @@ impl<X: Clone, Y: Clone> ParametricType<SpaceBaseArea2AllotmentParameterLocation
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBaseArea2 {
-    Simple(SpaceBaseArea2<f64,String>),
-    Parametric(SpaceBaseArea2<ParameterValue<f64>,ParameterValue<String>>)
+pub enum HoleySpaceBaseArea2<X: Clone,Y: Clone> {
+    Simple(SpaceBaseArea2<X,Y>),
+    Parametric(SpaceBaseArea2<ParameterValue<X>,ParameterValue<Y>>)
 }
 
-impl HoleySpaceBaseArea2 {
+impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
     pub fn len(&self) -> usize {
         match self {
             HoleySpaceBaseArea2::Simple(x) => x.len(),
@@ -70,14 +70,14 @@ impl HoleySpaceBaseArea2 {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea2 {
+    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea2<X,Y> {
         match self {
             HoleySpaceBaseArea2::Simple(x) => HoleySpaceBaseArea2::Simple(x.filter(filter)),
             HoleySpaceBaseArea2::Parametric(x) => HoleySpaceBaseArea2::Parametric(x.filter(filter))
         }
     }
 
-    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
         match self {
             HoleySpaceBaseArea2::Simple(x) =>
                 x.make_base_filter(min_value,max_value),
@@ -100,11 +100,11 @@ impl<X: Clone, Y: Clone> SpaceBaseArea2<ParameterValue<X>,ParameterValue<Y>> {
     }
 }
 
-impl Flattenable for HoleySpaceBaseArea2 {
+impl<X: Clone,Y: Clone> Flattenable for HoleySpaceBaseArea2<X,Y> {
     type Location = SpaceBaseArea2ParameterLocation;
-    type Target = SpaceBaseArea2<f64,String>;
+    type Target = SpaceBaseArea2<X,Y>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<f64,String> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(Self::Location) -> L {
         match self {
             HoleySpaceBaseArea2::Simple(x) => x.clone(),
             HoleySpaceBaseArea2::Parametric(x) => x.flatten(subs,cb)
