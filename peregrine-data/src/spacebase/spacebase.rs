@@ -62,19 +62,18 @@ pub enum SpaceBaseParameterLocation {
 impl<X: Clone> SpaceBase<ParameterValue<X>> {
     pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(SpaceBaseParameterLocation) -> L {
         SpaceBase {
-            base: Arc::new(subs.flatten(&self.base,|x| cb(SpaceBaseParameterLocation::Base(x)))),
-            normal: Arc::new(subs.flatten(&self.normal, |x| cb(SpaceBaseParameterLocation::Normal(x)))),
-            tangent: Arc::new(subs.flatten(&self.tangent,|x| cb(SpaceBaseParameterLocation::Tangent(x)))),
+            base: Arc::new(self.base.as_ref().flatten(subs,|x| cb(SpaceBaseParameterLocation::Base(x)))),
+            normal: Arc::new(self.normal.as_ref().flatten(subs,|x| cb(SpaceBaseParameterLocation::Normal(x)))),
+            tangent: Arc::new(self.tangent.as_ref().flatten(subs,|x| cb(SpaceBaseParameterLocation::Tangent(x)))),
             max_len: self.max_len
         }
     }
 }
 
-impl<X: Clone> ParametricType for SpaceBase<X> {
-    type Location = SpaceBaseParameterLocation;
+impl<X: Clone> ParametricType<SpaceBaseParameterLocation> for SpaceBase<X> {
     type Value = X;
 
-    fn replace(&mut self, replace: &[(&Self::Location,X)]) {
+    fn replace(&mut self, replace: &[(&SpaceBaseParameterLocation,X)]) {
         let mut go_base = false;
         let mut go_normal = false;
         let mut go_tangent = false;

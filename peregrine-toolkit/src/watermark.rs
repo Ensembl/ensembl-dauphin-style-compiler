@@ -98,7 +98,6 @@ impl<'a> WatermarkRequest<'a> {
                 self.after_pos = Some((next_start,next_height));
             }
         }
-        println!("max_existing {}",self.max_existing_height);
         None
     }
 

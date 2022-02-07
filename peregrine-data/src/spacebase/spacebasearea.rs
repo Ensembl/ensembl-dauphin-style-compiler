@@ -24,11 +24,10 @@ impl<X: Clone> SpaceBaseArea<ParameterValue<X>> {
     }
 }
 
-impl<X: Clone> ParametricType for SpaceBaseArea<X> {
-    type Location = SpaceBaseAreaParameterLocation;
+impl<X: Clone> ParametricType<SpaceBaseAreaParameterLocation> for SpaceBaseArea<X> {
     type Value = X;
 
-    fn replace(&mut self, replace: &[(&Self::Location,X)]) {
+    fn replace(&mut self, replace: &[(&SpaceBaseAreaParameterLocation,X)]) {
         let mut left_replace = vec![];
         let mut right_replace = vec![];
         for (location,value) in replace.iter() {

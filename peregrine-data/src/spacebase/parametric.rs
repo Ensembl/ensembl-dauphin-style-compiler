@@ -1,10 +1,35 @@
+/* The parametric types are designed to help with vector data with variable values (among constant ones). For example,
+ * (schematically) [1,2,3,X,7,8,9]. When X=0 this equals [1,2,3,0,7,8,9], when X=5 this equals [1,2,3,5,7,8,9].
+ * They are designed to be used for WebGL co-ordinates for objects which "move", such as spectres. 
+ *
+ * Types supporting parameterisation nominate a type to act as its "location" be that a simple usize index or an enum.
+ * They then implement ParametricType<Location>; ParametricType::Value=X where X is the type of values to store in such
+ * locations. There is asingle method replace() which should apply that substituion.
+ * 
+ * When building a template, the structure should have type ParamaterValue<Value>. This supplies arms Constant and
+ * Variable to allow specifying the tamplate. The variable arm has an initial value and a Variable which identifies the
+ * variable. Such Variables can only be allocated from a VariableValues struct which as well as allocating new 
+ * Variables, holds the variable values for substitutions.
+ * 
+ * The parameterisable type should implement Flattenable. This allows the conversion between a parameterised and a
+ * non-parameterised type with the (implemented) extract() method. It returns the corresponding non-parameterised data
+ * structure, useing initial values for variable positions, and also an instance of Substitutions<Location>. The
+ * Substitutions method contains all the positions to be substituted and whenever passed the target and an instance of
+ * VariableValues will substitute the target.
+ *
+ * To implement Flattenable, the parameterised type needs to implement the flatten() method. This is called once per
+ * extract but is passed two arguments, to allow recursive flattening (parameterisable data-structrues inside other
+ * parameterisable data-structures).
+ */
+
 use std::{cmp::Ordering, sync::{Arc, Mutex}};
 
-pub trait ParametricType {
-    type Location;
+use crate::EachOrEvery;
+
+pub trait ParametricType<Location> {
     type Value;
 
-    fn replace(&mut self, replace: &[(&Self::Location,Self::Value)]);
+    fn replace(&mut self, replace: &[(&Location,Self::Value)]);
 }
 
 #[derive(Clone)]
@@ -104,23 +129,7 @@ impl<L> Substitutions<L> {
 
     pub fn len(&self) -> usize { self.locations.len() }
 
-    pub(super) fn flatten<X: Clone, F>(&mut self, data: &[ParameterValue<X>], cb: F) -> Vec<X> where F: Fn(usize) -> L {
-        let mut out = vec![];
-        for (i,item) in data.iter().enumerate() {
-            match item {
-                ParameterValue::Constant(v) => { 
-                    out.push(v.clone());
-                }
-                ParameterValue::Variable(var,initial) => {
-                    self.locations.push((cb(i),var.clone()));
-                    out.push(initial.clone());
-                }
-            }
-        }
-        out
-    }
-
-    pub fn apply<X: Clone>(&self, target: &mut dyn ParametricType<Location=L,Value=X>, values: &VariableValues<X>) {
+    pub fn apply<X: Clone>(&self, target: &mut dyn ParametricType<L,Value=X>, values: &VariableValues<X>) {
         let vars = self.locations.iter().map(|x| &x.1).collect::<Vec<_>>();
         let mut values = values.get_values(&vars);
         let mut subs = vec![];
@@ -130,5 +139,41 @@ impl<L> Substitutions<L> {
             }
         }
         target.replace(&subs);
+    }
+
+    pub fn add_location<'a,X: Clone>(&mut self, location: L, item: &'a ParameterValue<X>) -> &'a X {
+        match item {
+            ParameterValue::Constant(v) => {
+                v
+            }
+            ParameterValue::Variable(var,initial) => {
+                self.locations.push((location,var.clone()));
+                initial
+            }
+        }
+    }
+}
+
+impl<X: Clone> Flattenable for [ParameterValue<X>] {
+    type Location = usize;
+    type Target = Vec<X>;
+
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L {
+        let mut out = vec![];
+        for (i,item) in self.iter().enumerate() {
+            out.push(subs.add_location(cb(i),item).clone());
+        }
+        out
+    }
+}
+
+impl<X: Clone> Flattenable for EachOrEvery<ParameterValue<X>> {
+    type Location = usize;
+    type Target = EachOrEvery<X>;
+
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L {
+        self.enumerated_map(|i,item| {
+            subs.add_location(cb(i),item).clone()
+        })
     }
 }

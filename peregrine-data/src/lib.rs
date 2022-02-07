@@ -157,7 +157,9 @@ mod shape {
 pub(crate) mod spacebase {
     pub(crate) mod parametric;
     pub(crate) mod spacebase;
+    pub(crate) mod spacebase2;
     pub(crate) mod spacebasearea;
+    pub(crate) mod spacebasearea2;
 
     pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
     pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
