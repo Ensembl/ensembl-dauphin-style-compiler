@@ -1,4 +1,4 @@
-use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis, DelayedValue}}}, CoordinateSystem};
+use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis, DelayedValue}}}, CoordinateSystem, CoordinateSystemVariety};
 
 use super::leaftransformer::LeafGeometry;
 
@@ -77,14 +77,12 @@ impl MTSpecifier {
         }
     }
 
-    pub(super) fn our_geometry(&self, input: &LeafGeometry) -> LeafGeometry {
-        let coord_system = match (&self.variety,input.reverse()) {
-            (MTVariety::Track,_)           => CoordinateSystem::Tracking,
-            (MTVariety::TrackWindow,false) => CoordinateSystem::TrackingWindow,
-            (MTVariety::TrackWindow,true)  => CoordinateSystem::TrackingWindowBottom,
-            (MTVariety::Wallpaper,false)   => CoordinateSystem::Window,
-            (MTVariety::Wallpaper,true)    => CoordinateSystem::WindowBottom
+    pub(super) fn our_geometry(&self, input: &CoordinateSystem) -> CoordinateSystem {
+        let variety = match self.variety {
+            MTVariety::Track => CoordinateSystemVariety::Tracking,
+            MTVariety::TrackWindow => CoordinateSystemVariety::TrackingWindow,
+            MTVariety::Wallpaper => CoordinateSystemVariety::Window
         };
-        input.with_new_coord_system(&coord_system)
+        CoordinateSystem(variety,input.secondary_stack())
     }
 }

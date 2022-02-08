@@ -6,7 +6,7 @@ use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
-use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent};
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety};
 use peregrine_toolkit::lock;
 
 use super::allotmentrequest::AllotmentRequestImpl;
@@ -147,24 +147,17 @@ pub struct Universe {
 
 impl Universe {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
-        let main_geometry = LeafGeometry::new(CoordinateSystem::Tracking,false);
-        let left_geometry = LeafGeometry::new(CoordinateSystem::SidewaysLeft,false);
-        let right_geometry = LeafGeometry::new(CoordinateSystem::SidewaysRight,true);
-        let window_geometry = LeafGeometry::new(CoordinateSystem::Window,false);
-        let window_bottom_geometry = LeafGeometry::new(CoordinateSystem::WindowBottom,false);
-        let wintrack_geometry = LeafGeometry::new(CoordinateSystem::TrackingWindow,false);
-        let wintrack_bottom_geometry = LeafGeometry::new(CoordinateSystem::TrackingWindowBottom,false);
         Universe {
             data: Arc::new(Mutex::new(UniverseData {
-                main: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
-                top_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
-                bottom_tracks: LinearGroup::new(&main_geometry,MainTrackLinearHelper),
-                left: LinearGroup::new(&left_geometry,BoxAllotmentLinearGroupHelper),
-                right: LinearGroup::new(&right_geometry,BoxAllotmentLinearGroupHelper),
-                window: LinearGroup::new(&window_geometry,BoxAllotmentLinearGroupHelper),
-                window_bottom: LinearGroup::new(&window_bottom_geometry,BoxAllotmentLinearGroupHelper),
-                window_tracks: LinearGroup::new(&wintrack_geometry,BoxAllotmentLinearGroupHelper),
-                window_tracks_bottom: LinearGroup::new(&wintrack_bottom_geometry,BoxAllotmentLinearGroupHelper),
+                main: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
+                top_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
+                bottom_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,true),MainTrackLinearHelper),
+                left: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Sideways,false),BoxAllotmentLinearGroupHelper),
+                right: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Sideways,true),BoxAllotmentLinearGroupHelper),
+                window: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Window,false),BoxAllotmentLinearGroupHelper),
+                window_bottom: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Window,true),BoxAllotmentLinearGroupHelper),
+                window_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::TrackingWindow,false),BoxAllotmentLinearGroupHelper),
+                window_tracks_bottom: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::TrackingWindow,true),BoxAllotmentLinearGroupHelper),
                 dustbin: Arc::new(AllotmentRequestImpl::new_dustbin()),
                 playingfield: PlayingField::empty()
             })),

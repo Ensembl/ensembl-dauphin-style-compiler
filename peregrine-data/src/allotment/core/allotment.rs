@@ -1,44 +1,7 @@
 use std::sync::{Arc};
 use std::hash::{ Hash };
-use crate::{AllotmentMetadataRequest};
+use crate::{AllotmentMetadataRequest, CoordinateSystem};
 use crate::{SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
-
-#[derive(Clone,Hash,PartialEq,Eq,Debug)]
-pub enum CoordinateSystem {
-    Tracking,
-    TrackingWindow,
-    TrackingWindowBottom,
-    Window,
-    WindowBottom,
-    SidewaysLeft,
-    SidewaysRight
-}
-
-// XXX to pregerine-draw
-impl CoordinateSystem {
-    pub fn is_tracking(&self) -> bool {
-        match self {
-            CoordinateSystem::Tracking | CoordinateSystem::TrackingWindow | CoordinateSystem::TrackingWindowBottom => true,
-            _ => false
-        }
-    }
-
-    pub fn negative_pixels(&self) -> bool {
-        match self {
-            CoordinateSystem::TrackingWindowBottom => true,
-            CoordinateSystem::WindowBottom => true,
-            CoordinateSystem::SidewaysRight => true,
-            _ => false
-        }
-    }
-
-    pub fn flip_xy(&self) -> bool {
-        match self {
-            CoordinateSystem::SidewaysLeft | CoordinateSystem::SidewaysRight => true,
-            _ => false
-        }
-    }
-}
 
 pub trait Transformer {
     fn coord_system(&self) -> CoordinateSystem;

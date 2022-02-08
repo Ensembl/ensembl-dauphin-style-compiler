@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper, LinearGroup}}, core::{arbitrator::{Arbitrator, SymbolicAxis}}, tree::maintrackspec::MTSection}, CoordinateSystem};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper, LinearGroup}}, core::{arbitrator::{Arbitrator, SymbolicAxis}}, tree::maintrackspec::MTSection}, CoordinateSystem, CoordinateSystemVariety};
 
 use super::{leaftransformer::{LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collidegroup::CollideGroupLinearHelper, leafboxlinearentry::BoxAllotmentLinearGroupHelper};
 
@@ -17,11 +17,10 @@ pub struct MainTrackRequest {
 }
 
 impl MainTrackRequest {
-    fn new(metadata: &AllotmentMetadata, geometry: &LeafGeometry) -> MainTrackRequest {
-        let window_geometry = geometry.with_new_coord_system(&CoordinateSystem::Window);
+    fn new(metadata: &AllotmentMetadata, geometry: &CoordinateSystem) -> MainTrackRequest {
         MainTrackRequest {
             metadata: metadata.clone(),
-            header: Mutex::new(LinearGroup::new(&window_geometry,BoxAllotmentLinearGroupHelper)),
+            header: Mutex::new(LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Window,false),BoxAllotmentLinearGroupHelper)),
             requests: Mutex::new(LinearGroup::new(geometry,CollideGroupLinearHelper))
         }
     }
@@ -38,7 +37,7 @@ impl LinearGroupEntry for MainTrackRequest {
 
     fn priority(&self) -> i64 { self.metadata.priority() }
 
-    fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
+    fn make_request(&self, geometry: &CoordinateSystem, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         let spec = MTSpecifier::new(name);
         match spec.section() {
             MTSection::Main => {
@@ -82,7 +81,7 @@ impl LinearGroupHelper for MainTrackLinearHelper {
     type Key = String;
     type Value = MainTrackRequest;
 
-    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<MainTrackRequest> {
+    fn make_linear_group_entry(&self, geometry: &CoordinateSystem, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<MainTrackRequest> {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));

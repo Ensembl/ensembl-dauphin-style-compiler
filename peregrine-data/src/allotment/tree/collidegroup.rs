@@ -1,7 +1,7 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
 use peregrine_toolkit::lock;
 
-use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}};
+use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}, CoordinateSystem};
 
 use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
 
@@ -51,7 +51,7 @@ impl LinearGroupEntry for CollideGroupRequest {
 
     fn priority(&self) -> i64 { self.metadata.priority() }
 
-    fn make_request(&self, geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
+    fn make_request(&self, geometry: &CoordinateSystem, _allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         let specifier = MTSpecifier::new(name);
         let mut requests = lock!(self.requests);
         let req_impl = requests.entry(specifier.clone()).or_insert_with(|| {
@@ -96,7 +96,7 @@ impl LinearGroupHelper for CollideGroupLinearHelper {
     type Key = Option<String>;
     type Value = CollideGroupRequest;
 
-    fn make_linear_group_entry(&self, _geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<CollideGroupRequest> {
+    fn make_linear_group_entry(&self, _geometry: &CoordinateSystem, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<CollideGroupRequest> {
         let specifier = MTSpecifier::new(full_path);
         let name = specifier.base().name();
         let metadata = metadata.get(name).unwrap_or_else(|| AllotmentMetadata::new(AllotmentMetadataRequest::new(name,0)));

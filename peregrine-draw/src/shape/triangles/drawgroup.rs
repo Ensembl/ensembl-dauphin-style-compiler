@@ -1,4 +1,4 @@
-use peregrine_data::{CoordinateSystem, DirectColour};
+use peregrine_data::{CoordinateSystem, DirectColour, CoordinateSystemVariety};
 use crate::shape::{heraldry::heraldry::{HeraldryCanvasesUsed, HeraldryScale}, layers::geometry::{GeometryProcessName, GeometryYielder, TrianglesGeometry}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
@@ -18,14 +18,11 @@ pub struct DrawGroup {
 }
 
 fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
-    match coord_system {
-        CoordinateSystem::Tracking => TrianglesGeometry::Tracking,
-        CoordinateSystem::TrackingWindow => TrianglesGeometry::TrackingWindow,
-        CoordinateSystem::TrackingWindowBottom => TrianglesGeometry::TrackingWindow,
-        CoordinateSystem::Window => TrianglesGeometry::Window,
-        CoordinateSystem::WindowBottom => TrianglesGeometry::Window,
-        CoordinateSystem::SidewaysLeft => TrianglesGeometry::Window,
-        CoordinateSystem::SidewaysRight =>  TrianglesGeometry::Window,
+    match coord_system.0 {
+        CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
+        CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingWindow,
+        CoordinateSystemVariety::Window => TrianglesGeometry::Window,
+        CoordinateSystemVariety::Sideways => TrianglesGeometry::Window,
     }
 }
 

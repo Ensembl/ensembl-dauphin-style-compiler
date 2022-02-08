@@ -21,18 +21,18 @@ impl LeafGeometry {
         }
     }
 
-    pub fn reverse(&self) -> bool { self.reverse }
+//    pub fn reverse(&self) -> bool { self.reverse }
     pub fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
 }
 
 pub struct LeafTransformer {
-    geometry: LeafGeometry,
+    geometry: CoordinateSystem,
     allot_box: AllotmentBox,
     depth: i8,
 }
 
 impl LeafTransformer {
-    pub(crate) fn new(geometry: &LeafGeometry, allot_box: &AllotmentBox, depth: i8) -> LeafTransformer {
+    pub(crate) fn new(geometry: &CoordinateSystem, allot_box: &AllotmentBox, depth: i8) -> LeafTransformer {
         LeafTransformer {
             geometry: geometry.clone(),
             allot_box: allot_box.clone(),
@@ -44,7 +44,7 @@ impl LeafTransformer {
 impl Transformer for LeafTransformer {
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
         let mut output = input.make();
-        if self.geometry.reverse {
+        if self.geometry.up_from_bottom() {
             output.normal = self.allot_box.draw_bottom() as f64 - output.normal;
         } else {
             output.normal += self.allot_box.draw_top() as f64;
@@ -54,7 +54,7 @@ impl Transformer for LeafTransformer {
     }
 
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
-        if self.geometry.reverse {
+        if self.geometry.up_from_bottom() {
             let offset = self.allot_box.draw_bottom() as f64;
             values.iter().map(|x| x.map(|y| offset-y)).collect()
         } else {
@@ -70,5 +70,5 @@ impl Transformer for LeafTransformer {
     }
 
     fn depth(&self) -> i8 { self.depth }
-    fn coord_system(&self) -> CoordinateSystem { self.geometry.coord_system.clone() }
+    fn coord_system(&self) -> CoordinateSystem { self.geometry.clone() }
 }

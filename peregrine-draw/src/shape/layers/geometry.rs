@@ -121,10 +121,9 @@ impl GeometryProgramName {
                     vec4 transform(in vec4 p)
                     {
                         return uModel * vec4(
-
-                                                            (p.z -uStageHpos) * uStageZoom + 
-                                                            p.x / uSize.x,
-                                                          -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
+                        (p.z -uStageHpos) * uStageZoom + 
+                        p.x / uSize.x,
+                        -p.y/uSize.y-p.a*2.0+1.0,    aDepth,1.0);
                     }
                 "),
                 Statement::new_vertex("

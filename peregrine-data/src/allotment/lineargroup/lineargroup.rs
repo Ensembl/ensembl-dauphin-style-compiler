@@ -1,13 +1,13 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
-use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{leaftransformer::LeafGeometry, allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}};
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{leaftransformer::LeafGeometry, allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}, CoordinateSystem};
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
     fn bump(&self, arbitrator: &mut Arbitrator);
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox;
     fn priority(&self) -> i64;
-    fn make_request(&self, geometry: &LeafGeometry, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
+    fn make_request(&self, geometry: &CoordinateSystem, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest>;
 }
 
 pub trait LinearGroupHelper {
@@ -17,17 +17,17 @@ pub trait LinearGroupHelper {
     fn pre_bump<'a>(&self, _arbitrator: &'a Arbitrator<'a>) -> Option<Arbitrator<'a>> { None }
     fn bump(&self, arbitrator: &mut Arbitrator);
     fn entry_key(&self, full_name: &str) -> Self::Key;
-    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<Self::Value>;
+    fn make_linear_group_entry(&self, geometry: &CoordinateSystem, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<Self::Value>;
 }
 
 pub(crate) struct LinearGroup<C: LinearGroupHelper> where C::Value: 'static {
-    geometry: LeafGeometry,
+    geometry: CoordinateSystem,
     entries: HashMap<C::Key,Arc<C::Value>>,
     creator: Box<C>
 }
 
 impl<C: LinearGroupHelper> LinearGroup<C> {
-    pub(crate) fn new(geometry: &LeafGeometry, creator: C) -> LinearGroup<C> {
+    pub(crate) fn new(geometry: &CoordinateSystem, creator: C) -> LinearGroup<C> {
         LinearGroup {
             geometry: geometry.clone(),
             entries: HashMap::new(),

@@ -9,6 +9,7 @@ mod allotment {
         pub(crate) mod allotmentmetadata;
         pub(crate) mod allotmentrequest;
         pub(crate) mod basicallotmentspec;
+        pub(crate) mod coordsystem;
         pub(crate) mod dustbinallotment;
         pub(crate) mod rangeused;
         pub(crate) mod universe;    
@@ -221,7 +222,8 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
 };
-pub use self::allotment::core::allotment::{ Allotment, CoordinateSystem };
+pub use self::allotment::core::allotment::{ Allotment };
+pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy

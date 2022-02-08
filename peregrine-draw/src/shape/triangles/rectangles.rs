@@ -124,9 +124,9 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, group: &DrawGroup, allotments:
          * also a "tangent" co-ordinate in the principal direction which is measured in pixels and added on. This is to
          * allow non-scaling itmes (eg labels) and to ensure minimum sizes for things that would be very small.
          * 
-         * In the non-principal direction there is the "normal" co-ordinate. In non-tracking co-ordinate systems, t
-         * his wraps to -1 at the bottom, -2 is one pixel above that, and so on. So a line from zero to minus-one is 
-         * from the top to the bottom.
+         * In the non-principal direction there is the "normal" co-ordinate. Except for the compact Tracking coordinate
+         * system (which is optimised for efficiency), co-ordinate systems, this value this wraps to -1 at the bottom, 
+         * 2 is one pixel above that, and so on. So a line from zero to minus-one is from the top to the bottom.
          * 
          * Some non-tracking co-ordinate systems are "negative". These implicitly negate the normal co-ordinate, so that
          * top-is-bottom and bottom-is-top, for exmaple making the top and bottom ruler exact copies.

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}};
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}, CoordinateSystem};
 use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
 
 #[derive(Clone)]
@@ -12,7 +12,7 @@ pub struct BoxLinearEntry {
 }
 
 impl BoxLinearEntry {
-    fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, geometry: &LeafGeometry) -> BoxLinearEntry {
+    fn new(metadata: &AllotmentMetadata, spec: &BasicAllotmentSpec, geometry: &CoordinateSystem) -> BoxLinearEntry {
         BoxLinearEntry {
             transformer: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
             metadata: metadata.clone(),
@@ -23,7 +23,7 @@ impl BoxLinearEntry {
 }
 
 impl LinearGroupEntry for BoxLinearEntry {
-    fn make_request(&self, _geometry: &LeafGeometry, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
+    fn make_request(&self, _geometry: &CoordinateSystem, _allotment_metadata: &AllotmentMetadataStore, _name: &str) -> Option<AllotmentRequest> {
         Some(AllotmentRequest::upcast(self.transformer.clone()))
     }
 
@@ -55,7 +55,7 @@ impl LinearGroupHelper for BoxAllotmentLinearGroupHelper {
     type Key = BasicAllotmentSpec;
     type Value = BoxLinearEntry;
 
-    fn make_linear_group_entry(&self, geometry: &LeafGeometry, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<BoxLinearEntry> {
+    fn make_linear_group_entry(&self, geometry: &CoordinateSystem, metadata: &AllotmentMetadataStore, full_path: &str) -> Arc<BoxLinearEntry> {
         let spec = BasicAllotmentSpec::from_spec(full_path);
         let metadata = metadata.get_or_default(full_path);
         Arc::new(BoxLinearEntry::new(&metadata,&spec,geometry))

@@ -5,10 +5,10 @@ use peregrine_toolkit::lock;
 use super::basicallotmentspec::BasicAllotmentSpec;
 use super::rangeused::RangeUsed;
 use crate::allotment::tree::leaftransformer::LeafGeometry;
-use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, Scale};
+use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, Scale, CoordinateSystem, CoordinateSystemVariety};
 
-use super::allotment::Transformer;
-use super::{allotment::CoordinateSystem, dustbinallotment::DustbinAllotment};
+use super::allotment::{Transformer};
+use super::{dustbinallotment::DustbinAllotment};
 
 impl Hash for AllotmentRequest {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -106,13 +106,13 @@ pub struct AllotmentRequestImpl<T: Transformer> {
     name: String,
     priority: i64,
     experience: Mutex<AllotmentRequestExperience<T>>,
-    geometry: LeafGeometry,
+    geometry: CoordinateSystem,
     depth: i8,
     ghost: bool
 }
 
 impl<T: Transformer> AllotmentRequestImpl<T> {
-    pub fn new(metadata: &AllotmentMetadata, geometry: &LeafGeometry, depth: i8, ghost: bool) -> AllotmentRequestImpl<T> {
+    pub fn new(metadata: &AllotmentMetadata, geometry: &CoordinateSystem, depth: i8, ghost: bool) -> AllotmentRequestImpl<T> {
         AllotmentRequestImpl {
             name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
             priority: metadata.priority(),
@@ -129,7 +129,7 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
         }
     }
 
-    pub fn geometry(&self) -> &LeafGeometry { &self.geometry }
+    pub fn geometry(&self) -> &CoordinateSystem { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_y(&self) -> i64 { lock!(self.experience).max_y() }
     pub fn base_range(&self) -> RangeUsed<f64> { lock!(self.experience).base_range().clone() }
@@ -147,7 +147,7 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
     fn is_dustbin(&self) -> bool { &self.name == "" }
     fn priority(&self) -> i64 { self.priority }
     fn depth(&self) -> i8 { self.depth }
-    fn coord_system(&self) -> CoordinateSystem { self.geometry.coord_system().clone() }
+    fn coord_system(&self) -> CoordinateSystem { self.geometry.clone() }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
         match lock!(self.experience).transformer().clone() {
@@ -172,7 +172,7 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             experience: Mutex::new(AllotmentRequestExperience::new()),
             depth: 0,
             ghost: true,
-            geometry: LeafGeometry::new(CoordinateSystem::Window,false),
+            geometry: CoordinateSystem(CoordinateSystemVariety::Window,false)
         }
     }
 }
