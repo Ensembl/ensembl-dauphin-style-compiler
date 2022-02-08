@@ -1,7 +1,5 @@
 use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis, DelayedValue}}}, CoordinateSystem, CoordinateSystemVariety};
 
-use super::leaftransformer::LeafGeometry;
-
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
     if let Some(start) = name.rfind(":") {
         if &name[start+1..] == suffix {

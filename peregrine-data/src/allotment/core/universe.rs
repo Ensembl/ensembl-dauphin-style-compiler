@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use crate::allotment::lineargroup::lineargroup::LinearGroup;
 use crate::allotment::tree::allotmentbox::{AllotmentBoxBuilder, AllotmentBox};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
-use crate::allotment::tree::leaftransformer::LeafGeometry;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety};

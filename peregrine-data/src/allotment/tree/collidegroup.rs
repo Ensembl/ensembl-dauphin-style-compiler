@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}, CoordinateSystem};
 
-use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
+use super::{leaftransformer::{LeafTransformer}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
 
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,

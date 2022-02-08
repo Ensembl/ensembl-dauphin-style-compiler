@@ -2,29 +2,6 @@ use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::S
 
 use super::allotmentbox::AllotmentBox;
 
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
-pub struct LeafGeometry {
-    coord_system: CoordinateSystem,
-    reverse: bool
-}
-
-impl LeafGeometry {
-    pub fn new( coord_system: CoordinateSystem, reverse: bool) -> LeafGeometry {
-        LeafGeometry { coord_system, reverse }
-    }
-
-    pub fn with_new_coord_system(&self, coord_system: &CoordinateSystem) -> LeafGeometry {
-        LeafGeometry {
-            coord_system: coord_system.clone(),
-            reverse: self.reverse
-        }
-    }
-
-//    pub fn reverse(&self) -> bool { self.reverse }
-    pub fn coord_system(&self) -> CoordinateSystem { self.coord_system.clone() }
-}
-
 pub struct LeafTransformer {
     geometry: CoordinateSystem,
     allot_box: AllotmentBox,

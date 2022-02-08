@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
-use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{leaftransformer::LeafGeometry, allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}, CoordinateSystem};
+use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{ allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}, CoordinateSystem};
 
 pub trait LinearGroupEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);

@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper, LinearGroup}}, core::{arbitrator::{Arbitrator, SymbolicAxis}}, tree::maintrackspec::MTSection}, CoordinateSystem, CoordinateSystemVariety};
 
-use super::{leaftransformer::{LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collidegroup::CollideGroupLinearHelper, leafboxlinearentry::BoxAllotmentLinearGroupHelper};
+use super::{allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collidegroup::CollideGroupLinearHelper, leafboxlinearentry::BoxAllotmentLinearGroupHelper};
 
 /* MainTrack allotments are the allotment spec for the main gb tracks and so have complex spceifiers. The format is
  * track:NAME:(XXX todo sub-tracks) or wallpaper[depth]

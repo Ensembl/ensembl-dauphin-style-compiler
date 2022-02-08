@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}, CoordinateSystem};
-use super::{leaftransformer::{LeafTransformer, LeafGeometry}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
+use super::{leaftransformer::{LeafTransformer}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
 
 #[derive(Clone)]
 pub struct BoxLinearEntry {
