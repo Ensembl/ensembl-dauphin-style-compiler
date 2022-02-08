@@ -1,10 +1,8 @@
 use std::sync::{Arc};
-use std::hash::{ Hash };
-use crate::{AllotmentMetadataRequest, CoordinateSystem};
+use crate::{AllotmentMetadataRequest};
 use crate::{SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
 pub trait Transformer {
-    fn coord_system(&self) -> CoordinateSystem;
     fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
     fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest);
@@ -28,5 +26,4 @@ impl Allotment {
     }
 
     pub fn depth(&self) -> i8 { self.0.depth() }
-    pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
 }

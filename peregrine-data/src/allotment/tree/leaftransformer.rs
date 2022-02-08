@@ -47,5 +47,4 @@ impl Transformer for LeafTransformer {
     }
 
     fn depth(&self) -> i8 { self.depth }
-    fn coord_system(&self) -> CoordinateSystem { self.geometry.clone() }
 }

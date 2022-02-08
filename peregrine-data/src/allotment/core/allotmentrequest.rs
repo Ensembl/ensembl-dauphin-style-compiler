@@ -4,7 +4,7 @@ use peregrine_toolkit::lock;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
 use super::rangeused::RangeUsed;
-use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, Scale, CoordinateSystem, CoordinateSystemVariety};
+use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, CoordinateSystemVariety};
 
 use super::allotment::{Transformer};
 use super::{dustbinallotment::DustbinAllotment};

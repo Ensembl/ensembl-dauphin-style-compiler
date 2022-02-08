@@ -136,7 +136,7 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, group: &DrawGroup, allotments:
          * tracking or not. a is depth in the packed format, proportion of screen in the y direction if not.
          */
         /* Make tracking and non-tracking equivalent by subtracting bp centre. */
-        if group.is_tracking() {
+        if group.coord_system().is_tracking() {
             b_0 -= left;
             b_1 -= left;
         }
@@ -155,7 +155,7 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, group: &DrawGroup, allotments:
             /* We're unpacked. f_0 and f_1 are "proportion of screenfuls to add", 1 for -ve, 0 for +ve */
             let (mut f_0,mut f_1) = (0.,0.);
             /* whole coord-system is negative, flip it */
-            if allotment.coord_system().negative_pixels() {
+            if group.coord_system().negative_pixels() {
                 let (a,b) = (n_0,n_1);
                 n_0 = -b-1.;
                 n_1 = -a-1.;
@@ -164,7 +164,7 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64>, group: &DrawGroup, allotments:
             if n_0 < 0. { n_0 += 1.; f_0 = 1.; }
             if n_1 < 0. { n_1 += 1.; f_1 = 1.; }
             /* maybe flip x&y if sideways, either way draw it. */
-            if allotment.coord_system().flip_xy() {
+            if group.coord_system().flip_xy() {
                 rectangle4(&mut data, n_0,t_0, n_1,t_1,f_0,b_0,f_1,b_1,width);
             } else {
                 rectangle4(&mut data, t_0,n_0, t_1,n_1,b_0,f_0,b_1,f_1,width);
