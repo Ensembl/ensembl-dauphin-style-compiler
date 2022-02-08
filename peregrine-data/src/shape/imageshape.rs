@@ -16,7 +16,7 @@ impl ImageShape {
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
         let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
@@ -50,7 +50,7 @@ impl ImageShape {
         self.names.iter(self.position.len()).unwrap()
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,ShapeCommon<AllotmentRequest>,ImageShape)> where D: ShapeDemerge<X=T> {
         let demerge = common_in.allotments().demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {

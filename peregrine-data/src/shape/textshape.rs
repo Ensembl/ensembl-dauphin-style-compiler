@@ -17,7 +17,7 @@ impl TextShape {
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let len = position.len();
         let details = eoe_throw("new_text",TextShape::new_details(position,pen,text))?;
@@ -52,7 +52,7 @@ impl TextShape {
         self.text.iter(self.position.len()).unwrap()
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,TextShape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,ShapeCommon<AllotmentRequest>,TextShape)> where D: ShapeDemerge<X=T> {
         let demerge = common_in.allotments().demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {

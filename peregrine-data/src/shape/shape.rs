@@ -67,7 +67,7 @@ impl ShapeDetails {
         }
     }
 
-    pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
+    pub fn register_space(&self, common: &ShapeCommon<AllotmentRequest>, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => {
                 for ((top_left,bottom_right),allotment) in shape.area().iter().zip(common.iter_allotments()) {
@@ -106,7 +106,7 @@ impl ShapeDetails {
         Ok(())
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,Shape<AllotmentRequest>)> where D: ShapeDemerge<X=T> {
         match self {
             ShapeDetails::Wiggle(shape) => {
                 return shape.demerge(common,cat).drain(..).map(|(x,common,details)| 
@@ -134,21 +134,21 @@ impl ShapeDetails {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ShapeCommon {
+pub struct ShapeCommon<A: Clone> {
     len: usize,
     coord_system: CoordinateSystem,
-    allotments: EachOrEvery<AllotmentRequest>
+    allotments: EachOrEvery<A>
 }
 
-impl ShapeCommon {
-    pub fn new(len: usize, coord_system: CoordinateSystem, allotments: EachOrEvery<AllotmentRequest>) -> Option<ShapeCommon> {
+impl<A: Clone> ShapeCommon<A> {
+    pub fn new(len: usize, coord_system: CoordinateSystem, allotments: EachOrEvery<A>) -> Option<ShapeCommon<A>> {
         if !allotments.compatible(len) { return None; }
         Some(ShapeCommon { len, coord_system, allotments })
     }
 
-    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
+    pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
 
-    pub fn filter(&self, filter: &DataFilter) -> ShapeCommon {
+    pub fn filter(&self, filter: &DataFilter) -> ShapeCommon<A> {
         let allotments = self.allotments.filter(filter);
         ShapeCommon {
             len: filter.count(),
@@ -157,27 +157,27 @@ impl ShapeCommon {
         }
     }
 
-    pub fn iter_allotments(&self) -> impl Iterator<Item=&AllotmentRequest> {
+    pub fn iter_allotments(&self) -> impl Iterator<Item=&A> {
         self.allotments.iter(self.len).unwrap()
     }
 }
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct Shape {
+pub struct Shape<A: Clone> {
     details: ShapeDetails,
-    common: ShapeCommon
+    common: ShapeCommon<A>
 }
 
-impl Shape {
-    pub fn new(common: ShapeCommon, details: ShapeDetails) -> Shape {
+impl<A: Clone> Shape<A> {
+    pub fn new(common: ShapeCommon<A>, details: ShapeDetails) -> Shape<A> {
         Shape { common, details }
     }
 
     pub fn details(&self) -> &ShapeDetails { &self.details }
-    pub fn common(&self) -> &ShapeCommon { &self.common }
+    pub fn common(&self) -> &ShapeCommon<A> { &self.common }
 
-    pub(super) fn filter_shape(&self, filter: &DataFilter) -> Shape {
+    pub(super) fn filter_shape(&self, filter: &DataFilter) -> Shape<A> {
         let mut filter = filter.clone();
         filter.set_size(self.len());
         let common = self.common.filter(&filter);
@@ -185,16 +185,12 @@ impl Shape {
         Shape::new(common,details)
     }
 
-    pub fn filter_by_allotment<F>(&self,  cb: F)  -> Shape where F: Fn(&AllotmentRequest) -> bool {
+    pub fn filter_by_allotment<F>(&self,  cb: F)  -> Shape<A> where F: Fn(&A) -> bool {
         let filter = self.common.allotments().new_filter(self.len(),cb);
         self.filter_shape(&filter)
     }
 
-    pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
-        self.details.register_space(&self.common,assets)
-    }
-
-    pub fn filter_by_minmax(&self, min_value: f64, max_value: f64) -> Shape {
+    pub fn filter_by_minmax(&self, min_value: f64, max_value: f64) -> Shape<A> {
         if !self.common.coord_system.is_tracking() {
             return self.clone();
         }
@@ -203,12 +199,19 @@ impl Shape {
         let details = self.details.filter(&filter).reduce_by_minmax(min_value,max_value);
         Shape::new(common,details)
     }
-
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape)> where D: ShapeDemerge<X=T> {
-        self.details.demerge(&self.common,cat)
-    }
     
     pub fn len(&self) -> usize { self.details.len() }
     pub fn is_empty(&self) -> bool { self.len() == 0 }
-    pub fn remove_nulls(self) -> Shape { self.filter_by_allotment(|a| !a.is_dustbin()) }    
+}
+
+impl Shape<AllotmentRequest> {
+    pub fn remove_nulls(self) -> Shape<AllotmentRequest> { self.filter_by_allotment(|a| !a.is_dustbin()) }
+
+    pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
+        self.details.register_space(&self.common,assets)
+    }
+
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<AllotmentRequest>)> where D: ShapeDemerge<X=T> {
+        self.details.demerge(&self.common,cat)
+    }
 }

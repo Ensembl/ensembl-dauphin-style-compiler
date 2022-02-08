@@ -55,7 +55,7 @@ impl WiggleShape {
         }
     }
 
-    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         let allotments = EachOrEvery::each(vec![allotment]);
@@ -90,7 +90,7 @@ impl WiggleShape {
     pub fn plotter(&self) -> &Plotter { &self.plotter }
     pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,WiggleShape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<A: Clone,T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<A>, cat: &D) -> Vec<(T,ShapeCommon<A>,WiggleShape)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(|a| cat.categorise(a));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {

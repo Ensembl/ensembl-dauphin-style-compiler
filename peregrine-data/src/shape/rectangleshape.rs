@@ -16,7 +16,7 @@ impl RectangleShape {
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape>,DataMessage> {
+    pub fn new(area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
         let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina))?;
@@ -46,7 +46,7 @@ impl RectangleShape {
         self.area.make_base_filter(min,max)
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,RectangleShape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,ShapeCommon<AllotmentRequest>,RectangleShape)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = common_in.allotments().merge(&colours).unwrap();

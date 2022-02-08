@@ -17,7 +17,7 @@ fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<
     }).map_err(|e| Message::DataError(e))
 }
 
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon<AllotmentRequest>, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let allotment = allotments(common.allotments())?;
     let mut out = vec![];
     match shape.patina() {
@@ -113,7 +113,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<AllotmentRequest>) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
         let common = shape.common();

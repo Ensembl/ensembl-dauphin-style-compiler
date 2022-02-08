@@ -4,7 +4,7 @@ use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectanglesha
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent };
 
 pub struct ShapeListBuilder {
-    shapes: Vec<Shape>,
+    shapes: Vec<Shape<AllotmentRequest>>,
     allotments: HashSet<AllotmentRequest>,
     assets: Assets,
     universe: Universe
@@ -22,7 +22,7 @@ impl ShapeListBuilder {
 
     pub fn universe(&self) -> &Universe { &self.universe }
 
-    fn push(&mut self, shape: Shape) {
+    fn push(&mut self, shape: Shape<AllotmentRequest>) {
         let shape =shape.remove_nulls();
         if !shape.is_empty() {
             shape.register_space(&self.assets);
@@ -30,7 +30,7 @@ impl ShapeListBuilder {
         }
     }
 
-    fn extend(&mut self, mut shapes: Vec<Shape>) {
+    fn extend(&mut self, mut shapes: Vec<Shape<AllotmentRequest>>) {
         for shape in shapes.drain(..) {
             self.push(shape);
         }
@@ -87,28 +87,31 @@ impl ShapeListBuilder {
 }
 
 #[derive(Clone)]
-pub struct ShapeList {
-    shapes: Arc<Vec<Shape>>,
+pub struct ShapeList<A: Clone> {
+    shapes: Arc<Vec<Shape<A>>>,
     universe: Universe
 }
 
-impl ShapeList {
-    pub fn empty() -> ShapeList {
+impl<A: Clone> ShapeList<A> {
+    pub fn empty() -> ShapeList<A> {
         ShapeList {
             shapes: Arc::new(vec![]),
             universe: Universe::new(&AllotmentMetadataStore::new())
         }
     }
 
-    pub fn new(builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> ShapeList {
+    pub fn universe(&self) -> &Universe { &self.universe }
+    pub fn len(&self) -> usize { self.shapes.len() }
+    pub fn shapes(&self) -> Arc<Vec<Shape<A>>> { self.shapes.clone() }
+}
+
+
+impl ShapeList<AllotmentRequest> {
+    pub fn new(builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> ShapeList<AllotmentRequest> {
         builder.universe.allot(extent);
         ShapeList {
             universe: builder.universe.clone(),
             shapes: Arc::new(builder.shapes)
         }
     }
-
-    pub fn universe(&self) -> &Universe { &self.universe }
-    pub fn len(&self) -> usize { self.shapes.len() }
-    pub fn shapes(&self) -> Arc<Vec<Shape>> { self.shapes.clone() }
 }
