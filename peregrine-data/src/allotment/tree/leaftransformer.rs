@@ -5,15 +5,13 @@ use super::allotmentbox::AllotmentBox;
 pub struct LeafTransformer {
     geometry: CoordinateSystem,
     allot_box: AllotmentBox,
-    depth: i8,
 }
 
 impl LeafTransformer {
-    pub(crate) fn new(geometry: &CoordinateSystem, allot_box: &AllotmentBox, depth: i8) -> LeafTransformer {
+    pub(crate) fn new(geometry: &CoordinateSystem, allot_box: &AllotmentBox) -> LeafTransformer {
         LeafTransformer {
             geometry: geometry.clone(),
-            allot_box: allot_box.clone(),
-            depth
+            allot_box: allot_box.clone()
         }
     }
 }

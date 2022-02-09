@@ -45,11 +45,15 @@ pub struct WiggleShape {
     allotments: EachOrEvery<AllotmentRequest> // actually always a single allotment
 }
 
+fn draw_wiggle(input: &[Option<f64>], height: f64) -> Vec<Option<f64>> {
+    input.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>()
+}
+
 impl WiggleShape {
     pub fn new_details(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> WiggleShape {
         WiggleShape {
             x_limits,
-            values: Arc::new(values),
+            values: Arc::new(draw_wiggle(&values,plotter.0)),
             plotter,
             allotments: EachOrEvery::each(vec![allotment])
         }
@@ -81,11 +85,9 @@ impl WiggleShape {
     }
 
     pub fn len(&self) -> usize { 1 }
-    //pub fn allotments(&self) -> &EachOrEvery<Allotment> { &self.allotments }
     pub fn range(&self) -> (f64,f64) { self.x_limits }
     pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
     pub fn plotter(&self) -> &Plotter { &self.plotter }
-    //pub fn allotment(&self) -> &Allotment { self.allotments.get(0).unwrap() }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,WiggleShape)> where D: ShapeDemerge<X=T> {
         let demerge = common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()));

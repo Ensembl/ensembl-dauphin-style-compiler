@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::{Arc, Mutex}, hash::{Hash, Hasher}};
+use std::{collections::{HashMap}, sync::{Arc, Mutex}};
 use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}, CoordinateSystem};
@@ -33,7 +33,7 @@ impl CollideGroupRequest {
             box_builder.set_self_indent(Some(&indent));
         }
         let content_box = AllotmentBox::new(box_builder);
-        let transformer = LeafTransformer::new(&request.geometry(),&content_box,request.depth());
+        let transformer = LeafTransformer::new(&request.geometry(),&content_box);
         request.set_allotment(Arc::new(transformer));
         content_box
     }

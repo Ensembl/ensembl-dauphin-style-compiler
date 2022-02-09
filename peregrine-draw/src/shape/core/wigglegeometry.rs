@@ -14,7 +14,6 @@ pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYiel
                     start: f64, end: f64, yy: &[Option<f64>], height: f64,
                     allotment: &Allotment, left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
     let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
-    let yy = yy.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>();
     let yy = allotment.transform_yy(&yy);
     let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
     match adder {

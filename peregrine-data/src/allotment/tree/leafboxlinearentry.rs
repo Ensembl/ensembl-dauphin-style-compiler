@@ -7,7 +7,6 @@ use super::{leaftransformer::{LeafTransformer}, allotmentbox::{AllotmentBox, All
 pub struct BoxLinearEntry {
     transformer: Arc<AllotmentRequestImpl<LeafTransformer>>,
     metadata: AllotmentMetadata,
-    depth: i8,
     name_for_arbitrator: String
 }
 
@@ -16,7 +15,6 @@ impl BoxLinearEntry {
         BoxLinearEntry {
             transformer: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
             metadata: metadata.clone(),
-            depth: spec.depth(),
             name_for_arbitrator: spec.name().to_string()
         } 
     }
@@ -27,12 +25,12 @@ impl LinearGroupEntry for BoxLinearEntry {
         Some(AllotmentRequest::upcast(self.transformer.clone()))
     }
 
-    fn bump(&self, arbitrator: &mut Arbitrator) {}
+    fn bump(&self, _arbitrator: &mut Arbitrator) {}
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.transformer.max_y()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
-        self.transformer.set_allotment(Arc::new(LeafTransformer::new(self.transformer.geometry(),&allot_box,self.depth)));
+        self.transformer.set_allotment(Arc::new(LeafTransformer::new(self.transformer.geometry(),&allot_box)));
         allot_box
     }
 
