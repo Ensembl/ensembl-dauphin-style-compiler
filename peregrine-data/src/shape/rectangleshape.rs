@@ -16,14 +16,14 @@ impl RectangleShape {
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(area: HoleySpaceBaseArea<f64>, depth: EachOrEvery<i8>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
         let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina))?;
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(len);
             out.push(Shape::new(
-                eoe_throw("add_rectangles",ShapeCommon::new(filter.count(),coord_system, allotments.filter(&filter)))?,
+                eoe_throw("add_rectangles",ShapeCommon::new(filter.count(),coord_system, depth.clone(),allotments.filter(&filter)))?,
                 ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
             ));
         }

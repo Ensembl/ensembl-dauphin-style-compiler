@@ -52,22 +52,26 @@ impl ShapeListBuilder {
     }
     
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        self.extend(RectangleShape::new(area,patina,allotments)?);
+        let depth = allotments.map(|a| a.depth());
+        self.extend(RectangleShape::new(area,depth,patina,allotments)?);
         Ok(())
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        self.extend(TextShape::new(position,pen,text,allotments)?);
+        let depth = allotments.map(|a| a.depth());
+        self.extend(TextShape::new(position,depth,pen,text,allotments)?);
         Ok(())
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase<f64>, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
-        self.extend(ImageShape::new(position,images,allotments)?);
+        let depth = allotments.map(|a| a.depth());
+        self.extend(ImageShape::new(position,depth,images,allotments)?);
         Ok(())
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) -> Result<(),DataMessage> {
-        self.extend(WiggleShape::new((min,max),values,plotter,allotment.clone())?);
+        let depth = EachOrEvery::Every(allotment.depth());
+        self.extend(WiggleShape::new((min,max),values,depth,plotter,allotment.clone())?);
         Ok(())
     }
 

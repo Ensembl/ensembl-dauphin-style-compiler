@@ -17,18 +17,18 @@ impl TextShape {
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, depth: EachOrEvery<i8>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let len = position.len();
         let details = eoe_throw("new_text",TextShape::new_details(position,pen,text))?;
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(len);
             out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,allotments.filter(&filter)))?,
+                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,depth.clone(),allotments.filter(&filter)))?,
                 ShapeDetails::Text(details.clone().filter(&mut filter))
             ));
         }
-        Ok(out)        
+        Ok(out)
     }
 
     pub fn len(&self) -> usize { self.position.len() }

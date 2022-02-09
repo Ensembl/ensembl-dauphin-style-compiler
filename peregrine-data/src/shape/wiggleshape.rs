@@ -55,12 +55,12 @@ impl WiggleShape {
         }
     }
 
-    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, depth: EachOrEvery<i8>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         let allotments = EachOrEvery::each(vec![allotment.clone()]);
         out.push(Shape::new(
-            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),allotments))?,
+            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),depth,allotments))?,
             ShapeDetails::Wiggle(details)
         ));
         Ok(out)

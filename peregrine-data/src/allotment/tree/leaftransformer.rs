@@ -45,6 +45,4 @@ impl Transformer for LeafTransformer {
         out.add_pair("offset",&self.allot_box.top().to_string(),&MetadataMergeStrategy::Minimum);
         out.add_pair("height",&(self.allot_box.bottom()-self.allot_box.top()).to_string(),&MetadataMergeStrategy::Maximum);
     }
-
-    fn depth(&self) -> i8 { self.depth }
 }

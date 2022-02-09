@@ -16,14 +16,14 @@ impl ImageShape {
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: HoleySpaceBase<f64>, depth: EachOrEvery<i8>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
         let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
         for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
             filter.set_size(len);
             out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,allotments.filter(&filter)))?,
+                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,depth.clone(),allotments.filter(&filter)))?,
                 ShapeDetails::Image(details.filter(&mut filter))
             ));
         }

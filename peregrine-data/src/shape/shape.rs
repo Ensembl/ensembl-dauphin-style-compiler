@@ -140,15 +140,17 @@ impl ShapeDetails {
 pub struct ShapeCommon<A: Clone> {
     len: usize,
     coord_system: CoordinateSystem,
+    depth: EachOrEvery<i8>,
     allotments: EachOrEvery<A>
 }
 
 impl<A: Clone> ShapeCommon<A> {
-    pub fn new(len: usize, coord_system: CoordinateSystem, allotments: EachOrEvery<A>) -> Option<ShapeCommon<A>> {
+    pub fn new(len: usize, coord_system: CoordinateSystem, depth: EachOrEvery<i8>, allotments: EachOrEvery<A>) -> Option<ShapeCommon<A>> {
         if !allotments.compatible(len) { return None; }
-        Some(ShapeCommon { len, coord_system, allotments })
+        Some(ShapeCommon { len, coord_system, allotments, depth })
     }
 
+    pub fn depth(&self) -> &EachOrEvery<i8> { &self.depth }
     pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
     pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
 
@@ -157,6 +159,7 @@ impl<A: Clone> ShapeCommon<A> {
         ShapeCommon {
             len: filter.count(),
             coord_system: self.coord_system.clone(),
+            depth: self.depth.filter(filter),
             allotments
         }
     }
@@ -169,6 +172,7 @@ impl<A: Clone> ShapeCommon<A> {
         Ok(ShapeCommon {
             len: self.len,
             coord_system: self.coord_system,
+            depth: self.depth,
             allotments: self.allotments.map_results(cb)?
         })
     }
