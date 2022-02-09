@@ -133,6 +133,15 @@ impl ShapeDetails {
             }
         }
     }
+
+    pub fn allot<F,E>(self, cb: F) -> Result<ShapeDetails,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        Ok(match self {
+            ShapeDetails::Wiggle(shape) => {
+                ShapeDetails::Wiggle(shape.allot(cb)?)
+            },
+            x => x
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -167,8 +176,10 @@ impl<A: Clone> ShapeCommon<A> {
     pub fn iter_allotments(&self) -> impl Iterator<Item=&A> {
         self.allotments.iter(self.len).unwrap()
     }
+}
 
-    pub fn into_map_result_box<F,E,B: Clone>(self, cb: F) -> Result<ShapeCommon<B>,E> where F: FnMut(&A) -> Result<B,E> {
+impl ShapeCommon<AllotmentRequest> {
+    pub fn allot<F,E>(self, cb: F) -> Result<ShapeCommon<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
         Ok(ShapeCommon {
             len: self.len,
             coord_system: self.coord_system,
@@ -218,13 +229,6 @@ impl<A: Clone> Shape<A> {
     
     pub fn len(&self) -> usize { self.details.len() }
     pub fn is_empty(&self) -> bool { self.len() == 0 }
-
-    pub fn into_map_result_box<F,E,B: Clone>(self, cb: F) -> Result<Shape<B>,E> where F: FnMut(&A) -> Result<B,E> {
-        Ok(Shape {
-            details: self.details,
-            common: self.common.into_map_result_box(cb)?
-        })
-    }
 }
 
 impl Shape<Allotment> {
@@ -234,6 +238,13 @@ impl Shape<Allotment> {
 }
 
 impl Shape<AllotmentRequest> {
+    pub fn allot<F,E>(self, cb: F) -> Result<Shape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        Ok(Shape {
+            details: self.details.allot(&cb)?,
+            common: self.common.allot(cb)?
+        })
+    }
+
     pub fn remove_nulls(self) -> Shape<AllotmentRequest> { self.filter_by_allotment(|a| !a.is_dustbin()) }
 
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {

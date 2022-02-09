@@ -113,4 +113,18 @@ impl WiggleShape {
             allotments: self.allotments.clone()
         }
     }
+
+    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        if let Some(allotment) = self.allotments.get(0) {
+            let values = Arc::new(cb(allotment)?.transform_yy(&self.values));
+            Ok(WiggleShape {
+                x_limits: self.x_limits,
+                values,
+                plotter: self.plotter,
+                allotments: self.allotments
+            })
+        } else {
+            Ok(self)
+        }
+    }
 }

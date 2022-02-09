@@ -111,11 +111,8 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
         let depth = common.depth().clone();
         match shape.details() {
             ShapeDetails::Wiggle(shape) => {
-                let allotments = common.allotments();
-                if let Some(allotment) = allotments.get(0) {
-                    if let Some(depth) = depth.get(0) {
-                        out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),allotment.clone(),*depth));
-                    }
+                if let Some(depth) = depth.get(0) {
+                    out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),*depth));
                 }
             },
             ShapeDetails::Text(shape) => {

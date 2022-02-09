@@ -1,7 +1,4 @@
-use peregrine_data::Allotment;
-
 use super::super::layers::layer::{ Layer };
-use super::super::layers::patina::PatinaProcessName;
 use crate::shape::layers::geometry::{GeometryAdder, GeometryYielder};
 use crate::shape::layers::patina::PatinaYielder;
 use crate::webgl::{AttribHandle, ProcessBuilder, ProcessStanzaAddable, ProcessStanzaArray, ProgramBuilder};
@@ -11,14 +8,13 @@ use crate::util::message::Message;
 const THICKNESS: f64 = 1.; // XXX
 
 pub(crate) fn make_wiggle(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder,
-                    start: f64, end: f64, yy: &[Option<f64>], height: f64,
-                    allotment: &Allotment, left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
+                    start: f64, end: f64, yy: &[Option<f64>],
+                    left: f64, depth: i8)-> Result<(ProcessStanzaArray,usize),Message> {
     let process = layer.get_process_builder(geometry_yielder,patina_yielder)?;
-    let yy = allotment.transform_yy(&yy);
     let adder = geometry_yielder.get_adder::<GeometryAdder>()?;
     match adder {
         GeometryAdder::Wiggle(w) => {
-            w.add_wiggle(process,start,end,&yy,height,left,depth)
+            w.add_wiggle(process,start,end,&yy,left,depth)
         },
         _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
     }
@@ -38,13 +34,12 @@ impl WiggleAdder {
         })
     }
 
-    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: &[Option<f64>], height: f64, left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
+    pub(crate) fn add_wiggle(&self, process: &mut ProcessBuilder, start: f64, end: f64, yy: &[Option<f64>], left: f64, depth: i8) -> Result<(ProcessStanzaArray,usize),Message> {
         if yy.len() > 1 {
             let mut pusher = WigglePusher {
                 prev_active: true,
                 x_step: (end-start+1.)/(yy.len() as f64),
                 x_pos: start,
-                y_height: height,
                 x: vec![],
                 y: vec![]
             };
@@ -73,7 +68,6 @@ impl WiggleAdder {
 struct WigglePusher {
     prev_active: bool,
     x_step: f64,
-    y_height: f64,
     x_pos: f64,
     x: Vec<f64>,
     y: Vec<f64>
@@ -105,17 +99,5 @@ impl WigglePusher {
     fn inactive(&mut self) {
         self.x_pos += self.x_step;
         self.prev_active = false;        
-    }
-}
-
-#[derive(Clone)]
-pub struct WiggleGeometry {
-    variety: WiggleAdder,
-    patina: PatinaProcessName
-}
-
-impl WiggleGeometry {
-    pub(crate) fn new(patina: &PatinaProcessName, variety: &WiggleAdder) -> Result<WiggleGeometry,Message> {
-        Ok(WiggleGeometry { variety: variety.clone(), patina: patina.clone() })
     }
 }

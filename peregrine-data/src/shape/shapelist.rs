@@ -139,7 +139,7 @@ impl CarriageShapeList {
         /* allotments are assigned here */
         builder.universe.allot(extent);
         /* shapes mapped to allotments here */
-        let shapes = builder.shapes.drain(..).map(|s| s.into_map_result_box(|r| r.allotment())).collect::<Result<Vec<_>,_>>()?;
+        let shapes = builder.shapes.drain(..).map(|s| s.allot(|r| r.allotment())).collect::<Result<Vec<_>,_>>()?;
         Ok(CarriageShapeList {
             universe: builder.universe.clone(),
             shapes: Arc::new(shapes)
