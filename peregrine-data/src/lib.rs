@@ -151,7 +151,7 @@ mod shape {
     };
     pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
     pub use self::zmenu::ZMenu;
-    pub use self::shapelist::{ ShapeListBuilder, ShapeList };
+    pub use self::shapelist::{ ShapeListBuilder, CarriageShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json };
 }
 
@@ -220,7 +220,7 @@ pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    ShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
+    CarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
 };
 pub use self::allotment::core::allotment::{ Allotment };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };

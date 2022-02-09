@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, ShapeList, VariableValues, ZMenuProxy, AllotmentRequest};
+use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -107,7 +107,7 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape<AllotmentRequest>) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape<Allotment>) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape)
@@ -163,7 +163,7 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: ShapeList<AllotmentRequest>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;
@@ -181,7 +181,7 @@ impl Drawing {
         drawing.build(gl).await
     }
 
-    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: ShapeList<AllotmentRequest>, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
         let mut lgl = lock!(gl);
         /* convert core shape data model into gl shapes */
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;

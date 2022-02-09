@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBase, Shape, ShapeDemerge, ShapeDetails, SpaceBase, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBase, Shape, ShapeDemerge, ShapeDetails, SpaceBase, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -50,8 +50,8 @@ impl ImageShape {
         self.names.iter(self.position.len()).unwrap()
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,ShapeCommon<AllotmentRequest>,ImageShape)> where D: ShapeDemerge<X=T> {
-        let demerge = common_in.allotments().demerge(|a| cat.categorise(a));
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,ImageShape)> where D: ShapeDemerge<X=T> {
+        let demerge = common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             let common = common_in.filter(&filter);

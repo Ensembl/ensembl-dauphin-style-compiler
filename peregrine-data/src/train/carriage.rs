@@ -5,7 +5,7 @@ use peregrine_toolkit::sync::needed::Needed;
 use crate::api::MessageSender;
 use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AllotmentRequest};
 use crate::lane::{ ShapeRequest };
-use crate::shape::{ ShapeList };
+use crate::shape::{ CarriageShapeList };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::lane::shapeloader::{LoadMode, load_shapes};
@@ -33,10 +33,8 @@ impl UnloadedCarriage {
         shape_requests
     }
 
-    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<ShapeList<AllotmentRequest>>,DataMessage> {
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<CarriageShapeList>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
-        let scale = extent.train().scale();
-        let pixel_size = extent.train().pixel_size();
         let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,Some(extent),&mode).await;
         Ok(match shapes {
             Some(shapes) => {
@@ -53,8 +51,8 @@ impl UnloadedCarriage {
 enum CarriageState {
     Unloaded(UnloadedCarriage),
     Loading,
-    Pending(ShapeList<AllotmentRequest>),
-    Loaded(ShapeList<AllotmentRequest>)
+    Pending(CarriageShapeList),
+    Loaded(CarriageShapeList)
 }
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
@@ -110,10 +108,10 @@ impl Carriage {
         }
     }
 
-    pub fn shapes(&self) -> ShapeList<AllotmentRequest> {
+    pub fn shapes(&self) -> CarriageShapeList {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => { s.clone() },
-            _ => ShapeList::empty()
+            _ => CarriageShapeList::empty()
         }
     }
 

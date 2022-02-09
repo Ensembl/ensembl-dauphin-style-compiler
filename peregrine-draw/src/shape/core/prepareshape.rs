@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, AllotmentRequest, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails};
+use peregrine_data::{Allotment, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -7,18 +7,8 @@ use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 
-fn get_allotment(handle: &AllotmentRequest) -> Result<Allotment,Message> {
-    handle.allotment().map_err(|e| Message::DataError(e))
-}
-
-fn allotments(allotments: &EachOrEvery<AllotmentRequest>) -> Result<EachOrEvery<Allotment>,Message> {
-    allotments.map_results(|handle|{
-        handle.allotment()
-    }).map_err(|e| Message::DataError(e))
-}
-
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon<AllotmentRequest>, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = allotments(common.allotments())?;
+fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon<Allotment>, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = common.allotments().clone();
     let mut out = vec![];
     match shape.patina() {
         Patina::Drawn(drawn_variety,_) => {
@@ -93,11 +83,11 @@ pub struct GLCategoriser();
 impl ShapeDemerge for GLCategoriser {
     type X = DrawGroup;
 
-    fn categorise(&self, allotment: &AllotmentRequest) -> Self::X {
-        DrawGroup::new(&allotment.coord_system(),&ShapeCategory::Other)
+    fn categorise(&self, coord_system: &CoordinateSystem) -> Self::X {
+        DrawGroup::new(coord_system,&ShapeCategory::Other)
     }
 
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
+    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, drawn_variety: &DrawnType, colour: &Colour) -> Self::X {
         let is_fill = match drawn_variety {
             DrawnType::Fill => false,
             DrawnType::Stroke(_) => true
@@ -109,20 +99,23 @@ impl ShapeDemerge for GLCategoriser {
         } else {
             ShapeCategory::SolidColour
         };
-        DrawGroup::new(&allotment.coord_system(),&category)        
+        DrawGroup::new(&coord_system,&category)        
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<AllotmentRequest>) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<Allotment>) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     for (draw_group,shape) in shape.demerge(&GLCategoriser()) {
         let common = shape.common();
         match shape.details() {
             ShapeDetails::Wiggle(shape) => {
-                out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),get_allotment(shape.allotment())?));
+                let allotments = common.allotments();
+                if let Some(allotment) = allotments.get(0) {
+                    out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),allotment.clone()));
+                }
             },
             ShapeDetails::Text(shape) => {
-                let allotment = allotments(&common.allotments())?;
+                let allotment = common.allotments().clone();
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
@@ -131,7 +124,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,draw_group));
             },
             ShapeDetails::Image(shape) => {
-                let allotment = allotments(&common.allotments())?;
+                let allotment = common.allotments().clone();
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;

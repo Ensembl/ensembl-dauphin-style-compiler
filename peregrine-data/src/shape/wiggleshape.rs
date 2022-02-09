@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -58,14 +58,11 @@ impl WiggleShape {
     pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
-        let allotments = EachOrEvery::each(vec![allotment]);
-        for (coord_system,mut filter) in details.allotments().demerge(|x| { x.coord_system() }) {
-            filter.set_size(1);
-            out.push(Shape::new(
-                eoe_throw("add_wiggle",ShapeCommon::new(filter.count(),coord_system,allotments.filter(&filter)))?,
-                ShapeDetails::Wiggle(details.clone().filter(&mut filter))
-            ));
-        }
+        let allotments = EachOrEvery::each(vec![allotment.clone()]);
+        out.push(Shape::new(
+            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),allotments))?,
+            ShapeDetails::Wiggle(details)
+        ));
         Ok(out)
     }
 
@@ -84,14 +81,14 @@ impl WiggleShape {
     }
 
     pub fn len(&self) -> usize { 1 }
-    pub fn allotments(&self) -> &EachOrEvery<AllotmentRequest> { &self.allotments }
+    //pub fn allotments(&self) -> &EachOrEvery<Allotment> { &self.allotments }
     pub fn range(&self) -> (f64,f64) { self.x_limits }
     pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
     pub fn plotter(&self) -> &Plotter { &self.plotter }
-    pub fn allotment(&self) -> &AllotmentRequest { self.allotments.get(0).unwrap() }
+    //pub fn allotment(&self) -> &Allotment { self.allotments.get(0).unwrap() }
 
-    pub fn demerge<A: Clone,T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<A>, cat: &D) -> Vec<(T,ShapeCommon<A>,WiggleShape)> where D: ShapeDemerge<X=T> {
-        let demerge = self.allotments.demerge(|a| cat.categorise(a));
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,WiggleShape)> where D: ShapeDemerge<X=T> {
+        let demerge = common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             filter.set_size(1);

@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, VariableValues, ShapeList};
+use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, VariableValues, CarriageShapeList};
 use peregrine_toolkit::lock;
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::spectre::Spectre;
@@ -9,7 +9,8 @@ fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metada
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_metadata)?;
     }
-    Drawing::new_sync(None,ShapeList::new(shapes,None),gl,0.,variables,assets)
+    let shape_list = CarriageShapeList::new(shapes,None).map_err(|e| Message::DataError(e))?;
+    Drawing::new_sync(None,shape_list,gl,0.,variables,assets)
 }
 
 #[derive(Clone)]

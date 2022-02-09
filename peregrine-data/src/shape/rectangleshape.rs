@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBaseArea, Patina, Shape, ShapeDemerge, ShapeDetails, SpaceBaseArea, shape::shape::ShapeCommon, util::eachorevery::eoe_throw};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBaseArea, Patina, Shape, ShapeDemerge, ShapeDetails, SpaceBaseArea, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -46,16 +46,16 @@ impl RectangleShape {
         self.area.make_base_filter(min,max)
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,ShapeCommon<AllotmentRequest>,RectangleShape)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,RectangleShape)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = common_in.allotments().merge(&colours).unwrap();
                 allotments_and_colours.demerge(|(a,c)| 
-                    cat.categorise_with_colour(a,drawn_type,c)
+                    cat.categorise_with_colour(common_in.coord_system(),drawn_type,c)
                 )
             },
             _ => {
-                common_in.allotments().demerge(|a| cat.categorise(a))
+                common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()))
             }
         };
         let mut out = vec![];

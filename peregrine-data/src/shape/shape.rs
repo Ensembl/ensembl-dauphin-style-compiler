@@ -3,6 +3,7 @@ use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
+use crate::Allotment;
 use crate::AllotmentRequest;
 use crate::Assets;
 use crate::Colour;
@@ -16,10 +17,10 @@ use crate::allotment::core::rangeused::RangeUsed;
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
 
-    fn categorise(&self, allotment: &AllotmentRequest) -> Self::X;
+    fn categorise(&self, coord_system: &CoordinateSystem) -> Self::X;
     
-    fn categorise_with_colour(&self, allotment: &AllotmentRequest, _variety: &DrawnType, _colour: &Colour) -> Self::X {
-        self.categorise(allotment)
+    fn categorise_with_colour(&self, coord_system: &CoordinateSystem, _variety: &DrawnType, _colour: &Colour) -> Self::X {
+        self.categorise(coord_system)
     }
 }
 
@@ -99,14 +100,16 @@ impl ShapeDetails {
                 }
             },
             ShapeDetails::Wiggle(shape) => {
-                shape.allotment().set_base_range(&RangeUsed::All);
-                shape.allotment().set_max_y(shape.plotter().0 as i64);
+                for allotment in common.iter_allotments() {
+                    allotment.set_base_range(&RangeUsed::All);
+                    allotment.set_max_y(shape.plotter().0 as i64);    
+                }
             }
         }
         Ok(())
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon<AllotmentRequest>, cat: &D) -> Vec<(T,Shape<AllotmentRequest>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,Shape<Allotment>)> where D: ShapeDemerge<X=T> {
         match self {
             ShapeDetails::Wiggle(shape) => {
                 return shape.demerge(common,cat).drain(..).map(|(x,common,details)| 
@@ -146,6 +149,7 @@ impl<A: Clone> ShapeCommon<A> {
         Some(ShapeCommon { len, coord_system, allotments })
     }
 
+    pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
     pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
 
     pub fn filter(&self, filter: &DataFilter) -> ShapeCommon<A> {
@@ -159,6 +163,14 @@ impl<A: Clone> ShapeCommon<A> {
 
     pub fn iter_allotments(&self) -> impl Iterator<Item=&A> {
         self.allotments.iter(self.len).unwrap()
+    }
+
+    pub fn into_map_result_box<F,E,B: Clone>(self, cb: F) -> Result<ShapeCommon<B>,E> where F: FnMut(&A) -> Result<B,E> {
+        Ok(ShapeCommon {
+            len: self.len,
+            coord_system: self.coord_system,
+            allotments: self.allotments.map_results(cb)?
+        })
     }
 }
 
@@ -202,6 +214,19 @@ impl<A: Clone> Shape<A> {
     
     pub fn len(&self) -> usize { self.details.len() }
     pub fn is_empty(&self) -> bool { self.len() == 0 }
+
+    pub fn into_map_result_box<F,E,B: Clone>(self, cb: F) -> Result<Shape<B>,E> where F: FnMut(&A) -> Result<B,E> {
+        Ok(Shape {
+            details: self.details,
+            common: self.common.into_map_result_box(cb)?
+        })
+    }
+}
+
+impl Shape<Allotment> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<Allotment>)> where D: ShapeDemerge<X=T> {
+        self.details.demerge(&self.common,cat)
+    }
 }
 
 impl Shape<AllotmentRequest> {
@@ -209,9 +234,5 @@ impl Shape<AllotmentRequest> {
 
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         self.details.register_space(&self.common,assets)
-    }
-
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<AllotmentRequest>)> where D: ShapeDemerge<X=T> {
-        self.details.demerge(&self.common,cat)
     }
 }
