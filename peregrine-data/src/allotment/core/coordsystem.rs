@@ -17,12 +17,22 @@ pub enum CoordinateSystemVariety {
      * drawing relative to the window on left and right
      */
     Sideways,
+    /* Don't draw
+     */
+    Dustbin,
 }
 
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub struct CoordinateSystem(pub CoordinateSystemVariety,pub bool);
 
 impl CoordinateSystem {
+    pub fn is_dustbin(&self) -> bool {
+        match self.0 {
+            CoordinateSystemVariety::Dustbin => true,
+            _ => false
+        }
+    }
+
     pub fn is_tracking(&self) -> bool {
         match self.0 {
             CoordinateSystemVariety::Tracking | CoordinateSystemVariety::TrackingWindow => true,

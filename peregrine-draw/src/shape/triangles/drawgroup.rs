@@ -21,8 +21,7 @@ fn geometry(coord_system: &CoordinateSystem) -> TrianglesGeometry {
     match coord_system.0 {
         CoordinateSystemVariety::Tracking => TrianglesGeometry::Tracking,
         CoordinateSystemVariety::TrackingWindow => TrianglesGeometry::TrackingWindow,
-        CoordinateSystemVariety::Window => TrianglesGeometry::Window,
-        CoordinateSystemVariety::Sideways => TrianglesGeometry::Window,
+        _ => TrianglesGeometry::Window
     }
 }
 

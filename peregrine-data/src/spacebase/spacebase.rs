@@ -109,7 +109,7 @@ impl<X: Clone + PartialOrd> HoleySpaceBase<X> {
         match self {
             HoleySpaceBase::Simple(x) => x.clone(),
             HoleySpaceBase::Parametric(x) => {
-                x.clone().map_into(|x| x.param_default().clone())
+                x.clone().map_box(|x| x.param_default().clone())
             }
         }
     }
@@ -222,7 +222,7 @@ impl<X: Clone> SpaceBase<X> {
         }
     }
 
-    pub fn map_into<F,Z>(&mut self, cb : F) -> SpaceBase<Z> where F: Fn(&X) -> Z {
+    pub fn map_box<F,Z>(&mut self, cb : F) -> SpaceBase<Z> where F: Fn(&X) -> Z {
         SpaceBase {
             base: Arc::new(self.base.iter().map(&cb).collect()),
             tangent: Arc::new(self.tangent.iter().map(&cb).collect()),

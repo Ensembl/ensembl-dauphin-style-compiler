@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment, allotment::core::allotmentrequest::GenericAllotmentRequestImpl };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
@@ -23,8 +23,7 @@ impl ShapeListBuilder {
     pub fn universe(&self) -> &Universe { &self.universe }
 
     fn push(&mut self, shape: Shape<AllotmentRequest>) {
-        let shape =shape.remove_nulls();
-        if !shape.is_empty() {
+        if !shape.is_empty() && !shape.common().coord_system().is_dustbin() {
             shape.register_space(&self.assets);
             self.shapes.push(shape);
         }
@@ -53,25 +52,25 @@ impl ShapeListBuilder {
     
     pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64>, patina: Patina, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         let depth = allotments.map(|a| a.depth());
-        self.extend(RectangleShape::new(area,depth,patina,allotments)?);
+        self.extend(RectangleShape::<AllotmentRequest>::new(area,depth,patina,allotments)?);
         Ok(())
     }
 
     pub fn add_text(&mut self, position: HoleySpaceBase<f64>, pen: Pen, text: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         let depth = allotments.map(|a| a.depth());
-        self.extend(TextShape::new(position,depth,pen,text,allotments)?);
+        self.extend(TextShape::<AllotmentRequest>::new(position,depth,pen,text,allotments)?);
         Ok(())
     }
 
     pub fn add_image(&mut self, position: HoleySpaceBase<f64>, images: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<(),DataMessage> {
         let depth = allotments.map(|a| a.depth());
-        self.extend(ImageShape::new(position,depth,images,allotments)?);
+        self.extend(ImageShape::<AllotmentRequest>::new(position,depth,images,allotments)?);
         Ok(())
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) -> Result<(),DataMessage> {
         let depth = EachOrEvery::Every(allotment.depth());
-        self.extend(WiggleShape::new((min,max),values,depth,plotter,allotment.clone())?);
+        self.extend(WiggleShape::<AllotmentRequest>::new((min,max),values,depth,plotter,allotment.clone())?);
         Ok(())
     }
 

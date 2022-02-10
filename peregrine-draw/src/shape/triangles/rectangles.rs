@@ -5,7 +5,7 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, CoordinateSystem, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
@@ -107,15 +107,28 @@ fn add_spacebase4(point: &SpaceBase<f64>,depth: &EachOrEvery<i8>, group: &DrawGr
     add_spacebase_area4(&area,depth,group,allotments,left,width)
 }
 
+/* 
+fn fixup(area: &SpaceBaseArea<f64>, allotments: &EachOrEvery<Allotment>) -> Result<SpaceBaseArea<f64>,Message> {
+    for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("sba1",allotments.iter(area.len()).unwrap())) {
+
+    }
+}
+*/
+
+fn transform<'a>(area: &'a SpaceBaseArea<f64>, allotments: &'a EachOrEvery<Allotment>, depth: &'a EachOrEvery<i8>)
+        -> Result<impl Iterator<Item=(((SpaceBasePointRef<'a,f64>,SpaceBasePointRef<'a,f64>),&'a Allotment),&'a i8)>,Message> {
+    Ok(area.iter()
+        .zip(eoe_throw("sba1",allotments.iter(area.len()))?) 
+        .zip(eoe_throw("sba2",depth.iter(area.len()))?))
+
+}
+
 fn add_spacebase_area4(area: &SpaceBaseArea<f64>, depth: &EachOrEvery<i8>, group: &DrawGroup, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
-    for (((top_left,bottom_right),allotment),depth) in 
-                area.iter()
-                .zip(eoe_throw("sba1",allotments.iter(area.len()))?) 
-                .zip(eoe_throw("sba2",depth.iter(area.len()))?) {                    
-        let top_left = allotment.transform_spacebase(&top_left);
-        let bottom_right = allotment.transform_spacebase(&bottom_right);
+    for (((top_left,bottom_right),allotment),depth) in transform(area,allotments,depth)? {
+        let top_left = allotment.transform_spacebase_point(&top_left);
+        let bottom_right = allotment.transform_spacebase_point(&bottom_right);
         let (t_0,t_1,mut n_0,mut n_1) = (top_left.tangent,bottom_right.tangent,top_left.normal,bottom_right.normal);
         let (mut b_0,mut b_1) = (top_left.base,bottom_right.base);
         /* 

@@ -171,7 +171,7 @@ impl AllotmentRequestImpl<DustbinAllotment> {
             experience: Mutex::new(AllotmentRequestExperience::new()),
             depth: 0,
             ghost: true,
-            geometry: CoordinateSystem(CoordinateSystemVariety::Window,false)
+            geometry: CoordinateSystem(CoordinateSystemVariety::Dustbin,false)
         }
     }
 }

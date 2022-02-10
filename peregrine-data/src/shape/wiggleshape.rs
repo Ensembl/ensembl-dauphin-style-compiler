@@ -38,19 +38,19 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct WiggleShape {
+pub struct WiggleShape<A: Clone> {
     x_limits: (f64,f64),
     values: Arc<Vec<Option<f64>>>,
     plotter: Plotter,
-    allotments: EachOrEvery<AllotmentRequest> // actually always a single allotment
+    allotments: EachOrEvery<A> // actually always a single allotment
 }
 
 fn draw_wiggle(input: &[Option<f64>], height: f64) -> Vec<Option<f64>> {
     input.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>()
 }
 
-impl WiggleShape {
-    pub fn new_details(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> WiggleShape {
+impl<A: Clone> WiggleShape<A> {
+    pub fn new_details(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: A) -> WiggleShape<A> {
         WiggleShape {
             x_limits,
             values: Arc::new(draw_wiggle(&values,plotter.0)),
@@ -64,13 +64,13 @@ impl WiggleShape {
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         let allotments = EachOrEvery::each(vec![allotment.clone()]);
         out.push(Shape::new(
-            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),depth,allotments))?,
+            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),depth))?,
             ShapeDetails::Wiggle(details)
         ));
         Ok(out)
     }
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> WiggleShape {
+    pub(super) fn filter(&self, filter: &DataFilter) -> WiggleShape<A> {
         let y = if filter.filter(&[()]).len() > 0 {
             self.values.clone()
         } else {
@@ -89,8 +89,8 @@ impl WiggleShape {
     pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
     pub fn plotter(&self) -> &Plotter { &self.plotter }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,WiggleShape)> where D: ShapeDemerge<X=T> {
-        let demerge = common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,WiggleShape<A>)> where D: ShapeDemerge<X=T> {
+        let demerge = self.allotments.demerge(|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             filter.set_size(1);
@@ -104,7 +104,7 @@ impl WiggleShape {
         DataFilter::all(1)
     }
 
-    pub fn reduce_by_minmax(&self, min: f64, max: f64) -> WiggleShape {
+    pub fn reduce_by_minmax(&self, min: f64, max: f64) -> WiggleShape<A> {
         let (aim_min,aim_max,new_y) = wiggle_filter(min,max,self.x_limits.0,self.x_limits.1,&self.values);
         WiggleShape {
             x_limits: (aim_min,aim_max),
@@ -114,17 +114,24 @@ impl WiggleShape {
         }
     }
 
-    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
-        if let Some(allotment) = self.allotments.get(0) {
-            let values = Arc::new(cb(allotment)?.transform_yy(&self.values));
-            Ok(WiggleShape {
-                x_limits: self.x_limits,
-                values,
-                plotter: self.plotter,
-                allotments: self.allotments
-            })
+    pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
+        self.allotments.iter(len).unwrap()
+    }
+}
+
+impl WiggleShape<AllotmentRequest> {
+    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        let allotments = self.allotments.map_results(cb)?;
+        let values = if let Some(allotment) = allotments.get(0) {
+            Arc::new(allotment.transform_yy(&self.values))
         } else {
-            Ok(self)
-        }
+            self.values
+        };
+        Ok(WiggleShape {
+            x_limits: self.x_limits,
+            values,
+            plotter: self.plotter,
+            allotments
+        })
     }
 }

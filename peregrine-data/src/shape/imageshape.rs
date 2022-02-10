@@ -3,27 +3,29 @@ use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ImageShape {
+pub struct ImageShape<A: Clone> {
     position: HoleySpaceBase<f64>,
+    allotments: EachOrEvery<A>,
     names: EachOrEvery<String>
 }
 
-impl ImageShape {
-    pub fn new_details(position: HoleySpaceBase<f64>, names: EachOrEvery<String>) -> Option<ImageShape> {
+impl<A: Clone> ImageShape<A> {
+    pub fn new_details(position: HoleySpaceBase<f64>, allotments: EachOrEvery<A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
         if !names.compatible(position.len()) { return None; }
         Some(ImageShape {
-            position, names
+            position, names, allotments
         })
     }
 
     pub fn new(position: HoleySpaceBase<f64>, depth: EachOrEvery<i8>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
-        let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
-        for (coord_system,mut filter) in allotments.demerge(|x| { x.coord_system() }) {
+        let demerge = allotments.demerge(|x| { x.coord_system() });
+        let details = eoe_throw("add_image",ImageShape::new_details(position,allotments,names))?;
+        for (coord_system,mut filter) in demerge {
             filter.set_size(len);
             out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,depth.clone(),allotments.filter(&filter)))?,
+                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,depth.clone()))?,
                 ShapeDetails::Image(details.filter(&mut filter))
             ));
         }
@@ -34,15 +36,17 @@ impl ImageShape {
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
     pub fn holey_position(&self) -> &HoleySpaceBase<f64> { &self.position }
     pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
+    pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
         self.position.make_base_filter(min,max)
     }
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> ImageShape {
+    pub(super) fn filter(&self, filter: &DataFilter) -> ImageShape<A> {
         ImageShape {
             position: self.position.filter(filter),
-            names: self.names.filter(&filter)
+            names: self.names.filter(&filter),
+            allotments: self.allotments.filter(&filter)
         }
     }
 
@@ -50,8 +54,8 @@ impl ImageShape {
         self.names.iter(self.position.len()).unwrap()
     }
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,ShapeCommon<Allotment>,ImageShape)> where D: ShapeDemerge<X=T> {
-        let demerge = common_in.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape<A>)> where D: ShapeDemerge<X=T> {
+        let demerge = self.allotments.demerge(|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             let common = common_in.filter(&filter);
@@ -59,5 +63,19 @@ impl ImageShape {
             out.push((draw_group,common,self.filter(&filter)));
         }
         out
+    }
+
+    pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
+        self.allotments.iter(len).unwrap()
+    }
+}
+
+impl ImageShape<AllotmentRequest> {
+    pub fn allot<F,E>(self, cb: F) -> Result<ImageShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        Ok(ImageShape {
+            position: self.position.clone(),
+            allotments: self.allotments.map_results(cb)?,
+            names: self.names.clone(),
+        })
     }
 }

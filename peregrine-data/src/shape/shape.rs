@@ -26,14 +26,14 @@ pub trait ShapeDemerge {
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum ShapeDetails {
-    Text(TextShape),
-    Image(ImageShape),
-    Wiggle(WiggleShape),
-    SpaceBaseRect(RectangleShape)
+pub enum ShapeDetails<A: Clone> {
+    Text(TextShape<A>),
+    Image(ImageShape<A>),
+    Wiggle(WiggleShape<A>),
+    SpaceBaseRect(RectangleShape<A>)
 }
 
-impl ShapeDetails {
+impl<A: Clone> ShapeDetails<A> {
     pub fn len(&self) -> usize {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => shape.len(),
@@ -52,7 +52,7 @@ impl ShapeDetails {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> ShapeDetails {
+    pub fn filter(&self, filter: &DataFilter) -> ShapeDetails<A> {
         match self {
             ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.filter(filter)),
             ShapeDetails::Text(shape) => ShapeDetails::Text(shape.filter(filter)),
@@ -61,55 +61,14 @@ impl ShapeDetails {
         }
     }
 
-    pub fn reduce_by_minmax(&self, min_value: f64, max_value: f64) -> ShapeDetails {
+    pub fn reduce_by_minmax(&self, min_value: f64, max_value: f64) -> ShapeDetails<A> {
         match self {
             ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.reduce_by_minmax(min_value,max_value)),
             x => x.clone()
         }
     }
 
-    pub fn register_space(&self, common: &ShapeCommon<AllotmentRequest>, assets: &Assets) -> Result<(),DataMessage> {
-        match &self {
-            ShapeDetails::SpaceBaseRect(shape) => {
-                for ((top_left,bottom_right),allotment) in shape.area().iter().zip(common.iter_allotments()) {
-                    allotment.set_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
-                    allotment.set_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
-                    allotment.set_max_y(top_left.normal.ceil() as i64);
-                    allotment.set_max_y(bottom_right.normal.ceil() as i64);
-                }
-            },
-            ShapeDetails::Text(shape) => {
-                let size = shape.pen().size() as f64;
-                for ((position,allotment),text) in shape.position().iter().zip(common.iter_allotments()).zip(shape.iter_texts()) {
-                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
-                    allotment.set_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
-                    allotment.set_max_y((*position.normal + size).ceil() as i64);
-                }
-            },
-            ShapeDetails::Image(shape) => {
-                for (position,(allotment,asset_name)) in shape.position().iter().zip(common.iter_allotments().zip(shape.iter_names())) {
-                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
-                    if let Some(asset) = assets.get(asset_name) {
-                        if let Some(height) = asset.metadata_u32("height") {
-                            allotment.set_max_y((position.normal + (height as f64)).ceil() as i64);
-                        }
-                        if let Some(width) = asset.metadata_u32("width") {
-                            allotment.set_pixel_range(&RangeUsed::Part(0.,(position.normal + (width as f64)).ceil()));
-                        }
-                    }
-                }
-            },
-            ShapeDetails::Wiggle(shape) => {
-                for allotment in common.iter_allotments() {
-                    allotment.set_base_range(&RangeUsed::All);
-                    allotment.set_max_y(shape.plotter().0 as i64);    
-                }
-            }
-        }
-        Ok(())
-    }
-
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon<Allotment>, cat: &D) -> Vec<(T,Shape<Allotment>)> where D: ShapeDemerge<X=T> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common: &ShapeCommon, cat: &D) -> Vec<(T,Shape<A>)> where D: ShapeDemerge<X=T> {
         match self {
             ShapeDetails::Wiggle(shape) => {
                 return shape.demerge(common,cat).drain(..).map(|(x,common,details)| 
@@ -133,76 +92,100 @@ impl ShapeDetails {
             }
         }
     }
+}
 
-    pub fn allot<F,E>(self, cb: F) -> Result<ShapeDetails,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
-        Ok(match self {
-            ShapeDetails::Wiggle(shape) => {
-                ShapeDetails::Wiggle(shape.allot(cb)?)
+impl ShapeDetails<AllotmentRequest> {
+
+    pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
+        match &self {
+            ShapeDetails::SpaceBaseRect(shape) => {
+                for ((top_left,bottom_right),allotment) in shape.area().iter().zip(shape.iter_allotments(shape.area().len())) {
+                    allotment.set_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
+                    allotment.set_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
+                    allotment.set_max_y(top_left.normal.ceil() as i64);
+                    allotment.set_max_y(bottom_right.normal.ceil() as i64);
+                }
             },
-            x => x
+            ShapeDetails::Text(shape) => {
+                let size = shape.pen().size() as f64;
+                for ((position,allotment),text) in shape.position().iter().zip(shape.iter_allotments(shape.position().len())).zip(shape.iter_texts()) {
+                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                    allotment.set_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
+                    allotment.set_max_y((*position.normal + size).ceil() as i64);
+                }
+            },
+            ShapeDetails::Image(shape) => {
+                for (position,(allotment,asset_name)) in shape.position().iter().zip(shape.iter_allotments(shape.position().len()).zip(shape.iter_names())) {
+                    allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                    if let Some(asset) = assets.get(asset_name) {
+                        if let Some(height) = asset.metadata_u32("height") {
+                            allotment.set_max_y((position.normal + (height as f64)).ceil() as i64);
+                        }
+                        if let Some(width) = asset.metadata_u32("width") {
+                            allotment.set_pixel_range(&RangeUsed::Part(0.,(position.normal + (width as f64)).ceil()));
+                        }
+                    }
+                }
+            },
+            ShapeDetails::Wiggle(shape) => {
+                for allotment in shape.iter_allotments(1) {
+                    allotment.set_base_range(&RangeUsed::All);
+                    allotment.set_max_y(shape.plotter().0 as i64);    
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn allot<F,E>(self, cb: F) -> Result<ShapeDetails<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+        Ok(match self {
+            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.allot(cb)?),
+            ShapeDetails::Text(shape) => ShapeDetails::Text(shape.allot(cb)?),
+            ShapeDetails::Image(shape) => ShapeDetails::Image(shape.allot(cb)?),
+            ShapeDetails::SpaceBaseRect(shape) =>ShapeDetails::SpaceBaseRect(shape.allot(cb)?),
         })
     }
 }
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ShapeCommon<A: Clone> {
+pub struct ShapeCommon {
     len: usize,
     coord_system: CoordinateSystem,
-    depth: EachOrEvery<i8>,
-    allotments: EachOrEvery<A>
+    depth: EachOrEvery<i8>
 }
 
-impl<A: Clone> ShapeCommon<A> {
-    pub fn new(len: usize, coord_system: CoordinateSystem, depth: EachOrEvery<i8>, allotments: EachOrEvery<A>) -> Option<ShapeCommon<A>> {
-        if !allotments.compatible(len) { return None; }
-        Some(ShapeCommon { len, coord_system, allotments, depth })
+impl ShapeCommon {
+    pub fn new(len: usize, coord_system: CoordinateSystem, depth: EachOrEvery<i8>) -> Option<ShapeCommon> {
+        Some(ShapeCommon { len, coord_system, depth })
     }
 
     pub fn depth(&self) -> &EachOrEvery<i8> { &self.depth }
     pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
-    pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
 
-    pub fn filter(&self, filter: &DataFilter) -> ShapeCommon<A> {
-        let allotments = self.allotments.filter(filter);
+    pub fn filter(&self, filter: &DataFilter) -> ShapeCommon {
         ShapeCommon {
             len: filter.count(),
             coord_system: self.coord_system.clone(),
-            depth: self.depth.filter(filter),
-            allotments
+            depth: self.depth.filter(filter)
         }
-    }
-
-    pub fn iter_allotments(&self) -> impl Iterator<Item=&A> {
-        self.allotments.iter(self.len).unwrap()
-    }
-}
-
-impl ShapeCommon<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<ShapeCommon<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
-        Ok(ShapeCommon {
-            len: self.len,
-            coord_system: self.coord_system,
-            depth: self.depth,
-            allotments: self.allotments.map_results(cb)?
-        })
     }
 }
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct Shape<A: Clone> {
-    details: ShapeDetails,
-    common: ShapeCommon<A>
+    details: ShapeDetails<A>,
+    common: ShapeCommon
 }
 
 impl<A: Clone> Shape<A> {
-    pub fn new(common: ShapeCommon<A>, details: ShapeDetails) -> Shape<A> {
+    pub fn new(common: ShapeCommon, details: ShapeDetails<A>) -> Shape<A> {
         Shape { common, details }
     }
 
-    pub fn details(&self) -> &ShapeDetails { &self.details }
-    pub fn common(&self) -> &ShapeCommon<A> { &self.common }
+    pub fn details(&self) -> &ShapeDetails<A> { &self.details }
+    pub fn common(&self) -> &ShapeCommon { &self.common }
 
     pub(super) fn filter_shape(&self, filter: &DataFilter) -> Shape<A> {
         let mut filter = filter.clone();
@@ -212,10 +195,12 @@ impl<A: Clone> Shape<A> {
         Shape::new(common,details)
     }
 
+    /*
     pub fn filter_by_allotment<F>(&self,  cb: F)  -> Shape<A> where F: Fn(&A) -> bool {
         let filter = self.common.allotments().new_filter(self.len(),cb);
         self.filter_shape(&filter)
     }
+    */
 
     pub fn filter_by_minmax(&self, min_value: f64, max_value: f64) -> Shape<A> {
         if !self.common.coord_system.is_tracking() {
@@ -241,11 +226,9 @@ impl Shape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<Shape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
         Ok(Shape {
             details: self.details.allot(&cb)?,
-            common: self.common.allot(cb)?
+            common: self.common.clone()
         })
     }
-
-    pub fn remove_nulls(self) -> Shape<AllotmentRequest> { self.filter_by_allotment(|a| !a.is_dustbin()) }
 
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         self.details.register_space(&self.common,assets)

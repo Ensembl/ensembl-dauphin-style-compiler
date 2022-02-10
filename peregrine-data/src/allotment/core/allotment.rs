@@ -1,10 +1,11 @@
 use std::fmt::Debug;
 use std::sync::{Arc};
-use crate::{AllotmentMetadataRequest};
+use crate::{AllotmentMetadataRequest, SpaceBase};
 use crate::{SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint};
 
 pub trait Transformer {
-    fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
+    fn transform_spacebase_point(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64>;
+    fn transform_spacebase(&self, input: SpaceBase<f64>) -> SpaceBase<f64>;
     fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>>;
     fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest);
 }
@@ -24,7 +25,11 @@ impl Allotment {
         Allotment(allotment_impl)
     }
 
-    pub fn transform_spacebase(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+    pub fn transform_spacebase_point(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+        self.0.transform_spacebase_point(input)
+    }
+
+    pub fn transform_spacebase(&self, input: SpaceBase<f64>) -> SpaceBase<f64> {
         self.0.transform_spacebase(input)
     }
 

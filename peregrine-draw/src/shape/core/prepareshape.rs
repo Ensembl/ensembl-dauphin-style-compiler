@@ -7,8 +7,8 @@ use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon<Allotment>, shape: &RectangleShape, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
-    let allotment = common.allotments().clone();
+fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape<Allotment>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+    let allotment = shape.allotments().clone();
     let mut out = vec![];
     let depth = common.depth().clone();
     match shape.patina() {
@@ -116,7 +116,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 }
             },
             ShapeDetails::Text(shape) => {
-                let allotment = common.allotments().clone();
+                let allotment = shape.allotments().clone();
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
@@ -125,7 +125,7 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 out.push(GLShape::Text(shape.holey_position().clone(),handles,allotment,depth,draw_group));
             },
             ShapeDetails::Image(shape) => {
-                let allotment = common.allotments().clone();
+                let allotment = shape.allotments().clone();
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;

@@ -73,8 +73,8 @@ struct ZMenuEntry {
 impl ZMenuEntry {
     fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
         if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
-            let top_left = self.allotment.transform_spacebase(&top_left);
-            let bottom_right = self.allotment.transform_spacebase(&bottom_right);
+            let top_left = self.allotment.transform_spacebase_point(&top_left);
+            let bottom_right = self.allotment.transform_spacebase_point(&bottom_right);
             let top_px = top_left.normal;
             let bottom_px = bottom_right.normal;
             let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
@@ -109,8 +109,8 @@ impl ScaledZMenus {
     }
 
     fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
-        let top_left = allotment.transform_spacebase(top_left);
-        let bottom_right = allotment.transform_spacebase(bottom_right);
+        let top_left = allotment.transform_spacebase_point(top_left);
+        let bottom_right = allotment.transform_spacebase_point(bottom_right);
         /* y-coordinate */
         let (top_px,bottom_px) = order(top_left.normal,bottom_right.normal);
         /* x-coordinate */
