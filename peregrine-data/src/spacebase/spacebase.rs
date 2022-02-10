@@ -150,6 +150,17 @@ impl<X: Clone> Flattenable for HoleySpaceBase<X> {
     }
 }
 
+fn fix_len<X: Clone>(input: &[X], len: usize) -> Vec<X> {
+    let mut output = input.iter().cloned().collect::<Vec<_>>();
+    while output.len() < len && input.len() > 0 {
+        output.extend(input.iter().cloned());
+    }
+    if output.len() > len {
+        output = output[0..len].to_vec();
+    }
+    output
+}
+
 impl<X> Clone for SpaceBase<X> {
     fn clone(&self) -> Self {
         SpaceBase {
@@ -239,16 +250,18 @@ impl<X: Clone> SpaceBase<X> {
         for x in Arc::make_mut(&mut self.normal) { cb(x); }
     }
 
-    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
+    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
+        self.tangent = Arc::new(fix_len(&self.tangent,values.len()));
         let mut values2 = values.iter().cycle();
         self.update_tangent(move |x| { cb(x,values2.next().unwrap()) });
+        true
     }
 
-    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
+    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
+        self.normal = Arc::new(fix_len(&self.normal,values.len()));
         let mut values2 = values.iter().cycle();
         self.update_normal(move |x| { cb(x,values2.next().unwrap()) });
+        true
     }
 }
 

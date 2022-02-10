@@ -129,7 +129,8 @@ impl DrawingBuilder {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },
-            ShapeToAdd::ZMenu(area,allotments,zmenu,values) => {
+            ShapeToAdd::ZMenu(area,zmenu,values) => {
+                let (area,allotments) = area.xxx_to_original();
                 self.tools.zmenus.add_rectangle(area,allotments,zmenu,values);
             },
             ShapeToAdd::None => {}

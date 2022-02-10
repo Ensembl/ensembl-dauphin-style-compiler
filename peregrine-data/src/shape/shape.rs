@@ -99,7 +99,8 @@ impl ShapeDetails<AllotmentRequest> {
     pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => {
-                for ((top_left,bottom_right),allotment) in shape.area().iter().zip(shape.iter_allotments(shape.area().len())) {
+                for (top_left,bottom_right) in shape.area().iter() {
+                    let allotment = top_left.allotment;
                     allotment.set_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
                     allotment.set_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
                     allotment.set_max_y(top_left.normal.ceil() as i64);
@@ -108,14 +109,16 @@ impl ShapeDetails<AllotmentRequest> {
             },
             ShapeDetails::Text(shape) => {
                 let size = shape.pen().size() as f64;
-                for ((position,allotment),text) in shape.position().iter().zip(shape.iter_allotments(shape.position().len())).zip(shape.iter_texts()) {
+                for (position,text) in shape.position().iter().zip(shape.iter_texts()) {
+                    let allotment = position.allotment;
                     allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     allotment.set_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
                     allotment.set_max_y((*position.normal + size).ceil() as i64);
                 }
             },
             ShapeDetails::Image(shape) => {
-                for (position,(allotment,asset_name)) in shape.position().iter().zip(shape.iter_allotments(shape.position().len()).zip(shape.iter_names())) {
+                for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {
+                    let allotment = position.allotment;
                     allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
                     if let Some(asset) = assets.get(asset_name) {
                         if let Some(height) = asset.metadata_u32("height") {

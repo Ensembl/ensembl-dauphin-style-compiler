@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu};
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -102,11 +102,11 @@ impl DrawingShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(HoleySpaceBase<f64>,Vec<TextHandle>,EachOrEvery<Allotment>,EachOrEvery<i8>,DrawGroup),
-    Image(HoleySpaceBase<f64>,Vec<BitmapHandle>,EachOrEvery<Allotment>,EachOrEvery<i8>,DrawGroup),
-    Heraldry(HoleySpaceBaseArea<f64>,EachOrEvery<HeraldryHandle>,EachOrEvery<Allotment>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
+    Text(HoleySpaceBase2<f64,Allotment>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
+    Image(HoleySpaceBase2<f64,Allotment>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
+    Heraldry(HoleySpaceBaseArea2<f64,Allotment>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
-    SpaceBaseRect(HoleySpaceBaseArea<f64>,SimpleShapePatina,EachOrEvery<Allotment>,EachOrEvery<i8>,DrawGroup),
+    SpaceBaseRect(HoleySpaceBaseArea2<f64,Allotment>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup),
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Message> {
@@ -136,11 +136,11 @@ fn dims_to_sizes(areas: &[CanvasTextureArea]) -> (Vec<f64>,Vec<f64>) {
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &HoleySpaceBaseArea<f64>, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge<f64>>) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge<f64>>) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
-    let mut rectangles = Rectangles::new_area(layer, &mut geometry_yielder, &mut patina_yielder,area,allotments,depth,left,false,&draw_group,edge)?;
+    let mut rectangles = Rectangles::new_area(layer, &mut geometry_yielder, &mut patina_yielder,area,depth,left,false,&draw_group,edge)?;
     let campaign = rectangles.elements_mut();
     let gl_ref = gl.refs();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
@@ -148,11 +148,11 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     Ok(Box::new(rectangles))
 }
 
-fn draw_points_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &HoleySpaceBase<f64>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &HoleySpaceBase2<f64,Allotment>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
-    let mut rectangles = Rectangles::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,points,x_sizes,y_sizes,allotments,depth,left,false,&draw_group)?;
+    let mut rectangles = Rectangles::new_sized(layer, &mut geometry_yielder, &mut patina_yielder,points,x_sizes,y_sizes,depth,left,false,&draw_group)?;
     let campaign = rectangles.elements_mut();
     let gl_ref = gl.refs();
     patina_yielder.draw()?.add_rectangle(campaign,&canvas,&dims,gl_ref.flat_store)?;
@@ -160,7 +160,7 @@ fn draw_points_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: 
     Ok(Box::new(rectangles))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea<f64>, handles: &EachOrEvery<HeraldryHandle>, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea2<f64,Allotment>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();
@@ -175,12 +175,12 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     filter.set_size(area_a.len());
     if filter.count() == 0 { return Ok(None); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-    Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),allotments,depth,&canvas,&dims,scale.is_free(),edge)?))
+    Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),depth,&canvas,&dims,scale.is_free(),edge)?))
 }
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64>,EachOrEvery<Allotment>,ZMenu,Vec<(String,EachOrEvery<String>)>),
+    ZMenu(SpaceBaseArea2<f64,Allotment>,ZMenu,Vec<(String,EachOrEvery<String>)>),
     None
 }
 
@@ -195,7 +195,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             array.close()?;
             Ok(ShapeToAdd::None)
         },
-        GLShape::Text(points,handles,allotments,depth,draw_group) => {
+        GLShape::Text(points,handles,depth,draw_group) => {
             // TODO factor
             let text = tools.text();
             let dims = handles.iter()
@@ -204,10 +204,10 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             if dims.len() == 0 { return Ok(ShapeToAdd::None); }
             let (x_sizes,y_sizes) = dims_to_sizes(&dims);
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas(layer,gl,&draw_group,&points,x_sizes,y_sizes,&allotments,&depth,&canvas,&dims,false)?;
+            let rectangles = draw_points_from_canvas2(layer,gl,&draw_group,&points,x_sizes,y_sizes,&depth,&canvas,&dims,false)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Image(points,handles,allotments,depth,kind) => {
+        GLShape::Image(points,handles,depth,kind) => {
             // TODO factor
             let bitmap = tools.bitmap();
             let dims = handles.iter()
@@ -216,25 +216,25 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
             if dims.len() == 0 { return Ok(ShapeToAdd::None); }
                 let (x_sizes,y_sizes) = dims_to_sizes(&dims);
             let canvas = bitmap.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&depth,&canvas,&dims,false)?;
+            let rectangles = draw_points_from_canvas2(layer,gl,&kind,&points,x_sizes,y_sizes,&depth,&canvas,&dims,false)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
-        GLShape::Heraldry(area,handles,allotments,depth,kind,heraldry_canvas,scale,edge) => {
-            let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&allotments,&depth,&heraldry_canvas,&scale,&edge,area.len())?;
+        GLShape::Heraldry(area,handles,depth,kind,heraldry_canvas,scale,edge) => {
+            let rectangles = draw_heraldry_canvas(layer,gl,tools,&kind,&area,&handles,&depth,&heraldry_canvas,&scale,&edge,area.len())?;
             if let Some(rectangles) = rectangles {
                 Ok(ShapeToAdd::Dynamic(rectangles))
             } else {
                 Ok(ShapeToAdd::None)
             }
         },
-        GLShape::SpaceBaseRect(area,simple_shape_patina,allotments,depth,draw_group) => {
+        GLShape::SpaceBaseRect(area,simple_shape_patina,depth,draw_group) => {
             let mut drawing_shape_patina = simple_shape_patina.build();
             let mut geometry_yielder = draw_group.geometry_yielder();
             let left = layer.left();
             match drawing_shape_patina.yielder_mut() {
                 PatinaTarget::Visual(patina_yielder) => {
                     let hollow = match simple_shape_patina { SimpleShapePatina::Hollow(_) | SimpleShapePatina::HollowSpot(_) => true, _ => false };
-                    let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&allotments,&depth,left,hollow,&draw_group,&None)?;
+                    let mut rectangles = Rectangles::new_area(layer,&mut geometry_yielder,patina_yielder,&area,&depth,left,hollow,&draw_group,&None)?;
                     let campaign = rectangles.elements_mut();
                     add_colour(campaign,&drawing_shape_patina,area.len())?;
                     campaign.close()?;
@@ -242,7 +242,7 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                 },
                 PatinaTarget::HotSpot(zmenu,values) => {
                     let (real_area,_subs) = area.extract();
-                    Ok(ShapeToAdd::ZMenu(real_area,allotments,zmenu,values))
+                    Ok(ShapeToAdd::ZMenu(real_area,zmenu,values))
                 }
             }
         }

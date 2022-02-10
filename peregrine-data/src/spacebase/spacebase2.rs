@@ -152,10 +152,16 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         }
     }
 
-    pub fn xxx_to_original(self) -> HoleySpaceBase<X> {
+    pub fn xxx_to_original(self) -> (HoleySpaceBase<X>,EachOrEvery<Y>) {
         match self {
-            HoleySpaceBase2::Parametric(x) => HoleySpaceBase::Parametric(x.xxx_to_original()),
-            HoleySpaceBase2::Simple(x) => HoleySpaceBase::Simple(x.xxx_to_original()),
+            HoleySpaceBase2::Parametric(x) => {
+                let (points,allotments) = x.xxx_to_original();
+                (HoleySpaceBase::Parametric(points),allotments.map(|x| x.param_default().clone()))
+            },
+            HoleySpaceBase2::Simple(x) => {
+                let (points,allotments) = x.xxx_to_original();
+                (HoleySpaceBase::Simple(points),allotments)
+            }
         }
     }
 
@@ -187,6 +193,20 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
             HoleySpaceBase2::Simple(x) => x.allotment.demerge(cb),
             HoleySpaceBase2::Parametric(x) => x.allotment.demerge(|x| cb(x.param_default()))
         }
+    }
+
+    pub fn map_allotments_results<F,E,Z: Clone>(&self, cb: F) -> Result<HoleySpaceBase2<X,Z>,E> where F: Fn(&Y) -> Result<Z,E> {
+        Ok(match self {
+            HoleySpaceBase2::Simple(x) =>
+                HoleySpaceBase2::Simple(x.map_allotments_results(cb)?),
+            HoleySpaceBase2::Parametric(x) =>
+                HoleySpaceBase2::Parametric(x.map_allotments_results(|x| 
+                    Ok(match x {
+                        ParameterValue::Constant(c) => ParameterValue::Constant(cb(c)?),
+                        ParameterValue::Variable(v,c) => ParameterValue::Variable(v.clone(),cb(c)?)
+                    })
+                )?)
+        })
     }
 
     // XXX should allow parameterisable Allotments, as long as they don't change CoordSystem.
@@ -281,33 +301,23 @@ fn xxx_from_eoe<X: Clone>(input: EachOrEvery<X>) -> Vec<X> {
 
 impl<X: Clone + PartialEq, Y: Clone> SpaceBase2<X,Y> {
     pub fn xxx_from_original(mut positions: SpaceBase<X>, allotments: EachOrEvery<Y>) -> SpaceBase2<X,Y> {
-        if let Some(a_len) = allotments.len() {
-            if a_len != 0 {
-                return SpaceBase2 {
-                    base: xxx_to_eoe(Arc::make_mut(&mut positions.base).clone()),
-                    normal: xxx_to_eoe(Arc::make_mut(&mut positions.normal).clone()),
-                    tangent: xxx_to_eoe(Arc::make_mut(&mut positions.tangent).clone()),
-                    allotment: allotments,
-                    len: a_len.max(positions.len())
-                };
-            }
-        }
+        let a_len = allotments.len().unwrap_or(0);
         SpaceBase2 {
-            base: EachOrEvery::Each(Arc::new(vec![])),
-            normal:EachOrEvery::Each(Arc::new(vec![])),
-            tangent: EachOrEvery::Each(Arc::new(vec![])),
+            base: xxx_to_eoe(Arc::make_mut(&mut positions.base).clone()),
+            normal: xxx_to_eoe(Arc::make_mut(&mut positions.normal).clone()),
+            tangent: xxx_to_eoe(Arc::make_mut(&mut positions.tangent).clone()),
             allotment: allotments,
-            len: 0
+            len: a_len.max(positions.len())
         }
     }
 
-    pub fn xxx_to_original(self) -> SpaceBase<X> {
-        SpaceBase {
+    pub fn xxx_to_original(self) -> (SpaceBase<X>,EachOrEvery<Y>) {
+        (SpaceBase {
             base: Arc::new(xxx_from_eoe(self.base)),
             normal: Arc::new(xxx_from_eoe(self.normal)),
             tangent: Arc::new(xxx_from_eoe(self.tangent)),
             max_len: self.len
-        }
+        },self.allotment)
     }
 }
 
@@ -387,6 +397,18 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         })
     }
 
+
+    pub fn map_allotments_results<F,A: Clone,E>(&self, cb: F) -> Result<SpaceBase2<X,A>,E> 
+                where F: Fn(&Y) -> Result<A,E> {
+        Ok(SpaceBase2 {
+            base: self.base.clone(),
+            tangent: self.tangent.clone(),
+            normal: self.normal.clone(),
+            allotment: self.allotment.map_results(&cb)?,
+            len: self.len
+        })
+    }
+
     pub fn update_tangent<'a,F>(&mut self, cb: F) where F: FnMut(&mut X) {
         let mut builder = self.tangent.as_builder();
         builder.as_mut().map(cb);
@@ -399,16 +421,18 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         self.normal = builder.make();
     }
 
-    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
-        let mut values2 = values.iter().cycle();
+    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
+        self.tangent = if let Some(t) = self.tangent.to_each(values.len()) { t.clone() } else { return false; };        
+        let mut values2 = values.iter();
         self.update_tangent(move |x| { cb(x,values2.next().unwrap()) });
+        true
     }
 
-    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) where F: Fn(&mut X,&Z) {
-        if values.len() == 0 { return; }
-        let mut values2 = values.iter().cycle();
+    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
+        self.normal = if let Some(t) = self.normal.to_each(values.len()) { t.clone() } else { return false; };        
+        let mut values2 = values.iter();
         self.update_normal(move |x| { cb(x,values2.next().unwrap()) });
+        true
     }
 }
 

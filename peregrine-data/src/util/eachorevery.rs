@@ -115,6 +115,14 @@ impl<X: Clone> EachOrEvery<X> {
         EachOrEvery::Every(data)
     }
 
+    pub fn to_each(&self, len: usize) -> Option<EachOrEvery<X>> {
+        Some(match self {
+            EachOrEvery::Every(x) => EachOrEvery::Each(Arc::new(vec![x.clone();len])),
+            EachOrEvery::Each(x) if x.len() == len => EachOrEvery::Each(x.clone()),
+            _ => { return None; }
+        })
+    }
+
     pub fn compatible(&self, len: usize) -> bool {
         match self {
             EachOrEvery::Each(v) => v.len() == len,

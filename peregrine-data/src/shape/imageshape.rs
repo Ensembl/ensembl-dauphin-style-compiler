@@ -1,27 +1,26 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBase, Shape, ShapeDemerge, ShapeDetails, SpaceBase, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBase, Shape, ShapeDemerge, ShapeDetails, SpaceBase, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBase2, SpaceBase2};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ImageShape<A: Clone> {
-    position: HoleySpaceBase<f64>,
-    allotments: EachOrEvery<A>,
+    position: HoleySpaceBase2<f64,A>,
     names: EachOrEvery<String>
 }
 
 impl<A: Clone> ImageShape<A> {
-    pub fn new_details(position: HoleySpaceBase<f64>, allotments: EachOrEvery<A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
+    pub fn new_details(position: HoleySpaceBase2<f64,A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
         if !names.compatible(position.len()) { return None; }
         Some(ImageShape {
-            position, names, allotments
+            position, names
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64>, depth: EachOrEvery<i8>, names: EachOrEvery<String>, allotments: EachOrEvery<AllotmentRequest>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: HoleySpaceBase2<f64,AllotmentRequest>, depth: EachOrEvery<i8>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
-        let demerge = allotments.demerge(|x| { x.coord_system() });
-        let details = eoe_throw("add_image",ImageShape::new_details(position,allotments,names))?;
+        let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
+        let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
         for (coord_system,mut filter) in demerge {
             filter.set_size(len);
             out.push(Shape::new(
@@ -34,9 +33,8 @@ impl<A: Clone> ImageShape<A> {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
-    pub fn holey_position(&self) -> &HoleySpaceBase<f64> { &self.position }
-    pub fn position(&self) -> SpaceBase<f64> { self.position.extract().0 }
-    pub fn allotments(&self) -> &EachOrEvery<A> { &self.allotments }
+    pub fn holey_position(&self) -> &HoleySpaceBase2<f64,A> { &self.position }
+    pub fn position(&self) -> SpaceBase2<f64,A> { self.position.extract().0 }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
         self.position.make_base_filter(min,max)
@@ -45,8 +43,7 @@ impl<A: Clone> ImageShape<A> {
     pub(super) fn filter(&self, filter: &DataFilter) -> ImageShape<A> {
         ImageShape {
             position: self.position.filter(filter),
-            names: self.names.filter(&filter),
-            allotments: self.allotments.filter(&filter)
+            names: self.names.filter(&filter)
         }
     }
 
@@ -55,7 +52,7 @@ impl<A: Clone> ImageShape<A> {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.allotments.demerge(|a| cat.categorise(common_in.coord_system()));
+        let demerge = self.position.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             let common = common_in.filter(&filter);
@@ -64,17 +61,12 @@ impl<A: Clone> ImageShape<A> {
         }
         out
     }
-
-    pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
-        self.allotments.iter(len).unwrap()
-    }
 }
 
 impl ImageShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<ImageShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
         Ok(ImageShape {
-            position: self.position.clone(),
-            allotments: self.allotments.map_results(cb)?,
+            position: self.position.map_allotments_results(cb)?,
             names: self.names.clone(),
         })
     }

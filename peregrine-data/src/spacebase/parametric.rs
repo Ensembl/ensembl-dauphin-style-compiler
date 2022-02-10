@@ -120,6 +120,13 @@ pub struct Substitutions<L> {
     locations: Vec<(L,Variable)>
 }
 
+#[cfg(debug_assertions)]
+impl<L> std::fmt::Debug for Substitutions<L> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"Substitutions(...)")
+    }
+}
+
 impl<L> Substitutions<L> {
     pub(super) fn empty() -> Substitutions<L> {
         Substitutions {

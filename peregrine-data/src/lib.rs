@@ -166,6 +166,7 @@ pub(crate) mod spacebase {
     pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
     pub use self::spacebase2::{ SpaceBase2, HoleySpaceBase2 };
     pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
+    pub use self::spacebasearea2::{ HoleySpaceBaseArea2, SpaceBaseArea2 };
 }
 
 pub(crate) mod switch {
@@ -240,7 +241,7 @@ pub use self::spacebase::{
     SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
     SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
     SpaceBaseParameterLocation, HollowEdge, Variable,
-    SpaceBase2, HoleySpaceBase2
+    SpaceBase2, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;

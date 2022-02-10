@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues, HoleySpaceBaseArea2};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -76,10 +76,11 @@ impl MarchingAnts {
             vec![ParameterValue::Variable(pos.3,16.)]
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        shapes.add_rectangle(area,Patina::Drawn(
+        let area2 = HoleySpaceBaseArea2::xxx_from_original(area,EachOrEvery::Every(window_origin));
+        shapes.add_rectangle(area2,Patina::Drawn(
             DrawnType::Stroke(self.width as u32),
             EachOrEvery::Every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
-        ),EachOrEvery::Every(window_origin));
+        ));
         Ok(())
     }
 }
@@ -147,8 +148,9 @@ impl Stain {
                                      vec![ParameterValue::Variable(pos.2,0.)],vec![ParameterValue::Variable(pos.3,16.)])
             )));
         }
-        for area in rectangles.drain(..) {
-            shapes.add_rectangle(area,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))),EachOrEvery::Every(window_origin.clone()));
+        for area in rectangles.drain(..) {           
+            let area2 = HoleySpaceBaseArea2::xxx_from_original(area,EachOrEvery::Every(window_origin.clone()));
+            shapes.add_rectangle(area2,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))));
         }
         Ok(())
     }

@@ -1,5 +1,5 @@
 use crate::simple_interp_command;
-use peregrine_data::{Builder, HoleySpaceBase, HoleySpaceBaseArea, ShapeListBuilder, SpaceBaseArea};
+use peregrine_data::{Builder, HoleySpaceBaseArea, ShapeListBuilder, SpaceBaseArea, SpaceBase2, HoleySpaceBase2, SpaceBaseArea2, HoleySpaceBaseArea2};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -29,7 +29,8 @@ impl InterpCommand for RectangleInterpCommand {
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         let area = SpaceBaseArea::new(top_left,bottom_right);
         if !allotments.empty() {
-            zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,allotments)?;
+            let area2 = SpaceBaseArea2::xxx_from_original(area,allotments);
+            zoo.lock().add_rectangle(HoleySpaceBaseArea2::Simple(area2),patina)?;
         }
         Ok(CommandResult::SyncResult())
     }
@@ -52,7 +53,8 @@ impl InterpCommand for Text2InterpCommand {
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         if !text.empty() || !allotments.empty() {
-            zoo.lock().add_text(HoleySpaceBase::Simple(spacebase),pen,text,allotments)?;
+            let spacebase2 = SpaceBase2::xxx_from_original(spacebase,allotments);
+            zoo.lock().add_text(HoleySpaceBase2::Simple(spacebase2),pen,text)?;
         }
         Ok(CommandResult::SyncResult())
     }
@@ -73,7 +75,8 @@ impl InterpCommand for ImageInterpCommand {
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         if !images.empty() && !allotments.empty() {
-            zoo.lock().add_image(HoleySpaceBase::Simple(spacebase),images,allotments)?;
+            let spacebase2 = SpaceBase2::xxx_from_original(spacebase,allotments);
+            zoo.lock().add_image(HoleySpaceBase2::Simple(spacebase2),images)?;
         }
         Ok(CommandResult::SyncResult())
     }

@@ -105,6 +105,7 @@ impl<'a> LoopingDataFilterIterator<'a> {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct DataFilter {
     ranges: Vec<(usize,usize)>,
@@ -167,6 +168,7 @@ impl DataFilter {
             self.num_set += range.1;
             self.ranges.push(range);
         }
+        self.size *= 2;
     }
 
     fn chop_down(&mut self, size: usize) {
@@ -187,7 +189,7 @@ impl DataFilter {
     }
 
     pub fn set_size(&mut self, size: usize) {
-        if self.num_set > 0 {
+        if self.num_set > 0 && size > 0 {
             if self.num_set == self.size {
                 self.ranges[0].1 = size;
                 self.num_set = size;

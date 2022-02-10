@@ -5,11 +5,12 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 enum RectanglesLocation {
     Area(SpaceBaseArea<f64>,EachOrEvery<i8>,Substitutions<SpaceBaseAreaParameterLocation>,Option<HollowEdge<f64>>),
     Sized(SpaceBase<f64>,EachOrEvery<i8>,Substitutions<SpaceBaseParameterLocation>,Vec<f64>,Vec<f64>)
@@ -63,16 +64,18 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea<f64>, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
+        let (area,allotments) = area.clone().xxx_to_original();
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,depth.clone(),subs,edge.clone());
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,depth,left,hollow,kind)
+        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,&allotments,depth,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase<f64>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase2<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+        let (points,allotments) = points.clone().xxx_to_original();
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,depth.clone(),subs,x_sizes,y_sizes);
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,allotments,depth,left,hollow,kind)
+        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,&allotments,depth,left,hollow,kind)
     }
 
     fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
@@ -106,14 +109,6 @@ fn add_spacebase4(point: &SpaceBase<f64>,depth: &EachOrEvery<i8>, group: &DrawGr
     let area = SpaceBaseArea::new(point.clone(),point.clone());
     add_spacebase_area4(&area,depth,group,allotments,left,width)
 }
-
-/* 
-fn fixup(area: &SpaceBaseArea<f64>, allotments: &EachOrEvery<Allotment>) -> Result<SpaceBaseArea<f64>,Message> {
-    for ((top_left,bottom_right),allotment) in area.iter().zip(eoe_throw("sba1",allotments.iter(area.len()).unwrap())) {
-
-    }
-}
-*/
 
 fn transform<'a>(area: &'a SpaceBaseArea<f64>, allotments: &'a EachOrEvery<Allotment>, depth: &'a EachOrEvery<i8>)
         -> Result<impl Iterator<Item=(((SpaceBasePointRef<'a,f64>,SpaceBasePointRef<'a,f64>),&'a Allotment),&'a i8)>,Message> {
