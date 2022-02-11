@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea2, SpaceBase2PointRef, SpaceBase2Point};
+use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea2, SpaceBase2PointRef, SpaceBase2Point, transform_spacebase2, CoordinateSystem, transform_spacebasearea2};
 use crate::{shape::util::iterators::eoe_throw, stage::stage::{ ReadStage }};
 use crate::util::message::Message;
 
@@ -47,7 +47,8 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea2<f64,Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
+    pub(crate) fn add_rectangle(&mut self, coord_system: &CoordinateSystem, area: SpaceBaseArea2<f64,Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
+        let area = transform_spacebasearea2(&coord_system,&area);
         let mut map_values = HashMap::new();
         for (k,v) in values.iter() {
             map_values.insert(k.to_string(),v.clone());
@@ -56,7 +57,7 @@ impl DrawingZMenusBuilder {
         self.entries.push(ZMenuUnscaledEntry { generator, area });
     }
 
-    pub(crate) fn build(mut self) -> DrawingZMenus {
+    pub(crate) fn build(self) -> DrawingZMenus {
         DrawingZMenus::new(self)
     }
 }
@@ -70,14 +71,13 @@ struct ZMenuEntry {
 
 impl ZMenuEntry {
     fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
-        if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
-            let top_left = top_left.allotment.transform_spacebase2_point(&top_left);
-            let bottom_right = top_left.allotment.transform_spacebase2_point(&bottom_right);
+        let mut iter = self.area.iter();
+        if let Some((top_left,bottom_right)) = iter.nth(self.index) {
             let top_px = top_left.normal;
             let bottom_px = bottom_right.normal;
             let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
             let right_px = (bottom_right.base - left) / bp_per_carriage * px_per_carriage + car_px_left + bottom_right.tangent;
-            return x_px >= left_px && x_px <= right_px && y_px >= top_px && y_px < bottom_px;
+            return x_px >= left_px && x_px <= right_px && y_px >= *top_px && y_px < *bottom_px;
         }
         false
     }
@@ -106,23 +106,21 @@ impl ScaledZMenus {
         out
     }
 
-    fn maximum_footprint(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
-        let top_left = allotment.transform_spacebase2_point(top_left);
-        let bottom_right = allotment.transform_spacebase2_point(bottom_right);
+    fn maximum_footprint(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>) -> ((f64,u64),(f64,u64)) {
         /* y-coordinate */
-        let (top_px,bottom_px) = order(top_left.normal,bottom_right.normal);
+        let (top_px,bottom_px) = order(*top_left.normal,*bottom_right.normal);
         /* x-coordinate */
-        let (mut left_bp,mut right_bp) = order(top_left.base,bottom_right.base);
-        if top_left.tangent < 0. { left_bp += top_left.tangent * self.max_bp_per_px; }
-        if bottom_right.tangent > 0. { right_bp += bottom_right.tangent * self.max_bp_per_px; }
+        let (mut left_bp,mut right_bp) = order(*top_left.base,*bottom_right.base);
+        if *top_left.tangent < 0. { left_bp += top_left.tangent * self.max_bp_per_px; }
+        if *bottom_right.tangent > 0. { right_bp += bottom_right.tangent * self.max_bp_per_px; }
         let left_scr = (left_bp - self.left) / self.bp_in_carriage;
         let right_scr = (right_bp - self.left) / self.bp_in_carriage;
         ((left_scr,top_px as u64),(right_scr,(bottom_px+1.) as u64))
     }
 
     // TODO no-bp zmenus
-    fn get_zones(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>, allotment: &Allotment) -> Vec<u64> {
-        let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right,allotment);
+    fn get_zones(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>) -> Vec<u64> {
+        let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
             let left_zone = (left_scr*(HORIZ_ZONES as f64)).floor() as u64;
@@ -138,11 +136,9 @@ impl ScaledZMenus {
         let mut order = 0;
         let mut building_zmenus = HashMap::new();
         for entry in &unscaled.entries {
-            let loop_iter = entry.area.iter();
-            let z = entry.generator.iter().next().unwrap().value();
-            for (i,(top_left,bottom_right)) in loop_iter.enumerate() {
+            for (i,(top_left,bottom_right)) in entry.area.iter().enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
-                for zone in self.get_zones(&top_left,&bottom_right,&top_left.allotment) {
+                for zone in self.get_zones(&top_left,&bottom_right) {
                     let entry = ZMenuEntry {
                         area: entry.area.clone(),
                         index: i,

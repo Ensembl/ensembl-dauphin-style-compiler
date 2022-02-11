@@ -1,4 +1,4 @@
-use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point, SpaceBase2};
+use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point, SpaceBase2, SpaceBaseArea2, PartialSpaceBase2};
 
 use super::allotmentbox::AllotmentBox;
 
@@ -11,6 +11,12 @@ pub fn transform_spacebase2(coord_system: &CoordinateSystem, input: &SpaceBase2<
     }
     output.update_tangent_from_allotment(|t,a| { *t += a.allotment_box().indent() as f64; });
     output
+}
+
+pub fn transform_spacebasearea2(coord_system: &CoordinateSystem, input: &SpaceBaseArea2<f64,Allotment>) -> SpaceBaseArea2<f64,Allotment> {
+    let top_left = transform_spacebase2(coord_system,input.top_left());
+    let bottom_right = transform_spacebase2(coord_system,&input.bottom_right());
+    SpaceBaseArea2::new(PartialSpaceBase2::from_spacebase(top_left),PartialSpaceBase2::from_spacebase(bottom_right)).unwrap()
 }
 
 pub struct LeafTransformer {

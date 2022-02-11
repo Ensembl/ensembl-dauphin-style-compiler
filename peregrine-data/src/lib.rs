@@ -25,7 +25,7 @@ mod allotment {
         pub(crate) mod allotmentbox;    
     }
 
-    pub use tree::leaftransformer::transform_spacebase2;
+    pub use tree::leaftransformer::{ transform_spacebase2, transform_spacebasearea2 };
 }
 
 mod api {
@@ -231,7 +231,7 @@ pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
 };
-pub use self::allotment::transform_spacebase2;
+pub use self::allotment::{transform_spacebase2, transform_spacebasearea2};
 pub use self::allotment::core::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
