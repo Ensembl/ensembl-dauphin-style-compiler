@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy};
+use peregrine_data::{Allotment, EachOrEvery, Scale, SpaceBaseArea, SpaceBasePointRef, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea2, SpaceBase2PointRef, SpaceBase2Point};
 use crate::{shape::util::iterators::eoe_throw, stage::stage::{ ReadStage }};
 use crate::util::message::Message;
 
@@ -25,8 +25,7 @@ const VERT_ZONE_HEIGHT : u64 = 200;
 
 struct ZMenuUnscaledEntry {
     generator: ZMenuGenerator,
-    area: SpaceBaseArea<f64>,
-    allotments: EachOrEvery<Allotment>
+    area: SpaceBaseArea2<f64,Allotment>
 }
 
 fn order(a: f64, b: f64) -> (f64,f64) {
@@ -48,13 +47,13 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64>, allotments: EachOrEvery<Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea2<f64,Allotment>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
         let mut map_values = HashMap::new();
         for (k,v) in values.iter() {
             map_values.insert(k.to_string(),v.clone());
         }
         let generator = ZMenuGenerator::new(&zmenu,&map_values); // XXX push up
-        self.entries.push(ZMenuUnscaledEntry { generator, area, allotments });
+        self.entries.push(ZMenuUnscaledEntry { generator, area });
     }
 
     pub(crate) fn build(mut self) -> DrawingZMenus {
@@ -63,8 +62,7 @@ impl DrawingZMenusBuilder {
 }
 
 struct ZMenuEntry {
-    area: SpaceBaseArea<f64>,
-    allotment: Allotment,
+    area: SpaceBaseArea2<f64,Allotment>,
     index: usize,
     proxy: Rc<ZMenuProxy>,
     order: usize
@@ -73,8 +71,8 @@ struct ZMenuEntry {
 impl ZMenuEntry {
     fn is_hotspot(&self, x_px: f64, y_px: f64, left: f64, bp_per_carriage: f64, px_per_carriage: f64, car_px_left: f64) -> bool {
         if let Some((top_left,bottom_right)) = self.area.iter().nth(self.index) {
-            let top_left = self.allotment.transform_spacebase_point(&top_left);
-            let bottom_right = self.allotment.transform_spacebase_point(&bottom_right);
+            let top_left = top_left.allotment.transform_spacebase2_point(&top_left);
+            let bottom_right = top_left.allotment.transform_spacebase2_point(&bottom_right);
             let top_px = top_left.normal;
             let bottom_px = bottom_right.normal;
             let left_px = (top_left.base - left) / bp_per_carriage * px_per_carriage + car_px_left + top_left.tangent;
@@ -108,9 +106,9 @@ impl ScaledZMenus {
         out
     }
 
-    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
-        let top_left = allotment.transform_spacebase_point(top_left);
-        let bottom_right = allotment.transform_spacebase_point(bottom_right);
+    fn maximum_footprint(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>, allotment: &Allotment) -> ((f64,u64),(f64,u64)) {
+        let top_left = allotment.transform_spacebase2_point(top_left);
+        let bottom_right = allotment.transform_spacebase2_point(bottom_right);
         /* y-coordinate */
         let (top_px,bottom_px) = order(top_left.normal,bottom_right.normal);
         /* x-coordinate */
@@ -123,7 +121,7 @@ impl ScaledZMenus {
     }
 
     // TODO no-bp zmenus
-    fn get_zones(&self, top_left: &SpaceBasePointRef<f64>, bottom_right: &SpaceBasePointRef<f64>, allotment: &Allotment) -> Vec<u64> {
+    fn get_zones(&self, top_left: &SpaceBase2PointRef<f64,Allotment>, bottom_right: &SpaceBase2PointRef<f64,Allotment>, allotment: &Allotment) -> Vec<u64> {
         let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right,allotment);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {
@@ -140,14 +138,13 @@ impl ScaledZMenus {
         let mut order = 0;
         let mut building_zmenus = HashMap::new();
         for entry in &unscaled.entries {
-            let loop_iter = entry.area.iter().zip(eoe_throw("scaled",entry.allotments.iter(entry.area.len()))?);
+            let loop_iter = entry.area.iter();
             let z = entry.generator.iter().next().unwrap().value();
-            for (i,((top_left,bottom_right),allotment)) in loop_iter.enumerate() {
+            for (i,(top_left,bottom_right)) in loop_iter.enumerate() {
                 let proxy = Rc::new(entry.generator.make_proxy(i));
-                for zone in self.get_zones(&top_left,&bottom_right,&allotment) {
+                for zone in self.get_zones(&top_left,&bottom_right,&top_left.allotment) {
                     let entry = ZMenuEntry {
                         area: entry.area.clone(),
-                        allotment: allotment.clone(),
                         index: i,
                         proxy: proxy.clone(),
                         order
