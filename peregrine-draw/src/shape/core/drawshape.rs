@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, HollowEdge2, CoordinateSystem};
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, HollowEdge2, CoordinateSystem, transform_spacebasearea2};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -180,7 +180,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(CoordinateSystem,SpaceBaseArea2<f64,Allotment>,ZMenu,Vec<(String,EachOrEvery<String>)>),
+    ZMenu(SpaceBaseArea2<f64,Allotment>,ZMenu,Vec<(String,EachOrEvery<String>)>),
     None
 }
 
@@ -242,7 +242,8 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
                 },
                 PatinaTarget::HotSpot(zmenu,values) => {
                     let (real_area,_subs) = area.extract();
-                    Ok(ShapeToAdd::ZMenu(draw_group.coord_system().clone(),real_area,zmenu,values))
+                    let area = transform_spacebasearea2(&draw_group.coord_system(),&real_area);
+                    Ok(ShapeToAdd::ZMenu(area,zmenu,values))
                 }
             }
         }

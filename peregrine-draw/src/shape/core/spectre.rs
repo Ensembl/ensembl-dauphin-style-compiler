@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues, HoleySpaceBaseArea2};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues, HoleySpaceBaseArea2, SpaceBase2, SpaceBaseArea2, PartialSpaceBase2};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
 
 use super::spectremanager::SpectreConfigKey;
@@ -65,19 +65,20 @@ impl MarchingAnts {
         let window_origin = shapes.universe().make_request("window:origin[101]").unwrap(); // XXX
         let pos = self.area.tlbr().clone();
         shapes.use_allotment(&window_origin);
-        let top_left = SpaceBase::new(
-            vec![ParameterValue::Constant(0.)],
-            vec![ParameterValue::Variable(pos.0,0.)],
-            vec![ParameterValue::Variable(pos.1,0.)]
-        );
-        let bottom_right = SpaceBase::new(
-            vec![ParameterValue::Constant(0.)],
-            vec![ParameterValue::Variable(pos.2,16.)],
-            vec![ParameterValue::Variable(pos.3,16.)]
-        );
-        let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
-        let area2 = HoleySpaceBaseArea2::xxx_from_original(area,EachOrEvery::Every(window_origin));
-        shapes.add_rectangle(area2,Patina::Drawn(
+        let top_left = PartialSpaceBase2::from_spacebase(SpaceBase2::new(
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Constant(0.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.0,0.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.1,0.)])),
+            &EachOrEvery::Each(Arc::new(vec![window_origin.clone()]))
+        ).unwrap());
+        let bottom_right =  PartialSpaceBase2::from_spacebase(SpaceBase2::new(
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Constant(0.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.2,16.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.3,16.)])),
+            &EachOrEvery::Each(Arc::new(vec![window_origin]))
+        ).unwrap());
+        let area = HoleySpaceBaseArea2::Parametric(SpaceBaseArea2::new(top_left,bottom_right).unwrap());
+        shapes.add_rectangle(area,Patina::Drawn(
             DrawnType::Stroke(self.width as u32),
             EachOrEvery::Every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
         ));
@@ -102,6 +103,7 @@ impl Stain {
     }
     
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+        return Ok(());
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[100]",-1));
         let window_origin = shapes.universe().make_request("window:origin[100]").unwrap(); // XXX
         shapes.use_allotment(&window_origin);

@@ -147,19 +147,6 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         }
     }
 
-    pub fn xxx_to_original(self) -> (HoleySpaceBase<X>,EachOrEvery<Y>) {
-        match self {
-            HoleySpaceBase2::Parametric(x) => {
-                let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBase::Parametric(points),allotments.clone())
-            },
-            HoleySpaceBase2::Simple(x) => {
-                let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBase::Simple(points),allotments)
-            }
-        }
-    }
-
     pub fn len(&self) -> usize {
         match self {
             HoleySpaceBase2::Simple(x) => x.len(),
@@ -247,6 +234,7 @@ impl<X: Clone,Y: Clone> Clone for SpaceBase2<X,Y> {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct PartialSpaceBase2<X,Y>(SpaceBase2<X,Y>);
 
@@ -296,22 +284,17 @@ fn xxx_from_eoe<X: Clone>(input: EachOrEvery<X>) -> Vec<X> {
 impl<X: Clone + PartialEq, Y: Clone> SpaceBase2<X,Y> {
     pub fn xxx_from_original(mut positions: SpaceBase<X>, allotments: EachOrEvery<Y>) -> SpaceBase2<X,Y> {
         let a_len = allotments.len().unwrap_or(0);
-        SpaceBase2 {
+        let mut out = SpaceBase2 {
             base: xxx_to_eoe(Arc::make_mut(&mut positions.base).clone()),
             normal: xxx_to_eoe(Arc::make_mut(&mut positions.normal).clone()),
             tangent: xxx_to_eoe(Arc::make_mut(&mut positions.tangent).clone()),
             allotment: allotments,
             len: a_len.max(positions.len())
+        };
+        if out.base.len().is_none() && out.normal.len().is_none() && out.tangent.len().is_none() {
+            out.base = out.base.to_each(1).unwrap();
         }
-    }
-
-    pub fn xxx_to_original(self) -> (SpaceBase<X>,EachOrEvery<Y>) {
-        (SpaceBase {
-            base: Arc::new(xxx_from_eoe(self.base)),
-            normal: Arc::new(xxx_from_eoe(self.normal)),
-            tangent: Arc::new(xxx_from_eoe(self.tangent)),
-            max_len: self.len
-        },self.allotment)
+        out
     }
 }
 
@@ -336,7 +319,7 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         }
     }
 
-    fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> Option<SpaceBase2<X,Y>> {
+    pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> Option<SpaceBase2<X,Y>> {
         let mut out = Self::new_unszied(base,normal,tangent,allotment);
         let mut compat = EachOrEveryGroupCompatible::new(None);
         out.compat(&mut compat);

@@ -74,19 +74,6 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
         }
     }
 
-    pub fn xxx_to_original(self) -> (HoleySpaceBaseArea<X>,EachOrEvery<Y>) {
-        match self {
-            HoleySpaceBaseArea2::Parametric(x) => {
-                let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBaseArea::Parametric(points),allotments)
-            },
-            HoleySpaceBaseArea2::Simple(x) => {
-                let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBaseArea::Simple(points),allotments)
-            }
-        }
-    }
-
     pub fn map_allotments_results<F,E,Z: Clone>(&self, cb: F) -> Result<HoleySpaceBaseArea2<X,Z>,E> where F: Fn(&Y) -> Result<Z,E> {
         Ok(match self {
             HoleySpaceBaseArea2::Simple(x) =>
@@ -159,14 +146,6 @@ impl<X: Clone,Y: Clone> Flattenable<SpaceBaseArea2NumericParameterLocation> for 
             HoleySpaceBaseArea2::Simple(x) => x.clone(),
             HoleySpaceBaseArea2::Parametric(x) => x.flatten(subs,cb)
         }
-    }
-}
-
-impl<X: Clone+PartialEq, Y: Clone> SpaceBaseArea2<X,Y> {
-    pub fn xxx_to_original(self) -> (SpaceBaseArea<X>,EachOrEvery<Y>) {
-        let (top_left,allotments) = self.0.xxx_to_original();
-        let (bottom_right,_) = self.1.xxx_to_original();
-        (SpaceBaseArea::new(top_left,bottom_right),allotments)
     }
 }
 

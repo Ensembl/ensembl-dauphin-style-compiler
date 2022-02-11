@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment, ShapeDetails};
+use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment, ShapeDetails, transform_spacebasearea2};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -129,8 +129,8 @@ impl DrawingBuilder {
             ShapeToAdd::Dynamic(dynamic) => {
                 self.dynamic_shapes.push(dynamic);
             },
-            ShapeToAdd::ZMenu(coord_system,area,zmenu,values) => {
-                self.tools.zmenus.add_rectangle(&coord_system,area,zmenu,values);
+            ShapeToAdd::ZMenu(area,zmenu,values) => {
+                self.tools.zmenus.add_rectangle(area,zmenu,values);
             },
             ShapeToAdd::None => {}
         }
