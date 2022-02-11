@@ -34,7 +34,7 @@ impl CollideGroupRequest {
         }
         let content_box = AllotmentBox::new(box_builder);
         let transformer = LeafTransformer::new(&request.geometry(),&content_box);
-        request.set_allotment(Arc::new(transformer));
+        request.set_allotment(Arc::new(transformer),Arc::new(content_box.clone()));
         content_box
     }
 

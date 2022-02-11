@@ -18,12 +18,14 @@ mod allotment {
     mod tree {
         pub(crate) mod collisionalgorithm;
         pub(crate) mod collidegroup;
-        pub(crate) mod leaftransformer;
+        pub mod leaftransformer;
         pub(crate) mod leafboxlinearentry;    
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;
         pub(crate) mod allotmentbox;    
     }
+
+    pub use tree::leaftransformer::transform_spacebase2;
 }
 
 mod api {
@@ -229,6 +231,7 @@ pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
 };
+pub use self::allotment::transform_spacebase2;
 pub use self::allotment::core::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;

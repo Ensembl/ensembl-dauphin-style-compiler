@@ -4,6 +4,7 @@ use peregrine_toolkit::lock;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
 use super::rangeused::RangeUsed;
+use crate::allotment::tree::allotmentbox::AllotmentBox;
 use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, CoordinateSystemVariety};
 
 use super::allotment::{Transformer};
@@ -65,6 +66,7 @@ impl std::fmt::Debug for AllotmentRequest {
 }
 
 pub struct AllotmentRequestExperience<T: Transformer> {
+    allot_box: Option<Arc<AllotmentBox>>,
     transformer: Option<Arc<T>>,
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
@@ -74,6 +76,7 @@ pub struct AllotmentRequestExperience<T: Transformer> {
 impl<T: Transformer> AllotmentRequestExperience<T> {
     fn new() -> AllotmentRequestExperience<T> {
         AllotmentRequestExperience {
+            allot_box: None,
             transformer: None,
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
@@ -82,7 +85,10 @@ impl<T: Transformer> AllotmentRequestExperience<T> {
     }
 
     fn transformer(&self) -> &Option<Arc<T>> { &self.transformer }
-    fn set_transformer(&mut self, value: Arc<T>) { self.transformer = Some(value); }
+    fn set_transformer(&mut self, value: Arc<T>, allot_box: Arc<AllotmentBox>) { 
+        self.transformer = Some(value);
+        self.allot_box = Some(allot_box);
+    }
 
     fn max_y(&self) -> i64 { self.max_y }
     fn set_max_y(&mut self, max: i64) { self.max_y = self.max_y.max(max); }
@@ -122,9 +128,9 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
         }
     }
 
-    pub fn set_allotment(&self, value: Arc<T>) {
+    pub fn set_allotment(&self, value: Arc<T>, allot_box: Arc<AllotmentBox>) {
         if &self.name != "" {
-            lock!(self.experience).set_transformer(value);
+            lock!(self.experience).set_transformer(value,allot_box);
         }
     }
 
@@ -149,10 +155,15 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
     fn coord_system(&self) -> CoordinateSystem { self.geometry.clone() }
 
     fn allotment(&self) -> Result<Allotment,DataMessage> {
-        match lock!(self.experience).transformer().clone() {
-            Some(imp) => Ok(Allotment::new(imp)),
-            None => Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name())))
-        }
+        let imp = match lock!(self.experience).transformer().clone() {
+            Some(imp) => imp,
+            None => { return Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name()))); }
+        };
+        let allot_box = match lock!(self.experience).allot_box.clone() {
+            Some(imp) => imp,
+            None => { return Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name()))); }
+        };
+        Ok(Allotment::new(imp,allot_box))
     }
 
     fn set_max_y(&self, max: i64) { lock!(self.experience).set_max_y(max); }

@@ -5,7 +5,7 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, EachOrEvery, Flattenable, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, SpaceBase2, PartialSpaceBase2, SpaceBase2Point, HollowEdge2, SpaceBaseArea2NumericParameterLocation, SpaceBase2NumericParameterLocation};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, SpaceBase2, PartialSpaceBase2, SpaceBase2Point, HollowEdge2, SpaceBaseArea2NumericParameterLocation, SpaceBase2NumericParameterLocation, CoordinateSystem, transform_spacebase2, SpaceBase2PointRef};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
@@ -109,22 +109,15 @@ fn add_spacebase4(point: &PartialSpaceBase2<f64,Allotment>,depth: &EachOrEvery<i
     add_spacebase_area4(&area,depth,group,left,width)
 }
 
-fn transform<'a>(area: &'a SpaceBaseArea2<f64,Allotment>, depth: &'a EachOrEvery<i8>)
-        -> Result<impl Iterator<Item=((SpaceBase2Point<f64,Allotment>,SpaceBase2Point<f64,Allotment>),&'a i8)>,Message> {
-    let top_left_iter = area.top_left().iter();
-    let bottom_right_iter = area.bottom_right().iter();        
-    let top_left_iter = top_left_iter.map(|p| p.allotment.transform_spacebase2_point(&p));
-    let bottom_right_iter = bottom_right_iter.map(|p| p.allotment.transform_spacebase2_point(&p));
-    let point_iter = top_left_iter.zip(bottom_right_iter);
-    Ok(point_iter.zip(eoe_throw("t",depth.iter(area.len()))?))
-}
-
 fn add_spacebase_area4(area: &SpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
-    for ((top_left,bottom_right),depth) in transform(area,depth)? {
-        let (t_0,t_1,mut n_0,mut n_1) = (top_left.tangent,bottom_right.tangent,top_left.normal,bottom_right.normal);
-        let (mut b_0,mut b_1) = (top_left.base,bottom_right.base);
+    let top_left = transform_spacebase2(group.coord_system(),area.top_left());
+    let bottom_right = transform_spacebase2(group.coord_system(),area.bottom_right());
+    let point_iter = top_left.iter().zip(bottom_right.iter());
+    for ((top_left,bottom_right),depth) in point_iter.zip(eoe_throw("t",depth.iter(area.len()))?) {
+        let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
+        let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
         /* 
          * All coordinate systems have a principal direction. This is almost always horizontal however for things drawn
          * "sideways" (eg blanking boxes at left and right) it is vertical.

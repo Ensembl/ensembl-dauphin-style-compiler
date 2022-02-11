@@ -111,6 +111,10 @@ impl<X: Clone> EachOrEvery<X> {
         EachOrEveryBuilder(self.clone())
     }
 
+    pub fn as_builder_len(&self, len: usize) -> Option<EachOrEveryBuilder<X>> {
+        self.to_each(len).map(|x| EachOrEveryBuilder(x))
+    }
+
     pub fn every(data: X) -> EachOrEvery<X> {
         EachOrEvery::Every(data)
     }
@@ -188,7 +192,7 @@ impl<X: Clone> EachOrEvery<X> {
         }
     }
     
-    pub fn zip<W,F>(&self, other: &EachOrEvery<X>, cb: F) -> Option<EachOrEvery<W>> where F: Fn(&X,&X) -> W {
+    pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> Option<EachOrEvery<W>> where F: Fn(&X,&Y) -> W {
         Some(match (self,other) {
             (EachOrEvery::Every(a),EachOrEvery::Every(b)) => EachOrEvery::Every(cb(a,b)),
             (EachOrEvery::Every(a),EachOrEvery::Each(b)) =>

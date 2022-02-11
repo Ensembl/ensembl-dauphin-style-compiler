@@ -315,6 +315,7 @@ impl<X: Clone + PartialEq, Y: Clone> SpaceBase2<X,Y> {
     }
 }
 
+
 impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
     pub fn len(&self) -> usize { self.len }
 
@@ -402,6 +403,21 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
             len: self.len
         })
     }
+    // XXX not bool, result.
+
+    pub fn update_tangent_from_allotment<'a,F>(&mut self, cb: F) -> bool where F: Fn(&mut X,&Y) {
+        let tangent = self.tangent.zip(&self.allotment,|t,a| {
+            let mut t2 = t.clone();
+            cb(&mut t2,a);
+            t2
+        });
+        if let Some(tangent) = tangent {
+            self.tangent = tangent;
+            true
+        } else {
+            false
+        }
+    }
 
     pub fn update_tangent<'a,F>(&mut self, cb: F) where F: FnMut(&mut X) {
         let mut builder = self.tangent.as_builder();
@@ -413,6 +429,20 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         let mut builder = self.normal.as_builder();
         builder.as_mut().map(cb);
         self.normal = builder.make();
+    }
+
+    pub fn update_normal_from_allotment<'a,F>(&mut self, cb: F) -> bool where F: Fn(&mut X,&Y) {
+        let normal = self.normal.zip(&self.allotment,|t,a| {
+            let mut t2 = t.clone();
+            cb(&mut t2,a);
+            t2
+        });
+        if let Some(normal) = normal {
+            self.normal = normal;
+            true
+        } else {
+            false
+        }
     }
 
     pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {

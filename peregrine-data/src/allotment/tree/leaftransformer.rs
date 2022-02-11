@@ -1,6 +1,17 @@
-use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point};
+use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point, SpaceBase2};
 
 use super::allotmentbox::AllotmentBox;
+
+pub fn transform_spacebase2(coord_system: &CoordinateSystem, input: &SpaceBase2<f64,Allotment>) -> SpaceBase2<f64,Allotment> {
+    let mut output = input.clone();
+    if coord_system.up_from_bottom() {
+        output.update_normal_from_allotment(|n,a| { *n = (a.allotment_box().draw_bottom() as f64) - *n; });
+    } else {
+        output.update_normal_from_allotment(|n,a| { *n += a.allotment_box().draw_top() as f64; });
+    }
+    output.update_tangent_from_allotment(|t,a| { *t += a.allotment_box().indent() as f64; });
+    output
+}
 
 pub struct LeafTransformer {
     geometry: CoordinateSystem,
@@ -49,6 +60,20 @@ impl Transformer for LeafTransformer {
             output.normal += self.allot_box.draw_top() as f64;
         }
         output.tangent += self.allot_box.indent() as f64;
+        output
+    }
+
+    fn transform_spacebase2(&self, input: &SpaceBase2<f64,Allotment>) -> SpaceBase2<f64,Allotment> {
+        let mut output = input.clone();
+        if self.geometry.up_from_bottom() {
+            let bottom =  self.allot_box.draw_bottom() as f64;
+            output.update_normal(|n| { *n = bottom-*n; });
+        } else {
+            let top = self.allot_box.draw_top() as f64;
+            output.update_normal(|n| { *n += top; });
+        }
+        let indent = self.allot_box.indent() as f64;
+        output.update_tangent(|t| { *t += indent });
         output
     }
 
