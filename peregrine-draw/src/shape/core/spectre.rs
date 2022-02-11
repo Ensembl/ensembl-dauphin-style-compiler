@@ -103,7 +103,6 @@ impl Stain {
     }
     
     pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        return Ok(());
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[100]",-1));
         let window_origin = shapes.universe().make_request("window:origin[100]").unwrap(); // XXX
         shapes.use_allotment(&window_origin);

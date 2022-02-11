@@ -133,7 +133,7 @@ impl<X: Clone + PartialEq, Y: Clone> SpaceBaseArea2<X,Y> {
 impl<X: Clone, Y: Clone> SpaceBaseArea2<ParameterValue<X>,Y> {
     fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(SpaceBaseArea2NumericParameterLocation) -> L {
         let left = self.0.flatten(subs,|location: SpaceBase2NumericParameterLocation| cb(SpaceBaseArea2NumericParameterLocation::Left(location)));
-        let right = self.1.flatten(subs,|location: SpaceBase2NumericParameterLocation| cb(SpaceBaseArea2NumericParameterLocation::Left(location)));
+        let right = self.1.flatten(subs,|location: SpaceBase2NumericParameterLocation| cb(SpaceBaseArea2NumericParameterLocation::Right(location)));
         SpaceBaseArea2(left,right,self.2)
     }
 }
@@ -223,13 +223,13 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea2<X,Y> {
             },
             HollowEdge2::Right(w) => {
                 out.0.base = out.1.base.clone();
-                out.1.tangent = out.0.tangent.map(|x| x.clone()+w.clone());
+                out.0.tangent = out.1.tangent.map(|x| x.clone()-w.clone());
             },
             HollowEdge2::Top(w) => {
                 out.1.normal = out.0.normal.map(|x| x.clone()+w.clone());
             },
             HollowEdge2::Bottom(w) => {
-                out.1.normal = out.0.normal.map(|x| x.clone()-w.clone());
+                out.0.normal = out.1.normal.map(|x| x.clone()-w.clone());
             }
         }
         out
