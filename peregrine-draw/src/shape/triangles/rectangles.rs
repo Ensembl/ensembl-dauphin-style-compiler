@@ -5,15 +5,15 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, EachOrEvery, Flattenable, HoleySpaceBase, HoleySpaceBaseArea, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, SpaceBase2, PartialSpaceBase2, SpaceBase2Point, HollowEdge2, SpaceBaseArea2NumericParameterLocation, SpaceBase2NumericParameterLocation};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 enum RectanglesLocation {
-    Area(SpaceBaseArea<f64>,EachOrEvery<i8>,Substitutions<SpaceBaseAreaParameterLocation>,Option<HollowEdge<f64>>),
-    Sized(SpaceBase<f64>,EachOrEvery<i8>,Substitutions<SpaceBaseParameterLocation>,Vec<f64>,Vec<f64>)
+    Area(SpaceBaseArea2<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseArea2NumericParameterLocation>,Option<HollowEdge2<f64>>),
+    Sized(SpaceBase2<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBase2NumericParameterLocation>,Vec<f64>,Vec<f64>)
 }
 
 impl RectanglesLocation {
@@ -24,7 +24,7 @@ impl RectanglesLocation {
         }
     }
 
-    fn apply(&mut self, variables: &VariableValues<f64>) -> (SpaceBaseArea<f64>,EachOrEvery<i8>) {
+    fn apply(&mut self, variables: &VariableValues<f64>) -> Result<(SpaceBaseArea2<f64,Allotment>,EachOrEvery<i8>),Message> {
         match self {
             RectanglesLocation::Area(ref mut a,depth,s,edge) => {
                 s.apply( a,variables);
@@ -33,14 +33,17 @@ impl RectanglesLocation {
                 } else {
                     (a.clone(),depth.clone())
                 };
-                out
+                Ok(out)
             }
             RectanglesLocation::Sized(near,depth,s,x,y) => {
                 let mut far = near.clone();
                 far.fold_tangent(x,|v,z| { *v += z; });
                 far.fold_normal(y,|v,z| { *v += z; });
                 s.apply(&mut far,variables);
-                (SpaceBaseArea::new(near.clone(),far),depth.clone())
+                Ok((eoe_throw("rl1",SpaceBaseArea2::new(
+                    PartialSpaceBase2::from_spacebase(near.clone()),
+                            PartialSpaceBase2::from_spacebase(far)))?,
+                            depth.clone()))
             }
         }
     }
@@ -57,28 +60,25 @@ pub(crate) struct Rectangles {
     elements: ProcessStanzaElements,
     program: TriangleAdder,
     location: RectanglesLocation,
-    allotments: EachOrEvery<Allotment>,
     left: f64,
     width: Option<f64>,
     kind: DrawGroup
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge<f64>>)-> Result<Rectangles,Message> {
-        let (area,allotments) = area.clone().xxx_to_original();
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,depth.clone(),subs,edge.clone());
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,&allotments,depth,left,hollow,kind)
+        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
     }
 
     pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase2<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
-        let (points,allotments) = points.clone().xxx_to_original();
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,depth.clone(),subs,x_sizes,y_sizes);
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,&allotments,depth,left,hollow,kind)
+        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
     }
 
-    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, allotments: &EachOrEvery<Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let builder = layer.get_process_builder(geometry_yielder,patina_yielder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
@@ -95,8 +95,7 @@ impl Rectangles {
             width: if hollow { Some(1.) } else { None },
             program: adder.clone(),
             location,
-            kind: kind.clone(),
-            allotments: allotments.clone()
+            kind: kind.clone()
         };
         out.recompute(&VariableValues::new())?;
         Ok(out)
@@ -105,25 +104,25 @@ impl Rectangles {
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 }
 
-fn add_spacebase4(point: &SpaceBase<f64>,depth: &EachOrEvery<i8>, group: &DrawGroup, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
-    let area = SpaceBaseArea::new(point.clone(),point.clone());
-    add_spacebase_area4(&area,depth,group,allotments,left,width)
+fn add_spacebase4(point: &PartialSpaceBase2<f64,Allotment>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
+    let area = eoe_throw("as1",SpaceBaseArea2::new(point.clone(),point.clone()))?;
+    add_spacebase_area4(&area,depth,group,left,width)
 }
 
-fn transform<'a>(area: &'a SpaceBaseArea<f64>, allotments: &'a EachOrEvery<Allotment>, depth: &'a EachOrEvery<i8>)
-        -> Result<impl Iterator<Item=(((SpaceBasePointRef<'a,f64>,SpaceBasePointRef<'a,f64>),&'a Allotment),&'a i8)>,Message> {
-    Ok(area.iter()
-        .zip(eoe_throw("sba1",allotments.iter(area.len()))?) 
-        .zip(eoe_throw("sba2",depth.iter(area.len()))?))
-
+fn transform<'a>(area: &'a SpaceBaseArea2<f64,Allotment>, depth: &'a EachOrEvery<i8>)
+        -> Result<impl Iterator<Item=((SpaceBase2Point<f64,Allotment>,SpaceBase2Point<f64,Allotment>),&'a i8)>,Message> {
+    let top_left_iter = area.top_left().iter();
+    let bottom_right_iter = area.bottom_right().iter();        
+    let top_left_iter = top_left_iter.map(|p| p.allotment.transform_spacebase2_point(&p));
+    let bottom_right_iter = bottom_right_iter.map(|p| p.allotment.transform_spacebase2_point(&p));
+    let point_iter = top_left_iter.zip(bottom_right_iter);
+    Ok(point_iter.zip(eoe_throw("t",depth.iter(area.len()))?))
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64>, depth: &EachOrEvery<i8>, group: &DrawGroup, allotments: &EachOrEvery<Allotment>, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
-    for (((top_left,bottom_right),allotment),depth) in transform(area,allotments,depth)? {
-        let top_left = allotment.transform_spacebase_point(&top_left);
-        let bottom_right = allotment.transform_spacebase_point(&bottom_right);
+    for ((top_left,bottom_right),depth) in transform(area,depth)? {
         let (t_0,t_1,mut n_0,mut n_1) = (top_left.tangent,bottom_right.tangent,top_left.normal,bottom_right.normal);
         let (mut b_0,mut b_1) = (top_left.base,bottom_right.base);
         /* 
@@ -191,11 +190,11 @@ impl DynamicShape for Rectangles {
     }
 
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
-        let (area,depth_in) = self.location.apply(variables);
-        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,&self.allotments,self.left,self.width)?;
+        let (area,depth_in) = self.location.apply(variables)?;
+        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width)?;
         self.program.add_data4(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
-            let (data,_)= add_spacebase4(&area.middle_base(),&depth_in,&self.kind,&self.allotments,self.left,self.width)?;
+            let (data,_)= add_spacebase4(&PartialSpaceBase2::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())

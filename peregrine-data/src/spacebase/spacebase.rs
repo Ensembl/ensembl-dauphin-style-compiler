@@ -138,11 +138,10 @@ impl<X: Clone + PartialOrd> HoleySpaceBase<X> {
     }
 }
 
-impl<X: Clone> Flattenable for HoleySpaceBase<X> {
-    type Location = SpaceBaseParameterLocation;
+impl<X: Clone> Flattenable<SpaceBaseParameterLocation> for HoleySpaceBase<X> {
     type Target = SpaceBase<X>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase<X> where F: Fn(SpaceBaseParameterLocation) -> L {
         match self {
             HoleySpaceBase::Simple(x) => x.clone(),
             HoleySpaceBase::Parametric(x) => x.flatten(subs,cb)

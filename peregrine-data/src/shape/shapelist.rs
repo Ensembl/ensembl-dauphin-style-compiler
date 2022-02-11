@@ -90,33 +90,6 @@ impl ShapeListBuilder {
 }
 
 #[derive(Clone)]
-pub struct CarriageShapeList3 {
-    shapes: Arc<Vec<Shape<AllotmentRequest>>>,
-    universe: Universe
-}
-
-impl CarriageShapeList3 {
-    pub fn empty() -> CarriageShapeList3 {
-        CarriageShapeList3 {
-            shapes: Arc::new(vec![]),
-            universe: Universe::new(&AllotmentMetadataStore::new())
-        }
-    }
-
-    pub fn universe(&self) -> &Universe { &self.universe }
-    pub fn len(&self) -> usize { self.shapes.len() }
-    pub fn shapes(&self) -> Arc<Vec<Shape<AllotmentRequest>>> { self.shapes.clone() }
-
-    pub fn new(builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> CarriageShapeList3 {
-        builder.universe.allot(extent);
-        CarriageShapeList3 {
-            universe: builder.universe.clone(),
-            shapes: Arc::new(builder.shapes)
-        }
-    }
-}
-
-#[derive(Clone)]
 pub struct CarriageShapeList {
     shapes: Arc<Vec<Shape<Allotment>>>,
     universe: Universe

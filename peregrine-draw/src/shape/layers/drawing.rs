@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment};
+use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment, ShapeDetails};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };

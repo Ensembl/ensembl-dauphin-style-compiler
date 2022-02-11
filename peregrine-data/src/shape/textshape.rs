@@ -25,7 +25,7 @@ impl<A: Clone> TextShape<A> {
         for (coord_system,mut filter) in demerge {
             filter.set_size(len);
             out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(filter.count(),coord_system,depth.clone()))?,
+                eoe_throw("add_image",ShapeCommon::new(coord_system,depth.clone()))?,
                 ShapeDetails::Text(details.clone().filter(&mut filter))
             ));
         }

@@ -20,11 +20,11 @@ impl<A: Clone> RectangleShape<A> {
         let len = area.len();
         let mut out = vec![];
         let demerge = area.demerge_by_allotment(|x| { x.coord_system() });
-        let details = eoe_throw("add_rectangles",RectangleShape::new_details(area,patina))?;
         for (coord_system,mut filter) in demerge {
             filter.set_size(len);
+            let details = eoe_throw("add_rectangles",RectangleShape::new_details(area.filter(&filter),patina.clone()))?;
             out.push(Shape::new(
-                eoe_throw("add_rectangles",ShapeCommon::new(filter.count(),coord_system, depth.clone()))?,
+                eoe_throw("add_rectangles",ShapeCommon::new(coord_system, depth.filter(&filter)))?,
                 ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
             ));
         }

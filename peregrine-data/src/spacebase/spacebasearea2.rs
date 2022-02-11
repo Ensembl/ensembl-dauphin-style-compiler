@@ -1,6 +1,6 @@
-use std::{ops::{Add, Div, Sub}, hash::Hash, sync::Arc};
+use std::{ops::{Add, Div, Sub}, hash::Hash};
 use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}, AllotmentRequest, HoleySpaceBaseArea, EachOrEvery, SpaceBaseArea};
-use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}, spacebase2::{SpaceBase2, SpaceBase2ParameterLocation, SpaceBase2NumericParameterLocation, SpaceBase2AllotmentParameterLocation, SpaceBase2Iterator, SpaceBase2PointRef, PartialSpaceBase2}};
+use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseIterator, SpaceBaseParameterLocation, SpaceBasePointRef}, spacebase2::{SpaceBase2, SpaceBase2NumericParameterLocation, SpaceBase2AllotmentParameterLocation, SpaceBase2Iterator, SpaceBase2PointRef, PartialSpaceBase2}};
 
 pub struct SpaceBaseArea2<X,Y>(SpaceBase2<X,Y>,SpaceBase2<X,Y>,usize);
 
@@ -59,14 +59,14 @@ impl<X: Clone, Y: Clone> ParametricType<SpaceBaseArea2AllotmentParameterLocation
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HoleySpaceBaseArea2<X: Clone,Y: Clone> {
     Simple(SpaceBaseArea2<X,Y>),
-    Parametric(SpaceBaseArea2<ParameterValue<X>,ParameterValue<Y>>)
+    Parametric(SpaceBaseArea2<ParameterValue<X>,Y>)
 }
 
 impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
     pub fn xxx_from_original(positions: HoleySpaceBaseArea<X>, allotments: EachOrEvery<Y>) -> HoleySpaceBaseArea2<X,Y> {
         match positions {
             HoleySpaceBaseArea::Parametric(x) => {
-                HoleySpaceBaseArea2::Parametric(SpaceBaseArea2::xxx_from_original(x,allotments.map(|y| ParameterValue::Constant(y.clone()))))
+                HoleySpaceBaseArea2::Parametric(SpaceBaseArea2::xxx_from_original(x,allotments))
             },
             HoleySpaceBaseArea::Simple(x) => {
                 HoleySpaceBaseArea2::Simple(SpaceBaseArea2::xxx_from_original(x,allotments))
@@ -78,7 +78,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
         match self {
             HoleySpaceBaseArea2::Parametric(x) => {
                 let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBaseArea::Parametric(points),allotments.map(|x| x.param_default().clone()))
+                (HoleySpaceBaseArea::Parametric(points),allotments)
             },
             HoleySpaceBaseArea2::Simple(x) => {
                 let (points,allotments) = x.xxx_to_original();
@@ -92,12 +92,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
             HoleySpaceBaseArea2::Simple(x) =>
                 HoleySpaceBaseArea2::Simple(x.map_allotments_results(cb)?),
             HoleySpaceBaseArea2::Parametric(x) =>
-                HoleySpaceBaseArea2::Parametric(x.map_allotments_results(|x| 
-                    Ok(match x {
-                        ParameterValue::Constant(c) => ParameterValue::Constant(cb(c)?),
-                        ParameterValue::Variable(v,c) => ParameterValue::Variable(v.clone(),cb(c)?)
-                    })
-                )?)
+                HoleySpaceBaseArea2::Parametric(x.map_allotments_results(|x| cb(x))?)
         })
     }
 
@@ -110,7 +105,9 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
 
     pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea2<X,Y> {
         match self {
-            HoleySpaceBaseArea2::Simple(x) => HoleySpaceBaseArea2::Simple(x.filter(filter)),
+            HoleySpaceBaseArea2::Simple(x) => {
+                HoleySpaceBaseArea2::Simple(x.filter(filter))
+            },
             HoleySpaceBaseArea2::Parametric(x) => HoleySpaceBaseArea2::Parametric(x.filter(filter))
         }
     }
@@ -127,14 +124,14 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
     pub fn allotments(&self) -> EachOrEvery<Y> {
         match self {
             HoleySpaceBaseArea2::Simple(x) => x.0.allotments().clone(),
-            HoleySpaceBaseArea2::Parametric(x) => x.0.allotments().map(|x| x.param_default().clone())
+            HoleySpaceBaseArea2::Parametric(x) => x.0.allotments().clone()
         }
     }
 
     pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
         match self {
             HoleySpaceBaseArea2::Simple(x) => x.0.allotments().demerge(cb),
-            HoleySpaceBaseArea2::Parametric(x) => x.0.allotments().demerge(|x| cb(x.param_default()))
+            HoleySpaceBaseArea2::Parametric(x) => x.0.allotments().demerge(|x| cb(x))
         }
     }
 }
@@ -146,24 +143,18 @@ impl<X: Clone + PartialEq, Y: Clone> SpaceBaseArea2<X,Y> {
     }
 }
 
-pub enum SpaceBaseArea2ParameterLocation {
-    Left(SpaceBase2ParameterLocation),
-    Right(SpaceBase2ParameterLocation)
-}
-
-impl<X: Clone, Y: Clone> SpaceBaseArea2<ParameterValue<X>,ParameterValue<Y>> {
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(SpaceBaseArea2ParameterLocation) -> L {
-        let left = self.0.flatten(subs,|location| cb(SpaceBaseArea2ParameterLocation::Left(location)));
-        let right = self.1.flatten(subs,|location| cb(SpaceBaseArea2ParameterLocation::Right(location)));
+impl<X: Clone, Y: Clone> SpaceBaseArea2<ParameterValue<X>,Y> {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(SpaceBaseArea2NumericParameterLocation) -> L {
+        let left = self.0.flatten(subs,|location: SpaceBase2NumericParameterLocation| cb(SpaceBaseArea2NumericParameterLocation::Left(location)));
+        let right = self.1.flatten(subs,|location: SpaceBase2NumericParameterLocation| cb(SpaceBaseArea2NumericParameterLocation::Left(location)));
         SpaceBaseArea2(left,right,self.2)
     }
 }
 
-impl<X: Clone,Y: Clone> Flattenable for HoleySpaceBaseArea2<X,Y> {
-    type Location = SpaceBaseArea2ParameterLocation;
+impl<X: Clone,Y: Clone> Flattenable<SpaceBaseArea2NumericParameterLocation> for HoleySpaceBaseArea2<X,Y> {
     type Target = SpaceBaseArea2<X,Y>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea2<X,Y> where F: Fn(SpaceBaseArea2NumericParameterLocation) -> L {
         match self {
             HoleySpaceBaseArea2::Simple(x) => x.clone(),
             HoleySpaceBaseArea2::Parametric(x) => x.flatten(subs,cb)
@@ -205,7 +196,7 @@ impl<X: Clone, Y: Clone> SpaceBaseArea2<X,Y> {
     }
 
     pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea2<X,Y> {
-        SpaceBaseArea2(self.0.filter(filter),self.1.filter(filter),self.2)
+        SpaceBaseArea2(self.0.filter(filter),self.1.filter(filter),filter.count())
     }
 
     pub fn map_allotments_results<F,A: Clone,E>(&self, cb: F) -> Result<SpaceBaseArea2<X,A>,E> 
@@ -217,8 +208,8 @@ impl<X: Clone, Y: Clone> SpaceBaseArea2<X,Y> {
         ))
     }
 
-    pub fn top_left(&self) -> SpaceBase2<X,Y> { self.0.clone() }
-    pub fn bottom_right(&self) -> SpaceBase2<X,Y> { self.1.clone() }
+    pub fn top_left(&self) -> &SpaceBase2<X,Y> { &self.0 }
+    pub fn bottom_right(&self) -> &SpaceBase2<X,Y> { &self.1 }
     pub fn bottom_left(&self) -> SpaceBase2<X,Y> { self.0.replace_normal(&self.1).unwrap() }
     pub fn top_right(&self) -> SpaceBase2<X,Y> { self.1.replace_normal(&self.0).unwrap() }
 }
@@ -235,7 +226,7 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>, Y: Clone> SpaceBaseArea2<X,Y>
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HollowEdge<X> { Top(X), Left(X), Bottom(X), Right(X) }
+pub enum HollowEdge2<X> { Top(X), Left(X), Bottom(X), Right(X) }
 
 impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea2<X,Y> {
     pub fn new_from_sizes(points: &SpaceBase2<X,Y>, x_size: &[X], y_size: &[X]) -> SpaceBaseArea2<X,Y> {
@@ -244,21 +235,21 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea2<X,Y> {
         SpaceBaseArea2(points.clone(),far,points.len())
     }
 
-    pub fn hollow_edge(&self, edge: &HollowEdge<X>) -> SpaceBaseArea2<X,Y> {
+    pub fn hollow_edge(&self, edge: &HollowEdge2<X>) -> SpaceBaseArea2<X,Y> {
         let mut out = self.clone();
         match edge {
-            HollowEdge::Left(w) => {
+            HollowEdge2::Left(w) => {
                 out.1.base = out.0.base.clone();
                 out.1.tangent = out.0.tangent.map(|x| x.clone()+w.clone());
             },
-            HollowEdge::Right(w) => {
+            HollowEdge2::Right(w) => {
                 out.0.base = out.1.base.clone();
                 out.1.tangent = out.0.tangent.map(|x| x.clone()+w.clone());
             },
-            HollowEdge::Top(w) => {
+            HollowEdge2::Top(w) => {
                 out.1.normal = out.0.normal.map(|x| x.clone()+w.clone());
             },
-            HollowEdge::Bottom(w) => {
+            HollowEdge2::Bottom(w) => {
                 out.1.normal = out.0.normal.map(|x| x.clone()-w.clone());
             }
         }

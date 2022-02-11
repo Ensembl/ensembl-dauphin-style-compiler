@@ -153,14 +153,13 @@ impl ShapeDetails<AllotmentRequest> {
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ShapeCommon {
-    len: usize,
     coord_system: CoordinateSystem,
     depth: EachOrEvery<i8>
 }
 
 impl ShapeCommon {
-    pub fn new(len: usize, coord_system: CoordinateSystem, depth: EachOrEvery<i8>) -> Option<ShapeCommon> {
-        Some(ShapeCommon { len, coord_system, depth })
+    pub fn new(coord_system: CoordinateSystem, depth: EachOrEvery<i8>) -> Option<ShapeCommon> {
+        Some(ShapeCommon { coord_system, depth })
     }
 
     pub fn depth(&self) -> &EachOrEvery<i8> { &self.depth }
@@ -168,7 +167,6 @@ impl ShapeCommon {
 
     pub fn filter(&self, filter: &DataFilter) -> ShapeCommon {
         ShapeCommon {
-            len: filter.count(),
             coord_system: self.coord_system.clone(),
             depth: self.depth.filter(filter)
         }

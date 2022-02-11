@@ -1,4 +1,4 @@
-use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::spacebase::SpaceBasePoint, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase};
+use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point};
 
 use super::allotmentbox::AllotmentBox;
 
@@ -31,6 +31,17 @@ impl Transformer for LeafTransformer {
     }
 
     fn transform_spacebase_point(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+        let mut output = input.make();
+        if self.geometry.up_from_bottom() {
+            output.normal = self.allot_box.draw_bottom() as f64 - output.normal;
+        } else {
+            output.normal += self.allot_box.draw_top() as f64;
+        }
+        output.tangent += self.allot_box.indent() as f64;
+        output
+    }
+
+    fn transform_spacebase2_point(&self, input: &SpaceBase2PointRef<f64,Allotment>) -> SpaceBase2Point<f64,Allotment> {
         let mut output = input.make();
         if self.geometry.up_from_bottom() {
             output.normal = self.allot_box.draw_bottom() as f64 - output.normal;

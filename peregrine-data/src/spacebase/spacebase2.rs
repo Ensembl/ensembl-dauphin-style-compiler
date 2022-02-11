@@ -64,18 +64,13 @@ pub enum SpaceBase2AllotmentParameterLocation {
     Allotment(usize)
 }
 
-pub enum SpaceBase2ParameterLocation {
-    Numeric(SpaceBase2NumericParameterLocation),
-    Allotment(SpaceBase2AllotmentParameterLocation)
-}
-
-impl<X: Clone, Y: Clone> SpaceBase2<ParameterValue<X>,ParameterValue<Y>> {
-    pub(crate) fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<X,Y> where F: Fn(SpaceBase2ParameterLocation) -> L {
+impl<X: Clone,Y: Clone> SpaceBase2<ParameterValue<X>,Y> {
+    pub fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<X,Y> where F: Fn(SpaceBase2NumericParameterLocation) -> L {
         SpaceBase2 {
-            base: self.base.flatten(subs,|x| cb(SpaceBase2ParameterLocation::Numeric(SpaceBase2NumericParameterLocation::Base(x)))),
-            normal: self.normal.flatten(subs,|x| cb(SpaceBase2ParameterLocation::Numeric(SpaceBase2NumericParameterLocation::Normal(x)))),
-            tangent: self.tangent.flatten(subs,|x| cb(SpaceBase2ParameterLocation::Numeric(SpaceBase2NumericParameterLocation::Tangent(x)))),
-            allotment: self.allotment.flatten(subs,|x| cb(SpaceBase2ParameterLocation::Allotment(SpaceBase2AllotmentParameterLocation::Allotment(x)))),
+            base: self.base.flatten(subs,|x| cb(SpaceBase2NumericParameterLocation::Base(x))),
+            normal: self.normal.flatten(subs,|x| cb(SpaceBase2NumericParameterLocation::Normal(x))),
+            tangent: self.tangent.flatten(subs,|x| cb(SpaceBase2NumericParameterLocation::Tangent(x))),
+            allotment: self.allotment.clone(),
             len: self.len.clone()
         }
     }
@@ -139,7 +134,7 @@ impl<X,Y: Clone> ParametricType<SpaceBase2AllotmentParameterLocation> for SpaceB
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum HoleySpaceBase2<X: Clone,Y: Clone> {
     Simple(SpaceBase2<X,Y>),
-    Parametric(SpaceBase2<ParameterValue<X>,ParameterValue<Y>>)
+    Parametric(SpaceBase2<ParameterValue<X>,Y>)
 }
 
 impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
@@ -147,7 +142,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         match self {
             HoleySpaceBase2::Simple(x) => x.clone(),
             HoleySpaceBase2::Parametric(x) => {
-                x.clone().map_all(|x| x.param_default().clone(),|y| y.param_default().clone())
+                x.clone().map_all(|x| x.param_default().clone())
             }
         }
     }
@@ -156,7 +151,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         match self {
             HoleySpaceBase2::Parametric(x) => {
                 let (points,allotments) = x.xxx_to_original();
-                (HoleySpaceBase::Parametric(points),allotments.map(|x| x.param_default().clone()))
+                (HoleySpaceBase::Parametric(points),allotments.clone())
             },
             HoleySpaceBase2::Simple(x) => {
                 let (points,allotments) = x.xxx_to_original();
@@ -191,7 +186,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
     pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
         match self {
             HoleySpaceBase2::Simple(x) => x.allotment.demerge(cb),
-            HoleySpaceBase2::Parametric(x) => x.allotment.demerge(|x| cb(x.param_default()))
+            HoleySpaceBase2::Parametric(x) => x.allotment.demerge(cb)
         }
     }
 
@@ -200,12 +195,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
             HoleySpaceBase2::Simple(x) =>
                 HoleySpaceBase2::Simple(x.map_allotments_results(cb)?),
             HoleySpaceBase2::Parametric(x) =>
-                HoleySpaceBase2::Parametric(x.map_allotments_results(|x| 
-                    Ok(match x {
-                        ParameterValue::Constant(c) => ParameterValue::Constant(cb(c)?),
-                        ParameterValue::Variable(v,c) => ParameterValue::Variable(v.clone(),cb(c)?)
-                    })
-                )?)
+                HoleySpaceBase2::Parametric(x.map_allotments_results(cb)?)
         })
     }
 
@@ -213,16 +203,15 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
     pub fn allotments(&self) -> EachOrEvery<Y> {
         match self {
             HoleySpaceBase2::Simple(x) => x.allotments().clone(),
-            HoleySpaceBase2::Parametric(x) => x.allotments().map(|x| x.param_default().clone())
+            HoleySpaceBase2::Parametric(x) => x.allotments().clone()
         }
     }
 }
 
-impl<X: Clone,Y: Clone> Flattenable for HoleySpaceBase2<X,Y> {
-    type Location = SpaceBase2ParameterLocation;
+impl<X: Clone,Y: Clone> Flattenable<SpaceBase2NumericParameterLocation> for HoleySpaceBase2<X,Y> {
     type Target = SpaceBase2<X,Y>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<X,Y> where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBase2<X,Y> where F: Fn(SpaceBase2NumericParameterLocation) -> L {
         match self {
             HoleySpaceBase2::Simple(x) => x.clone(),
             HoleySpaceBase2::Parametric(x) => x.flatten(subs,cb)
@@ -258,11 +247,16 @@ impl<X: Clone,Y: Clone> Clone for SpaceBase2<X,Y> {
     }
 }
 
+#[derive(Clone)]
 pub struct PartialSpaceBase2<X,Y>(SpaceBase2<X,Y>);
 
 impl<X: Clone, Y: Clone> PartialSpaceBase2<X,Y> {
     pub fn new(base: &EachOrEvery<X>, normal: &EachOrEvery<X>, tangent: &EachOrEvery<X>, allotment: &EachOrEvery<Y>) -> PartialSpaceBase2<X,Y> {
         PartialSpaceBase2(SpaceBase2::new_unszied(base,normal,tangent,allotment))
+    }
+
+    pub fn from_spacebase(spacebase: SpaceBase2<X,Y>) -> PartialSpaceBase2<X,Y> {
+        PartialSpaceBase2(spacebase)
     }
 
     pub fn compat(&self,compat: &mut EachOrEveryGroupCompatible) {
@@ -376,12 +370,12 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
         SpaceBase2::new(&self.base,&other.normal,&self.tangent,&self.allotment)
     }
 
-    pub fn map_all<F,G,A: Clone,B: Clone>(&mut self, cb: F, cb2: G) -> SpaceBase2<A,B> where F: Fn(&X) -> A, G: Fn(&Y) -> B {
+    pub fn map_all<F,A: Clone>(&mut self, cb: F) -> SpaceBase2<A,Y> where F: Fn(&X) -> A {
         SpaceBase2 {
             base: self.base.map(&cb),
             tangent: self.tangent.map(&cb),
             normal: self.normal.map(&cb),
-            allotment: self.allotment.map(&cb2),
+            allotment: self.allotment.clone(),
             len: self.len
         }
     }

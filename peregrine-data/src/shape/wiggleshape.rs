@@ -64,7 +64,7 @@ impl<A: Clone> WiggleShape<A> {
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         let allotments = EachOrEvery::each(vec![allotment.clone()]);
         out.push(Shape::new(
-            eoe_throw("add_wiggle",ShapeCommon::new(1,allotment.coord_system(),depth))?,
+            eoe_throw("add_wiggle",ShapeCommon::new(allotment.coord_system(),depth))?,
             ShapeDetails::Wiggle(details)
         ));
         Ok(out)

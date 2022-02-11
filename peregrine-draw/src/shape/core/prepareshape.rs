@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem};
+use peregrine_data::{Allotment, Colour, DrawnType, EachOrEvery, HollowEdge, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem, HollowEdge2};
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -36,10 +36,10 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
                     let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
                     // XXX too much cloning, at least Arc them
                     let area = shape.holey_area();
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Left(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge::Right(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Top(width))));
-                    out.push(GLShape::Heraldry(area.clone(),handles,depth,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge::Bottom(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Left(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Right(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Top(width))));
+                    out.push(GLShape::Heraldry(area.clone(),handles,depth,draw_group.clone(),heraldry_canvas_h.clone(),scale.clone(),Some(HollowEdge2::Bottom(width))));
                 }
             }
         },

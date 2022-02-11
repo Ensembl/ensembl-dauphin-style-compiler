@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2};
+use peregrine_data::{Allotment, Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Flattenable, HoleySpaceBaseArea, HollowEdge, Patina, Plotter, SpaceBaseArea, ZMenu, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, HollowEdge2};
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -104,7 +104,7 @@ impl DrawingShapePatina {
 pub(crate) enum GLShape {
     Text(HoleySpaceBase2<f64,Allotment>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
     Image(HoleySpaceBase2<f64,Allotment>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
-    Heraldry(HoleySpaceBaseArea2<f64,Allotment>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge<f64>>),
+    Heraldry(HoleySpaceBaseArea2<f64,Allotment>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
     SpaceBaseRect(HoleySpaceBaseArea2<f64,Allotment>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup),
 }
@@ -136,7 +136,7 @@ fn dims_to_sizes(areas: &[CanvasTextureArea]) -> (Vec<f64>,Vec<f64>) {
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge<f64>>) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge2<f64>>) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
@@ -160,7 +160,7 @@ fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group:
     Ok(Box::new(rectangles))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea2<f64,Allotment>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea2<f64,Allotment>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();

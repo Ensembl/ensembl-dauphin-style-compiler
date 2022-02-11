@@ -73,17 +73,16 @@ impl<X: PartialOrd + Clone> PartialOrd for ParameterValue<X> {
     }
 }
 
-pub trait Flattenable {
-    type Location;
+pub trait Flattenable<Location> {
     type Target;
 
-    fn extract(&self) -> (Self::Target,Substitutions<Self::Location>) {
+    fn extract(&self) -> (Self::Target,Substitutions<Location>) {
         let mut subs = Substitutions::empty();
         let out = self.flatten(&mut subs,|x| x);
         (out,subs)
     }
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L;
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Location) -> L;
 }
 
 #[derive(Clone)]
@@ -161,11 +160,10 @@ impl<L> Substitutions<L> {
     }
 }
 
-impl<X: Clone> Flattenable for [ParameterValue<X>] {
-    type Location = usize;
+impl<X: Clone> Flattenable<usize> for [ParameterValue<X>] {
     type Target = Vec<X>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(usize) -> L {
         let mut out = vec![];
         for (i,item) in self.iter().enumerate() {
             out.push(subs.add_location(cb(i),item).clone());
@@ -174,11 +172,10 @@ impl<X: Clone> Flattenable for [ParameterValue<X>] {
     }
 }
 
-impl<X: Clone> Flattenable for EachOrEvery<ParameterValue<X>> {
-    type Location = usize;
+impl<X: Clone> Flattenable<usize> for EachOrEvery<ParameterValue<X>> {
     type Target = EachOrEvery<X>;
 
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(Self::Location) -> L {
+    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> Self::Target where F: Fn(usize) -> L {
         self.enumerated_map(|i,item| {
             subs.add_location(cb(i),item).clone()
         })
