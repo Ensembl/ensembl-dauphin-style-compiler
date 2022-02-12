@@ -1,5 +1,6 @@
+use anyhow::anyhow as err;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, HoleySpaceBaseArea, ShapeListBuilder, SpaceBaseArea, SpaceBase2, HoleySpaceBase2, SpaceBaseArea2, HoleySpaceBaseArea2};
+use peregrine_data::{Builder, HoleySpaceBaseArea, ShapeListBuilder, SpaceBaseArea, SpaceBase2, HoleySpaceBase2, SpaceBaseArea2, HoleySpaceBaseArea2, PartialSpaceBase2, DataMessage};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -27,10 +28,17 @@ impl InterpCommand for RectangleInterpCommand {
             Ok(geometry.allotment(*id as u32)?.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        let area = SpaceBaseArea::new(top_left,bottom_right);
         if !allotments.empty() {
-            let area2 = SpaceBaseArea2::xxx_from_original(area,allotments);
-            zoo.lock().add_rectangle(HoleySpaceBaseArea2::Simple(area2),patina)?;
+            let area = SpaceBaseArea2::new(
+                PartialSpaceBase2::from_spacebase(top_left),
+                PartialSpaceBase2::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
+            let mut allotments_iter = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
+            let mut allotments_iter2 = allotments.iter(area.len()).ok_or_else(|| err!("sb2"))?;
+            let area = area.map_allotments_results::<_,_,_,DataMessage>(
+                move |_| Ok(allotments_iter.next().unwrap().clone()),
+                move |_| Ok(allotments_iter2.next().unwrap().clone())
+            )?;
+            zoo.lock().add_rectangle(HoleySpaceBaseArea2::Simple(area),patina)?;
         }
         Ok(CommandResult::SyncResult())
     }
@@ -53,8 +61,9 @@ impl InterpCommand for Text2InterpCommand {
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         if !text.empty() || !allotments.empty() {
-            let spacebase2 = SpaceBase2::xxx_from_original(spacebase,allotments);
-            zoo.lock().add_text(HoleySpaceBase2::Simple(spacebase2),pen,text)?;
+            let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
+            let spacebase = spacebase.map_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+            zoo.lock().add_text(HoleySpaceBase2::Simple(spacebase),pen,text)?;
         }
         Ok(CommandResult::SyncResult())
     }
@@ -75,8 +84,9 @@ impl InterpCommand for ImageInterpCommand {
         })?;
         let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
         if !images.empty() && !allotments.empty() {
-            let spacebase2 = SpaceBase2::xxx_from_original(spacebase,allotments);
-            zoo.lock().add_image(HoleySpaceBase2::Simple(spacebase2),images)?;
+            let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
+            let spacebase = spacebase.map_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
+            zoo.lock().add_image(HoleySpaceBase2::Simple(spacebase),images)?;
         }
         Ok(CommandResult::SyncResult())
     }

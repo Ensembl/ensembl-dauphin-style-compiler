@@ -1,5 +1,6 @@
+use anyhow::anyhow as err;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu, SpaceBase2};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -49,13 +50,16 @@ impl InterpCommand for PpcInterpCommand {
 impl InterpCommand for SpaceBaseInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
         let registers = context.registers_mut();
-        let base = registers.get_numbers(&self.1)?.to_vec();
-        let normal = registers.get_numbers(&self.2)?.to_vec();
-        let tangent = registers.get_numbers(&self.3)?.to_vec();
+        let mut base = vec_to_eoe(registers.get_numbers(&self.1)?.to_vec());
+        let normal = vec_to_eoe(registers.get_numbers(&self.2)?.to_vec());
+        let tangent = vec_to_eoe(registers.get_numbers(&self.3)?.to_vec());
+        if base.len().is_none() && normal.len().is_none() && tangent.len().is_none() {
+            base = base.to_each(1).unwrap();
+        }
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let spacebase = SpaceBase::new(base,normal,tangent);
+        let spacebase = SpaceBase2::new(&base,&normal,&tangent,&EachOrEvery::Every(())).ok_or_else(|| err!("sb4"))?;
         let id = geometry_builder.add_spacebase(spacebase);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    

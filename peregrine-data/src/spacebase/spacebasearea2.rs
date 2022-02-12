@@ -74,12 +74,13 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea2<X,Y> {
         }
     }
 
-    pub fn map_allotments_results<F,E,Z: Clone>(&self, cb: F) -> Result<HoleySpaceBaseArea2<X,Z>,E> where F: Fn(&Y) -> Result<Z,E> {
+    pub fn map_allotments_results<F,G,E,Z: Clone>(&self, mut cb: F, mut cb2: G) -> Result<HoleySpaceBaseArea2<X,Z>,E> 
+            where F: FnMut(&Y) -> Result<Z,E>, G: FnMut(&Y) -> Result<Z,E> {
         Ok(match self {
             HoleySpaceBaseArea2::Simple(x) =>
-                HoleySpaceBaseArea2::Simple(x.map_allotments_results(cb)?),
+                HoleySpaceBaseArea2::Simple(x.map_allotments_results(cb,cb2)?),
             HoleySpaceBaseArea2::Parametric(x) =>
-                HoleySpaceBaseArea2::Parametric(x.map_allotments_results(|x| cb(x))?)
+                HoleySpaceBaseArea2::Parametric(x.map_allotments_results(cb,cb2)?)
         })
     }
 
@@ -178,11 +179,11 @@ impl<X: Clone, Y: Clone> SpaceBaseArea2<X,Y> {
         SpaceBaseArea2(self.0.filter(filter),self.1.filter(filter),filter.count())
     }
 
-    pub fn map_allotments_results<F,A: Clone,E>(&self, cb: F) -> Result<SpaceBaseArea2<X,A>,E> 
-                where F: Fn(&Y) -> Result<A,E> {
+    pub fn map_allotments_results<F,G,A: Clone,E>(&self, cb: F, cb2: G) -> Result<SpaceBaseArea2<X,A>,E> 
+                where F: FnMut(&Y) -> Result<A,E>, G: FnMut(&Y) -> Result<A,E> {
         Ok(SpaceBaseArea2(
-            self.0.map_allotments_results(&cb)?,
-            self.1.map_allotments_results(cb)?,
+            self.0.map_allotments_results(cb)?,
+            self.1.map_allotments_results(cb2)?,
             self.2
         ))
     }

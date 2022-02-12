@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::hash::Hash;
 
 use crate::spacebase::parametric::Flattenable;
-use crate::util::eachorevery::{EachOrEveryMut, EachOrEveryGroupCompatible};
+use crate::util::eachorevery::{EachOrEveryMut, EachOrEveryGroupCompatible, eoe_throw};
 use crate::{EachOrEvery, ParameterValue, Substitutions, DataFilter, AllotmentRequest, SpaceBase, HoleySpaceBase};
 
 use super::parametric::{ParametricType};
@@ -177,7 +177,7 @@ impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBase2<X,Y> {
         }
     }
 
-    pub fn map_allotments_results<F,E,Z: Clone>(&self, cb: F) -> Result<HoleySpaceBase2<X,Z>,E> where F: Fn(&Y) -> Result<Z,E> {
+    pub fn map_allotments_results<F,E,Z: Clone>(&self, cb: F) -> Result<HoleySpaceBase2<X,Z>,E> where F: FnMut(&Y) -> Result<Z,E> {
         Ok(match self {
             HoleySpaceBase2::Simple(x) =>
                 HoleySpaceBase2::Simple(x.map_allotments_results(cb)?),
@@ -376,13 +376,18 @@ impl<X: Clone, Y: Clone> SpaceBase2<X,Y> {
     }
 
 
-    pub fn map_allotments_results<F,A: Clone,E>(&self, cb: F) -> Result<SpaceBase2<X,A>,E> 
-                where F: Fn(&Y) -> Result<A,E> {
+    pub fn map_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase2<X,A>,E> 
+                where F: FnMut(&Y) -> Result<A,E> {
+        let allotment = if self.len>0 {
+            self.allotment.to_each(self.len).unwrap().map_results(&mut cb)?
+        } else {
+            EachOrEvery::Each(Arc::new(vec![]))
+        };
         Ok(SpaceBase2 {
             base: self.base.clone(),
             tangent: self.tangent.clone(),
             normal: self.normal.clone(),
-            allotment: self.allotment.map_results(&cb)?,
+            allotment,
             len: self.len
         })
     }

@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{sync::Arc, env::VarError};
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues, HoleySpaceBaseArea2, SpaceBase2, SpaceBaseArea2, PartialSpaceBase2};
-use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, HoleySpaceBaseArea, ParameterValue, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, Universe, Variable, VariableValues, HoleySpaceBaseArea2, SpaceBase2, SpaceBaseArea2, PartialSpaceBase2, AllotmentRequest};
+use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 
 use super::spectremanager::SpectreConfigKey;
 
@@ -86,6 +86,29 @@ impl MarchingAnts {
     }
 }
 
+fn make_stain_param(var: Option<&Variable>, c: f64, d: f64) -> ParameterValue<f64> {
+    if let Some(var) = var { ParameterValue::Variable(var.clone(),d) } else { ParameterValue::Constant(c) }
+}
+
+fn make_stain_point(base: ParameterValue<f64>, normal: ParameterValue<f64>, tangent: ParameterValue<f64>, allotment: &AllotmentRequest) -> Result<PartialSpaceBase2<ParameterValue<f64>,AllotmentRequest>,Message> {
+    Ok(PartialSpaceBase2::from_spacebase(
+        eoe_throw("stain1",SpaceBase2::new(&EachOrEvery::Each(Arc::new(vec![base])),
+        &EachOrEvery::Each(Arc::new(vec![normal])),
+        &EachOrEvery::Each(Arc::new(vec![tangent])),
+            &EachOrEvery::Every(allotment.clone())))?))
+
+}
+
+fn make_stain_rect(n0: Option<&Variable>, t0: Option<&Variable>, n1: Option<&Variable>, t1: Option<&Variable>, b1: f64, ar: &AllotmentRequest) -> Result<HoleySpaceBaseArea2<f64,AllotmentRequest>,Message> {
+    let n0 = make_stain_param(n0,0.,0.);
+    let t0 = make_stain_param(t0,0.,0.);
+    let n1 = make_stain_param(n1,-1.,0.);
+    let t1 = make_stain_param(t1,-1.,16.);
+    let top_left = make_stain_point(ParameterValue::Constant(0.),n0,t0,ar)?;
+    let bottom_right = make_stain_point(ParameterValue::Constant(b1),n1,t1,ar)?;
+    Ok(HoleySpaceBaseArea2::Parametric(SpaceBaseArea2::new(top_left,bottom_right).unwrap()))
+}
+
 #[derive(Clone)]
 pub(crate) struct Stain {
     area: AreaVariables,
@@ -107,51 +130,22 @@ impl Stain {
         let window_origin = shapes.universe().make_request("window:origin[100]").unwrap(); // XXX
         shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
+        let pos = self.area.tlbr().clone();
         if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
-            let pos = self.area.tlbr().clone();
-            rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(0.)],vec![ParameterValue::Constant(0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Variable(pos.1,16.)])
-            )));
-            let pos = self.area.tlbr().clone();
+            rectangles.push(make_stain_rect(None,None,None,Some(&pos.1),0.,&window_origin)?);
             /* top right of screen to bottom of screen, along righthand edge of selection */
-            rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(0.)],vec![ParameterValue::Variable(pos.3,0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(1.)],
-                                     vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Constant(0.)])
-            )));
+            rectangles.push(make_stain_rect(None,Some(&pos.3),None,None,1.,&window_origin)?);
             /* length of top of shape from top of screen to that shape */
-            let pos = self.area.tlbr().clone();
-            rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(0.)],vec![ParameterValue::Variable(pos.1,0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Variable(pos.0,0.)],vec![ParameterValue::Variable(pos.3,16.)])
-            )));
+            rectangles.push(make_stain_rect(None,Some(&pos.1),Some(&pos.0),Some(&pos.3),0.,&window_origin)?);
             /* length of bottom of shape from bottom of shape to bottom of screen */
-            let pos = self.area.tlbr().clone();
-            rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Variable(pos.2,0.)],vec![ParameterValue::Variable(pos.1,0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Constant(-1.)],vec![ParameterValue::Variable(pos.3,16.)])
-            )));
+            rectangles.push(make_stain_rect(Some(&pos.2),Some(&pos.1),None,Some(&pos.3),0.,&window_origin)?);
         } else {
-            let pos = self.area.tlbr().clone();
-            rectangles.push(HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Variable(pos.0,0.)],vec![ParameterValue::Variable(pos.1,0.)]),
-                SpaceBase::new(vec![ParameterValue::Constant(0.)],
-                                     vec![ParameterValue::Variable(pos.2,0.)],vec![ParameterValue::Variable(pos.3,16.)])
-            )));
+            rectangles.push(make_stain_rect(Some(&pos.0),Some(&pos.1),Some(&pos.2),Some(&pos.3),0.,&window_origin)?);
         }
         for area in rectangles.drain(..) {           
-            let area2 = HoleySpaceBaseArea2::xxx_from_original(area,EachOrEvery::Every(window_origin.clone()));
-            shapes.add_rectangle(area2,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))));
+            shapes.add_rectangle(area,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))))
+                .map_err(|e| Message::DataError(e))?;
         }
         Ok(())
     }
