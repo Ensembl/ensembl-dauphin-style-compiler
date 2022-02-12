@@ -5,15 +5,15 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, EachOrEvery, Flattenable, HollowEdge, SpaceBase, SpaceBaseArea, SpaceBaseAreaParameterLocation, SpaceBaseParameterLocation, Substitutions, VariableValues, SpaceBasePointRef, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, SpaceBase2, PartialSpaceBase2, SpaceBase2Point, HollowEdge2, SpaceBaseArea2NumericParameterLocation, SpaceBase2NumericParameterLocation, CoordinateSystem, transform_spacebase2, SpaceBase2PointRef, transform_spacebasearea2};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, Substitutions, VariableValues, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, SpaceBase, PartialSpaceBase, SpaceBasePoint, HollowEdge2, SpaceBaseAreaNumericParameterLocation, SpaceBaseNumericParameterLocation, CoordinateSystem, transform_spacebase, SpaceBasePointRef, transform_spacebasearea};
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 enum RectanglesLocation {
-    Area(SpaceBaseArea2<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseArea2NumericParameterLocation>,Option<HollowEdge2<f64>>),
-    Sized(SpaceBase2<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBase2NumericParameterLocation>,Vec<f64>,Vec<f64>)
+    Area(SpaceBaseArea<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseAreaNumericParameterLocation>,Option<HollowEdge2<f64>>),
+    Sized(SpaceBase<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseNumericParameterLocation>,Vec<f64>,Vec<f64>)
 }
 
 impl RectanglesLocation {
@@ -24,7 +24,7 @@ impl RectanglesLocation {
         }
     }
 
-    fn apply(&mut self, variables: &VariableValues<f64>) -> Result<(SpaceBaseArea2<f64,Allotment>,EachOrEvery<i8>),Message> {
+    fn apply(&mut self, variables: &VariableValues<f64>) -> Result<(SpaceBaseArea<f64,Allotment>,EachOrEvery<i8>),Message> {
         match self {
             RectanglesLocation::Area(ref mut a,depth,s,edge) => {
                 s.apply( a,variables);
@@ -40,9 +40,9 @@ impl RectanglesLocation {
                 far.fold_tangent(x,|v,z| { *v += z; });
                 far.fold_normal(y,|v,z| { *v += z; });
                 s.apply(&mut far,variables);
-                Ok((eoe_throw("rl1",SpaceBaseArea2::new(
-                    PartialSpaceBase2::from_spacebase(near.clone()),
-                            PartialSpaceBase2::from_spacebase(far)))?,
+                Ok((eoe_throw("rl1",SpaceBaseArea::new(
+                    PartialSpaceBase::from_spacebase(near.clone()),
+                            PartialSpaceBase::from_spacebase(far)))?,
                             depth.clone()))
             }
         }
@@ -66,13 +66,13 @@ pub(crate) struct Rectangles {
 }
 
 impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>)-> Result<Rectangles,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>)-> Result<Rectangles,Message> {
         let (area,subs) = area.extract();
         let location = RectanglesLocation::Area(area,depth.clone(),subs,edge.clone());
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase2<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
         let (points,subs) = points.extract();
         let location = RectanglesLocation::Sized(points,depth.clone(),subs,x_sizes,y_sizes);
         Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
@@ -104,15 +104,15 @@ impl Rectangles {
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
 }
 
-fn add_spacebase4(point: &PartialSpaceBase2<f64,Allotment>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
-    let area = eoe_throw("as1",SpaceBaseArea2::new(point.clone(),point.clone()))?;
+fn add_spacebase4(point: &PartialSpaceBase<f64,Allotment>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
+    let area = eoe_throw("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
     add_spacebase_area4(&area,depth,group,left,width)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea2<f64,Allotment>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64,Allotment>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
-    let area = transform_spacebasearea2(group.coord_system(),&area);
+    let area = transform_spacebasearea(group.coord_system(),&area);
     for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {
         let (t_0,t_1,mut n_0,mut n_1) = (*top_left.tangent,*bottom_right.tangent,*top_left.normal,*bottom_right.normal);
         let (mut b_0,mut b_1) = (*top_left.base,*bottom_right.base);
@@ -185,7 +185,7 @@ impl DynamicShape for Rectangles {
         let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width)?;
         self.program.add_data4(&mut self.elements,data,depth)?;
         if self.program.origin_coords.is_some() {
-            let (data,_)= add_spacebase4(&PartialSpaceBase2::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
+            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
             self.program.add_origin_data4(&mut self.elements,data)?;
         }
         Ok(())

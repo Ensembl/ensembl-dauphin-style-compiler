@@ -1,8 +1,8 @@
-use crate::{AllotmentMetadataRequest, SpaceBasePointRef, spacebase::{spacebase::SpaceBasePoint, spacebase2::SpaceBase2PointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, SpaceBase, Allotment, SpaceBase2Point, SpaceBase2, SpaceBaseArea2, PartialSpaceBase2};
+use crate::{AllotmentMetadataRequest, spacebase::{spacebase::SpaceBasePointRef}, CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy, allotment::Transformer}}, Allotment, SpaceBasePoint, SpaceBase, SpaceBaseArea, PartialSpaceBase};
 
 use super::allotmentbox::AllotmentBox;
 
-pub fn transform_spacebase2(coord_system: &CoordinateSystem, input: &SpaceBase2<f64,Allotment>) -> SpaceBase2<f64,Allotment> {
+pub fn transform_spacebase(coord_system: &CoordinateSystem, input: &SpaceBase<f64,Allotment>) -> SpaceBase<f64,Allotment> {
     let mut output = input.clone();
     if coord_system.up_from_bottom() {
         output.update_normal_from_allotment(|n,a| { *n = (a.allotment_box().draw_bottom() as f64) - *n; });
@@ -13,10 +13,10 @@ pub fn transform_spacebase2(coord_system: &CoordinateSystem, input: &SpaceBase2<
     output
 }
 
-pub fn transform_spacebasearea2(coord_system: &CoordinateSystem, input: &SpaceBaseArea2<f64,Allotment>) -> SpaceBaseArea2<f64,Allotment> {
-    let top_left = transform_spacebase2(coord_system,input.top_left());
-    let bottom_right = transform_spacebase2(coord_system,&input.bottom_right());
-    SpaceBaseArea2::new(PartialSpaceBase2::from_spacebase(top_left),PartialSpaceBase2::from_spacebase(bottom_right)).unwrap()
+pub fn transform_spacebasearea(coord_system: &CoordinateSystem, input: &SpaceBaseArea<f64,Allotment>) -> SpaceBaseArea<f64,Allotment> {
+    let top_left = transform_spacebase(coord_system,input.top_left());
+    let bottom_right = transform_spacebase(coord_system,&input.bottom_right());
+    SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(bottom_right)).unwrap()
 }
 
 pub struct LeafTransformer {
@@ -34,20 +34,7 @@ impl LeafTransformer {
 }
 
 impl Transformer for LeafTransformer {
-    fn transform_spacebase(&self, mut input: SpaceBase<f64>) -> SpaceBase<f64> {
-        if self.geometry.up_from_bottom() {
-            let bottom =  self.allot_box.draw_bottom() as f64;
-            input.update_normal(|n| { *n = bottom-*n; });
-        } else {
-            let top = self.allot_box.draw_top() as f64;
-            input.update_normal(|n| { *n += top; });
-        }
-        let indent = self.allot_box.indent() as f64;
-        input.update_tangent(|t| { *t += indent });
-        input
-    }
-
-    fn transform_spacebase_point(&self, input: &SpaceBasePointRef<f64>) -> SpaceBasePoint<f64> {
+    fn transform_spacebase_point(&self, input: &SpaceBasePointRef<f64,Allotment>) -> SpaceBasePoint<f64,Allotment> {
         let mut output = input.make();
         if self.geometry.up_from_bottom() {
             output.normal = self.allot_box.draw_bottom() as f64 - output.normal;
@@ -58,18 +45,7 @@ impl Transformer for LeafTransformer {
         output
     }
 
-    fn transform_spacebase2_point(&self, input: &SpaceBase2PointRef<f64,Allotment>) -> SpaceBase2Point<f64,Allotment> {
-        let mut output = input.make();
-        if self.geometry.up_from_bottom() {
-            output.normal = self.allot_box.draw_bottom() as f64 - output.normal;
-        } else {
-            output.normal += self.allot_box.draw_top() as f64;
-        }
-        output.tangent += self.allot_box.indent() as f64;
-        output
-    }
-
-    fn transform_spacebase2(&self, input: &SpaceBase2<f64,Allotment>) -> SpaceBase2<f64,Allotment> {
+    fn transform_spacebase(&self, input: &SpaceBase<f64,Allotment>) -> SpaceBase<f64,Allotment> {
         let mut output = input.clone();
         if self.geometry.up_from_bottom() {
             let bottom =  self.allot_box.draw_bottom() as f64;

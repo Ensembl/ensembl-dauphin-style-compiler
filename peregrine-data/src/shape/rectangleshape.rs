@@ -1,22 +1,22 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, HoleySpaceBaseArea, Patina, Shape, ShapeDemerge, ShapeDetails, SpaceBaseArea, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBaseArea2, SpaceBaseArea2};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBaseArea, SpaceBaseArea};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RectangleShape<A: Clone> {
-    area: HoleySpaceBaseArea2<f64,A>,
+    area: HoleySpaceBaseArea<f64,A>,
     patina: Patina
 }
 
 impl<A: Clone> RectangleShape<A> {
-    pub fn new_details(area: HoleySpaceBaseArea2<f64,A>, patina: Patina) -> Option<RectangleShape<A>> {
+    pub fn new_details(area: HoleySpaceBaseArea<f64,A>, patina: Patina) -> Option<RectangleShape<A>> {
         if !patina.compatible(area.len()) { return None; }
         Some(RectangleShape {
             area, patina
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea2<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(area: HoleySpaceBaseArea<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
         let demerge = area.demerge_by_allotment(|x| { x.coord_system() });
@@ -33,8 +33,8 @@ impl<A: Clone> RectangleShape<A> {
 
     pub fn len(&self) -> usize { self.area.len() }
     pub fn patina(&self) -> &Patina { &self.patina }
-    pub fn holey_area(&self) -> &HoleySpaceBaseArea2<f64,A> { &self.area }
-    pub fn area(&self) -> SpaceBaseArea2<f64,A> { self.area.extract().0 }
+    pub fn holey_area(&self) -> &HoleySpaceBaseArea<f64,A> { &self.area }
+    pub fn area(&self) -> SpaceBaseArea<f64,A> { self.area.extract().0 }
 
     pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape<A> {
         RectangleShape {

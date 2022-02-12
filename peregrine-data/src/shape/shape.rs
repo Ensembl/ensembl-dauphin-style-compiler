@@ -196,13 +196,6 @@ impl<A: Clone> Shape<A> {
         Shape::new(common,details)
     }
 
-    /*
-    pub fn filter_by_allotment<F>(&self,  cb: F)  -> Shape<A> where F: Fn(&A) -> bool {
-        let filter = self.common.allotments().new_filter(self.len(),cb);
-        self.filter_shape(&filter)
-    }
-    */
-
     pub fn filter_by_minmax(&self, min_value: f64, max_value: f64) -> Shape<A> {
         if !self.common.coord_system.is_tracking() {
             return self.clone();

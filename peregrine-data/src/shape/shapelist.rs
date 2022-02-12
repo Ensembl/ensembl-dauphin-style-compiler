@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, HoleySpaceBase, HoleySpaceBaseArea, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment, allotment::core::allotmentrequest::GenericAllotmentRequestImpl, HoleySpaceBase2, HoleySpaceBaseArea2 };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment, allotment::core::allotmentrequest::GenericAllotmentRequestImpl, HoleySpaceBase, HoleySpaceBaseArea };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
@@ -50,19 +50,19 @@ impl ShapeListBuilder {
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea2<f64,AllotmentRequest>, patina: Patina) -> Result<(),DataMessage> {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64,AllotmentRequest>, patina: Patina) -> Result<(),DataMessage> {
         let depth = area.allotments().map(|a| a.depth());
         self.extend(RectangleShape::<AllotmentRequest>::new(area,depth,patina)?);
         Ok(())
     }
 
-    pub fn add_text(&mut self, position: HoleySpaceBase2<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
+    pub fn add_text(&mut self, position: HoleySpaceBase<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
         let depth = position.allotments().map(|a| a.depth());
         self.extend(TextShape::<AllotmentRequest>::new(position,depth,pen,text)?);
         Ok(())
     }
 
-    pub fn add_image(&mut self, position: HoleySpaceBase2<f64,AllotmentRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
+    pub fn add_image(&mut self, position: HoleySpaceBase<f64,AllotmentRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
         let depth = position.allotments().map(|a| a.depth());
         self.extend(ImageShape::<AllotmentRequest>::new(position,depth,images)?);
         Ok(())

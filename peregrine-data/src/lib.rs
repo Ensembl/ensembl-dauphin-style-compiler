@@ -25,7 +25,7 @@ mod allotment {
         pub(crate) mod allotmentbox;    
     }
 
-    pub use tree::leaftransformer::{ transform_spacebase2, transform_spacebasearea2 };
+    pub use tree::leaftransformer::{ transform_spacebase, transform_spacebasearea };
 }
 
 mod api {
@@ -160,15 +160,11 @@ mod shape {
 pub(crate) mod spacebase {
     pub(crate) mod parametric;
     pub(crate) mod spacebase;
-    pub(crate) mod spacebase2;
     pub(crate) mod spacebasearea;
-    pub(crate) mod spacebasearea2;
 
     pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
-    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, SpaceBaseParameterLocation, SpaceBasePointRef };
-    pub use self::spacebase2::{ SpaceBase2, HoleySpaceBase2, PartialSpaceBase2, SpaceBase2Point, SpaceBase2PointRef, SpaceBase2NumericParameterLocation };
-    pub use self::spacebasearea::{ SpaceBaseArea, HoleySpaceBaseArea, SpaceBaseAreaParameterLocation, HollowEdge };
-    pub use self::spacebasearea2::{ HoleySpaceBaseArea2, SpaceBaseArea2, SpaceBaseArea2NumericParameterLocation, HollowEdge2 };
+    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, PartialSpaceBase, SpaceBasePoint, SpaceBasePointRef, SpaceBaseNumericParameterLocation };
+    pub use self::spacebasearea::{ HoleySpaceBaseArea, SpaceBaseArea, SpaceBaseAreaNumericParameterLocation, HollowEdge2 };
 }
 
 pub(crate) mod switch {
@@ -231,7 +227,7 @@ pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
 };
-pub use self::allotment::{transform_spacebase2, transform_spacebasearea2};
+pub use self::allotment::{transform_spacebase, transform_spacebasearea};
 pub use self::allotment::core::universe::Universe;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
@@ -241,11 +237,10 @@ pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::EachOrEvery;
 pub use self::spacebase::{ 
-    SpaceBase, SpaceBaseArea, VariableValues, ParameterValue, HoleySpaceBaseArea, Flattenable, SpaceBasePointRef,
-    SpaceBaseAreaParameterLocation, Substitutions, HoleySpaceBase,
-    SpaceBaseParameterLocation, HollowEdge, Variable, HollowEdge2,
-    SpaceBase2, HoleySpaceBase2, HoleySpaceBaseArea2, SpaceBaseArea2, PartialSpaceBase2,
-    SpaceBaseArea2NumericParameterLocation, SpaceBase2Point, SpaceBase2PointRef, SpaceBase2NumericParameterLocation
+    VariableValues, ParameterValue, Flattenable,
+    Substitutions, Variable, HollowEdge2,
+    SpaceBase, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, PartialSpaceBase,
+    SpaceBaseAreaNumericParameterLocation, SpaceBasePoint, SpaceBasePointRef, SpaceBaseNumericParameterLocation
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;

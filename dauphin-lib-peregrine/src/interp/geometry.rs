@@ -1,6 +1,6 @@
 use anyhow::anyhow as err;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, SpaceBase, ZMenu, SpaceBase2};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, ZMenu, SpaceBase};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -59,7 +59,7 @@ impl InterpCommand for SpaceBaseInterpCommand {
         drop(registers);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder();
-        let spacebase = SpaceBase2::new(&base,&normal,&tangent,&EachOrEvery::Every(())).ok_or_else(|| err!("sb4"))?;
+        let spacebase = SpaceBase::new(&base,&normal,&tangent,&EachOrEvery::Every(())).ok_or_else(|| err!("sb4"))?;
         let id = geometry_builder.add_spacebase(spacebase);
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));    
