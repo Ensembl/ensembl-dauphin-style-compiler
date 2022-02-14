@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{Executor, cdr_timer};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_fixed_vec_to_json};
+use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
@@ -277,15 +277,9 @@ impl GenomeBrowser {
                                 },
                                 Message::ZMenuEvent(x,y,zmenus) => {
                                     let args = Array::new();
-                                    let json = zmenu_fixed_vec_to_json(zmenus);
+                                    let json = zmenu_to_json(*x,*y,zmenus);
                                     args.set(0,JsValue::from("zmenu"));
-                                    
-                                    args.set(1,JsValue::from(js_throw(JsValue::from_serde(&ZmenuData {
-                                        x: *x as f64,
-                                        y: *y as f64,
-                                        content: json
-                                    }))));
-
+                                    args.set(1,js_throw(JsValue::from_serde(&json)));
                                     let _ = closure.apply(&this,&args);
                                 },
                                 Message::HitEndstop(endstops) => {

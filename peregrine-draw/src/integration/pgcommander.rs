@@ -34,7 +34,6 @@ use crate::util::message::{ message, Message };
  * world, they would block until schedule exited.
  */
 
- 
 const MS_PER_TICK : f64 = 7.;
 
 pub fn js_panic(e: Result<(),Message>) {
