@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::shape::layers::drawing::DynamicShape;
 use crate::shape::layers::geometry::{GeometryYielder, GeometryAdder };
 use crate::shape::layers::layer::Layer;
@@ -5,28 +7,40 @@ use crate::shape::layers::patina::PatinaYielder;
 use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
-use peregrine_data::{Allotment, EachOrEvery, Flattenable, Substitutions, VariableValues, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, SpaceBase, PartialSpaceBase, SpaceBasePoint, HollowEdge2, SpaceBaseAreaNumericParameterLocation, SpaceBaseNumericParameterLocation, CoordinateSystem, transform_spacebase, SpaceBasePointRef, transform_spacebasearea};
+use peregrine_data::reactive::{Observable, Observer};
+use peregrine_data::{Allotment, EachOrEvery, Flattenable, Substitutions, VariableValues, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBaseAreaNumericParameterLocation, SpaceBaseNumericParameterLocation, transform_spacebasearea, SpaceBasePoint};
+use peregrine_toolkit::lock;
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
+fn apply_wobble(pos: &SpaceBase<f64,Allotment>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,Allotment> {
+    let wobble = wobble.map_all(|obs| obs.get());
+    pos.merge(wobble,SpaceBasePoint {
+        base: &|a,b| { *a+*b },
+        normal: &|a,b| { *a+*b },
+        tangent: &|a,b| { *a+*b },
+        allotment: &|a,_| { a.clone() }
+    }).unwrap_or_else(|| pos.clone())
+}
+
 #[cfg_attr(debug_assertions,derive(Debug))]
 enum RectanglesLocation {
-    Area(SpaceBaseArea<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseAreaNumericParameterLocation>,Option<HollowEdge2<f64>>),
-    Sized(SpaceBase<f64,Allotment>,EachOrEvery<i8>,Substitutions<SpaceBaseNumericParameterLocation>,Vec<f64>,Vec<f64>)
+    Area(SpaceBaseArea<f64,Allotment>,Option<SpaceBaseArea<Observable<'static,f64>,()>>,EachOrEvery<i8>,Substitutions<SpaceBaseAreaNumericParameterLocation>,Option<HollowEdge2<f64>>),
+    Sized(SpaceBase<f64,Allotment>,Option<SpaceBase<Observable<'static,f64>,()>>,EachOrEvery<i8>,Substitutions<SpaceBaseNumericParameterLocation>,Vec<f64>,Vec<f64>)
 }
 
 impl RectanglesLocation {
     fn any_dynamic(&self) -> bool {
         match self {
-            RectanglesLocation::Area(_,_,s,_) => s.len() != 0,
-            RectanglesLocation::Sized(_,_,s,_,_) => s.len() != 0
+            RectanglesLocation::Area(_,_,_,s,_) => s.len() != 0,
+            RectanglesLocation::Sized(_,_,_,s,_,_) => s.len() != 0
         }
     }
 
     fn apply(&mut self, variables: &VariableValues<f64>) -> Result<(SpaceBaseArea<f64,Allotment>,EachOrEvery<i8>),Message> {
         match self {
-            RectanglesLocation::Area(ref mut a,depth,s,edge) => {
+            RectanglesLocation::Area(ref mut a,_,depth,s,edge) => {
                 s.apply( a,variables);
                 let out = if let Some(edge) = edge {
                     (a.hollow_edge(&edge),depth.clone()) // XXX
@@ -35,7 +49,7 @@ impl RectanglesLocation {
                 };
                 Ok(out)
             }
-            RectanglesLocation::Sized(near,depth,s,x,y) => {
+            RectanglesLocation::Sized(near,_,depth,s,x,y) => {
                 let mut far = near.clone();
                 far.fold_tangent(x,|v,z| { *v += z; });
                 far.fold_normal(y,|v,z| { *v += z; });
@@ -48,15 +62,74 @@ impl RectanglesLocation {
         }
     }
 
+    fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
+        match self {
+            RectanglesLocation::Area(area,wobble,_,_,_) => {
+                wobble.as_ref().map(|wobble| {
+                    let wobble = wobble.clone();
+                    let area = area.clone();
+                    Box::new(move || {
+                        let top_left = apply_wobble(area.top_left(),wobble.top_left());
+                        let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());
+                        //use web_sys::console;
+                        //console::log_1(&format!("area {:?} {:?}",top_left,bottom_right).into());
+                    }) as Box<dyn FnMut() + 'static>
+                })
+            }
+            RectanglesLocation::Sized(pos,wobble,_,_,_,_) => {
+                wobble.as_ref().map(|wobble| {
+                    let wobble = wobble.clone();
+                    let pos = pos.clone();
+                    Box::new(move || {
+                        let new_position = apply_wobble(&pos,&wobble);
+                        //use web_sys::console;
+                        //console::log_1(&format!("sized {:?}",new_position).into());
+                    }) as Box<dyn FnMut() + 'static>
+                })
+            }
+        }
+    }
+
+    // XXX PartialEq + Hash for collision
+    fn watch(&self, observer: &mut Observer<'static>) {
+        use web_sys::console;
+        console::log_1(&format!("A").into());
+        match self {
+            RectanglesLocation::Area(_,wobble,_,_,_) => {
+                if let Some(wobble) = wobble {
+                    for obs in wobble.top_left().iter() {
+                        observer.observe(obs.base);
+                        observer.observe(obs.normal);
+                        observer.observe(obs.tangent);
+                    }
+                    for obs in wobble.bottom_right().iter() {
+                        observer.observe(obs.base);
+                        observer.observe(obs.normal);
+                        observer.observe(obs.tangent);
+                    }
+                }
+            }
+            RectanglesLocation::Sized(_,wobble,_,_,_,_) => {
+                if let Some(wobble) = wobble {
+                    for obs in wobble.iter() {
+                        observer.observe(obs.base);
+                        observer.observe(obs.normal);
+                        observer.observe(obs.tangent);
+                    }
+                }
+            }
+        }
+    } 
+
     fn len(&self) -> usize {
         match self {
-            RectanglesLocation::Area(a,_,_,_) => a.len(),
-            RectanglesLocation::Sized(a,_,_,_,_) => a.len()
+            RectanglesLocation::Area(a,_,_,_,_) => a.len(),
+            RectanglesLocation::Sized(a,_,_,_,_,_) => a.len()
         }
     }
 }
 
-pub(crate) struct Rectangles {
+pub(crate) struct RectanglesData {
     elements: ProcessStanzaElements,
     program: TriangleAdder,
     location: RectanglesLocation,
@@ -65,20 +138,20 @@ pub(crate) struct Rectangles {
     kind: DrawGroup
 }
 
-impl Rectangles {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>)-> Result<Rectangles,Message> {
+impl RectanglesData {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &HoleySpaceBaseArea<f64,Allotment>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
         let (area,subs) = area.extract();
-        let location = RectanglesLocation::Area(area,depth.clone(),subs,edge.clone());
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
+        let location = RectanglesLocation::Area(area,wobble,depth.clone(),subs,edge.clone());
+        Self::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &HoleySpaceBase<f64,Allotment>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
         let (points,subs) = points.extract();
-        let location = RectanglesLocation::Sized(points,depth.clone(),subs,x_sizes,y_sizes);
-        Rectangles::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
+        let location = RectanglesLocation::Sized(points,wobble,depth.clone(),subs,x_sizes,y_sizes);
+        Self::real_new(layer,geometry_yielder,patina_yielder,location,depth,left,hollow,kind)
     }
 
-    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<Rectangles,Message> {
+    fn real_new(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, location: RectanglesLocation, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup)-> Result<RectanglesData,Message> {
         let builder = layer.get_process_builder(geometry_yielder,patina_yielder)?;
         let indexes = if hollow {
             vec![0,1,2, 1,2,3, 2,3,4, 3,4,5, 4,5,6, 5,6,7, 6,7,0, 7,0,1]
@@ -90,18 +163,54 @@ impl Rectangles {
             GeometryAdder::Triangles(adder) => { adder },
             _ => { return Err(Message::CodeInvariantFailed(format!("bad adder"))) }
         };
-        let mut out = Rectangles {
+        let mut out = RectanglesData {
             elements, left,
             width: if hollow { Some(1.) } else { None },
             program: adder.clone(),
             location,
             kind: kind.clone()
         };
-        out.recompute(&VariableValues::new())?;
         Ok(out)
     }
 
     pub(crate) fn elements_mut(&mut self) -> &mut ProcessStanzaElements { &mut self.elements }
+
+    fn any_dynamic(&self) -> bool {
+        self.location.any_dynamic()
+    }
+
+    fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
+        let (area,depth_in) = self.location.apply(variables)?;
+        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width)?;
+        self.program.add_data4(&mut self.elements,data,depth)?;
+        if self.program.origin_coords.is_some() {
+            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
+            self.program.add_origin_data4(&mut self.elements,data)?;
+        }
+        Ok(())
+    }
+}
+
+pub(crate) struct Rectangles {
+    data: Arc<Mutex<RectanglesData>>,
+    wobble: Option<Observer<'static>>
+}
+
+impl Rectangles {
+    pub(crate) fn new(data: RectanglesData) -> Rectangles {
+        let data = Arc::new(Mutex::new(data));
+        let wobble_cb = lock!(data).location.wobble();
+        let wobble = wobble_cb.map(|cb| Observer::new_boxed(cb));
+        let mut out = Rectangles {
+            data,
+            wobble
+        };
+        if let Some(wobble) = &mut out.wobble {
+            lock!(out.data).location.watch(wobble);
+        }
+        out.recompute(&VariableValues::new());
+        out
+    }
 }
 
 fn add_spacebase4(point: &PartialSpaceBase<f64,Allotment>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
@@ -177,17 +286,10 @@ fn add_spacebase_area4(area: &SpaceBaseArea<f64,Allotment>, depth: &EachOrEvery<
 
 impl DynamicShape for Rectangles {
     fn any_dynamic(&self) -> bool {
-        self.location.any_dynamic()
+        lock!(self.data).any_dynamic()
     }
 
     fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message> {
-        let (area,depth_in) = self.location.apply(variables)?;
-        let (data,depth) = add_spacebase_area4(&area,&depth_in,&self.kind,self.left,self.width)?;
-        self.program.add_data4(&mut self.elements,data,depth)?;
-        if self.program.origin_coords.is_some() {
-            let (data,_)= add_spacebase4(&PartialSpaceBase::from_spacebase(area.middle_base()),&depth_in,&self.kind,self.left,self.width)?;
-            self.program.add_origin_data4(&mut self.elements,data)?;
-        }
-        Ok(())
+        lock!(self.data).recompute(variables)
     }
 }

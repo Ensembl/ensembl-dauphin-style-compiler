@@ -159,6 +159,7 @@ mod shape {
 
 pub(crate) mod spacebase {
     pub(crate) mod parametric;
+    pub mod reactive;
     pub(crate) mod spacebase;
     pub(crate) mod spacebasearea;
 
@@ -237,7 +238,7 @@ pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::EachOrEvery;
 pub use self::spacebase::{ 
-    VariableValues, ParameterValue, Flattenable,
+    VariableValues, ParameterValue, Flattenable, reactive,
     Substitutions, Variable, HollowEdge2,
     SpaceBase, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, PartialSpaceBase,
     SpaceBaseAreaNumericParameterLocation, SpaceBasePoint, SpaceBasePointRef, SpaceBaseNumericParameterLocation

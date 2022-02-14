@@ -302,6 +302,14 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         Some(out)
     }
 
+    pub fn merge<A,B,P: Clone,Q: Clone>(&self, other: SpaceBase<A,B>, cbs: SpaceBasePoint<&dyn (Fn(&X,&A) -> P),&dyn (Fn(&Y,&B) -> Q)>) -> Option<SpaceBase<P,Q>> {
+        let base = if let Some(base) = self.base.zip(&other.base,cbs.base) { base } else { return None; };
+        let normal = if let Some(normal) = self.normal.zip(&other.normal,cbs.normal) { normal } else { return None; };
+        let tangent = if let Some(tangent) = self.tangent.zip(&other.tangent,cbs.tangent) { tangent } else { return None; };
+        let allotment = if let Some(allotment) = self.allotment.zip(&other.allotment,cbs.allotment) { allotment } else { return None; };
+        Some(SpaceBase::new_unszied(&base,&normal,&tangent,&allotment))
+    }
+
     pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
 
     pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
@@ -329,7 +337,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         SpaceBase::new(&self.base,&other.normal,&self.tangent,&self.allotment)
     }
 
-    pub fn map_all<F,A: Clone>(&mut self, cb: F) -> SpaceBase<A,Y> where F: Fn(&X) -> A {
+    pub fn map_all<F,A: Clone>(&self, cb: F) -> SpaceBase<A,Y> where F: Fn(&X) -> A {
         SpaceBase {
             base: self.base.map(&cb),
             tangent: self.tangent.map(&cb),

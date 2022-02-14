@@ -38,7 +38,7 @@ impl InterpCommand for RectangleInterpCommand {
                 move |_| Ok(allotments_iter.next().unwrap().clone()),
                 move |_| Ok(allotments_iter2.next().unwrap().clone())
             )?;
-            zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina)?;
+            zoo.lock().add_rectangle(HoleySpaceBaseArea::Simple(area),patina,None)?;
         }
         Ok(CommandResult::SyncResult())
     }

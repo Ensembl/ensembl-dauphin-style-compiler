@@ -1,4 +1,4 @@
-use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder, UniformHandle}};
+use crate::{Message, webgl::{AttribHandle, ProcessStanzaAddable, ProcessStanzaElements, ProgramBuilder}};
 
 #[derive(Clone)]
 pub struct TriangleAdder {

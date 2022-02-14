@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment, allotment::core::allotmentrequest::GenericAllotmentRequestImpl, HoleySpaceBase, HoleySpaceBaseArea };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, Scale, core::pixelsize::PixelSize, CarriageExtent, Allotment, allotment::core::allotmentrequest::GenericAllotmentRequestImpl, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, reactive::Observable };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
@@ -50,9 +50,9 @@ impl ShapeListBuilder {
         }
     }
     
-    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64,AllotmentRequest>, patina: Patina) -> Result<(),DataMessage> {
+    pub fn add_rectangle(&mut self, area: HoleySpaceBaseArea<f64,AllotmentRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
         let depth = area.allotments().map(|a| a.depth());
-        self.extend(RectangleShape::<AllotmentRequest>::new(area,depth,patina)?);
+        self.extend(RectangleShape::<AllotmentRequest>::new(area,depth,patina,wobble)?);
         Ok(())
     }
 

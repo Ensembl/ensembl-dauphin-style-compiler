@@ -1,28 +1,29 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBaseArea, SpaceBaseArea};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBaseArea, SpaceBaseArea, reactive::Observable};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RectangleShape<A: Clone> {
     area: HoleySpaceBaseArea<f64,A>,
-    patina: Patina
+    patina: Patina,
+    wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>
 }
 
 impl<A: Clone> RectangleShape<A> {
-    pub fn new_details(area: HoleySpaceBaseArea<f64,A>, patina: Patina) -> Option<RectangleShape<A>> {
+    pub fn new_details(area: HoleySpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Option<RectangleShape<A>> {
         if !patina.compatible(area.len()) { return None; }
         Some(RectangleShape {
-            area, patina
+            area, patina, wobble
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(area: HoleySpaceBaseArea<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
         let demerge = area.demerge_by_allotment(|x| { x.coord_system() });
         for (coord_system,mut filter) in demerge {
             filter.set_size(len);
-            let details = eoe_throw("add_rectangles",RectangleShape::new_details(area.filter(&filter),patina.clone()))?;
+            let details = eoe_throw("add_rectangles",RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()))?;
             out.push(Shape::new(
                 eoe_throw("add_rectangles",ShapeCommon::new(coord_system, depth.filter(&filter)))?,
                 ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
@@ -33,13 +34,15 @@ impl<A: Clone> RectangleShape<A> {
 
     pub fn len(&self) -> usize { self.area.len() }
     pub fn patina(&self) -> &Patina { &self.patina }
+    pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
     pub fn holey_area(&self) -> &HoleySpaceBaseArea<f64,A> { &self.area }
     pub fn area(&self) -> SpaceBaseArea<f64,A> { self.area.extract().0 }
 
     pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape<A> {
         RectangleShape {
             area: self.area.filter(filter),
-            patina: self.patina.filter(filter)
+            patina: self.patina.filter(filter),
+            wobble: self.wobble.as_ref().map(|w| w.filter(filter))
         }
     }
 
@@ -73,7 +76,8 @@ impl RectangleShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
         Ok(RectangleShape {
             area: self.area.map_allotments_results(&cb,&cb)?,
-            patina: self.patina.clone()
+            patina: self.patina.clone(),
+            wobble: self.wobble.clone()
         })
     }
 }

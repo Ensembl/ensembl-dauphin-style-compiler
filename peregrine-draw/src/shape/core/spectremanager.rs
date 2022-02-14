@@ -1,9 +1,9 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
-use peregrine_data::{AllotmentMetadataStore, Assets, VariableValues};
+use peregrine_data::{AllotmentMetadataStore, Assets, VariableValues, reactive::Reactive};
 use peregrine_toolkit::{lock, sync::needed::{Needed, NeededLock}};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
-use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain}};
+use super::{spectraldrawing::SpectralDrawing, spectre::{AreaVariables, MarchingAnts, Spectre, Stain, AreaVariables2}};
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -92,20 +92,21 @@ pub(crate) struct SpectreManager {
 impl SpectreManager {
     pub(crate) fn new(config: &Arc<PgPeregrineConfig>, allotment_metadata: &AllotmentMetadataStore, redraw_needed: &Needed) -> SpectreManager {
         let variables = VariableValues::new();
+        let reactive = Reactive::new();
         SpectreManager {
             state: Arc::new(Mutex::new(SpectreState::new(redraw_needed))),
-            drawing: SpectralDrawing::new(&variables),
+            drawing: SpectralDrawing::new(&variables,&reactive),
             config: config.clone(),
             allotment_metadata: allotment_metadata.clone()
         }
     }
 
-    pub(crate) fn marching_ants(&self, area: &AreaVariables) -> Result<Spectre,Message> {
-        Ok(Spectre::MarchingAnts(MarchingAnts::new(&self.config,area)?))
+    pub(crate) fn marching_ants(&self, area: &AreaVariables, area2: &AreaVariables2<'static>) -> Result<Spectre,Message> {
+        Ok(Spectre::MarchingAnts(MarchingAnts::new(&self.config,area,area2)?))
     }
 
-    pub(crate) fn stain(&self, area: &AreaVariables, flip: bool) -> Result<Spectre,Message> {
-        Ok(Spectre::Stain(Stain::new(&self.config,area,flip)?))
+    pub(crate) fn stain(&self, area: &AreaVariables, area2: &AreaVariables2<'static>, flip: bool) -> Result<Spectre,Message> {
+        Ok(Spectre::Stain(Stain::new(&self.config,area,area2,flip)?))
     }
 
     pub(crate) fn add(&self, spectre: Spectre) -> SpectreHandle {
@@ -126,4 +127,5 @@ impl SpectreManager {
 
     pub(crate) fn update(&self) -> Result<(),Message> { self.drawing.update() }
     pub(crate) fn variables(&self) -> &VariableValues<f64> { self.drawing.variables() }
+    pub(crate) fn reactive(&self) -> &Reactive<'static> { self.drawing.reactive() }
 }

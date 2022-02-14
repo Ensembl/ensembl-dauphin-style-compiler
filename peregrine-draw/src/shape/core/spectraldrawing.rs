@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, VariableValues, CarriageShapeList};
+use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, VariableValues, CarriageShapeList, reactive::Reactive};
 use peregrine_toolkit::lock;
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::spectre::Spectre;
@@ -14,11 +14,11 @@ fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metada
 }
 
 #[derive(Clone)]
-pub struct SpectralDrawing(Arc<Mutex<Option<Drawing>>>,VariableValues<f64>);
+pub struct SpectralDrawing(Arc<Mutex<Option<Drawing>>>,VariableValues<f64>,Reactive<'static>);
 
 impl SpectralDrawing {
-    pub fn new(variables: &VariableValues<f64>) -> SpectralDrawing {
-        SpectralDrawing(Arc::new(Mutex::new(None)),variables.clone())
+    pub fn new(variables: &VariableValues<f64>, reactive: &Reactive<'static>) -> SpectralDrawing {
+        SpectralDrawing(Arc::new(Mutex::new(None)),variables.clone(),reactive.clone())
     }
 
     pub(crate) fn set(&self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<(),Message> {
@@ -33,11 +33,13 @@ impl SpectralDrawing {
     }
 
     pub(crate) fn variables(&self) -> &VariableValues<f64> { &self.1 }
+    pub(crate) fn reactive(&self) -> &Reactive<'static> { &self.2 }
 
     pub(crate) fn update(&self) -> Result<(),Message> {
         if let Some(drawing) = self.0.lock().unwrap().as_mut() {
             drawing.recompute()?;
         }
+        self.2.run_observers();
         Ok(())
     }
 
