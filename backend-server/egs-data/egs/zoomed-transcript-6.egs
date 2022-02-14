@@ -188,6 +188,9 @@ thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][]);
 
 // TODO multiline strings
 
+/* metadata */
+zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
+
 /* transcript part */
 zmenu_tmpl := zmenu("[<light>Transcript</light> <strong>{transcript_id}</strong>] [<light>{transcript_biotype}</light>] [<light>{strand}</light>] / [<light>{transcript_id}</light>] [<light>{designation}</light>]");
 tr_zmenu_patina := patina_zmenu(zmenu_tmpl,["transcript_id","transcript_biotype","strand","designation","track","type"],
@@ -233,6 +236,7 @@ coords := spacebase(thin_seq_start + 0.5,0,-4);
 text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment);
 
 /* zmenus */
+rectangle_on_genome(start,end,16,zmenu_patina,allotment);
 rectangle_on_genome(start,end,16,tr_zmenu_patina,allotment);
 rectangle_on_genome(start,end,16,ge_zmenu_patina,allotment);
 
