@@ -1,11 +1,12 @@
 use std::pin::Pin;
-use std::sync::{ Arc, Mutex, MutexGuard };
+use std::sync::{ Arc, Mutex, MutexGuard, Weak };
 use std::future::Future;
 use commander::{ Executor, Integration, Lock, RunConfig, RunSlot, SleepQuantity, TaskHandle, cdr_new_agent, cdr_add, cdr_in_agent };
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
+use peregrine_toolkit::lock;
 use js_sys::Date;
 use super::bell::{ BellReceiver, make_bell, BellSender };
+use super::raf::Raf;
+use super::timer::Timer;
 use peregrine_data::{ Commander, DataMessage };
 use crate::util::message::{ message, Message };
 
@@ -46,11 +47,9 @@ pub fn js_panic(e: Result<(),Message>) {
 }
 
 struct CommanderSleepState {
-    raf_pending: bool,
-    raf_closure: Option<Closure<dyn Fn()>>,
-    timer_closure: Option<Closure<dyn Fn()>>,
-    quantity: Arc<Mutex<SleepQuantity>>,
-    timeout: Option<i32>
+    raf: Option<Raf>,
+    timer: Option<Timer>,
+    quantity: Arc<Mutex<SleepQuantity>>
 }
 
 #[derive(Clone)]
@@ -59,34 +58,38 @@ struct CommanderState {
     executor: Arc<Mutex<Executor>>,
 }
 
+struct WeakCommanderState {
+    sleep_state: Weak<Mutex<CommanderSleepState>>,
+    executor: Weak<Mutex<Executor>>,
+}
+
+impl WeakCommanderState {
+    fn upgrade(&self) -> Option<CommanderState> {
+        Some(CommanderState {
+            sleep_state: if let Some(x) = Weak::upgrade(&self.sleep_state) { x } else { return None; },
+            executor: if let Some(x) = Weak::upgrade(&self.executor) { x } else { return None; },
+        })
+    }
+}
+
 impl CommanderState {
-    fn yesterday(&self) {
-        let window = web_sys::window().unwrap(); // XXX errors
-        let mut state = self.sleep_state.lock().unwrap();
-        if let Some(handle) = state.timeout.take() {
-            window.clear_timeout_with_handle(handle);
+    fn downgrade(&self) -> WeakCommanderState {
+        WeakCommanderState {
+            sleep_state: Arc::downgrade(&self.sleep_state.clone()),
+            executor: Arc::downgrade(&self.executor.clone())
         }
-        let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
-        let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),0).ok(); // XXX errors
-        state.timeout = handle;
+    }
+
+    fn yesterday(&self) {
+        let mut state = self.sleep_state.lock().unwrap();
+        state.timer.as_mut().unwrap().go(0);
     }
 
     fn tick(&self) {
         self.executor.lock().unwrap().tick(MS_PER_TICK);
     }
 
-    fn raf_tick(&self) {
-        let mut state = self.sleep_state.lock().unwrap();
-        state.raf_pending = false;
-        drop(state);
-        self.tick();
-        js_panic(self.schedule());
-    }
-
-    fn timer_tick(&self) {
-        let mut state = self.sleep_state.lock().unwrap();
-        state.timeout.take();
-        drop(state);
+    fn cb_tick(&self) {
         self.tick();
         js_panic(self.schedule());
     }
@@ -95,7 +98,6 @@ impl CommanderState {
     fn identity(&self) -> u64 { self.executor.lock().unwrap().identity() }
 
     fn schedule(&self) -> Result<(),Message> {
-        let window = web_sys::window().ok_or_else(|| Message::ConfusedWebBrowser(format!("cannot get window")))?;
         let mut state = self.sleep_state.lock().unwrap();
         let quantity = state.quantity.lock().unwrap().clone();
         match quantity {
@@ -105,18 +107,10 @@ impl CommanderState {
             },
             SleepQuantity::Forever => {},
             SleepQuantity::None => {
-                if !state.raf_pending {
-                    state.raf_pending = true;
-                    window.request_animation_frame(state.raf_closure.as_ref().unwrap().as_ref().unchecked_ref()).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create RAF callback: {:?}",e.as_string())))?;
-                }
+                state.raf.as_mut().unwrap().go();
             },
             SleepQuantity::Time(t) => {
-                let js_closure = state.timer_closure.as_ref().unwrap().as_ref();
-                let handle = window.set_timeout_with_callback_and_timeout_and_arguments_0(js_closure.unchecked_ref(),t as i32).map_err(|e| Message::ConfusedWebBrowser(format!("cannot create timeout B: {:?}",e)))?;
-                if let Some(handle) = state.timeout.take() {
-                    window.clear_timeout_with_handle(handle);
-                }        
-                state.timeout = Some(handle);
+                state.timer.as_mut().unwrap().go(t as i32);
             }
         }
         Ok(())
@@ -133,11 +127,9 @@ impl PgCommanderWeb {
     pub fn new() -> Result<PgCommanderWeb,Message> {
         let quantity = Arc::new(Mutex::new(SleepQuantity::Forever));
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
-            raf_pending: false,
             quantity: quantity.clone(),
-            timeout: None,
-            raf_closure: None,
-            timer_closure: None,
+            raf: None,
+            timer: None
         }));
         let (bell_sender, bell_receiver) = make_bell()?;
         let integration = PgIntegration {
@@ -148,14 +140,18 @@ impl PgCommanderWeb {
             sleep_state,
             executor: Arc::new(Mutex::new(Executor::new(integration)))
         };
-        let state2 = state.clone();
-        state.sleep_state.lock().unwrap().raf_closure = Some(Closure::wrap(Box::new(move || {
-            state2.raf_tick()
-        })));
-        let state2 = state.clone();
-        state.sleep_state.lock().unwrap().timer_closure = Some(Closure::wrap(Box::new(move || {
-            state2.timer_tick()
-        })));
+        let weak_state = state.downgrade();
+        lock!(state.sleep_state).raf = Some(Raf::new( move || {
+            if let Some(state) = weak_state.upgrade() {
+                state.cb_tick();
+            }
+        }));
+        let weak_state = state.downgrade();
+        lock!(state.sleep_state).timer = Some(Timer::new( move || {
+            if let Some(state) = weak_state.upgrade() {
+                state.cb_tick();
+            }
+        }));
         let mut out = PgCommanderWeb {
             state: state.clone(),
             bell_receiver
