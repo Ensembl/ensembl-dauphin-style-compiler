@@ -150,7 +150,7 @@
           } else if(kind=="zmenu") {
             let zmenu_data_el = document.getElementById("zmenu-click");
             let zmenu_data = more[0];
-            zmenu_data_el.innerText = `(${zmenu_data.x},${zmenu_data.y}) ${JSON.stringify(zmenu_data.content)}`;
+            zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }
         });
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
@@ -245,9 +245,7 @@
 
         };
         document.getElementById("jump-no-bug-zoom").onclick = function() {
-          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
-          genome_browser.wait();
-          genome_browser.goto(79536455,79546455);
+          document.getElementById('browser').remove();
         };
         document.getElementById("jump-bug").onclick = function() {
           document.getElementById('browser').innerHTML = '';
