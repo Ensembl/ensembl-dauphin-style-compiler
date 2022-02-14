@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 use anyhow::{ self };
 use commander::{Executor, cdr_timer};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
-use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_fixed_vec_to_json, zmenu_to_json };
+use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
 use peregrine_toolkit::url::Url;
 use crate::standalonedom::make_dom;
