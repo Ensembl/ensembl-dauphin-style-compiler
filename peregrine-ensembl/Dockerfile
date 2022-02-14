@@ -56,7 +56,7 @@ FROM node:16.13.0-alpine AS runner
 WORKDIR /srv/ensembl-client-integration/
 
 ENV NODE_ENV=production
-COPY --from=node-builder /srv/ensembl-client-integration/ensembl-client/package* .
+COPY --from=node-builder /srv/ensembl-client-integration/ensembl-client/package* ./
 COPY --from=node-builder /srv/ensembl-client-integration/ensembl-client/dist ./dist
 
 RUN npm ci --only=production --ignore-scripts
