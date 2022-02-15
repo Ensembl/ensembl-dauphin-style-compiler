@@ -7,15 +7,7 @@ use crate::util::message::{ Message, message };
 use std::thread_local;
 use keyed::{ KeyedOptionalValues, keyed_handle };
 
-pub fn js_panic<T>(e: Result<T,Message>) -> T {
-    match e {
-        Ok(t) => t,
-        Err(e) => {
-            message(e);
-            panic!("panic");
-        }
-    }
-}
+use super::timer::Timer;
 
 lazy_static! {
     static ref IDENTITY : Arc<Mutex<u64>> = Arc::new(Mutex::new(0));
@@ -99,14 +91,9 @@ impl BellReceiverState {
     fn new(identity: u64) -> Result<BellReceiverState,Message> {
         let callbacks = Arc::new(Mutex::new(Vec::new()));
         let callbacks2 = callbacks.clone();
-        let inner_closure = Closure::wrap(Box::new(move || {
-            run_callbacks(&callbacks2);
-        }) as Box<dyn FnMut()>);
-        let window = pg_window()?;
+        let mut timer = Timer::new(move || { run_callbacks(&callbacks2); });
         let closure =  Closure::wrap(Box::new(move || {
-            js_panic(
-                window.set_timeout_with_callback_and_timeout_and_arguments_0(inner_closure.as_ref().unchecked_ref(),0)
-                        .map_err(|e| Message::ConfusedWebBrowser(format!("cannot set_timer: {:?}",e))));
+            timer.go(0);
         }) as Box<dyn FnMut()>);
         let name = format!("{}-{}",MESSAGE_KEY,identity);
         let out = BellReceiverState {
