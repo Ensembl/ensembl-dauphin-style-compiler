@@ -204,6 +204,6 @@ impl Integration for PgIntegration {
 
     fn sleep(&self, amount: SleepQuantity) {
         *self.quantity.lock().unwrap() = amount;
-        js_panic(self.bell_sender.ring());
+       self.bell_sender.ring();
     }
 }

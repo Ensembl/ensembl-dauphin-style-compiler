@@ -48,9 +48,10 @@ mod integration {
     pub(crate) mod pgdauphin;
     pub(crate) mod pgchannel;
     pub(crate) mod pgintegration;
+    mod custom;
     mod raf;
     mod stream;
-    mod timer;
+    pub(crate) mod timer;
 
     pub use self::pgcommander::PgCommanderWeb;
 }
@@ -141,6 +142,7 @@ mod util {
     pub(crate) mod monostable;
     pub(crate) mod debounce;
     pub(crate) mod resizeobserver;
+    pub(crate) mod promise;
     #[macro_use]
     pub(crate) mod misc;
     pub use self::ajax::PgAjax;
