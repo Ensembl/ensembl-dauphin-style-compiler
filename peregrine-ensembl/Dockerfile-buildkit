@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1.2
+# !IMPORTANT! Run this Dockerfile from the parent directory to include all dependent packages
+# To do so, run the following command from the parent directory: `docker build -f peregrine-ensembl/Dockerfile .`
+
+#### FIRST BUILDER CONTAINER: BUILD WASM FROM RUST ####
+FROM wasmpack:latest AS rust-builder
+
+ARG CFG_RUST_MODE
+
+COPY . /peregrine-build
+
+WORKDIR /peregrine-build/peregrine-ensembl
+
+# build artifacts will be saved to /peregrine-build/peregrine-ensembl/pkg
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=./peregrine-ensembl/target/release \
+    RUSTFLAGS="--cfg=console" wasm-pack build $CFG_RUST_MODE --target web
+
+#### SECOND BUILDER CONTAINER: BUILD THE JAVASCRIPT CODE ####
+FROM node:16.13.0 AS node-builder
+
+ARG CFG_EGB
+
+RUN --mount=type=cache,target=/root/npm/cache mkdir -p /root/npm/cache && npm config set cache /root/npm/cache
+
+RUN mkdir -p /srv/ensembl-client-integration
+WORKDIR /srv/ensembl-client-integration/
+
+# Clone ensembl-genome-browser repo and ensembl-client repo
+RUN git clone https://github.com/Ensembl/ensembl-client.git
+
+RUN mkdir -p ./ensembl-genome-browser
+COPY egb.tar.gz ./ensembl-genome-browser
+RUN tar -x -z -f ./ensembl-genome-browser/egb.tar.gz
+RUN if [ "x$CFG_EGB" = "xgithub" ] ; then rm -rf ensembl-genome-browser/* ; git clone https://github.com/Ensembl/ensembl-genome-browser.git ; fi
+
+# Step 1: Build ensembl-genome-browser
+
+WORKDIR /srv/ensembl-client-integration/ensembl-genome-browser
+COPY --from=rust-builder /peregrine-build/peregrine-ensembl/pkg/* ./src/peregrine/
+
+RUN --mount=type=cache,target=/root/npm/cache npm ci --loglevel warn && \
+    npm run build
+
+# Step 2: Build ensembl-client using the build artifacts from ensembl-genome-browser
+
+WORKDIR /srv/ensembl-client-integration/ensembl-client
+
+# The command below, among other things, updates ensembl-client's package.json
+# to use the package just built by ensembl-genome-browser as a dependency.
+# As a consequence, "npm install" must be used instead of "npm ci", because package.json is now the source of truth
+RUN --mount=type=cache,target=/root/npm/cache --mount=type=cache,target=/root/npm/cache  \
+    npm install -g json && \
+    json -I -f package.json -e "this.dependencies['ensembl-genome-browser']='file:./../ensembl-genome-browser'" && \
+    npm install && \
+    npm run build
+
+
+#### IMAGE FOR RUNNING THE CODE ####
+FROM node:16.13.0-alpine AS runner
+
+WORKDIR /srv/ensembl-client-integration/
+
+ENV NODE_ENV=production
+COPY --from=node-builder /srv/ensembl-client-integration/ensembl-client/package* ./
+COPY --from=node-builder /srv/ensembl-client-integration/ensembl-client/dist ./dist
+
+RUN --mount=type=cache,target=/usr/local/npm/cache  \
+	 npm ci --only=production --ignore-scripts
+
+EXPOSE 8080
+CMD ["node","dist/server/server.js"]

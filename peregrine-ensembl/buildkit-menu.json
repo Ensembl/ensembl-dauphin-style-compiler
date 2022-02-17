@@ -1,0 +1,39 @@
+[
+    {
+        "key": "CFG_RUST_MODE",
+        "question": "Rust build type",
+        "options": ["release","dev"]
+    },
+    {
+        "key": "CFG_EGB",
+        "question": "ensembl-genome-browser code",
+        "options": ["github","local"]
+    },
+    {
+        "key": "CFG_CLEAR",
+        "question": "clear build caches",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_BE",
+        "question": "backend",
+        "options": ["proxy","local","staging","aws"]
+    },
+    {
+        "key": "CFG_PROGRESS",
+        "question": "buildkit console format",
+        "options": ["fancy","plain"]
+    },
+    {
+        "key": "CFG_PORT",
+        "question": "Port number",
+        "default": "4444",
+        "verifiers": [
+            {
+                "verifier": "number",
+                "min": 1,
+                "max": 65536
+            }
+        ]
+    }
+]
