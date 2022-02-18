@@ -2,12 +2,8 @@
 
 set -e
 
-# Always run one directory up from this script
-# 1. where is this script?
 SCRIPT=$(readlink -f "$0")
-# Absolute path this script is in, thus /home/user/bin
 SCRIPTPATH=$(dirname "$SCRIPT")
-# 2. go one directory up
 cd $SCRIPTPATH
 
 # configure
@@ -28,5 +24,3 @@ if [ ! "x$CFG_PORT" = "x0" ] ; then
   sleep 2
 fi
 python3 server.py $CFG_PORT
-
-
