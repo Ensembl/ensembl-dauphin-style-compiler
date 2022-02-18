@@ -18,7 +18,7 @@ mkdir -p ./egb-tmp
 tar -c -z -f egb.tar.gz --files-from /dev/null
 
 # configure
-$SCRIPTPATH/menu.py --use-prev=.config.prev $SCRIPTPATH/buildkit-menu.json .cfg
+$SCRIPTPATH/../build-tools/menu.py --use-prev=.config.prev $SCRIPTPATH/buildkit-menu.json .cfg
 source .cfg
 
 if [ "x$CFG_EGB" = "xlocal" ] ; then
@@ -42,7 +42,7 @@ case "$CFG_BE" in
   aws)
     CFG_BE_URL="http://52.56.215.72:3333/api/data"
     ;;
-  esac
+esac
 
 case "$CFG_PROGRESS" in
   plain)

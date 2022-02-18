@@ -1,0 +1,24 @@
+[
+    {
+        "key": "CFG_RUST_MODE",
+        "question": "Rust build type",
+        "options": ["release","dev"]
+    },
+    {
+        "key": "CFG_DEBUG_WEBGL",
+        "question": "Debug webgl",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_PORT",
+        "question": "Port number (0=no server)",
+        "default": "8000",
+        "verifiers": [
+            {
+                "verifier": "number",
+                "min": 0,
+                "max": 65536
+            }
+        ]
+    }
+]
