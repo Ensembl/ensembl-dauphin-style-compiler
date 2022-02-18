@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::rc::Rc;
 use crate::EachOrEvery;
 
@@ -184,6 +185,28 @@ pub fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
     JSONValue::Array(zmenus.iter().map(|z| zmenu_fixed_to_json(z)).collect())
 }
 
+fn metadata_hashable(zmenu: &ZMenuFixed) -> Vec<(&String,&String)> {
+    let mut out = vec![];
+    for (key,value) in &zmenu.metadata {
+        out.push((key,value));
+    }
+    out.sort();
+    out
+}
+
+fn deduplicate_variety(zmenus: &mut Vec<&ZMenuFixed>) {
+    let mut out = vec![];
+    let mut seen = HashSet::new();
+    for zmenu in zmenus.drain(..) {
+        let hash = metadata_hashable(zmenu);
+        if !seen.contains(&hash) {
+            out.push(zmenu);
+            seen.insert(hash);
+        }
+    }
+    *zmenus = out;
+}
+
 pub fn zmenu_fixed_vec_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONValue) {
     let mut contents = vec![];
     let mut varieties = vec![];
@@ -191,6 +214,7 @@ pub fn zmenu_fixed_vec_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONVa
         let target = if zmenu.sequence.len() == 0 { &mut varieties } else { &mut contents };
         target.push(zmenu);
     }
+    deduplicate_variety(&mut varieties);
     (JSONValue::Array(varieties.iter().map(|z| zmenu_fixed_metadata_to_json(z)).collect()),
      JSONValue::Array(contents.iter().map(|z| zmenu_fixed_to_json(z)).collect()))
 }
