@@ -7,7 +7,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 cd $SCRIPTPATH
 
 # configure
-$SCRIPTPATH/../build-tools/menu.py --use-prev=.config.prev build-menu.json .cfg
+$SCRIPTPATH/../build-tools/menu.py --use-prev=.config.prev build-menu.json .cfg || exit
 source .cfg
 
 FLAGS=""

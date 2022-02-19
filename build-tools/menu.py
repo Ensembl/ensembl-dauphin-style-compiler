@@ -156,7 +156,7 @@ def ask_all(questions):
         # Confirm
         confirm = ChooseOne("Are these ok?",["yes","reask","quit"]).ask(None)
         if confirm == "quit":
-            sys.exit(0)
+            sys.exit(1)
         elif confirm == "yes":
             break
         else:
