@@ -1,4 +1,3 @@
-use web_sys::console;
 use js_sys::Date;
 use peregrine_data::{Channel, ChannelIntegration, ChannelLocation, PacketPriority, RequestPacket, ResponsePacket};
 use serde_cbor::Value as CborValue;
@@ -10,7 +9,7 @@ use std::pin::Pin;
 use std::sync::{ Arc, Mutex };
 use crate::util::message::Message;
 use peregrine_data::DataMessage;
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log, error_important};
 
 #[derive(Clone)]
 pub struct PgChannel(Arc<Mutex<HashMap<Channel,Option<f64>>>>,String);
@@ -57,7 +56,6 @@ async fn send_wrap(channel: Channel, prio: PacketPriority, packet: RequestPacket
     Ok(response)
 }
 
-#[cfg(any(force_show_incoming,debug_assertions))]
 fn show_versions(supports: Option<&[u32]>, version: u32)  {
     let (ok,support) = if let Some(versions) = supports {
         (versions.contains(&version),format!("versions {}",versions.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))
@@ -65,14 +63,11 @@ fn show_versions(supports: Option<&[u32]>, version: u32)  {
        (true, "unknown".to_string())
     };
     if ok {
-        console::log_1(&format!("backend supports {}, we are version {}",support,version).into());
+        log!("backend supports {}, we are version {}",support,version);
     } else {
-        console::error_1(&format!("backend supports {}, we are version {}",support,version).into());
+        error_important!("backend supports {}, we are version {}",support,version);
     }
 }
-
-#[cfg(not(any(force_show_incoming,debug_assertions)))]
-fn show_versions(supports: Option<&[u32]>, version: u32) {}
 
 /* using async_trait gives odd errors re Send */
 impl ChannelIntegration for PgChannel {

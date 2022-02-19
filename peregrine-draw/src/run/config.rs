@@ -1,5 +1,5 @@
 use std::num::{ParseFloatError, ParseIntError};
-use peregrine_data::{CarriageSpeed, ConfigKey, DataMessage, DirectColour};
+use peregrine_data::{CarriageSpeed, DataMessage, DirectColour};
 use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
@@ -86,6 +86,7 @@ pub enum PgConfigKey {
     GotoRho, // Wijk and Nuij's rho parameter for goto animations: higher means perfer more zoom
     GotoV, // Wijk and Nuij's V parameter for goto animations: overall animation speed
     GotoMaxS, // Maximum value of Wijk and Nuij's S parameter before bailing and using a fade
+    Verbosity, // Message verbosity
 }
 
 #[cfg(not(debug_assertions))]
@@ -108,6 +109,7 @@ pub enum PgConfigValue {
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,PgConfigKey,PgConfigValue>> = {
         vec![
+            ConfigKeyInfo { key: PgConfigKey::Verbosity, name: "verbosity", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade), name: "animate.fade.slow-cross", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow), name: "animate.fade.slow", default: &PgConfigValue::Float(400.) },

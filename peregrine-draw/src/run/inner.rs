@@ -10,6 +10,7 @@ use js_sys::Date;
 use peregrine_data::{AllotmentMetadataStore, Assets, Commander, PeregrineCore};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
+use peregrine_toolkit::log;
 use peregrine_toolkit::plumbing::distributor::Distributor;
 use peregrine_toolkit::sync::blocker::Blocker;
 use super::report::Report;
@@ -239,10 +240,10 @@ impl PeregrineInnerAPI {
 
     pub(crate) fn debug_action(&mut self, index: u8) {
         use crate::stage::axis::ReadStageAxis;
-        console::log_1(&format!("received debug action {}",index).into());
+        log!("received debug action {}",index);
         if index == 9 {
             let stage = self.stage.lock().unwrap();
-            console::log_1(&format!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen()).into());
+            log!("x {:?} bp_per_screen {:?}",stage.x().position(),stage.x().bp_per_screen());
         } else if index == 8 {
             self.sound.play("bell");
         }

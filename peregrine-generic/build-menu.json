@@ -10,6 +10,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_CONSOLE",
+        "question": "Console verbosity",
+        "options": ["default","quiet","noisy"]
+    },
+    {
         "key": "CFG_PORT",
         "question": "Port number (0=no server)",
         "default": "8000",

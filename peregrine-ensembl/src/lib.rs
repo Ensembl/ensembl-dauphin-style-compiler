@@ -8,8 +8,8 @@ use wasm_bindgen::{prelude::*, JsCast};
 use peregrine_draw::{Endstop, Message, PeregrineAPI, PeregrineConfig, PgCommanderWeb};
 use peregrine_data::{Channel, ChannelLocation, StickId, zmenu_to_json };
 use peregrine_message::{MessageKind, PeregrineMessage};
-use peregrine_toolkit::url::Url;
-use web_sys::{console, Element };
+use peregrine_toolkit::{url::Url, log, warn, error_important};
+use web_sys::{ Element };
 use serde::{Serialize, Deserialize};
 
 thread_local!{
@@ -24,7 +24,7 @@ pub fn js_throw<T,E: Debug>(e: Result<T,E>) -> T {
     match e {
         Ok(e) => e,
         Err(e) => {
-            console::error_1(&format!("{:?}",e).into());
+            error_important!("{:?}",e);
             panic!("deliberate panic from js_throw following error. Ignore this trace, see error above.");
         }
     }
@@ -138,7 +138,7 @@ impl GenomeBrowser {
          * This isn't about the data in the tracks itself but there's probably going to be a whole load of configurable
          * oojimaflips associated with the browser in the end.
          */
-        let mut config = PeregrineConfig::new();
+        let mut config = PeregrineConfig::new()?;
         for (k,v) in config_in.iter() {
             config.set(k,&v.to_string()?)?;
         }
@@ -191,7 +191,7 @@ impl GenomeBrowser {
     }
 
     pub fn receive_message(message: &JsValue) {
-        console::log_1(&format!("{:?}",message).into());
+        log!("{:?}",message);
     }
         
     pub fn set_artificial(&self, name: &str, start: bool) {
@@ -298,8 +298,7 @@ impl GenomeBrowser {
                                     let _ = closure.apply(&this,&args);
                                 }
                                 x => {
-                                    use web_sys::console;
-                                    console::warn_1(&format!("unexpected information: {}",x.to_string()).into());
+                                    warn!("unexpected information: {}",x.to_string());
                                 }
                             }
                         }

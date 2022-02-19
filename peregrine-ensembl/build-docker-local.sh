@@ -18,7 +18,7 @@ mkdir -p ./egb-tmp
 tar -c -z -f egb.tar.gz --files-from /dev/null
 
 # configure
-$SCRIPTPATH/../build-tools/menu.py --use-prev=.config.prev $SCRIPTPATH/buildkit-menu.json .cfg
+$SCRIPTPATH/../build-tools/menu.py --use-prev=.buildkit-config.prev $SCRIPTPATH/buildkit-menu.json .cfg
 source .cfg
 
 if [ "x$CFG_EGB" = "xlocal" ] ; then
@@ -62,6 +62,18 @@ case "$CFG_EC_DAILY" in
     ;;
 esac
 
+CFG_RUSTFLAGS=""
+case "$CFG_CONSOLE" in
+  noisy)
+    CFG_RUSTFLAGS="$CFG_RUSTFLAGS --cfg console_noisy"
+    ;;
+  quiet)
+    CFG_RUSTFLAGS="$CFG_RUSTFLAGS --cfg console_quiet"
+    ;;
+  *)
+    ;;
+esac
+
 # clear cache
 if [ "x$CFG_CLEAR" == "xyes" ] ; then
   docker builder prune --filter type=exec.cachemount -f
@@ -70,7 +82,7 @@ fi
 # build
 DOCKER_BUILDKIT=1 docker build \
     --build-arg CFG_RUST_MODE=--$CFG_RUST_MODE --build-arg CFG_EGB=$CFG_EGB \
-    --build-arg CACHE_DATE=$CACHE_BUST \
+    --build-arg CACHE_DATE=$CACHE_BUST --build-arg FLAGS="$CFG_RUSTFLAGS" \
     -f peregrine-ensembl/Dockerfile-buildkit --iidfile /tmp/build.id $CFG_FLAGS .
 
 # tidy

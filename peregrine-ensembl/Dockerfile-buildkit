@@ -11,10 +11,12 @@ COPY . /peregrine-build
 
 WORKDIR /peregrine-build/peregrine-ensembl
 
+ARG FLAGS
+
 # build artifacts will be saved to /peregrine-build/peregrine-ensembl/pkg
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=./peregrine-ensembl/target/release \
-    RUSTFLAGS="--cfg=console" wasm-pack build $CFG_RUST_MODE --target web
+    RUSTFLAGS="$FLAGS" wasm-pack build $CFG_RUST_MODE --target web
 
 #### SECOND BUILDER CONTAINER: BUILD THE JAVASCRIPT CODE ####
 FROM node:16.13.0 AS node-builder

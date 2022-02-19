@@ -5,6 +5,11 @@
         "options": ["release","dev"]
     },
     {
+        "key": "CFG_CONSOLE",
+        "question": "Console verbosity",
+        "options": ["default","quiet","noisy"]
+    },
+    {
         "key": "CFG_EGB",
         "question": "ensembl-genome-browser code",
         "options": ["github","local"]
@@ -31,12 +36,12 @@
     },
     {
         "key": "CFG_PORT",
-        "question": "Port number",
+        "question": "Port number (0=no server)",
         "default": "4444",
         "verifiers": [
             {
                 "verifier": "number",
-                "min": 1,
+                "min": 0,
                 "max": 65536
             }
         ]

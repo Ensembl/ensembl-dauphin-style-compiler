@@ -10,15 +10,8 @@
         "options": ["no","yes"]
     },
     {
-        "key": "CFG_PORT",
-        "question": "Port number (0=no server)",
-        "default": "8000",
-        "verifiers": [
-            {
-                "verifier": "number",
-                "min": 0,
-                "max": 65536
-            }
-        ]
+        "key": "CFG_CONSOLE",
+        "question": "Console verbosity",
+        "options": ["default","quiet","noisy"]
     }
 ]

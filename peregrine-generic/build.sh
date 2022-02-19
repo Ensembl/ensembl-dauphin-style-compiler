@@ -13,10 +13,22 @@ source .cfg
 FLAGS=""
 
 if [ "x$CFG_DEBUG_WEB_GL" = "xyes" ] ; then
-  FLAGS="$FLAGS --cfg=debug_webgl"
+  FLAGS="$FLAGS --cfg debug_webgl"
 fi
 
-RUSTFLAGS="--cfg=console --cfg=force_show_incoming $FLAGS" wasm-pack build --target web --$CFG_RUST_MODE
+case "$CFG_CONSOLE" in
+  noisy)
+    FLAGS="$FLAGS --cfg console_noisy"
+    ;;
+  quiet)
+    FLAGS="$FLAGS --cfg console_quiet"
+    ;;
+  *)
+    ;;
+esac
+
+echo RUSTFLAGS="$FLAGS" wasm-pack build --target web --$CFG_RUST_MODE
+RUSTFLAGS="$FLAGS" wasm-pack build --target web --$CFG_RUST_MODE
 
 if [ ! "x$CFG_PORT" = "x0" ] ; then
   echo "killing old server"
