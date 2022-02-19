@@ -39,12 +39,6 @@ impl CursorCircumstance {
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum DebugFlag {
-    ShowIncomingMessages
-}
-
-#[derive(Clone,PartialEq,Eq,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum PgConfigKey {
     FadeOverlap(CarriageSpeed),
     AnimationFadeRate(CarriageSpeed),
@@ -63,7 +57,6 @@ pub enum PgConfigKey {
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
     WheelSensitivity,
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
-    DebugFlag(DebugFlag),
     AuxBufferSize, // 4-byte units
     PinchMinSep, // px min num pix to try to scale with super zoom-out
     // min factor where we try to calculate centre-of-zoom rather htan default, to avoid divide-by-zero.
@@ -162,7 +155,6 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::WheelSensitivity, name: "wheel.sensitivity", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
-            ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(256*1024) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
