@@ -10,6 +10,11 @@
         "options": ["github","local"]
     },
     {
+        "key": "CFG_EC_DAILY",
+        "question": "cache ensembl-client for around one day?",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_CLEAR",
         "question": "clear build caches",
         "options": ["no","yes"]

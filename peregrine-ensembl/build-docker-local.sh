@@ -53,6 +53,15 @@ case "$CFG_PROGRESS" in
     ;;
 esac
 
+case "$CFG_EC_DAILY" in
+  yes)
+    CACHE_BUST="$(date +%Y%m%d)"
+    ;;
+  *)
+    CACHE_BUST="$(date)"
+    ;;
+esac
+
 # clear cache
 if [ "x$CFG_CLEAR" == "xyes" ] ; then
   docker builder prune --filter type=exec.cachemount -f
@@ -61,6 +70,7 @@ fi
 # build
 DOCKER_BUILDKIT=1 docker build \
     --build-arg CFG_RUST_MODE=--$CFG_RUST_MODE --build-arg CFG_EGB=$CFG_EGB \
+    --build-arg CACHE_DATE=$CACHE_BUST \
     -f peregrine-ensembl/Dockerfile-buildkit --iidfile /tmp/build.id $CFG_FLAGS .
 
 # tidy
