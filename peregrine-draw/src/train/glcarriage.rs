@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, Carriage, CarriageExtent, VariableValues, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageExtent, ZMenuProxy};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
@@ -62,7 +62,7 @@ impl GLCarriage {
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let drawing = Drawing::new(Some(scale),carriage.shapes(),&gl,carriage.extent().left_right().0,&VariableValues::new(),&assets).await;
+                let drawing = Drawing::new(Some(scale),carriage.shapes(),&gl,carriage.extent().left_right().0,&assets).await;
                 carriage.set_ready();
                 redraw_needed.set();
                 //use web_sys::console;
@@ -120,8 +120,6 @@ impl GLCarriage {
     }
 
     pub fn discard(&mut self, gl: &mut WebGlGlobal) -> Result<(),Message> {
-        use web_sys::console;
-        //console::log_1(&format!("discard at {}",self.extent().train().scale().get_index()).into());
         let state = lock!(self.0);
         if let Some(mut drawing) = get_drawing(&state)? {
             drawing.discard(gl)?;

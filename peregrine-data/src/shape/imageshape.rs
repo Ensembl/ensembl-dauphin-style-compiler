@@ -1,22 +1,22 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBase, SpaceBase};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, SpaceBase};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct ImageShape<A: Clone> {
-    position: HoleySpaceBase<f64,A>,
+    position: SpaceBase<f64,A>,
     names: EachOrEvery<String>
 }
 
 impl<A: Clone> ImageShape<A> {
-    pub fn new_details(position: HoleySpaceBase<f64,A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
+    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
         if !names.compatible(position.len()) { return None; }
         Some(ImageShape {
             position, names
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64,AllotmentRequest>, depth: EachOrEvery<i8>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: SpaceBase<f64,AllotmentRequest>, depth: EachOrEvery<i8>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
@@ -33,8 +33,7 @@ impl<A: Clone> ImageShape<A> {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
-    pub fn holey_position(&self) -> &HoleySpaceBase<f64,A> { &self.position }
-    pub fn position(&self) -> SpaceBase<f64,A> { self.position.extract().0 }
+    pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
         self.position.make_base_filter(min,max)

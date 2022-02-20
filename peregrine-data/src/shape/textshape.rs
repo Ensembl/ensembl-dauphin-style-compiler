@@ -1,23 +1,23 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBase, SpaceBase};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, SpaceBase};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct TextShape<A: Clone> {
-    position: HoleySpaceBase<f64,A>,
+    position: SpaceBase<f64,A>,
     pen: Pen,
     text: EachOrEvery<String>
 }
 
 impl<A: Clone> TextShape<A> {
-    pub fn new_details(position: HoleySpaceBase<f64,A>, pen: Pen, text: EachOrEvery<String>) -> Option<TextShape<A>> {
+    pub fn new_details(position: SpaceBase<f64,A>, pen: Pen, text: EachOrEvery<String>) -> Option<TextShape<A>> {
         if !text.compatible(position.len()) { return None; }
         Some(TextShape {
             position, pen, text
         })
     }
 
-    pub fn new(position: HoleySpaceBase<f64,AllotmentRequest>, depth: EachOrEvery<i8>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: SpaceBase<f64,AllotmentRequest>, depth: EachOrEvery<i8>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let len = position.len();
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
@@ -34,8 +34,7 @@ impl<A: Clone> TextShape<A> {
 
     pub fn len(&self) -> usize { self.position.len() }
     pub fn pen(&self) -> &Pen { &self.pen }
-    pub fn holey_position(&self) -> &HoleySpaceBase<f64,A> { &self.position }
-    pub fn position(&self) -> SpaceBase<f64,A> { self.position.extract().0 }
+    pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
         self.position.make_base_filter(min,max)

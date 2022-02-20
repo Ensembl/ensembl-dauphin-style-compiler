@@ -1,6 +1,6 @@
-use std::{ops::{Add, Div, Sub}, hash::Hash};
-use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}, AllotmentRequest, EachOrEvery};
-use super::{parametric::{Flattenable, ParameterValue, ParametricType, Substitutions}, spacebase::{SpaceBase, SpaceBaseNumericParameterLocation, SpaceBaseAllotmentParameterLocation, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
+use std::{ops::{Add, Div, Sub}};
+use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}};
+use super::{spacebase::{SpaceBase, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
 
 pub struct SpaceBaseArea<X,Y>(SpaceBase<X,Y>,SpaceBase<X,Y>,usize);
 
@@ -8,127 +8,6 @@ pub struct SpaceBaseArea<X,Y>(SpaceBase<X,Y>,SpaceBase<X,Y>,usize);
 impl<X: std::fmt::Debug, Y: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X,Y> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f,"SpaceBaseArea({:?},{:?})",self.0,self.1)
-    }
-}
-
-pub enum SpaceBaseAreaNumericParameterLocation {
-    Left(SpaceBaseNumericParameterLocation),
-    Right(SpaceBaseNumericParameterLocation)
-}
-
-impl<X: Clone, Y: Clone> ParametricType<SpaceBaseAreaNumericParameterLocation> for SpaceBaseArea<X,Y> {
-    type Value = X;
-
-    fn replace(&mut self, replace: &[(&SpaceBaseAreaNumericParameterLocation,X)]) {
-        let mut left_replace = vec![];
-        let mut right_replace = vec![];
-        for (location,value) in replace.iter() {
-            match location {
-                SpaceBaseAreaNumericParameterLocation::Left(x) => { left_replace.push((x,value.clone())); },
-                SpaceBaseAreaNumericParameterLocation::Right(x) => { right_replace.push((x,value.clone())); },
-            }
-        }
-        self.0.replace(&left_replace);
-        self.1.replace(&right_replace);
-    }
-}
-
-pub enum SpaceBaseAreaAllotmentParameterLocation {
-    Left(SpaceBaseAllotmentParameterLocation),
-    Right(SpaceBaseAllotmentParameterLocation)
-}
-
-impl<X: Clone, Y: Clone> ParametricType<SpaceBaseAreaAllotmentParameterLocation> for SpaceBaseArea<X,Y> {
-    type Value = Y;
-
-    fn replace(&mut self, replace: &[(&SpaceBaseAreaAllotmentParameterLocation,Y)]) {
-        let mut left_replace = vec![];
-        let mut right_replace = vec![];
-        for (location,value) in replace.iter() {
-            match location {
-                SpaceBaseAreaAllotmentParameterLocation::Left(x) => { left_replace.push((x,value.clone())); },
-                SpaceBaseAreaAllotmentParameterLocation::Right(x) => { right_replace.push((x,value.clone())); },
-            }
-        }
-        self.0.replace(&left_replace);
-        self.1.replace(&right_replace);
-    }
-}
-
-#[derive(Clone)]
-#[cfg_attr(debug_assertions,derive(Debug))]
-pub enum HoleySpaceBaseArea<X: Clone,Y: Clone> {
-    Simple(SpaceBaseArea<X,Y>),
-    Parametric(SpaceBaseArea<ParameterValue<X>,Y>)
-}
-
-impl<X: Clone + PartialOrd,Y: Clone> HoleySpaceBaseArea<X,Y> {
-    pub fn map_allotments_results<F,G,E,Z: Clone>(&self, mut cb: F, mut cb2: G) -> Result<HoleySpaceBaseArea<X,Z>,E> 
-            where F: FnMut(&Y) -> Result<Z,E>, G: FnMut(&Y) -> Result<Z,E> {
-        Ok(match self {
-            HoleySpaceBaseArea::Simple(x) =>
-                HoleySpaceBaseArea::Simple(x.map_allotments_results(cb,cb2)?),
-            HoleySpaceBaseArea::Parametric(x) =>
-                HoleySpaceBaseArea::Parametric(x.map_allotments_results(cb,cb2)?)
-        })
-    }
-
-    pub fn len(&self) -> usize {
-        match self {
-            HoleySpaceBaseArea::Simple(x) => x.len(),
-            HoleySpaceBaseArea::Parametric(x) => x.len()
-        }
-    }
-
-    pub fn filter(&self, filter: &DataFilter) -> HoleySpaceBaseArea<X,Y> {
-        match self {
-            HoleySpaceBaseArea::Simple(x) => {
-                HoleySpaceBaseArea::Simple(x.filter(filter))
-            },
-            HoleySpaceBaseArea::Parametric(x) => HoleySpaceBaseArea::Parametric(x.filter(filter))
-        }
-    }
-
-    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
-        match self {
-            HoleySpaceBaseArea::Simple(x) =>
-                x.make_base_filter(min_value,max_value),
-            HoleySpaceBaseArea::Parametric(x) =>
-                x.make_base_filter(ParameterValue::Constant(min_value),ParameterValue::Constant(max_value))
-        }
-    }
-
-    pub fn allotments(&self) -> EachOrEvery<Y> {
-        match self {
-            HoleySpaceBaseArea::Simple(x) => x.0.allotments().clone(),
-            HoleySpaceBaseArea::Parametric(x) => x.0.allotments().clone()
-        }
-    }
-
-    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
-        match self {
-            HoleySpaceBaseArea::Simple(x) => x.0.allotments().demerge(cb),
-            HoleySpaceBaseArea::Parametric(x) => x.0.allotments().demerge(|x| cb(x))
-        }
-    }
-}
-
-impl<X: Clone, Y: Clone> SpaceBaseArea<ParameterValue<X>,Y> {
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<X,Y> where F: Fn(SpaceBaseAreaNumericParameterLocation) -> L {
-        let left = self.0.flatten(subs,|location: SpaceBaseNumericParameterLocation| cb(SpaceBaseAreaNumericParameterLocation::Left(location)));
-        let right = self.1.flatten(subs,|location: SpaceBaseNumericParameterLocation| cb(SpaceBaseAreaNumericParameterLocation::Right(location)));
-        SpaceBaseArea(left,right,self.2)
-    }
-}
-
-impl<X: Clone,Y: Clone> Flattenable<SpaceBaseAreaNumericParameterLocation> for HoleySpaceBaseArea<X,Y> {
-    type Target = SpaceBaseArea<X,Y>;
-
-    fn flatten<F,L>(&self, subs: &mut Substitutions<L>, cb: F) -> SpaceBaseArea<X,Y> where F: Fn(SpaceBaseAreaNumericParameterLocation) -> L {
-        match self {
-            HoleySpaceBaseArea::Simple(x) => x.clone(),
-            HoleySpaceBaseArea::Parametric(x) => x.flatten(subs,cb)
-        }
     }
 }
 

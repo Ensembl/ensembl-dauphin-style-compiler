@@ -158,14 +158,12 @@ mod shape {
 }
 
 pub(crate) mod spacebase {
-    pub(crate) mod parametric;
     pub mod reactive;
     pub(crate) mod spacebase;
     pub(crate) mod spacebasearea;
 
-    pub use self::parametric::{ VariableValues, ParameterValue, Flattenable, Substitutions, Variable };
-    pub use self::spacebase::{ SpaceBase, HoleySpaceBase, PartialSpaceBase, SpaceBasePoint, SpaceBasePointRef, SpaceBaseNumericParameterLocation };
-    pub use self::spacebasearea::{ HoleySpaceBaseArea, SpaceBaseArea, SpaceBaseAreaNumericParameterLocation, HollowEdge2 };
+    pub use self::spacebase::{ SpaceBase, PartialSpaceBase, SpaceBasePoint, SpaceBasePointRef };
+    pub use self::spacebasearea::{ SpaceBaseArea, HollowEdge2 };
 }
 
 pub(crate) mod switch {
@@ -238,10 +236,8 @@ pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::EachOrEvery;
 pub use self::spacebase::{ 
-    VariableValues, ParameterValue, Flattenable, reactive,
-    Substitutions, Variable, HollowEdge2,
-    SpaceBase, HoleySpaceBase, HoleySpaceBaseArea, SpaceBaseArea, PartialSpaceBase,
-    SpaceBaseAreaNumericParameterLocation, SpaceBasePoint, SpaceBasePointRef, SpaceBaseNumericParameterLocation
+    reactive, HollowEdge2, SpaceBase, SpaceBaseArea, PartialSpaceBase,
+    SpaceBasePoint, SpaceBasePointRef
 };
 pub use self::shape::rectangleshape::RectangleShape;
 pub use self::request::core::manager::RequestManager;

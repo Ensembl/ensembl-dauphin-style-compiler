@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, VariableValues, ZMenuProxy, Allotment, ShapeDetails, transform_spacebasearea};
+use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, ZMenuProxy, Allotment };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -19,7 +19,7 @@ use crate::util::message::Message;
 
 pub(crate) trait DynamicShape {
     fn any_dynamic(&self) -> bool;
-    fn recompute(&mut self, variables: &VariableValues<f64>) -> Result<(),Message>;
+    fn recompute(&mut self) -> Result<(),Message>;
 }
 
 pub(crate) struct ToolPreparations {
@@ -90,19 +90,17 @@ impl DrawingTools {
 pub(crate) struct DrawingBuilder {
     main_layer: Layer,
     tools: DrawingTools,
-    variables: VariableValues<f64>,
     flats: Option<DrawingAllFlatsBuilder>,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>
 }
 
 impl DrawingBuilder {
-    pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, variables: &VariableValues<f64>, left: f64) -> Result<DrawingBuilder,Message> {
+    pub(crate) fn new(scale: Option<&Scale>, gl: &mut WebGlGlobal, assets: &Assets, left: f64) -> Result<DrawingBuilder,Message> {
         let gl_ref = gl.refs();
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
             tools: DrawingTools::new(assets,scale,left),
             flats: None,
-            variables: variables.clone(),
             dynamic_shapes: vec![]
         })
     }
@@ -140,20 +138,19 @@ impl DrawingBuilder {
     pub(crate) async fn build(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build(gl,&flats).await?;
-        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes,&self.variables)?)
+        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
     }
 
     pub(crate) fn build_sync(mut self, gl: &Arc<Mutex<WebGlGlobal>>) -> Result<Drawing,Message> {
         let flats = self.flats.take().unwrap().built();
         let processes = self.main_layer.build_sync(gl,&flats)?;
-        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes,&self.variables)?)
+        Ok(Drawing::new_real(processes,flats,self.tools.zmenus.build(),self.dynamic_shapes)?)
     }
 }
 
 struct DrawingData {
     processes: Vec<Process>,
     canvases: DrawingAllFlats,
-    variables: VariableValues<f64>,
     zmenus: DrawingZMenus,
     dynamic_shapes: Vec<Box<dyn DynamicShape>>,
     recompute: Needed
@@ -163,10 +160,10 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
-        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;
+        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drawing.prepare_tools(&mut lgl)?;
@@ -181,10 +178,10 @@ impl Drawing {
         drawing.build(gl).await
     }
 
-    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, variables: &VariableValues<f64>, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
         let mut lgl = lock!(gl);
         /* convert core shape data model into gl shapes */
-        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,variables,left)?;
+        let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
         let mut prepared_shapes = shapes.shapes().iter().map(|s| drawing.prepare_shape(s)).collect::<Result<Vec<_>,_>>()?;
         /* gather and allocate aux requirements (2d canvas space etc) */
         drawing.prepare_tools(&mut lgl)?;
@@ -199,12 +196,11 @@ impl Drawing {
         drawing.build_sync(gl)
     }
 
-    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>, variables: &VariableValues<f64>) -> Result<Drawing,Message> {
+    fn new_real(processes: Vec<Process>, canvases: DrawingAllFlats, zmenus: DrawingZMenus, dynamic_shapes: Vec<Box<dyn DynamicShape>>) -> Result<Drawing,Message> {
         let mut out = Drawing(Arc::new(Mutex::new(DrawingData {
             processes,
             canvases,
             zmenus,
-            variables: variables.clone(),
             dynamic_shapes,
             recompute: Needed::new()
         })));
@@ -234,11 +230,10 @@ impl Drawing {
 
     pub(crate) fn recompute(&mut self) -> Result<(),Message> {
         let mut state = lock!(self.0);
-        let variables = state.variables.clone();
         let mut any = false;
         for shape in &mut state.dynamic_shapes {
             any |= shape.any_dynamic();
-            shape.recompute(&variables)?;
+            shape.recompute()?;
         }
         if any {
             state.recompute.set();

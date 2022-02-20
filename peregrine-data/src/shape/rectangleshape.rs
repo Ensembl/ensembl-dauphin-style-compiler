@@ -1,26 +1,26 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Flattenable, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, HoleySpaceBaseArea, SpaceBaseArea, reactive::Observable};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, SpaceBaseArea, reactive::Observable};
 use std::hash::Hash;
 
 #[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub struct RectangleShape<A: Clone> {
-    area: HoleySpaceBaseArea<f64,A>,
+    area: SpaceBaseArea<f64,A>,
     patina: Patina,
     wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>
 }
 
 impl<A: Clone> RectangleShape<A> {
-    pub fn new_details(area: HoleySpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Option<RectangleShape<A>> {
+    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Option<RectangleShape<A>> {
         if !patina.compatible(area.len()) { return None; }
         Some(RectangleShape {
             area, patina, wobble
         })
     }
 
-    pub fn new(area: HoleySpaceBaseArea<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(area: SpaceBaseArea<f64,AllotmentRequest>, depth: EachOrEvery<i8>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
-        let demerge = area.demerge_by_allotment(|x| { x.coord_system() });
+        let demerge = area.top_left().allotments().demerge(|x| { x.coord_system() });
         for (coord_system,mut filter) in demerge {
             filter.set_size(len);
             let details = eoe_throw("add_rectangles",RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()))?;
@@ -35,8 +35,7 @@ impl<A: Clone> RectangleShape<A> {
     pub fn len(&self) -> usize { self.area.len() }
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
-    pub fn holey_area(&self) -> &HoleySpaceBaseArea<f64,A> { &self.area }
-    pub fn area(&self) -> SpaceBaseArea<f64,A> { self.area.extract().0 }
+    pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
 
     pub(super) fn filter(&self, filter: &DataFilter) -> RectangleShape<A> {
         RectangleShape {
@@ -53,13 +52,13 @@ impl<A: Clone> RectangleShape<A> {
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,RectangleShape<A>)> where D: ShapeDemerge<X=T> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
-                let allotments_and_colours = self.area.allotments().merge(&colours).unwrap();
+                let allotments_and_colours = self.area.top_left().allotments().merge(&colours).unwrap();
                 allotments_and_colours.demerge(|(a,c)| 
                     cat.categorise_with_colour(common_in.coord_system(),drawn_type,c)
                 )
             },
             _ => {
-                self.area.allotments().demerge(|a| cat.categorise(common_in.coord_system()))
+                self.area.top_left().allotments().demerge(|a| cat.categorise(common_in.coord_system()))
             }
         };
         let mut out = vec![];
