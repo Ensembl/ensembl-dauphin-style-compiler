@@ -89,8 +89,8 @@ impl MarchingAnts {
         ).unwrap());
         let bottom_right =  PartialSpaceBase::from_spacebase(SpaceBase::new(
             &EachOrEvery::Each(Arc::new(vec![ParameterValue::Constant(0.)])),
-            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.2,16.)])),
-            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.3,16.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.2,0.)])),
+            &EachOrEvery::Each(Arc::new(vec![ParameterValue::Variable(pos.3,0.)])),
             &EachOrEvery::Each(Arc::new(vec![window_origin]))
         ).unwrap());
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right).unwrap());
