@@ -5,17 +5,15 @@ mod allotment {
 
     pub(crate) mod core {
         pub(crate) mod arbitrator;
-        pub(crate) mod allotment;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod allotmentrequest;
         pub(crate) mod basicallotmentspec;
         pub(crate) mod coordsystem;
-        pub(crate) mod dustbinallotment;
         pub(crate) mod rangeused;
         pub(crate) mod universe;    
     }
 
-    mod tree {
+    pub(crate) mod tree {
         pub(crate) mod collisionalgorithm;
         pub(crate) mod collidegroup;
         pub mod leaftransformer;

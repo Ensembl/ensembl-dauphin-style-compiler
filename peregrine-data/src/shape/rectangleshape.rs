@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, core::allotment::Allotment}};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox}};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -72,7 +72,7 @@ impl<A: Clone> RectangleShape<A> {
 }
 
 impl RectangleShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+    pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(RectangleShape {
             area: self.area.map_allotments_results(&cb,&cb)?,
             patina: self.patina.clone(),
@@ -81,7 +81,7 @@ impl RectangleShape<AllotmentRequest> {
     }
 }
 
-impl RectangleShape<Allotment> {
+impl RectangleShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon) -> RectangleShape<()> {
         RectangleShape {
             area: transform_spacebasearea2(&common.coord_system(),&self.area),

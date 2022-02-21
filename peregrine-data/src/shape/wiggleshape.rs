@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, core::allotment::Allotment}};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, tree::allotmentbox::AllotmentBox}};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -119,7 +119,7 @@ impl<A: Clone> WiggleShape<A> {
 }
 
 impl WiggleShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         let allotments = self.allotments.map_results(cb)?;
         Ok(WiggleShape {
             x_limits: self.x_limits,
@@ -130,12 +130,12 @@ impl WiggleShape<AllotmentRequest> {
     }
 }
 
-impl WiggleShape<Allotment> {
+impl WiggleShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon) -> WiggleShape<()> {
         let allotment = self.allotments.get(0).unwrap();
         WiggleShape {
             x_limits: self.x_limits.clone(),
-            values: Arc::new(transform_yy(common.coord_system(),allotment.allotment_box(),&self.values)),
+            values: Arc::new(transform_yy(common.coord_system(),allotment,&self.values)),
             plotter: self.plotter.clone(),
             allotments: EachOrEvery::Each(Arc::new(vec![()]))
         }

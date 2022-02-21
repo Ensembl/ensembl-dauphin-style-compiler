@@ -11,8 +11,8 @@ use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
-use crate::allotment::core::allotment::Allotment;
 use crate::allotment::core::rangeused::RangeUsed;
+use crate::allotment::tree::allotmentbox::AllotmentBox;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -139,7 +139,7 @@ impl ShapeDetails<AllotmentRequest> {
         Ok(())
     }
 
-    pub fn allot<F,E>(self, cb: F) -> Result<ShapeDetails<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+    pub fn allot<F,E>(self, cb: F) -> Result<ShapeDetails<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(match self {
             ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.allot(cb)?),
             ShapeDetails::Text(shape) => ShapeDetails::Text(shape.allot(cb)?),
@@ -149,7 +149,7 @@ impl ShapeDetails<AllotmentRequest> {
     }
 }
 
-impl ShapeDetails<Allotment> {
+impl ShapeDetails<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon) -> ShapeDetails<()> {
         match self {
             ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.transform(common)),
@@ -226,7 +226,7 @@ impl<Z: Clone> Shape<Z> {
     }
 }
 
-impl Shape<Allotment> {
+impl Shape<AllotmentBox> {
     pub fn transform(&self) -> Shape<()> { 
         Shape {
             common: self.common.clone(),
@@ -236,7 +236,7 @@ impl Shape<Allotment> {
 }
 
 impl Shape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<Shape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+    pub fn allot<F,E>(self, cb: F) -> Result<Shape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(Shape {
             details: self.details.allot(&cb)?,
             common: self.common.clone()

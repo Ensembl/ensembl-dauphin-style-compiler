@@ -3,11 +3,11 @@ use peregrine_toolkit::lock;
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator, SymbolicAxis}, rangeused::RangeUsed}}, CoordinateSystem};
 
-use super::{leaftransformer::{LeafTransformer}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
+use super::{allotmentbox::{AllotmentBox, AllotmentBoxBuilder}, maintrackspec::MTSpecifier, collisionalgorithm::{CollisionToken}};
 
 pub struct CollideGroupRequest {
     metadata: AllotmentMetadata,
-    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl<LeafTransformer>>>>,
+    requests: Mutex<HashMap<MTSpecifier,Arc<AllotmentRequestImpl>>>,
     bump_token: Mutex<Option<CollisionToken>>
 }
 
@@ -27,18 +27,17 @@ impl CollideGroupRequest {
         }
     }
 
-    fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+    fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut box_builder = AllotmentBoxBuilder::empty(request.max_y());
         if let Some(indent) =  specifier.arbitrator_horiz(arbitrator) {
             box_builder.set_self_indent(Some(&indent));
         }
         let content_box = AllotmentBox::new(box_builder);
-        let transformer = LeafTransformer::new(&content_box);
-        request.set_allotment(Arc::new(transformer),Arc::new(content_box.clone()));
+        request.set_allotment(Arc::new(content_box.clone()));
         content_box
     }
 
-    fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl<LeafTransformer>, arbitrator: &mut Arbitrator) -> AllotmentBox {
+    fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let mut builder = AllotmentBoxBuilder::empty(0);
         builder.add_padding_top(lock!(self.bump_token).as_ref().map(|x| x.get()).unwrap_or(0.) as i64);
         builder.append(self.make_content_box(specifier,request,arbitrator));

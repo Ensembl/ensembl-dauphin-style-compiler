@@ -7,9 +7,6 @@ use super::rangeused::RangeUsed;
 use crate::allotment::tree::allotmentbox::AllotmentBox;
 use crate::{DataMessage, AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, CoordinateSystemVariety};
 
-use super::allotment::{Transformer, Allotment};
-use super::{dustbinallotment::DustbinAllotment};
-
 impl Hash for AllotmentRequest {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.name().hash(state);
@@ -30,7 +27,7 @@ pub trait GenericAllotmentRequestImpl {
     fn name(&self) -> &str;
     fn is_dustbin(&self) -> bool;
     fn priority(&self) -> i64;
-    fn allotment(&self) -> Result<Allotment,DataMessage>;
+    fn allotment(&self) -> Result<AllotmentBox,DataMessage>;
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl>;
     fn set_max_y(&self, max: i64);
     fn set_base_range(&self, used: &RangeUsed<f64>);
@@ -51,7 +48,7 @@ impl AllotmentRequest {
     pub fn is_dustbin(&self) -> bool { self.0.is_dustbin() }
     pub fn priority(&self) -> i64 { self.0.priority() }
     pub fn depth(&self) -> i8 { self.0.depth() }
-    pub fn allotment(&self) -> Result<Allotment,DataMessage> { self.0.allotment() }
+    pub fn allotment(&self) -> Result<AllotmentBox,DataMessage> { self.0.allotment() }
     pub fn coord_system(&self) -> CoordinateSystem { self.0.coord_system() }
     pub fn set_base_range(&self, used: &RangeUsed<f64>) { self.0.set_base_range(used); }
     pub fn set_pixel_range(&self, used: &RangeUsed<f64>) { self.0.set_pixel_range(used); }
@@ -65,28 +62,24 @@ impl std::fmt::Debug for AllotmentRequest {
     }
 }
 
-pub struct AllotmentRequestExperience<T: Transformer> {
+pub struct AllotmentRequestExperience {
     allot_box: Option<Arc<AllotmentBox>>,
-    transformer: Option<Arc<T>>,
     base_range: RangeUsed<f64>,
     pixel_range: RangeUsed<f64>,
     max_y: i64
 }
 
-impl<T: Transformer> AllotmentRequestExperience<T> {
-    fn new() -> AllotmentRequestExperience<T> {
+impl AllotmentRequestExperience {
+    fn new() -> AllotmentRequestExperience {
         AllotmentRequestExperience {
             allot_box: None,
-            transformer: None,
             base_range: RangeUsed::None,
             pixel_range: RangeUsed::None,
             max_y: 0
         }
     }
 
-    fn transformer(&self) -> &Option<Arc<T>> { &self.transformer }
-    fn set_transformer(&mut self, value: Arc<T>, allot_box: Arc<AllotmentBox>) { 
-        self.transformer = Some(value);
+    fn set_transformer(&mut self, allot_box: Arc<AllotmentBox>) { 
         self.allot_box = Some(allot_box);
     }
 
@@ -100,24 +93,24 @@ impl<T: Transformer> AllotmentRequestExperience<T> {
     fn set_pixel_range(&mut self, used: &RangeUsed<f64>) { self.pixel_range = self.pixel_range.merge(&used); }
 
     fn add_allotment_metadata_values(&mut self, metadata: &mut AllotmentMetadataRequest) {
-        if let Some(xformer) = &mut self.transformer {
-            xformer.add_transform_metadata(metadata);
+        if let Some(allot_box) = &mut self.allot_box {
+            allot_box.add_transform_metadata(metadata);
         }
     }
 }
 
-pub struct AllotmentRequestImpl<T: Transformer> {
+pub struct AllotmentRequestImpl {
     metadata: AllotmentMetadata,
     name: String,
     priority: i64,
-    experience: Mutex<AllotmentRequestExperience<T>>,
+    experience: Mutex<AllotmentRequestExperience>,
     geometry: CoordinateSystem,
     depth: i8,
     ghost: bool
 }
 
-impl<T: Transformer> AllotmentRequestImpl<T> {
-    pub fn new(metadata: &AllotmentMetadata, geometry: &CoordinateSystem, depth: i8, ghost: bool) -> AllotmentRequestImpl<T> {
+impl AllotmentRequestImpl {
+    pub fn new(metadata: &AllotmentMetadata, geometry: &CoordinateSystem, depth: i8, ghost: bool) -> AllotmentRequestImpl {
         AllotmentRequestImpl {
             name: BasicAllotmentSpec::from_spec(metadata.name()).name().to_string(),
             priority: metadata.priority(),
@@ -128,42 +121,34 @@ impl<T: Transformer> AllotmentRequestImpl<T> {
         }
     }
 
-    pub fn set_allotment(&self, value: Arc<T>, allot_box: Arc<AllotmentBox>) {
+    pub fn set_allotment(&self, allot_box: Arc<AllotmentBox>) {
         if &self.name != "" {
-            lock!(self.experience).set_transformer(value,allot_box);
+            lock!(self.experience).set_transformer(allot_box);
         }
     }
 
-    pub fn geometry(&self) -> &CoordinateSystem { &self.geometry }
     pub fn metadata(&self) -> &AllotmentMetadata { &self.metadata }
     pub fn max_y(&self) -> i64 { lock!(self.experience).max_y() }
     pub fn base_range(&self) -> RangeUsed<f64> { lock!(self.experience).base_range().clone() }
     pub fn pixel_range(&self) -> RangeUsed<f64> { lock!(self.experience).pixel_range().clone() }
-
-    pub fn transformer(&self) -> Option<Arc<T>> { lock!(self.experience).transformer().clone() }
 
     pub fn add_allotment_metadata_values(&self, metadata: &mut AllotmentMetadataRequest) {
         lock!(self.experience).add_allotment_metadata_values(metadata);
     }
 }
 
-impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestImpl<T> {
+impl GenericAllotmentRequestImpl for AllotmentRequestImpl {
     fn name(&self) -> &str { &self.name }
     fn is_dustbin(&self) -> bool { &self.name == "" }
     fn priority(&self) -> i64 { self.priority }
     fn depth(&self) -> i8 { self.depth }
     fn coord_system(&self) -> CoordinateSystem { self.geometry.clone() }
 
-    fn allotment(&self) -> Result<Allotment,DataMessage> {
-        let imp = match lock!(self.experience).transformer().clone() {
-            Some(imp) => imp,
+    fn allotment(&self) -> Result<AllotmentBox,DataMessage> {
+        match lock!(self.experience).allot_box.clone() {
+            Some(imp) => Ok(imp.as_ref().clone()),
             None => { return Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name()))); }
-        };
-        let allot_box = match lock!(self.experience).allot_box.clone() {
-            Some(imp) => imp,
-            None => { return Err(DataMessage::AllotmentNotCreated(format!("name={}",self.metadata.name()))); }
-        };
-        Ok(Allotment::new(imp,allot_box))
+        }
     }
 
     fn set_max_y(&self, max: i64) { lock!(self.experience).set_max_y(max); }
@@ -173,8 +158,8 @@ impl<T: Transformer + 'static> GenericAllotmentRequestImpl for AllotmentRequestI
     fn up(self: Arc<Self>) -> Arc<dyn GenericAllotmentRequestImpl> { self }
 }
 
-impl AllotmentRequestImpl<DustbinAllotment> {
-    pub fn new_dustbin() -> AllotmentRequestImpl<DustbinAllotment> {
+impl AllotmentRequestImpl {
+    pub fn new_dustbin() -> AllotmentRequestImpl {
         AllotmentRequestImpl {
             name: String::new(),
             priority: 0,

@@ -1,13 +1,16 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, allotment::Transformer, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}, CoordinateSystem};
-use super::{leaftransformer::{LeafTransformer}, allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
+use peregrine_toolkit::lock;
+
+use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}, CoordinateSystem};
+use super::{allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
 
 #[derive(Clone)]
 pub struct BoxLinearEntry {
-    transformer: Arc<AllotmentRequestImpl<LeafTransformer>>,
+    transformer: Arc<AllotmentRequestImpl>,
     metadata: AllotmentMetadata,
-    name_for_arbitrator: String
+    name_for_arbitrator: String,
+    allot_box: Arc<Mutex<Option<AllotmentBox>>>
 }
 
 impl BoxLinearEntry {
@@ -15,7 +18,8 @@ impl BoxLinearEntry {
         BoxLinearEntry {
             transformer: Arc::new(AllotmentRequestImpl::new(metadata,geometry,spec.depth(),false)),
             metadata: metadata.clone(),
-            name_for_arbitrator: spec.name().to_string()
+            name_for_arbitrator: spec.name().to_string(),
+            allot_box: Arc::new(Mutex::new(None))
         } 
     }
 }
@@ -30,7 +34,8 @@ impl LinearGroupEntry for BoxLinearEntry {
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
         let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.transformer.max_y()));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
-        self.transformer.set_allotment(Arc::new(LeafTransformer::new(&allot_box)),Arc::new(allot_box.clone()));
+        self.transformer.set_allotment(Arc::new(allot_box.clone()));
+        *lock!(self.allot_box) = Some(allot_box.clone());
         allot_box
     }
 
@@ -39,9 +44,9 @@ impl LinearGroupEntry for BoxLinearEntry {
     fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         let secret = self.metadata.get_i64("secret-track").unwrap_or(0) != 0;
         if secret { return; }
-        if let Some(allotment) = self.transformer.transformer() {
+        if let Some(allot_box) = lock!(self.allot_box).as_ref() {
             let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
-            allotment.add_transform_metadata(&mut full_metadata);
+            allot_box.add_transform_metadata(&mut full_metadata);
             out.push(AllotmentMetadata::new(full_metadata));
         }
     }

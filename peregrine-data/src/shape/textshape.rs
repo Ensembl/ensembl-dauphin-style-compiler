@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, core::allotment::Allotment}};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox}};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -65,7 +65,7 @@ impl<A: Clone> TextShape<A> {
 }
 
 impl TextShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<TextShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
+    pub fn allot<F,E>(self, cb: F) -> Result<TextShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(TextShape {
             position: self.position.map_allotments_results(cb)?,
             pen: self.pen.clone(),
@@ -74,7 +74,7 @@ impl TextShape<AllotmentRequest> {
     }
 }
 
-impl TextShape<Allotment> {
+impl TextShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon) -> TextShape<()> {
         TextShape {
             position: transform_spacebase2(&common.coord_system(),&self.position),

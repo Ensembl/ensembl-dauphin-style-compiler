@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AllotmentMetadata, allotment::core::arbitrator::DelayedValue, Scale};
+use crate::{AllotmentMetadata, allotment::core::arbitrator::DelayedValue, AllotmentMetadataRequest, MetadataMergeStrategy};
 
 pub struct AllotmentBoxBuilder {
     padding_top: i64,
@@ -145,4 +145,10 @@ impl AllotmentBox {
 
     pub fn indent_delayed(&self) -> DelayedValue { self.indent.clone() }
     pub fn indent(&self) -> i64 { self.indent.value() }
+
+    pub fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest) {
+        out.add_pair("type","track",&MetadataMergeStrategy::Replace);
+        out.add_pair("offset",&self.top().to_string(),&MetadataMergeStrategy::Minimum);
+        out.add_pair("height",&(self.bottom()-self.top()).to_string(),&MetadataMergeStrategy::Maximum);
+    }
 }

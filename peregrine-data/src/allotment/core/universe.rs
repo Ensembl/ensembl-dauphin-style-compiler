@@ -10,10 +10,9 @@ use peregrine_toolkit::lock;
 
 use super::allotmentrequest::AllotmentRequestImpl;
 use super::arbitrator::Arbitrator;
-use super::dustbinallotment::DustbinAllotment;
 
 struct UniverseData {
-    dustbin: Arc<AllotmentRequestImpl<DustbinAllotment>>,
+    dustbin: Arc<AllotmentRequestImpl>,
     main: LinearGroup<MainTrackLinearHelper>,
     top_tracks: LinearGroup<MainTrackLinearHelper>,
     bottom_tracks: LinearGroup<MainTrackLinearHelper>,
