@@ -1,26 +1,26 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase };
 
-pub struct ShapeListBuilder {
+pub struct CarriageShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
     allotments: HashSet<AllotmentRequest>,
     assets: Assets,
-    universe: Universe
+    carriage_universe: CarriageUniverse
 }
 
-impl ShapeListBuilder {
-    pub fn new(allotment_metadata: &AllotmentMetadataStore, assets: &Assets) -> ShapeListBuilder {
-        ShapeListBuilder {
+impl CarriageShapeListBuilder {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore, assets: &Assets) -> CarriageShapeListBuilder {
+        CarriageShapeListBuilder {
             shapes: vec![],
             assets: assets.clone(),
             allotments: HashSet::new(),
-            universe: Universe::new(allotment_metadata)
+            carriage_universe: CarriageUniverse::new(allotment_metadata)
         }
     }
 
-    pub fn universe(&self) -> &Universe { &self.universe }
+    pub fn carriage_universe(&self) -> &CarriageUniverse { &self.carriage_universe }
 
     fn push(&mut self, shape: Shape<AllotmentRequest>) {
         if !shape.is_empty() && !shape.common().coord_system().is_dustbin() {
@@ -74,50 +74,73 @@ impl ShapeListBuilder {
         Ok(())
     }
 
-    pub fn filter(&self, min_value: f64, max_value: f64) -> ShapeListBuilder {
+    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageShapeListBuilder {
         let mut shapes = vec![];
         for shape in self.shapes.iter() {
             shapes.push(shape.filter_by_minmax(min_value,max_value));
         }
-        ShapeListBuilder { shapes, allotments: self.allotments.clone(), universe: self.universe.clone(), assets: self.assets.clone() }
+        CarriageShapeListBuilder { shapes, allotments: self.allotments.clone(), carriage_universe: self.carriage_universe.clone(), assets: self.assets.clone() }
     }
 
-    pub fn append(&mut self, more: &ShapeListBuilder) {
+    pub fn append(&mut self, more: &CarriageShapeListBuilder) {
         self.shapes.extend(more.shapes.iter().cloned());
         self.allotments = self.allotments.union(&more.allotments).cloned().collect();
-        self.universe.union(&more.universe);
+        self.carriage_universe.union(&more.carriage_universe);
     }
 }
 
 #[derive(Clone)]
-pub struct CarriageShapeList {
-    shapes: Arc<Vec<Shape<()>>>,
-    universe: Universe
+pub struct FloatingCarriageShapeList {
+    shapes: Arc<Vec<Shape<AllotmentRequest>>>,
+    carriage_universe: CarriageUniverse,
+    extent: Option<CarriageExtent>
 }
 
-impl CarriageShapeList {
-    pub fn empty() -> CarriageShapeList {
-        CarriageShapeList {
+impl FloatingCarriageShapeList {
+    pub fn empty() -> FloatingCarriageShapeList {
+        FloatingCarriageShapeList {
             shapes: Arc::new(vec![]),
-            universe: Universe::new(&AllotmentMetadataStore::new())
+            carriage_universe: CarriageUniverse::new(&AllotmentMetadataStore::new()),
+            extent: None
         }
     }
 
-    pub fn universe(&self) -> &Universe { &self.universe }
     pub fn len(&self) -> usize { self.shapes.len() }
-    pub fn shapes(&self) -> Arc<Vec<Shape<()>>> { self.shapes.clone() }
 
-    pub fn new(mut builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> Result<CarriageShapeList,DataMessage> {
+    pub fn new(builder: CarriageShapeListBuilder, extent: Option<&CarriageExtent>) -> Result<FloatingCarriageShapeList,DataMessage> {
+        Ok(FloatingCarriageShapeList {
+            shapes: Arc::new(builder.shapes),
+            carriage_universe: builder.carriage_universe,
+            extent: extent.cloned()
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct AnchoredCarriageShapeList {
+    shapes: Arc<Vec<Shape<()>>>,
+    carriage_universe: CarriageUniverse
+}
+
+impl AnchoredCarriageShapeList {
+    pub fn empty() -> Result<AnchoredCarriageShapeList,DataMessage> {
+        AnchoredCarriageShapeList::new(&FloatingCarriageShapeList::empty())
+    }
+
+    pub fn new(floating: &FloatingCarriageShapeList) -> Result<AnchoredCarriageShapeList,DataMessage> {
         /* allotments are assigned here */
-        builder.universe.allot(extent);
+        floating.carriage_universe.allot(floating.extent.as_ref());
         /* shapes mapped to allotments here */
-        let mut shapes = builder.shapes.drain(..)
-            .map(|s| s.allot(|r| r.allotment()))
+        let mut shapes = floating.shapes.iter()
+            .map(|s| s.clone().allot(|r| r.allotment()))
             .collect::<Result<Vec<_>,_>>()?;
         let shapes = shapes.drain(..).map(|s| s.transform()).collect();
-        Ok(CarriageShapeList {
-            universe: builder.universe.clone(),
+        Ok(AnchoredCarriageShapeList {
+            carriage_universe: floating.carriage_universe.clone(),
             shapes: Arc::new(shapes)
         })
     }
+
+    pub fn carriage_universe(&self) -> &CarriageUniverse { &self.carriage_universe}
+    pub fn shapes(&self) -> &Arc<Vec<Shape<()>>> { &self.shapes }
 }

@@ -1,6 +1,6 @@
 use std::{sync::Arc};
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, Patina, ShapeListBuilder, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, Patina, CarriageShapeListBuilder, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -49,9 +49,9 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[101]",0));
-        let window_origin = shapes.universe().make_request("window:origin[101]").unwrap(); // XXX
+        let window_origin = shapes.carriage_universe().make_request("window:origin[101]").unwrap(); // XXX
         let pos2 = self.area2.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = PartialSpaceBase::from_spacebase(SpaceBase::new(
@@ -133,9 +133,9 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[100]",-1));
-        let window_origin = shapes.universe().make_request("window:origin[100]").unwrap(); // XXX
+        let window_origin = shapes.carriage_universe().make_request("window:origin[100]").unwrap(); // XXX
         shapes.use_allotment(&window_origin);
         let mut rectangles = vec![];
         let pos2 = self.area2.tlbr().clone();
@@ -175,7 +175,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut ShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes,allotment_metadata)?,
             Spectre::Stain(a) => a.draw(shapes,allotment_metadata)?,

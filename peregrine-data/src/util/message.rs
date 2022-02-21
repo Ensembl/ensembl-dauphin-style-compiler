@@ -3,7 +3,7 @@ use std::{ hash::{ Hash, Hasher }, fmt };
 use std::collections::hash_map::{ DefaultHasher };
 use std::error::Error;
 use crate::core::channel::Channel;
-use crate::lane::programname::ProgramName;
+use crate::shapeload::programname::ProgramName;
 use crate::core::stick::StickId;
 use crate::train::CarriageExtent;
 use peregrine_message::{ MessageKind, MessageAction, MessageLikelihood, PeregrineMessage };

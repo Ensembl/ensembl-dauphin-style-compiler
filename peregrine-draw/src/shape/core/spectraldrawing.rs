@@ -1,15 +1,16 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{AllotmentMetadataStore, Assets, ShapeListBuilder, CarriageShapeList, reactive::Reactive};
+use peregrine_data::{AllotmentMetadataStore, Assets, CarriageShapeListBuilder, reactive::Reactive, AnchoredCarriageShapeList, FloatingCarriageShapeList};
 use peregrine_toolkit::lock;
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::spectre::Spectre;
 
 fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<Drawing,Message> {
-    let mut shapes = ShapeListBuilder::new(&allotment_metadata,&Assets::empty());
+    let mut shapes = CarriageShapeListBuilder::new(&allotment_metadata,&Assets::empty());
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_metadata)?;
     }
-    let shape_list = CarriageShapeList::new(shapes,None).map_err(|e| Message::DataError(e))?;
+    let floating = FloatingCarriageShapeList::new(shapes,None).map_err(|e| Message::DataError(e))?;
+    let shape_list = AnchoredCarriageShapeList::new(&floating).map_err(|e| Message::DataError(e))?;
     Drawing::new_sync(None,shape_list,gl,0.,assets)
 }
 

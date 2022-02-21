@@ -11,11 +11,11 @@ use std::sync::{ Arc, Mutex };
 use crate::ResponsePacket;
 use crate::api::MessageSender;
 use crate::core::channel::{Channel, ChannelIntegration};
-use crate::lane::programloader::ProgramLoader;
+use crate::shapeload::programloader::ProgramLoader;
 use crate::request::core::manager::{ PayloadReceiver };
 use crate::util::message::DataMessage;
 use peregrine_dauphin_queue::{ PgDauphinQueue, PgDauphinLoadTaskSpec, PgDauphinRunTaskSpec };
-use crate::lane::programname::ProgramName;
+use crate::shapeload::programname::ProgramName;
 
 pub struct PgDauphinTaskSpec {
     pub prio: u8, 

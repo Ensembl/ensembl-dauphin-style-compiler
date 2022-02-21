@@ -11,7 +11,7 @@ use peregrine_toolkit::lock;
 use super::allotmentrequest::AllotmentRequestImpl;
 use super::arbitrator::Arbitrator;
 
-struct UniverseData {
+struct CarriageUniverseData {
     dustbin: Arc<AllotmentRequestImpl>,
     main: LinearGroup<MainTrackLinearHelper>,
     top_tracks: LinearGroup<MainTrackLinearHelper>,
@@ -25,7 +25,7 @@ struct UniverseData {
     playingfield: PlayingField
 }
 
-impl UniverseData {
+impl CarriageUniverseData {
     fn make_request(&mut self, allotment_metadata: &AllotmentMetadataStore, name: &str) -> Option<AllotmentRequest> {
         if name == "" {
             Some(AllotmentRequest::upcast(self.dustbin.clone()))
@@ -49,7 +49,7 @@ impl UniverseData {
         }
     }
 
-    fn union(&mut self, other: &UniverseData) {
+    fn union(&mut self, other: &CarriageUniverseData) {
         self.top_tracks.union(&other.top_tracks);
         self.bottom_tracks.union(&other.bottom_tracks);
         self.window_tracks.union(&other.window_tracks);
@@ -138,15 +138,15 @@ impl UniverseData {
 }
 
 #[derive(Clone)]
-pub struct Universe {
-    data: Arc<Mutex<UniverseData>>,
+pub struct CarriageUniverse {
+    data: Arc<Mutex<CarriageUniverseData>>,
     allotment_metadata: AllotmentMetadataStore
 }
 
-impl Universe {
-    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> Universe {
-        Universe {
-            data: Arc::new(Mutex::new(UniverseData {
+impl CarriageUniverse {
+    pub fn new(allotment_metadata: &AllotmentMetadataStore) -> CarriageUniverse {
+        CarriageUniverse {
+            data: Arc::new(Mutex::new(CarriageUniverseData {
                 main: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
                 top_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
                 bottom_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,true),MainTrackLinearHelper),
@@ -173,7 +173,7 @@ impl Universe {
         lock!(self.data).make_request(&self.allotment_metadata,name)
     }
 
-    pub fn union(&mut self, other: &Universe) {
+    pub fn union(&mut self, other: &CarriageUniverse) {
         if Arc::ptr_eq(&self.data,&other.data) { return; }
         let mut self_data = lock!(self.data);
         let other_data = lock!(other.data);

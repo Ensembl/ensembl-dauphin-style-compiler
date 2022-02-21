@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField};
+use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField, DataMessage};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
@@ -26,26 +26,28 @@ impl RailwayDependents {
         }
     }
 
-    fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) {
+    fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) -> Result<(),DataMessage> {
         let mut playing_field = PlayingField::empty();
         for carriage in carriages {
-            playing_field.union(&carriage.shapes().universe().playingfield());
+            playing_field.union(&carriage.shapes()?.carriage_universe().playingfield());
         }
         self.playing_field.update(playing_field, |playing_field| {
             events.draw_notify_playingfield(playing_field.clone());
         });
+        Ok(())
     }
 
-    fn draw_update_allotment_metadata(&self, quiescent: Option<&Train>, events: &mut RailwayEvents) {
+    fn draw_update_allotment_metadata(&self, quiescent: Option<&Train>, events: &mut RailwayEvents) -> Result<(),DataMessage> {
         if let Some(train) = quiescent {
             if train.is_active() {
-                if let Some(metadata) = train.allotter_metadata() {
+                if let Some(metadata) = train.allotter_metadata()? {
                     self.metadata.update(metadata,|metadata| {
                         events.draw_send_allotment_metadata(&metadata);
                     });
                 }
             }
         }
+        Ok(())
     }
 
     fn update_visual_lock(&self, busy: bool) {

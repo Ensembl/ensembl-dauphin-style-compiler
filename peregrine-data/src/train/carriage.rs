@@ -3,12 +3,11 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AllotmentRequest};
-use crate::lane::{ ShapeRequest };
-use crate::shape::{ CarriageShapeList };
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList};
+use crate::shapeload::{ ShapeRequest };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
-use crate::lane::shapeloader::{LoadMode, load_shapes};
+use crate::shapeload::loadshapes::{LoadMode, load_carriage_shape_list };
 
 use super::railwayevent::RailwayEvents;
 
@@ -33,26 +32,22 @@ impl UnloadedCarriage {
         shape_requests
     }
 
-    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<CarriageShapeList>,DataMessage> {
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<AnchoredCarriageShapeList>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
-        let (shapes,errors) = load_shapes(base,result_store,self.messages.as_ref(),shape_requests,Some(extent),&mode).await;
-        Ok(match shapes {
-            Some(shapes) => {
-                if errors.len() != 0 {
-                    return Err(DataMessage::CarriageUnavailable(extent.clone(),errors));
-                }    
-                Some(shapes)
-            },
-            None => None
-        })
+        let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,Some(extent),&mode).await;
+        let shapes = if let Some(x) = shapes { x } else { return Ok(None); };
+        if errors.len() != 0 {
+            return Err(DataMessage::CarriageUnavailable(extent.clone(),errors));
+        }    
+        Ok(Some(shapes))
     }
 }
 
 enum CarriageState {
     Unloaded(UnloadedCarriage),
     Loading,
-    Pending(CarriageShapeList),
-    Loaded(CarriageShapeList)
+    Pending(AnchoredCarriageShapeList),
+    Loaded(AnchoredCarriageShapeList)
 }
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
@@ -108,10 +103,10 @@ impl Carriage {
         }
     }
 
-    pub fn shapes(&self) -> CarriageShapeList {
+    pub fn shapes(&self) -> Result<AnchoredCarriageShapeList,DataMessage> {
         match &*lock!(self.state) {
-            CarriageState::Pending(s) | CarriageState::Loaded(s) => { s.clone() },
-            _ => CarriageShapeList::empty()
+            CarriageState::Pending(s) | CarriageState::Loaded(s) => { Ok(s.clone()) },
+            _ => AnchoredCarriageShapeList::empty()
         }
     }
 

@@ -1,5 +1,5 @@
 use crate::core::channel::Channel;
-use crate::lane::programloader::ProgramLoader;
+use crate::shapeload::programloader::ProgramLoader;
 use crate::{PeregrineCoreBase };
 use super::stickauthority::{ Authority, load_stick_authority };
 use crate::core::{ StickId, Stick };

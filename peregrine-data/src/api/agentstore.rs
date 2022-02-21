@@ -3,7 +3,7 @@ use commander::PromiseFuture;
 use commander::FusePromise;
 use crate::PeregrineCoreBase;
 use crate::index::jumpstore::JumpStore;
-use crate::lane::programloader::ProgramLoader;
+use crate::shapeload::programloader::ProgramLoader;
 use crate::{ AuthorityStore, StickStore, ShapeStore, DataStore };
 
 #[derive(Clone)]

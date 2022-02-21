@@ -1,6 +1,6 @@
 use anyhow::anyhow as err;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeListBuilder, ShapeRequest, ZMenu, SpaceBase};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, CarriageShapeListBuilder, ShapeRequest, ZMenu, SpaceBase};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -222,21 +222,21 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let registers = context.registers_mut();
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
-        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
-        let universe = zoo.lock().universe().clone();
+        let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
+        let carriage_universe = zoo.lock().carriage_universe().clone();
         let requests = name.drain(..).map(|name| {
-            universe.make_request(&name).ok_or_else(||
+            carriage_universe.make_request(&name).ok_or_else(||
                 DataMessage::NoSuchAllotment(name)
             )
         }).collect::<Result<Vec<_>,DataMessage>>()?;
-        drop(universe);
+        drop(carriage_universe);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
         let ids = requests.iter().map(|request| {
             geometry_builder.add_allotment(request.clone()) as usize           
         }).collect();
         drop(peregrine);
-        let zoo = get_instance::<Builder<ShapeListBuilder>>(context,"out")?;
+        let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
         for request in &requests {
             zoo.lock().use_allotment(request);
         }

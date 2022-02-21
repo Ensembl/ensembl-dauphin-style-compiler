@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
-use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, lane::shapeloader::LoadMode};
+use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::loadshapes::LoadMode};
 use super::{railwayevent::RailwayEvents, trainset::TrainSet};
 
 #[derive(Clone)]

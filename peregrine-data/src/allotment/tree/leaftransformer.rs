@@ -1,4 +1,4 @@
-use crate::{CoordinateSystem, allotment::{core::{allotmentmetadata::MetadataMergeStrategy}}, SpaceBase, SpaceBaseArea, PartialSpaceBase};
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase};
 
 use super::allotmentbox::AllotmentBox;
 

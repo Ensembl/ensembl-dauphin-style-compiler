@@ -80,8 +80,8 @@ impl TrainData {
         None
     }
 
-    fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> {
-        self.central_carriage().map(|c| c.shapes().universe().make_metadata_report().clone())
+    fn allotter_metadata(&self) -> Result<Option<AllotmentMetadataReport>,DataMessage> {
+        self.central_carriage().map(|c| c.shapes().map(|c| c.carriage_universe().make_metadata_report().clone())).transpose()
     }
 
     fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
@@ -177,7 +177,7 @@ impl Train {
     pub(super) fn train_ready(&self) -> bool { self.0.lock().unwrap().train_ready() }
     pub(super) fn train_half_ready(&self) -> bool { self.0.lock().unwrap().train_half_ready() }
     pub(super) fn train_broken(&self) -> bool { self.0.lock().unwrap().is_broken() }
-    pub(super) fn allotter_metadata(&self) -> Option<AllotmentMetadataReport> { self.0.lock().unwrap().allotter_metadata() }
+    pub(super) fn allotter_metadata(&self) -> Result<Option<AllotmentMetadataReport>,DataMessage> { self.0.lock().unwrap().allotter_metadata() }
 
     pub(super) fn set_active(&mut self, carriage_event: &mut RailwayEvents, speed: CarriageSpeed) {
         lock!(self.0).set_active(&self.clone(),carriage_event,speed);

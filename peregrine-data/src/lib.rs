@@ -10,7 +10,8 @@ mod allotment {
         pub(crate) mod basicallotmentspec;
         pub(crate) mod coordsystem;
         pub(crate) mod rangeused;
-        pub(crate) mod universe;    
+        pub(crate) mod carriageuniverse;    
+        pub(crate) mod trainuniverse;
     }
 
     pub(crate) mod tree {
@@ -68,10 +69,10 @@ mod index {
     pub use self::stickauthoritystore::AuthorityStore;
 }
 
-mod lane {
+mod shapeload {
     mod datastore;
     mod shaperequest;
-    pub(crate) mod shapeloader;
+    pub(crate) mod loadshapes;
     pub(crate) mod programloader;
     pub(crate) mod programregion;
     mod resultstore;
@@ -141,7 +142,7 @@ mod shape {
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
-    mod shapelist;
+    mod carriageshapelist;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
@@ -151,7 +152,7 @@ mod shape {
     };
     pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
     pub use self::zmenu::ZMenu;
-    pub use self::shapelist::{ ShapeListBuilder, CarriageShapeList };
+    pub use self::carriageshapelist::{ CarriageShapeListBuilder, FloatingCarriageShapeList, AnchoredCarriageShapeList };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
@@ -209,14 +210,14 @@ pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, Per
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
-pub use self::lane::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
+pub use self::shapeload::{ Region, ProgramName, ProgramRegion, ShapeStore, DataStore, ProgramData, ProgramRegionBuilder, ShapeRequest };
 pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, InstancePayload, add_task, complete_task, async_complete_task };
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
-    CarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json
+    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, CarriageShapeListBuilder,
+    AnchoredCarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, FloatingCarriageShapeList
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
@@ -224,7 +225,7 @@ pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
 };
 pub use self::allotment::{transform_spacebase, transform_spacebasearea};
-pub use self::allotment::core::universe::Universe;
+pub use self::allotment::core::carriageuniverse::CarriageUniverse;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };

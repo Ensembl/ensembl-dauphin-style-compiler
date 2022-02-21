@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, ZMenuProxy };
+use peregrine_data::{Assets, Scale, Shape, ZMenuProxy, AnchoredCarriageShapeList };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -160,7 +160,7 @@ struct DrawingData {
 pub(crate) struct Drawing(Arc<Mutex<DrawingData>>);
 
 impl Drawing {
-    pub(crate) async fn new(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) async fn new(scale: Option<&Scale>, shapes: AnchoredCarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
         /* convert core shape data model into gl shapes */
         let mut lgl = lock!(gl);
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;
@@ -178,7 +178,7 @@ impl Drawing {
         drawing.build(gl).await
     }
 
-    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: CarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
+    pub(crate) fn new_sync(scale: Option<&Scale>, shapes: AnchoredCarriageShapeList, gl: &Arc<Mutex<WebGlGlobal>>, left: f64, assets: &Assets) -> Result<Drawing,Message> {
         let mut lgl = lock!(gl);
         /* convert core shape data model into gl shapes */
         let mut drawing = DrawingBuilder::new(scale,&mut lgl,assets,left)?;

@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::{channel::Channel, version::VersionMetadata}, lane::programloader::ProgramLoader, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}};
+use crate::{AgentStore, DataMessage, PeregrineApiQueue, PeregrineCoreBase, PeregrineIntegration, PgCommanderTaskSpec, PgDauphin, add_task, api::ApiMessage, core::{channel::Channel, version::VersionMetadata}, request::{core::manager::RequestManager, messages::bootstrapres::BootRes}, shapeload::programloader::ProgramLoader};
 
 use super::PgDauphinTaskSpec;
 
