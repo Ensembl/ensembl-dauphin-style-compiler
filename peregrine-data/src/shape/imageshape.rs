@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, SpaceBase};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, core::allotment::Allotment}};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -51,7 +51,7 @@ impl<A: Clone> ImageShape<A> {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
+        let demerge = self.position.allotments().demerge(|_| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             let common = common_in.filter(&filter);
@@ -68,5 +68,14 @@ impl ImageShape<AllotmentRequest> {
             position: self.position.map_allotments_results(cb)?,
             names: self.names.clone(),
         })
+    }
+}
+
+impl ImageShape<Allotment> {
+    pub fn transform(&self, common: &ShapeCommon) -> ImageShape<()> {
+        ImageShape {
+            position: transform_spacebase2(&common.coord_system(),&self.position),
+            names: self.names.clone()
+        }
     }
 }

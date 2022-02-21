@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment, SpaceBaseArea, reactive::Observable};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, core::allotment::Allotment}};
 use std::hash::Hash;
 
 #[derive(Clone)]
@@ -53,12 +53,12 @@ impl<A: Clone> RectangleShape<A> {
         let demerge = match &self.patina {
             Patina::Drawn(drawn_type,colours) => {
                 let allotments_and_colours = self.area.top_left().allotments().merge(&colours).unwrap();
-                allotments_and_colours.demerge(|(a,c)| 
+                allotments_and_colours.demerge(|(_,c)| 
                     cat.categorise_with_colour(common_in.coord_system(),drawn_type,c)
                 )
             },
             _ => {
-                self.area.top_left().allotments().demerge(|a| cat.categorise(common_in.coord_system()))
+                self.area.top_left().allotments().demerge(|_| cat.categorise(common_in.coord_system()))
             }
         };
         let mut out = vec![];
@@ -78,5 +78,15 @@ impl RectangleShape<AllotmentRequest> {
             patina: self.patina.clone(),
             wobble: self.wobble.clone()
         })
+    }
+}
+
+impl RectangleShape<Allotment> {
+    pub fn transform(&self, common: &ShapeCommon) -> RectangleShape<()> {
+        RectangleShape {
+            area: transform_spacebasearea2(&common.coord_system(),&self.area),
+            patina: self.patina.clone(),
+            wobble: self.wobble.clone()
+        }
     }
 }

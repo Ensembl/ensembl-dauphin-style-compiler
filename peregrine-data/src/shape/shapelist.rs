@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, CarriageExtent, Allotment, SpaceBaseArea, reactive::Observable, SpaceBase };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, Universe, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase };
 
 pub struct ShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
@@ -91,7 +91,7 @@ impl ShapeListBuilder {
 
 #[derive(Clone)]
 pub struct CarriageShapeList {
-    shapes: Arc<Vec<Shape<Allotment>>>,
+    shapes: Arc<Vec<Shape<()>>>,
     universe: Universe
 }
 
@@ -105,13 +105,16 @@ impl CarriageShapeList {
 
     pub fn universe(&self) -> &Universe { &self.universe }
     pub fn len(&self) -> usize { self.shapes.len() }
-    pub fn shapes(&self) -> Arc<Vec<Shape<Allotment>>> { self.shapes.clone() }
+    pub fn shapes(&self) -> Arc<Vec<Shape<()>>> { self.shapes.clone() }
 
     pub fn new(mut builder: ShapeListBuilder, extent: Option<&CarriageExtent>) -> Result<CarriageShapeList,DataMessage> {
         /* allotments are assigned here */
         builder.universe.allot(extent);
         /* shapes mapped to allotments here */
-        let shapes = builder.shapes.drain(..).map(|s| s.allot(|r| r.allotment())).collect::<Result<Vec<_>,_>>()?;
+        let mut shapes = builder.shapes.drain(..)
+            .map(|s| s.allot(|r| r.allotment()))
+            .collect::<Result<Vec<_>,_>>()?;
+        let shapes = shapes.drain(..).map(|s| s.transform()).collect();
         Ok(CarriageShapeList {
             universe: builder.universe.clone(),
             shapes: Arc::new(shapes)

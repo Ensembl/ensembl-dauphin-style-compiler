@@ -25,7 +25,7 @@ mod allotment {
         pub(crate) mod allotmentbox;    
     }
 
-    pub use tree::leaftransformer::{ transform_spacebase, transform_spacebasearea };
+    pub use tree::leaftransformer::{ transform_yy, transform_spacebase, transform_spacebase2, transform_spacebasearea, transform_spacebasearea2 };
 }
 
 mod api {
@@ -220,7 +220,6 @@ pub use self::shape::{
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ShapeListBuilder,
     CarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge
 };
-pub use self::allotment::core::allotment::{ Allotment };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{

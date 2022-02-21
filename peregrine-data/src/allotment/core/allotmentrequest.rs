@@ -5,9 +5,9 @@ use peregrine_toolkit::lock;
 use super::basicallotmentspec::BasicAllotmentSpec;
 use super::rangeused::RangeUsed;
 use crate::allotment::tree::allotmentbox::AllotmentBox;
-use crate::{Allotment, DataMessage, AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, CoordinateSystemVariety};
+use crate::{DataMessage, AllotmentMetadata, AllotmentMetadataRequest, CoordinateSystem, CoordinateSystemVariety};
 
-use super::allotment::{Transformer};
+use super::allotment::{Transformer, Allotment};
 use super::{dustbinallotment::DustbinAllotment};
 
 impl Hash for AllotmentRequest {

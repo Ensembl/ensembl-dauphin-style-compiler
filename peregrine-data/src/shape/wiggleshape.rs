@@ -1,4 +1,4 @@
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, Allotment};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, core::allotment::Allotment}};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -62,7 +62,6 @@ impl<A: Clone> WiggleShape<A> {
     pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, depth: EachOrEvery<i8>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
-        let allotments = EachOrEvery::each(vec![allotment.clone()]);
         out.push(Shape::new(
             eoe_throw("add_wiggle",ShapeCommon::new(allotment.coord_system(),depth))?,
             ShapeDetails::Wiggle(details)
@@ -122,16 +121,23 @@ impl<A: Clone> WiggleShape<A> {
 impl WiggleShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<Allotment>,E> where F: Fn(&AllotmentRequest) -> Result<Allotment,E> {
         let allotments = self.allotments.map_results(cb)?;
-        let values = if let Some(allotment) = allotments.get(0) {
-            Arc::new(allotment.transform_yy(&self.values))
-        } else {
-            self.values
-        };
         Ok(WiggleShape {
             x_limits: self.x_limits,
-            values,
+            values: self.values,
             plotter: self.plotter,
             allotments
         })
+    }
+}
+
+impl WiggleShape<Allotment> {
+    pub fn transform(&self, common: &ShapeCommon) -> WiggleShape<()> {
+        let allotment = self.allotments.get(0).unwrap();
+        WiggleShape {
+            x_limits: self.x_limits.clone(),
+            values: Arc::new(transform_yy(common.coord_system(),allotment.allotment_box(),&self.values)),
+            plotter: self.plotter.clone(),
+            allotments: EachOrEvery::Each(Arc::new(vec![()]))
+        }
     }
 }

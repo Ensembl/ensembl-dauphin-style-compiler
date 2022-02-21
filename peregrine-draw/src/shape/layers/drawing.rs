@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use super::layer::Layer;
-use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, ZMenuProxy, Allotment };
+use peregrine_data::{Assets, Scale, Shape, CarriageShapeList, ZMenuProxy };
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 use super::super::core::prepareshape::{ prepare_shape_in_layer };
@@ -105,7 +105,7 @@ impl DrawingBuilder {
         })
     }
 
-    pub(crate) fn prepare_shape(&mut self, shape: &Shape<Allotment>) -> Result<Vec<GLShape>,Message> {
+    pub(crate) fn prepare_shape(&mut self, shape: &Shape<()>) -> Result<Vec<GLShape>,Message> {
         let shape = shape.clone(); // XXX don't clone
         let (layer, tools) = (&mut self.main_layer,&mut self.tools);
         prepare_shape_in_layer(layer,tools,shape)

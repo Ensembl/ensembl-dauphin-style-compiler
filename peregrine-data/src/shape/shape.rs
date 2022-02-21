@@ -3,7 +3,6 @@ use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
-use crate::Allotment;
 use crate::AllotmentRequest;
 use crate::Assets;
 use crate::Colour;
@@ -12,6 +11,7 @@ use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
+use crate::allotment::core::allotment::Allotment;
 use crate::allotment::core::rangeused::RangeUsed;
 
 pub trait ShapeDemerge {
@@ -95,8 +95,7 @@ impl<A: Clone> ShapeDetails<A> {
 }
 
 impl ShapeDetails<AllotmentRequest> {
-
-    pub fn register_space(&self, common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
+    pub fn register_space(&self, _common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => {
                 for (top_left,bottom_right) in shape.area().iter() {
@@ -147,6 +146,17 @@ impl ShapeDetails<AllotmentRequest> {
             ShapeDetails::Image(shape) => ShapeDetails::Image(shape.allot(cb)?),
             ShapeDetails::SpaceBaseRect(shape) =>ShapeDetails::SpaceBaseRect(shape.allot(cb)?),
         })
+    }
+}
+
+impl ShapeDetails<Allotment> {
+    pub fn transform(&self, common: &ShapeCommon) -> ShapeDetails<()> {
+        match self {
+            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.transform(common)),
+            ShapeDetails::Text(shape) => ShapeDetails::Text(shape.transform(common)),
+            ShapeDetails::Image(shape) => ShapeDetails::Image(shape.transform(common)),
+            ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.transform(common)),
+        }
     }
 }
 
@@ -210,9 +220,18 @@ impl<A: Clone> Shape<A> {
     pub fn is_empty(&self) -> bool { self.len() == 0 }
 }
 
-impl Shape<Allotment> {
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<Allotment>)> where D: ShapeDemerge<X=T> {
+impl<Z: Clone> Shape<Z> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,Shape<Z>)> where D: ShapeDemerge<X=T> {
         self.details.demerge(&self.common,cat)
+    }
+}
+
+impl Shape<Allotment> {
+    pub fn transform(&self) -> Shape<()> { 
+        Shape {
+            common: self.common.clone(),
+            details: self.details.transform(&self.common)
+        }
     }
 }
 

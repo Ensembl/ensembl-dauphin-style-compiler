@@ -1,4 +1,4 @@
-use peregrine_data::{Allotment, Colour, DrawnType, EachOrEvery, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem, HollowEdge2 };
+use peregrine_data::{ Colour, DrawnType, EachOrEvery, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem, HollowEdge2 };
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -7,7 +7,7 @@ use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape<Allotment>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape<()>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let depth = common.depth().clone();
     let wobble = shape.wobble().clone();
@@ -104,7 +104,7 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<Allotment>) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<()>) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
