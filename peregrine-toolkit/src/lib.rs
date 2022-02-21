@@ -14,6 +14,7 @@ pub mod plumbing {
 
 pub mod boom;
 pub mod cbor;
+pub mod console;
 pub mod refs;
 pub mod url;
 pub mod watermark;

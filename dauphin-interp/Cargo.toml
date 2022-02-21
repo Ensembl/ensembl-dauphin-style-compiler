@@ -11,6 +11,7 @@ serde_cbor="*"
 lazy_static="*"
 thiserror="1.0"
 anyhow="*"
+peregrine_toolkit={ version="*", path="../peregrine-toolkit" }
 
 [dev-dependencies]
 dauphin_compile = { path = "../dauphin-compile" }

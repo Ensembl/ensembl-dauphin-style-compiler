@@ -46,7 +46,7 @@
       </div>
     </div>
     <script type="module">
-      import { GenomeBrowser, test, default as init } from './pkg/peregrine_generic.js';
+      import { GenomeBrowser, default as init } from './pkg/peregrine_generic.js';
       init().then(function() {
         let genome_browser = new GenomeBrowser();
         genome_browser.go({
@@ -150,7 +150,7 @@
           } else if(kind=="zmenu") {
             let zmenu_data_el = document.getElementById("zmenu-click");
             let zmenu_data = more[0];
-            zmenu_data_el.innerText = `(${zmenu_data.x},${zmenu_data.y}) ${JSON.stringify(zmenu_data.content)}`;
+            zmenu_data_el.innerText = JSON.stringify(zmenu_data);
           }
         });
         //genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:1D");
@@ -225,20 +225,30 @@
           genome_browser.set_switch(["focus","gene","b2614"]);
         };
         document.getElementById("jump-no-bug").onclick = function() {
-          genome_browser.jump("focus:escherichia_coli_str_k_12_substr_mg1655_GCA_000005845_2:b2614");
-          genome_browser.wait();
-          genome_browser.set_switch(["focus","gene"]);
-          genome_browser.set_switch(["focus","gene","TraesCS3D02G273600"]);
+          let genome_browser = new GenomeBrowser();
+        genome_browser.go({
+          //backend_url: "http://52.56.215.72:3333/api/data"
+          backend_url: "http://127.0.0.1:3333/api/data",
+          target_element_id: document.getElementById('browser'),
+          'keys.debug-action': "Require(drag)-Click[2] Hold[3] HoldDrag[4] DoubleClick[7] 1[1] 2[2] 3[3] 4[4] 5[5] 6[6] 7[7] 8[8] 9[9] 0[0]",
+          'keys.pixels-left': 'Shift-A[100] Alt-a[1000]',
+          'keys.pixels-right': "MirrorRunningDrag Shift-D[100] Alt-d[1000]",
+          'keys.pixels-in': "Shift-W[100]",
+          'keys.pixels-out': "Shift-S[100] Wheel",
+          "keys.pull-left": "a ArrowLeft",
+          "keys.pull-right": "d ArrowRight",
+          "keys.pull-in": "w ArrowUp",
+          "keys.pull-out": "s ArrowDown",
+          "zoom.goto.rho": "1.41",
+          "zoom.goto.v": "0.003",
+        });
+
         };
         document.getElementById("jump-no-bug-zoom").onclick = function() {
-          genome_browser.set_stick("triticum_aestivum_GCA_900519105_1:3D");
-          genome_browser.wait();
-          genome_browser.goto(79536455,79546455);
+          document.getElementById('browser').remove();
         };
         document.getElementById("jump-bug").onclick = function() {
-          genome_browser.set_stick("homo_sapiens_GCA_000001405_27:13");
-          genome_browser.wait();
-          genome_browser.goto(27173174,27289919);
+          document.getElementById('browser').innerHTML = '';
         };
         document.getElementById("create-error").onclick = function() {
           //genome_browser.jump("focus:none");

@@ -18,11 +18,10 @@ use std::any::Any;
 use std::mem::replace;
 use std::collections::HashMap;
 use crate::runtime::{ Payload, PayloadFactory };
+use peregrine_toolkit::{console::Severity, log, error, warn};
 
 pub trait StreamConnector {
-    fn notice(&self, msg: &str) -> anyhow::Result<()>;
-    fn warn(&self, msg: &str) -> anyhow::Result<()>;
-    fn error(&self, msg: &str) -> anyhow::Result<()>;
+    fn log(&self, severity: &Severity, msg: &str) -> anyhow::Result<()>;
 }
 
 pub struct ConsoleStreamConnector();
@@ -34,18 +33,12 @@ impl ConsoleStreamConnector {
 }
 
 impl StreamConnector for ConsoleStreamConnector {
-    fn notice(&self, msg: &str) -> anyhow::Result<()> {
-        print!("{}\n",msg);
-        Ok(())
-    }
-
-    fn warn(&self, msg: &str) -> anyhow::Result<()> {
-        print!("WARNING! {}\n",msg);
-        Ok(())
-    }
-
-    fn error(&self, msg: &str) -> anyhow::Result<()> {
-        print!("ERROR! {}\n",msg);
+    fn log(&self, severity: &Severity, msg: &str) -> anyhow::Result<()> {
+         match severity {
+            Severity::Error => { error!("ERROR! {}",msg); },
+            Severity::Warning => { warn!("WARNING! {}",msg); },
+            _ => { log!("{}",msg); }
+        };
         Ok(())
     }
 }
@@ -87,13 +80,12 @@ impl Stream {
             self.entries(level).push(more.to_string());
         }
         if self.send {
-            if level == 0 {
-                self.connector.notice(more);
-            } else if level == 1 {
-                self.connector.warn(more);
-            } else {
-                self.connector.error(more);
-            }
+            let severity = match level {
+                2 => Severity::Error,
+                1 => Severity::Warning,
+                _ => Severity::Notice,
+            };
+            self.connector.log(&severity,more);
         }
     }
 }

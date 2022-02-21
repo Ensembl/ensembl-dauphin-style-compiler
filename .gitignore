@@ -111,3 +111,8 @@ blackbox-server/src/log
 
 # metric log
 backend-server/metric.log
+
+# config
+.cfg
+.config.prev
+.buildkit-config.prev

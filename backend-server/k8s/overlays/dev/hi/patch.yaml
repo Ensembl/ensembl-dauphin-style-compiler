@@ -10,3 +10,5 @@ spec:
           envFrom:
           - configMapRef:
               name: new-genome-browser-server-configmap-hi
+          - configMapRef:
+              name: new-genome-browser-source-toml-configmap

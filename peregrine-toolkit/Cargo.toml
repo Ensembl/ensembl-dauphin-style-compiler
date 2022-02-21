@@ -11,7 +11,7 @@ wasm-bindgen="*"
 serde="*"
 serde_cbor="*"
 serde_derive="*"
-bplustree="*"
+lazy_static="*"
 
 [dependencies.commander]
 version="*"
