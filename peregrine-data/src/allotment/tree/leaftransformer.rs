@@ -47,44 +47,18 @@ pub fn transform_yy(coord_system: &CoordinateSystem, allot_box: &AllotmentBox, v
 }
 
 pub struct LeafTransformer {
-    geometry: CoordinateSystem,
     allot_box: AllotmentBox,
 }
 
 impl LeafTransformer {
-    pub(crate) fn new(geometry: &CoordinateSystem, allot_box: &AllotmentBox) -> LeafTransformer {
+    pub(crate) fn new(allot_box: &AllotmentBox) -> LeafTransformer {
         LeafTransformer {
-            geometry: geometry.clone(),
             allot_box: allot_box.clone()
         }
     }
 }
 
 impl Transformer for LeafTransformer {
-    fn transform_spacebase(&self, input: &SpaceBase<f64,Allotment>) -> SpaceBase<f64,Allotment> {
-        let mut output = input.clone();
-        if self.geometry.up_from_bottom() {
-            let bottom =  self.allot_box.draw_bottom() as f64;
-            output.update_normal(|n| { *n = bottom-*n; });
-        } else {
-            let top = self.allot_box.draw_top() as f64;
-            output.update_normal(|n| { *n += top; });
-        }
-        let indent = self.allot_box.indent() as f64;
-        output.update_tangent(|t| { *t += indent });
-        output
-    }
-
-    fn transform_yy(&self, values: &[Option<f64>]) -> Vec<Option<f64>> {
-        if self.geometry.up_from_bottom() {
-            let offset = self.allot_box.draw_bottom() as f64;
-            values.iter().map(|x| x.map(|y| offset-y)).collect()
-        } else {
-            let offset = self.allot_box.draw_top() as f64;
-            values.iter().map(|x| x.map(|y| y+offset)).collect()
-        }
-    }
-
     fn add_transform_metadata(&self, out: &mut AllotmentMetadataRequest) {
         out.add_pair("type","track",&MetadataMergeStrategy::Replace);
         out.add_pair("offset",&self.allot_box.top().to_string(),&MetadataMergeStrategy::Minimum);
