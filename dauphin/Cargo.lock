@@ -256,6 +256,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "lazy_static",
+ "peregrine_toolkit",
  "serde_cbor",
  "thiserror",
 ]
@@ -748,6 +749,7 @@ dependencies = [
  "anyhow",
  "commander",
  "js-sys",
+ "lazy_static",
  "serde",
  "serde_cbor",
  "serde_derive",

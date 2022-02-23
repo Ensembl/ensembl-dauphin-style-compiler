@@ -111,9 +111,7 @@ struct GotoInstance {
     algorithm: Box<dyn GotoAlgortihm>,
     v: f64,
     s: f64,
-    t_seen: f64,
-    #[allow(unused)]
-    times: Vec<u64>
+    t_seen: f64
 }
 
 impl GotoInstance {
@@ -130,24 +128,15 @@ impl GotoInstance {
             t_seen: 0.,
             s: algorithm.total_distance(),
             v: regime.v,
-            algorithm,
-            times: vec![]
+            algorithm
         }
     }
 
     fn tick(&mut self, total_dt: f64) -> (TickResult,bool) {
-        #[cfg(show_goto_speeds)]
-        self.times.push(total_dt as u64);
         self.t_seen += total_dt;
         let s = self.t_seen * self.v;
         let (x,bp,force_fade) = self.algorithm.tick(s.min(self.s));
         let finished = s >= self.s;
-        #[cfg(show_goto_speeds)]
-        if finished && self.times.len() > 0 {
-            use web_sys::console;
-            self.times.sort();
-            console::log_1(&format!("95%={}",self.times[self.times.len()*95/100]).into());
-        }
         (TickResult::Update(Some(x),Some(bp),force_fade),finished)
     }
 }

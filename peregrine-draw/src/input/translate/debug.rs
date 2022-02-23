@@ -4,10 +4,10 @@ use crate::run::{ PgPeregrineConfig };
 use crate::input::{ InputEventKind };
 use crate::input::low::lowlevel::LowLevelInput;
 use crate::util::Message;
-use web_sys::console;
+use peregrine_toolkit::log;
 
 fn debug(inner: &mut PeregrineInnerAPI, index: u8) {
-    console::log_1(&format!("sending debug action {}",index).into());
+    log!("sending debug action {}",index);
     inner.debug_action(index);
 }
 

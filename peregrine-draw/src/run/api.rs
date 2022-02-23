@@ -1,19 +1,17 @@
 use crate::util::message::{ Message };
+use peregrine_toolkit::{log_extra, log_important};
 use peregrine_toolkit::sync::blocker::Blocker;
 pub use url::Url;
 pub use web_sys::{ console, WebGlRenderingContext, Element };
 use peregrine_data::{ Channel, StickId, Commander };
 use super::buildconfig::{ GIT_TAG, GIT_BUILD_DATE };
 use super::mousemove::run_mouse_move;
-use super::{config::DebugFlag };
 use commander::CommanderStream;
 use super::inner::PeregrineInnerAPI;
 use super::dom::PeregrineDom;
 use crate::integration::pgcommander::PgCommanderWeb;
 use crate::run::globalconfig::PeregrineConfig;
-use crate::run::config::{ PgConfigKey };
 use super::frame::run_animations;
-use super::PgPeregrineConfig;
 
 use std::sync::{ Arc, Mutex };
 
@@ -85,11 +83,10 @@ impl std::fmt::Debug for DrawMessage {
     }
 }
 
-#[cfg(force_show_incoming)]
-fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { Ok(true) }
-
 #[cfg(debug_assertions)]
 fn dev_warning() {
+    use peregrine_toolkit::warn;
+
     let message = r#"
                     ******************************
                     * This is a dev build. Expect it to be 
@@ -102,18 +99,13 @@ fn dev_warning() {
                     * very large chromosomes
                     ******************************"#;
     for line in message.split("\n") {
-        console::warn_1(&line.trim().into());  
+        warn!("{}",&line.trim());  
     }
 }
 
-#[cfg(not(force_show_incoming))]
-fn show_incoming(config: &PgPeregrineConfig) -> Result<bool,Message> { config.get_bool(&PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages)) }
-
 impl DrawMessage {
     fn run(self, draw: &mut PeregrineInnerAPI, blocker: &Blocker) -> Result<(),Message> {
-        if show_incoming(draw.config())? {
-            console::log_1(&format!("message {:?}",self).into());
-        }
+        log_extra!("message {:?}",self);
         match self {
             DrawMessage::Goto(centre,scale) => {
                 draw.goto(centre,scale);
@@ -223,9 +215,14 @@ impl PeregrineAPI {
     }
 
     async fn step(&self, mut draw: PeregrineInnerAPI) -> Result<(),Message> {
-        if show_incoming(draw.config())? {
-            console::log_1(&format!("version {} {} {}",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME")).into());
-        }
+        set_printer(|severity,message| {
+            match severity {
+                Severity::Error => { console::error_1(&message.into()); },
+                Severity::Warning => { console::warn_1(&message.into()); },
+                Severity::Notice => { console::log_1(&message.into()); },
+            }
+        });
+        log_important!("version {} {} {}",GIT_TAG,GIT_BUILD_DATE,env!("BUILD_TIME"));
         #[cfg(debug_assertions)]
         dev_warning();
         loop {

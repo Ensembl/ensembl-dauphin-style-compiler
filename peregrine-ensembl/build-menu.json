@@ -1,0 +1,17 @@
+[
+    {
+        "key": "CFG_RUST_MODE",
+        "question": "Rust build type",
+        "options": ["release","dev"]
+    },
+    {
+        "key": "CFG_DEBUG_WEBGL",
+        "question": "Debug webgl",
+        "options": ["no","yes"]
+    },
+    {
+        "key": "CFG_CONSOLE",
+        "question": "Console verbosity",
+        "options": ["default","quiet","noisy"]
+    }
+]

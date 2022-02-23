@@ -13,5 +13,6 @@ pub mod plumbing {
 }
 
 pub mod cbor;
+pub mod console;
 pub mod refs;
 pub mod url;

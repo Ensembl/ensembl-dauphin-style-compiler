@@ -1,5 +1,5 @@
 use std::num::{ParseFloatError, ParseIntError};
-use peregrine_data::{CarriageSpeed, ConfigKey, DataMessage, DirectColour};
+use peregrine_data::{CarriageSpeed, DataMessage, DirectColour};
 use crate::{shape::core::spectremanager::SpectreConfigKey, util::message::Message};
 use lazy_static::lazy_static;
 use peregrine_config::{ Config, ConfigKeyInfo, ConfigValue, ConfigError };
@@ -39,12 +39,6 @@ impl CursorCircumstance {
 
 #[derive(Clone,PartialEq,Eq,Hash)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum DebugFlag {
-    ShowIncomingMessages
-}
-
-#[derive(Clone,PartialEq,Eq,Hash)]
-#[cfg_attr(debug_assertions,derive(Debug))]
 pub enum PgConfigKey {
     FadeOverlap(CarriageSpeed),
     AnimationFadeRate(CarriageSpeed),
@@ -63,7 +57,6 @@ pub enum PgConfigKey {
     DragCursorDelay, // ms, switch to drag cursor (ie assume not click)
     WheelSensitivity,
     WheelTimeout, // ms, how long between wheel events to assume not a wheel
-    DebugFlag(DebugFlag),
     AuxBufferSize, // 4-byte units
     PinchMinSep, // px min num pix to try to scale with super zoom-out
     // min factor where we try to calculate centre-of-zoom rather htan default, to avoid divide-by-zero.
@@ -86,6 +79,7 @@ pub enum PgConfigKey {
     GotoRho, // Wijk and Nuij's rho parameter for goto animations: higher means perfer more zoom
     GotoV, // Wijk and Nuij's V parameter for goto animations: overall animation speed
     GotoMaxS, // Maximum value of Wijk and Nuij's S parameter before bailing and using a fade
+    Verbosity, // Message verbosity
 }
 
 #[cfg(not(debug_assertions))]
@@ -108,6 +102,7 @@ pub enum PgConfigValue {
 lazy_static! {
     static ref CONFIG_CONFIG : Vec<ConfigKeyInfo<'static,PgConfigKey,PgConfigValue>> = {
         vec![
+            ConfigKeyInfo { key: PgConfigKey::Verbosity, name: "verbosity", default: &PgConfigValue::StaticStr("") },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Quick), name: "animate.fade.fast", default: &PgConfigValue::Float(200.) },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::SlowCrossFade), name: "animate.fade.slow-cross", default: &PgConfigValue::Float(500.) },
             ConfigKeyInfo { key: PgConfigKey::AnimationFadeRate(CarriageSpeed::Slow), name: "animate.fade.slow", default: &PgConfigValue::Float(400.) },
@@ -160,7 +155,6 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::WheelSensitivity, name: "wheel.sensitivity", default: &PgConfigValue::Float(2.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinSep, name: "touch.pinch-min-sep", default: &PgConfigValue::Float(16.) },
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
-            ConfigKeyInfo { key: PgConfigKey::DebugFlag(DebugFlag::ShowIncomingMessages), name: "debug.show-incoming-messages", default: &PgConfigValue::Boolean(false) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(256*1024) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },

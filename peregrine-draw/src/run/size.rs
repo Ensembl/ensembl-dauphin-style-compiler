@@ -31,6 +31,7 @@ be noted in the test_update_canvas_size call.
 
 use std::sync::{ Arc, Mutex };
 use crate::util::{message::Message };
+use peregrine_toolkit::log_important;
 use peregrine_toolkit::sync::needed::Needed;
 use web_sys::{ WebGlRenderingContext, window };
 use super::{dom::PeregrineDom, inner::LockedPeregrineInnerAPI };
@@ -55,7 +56,11 @@ struct SizeManagerState {
 impl SizeManagerState {
     fn check_container_size(&mut self) -> bool {
         let size = self.dom.canvas_frame().get_bounding_client_rect();
-        let (x,y) = (size.width() as u32,size.height() as u32);
+        let (x,y) = (size.width().round() as u32,size.height().round() as u32);
+        if x == 0 || y == 0 {
+            log_important!("browser disappeared XXX signal this");
+            return false;
+        }
         let out = self.container_size.map(|(old_x,old_y)| {
             old_x != x || old_y != y
         }).unwrap_or(true);
@@ -72,7 +77,7 @@ impl SizeManagerState {
 
     fn canvas_size(&self) -> (u32,u32) {
         let size = self.dom.canvas().get_bounding_client_rect();
-        (size.width() as u32,size.height() as u32)
+        (size.width().round() as u32,size.height().round() as u32)
     }
 
     fn booted(&self) -> bool { self.booted }

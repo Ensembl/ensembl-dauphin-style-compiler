@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: new-genome-browser-server-deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: new-genome-browser-server
+          envFrom:
+          - configMapRef:
+              name: new-genome-browser-server-configmap-hi
+          - configMapRef:
+              name: new-genome-browser-source-toml-configmap
+      volumes:
+        - name: new-genome-browser-server-data-vol
+          nfs:
+            server: <NFS_SERVER>
+            path: <NFS_PATH>

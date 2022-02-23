@@ -1,3 +1,23 @@
+# 0.2.0
+  * Round sizes correctly in observer to avoid excessive CPU usage
+  * Don't crash if window size becomes zero
+  * New "variety" key to reduce zmenu ambiguity.
+  * Deduplicate varieties
+  * Update current style compiler programs to use "variety key" (BE version 6->7, code version 0.1.x->0.2.x)
+  * Allow an element to be passed in the config instead of an element id (if desired)
+  * Replace ad-hoc approaches to logging verbosity on console with single, unified and configurable approach
+  * Build system work:
+    * Use dockerignore to reduce build time of docekr builds
+    * Use docker buildkit for extra features
+    * Menuize build scripts
+    * Bust docker cacheing to pick up github changes, where requested
+  * Code quality work in callbacks:
+    * Simpler scheduler
+    * New, self-contained classes which manage unloading correctly for
+      * timer
+      * requestanimationframe
+      * custom events
+
 # 0.1.4
   * Remove annoying "double flash" on gene move
   * Additional key in zmenu payload to link genes and transcripts

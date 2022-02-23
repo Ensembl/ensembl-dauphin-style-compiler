@@ -16,7 +16,8 @@
 
 use dauphin_interp::runtime::{ Payload, PayloadFactory };
 use dauphin_interp::{ StreamConnector, Stream };
-use web_sys::console;
+use peregrine_toolkit::console::Severity;
+use peregrine_toolkit::{error, warn, log};
 
 pub struct WebStreamConnector();
 
@@ -26,36 +27,13 @@ impl WebStreamConnector {
     }
 }
 
-#[cfg(console)]
 impl StreamConnector for WebStreamConnector {
-    fn notice(&self, msg: &str) -> anyhow::Result<()> {
-        console::log_1(&format!("{}\n",msg).into());
-        Ok(())
-    }
-
-    fn warn(&self, msg: &str) -> anyhow::Result<()> {
-        console::warn_1(&format!("{}\n",msg).into());
-        Ok(())
-    }
-
-    fn error(&self, msg: &str) -> anyhow::Result<()> {
-        console::error_1(&format!("{}\n",msg).into());
-        Ok(())
-    }
-}
-
-#[cfg(not(console))]
-#[allow(unused)]
-impl StreamConnector for WebStreamConnector {
-    fn notice(&self, msg: &str) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    fn warn(&self, msg: &str) -> anyhow::Result<()> {
-        Ok(())
-    }
-
-    fn error(&self, msg: &str) -> anyhow::Result<()> {
+    fn log(&self, severity: &Severity, msg: &str) -> anyhow::Result<()> {
+        match severity {
+            Severity::Error => { error!("ERROR! {}",msg); },
+            Severity::Warning => { warn!("WARNING! {}",msg); },
+            _ => { log!("{}",msg); }
+        };
         Ok(())
     }
 }
