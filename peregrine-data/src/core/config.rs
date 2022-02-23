@@ -1,4 +1,4 @@
-use std::num::ParseFloatError;
+use std::{num::ParseFloatError};
 use crate::util::message::DataMessage;
 use lazy_static::lazy_static;
 use peregrine_config::{Config, ConfigError, ConfigKeyInfo, ConfigValue};

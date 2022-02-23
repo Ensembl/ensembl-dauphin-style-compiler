@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
+import sys
 import http.server
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import socketserver
 
-PORT = 8000
+port = int(sys.argv[1])
+if port == 0:
+	sys.exit(0)
 
 socketserver.TCPServer.allow_reuse_address = True
 Handler = http.server.SimpleHTTPRequestHandler
@@ -18,8 +21,7 @@ Handler.extensions_map={
 	'': 'application/octet-stream', # Default
     }
 
-httpd = socketserver.TCPServer(("", PORT), Handler)
+httpd = socketserver.TCPServer(("", port), Handler)
 
-print("serving at port", PORT)
+print("serving at port", port)
 httpd.serve_forever()
-

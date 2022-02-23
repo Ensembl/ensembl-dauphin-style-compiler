@@ -1,0 +1,19 @@
+[
+    {
+        "key": "flintstone",
+        "question": "Favourite Flintstone?",
+        "options": ["fred","wilma","pebbles"]
+    },
+    {
+        "key": "port",
+        "question": "Port number?",
+        "default": "4444",
+        "verifiers": [
+            {
+                "verifier": "number",
+                "min": 1,
+                "max": 65536
+            }
+        ]
+    }
+]

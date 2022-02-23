@@ -45,7 +45,7 @@ path="../peregrine-toolkit"
 version = "*"
 features = [
   'AbortController', 'AbortSignal', 'AudioContext', 'AudioBufferSourceNode', 'AudioBuffer', 'AudioDestinationNode', 'AudioParam', 'AudioContextState',
-  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration',
+  'console', 'CustomEvent', 'CustomEventInit', 'CanvasRenderingContext2d', 'CssStyleDeclaration', 'Crypto',
   'Document', 'DomRect',
   'Element',
   'GainNode',

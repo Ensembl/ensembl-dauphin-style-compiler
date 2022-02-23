@@ -1,9 +1,11 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::rc::Rc;
 use crate::EachOrEvery;
 
 use super::zmenu::{ ZMenu, ZMenuBlock, ZMenuSequence, ZMenuText, ZMenuItem };
 use keyed::{ keyed_handle, KeyedValues };
+use serde_json::Number;
 use serde_json::Value as JSONValue;
 use serde_json::Map as JSONMap;
 use serde_json::json;
@@ -164,19 +166,68 @@ fn assemble_lines(data: &[ZMenuFixedSequence]) -> Vec<JSONValue> {
     ret.drain(..).map(|x| JSONValue::Array(x)).collect::<Vec<_>>()
 }
 
-fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
+fn zmenu_fixed_metadata_to_json(zmenu: &ZMenuFixed) -> JSONValue {
     let mut metadata = JSONMap::new();
     for (k,v) in zmenu.metadata.iter() {
         metadata.insert(k.to_string(),JSONValue::String(v.to_string()));
     }
+    JSONValue::Object(metadata)
+}
+
+fn zmenu_fixed_to_json(zmenu: &ZMenuFixed) -> JSONValue {
     json!({
-        "metadata": metadata,
+        "metadata": zmenu_fixed_metadata_to_json(&zmenu),
         "data": JSONValue::Array(assemble_lines(&zmenu.sequence))
     })
 }
 
 pub fn zmenu_fixed_vec_to_json(zmenus: &[ZMenuFixed]) -> JSONValue {
     JSONValue::Array(zmenus.iter().map(|z| zmenu_fixed_to_json(z)).collect())
+}
+
+fn metadata_hashable(zmenu: &ZMenuFixed) -> Vec<(&String,&String)> {
+    let mut out = vec![];
+    for (key,value) in &zmenu.metadata {
+        out.push((key,value));
+    }
+    out.sort();
+    out
+}
+
+fn deduplicate_variety(zmenus: &mut Vec<&ZMenuFixed>) {
+    let mut out = vec![];
+    let mut seen = HashSet::new();
+    for zmenu in zmenus.drain(..) {
+        let hash = metadata_hashable(zmenu);
+        if !seen.contains(&hash) {
+            out.push(zmenu);
+            seen.insert(hash);
+        }
+    }
+    *zmenus = out;
+}
+
+pub fn zmenu_fixed_vec_to_json_split(zmenus: &[ZMenuFixed]) -> (JSONValue,JSONValue) {
+    let mut contents = vec![];
+    let mut varieties = vec![];
+    for zmenu in zmenus {
+        let target = if zmenu.sequence.len() == 0 { &mut varieties } else { &mut contents };
+        target.push(zmenu);
+    }
+    deduplicate_variety(&mut varieties);
+    (JSONValue::Array(varieties.iter().map(|z| zmenu_fixed_metadata_to_json(z)).collect()),
+     JSONValue::Array(contents.iter().map(|z| zmenu_fixed_to_json(z)).collect()))
+}
+
+pub fn zmenu_to_json(x: f64, y: f64, zmenus: &[ZMenuFixed]) -> JSONValue {
+    let mut root = JSONMap::new();
+    let (variety,content) = zmenu_fixed_vec_to_json_split(zmenus);
+    root.insert("x".to_string(),JSONValue::Number(Number::from_f64(x).unwrap()));
+    root.insert("y".to_string(),JSONValue::Number(Number::from_f64(y).unwrap()));
+    root.insert("content".to_string(),content);
+    root.insert("variety".to_string(),variety);
+
+    JSONValue::Object(root)
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]

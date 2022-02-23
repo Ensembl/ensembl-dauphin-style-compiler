@@ -55,10 +55,17 @@ esac
 
 case "$CFG_EC_DAILY" in
   yes)
+<<<<<<< HEAD
+    CACHE_BUST="$(date +%Y%m%d)"
+    ;;
+  *)
+    CACHE_BUST="$(date)"
+=======
     CACHE_BUST="'$(date +%Y%m%d)'"
     ;;
   *)
     CACHE_BUST="'$(date +%Y%m%d%H%M%S)'"
+>>>>>>> staging
     ;;
 esac
 

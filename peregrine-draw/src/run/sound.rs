@@ -9,37 +9,14 @@ use wasm_bindgen::{JsCast, JsValue, prelude::Closure};
 use web_sys::{ AudioContext, AudioBufferSourceNode, AudioBuffer, AudioContextState };
 use commander::{CommanderStream, PromiseFuture};
 
+use crate::util::promise::promise_to_future;
 use crate::{Message, PgCommanderWeb };
 
 use super::PgConfigKey;
 use super::PgPeregrineConfig;
 
-async fn wrap_js_promise(promise: Promise) -> Result<JsValue,JsValue> {
-    let result = PromiseFuture::new();
-    let result2 = result.clone();
-    let result3 = result.clone();
-    let success = Closure::once(move |v| result2.satisfy(Ok(v)));
-    let failure = Closure::once(move |v| result3.satisfy(Err(v)));
-    let closure = promise.then2(&success,&failure);
-    let out = result.await;
-    drop(success);
-    drop(failure);
-    drop(closure);
-    out
-}
-
 #[derive(Clone)]
 struct PromiseBgd(Arc<Mutex<Option<(Closure<dyn FnMut(JsValue)>,Closure<dyn FnMut(JsValue)>)>>>);
-
-fn wrap_js_promise_bgd(promise: Promise) {
-    let holder = PromiseBgd(Arc::new(Mutex::new(None)));
-    let holder2 = holder.clone();
-    let success = Closure::once(move |v| drop(holder2));
-    let holder2 = holder.clone();
-    let failure = Closure::once(move |v| drop(holder2));
-    let _ = promise.then2(&success,&failure);
-    holder.0.lock().unwrap().replace((success,failure));
-}
 
 enum SoundQueueItem {
     Play(String)
@@ -61,7 +38,7 @@ impl SoundState {
         if bytes.is_none() { return Ok(None); }
         let bytes = bytes.unwrap();
         let promise = self.audio_context()?.decode_audio_data(&Uint8Array::from(bytes.data().as_ref().as_ref()).buffer())?;
-        let audio_buffer = wrap_js_promise(promise).await?.dyn_into::<AudioBuffer>()?;
+        let audio_buffer = promise_to_future(promise).await?.dyn_into::<AudioBuffer>()?;
         Ok(Some(audio_buffer))
     }
 
@@ -77,7 +54,7 @@ impl SoundState {
         let asset = self.assets.get(name);
         if asset.is_none() { return Ok(()); }
         let asset = asset.unwrap();
-        wrap_js_promise(self.audio_context()?.resume()?).await.ok(); // handle autoplay-protection having stopped earlier sounds
+        promise_to_future(self.audio_context()?.resume()?).await.ok(); // handle autoplay-protection having stopped earlier sounds
         let source_node = AudioBufferSourceNode::new(self.audio_context()?)?;
         match self.audio_context()?.state() {
             AudioContextState::Running => {},
@@ -103,7 +80,7 @@ impl SoundState {
         source_node.stop()?;
         source_node.disconnect()?;
         volume_node.disconnect()?;
-        wrap_js_promise(self.audio_context()?.suspend()?).await?;
+        promise_to_future(self.audio_context()?.suspend()?).await?;
         Ok(())
     }
 

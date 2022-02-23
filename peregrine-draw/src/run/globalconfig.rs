@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use peregrine_data::PgdPeregrineConfig;
-use super::config::PgPeregrineConfig;
+use peregrine_toolkit::console::{set_verbosity, Verbosity};
+use super::{config::PgPeregrineConfig, PgConfigKey};
 use crate::util::Message;
 
 pub(crate) struct CreatingPeregrineConfigs<'a> {
@@ -17,13 +18,14 @@ pub(crate) struct CreatedPeregrineConfigs<'a> {
 pub struct PeregrineConfig<'a>(CreatingPeregrineConfigs<'a>);
 
 impl<'a> PeregrineConfig<'a> {
-    pub fn new() -> PeregrineConfig<'a> {
+    pub fn new() -> Result<PeregrineConfig<'a>,Message> {
         let pg_config = PgPeregrineConfig::new();
         let pgd_config = PgdPeregrineConfig::new();
-        PeregrineConfig(CreatingPeregrineConfigs {
+        set_verbosity(&Verbosity::from_string(pg_config.get_str(&PgConfigKey::Verbosity)?));
+        Ok(PeregrineConfig(CreatingPeregrineConfigs {
             draw: pg_config,
             data: pgd_config
-        })
+        }))
     }
 
     pub fn set(&mut self, key_str: &str, value: &str) -> Result<(),Message> {
