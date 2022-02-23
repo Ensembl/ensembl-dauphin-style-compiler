@@ -12,6 +12,18 @@ pub mod plumbing {
     pub mod onchange;
 }
 
+pub mod puzzle {
+    mod answers;
+    mod derived;
+    mod graph;
+    mod piece;
+    mod puzzle;
+
+    pub use puzzle::{ Puzzle, PuzzleSolution, PuzzleDependency };
+    pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece };
+    pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue };
+}
+
 pub mod boom;
 pub mod cbor;
 pub mod console;
