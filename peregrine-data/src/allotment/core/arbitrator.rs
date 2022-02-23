@@ -116,10 +116,6 @@ impl<'a> Arbitrator<'a> {
         })
     }
 
-    pub fn lookup_symbolic(&self, axis: &SymbolicAxis, name: &str) -> Option<i64> {
-        self.lookup_symbolic_delayed(axis,name).map(|x| x.value())
-    }
-
     pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, value: DelayedValue) {
         self.position.insert((axis.clone(),name.to_string()),value);
     }

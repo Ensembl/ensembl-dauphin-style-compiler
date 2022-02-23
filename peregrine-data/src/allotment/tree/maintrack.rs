@@ -54,16 +54,16 @@ impl LinearGroupEntry for MainTrackRequest {
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let mut main_builder = AllotmentBoxBuilder::empty(0);
+        let mut main_builder = AllotmentBoxBuilder::empty(0,&None);
 
         /* the top of the track, where the title goes */
-        let mut header_builder = AllotmentBoxBuilder::empty(0);
+        let mut header_builder = AllotmentBoxBuilder::empty(0,&None);
         header_builder.append_all(lock!(self.header).allot(arbitrator));
         let header = AllotmentBox::new(header_builder);
         main_builder.append(header);
 
         /* the main bit of a track, where the data all goes */
-        let mut data_builder = AllotmentBoxBuilder::new(&self.metadata,0);
+        let mut data_builder = AllotmentBoxBuilder::new(&self.metadata,0,None);
         data_builder.overlay_all(lock!(self.requests).allot(arbitrator));
         let data_box = AllotmentBox::new(data_builder);
         main_builder.append(data_box);

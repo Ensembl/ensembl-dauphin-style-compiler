@@ -62,11 +62,10 @@ impl GLCarriage {
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let drawing = Drawing::new(Some(scale),carriage.shapes(),&gl,carriage.extent().left_right().0,&assets).await;
+                let shapes = carriage.shapes().ok().unwrap(); // XXX
+                let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets).await;
                 carriage.set_ready();
                 redraw_needed.set();
-                //use web_sys::console;
-                //console::log_1(&format!("ready at {}",carriage.extent().train().scale().get_index()).into());        
                 drawing
             })
         })));

@@ -12,34 +12,30 @@ pub struct AllotmentBoxBuilder {
 }
 
 impl AllotmentBoxBuilder {
-    pub fn new(metadata: &AllotmentMetadata, natural_height: i64) -> AllotmentBoxBuilder {
+    pub fn new(metadata: &AllotmentMetadata, natural_height: i64, self_indent: Option<&DelayedValue>) -> AllotmentBoxBuilder {
         AllotmentBoxBuilder {
             padding_top: metadata.get_i64("padding-top").unwrap_or(0),
             padding_bottom: metadata.get_i64("padding-bottom").unwrap_or(0),
             min_height: metadata.get_i64("min-height"),
             natural_height,
             children: vec![],
-            self_indent: None
+            self_indent: self_indent.cloned()
         }
     }
 
-    pub fn empty(natural_height: i64) -> AllotmentBoxBuilder {
+    pub fn empty(natural_height: i64, self_indent: &Option<DelayedValue>) -> AllotmentBoxBuilder {
         AllotmentBoxBuilder {
             padding_top: 0,
             padding_bottom: 0,
             min_height: None,
             natural_height,
             children: vec![],
-            self_indent: None
+            self_indent: self_indent.clone()
         }
     }
 
     pub fn add_padding_top(&mut self, amt: i64) {
         self.padding_top += amt;
-    }
-
-    pub fn set_self_indent(&mut self, indent: Option<&DelayedValue>) {
-        self.self_indent = indent.cloned();
     }
 
     fn unpadded_height(&self) -> i64 {
