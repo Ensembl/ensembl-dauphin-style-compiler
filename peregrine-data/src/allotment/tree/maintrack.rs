@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, puzzle::PuzzleSolution};
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper, LinearGroup}}, core::{arbitrator::{Arbitrator, SymbolicAxis}}, tree::maintrackspec::MTSection}, CoordinateSystem, CoordinateSystemVariety};
 
@@ -27,10 +27,10 @@ impl MainTrackRequest {
 }
 
 impl LinearGroupEntry for MainTrackRequest {
-    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+    fn get_entry_metadata(&self, solution: &PuzzleSolution, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         let mut new = AllotmentMetadataRequest::rebuild(&self.metadata);
         for (_,entry) in lock!(self.requests).iter() {
-            entry.add_allotment_metadata_values(&mut new);
+            entry.add_allotment_metadata_values(solution,&mut new);
         }
         out.push(AllotmentMetadata::new(new));
     }
@@ -54,16 +54,16 @@ impl LinearGroupEntry for MainTrackRequest {
     }
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let mut main_builder = AllotmentBoxBuilder::empty(0,&None);
+        let mut main_builder = AllotmentBoxBuilder::empty(arbitrator,0.,&None);
 
         /* the top of the track, where the title goes */
-        let mut header_builder = AllotmentBoxBuilder::empty(0,&None);
+        let mut header_builder = AllotmentBoxBuilder::empty(arbitrator,0.,&None);
         header_builder.append_all(lock!(self.header).allot(arbitrator));
         let header = AllotmentBox::new(header_builder);
         main_builder.append(header);
 
         /* the main bit of a track, where the data all goes */
-        let mut data_builder = AllotmentBoxBuilder::new(&self.metadata,0,None);
+        let mut data_builder = AllotmentBoxBuilder::new(arbitrator,&self.metadata,0.,None);
         data_builder.overlay_all(lock!(self.requests).allot(arbitrator));
         let data_box = AllotmentBox::new(data_builder);
         main_builder.append(data_box);

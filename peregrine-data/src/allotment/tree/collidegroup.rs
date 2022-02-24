@@ -1,5 +1,5 @@
 use std::{collections::{HashMap}, sync::{Arc, Mutex}};
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, puzzle::PuzzleSolution};
 
 use crate::{AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataStore, AllotmentRequest, allotment::{lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}, core::{allotmentrequest::{AllotmentRequestImpl, GenericAllotmentRequestImpl}, arbitrator::{Arbitrator}, rangeused::RangeUsed}}, CoordinateSystem};
 
@@ -20,30 +20,29 @@ impl CollideGroupRequest {
         }
     }
 
-    pub(crate) fn add_allotment_metadata_values(&self, out: &mut AllotmentMetadataRequest) {
+    pub(crate) fn add_allotment_metadata_values(&self, solution: &PuzzleSolution, out: &mut AllotmentMetadataRequest) {
         let requests = lock!(self.requests);
         for request in requests.values() {
-            request.add_allotment_metadata_values(out);
+            request.add_allotment_metadata_values(solution,out);
         }
     }
 
     fn make_content_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let box_builder = AllotmentBoxBuilder::empty(request.max_y(),&specifier.arbitrator_horiz(arbitrator));
+        let box_builder = AllotmentBoxBuilder::empty(arbitrator,request.max_y() as f64,&specifier.arbitrator_horiz(arbitrator));
         let content_box = AllotmentBox::new(box_builder);
         request.set_allotment(Arc::new(content_box.clone()));
         content_box
     }
 
     fn make_child_box(&self, specifier: &MTSpecifier, request: &AllotmentRequestImpl, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let mut builder = AllotmentBoxBuilder::empty(0,&None);
-        builder.add_padding_top(lock!(self.bump_token).as_ref().map(|x| x.get()).unwrap_or(0.) as i64);
+        let mut builder = AllotmentBoxBuilder::empty(arbitrator,0.,&None);
         builder.append(self.make_content_box(specifier,request,arbitrator));
         AllotmentBox::new(builder)
     }
 }
 
 impl LinearGroupEntry for CollideGroupRequest {
-    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, _out: &mut Vec<AllotmentMetadata>) {}
+    fn get_entry_metadata(&self, solution: &PuzzleSolution, _allotment_metadata: &AllotmentMetadataStore, _out: &mut Vec<AllotmentMetadata>) {}
 
     fn priority(&self) -> i64 { self.metadata.priority() }
 
@@ -80,7 +79,7 @@ impl LinearGroupEntry for CollideGroupRequest {
             let child_box = self.make_child_box(specifier,request,arbitrator);
             child_boxes.push(child_box);
         }
-        let mut builder = AllotmentBoxBuilder::empty(0,&None);
+        let mut builder = AllotmentBoxBuilder::empty(arbitrator,0.,&None);
         builder.overlay_all(child_boxes);
         AllotmentBox::new(builder)
     }

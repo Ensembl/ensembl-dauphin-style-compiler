@@ -161,11 +161,16 @@ impl AllotmentMetadata {
         }
     }
 
+    pub(crate) fn empty() -> AllotmentMetadata {
+        AllotmentMetadata::new(AllotmentMetadataRequest::dustbin())
+    }
+
     pub fn name(&self) -> &str { &self.metadata.name }
     pub fn priority(&self) -> i64 { self.metadata.priority }
 
     pub fn get(&self, name: &str) -> Option<&String> { self.metadata.pairs.get(name).as_ref().map(|x| &x.value) }
     pub fn get_i64(&self, name: &str) -> Option<i64> { self.get(name).map(|x| x.parse().ok()).flatten() }
+    pub fn get_f64(&self, name: &str) -> Option<f64> { self.get(name).map(|x| x.parse().ok()).flatten() }
 
     pub fn summarize(&self) -> HashMap<String,String> {
         self.metadata.summarize()

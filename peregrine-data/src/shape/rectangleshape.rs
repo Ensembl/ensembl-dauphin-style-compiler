@@ -1,3 +1,5 @@
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox}};
 use std::hash::Hash;
 
@@ -82,9 +84,9 @@ impl RectangleShape<AllotmentRequest> {
 }
 
 impl RectangleShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon) -> RectangleShape<()> {
+    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> RectangleShape<()> {
         RectangleShape {
-            area: transform_spacebasearea2(&common.coord_system(),&self.area),
+            area: transform_spacebasearea2(solution,&common.coord_system(),&self.area),
             patina: self.patina.clone(),
             wobble: self.wobble.clone()
         }

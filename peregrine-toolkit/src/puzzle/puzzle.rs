@@ -22,6 +22,7 @@ impl PuzzleDependency {
     pub(super) fn index(&self) -> Option<usize> { self.index }
 }
 
+#[derive(Clone)]
 pub struct Puzzle {
     graph: Arc<Mutex<PuzzleGraph>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>
@@ -35,7 +36,7 @@ impl Puzzle {
         }
     }
 
-    pub fn new_piece<T: 'static>(&mut self, default: Option<T>) -> PuzzlePiece<T> {
+    pub fn new_piece<T: 'static>(&self, default: Option<T>) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
         let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),default);

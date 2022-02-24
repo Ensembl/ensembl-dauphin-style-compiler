@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, puzzle::PuzzleSolution};
 
 use crate::{AllotmentMetadataStore, AllotmentRequest, AllotmentMetadata, AllotmentMetadataRequest, allotment::{core::{allotmentrequest::{AllotmentRequestImpl}, basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis}}, lineargroup::{lineargroup::{LinearGroupEntry, LinearGroupHelper}}}, CoordinateSystem};
 use super::{allotmentbox::{AllotmentBox, AllotmentBoxBuilder}};
@@ -32,7 +32,7 @@ impl LinearGroupEntry for BoxLinearEntry {
     fn bump(&self, _arbitrator: &mut Arbitrator) {}
 
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox {
-        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.transformer.max_y(),None));
+        let allot_box = AllotmentBox::new(AllotmentBoxBuilder::new(arbitrator,&AllotmentMetadata::new(AllotmentMetadataRequest::new("", 0)),self.transformer.max_y() as f64,None));
         arbitrator.add_symbolic(&SymbolicAxis::ScreenHoriz, &self.name_for_arbitrator, allot_box.top_delayed());
         self.transformer.set_allotment(Arc::new(allot_box.clone()));
         *lock!(self.allot_box) = Some(allot_box.clone());
@@ -41,12 +41,12 @@ impl LinearGroupEntry for BoxLinearEntry {
 
     fn priority(&self) -> i64 { self.transformer.metadata().priority() }
 
-    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+    fn get_entry_metadata(&self, solution: &PuzzleSolution, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         let secret = self.metadata.get_i64("secret-track").unwrap_or(0) != 0;
         if secret { return; }
         if let Some(allot_box) = lock!(self.allot_box).as_ref() {
             let mut full_metadata = AllotmentMetadataRequest::rebuild(&self.metadata);
-            allot_box.add_transform_metadata(&mut full_metadata);
+            allot_box.add_transform_metadata(solution,&mut full_metadata);
             out.push(AllotmentMetadata::new(full_metadata));
         }
     }

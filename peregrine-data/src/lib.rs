@@ -22,6 +22,7 @@ mod allotment {
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;
         pub(crate) mod allotmentbox;    
+        pub(crate) mod allotmentbox2;
     }
 
     pub use tree::leaftransformer::{ transform_yy, transform_spacebase, transform_spacebase2, transform_spacebasearea, transform_spacebasearea2 };

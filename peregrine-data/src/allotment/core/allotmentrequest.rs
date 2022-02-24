@@ -1,6 +1,7 @@
 use std::{hash::Hash, sync::Mutex};
 use std::sync::Arc;
 use peregrine_toolkit::lock;
+use peregrine_toolkit::puzzle::PuzzleSolution;
 
 use super::basicallotmentspec::BasicAllotmentSpec;
 use super::rangeused::RangeUsed;
@@ -92,9 +93,9 @@ impl AllotmentRequestExperience {
     fn pixel_range(&self) -> &RangeUsed<f64> { &self.pixel_range }
     fn set_pixel_range(&mut self, used: &RangeUsed<f64>) { self.pixel_range = self.pixel_range.merge(&used); }
 
-    fn add_allotment_metadata_values(&mut self, metadata: &mut AllotmentMetadataRequest) {
+    fn add_allotment_metadata_values(&mut self, solution: &PuzzleSolution, metadata: &mut AllotmentMetadataRequest) {
         if let Some(allot_box) = &mut self.allot_box {
-            allot_box.add_transform_metadata(metadata);
+            allot_box.add_transform_metadata(solution, metadata);
         }
     }
 }
@@ -132,8 +133,8 @@ impl AllotmentRequestImpl {
     pub fn base_range(&self) -> RangeUsed<f64> { lock!(self.experience).base_range().clone() }
     pub fn pixel_range(&self) -> RangeUsed<f64> { lock!(self.experience).pixel_range().clone() }
 
-    pub fn add_allotment_metadata_values(&self, metadata: &mut AllotmentMetadataRequest) {
-        lock!(self.experience).add_allotment_metadata_values(metadata);
+    pub fn add_allotment_metadata_values(&self, solution: &PuzzleSolution, metadata: &mut AllotmentMetadataRequest) {
+        lock!(self.experience).add_allotment_metadata_values(solution,metadata);
     }
 }
 

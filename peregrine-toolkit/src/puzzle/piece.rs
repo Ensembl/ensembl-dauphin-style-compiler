@@ -25,6 +25,25 @@ pub trait ClonablePuzzleValue<T: 'static + Clone> : PuzzleValue<T> {
     }
 }
 
+pub struct PuzzleValueHolder<T: 'static>(Arc<dyn PuzzleValue<T>>);
+
+impl<T: 'static> PuzzleValueHolder<T> {
+    pub fn new<F>(value: F) -> PuzzleValueHolder<T> where F: PuzzleValue<T> + 'static {
+        PuzzleValueHolder(Arc::new(value))
+    }
+}
+
+impl<T: 'static> PuzzleValue<T> for PuzzleValueHolder<T> {
+    fn dependency(&self) -> PuzzleDependency { self.0.dependency() }
+    fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> { self.0.try_get(solution) }
+}
+
+impl<T: 'static+ Clone> ClonablePuzzleValue<T> for PuzzleValueHolder<T> {}
+
+impl<T: 'static> Clone for PuzzleValueHolder<T> {
+    fn clone(&self) -> Self { Self(self.0.clone()) }
+}
+
 pub struct PuzzlePiece<T> {
     graph: Arc<Mutex<PuzzleGraph>>,
     dependency: PuzzleDependency,
@@ -32,7 +51,6 @@ pub struct PuzzlePiece<T> {
     default: Arc<Mutex<Option<T>>>
 }
 
-// Rust bug means dan't derive Clone on polymorphic types
 impl<T> Clone for PuzzlePiece<T> {
     fn clone(&self) -> Self {
         PuzzlePiece {

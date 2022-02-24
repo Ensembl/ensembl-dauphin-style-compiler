@@ -1,3 +1,5 @@
+use peregrine_toolkit::puzzle::PuzzleValueHolder;
+
 use crate::{allotment::{core::{basicallotmentspec::BasicAllotmentSpec, arbitrator::{Arbitrator, SymbolicAxis, DelayedValue}}}, CoordinateSystem, CoordinateSystemVariety};
 
 fn trim_suffix(suffix: &str, name: &str) -> Option<String> {
@@ -65,12 +67,12 @@ impl MTSpecifier {
         }
     }
 
-    pub(super) fn arbitrator_horiz(&self, arbitrator: &Arbitrator) -> Option<DelayedValue> {
+    pub(super) fn arbitrator_horiz(&self, arbitrator: &Arbitrator) -> Option<PuzzleValueHolder<f64>> {
         match self.variety {
             MTVariety::Track => None,
             MTVariety::TrackWindow => None,
             MTVariety::Wallpaper => {
-                self.base.arbitrator().as_ref().and_then(|s| arbitrator.lookup_symbolic_delayed(&SymbolicAxis::ScreenHoriz,s).cloned())
+                self.base.arbitrator().as_ref().and_then(|s| arbitrator.lookup_symbolic_delayed(&SymbolicAxis::ScreenHoriz,s)).cloned()
             }
         }
     }

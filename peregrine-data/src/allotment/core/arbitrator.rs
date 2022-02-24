@@ -1,6 +1,6 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{collections::HashMap, sync::{Arc, Mutex}, borrow::BorrowMut};
 
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleSolution, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleValueHolder}};
 
 use crate::{CarriageExtent, allotment::tree::collisionalgorithm::CollisionAlgorithmHolder};
 
@@ -82,20 +82,24 @@ impl BpPxConverter {
     }
 }
 
+
 pub struct Arbitrator<'a> {
     parent: Option<&'a Arbitrator<'a>>,
     bumper: CollisionAlgorithmHolder,
-    position: HashMap<(SymbolicAxis,String),DelayedValue>,
-    bp_px: Arc<BpPxConverter>
+    position: HashMap<(SymbolicAxis,String),PuzzleValueHolder<f64>>,
+    bp_px: Arc<BpPxConverter>,
+    puzzle: Puzzle
 }
 
 impl<'a> Arbitrator<'a> {
-    pub fn new(extent: Option<&CarriageExtent>) -> Arbitrator {
+    pub fn new(extent: Option<&CarriageExtent>, puzzle: &Puzzle) -> Arbitrator<'a> {
+        let puzzle = Puzzle::new();
         Arbitrator {
             parent: None,
             bumper: CollisionAlgorithmHolder::new(),
             position: HashMap::new(),
             bp_px: Arc::new(BpPxConverter::new(extent)),
+            puzzle: puzzle.clone()
         }
     }
 
@@ -104,19 +108,21 @@ impl<'a> Arbitrator<'a> {
             position: HashMap::new(),
             bumper: CollisionAlgorithmHolder::new(),
             bp_px: self.bp_px.clone(),
-            parent: Some(self)
+            parent: Some(self),
+            puzzle: self.puzzle.clone()
         }
     }
 
     pub fn bumper(&mut self) -> &mut CollisionAlgorithmHolder { &mut self.bumper }
+    pub fn puzzle(&self) -> &Puzzle { &self.puzzle }
 
-    pub fn lookup_symbolic_delayed(&self, axis: &SymbolicAxis, name: &str) -> Option<&DelayedValue> {
+    pub fn lookup_symbolic_delayed(&self, axis: &SymbolicAxis, name: &str) -> Option<&PuzzleValueHolder<f64>> {
         self.position.get(&(axis.clone(),name.to_string())).or_else(|| {
             self.parent.as_ref().and_then(|p| p.lookup_symbolic_delayed(axis,name))
         })
     }
 
-    pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, value: DelayedValue) {
+    pub fn add_symbolic(&mut self, axis: &SymbolicAxis, name: &str, value: PuzzleValueHolder<f64>) {
         self.position.insert((axis.clone(),name.to_string()),value);
     }
 

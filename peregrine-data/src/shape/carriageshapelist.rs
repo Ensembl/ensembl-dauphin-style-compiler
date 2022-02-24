@@ -1,5 +1,7 @@
 use std::sync::Arc;
 use std::collections::HashSet;
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase };
 
@@ -128,13 +130,14 @@ impl AnchoredCarriageShapeList {
     }
 
     pub fn new(floating: &FloatingCarriageShapeList) -> Result<AnchoredCarriageShapeList,DataMessage> {
+        let mut solution = PuzzleSolution::new(&floating.carriage_universe.puzzle());
         /* allotments are assigned here */
         floating.carriage_universe.allot(floating.extent.as_ref());
         /* shapes mapped to allotments here */
         let mut shapes = floating.shapes.iter()
             .map(|s| s.clone().allot(|r| r.allotment()))
             .collect::<Result<Vec<_>,_>>()?;
-        let shapes = shapes.drain(..).map(|s| s.transform()).collect();
+        let shapes = shapes.drain(..).map(|s| s.transform(&solution)).collect();
         Ok(AnchoredCarriageShapeList {
             carriage_universe: floating.carriage_universe.clone(),
             shapes: Arc::new(shapes)

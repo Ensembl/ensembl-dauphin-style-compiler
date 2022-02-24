@@ -1,3 +1,5 @@
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox}};
 use std::hash::Hash;
 
@@ -75,9 +77,9 @@ impl TextShape<AllotmentRequest> {
 }
 
 impl TextShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon) -> TextShape<()> {
+    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> TextShape<()> {
         TextShape {
-            position: transform_spacebase2(&common.coord_system(),&self.position),
+            position: transform_spacebase2(solution,&common.coord_system(),&self.position),
             pen: self.pen.clone(),
             text: self.text.clone()
         }

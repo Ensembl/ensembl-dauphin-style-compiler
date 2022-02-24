@@ -1,4 +1,6 @@
 use std::hash::Hash;
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
@@ -150,12 +152,12 @@ impl ShapeDetails<AllotmentRequest> {
 }
 
 impl ShapeDetails<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon) -> ShapeDetails<()> {
+    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> ShapeDetails<()> {
         match self {
-            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.transform(common)),
-            ShapeDetails::Text(shape) => ShapeDetails::Text(shape.transform(common)),
-            ShapeDetails::Image(shape) => ShapeDetails::Image(shape.transform(common)),
-            ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.transform(common)),
+            ShapeDetails::Wiggle(shape) => ShapeDetails::Wiggle(shape.transform(common,solution)),
+            ShapeDetails::Text(shape) => ShapeDetails::Text(shape.transform(common,solution)),
+            ShapeDetails::Image(shape) => ShapeDetails::Image(shape.transform(common,solution)),
+            ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.transform(common,solution)),
         }
     }
 }
@@ -227,10 +229,10 @@ impl<Z: Clone> Shape<Z> {
 }
 
 impl Shape<AllotmentBox> {
-    pub fn transform(&self) -> Shape<()> { 
+    pub fn transform(&self, solution: &PuzzleSolution) -> Shape<()> { 
         Shape {
             common: self.common.clone(),
-            details: self.details.transform(&self.common)
+            details: self.details.transform(&self.common,solution)
         }
     }
 }

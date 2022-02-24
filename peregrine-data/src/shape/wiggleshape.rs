@@ -1,3 +1,5 @@
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, tree::allotmentbox::AllotmentBox}};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
@@ -131,11 +133,11 @@ impl WiggleShape<AllotmentRequest> {
 }
 
 impl WiggleShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon) -> WiggleShape<()> {
+    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> WiggleShape<()> {
         let allotment = self.allotments.get(0).unwrap();
         WiggleShape {
             x_limits: self.x_limits.clone(),
-            values: Arc::new(transform_yy(common.coord_system(),allotment,&self.values)),
+            values: Arc::new(transform_yy(solution,common.coord_system(),allotment,&self.values)),
             plotter: self.plotter.clone(),
             allotments: EachOrEvery::Each(Arc::new(vec![()]))
         }

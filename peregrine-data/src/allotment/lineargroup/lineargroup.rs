@@ -1,9 +1,11 @@
 use std::{collections::HashMap, hash::Hash, sync::{Arc}};
 
+use peregrine_toolkit::puzzle::PuzzleSolution;
+
 use crate::{AllotmentMetadataStore, AllotmentMetadata, AllotmentRequest, allotment::{tree::{ allotmentbox::AllotmentBox}, core::arbitrator::Arbitrator}, CoordinateSystem};
 
 pub trait LinearGroupEntry {
-    fn get_entry_metadata(&self, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
+    fn get_entry_metadata(&self, solution: &PuzzleSolution, _allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>);
     fn bump(&self, arbitrator: &mut Arbitrator);
     fn allot(&self, arbitrator: &mut Arbitrator) -> AllotmentBox;
     fn priority(&self) -> i64;
@@ -58,9 +60,9 @@ impl<C: LinearGroupHelper> LinearGroup<C> {
         }
     }
 
-    pub(crate) fn get_all_metadata(&self, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
+    pub(crate) fn get_all_metadata(&self, solution: &PuzzleSolution, allotment_metadata: &AllotmentMetadataStore, out: &mut Vec<AllotmentMetadata>) {
         for (_,entry) in &self.entries {
-            entry.get_entry_metadata(allotment_metadata,out);
+            entry.get_entry_metadata(solution,allotment_metadata,out);
         }
     }
 
