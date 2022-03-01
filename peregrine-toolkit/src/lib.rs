@@ -19,7 +19,7 @@ pub mod puzzle {
     mod piece;
     mod puzzle;
 
-    pub use puzzle::{ Puzzle, PuzzleSolution, PuzzleDependency };
+    pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleSolution, PuzzleDependency };
     pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece };
     pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
 }

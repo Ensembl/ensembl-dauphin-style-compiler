@@ -27,14 +27,14 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Solid(heraldry_canvas),scale) => {
                     let heraldry_tool = tools.heraldry();
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    let handles = heraldry.fullmap(|x| heraldry_tool.add(x.clone()));
                     out.push(GLShape::Heraldry(shape.area().clone(),handles,depth,draw_group.clone(),heraldry_canvas.clone(),scale.clone(),None,wobble));
                 },
                 ShapeCategory::Heraldry(HeraldryCanvasesUsed::Hollow(heraldry_canvas_h,heraldry_canvas_v),scale) => {
                     let width = width.unwrap_or(0.);
                     let heraldry_tool = tools.heraldry();
                     let heraldry = make_heraldry(shape.patina())?;
-                    let handles = heraldry.map(|x| heraldry_tool.add(x.clone()));
+                    let handles = heraldry.fullmap(|x| heraldry_tool.add(x.clone()));
                     // XXX too much cloning, at least Arc them
                     let area = shape.area();
                     out.push(GLShape::Heraldry(area.clone(),handles.clone(),depth.clone(),draw_group.clone(),heraldry_canvas_v.clone(),scale.clone(),Some(HollowEdge2::Left(width)),wobble.clone()));

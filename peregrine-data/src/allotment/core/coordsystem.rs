@@ -22,10 +22,31 @@ pub enum CoordinateSystemVariety {
     Dustbin,
 }
 
+impl CoordinateSystemVariety {
+    pub fn from_string(name: &str) -> CoordinateSystemVariety {
+        match name {
+            "tracking-special" => CoordinateSystemVariety::TrackingWindow,
+            "window" => CoordinateSystemVariety::Window,
+            "sideways" => CoordinateSystemVariety::Sideways,
+            "dustbin" => CoordinateSystemVariety::Dustbin,
+            _ => CoordinateSystemVariety::Tracking
+        }
+    }
+}
+
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub struct CoordinateSystem(pub CoordinateSystemVariety,pub bool);
 
 impl CoordinateSystem {
+    pub fn from_string(name: &str, direction: &str) -> CoordinateSystem {
+        let variety = CoordinateSystemVariety::from_string(name);
+        let direction = match direction {
+            "reverse" => true,
+            _ => false
+        };
+        CoordinateSystem(variety,direction)
+    }
+
     pub fn is_dustbin(&self) -> bool {
         match self.0 {
             CoordinateSystemVariety::Dustbin => true,

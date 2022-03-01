@@ -76,7 +76,7 @@ impl<A: Clone> RectangleShape<A> {
 impl RectangleShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(RectangleShape {
-            area: self.area.map_allotments_results(&cb,&cb)?,
+            area: self.area.fullmap_allotments_results(&cb,&cb)?,
             patina: self.patina.clone(),
             wobble: self.wobble.clone()
         })

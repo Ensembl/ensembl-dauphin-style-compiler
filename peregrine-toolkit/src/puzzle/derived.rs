@@ -53,6 +53,7 @@ impl<T: Clone + 'static> ClonablePuzzleValue<T> for ConstantPuzzlePiece<T> {}
 
 #[cfg(test)]
 mod test {
+    use crate::puzzle::PuzzleBuilder;
     use crate::puzzle::puzzle::Puzzle;
     use crate::puzzle::piece::{PuzzleValue, ClonablePuzzleValue};
 
@@ -60,14 +61,15 @@ mod test {
 
     #[test]
     fn derived() {
-        let mut puzzle = Puzzle::new();
-        let p1 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p1 = builder.new_piece(None);
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = puzzle.new_piece(None);
+        let p3 = builder.new_piece(None);
         let p2b = p2.clone();
         p3.add_solver(&[p2.dependency()], move |solution| {
             Some(p2b.get_clone(solution) + 2)
         });
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         p1.set_answer(&mut s1,2);
         s1.solve();
@@ -78,14 +80,15 @@ mod test {
 
     #[test]
     fn constant() {
-        let mut puzzle = Puzzle::new();
+        let mut builder = PuzzleBuilder::new();
         let p1 = ConstantPuzzlePiece::new(3);
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = puzzle.new_piece(None);
+        let p3 = builder.new_piece(None);
         let p2b = p2.clone();
         p3.add_solver(&[p2.dependency()], move |solution| {
             Some(p2b.get_clone(solution) + 2)
         });
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         s1.solve();
         assert_eq!(Some(3),p1.try_get_clone(&s1));

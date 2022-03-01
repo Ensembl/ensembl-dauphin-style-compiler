@@ -19,7 +19,7 @@ struct ValueSource {
 
 impl ValueSource {
     fn new(name: &str, data: &HashMap<String,EachOrEvery<String>>) -> ValueSource {
-        let values = data.get(name).cloned().unwrap_or_else(|| EachOrEvery::Every("".to_string()));
+        let values = data.get(name).cloned().unwrap_or_else(|| EachOrEvery::every("".to_string()));
         ValueSource { values }
     }
 

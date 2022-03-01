@@ -1,6 +1,7 @@
 use std::{ops::{Add, Div, Sub}};
 use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}};
 use super::{spacebase::{SpaceBase, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
+use std::hash::Hash;
 
 pub struct SpaceBaseArea<X,Y>(SpaceBase<X,Y>,SpaceBase<X,Y>,usize);
 
@@ -9,6 +10,11 @@ impl<X: std::fmt::Debug, Y: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f,"SpaceBaseArea({:?},{:?})",self.0,self.1)
     }
+}
+
+impl <X,Y> SpaceBaseArea<X,Y> {
+    pub fn top_left(&self) -> &SpaceBase<X,Y> { &self.0 }
+    pub fn bottom_right(&self) -> &SpaceBase<X,Y> { &self.1 }
 }
 
 impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
@@ -40,17 +46,15 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         SpaceBaseArea(self.0.filter(filter),self.1.filter(filter),filter.count())
     }
 
-    pub fn map_allotments_results<F,G,A: Clone,E>(&self, cb: F, cb2: G) -> Result<SpaceBaseArea<X,A>,E> 
+    pub fn fullmap_allotments_results<F,G,A: Clone,E>(&self, cb: F, cb2: G) -> Result<SpaceBaseArea<X,A>,E> 
                 where F: FnMut(&Y) -> Result<A,E>, G: FnMut(&Y) -> Result<A,E> {
         Ok(SpaceBaseArea(
-            self.0.map_allotments_results(cb)?,
-            self.1.map_allotments_results(cb2)?,
+            self.0.fullmap_allotments_results(cb)?,
+            self.1.fullmap_allotments_results(cb2)?,
             self.2
         ))
     }
 
-    pub fn top_left(&self) -> &SpaceBase<X,Y> { &self.0 }
-    pub fn bottom_right(&self) -> &SpaceBase<X,Y> { &self.1 }
     pub fn bottom_left(&self) -> SpaceBase<X,Y> { self.0.replace_normal(&self.1).unwrap() }
     pub fn top_right(&self) -> SpaceBase<X,Y> { self.1.replace_normal(&self.0).unwrap() }
 }
@@ -63,6 +67,16 @@ impl<X: Clone,Y: Clone> Clone for SpaceBaseArea<X,Y> {
 
 impl<X: Clone + Add<Output=X> + Div<f64,Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
     pub fn middle_base(&self) -> SpaceBase<X,Y> { self.0.middle_base(&self.1).unwrap() }
+}
+
+impl<X,Y> SpaceBaseArea<X,Y> {
+    pub fn demerge_by_allotment<F,K>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
+        self.0.allotment.demerge(cb)
+    }
+
+    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBaseArea<X,A> where F: Fn(&Y) -> A {
+        SpaceBaseArea(self.0.map_allotments(&cb),self.1.map_allotments(cb),self.2)
+    }
 }
 
 #[derive(Clone)]

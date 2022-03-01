@@ -18,29 +18,46 @@ impl PuzzleDependency {
     }
 
     pub(super) fn none() -> PuzzleDependency { PuzzleDependency { index: None }}
-
     pub(super) fn index(&self) -> Option<usize> { self.index }
 }
 
-#[derive(Clone)]
-pub struct Puzzle {
+#[derive(Clone)] // XXX not Clone
+pub struct PuzzleBuilder {
     graph: Arc<Mutex<PuzzleGraph>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>
 }
 
-impl Puzzle {
-    pub fn new() -> Puzzle {
-        Puzzle {
+impl PuzzleBuilder {
+    pub fn new() -> PuzzleBuilder {
+        PuzzleBuilder {
             graph: Arc::new(Mutex::new(PuzzleGraph::new())),
             pieces: Arc::new(Mutex::new(vec![]))
         }
     }
 
+    // XXX should be mut
     pub fn new_piece<T: 'static>(&self, default: Option<T>) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
         let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),default);
         pieces.push(out.erased());
+        out
+    }
+}
+
+#[derive(Clone)]
+pub struct Puzzle(Arc<PuzzleBuilder>);
+
+impl Puzzle {
+    fn puzzle_ready(&self) {
+        for piece in lock!(self.0.pieces).iter_mut() {
+            piece.puzzle_ready();
+        }
+    }
+
+    pub fn new(builder: PuzzleBuilder) -> Puzzle {
+        let out = Puzzle(Arc::new(builder));
+        out.puzzle_ready();
         out
     }
 }
@@ -56,9 +73,9 @@ pub struct PuzzleSolution {
 impl PuzzleSolution {
     pub fn new(puzzle: &Puzzle) -> PuzzleSolution {
         PuzzleSolution {
-            graph: puzzle.graph.clone(),
-            mapping: vec![None;lock!(puzzle.pieces).len()],
-            pieces: puzzle.pieces.clone(),
+            graph: puzzle.0.graph.clone(),
+            mapping: vec![None;lock!(puzzle.0.pieces).len()],
+            pieces: puzzle.0.pieces.clone(),
             just_answered: vec![],
             num_solved: 0
         }
@@ -72,7 +89,7 @@ impl PuzzleSolution {
 
     pub fn solve(&mut self) -> bool {
         let pieces = self.pieces.clone();
-        for piece in lock!(pieces).iter() {
+        for piece in lock!(pieces).iter_mut() {
             piece.apply_defaults(self);
         }
         let mut solver = PuzzleSolver::new(self,lock!(self.graph).borrow());
@@ -121,11 +138,11 @@ mod test {
     // XXX fixed answers
     #[test]
     fn puzzle_smoke() {
-        let mut puzzle = Puzzle::new();
         for order in 0..6 {
-            let q1 = puzzle.new_piece(None);
-            let q2 = puzzle.new_piece(None);
-            let q3 = puzzle.new_piece(None);
+            let mut builder = PuzzleBuilder::new();
+            let q1 = builder.new_piece(None);
+            let q2 = builder.new_piece(None);
+            let q3 = builder.new_piece(None);
             let (p1,p2,p3) = match order {
                 0 => (q1,q2,q3),
                 1 => (q1,q3,q2),
@@ -143,6 +160,7 @@ mod test {
             p3.add_solver(&[p1.dependency(),p2.dependency()], move |solution| {
                 Some(p1b.get_clone(solution) + p2b.get_clone(solution))
             });
+            let puzzle = Puzzle::new(builder);
             let mut s1 = PuzzleSolution::new(&puzzle);
             let mut s2 = PuzzleSolution::new(&puzzle);
             p1.set_answer(&mut s1,2);
@@ -160,9 +178,10 @@ mod test {
 
     #[test]
     fn puzzle_drop() {
-        let mut puzzle = Puzzle::new();
-        let p1 = puzzle.new_piece(None);
-        let p2 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p1 = builder.new_piece(None);
+        let p2 = builder.new_piece(None);
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);      
         let mut s2 = PuzzleSolution::new(&puzzle);      
         let mut s3 = PuzzleSolution::new(&puzzle);
@@ -191,10 +210,10 @@ mod test {
 
     #[test]
     fn puzzle_default() {
-        let mut puzzle = Puzzle::new();
-        let p1 = puzzle.new_piece(Some(7));
-        let p2 = puzzle.new_piece(None);
-        let p3 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p1 = builder.new_piece(Some(7));
+        let p2 = builder.new_piece(None);
+        let p3 = builder.new_piece(None);
         let p1b = p1.clone();
         p2.add_solver(&[p1.dependency()], move |solution| {
             Some(p1b.get_clone(solution) + 2)
@@ -204,6 +223,7 @@ mod test {
         p3.add_solver(&[p1.dependency(),p2.dependency()], move |solution| {
             Some(p1b.get_clone(solution) + p2b.get_clone(solution))
         });
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         let mut s2 = PuzzleSolution::new(&puzzle);
         p1.set_answer(&mut s2,3);

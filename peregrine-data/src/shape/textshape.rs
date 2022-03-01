@@ -69,7 +69,7 @@ impl<A: Clone> TextShape<A> {
 impl TextShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<TextShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(TextShape {
-            position: self.position.map_allotments_results(cb)?,
+            position: self.position.fullmap_allotments_results(cb)?,
             pen: self.pen.clone(),
             text: self.text.clone(),
         })

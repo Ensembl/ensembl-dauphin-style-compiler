@@ -23,7 +23,7 @@ pub fn transform_spacebase2(solution: &PuzzleSolution,coord_system: &CoordinateS
         output.update_normal_from_allotment(|n,a| { *n += a.draw_top(solution) as f64; });
     }
     output.update_tangent_from_allotment(|t,a| { *t += a.indent(solution) as f64; });
-    output.map_allotments_results::<_,_,()>(|_| Ok(())).ok().unwrap()
+    output.fullmap_allotments_results::<_,_,()>(|_| Ok(())).ok().unwrap()
 }
 
 pub fn transform_spacebasearea(solution: &PuzzleSolution, coord_system: &CoordinateSystem, input: &SpaceBaseArea<f64,AllotmentBox>) -> SpaceBaseArea<f64,AllotmentBox> {

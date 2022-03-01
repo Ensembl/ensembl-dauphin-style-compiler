@@ -51,7 +51,7 @@ pub struct SpaceBase<X,Y> {
     len: usize
 }
 
-impl<X,Y: Clone> SpaceBase<X,Y> {
+impl<X,Y> SpaceBase<X,Y> {
     pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
         self.allotment.demerge(cb)
     }
@@ -73,7 +73,7 @@ impl<'a,X,Y> Iterator for SpaceBaseIterator<'a,X,Y> {
     }
 }
 
-impl<X: Clone,Y: Clone> Clone for SpaceBase<X,Y> {
+impl<X,Y> Clone for SpaceBase<X,Y> {
     fn clone(&self) -> Self {
         SpaceBase {
             base: self.base.clone(),
@@ -106,6 +106,18 @@ impl<X: Clone, Y: Clone> PartialSpaceBase<X,Y> {
         let compat_len = if let Some(len) = compat.len() { len } else { return None; };
         self.0.len = compat_len;
         Some(self.0)
+    }
+}
+
+impl<X,Y> SpaceBase<X,Y> {
+    pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {
+        SpaceBase {
+            base: self.base.clone(),
+            normal: self.normal.clone(),
+            tangent: self.tangent.clone(),
+            allotment: self.allotment.map(cb),
+            len: self.len
+        }
     }
 }
 
@@ -193,8 +205,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         })
     }
 
-
-    pub fn map_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase<X,A>,E> 
+    pub fn fullmap_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase<X,A>,E> 
                 where F: FnMut(&Y) -> Result<A,E> {
         let allotment = if self.len>0 {
             self.allotment.to_each(self.len).unwrap().map_results(&mut cb)?

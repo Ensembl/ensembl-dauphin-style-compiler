@@ -1,6 +1,25 @@
 mod allotment {
+    pub(crate) mod boxes {
+        pub(crate) mod boxtraits;
+        pub(crate) mod leaf;
+        pub(crate) mod overlay;
+        pub(crate) mod stacker;
+        pub(crate) mod bumper;
+        pub(crate) mod padder;
+        pub(crate) mod root;
+    }
+
     mod lineargroup {
         pub(crate) mod lineargroup;
+    }
+
+    pub(crate) mod style {
+        pub(crate) mod allotmentname;
+        pub(crate) mod holder;
+        pub(crate) mod pendingleaf;
+        pub(crate) mod style;
+        pub(crate) mod stylegroup;
+        pub(crate) mod stylebuilder;
     }
 
     pub(crate) mod core {
@@ -14,7 +33,15 @@ mod allotment {
         pub(crate) mod trainuniverse;
     }
 
+    pub(crate) mod transformers {
+        pub(crate) mod drawinginfo;
+        pub(crate) mod transformertraits;
+        pub(crate) mod simple;
+        pub(crate) mod transformers;
+    }
+
     pub(crate) mod tree {
+        //pub(crate) mod allotmentspec;
         pub(crate) mod collisionalgorithm;
         pub(crate) mod collidegroup;
         pub mod leaftransformer;
@@ -22,7 +49,7 @@ mod allotment {
         pub(crate) mod maintrack;
         pub(crate) mod maintrackspec;
         pub(crate) mod allotmentbox;    
-        pub(crate) mod allotmentbox2;
+        pub(crate) mod container;
     }
 
     pub use tree::leaftransformer::{ transform_yy, transform_spacebase, transform_spacebase2, transform_spacebasearea, transform_spacebasearea2 };
@@ -181,7 +208,7 @@ mod train {
     mod carriageset;
     mod railway;
     mod railwaydependents;
-    mod trainextent;
+    pub(crate) mod trainextent;
     mod train;
     mod trainset;
 

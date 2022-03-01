@@ -97,7 +97,7 @@ impl CollisionAlgorithm {
         }
     }
 
-    fn bump(&mut self) {
+    fn bump(&mut self) -> f64 {
         /* sort parts into decreasing size order */
         self.parts.sort();
         self.parts.reverse();
@@ -105,7 +105,7 @@ impl CollisionAlgorithm {
         for part in &mut self.parts {
             part.token.set(watermark.add(part.interval.start,part.interval.end,part.height) + self.watermark);
         }
-        self.watermark += watermark.max_height();
+        watermark.max_height()
     }
 }
 
@@ -121,7 +121,7 @@ impl CollisionAlgorithmHolder {
         lock!(self.0).add_entry(range,height)
     }
 
-    pub(crate) fn bump(&self) {
-        lock!(self.0).bump();
+    pub(crate) fn bump(&self) -> f64 {
+        lock!(self.0).bump()
     }
 }

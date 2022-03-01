@@ -97,7 +97,7 @@ impl PuzzleSolver {
 
 #[cfg(test)]
 mod test {
-    use crate::puzzle::{puzzle::Puzzle, piece::{PuzzlePiece, PuzzleValue, ClonablePuzzleValue}};
+    use crate::puzzle::{puzzle::Puzzle, piece::{PuzzlePiece, PuzzleValue, ClonablePuzzleValue}, PuzzleBuilder};
 
     use super::*;
 
@@ -109,10 +109,10 @@ mod test {
     }
 
     fn setup(p2_solver: bool) -> Setup {
-        let mut puzzle = Puzzle::new();
-        let p3 = puzzle.new_piece(None);
-        let p1 : PuzzlePiece<i32> = puzzle.new_piece(None);
-        let p2 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p3 = builder.new_piece(None);
+        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
+        let p2 = builder.new_piece(None);
         if p2_solver {
             let p1b = p1.clone();
             p2.add_solver(&[p1.dependency()], move |solution| {
@@ -124,6 +124,7 @@ mod test {
         p3.add_solver(&[p1.dependency(),p2.dependency()], move |solution| {
             Some(p1b.get_clone(solution) + p2b.get_clone(solution))
         });
+        let puzzle = Puzzle::new(builder);
         let s1 = PuzzleSolution::new(&puzzle);
         Setup { s1, p1, p2, p3 }
     }
@@ -205,12 +206,13 @@ mod test {
 
     #[test]
     fn solver_unsolvable() {
-        let mut puzzle = Puzzle::new();
-        let p3 = puzzle.new_piece(None);
-        let p1 : PuzzlePiece<i32> = puzzle.new_piece(None);
-        let p2 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p3 = builder.new_piece(None);
+        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
+        let p2 = builder.new_piece(None);
         p2.add_solver(&[p1.dependency(),p3.dependency()], move |_| Some(0));
         p3.add_solver(&[p1.dependency(),p2.dependency()], move |_| Some(0));
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         p1.set_answer(&mut s1,1);
         assert!(!s1.solve());
@@ -218,12 +220,13 @@ mod test {
 
     #[test]
     fn solver_solvable() {
-        let mut puzzle = Puzzle::new();
-        let p3 = puzzle.new_piece(None);
-        let p1 : PuzzlePiece<i32> = puzzle.new_piece(None);
-        let p2 = puzzle.new_piece(None);
+        let mut builder = PuzzleBuilder::new();
+        let p3 = builder.new_piece(None);
+        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
+        let p2 = builder.new_piece(None);
         p2.add_solver(&[p1.dependency(),p3.dependency()], move |_| Some(0));
         p3.add_solver(&[p1.dependency()], move |_| Some(0));
+        let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         p1.set_answer(&mut s1,1);
         assert!(s1.solve());

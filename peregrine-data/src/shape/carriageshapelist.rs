@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::collections::HashSet;
-use peregrine_toolkit::puzzle::PuzzleSolution;
+use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase };
@@ -71,7 +71,7 @@ impl CarriageShapeListBuilder {
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) -> Result<(),DataMessage> {
-        let depth = EachOrEvery::Every(allotment.depth());
+        let depth = EachOrEvery::every(allotment.depth());
         self.extend(WiggleShape::<AllotmentRequest>::new((min,max),values,depth,plotter,allotment.clone())?);
         Ok(())
     }
@@ -130,7 +130,8 @@ impl AnchoredCarriageShapeList {
     }
 
     pub fn new(floating: &FloatingCarriageShapeList) -> Result<AnchoredCarriageShapeList,DataMessage> {
-        let mut solution = PuzzleSolution::new(&floating.carriage_universe.puzzle());
+        let puzzle = Puzzle::new(floating.carriage_universe.puzzle());
+        let mut solution = PuzzleSolution::new(&puzzle);
         /* allotments are assigned here */
         floating.carriage_universe.allot(floating.extent.as_ref());
         /* shapes mapped to allotments here */

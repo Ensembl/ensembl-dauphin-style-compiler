@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}, borrow::BorrowMut};
 
-use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleSolution, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleValueHolder}};
+use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleSolution, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleValueHolder, PuzzleBuilder, ConstantPuzzlePiece}};
 
 use crate::{CarriageExtent, allotment::tree::collisionalgorithm::CollisionAlgorithmHolder};
 
@@ -50,7 +50,7 @@ pub enum SymbolicAxis {
     ScreenVert
 }
 
-struct BpPxConverter {
+pub struct BpPxConverter {
     max_px_per_bp: Option<f64>,
     bp_start: f64
 }
@@ -66,7 +66,7 @@ impl BpPxConverter {
         extent.map(|e| BpPxConverter::real_calc_max_px_per_bp(e))
     }
 
-    fn new(extent: Option<&CarriageExtent>) -> BpPxConverter {
+    pub(crate) fn new(extent: Option<&CarriageExtent>) -> BpPxConverter {
         BpPxConverter {
             max_px_per_bp: BpPxConverter::calc_max_px_per_bp(extent),
             bp_start: extent.map(|x| x.left_right().0).unwrap_or(0.)
@@ -88,12 +88,11 @@ pub struct Arbitrator<'a> {
     bumper: CollisionAlgorithmHolder,
     position: HashMap<(SymbolicAxis,String),PuzzleValueHolder<f64>>,
     bp_px: Arc<BpPxConverter>,
-    puzzle: Puzzle
+    puzzle: PuzzleBuilder
 }
 
 impl<'a> Arbitrator<'a> {
-    pub fn new(extent: Option<&CarriageExtent>, puzzle: &Puzzle) -> Arbitrator<'a> {
-        let puzzle = Puzzle::new();
+    pub fn new(extent: Option<&CarriageExtent>, puzzle: &PuzzleBuilder) -> Arbitrator<'a> {
         Arbitrator {
             parent: None,
             bumper: CollisionAlgorithmHolder::new(),
@@ -114,7 +113,7 @@ impl<'a> Arbitrator<'a> {
     }
 
     pub fn bumper(&mut self) -> &mut CollisionAlgorithmHolder { &mut self.bumper }
-    pub fn puzzle(&self) -> &Puzzle { &self.puzzle }
+    pub fn puzzle(&self) -> &PuzzleBuilder { &self.puzzle }
 
     pub fn lookup_symbolic_delayed(&self, axis: &SymbolicAxis, name: &str) -> Option<&PuzzleValueHolder<f64>> {
         self.position.get(&(axis.clone(),name.to_string())).or_else(|| {

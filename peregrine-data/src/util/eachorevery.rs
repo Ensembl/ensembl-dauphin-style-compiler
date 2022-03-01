@@ -48,7 +48,7 @@ impl<X: Clone> EachOrEveryBuilder<X> {
     pub fn as_mut<'a>(&'a mut self) -> EachOrEveryMut<'a,X> {
         match &mut self.0 {
             EachOrEvery::Each(x) => EachOrEveryMut::Each(Arc::make_mut(x)),
-            EachOrEvery::Every(x) => EachOrEveryMut::Every(x)
+            EachOrEvery::Every(x) => EachOrEveryMut::Every(Arc::make_mut(x))
         }
     }
 
@@ -99,29 +99,56 @@ impl EachOrEveryGroupCompatible {
 
 pub enum EachOrEvery<X> {
     Each(Arc<Vec<X>>),
-    Every(X)
+    Every(Arc<X>)
 }
 
-impl<X: Clone> EachOrEvery<X> {
+impl<X> EachOrEvery<X> {
     pub fn each(data: Vec<X>) -> EachOrEvery<X> {
         EachOrEvery::Each(Arc::new(data))
+    }
+
+    pub fn every(data: X) -> EachOrEvery<X> {
+        EachOrEvery::Every(Arc::new(data))
+    }
+
+    pub fn demerge<F,K: Hash+PartialEq+Eq>(&self,cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
+        match self {
+            EachOrEvery::Each(v) => {
+                DataFilter::demerge(v,cb)
+            },
+            EachOrEvery::Every(v) => {
+                DataFilter::demerge(&[v.as_ref()],|x| cb(*x))
+            }
+        }
+    }
+
+    pub fn map<F,Y>(&self, f: F) -> EachOrEvery<Y> where F: Fn(&X) -> Y {
+        match self {
+            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
+            EachOrEvery::Every(v) => EachOrEvery::Every(Arc::new(f(&v)))
+        }
+    }
+
+    pub fn fullmap<F,Y>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
+        match self {
+            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
+            EachOrEvery::Every(v) => EachOrEvery::Every(Arc::new(f(&v)))
+        }
     }
 
     pub fn as_builder(&self) -> EachOrEveryBuilder<X> {
         EachOrEveryBuilder(self.clone())
     }
+}
 
+impl<X: Clone> EachOrEvery<X> {
     pub fn as_builder_len(&self, len: usize) -> Option<EachOrEveryBuilder<X>> {
         self.to_each(len).map(|x| EachOrEveryBuilder(x))
     }
 
-    pub fn every(data: X) -> EachOrEvery<X> {
-        EachOrEvery::Every(data)
-    }
-
     pub fn to_each(&self, len: usize) -> Option<EachOrEvery<X>> {
         Some(match self {
-            EachOrEvery::Every(x) => EachOrEvery::Each(Arc::new(vec![x.clone();len])),
+            EachOrEvery::Every(x) => EachOrEvery::Each(Arc::new(vec![x.as_ref().clone();len])),
             EachOrEvery::Each(x) if x.len() == len => EachOrEvery::Each(x.clone()),
             _ => { return None; }
         })
@@ -164,24 +191,17 @@ impl<X: Clone> EachOrEvery<X> {
         })
     }
 
-    pub fn map<F,Y: Clone>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
-        match self {
-            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::Every(f(&v))
-        }
-    }
-
     pub fn enumerated_map<F,Y: Clone>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(usize,&X) -> Y {
         match self {
             EachOrEvery::Each(v) => EachOrEvery::each(v.iter().enumerate().map(|x| f(x.0,x.1)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::Every(f(0,&v))
+            EachOrEvery::Every(v) => EachOrEvery::every(f(0,&v))
         }
     }
 
     pub fn map_results<F,Y: Clone,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
         Ok(match self {
             EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect::<Result<_,_>>()?),
-            EachOrEvery::Every(v) => EachOrEvery::Every(f(&v)?)
+            EachOrEvery::Every(v) => EachOrEvery::every(f(&v)?)
         })
     }
 
@@ -194,7 +214,7 @@ impl<X: Clone> EachOrEvery<X> {
     
     pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> Option<EachOrEvery<W>> where F: Fn(&X,&Y) -> W {
         Some(match (self,other) {
-            (EachOrEvery::Every(a),EachOrEvery::Every(b)) => EachOrEvery::Every(cb(a,b)),
+            (EachOrEvery::Every(a),EachOrEvery::Every(b)) => EachOrEvery::every(cb(a,b)),
             (EachOrEvery::Every(a),EachOrEvery::Each(b)) =>
                 EachOrEvery::Each(Arc::new(b.iter().map(|b| cb(a,b)).collect::<Vec<W>>())),
             (EachOrEvery::Each(a),EachOrEvery::Every(b)) => 
@@ -209,7 +229,7 @@ impl<X: Clone> EachOrEvery<X> {
     
 }
 
-impl<X: Clone> Clone for EachOrEvery<X> {
+impl<X> Clone for EachOrEvery<X> {
     fn clone(&self) -> Self {
         match self {
             Self::Each(arg0) => Self::Each(arg0.clone()),
@@ -222,7 +242,7 @@ impl<X> EachOrEvery<X> where X: Clone {
     pub fn xxx_to_vec(&self) -> Vec<X> {
         match self {
             EachOrEvery::Each(x) => x.iter().cloned().collect(),
-            EachOrEvery::Every(x) => vec![x.clone()]
+            EachOrEvery::Every(x) => vec![x.as_ref().clone()]
         }
     }
 
@@ -233,13 +253,13 @@ impl<X> EachOrEvery<X> where X: Clone {
                 Some(EachOrEvery::each(x.iter().zip(y.iter()).map(|(x,y)| (x.clone(),y.clone())).collect()))
             },
             (EachOrEvery::Each(x),EachOrEvery::Every(y)) => {
-                Some(EachOrEvery::each(x.iter().map(|x| (x.clone(),y.clone())).collect()))
+                Some(EachOrEvery::each(x.iter().map(|x| (x.clone(),y.as_ref().clone())).collect()))
             },
             (EachOrEvery::Every(x),EachOrEvery::Each(y)) => {
-                Some(EachOrEvery::each(y.iter().map(|y| (x.clone(),y.clone())).collect()))
+                Some(EachOrEvery::each(y.iter().map(|y| (x.as_ref().clone(),y.clone())).collect()))
             },
             (EachOrEvery::Every(x),EachOrEvery::Every(y)) => {
-                Some(EachOrEvery::Every((x.clone(),y.clone())))
+                Some(EachOrEvery::Every(Arc::new((x.as_ref().clone(),y.as_ref().clone()))))
             }
         }
     }
@@ -256,17 +276,6 @@ impl<X> EachOrEvery<X> where X: Clone {
             EachOrEvery::Each(v) => DataFilter::new(&mut v.iter(),cb),
             EachOrEvery::Every(v) => {
                 if cb(v) { DataFilter::all(count) } else { DataFilter::empty(count) }
-            }
-        }
-    }
-
-    pub fn demerge<F,K: Hash+PartialEq+Eq>(&self,cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
-        match self {
-            EachOrEvery::Each(v) => {
-                DataFilter::demerge(v,cb)
-            },
-            EachOrEvery::Every(v) => {
-                DataFilter::demerge(&[v.clone()],cb)
             }
         }
     }

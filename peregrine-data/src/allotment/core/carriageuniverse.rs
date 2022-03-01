@@ -8,13 +8,13 @@ use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
 use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety};
 use peregrine_toolkit::lock;
-use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
+use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle, PuzzleBuilder};
 
 use super::allotmentrequest::AllotmentRequestImpl;
 use super::arbitrator::Arbitrator;
 
 struct CarriageUniverseData {
-    puzzle: Puzzle,
+    puzzle: PuzzleBuilder,
     dustbin: Arc<AllotmentRequestImpl>,
     main: LinearGroup<MainTrackLinearHelper>,
     top_tracks: LinearGroup<MainTrackLinearHelper>,
@@ -70,7 +70,8 @@ impl CarriageUniverseData {
 
     fn allot(&mut self, extent: Option<&CarriageExtent>) -> PuzzleSolution {
         let mut arbitrator = Arbitrator::new(extent,&self.puzzle);
-        let mut solution = PuzzleSolution::new(arbitrator.puzzle());
+        let puzzle = Puzzle::new(arbitrator.puzzle().clone());
+        let mut solution = PuzzleSolution::new(&puzzle);
 
         self.left.bump(&mut arbitrator);
         self.right.bump(&mut arbitrator);
@@ -154,7 +155,7 @@ impl CarriageUniverse {
     pub fn new(allotment_metadata: &AllotmentMetadataStore) -> CarriageUniverse {
         CarriageUniverse {
             data: Arc::new(Mutex::new(CarriageUniverseData {
-                puzzle: Puzzle::new(),
+                puzzle: PuzzleBuilder::new(),
                 main: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
                 top_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,false),MainTrackLinearHelper),
                 bottom_tracks: LinearGroup::new(&CoordinateSystem(CoordinateSystemVariety::Tracking,true),MainTrackLinearHelper),
@@ -172,7 +173,7 @@ impl CarriageUniverse {
         }
     }
 
-    pub fn puzzle(&self) -> Puzzle { lock!(self.data).puzzle.clone() }
+    pub fn puzzle(&self) -> PuzzleBuilder { lock!(self.data).puzzle.clone() }
 
     pub fn make_metadata_report(&self) -> AllotmentMetadataReport {
         let mut metadata = vec![];

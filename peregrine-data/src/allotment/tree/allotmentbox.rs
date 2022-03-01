@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use peregrine_toolkit::puzzle::{PuzzlePiece, Puzzle, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, PuzzleSolution, ClonablePuzzleValue, ConstantPuzzlePiece};
+use peregrine_toolkit::puzzle::{PuzzlePiece, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, PuzzleSolution, ClonablePuzzleValue, ConstantPuzzlePiece, PuzzleBuilder};
 
 use crate::{AllotmentMetadata, allotment::core::arbitrator::Arbitrator, AllotmentMetadataRequest, MetadataMergeStrategy};
 
 pub struct AllotmentBoxBuilder {
-    puzzle: Puzzle,
+    puzzle: PuzzleBuilder,
     padding_top: f64,
     padding_bottom: f64,
     min_height: Option<f64>,
@@ -95,7 +95,7 @@ impl AllotmentBoxBuilder {
 
     pub fn overlay(&mut self, child: AllotmentBox) {
         let top = self.padding_top.clone();
-        child.container_offset_piece().add_solver(&vec![], move |solution| {
+        child.container_offset_piece().add_solver(&vec![], move |_| {
             Some(top)
         });
     }

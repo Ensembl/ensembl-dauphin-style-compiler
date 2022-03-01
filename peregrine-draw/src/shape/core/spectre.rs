@@ -69,20 +69,20 @@ impl MarchingAnts {
         let area = eoe_throw("w1",SpaceBaseArea::new(top_left,bottom_right))?;
         let top_left_obs = PartialSpaceBase::new(
             &EachOrEvery::Each(Arc::new(vec![Observable::constant(0.)])),
-            &EachOrEvery::Every(pos2.0.observable()),
-            &EachOrEvery::Every(pos2.1.observable()),
-            &EachOrEvery::Every(())
+            &EachOrEvery::every(pos2.0.observable()),
+            &EachOrEvery::every(pos2.1.observable()),
+            &EachOrEvery::every(())
         );
         let bottom_right_obs = PartialSpaceBase::new(
             &EachOrEvery::Each(Arc::new(vec![Observable::constant(0.)])),
-            &EachOrEvery::Every(pos2.2.observable()),
-            &EachOrEvery::Every(pos2.3.observable()),
-            &EachOrEvery::Every(())
+            &EachOrEvery::every(pos2.2.observable()),
+            &EachOrEvery::every(pos2.3.observable()),
+            &EachOrEvery::every(())
         );
         let obs = SpaceBaseArea::new(top_left_obs,bottom_right_obs).unwrap();
         shapes.add_rectangle(area,Patina::Drawn(
             DrawnType::Stroke(self.width as u32),
-            EachOrEvery::Every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
+            EachOrEvery::every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
         ),Some(obs)).map_err(|x| Message::DataError(x))?;
         Ok(())
     }
@@ -97,7 +97,7 @@ fn make_stain_point<X: Clone,Y: Clone>(base: X, normal: X, tangent: X, allotment
         eoe_throw("stain1",SpaceBase::new(&EachOrEvery::Each(Arc::new(vec![base])),
         &EachOrEvery::Each(Arc::new(vec![normal])),
         &EachOrEvery::Each(Arc::new(vec![tangent])),
-            &EachOrEvery::Every(allotment.clone())))?))
+            &EachOrEvery::every(allotment.clone())))?))
 
 }
 
@@ -160,7 +160,7 @@ impl Stain {
                             make_stain_rect2(Some(&pos2.0),Some(&pos2.1),Some(&pos2.2),Some(&pos2.3),0.)?));
         }
         for (area,wobble) in rectangles.drain(..) {           
-            shapes.add_rectangle(area,Patina::Drawn(DrawnType::Fill,EachOrEvery::Every(Colour::Direct(self.colour.clone()))),Some(wobble))
+            shapes.add_rectangle(area,Patina::Drawn(DrawnType::Fill,EachOrEvery::every(Colour::Direct(self.colour.clone()))),Some(wobble))
                 .map_err(|e| Message::DataError(e))?;
         }
         Ok(())
