@@ -59,9 +59,9 @@ variables:
     - kustomize build ${BASE}/hi | kubectl apply -f -
     - kustomize build ${BASE}/lo | kubectl apply -f -
 
-  needs: ["Docker"]
+  needs: ["BE-Docker"]
 
-Docker:
+BE-Docker:
   extends: .build_backend
 
 HX:Dev:

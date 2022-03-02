@@ -32,7 +32,7 @@ stages:
       - peregrine-ensembl/pkg/
 
 # Job to build wasm files
-Build-WASM:
+WASM-Files:
   extends: .build_wasm
 
 # Build node package in downstream pipeline for non-master branch
@@ -46,7 +46,7 @@ Build-npm:dev:
   # Disabling downstream triggering until we work out strategy 
   script:
     - echo "Triggered Deploy for dev"
-  needs: ["Build-WASM"]
+  needs: ["WASM-Files"]
   # Trigger pipeline in ensembl-genome-browser project for respective branch name
   #trigger:
   #  project: ensembl-web/ensembl-genome-browser
@@ -67,7 +67,7 @@ Build-npm:Live:
   # Disabling downstream triggering until we work out strategy 
   script:
     - echo "Triggered Deploy for Live"
-  needs: ["Build-WASM"]
+  needs: ["WASM-Files"]
   # Trigger pipeline in ensembl-genome-browser project for main branch
   #trigger:
   #  project: ensembl-web/ensembl-genome-browser
