@@ -60,7 +60,7 @@ Build-npm:Live:
     # Pass branch name to downstream pipeline as a variable
     DSC_UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
   # Disabling downstream triggering until we work out strategy 
-  scripts:
+  script:
     - echo "Triggered Deploy for Live"
   # Trigger pipeline in ensembl-genome-browser project for main branch
   #trigger:
