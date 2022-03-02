@@ -26,7 +26,7 @@ variables:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes: 
-        - backend-server/*
+        - backend-server/**/*
 
 .deploy:
   stage: deploy
@@ -59,7 +59,7 @@ variables:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes: 
-        - backend-server/*
+        - backend-server/**/*
 
 Docker:
   extends: .build
