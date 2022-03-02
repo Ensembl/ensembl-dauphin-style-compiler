@@ -46,6 +46,7 @@ Build-npm:dev:
   # Disabling downstream triggering until we work out strategy 
   script:
     - echo "Triggered Deploy for dev"
+  needs: ["Build-WASM"]
   # Trigger pipeline in ensembl-genome-browser project for respective branch name
   #trigger:
   #  project: ensembl-web/ensembl-genome-browser
@@ -66,6 +67,7 @@ Build-npm:Live:
   # Disabling downstream triggering until we work out strategy 
   script:
     - echo "Triggered Deploy for Live"
+  needs: ["Build-WASM"]
   # Trigger pipeline in ensembl-genome-browser project for main branch
   #trigger:
   #  project: ensembl-web/ensembl-genome-browser
