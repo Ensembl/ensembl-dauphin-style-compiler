@@ -7,14 +7,14 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   BASE: backend-server/k8s/base
 
-.base-rules:
+.base-be-rules:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
 
 .build_backend:
-  extends: .base-rules
+  extends: .base-be-rules
   stage: build
   image: docker
   services:
@@ -31,7 +31,7 @@ variables:
     - docker logout $CI_REGISTRY
 
 .deploy_backend:
-  extends: .base-rules
+  extends: .base-be-rules
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
   before_script:

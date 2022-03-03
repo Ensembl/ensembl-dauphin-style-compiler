@@ -5,7 +5,7 @@ stages:
   - deploy       # Trigger pipeline in downstream project
 
 
-.base-rules:
+.base-peregrine-rules:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
@@ -13,7 +13,7 @@ stages:
 
 # Job template to build wasm files
 .build_wasm:
-  extends: .base-rules
+  extends: .base-peregrine-rules
   stage: build
   image: rust:1.57
 
@@ -37,7 +37,7 @@ WASM-Files:
 
 # Build node package in downstream pipeline for non-master branch
 Build-npm:dev:
-  extends: .base-rules
+  extends: .base-peregrine-rules
   stage: deploy
   variables:
     # Pass branch name to downstream pipeline as a variable
