@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}};
 
-use crate::{allotment::{core::arbitrator::BpPxConverter, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo}, CoordinateSystem, CoordinateSystemVariety};
+use crate::{allotment::{core::arbitrator::BpPxConverter, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety};
 
-use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}, stylegroup::AllotmentStyleGroup, pendingleaf::PendingLeaf};
+use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}, pendingleaf::PendingLeaf};
 
 pub struct StyleBuilder {
     root: ContainerHolder,
@@ -37,7 +37,7 @@ impl StyleBuilder {
         if let Some(container) = self.containers_made.get(&sequence) {
             container.clone()
         } else {
-            let mut parent = if let Some(parent) = name.pop() {
+            let mut parent = if let Some((_,parent)) = name.pop() {
                 self.try_new_container(&parent,styles)
             } else {
                 self.root.clone()
@@ -57,7 +57,7 @@ impl StyleBuilder {
     }
 
     fn new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup) -> LeafHolder {
-        if let Some(rest) = name.pop() {
+        if let Some((_,rest)) = name.pop() {
             let mut container = self.try_new_container(&rest,styles);
             LeafHolder::Leaf(self.new_floating_leaf(&mut container,name,info,styles))
         } else {
@@ -102,7 +102,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed}, boxes::root::Root, style::{allotmentname::AllotmentName, stylegroup::AllotmentStyleGroup, self, holder::ContainerHolder, pendingleaf::PendingLeaf}}};
+    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
     use super::transform;
 
@@ -130,7 +130,7 @@ mod test {
         out
     }
 
-    fn add_style(group: &mut AllotmentStyleGroup, name: &str, values: &[(&str,&str)]) {
+    fn add_style(group: &mut StyleTreeBuilder, name: &str, values: &[(&str,&str)]) {
         let mut values_hash = HashMap::new();
         for (k,v) in values {
             values_hash.insert(k.to_string(),v.to_string());
@@ -147,9 +147,10 @@ mod test {
         let converter = Arc::new(BpPxConverter::new(None));
         let root = ContainerHolder::Root(Root::new());
         let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
-        let mut style_group = AllotmentStyleGroup::empty();
-        add_style(&mut style_group, "a/", &[("padding-top","10"),("padding-bottom","5")]);        
-        add_style(&mut style_group, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let mut tree = StyleTreeBuilder::new();
+        add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5")]);        
+        add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let transformable = transform(&builder,&converter,&root,pending,&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
@@ -179,9 +180,10 @@ mod test {
         let converter = Arc::new(BpPxConverter::new(None));
         let root = ContainerHolder::Root(Root::new());
         let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
-        let mut style_group = AllotmentStyleGroup::empty();
-        add_style(&mut style_group, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
-        add_style(&mut style_group, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let mut tree = StyleTreeBuilder::new();
+        add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
+        add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let transformable = transform(&builder,&converter,&root,pending,&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
@@ -219,10 +221,11 @@ mod test {
             RangeUsed::Part(4.,6.)
         ];
         let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges);
-        let mut style_group = AllotmentStyleGroup::empty();
-        add_style(&mut style_group, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper")]);        
-        add_style(&mut style_group, "b/", &[("type","bumper")]);
-        add_style(&mut style_group, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let mut tree = StyleTreeBuilder::new();
+        add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper")]);        
+        add_style(&mut tree, "b/", &[("type","bumper")]);
+        add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
+        let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let transformable = transform(&builder,&converter,&root,pending,&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);

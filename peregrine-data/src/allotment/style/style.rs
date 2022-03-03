@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use crate::{CoordinateSystem, CoordinateSystemVariety};
 
+#[derive(Clone)]
 pub enum LeafAllotmentType {
     Leaf
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub enum ContainerAllotmentType {
     Stack,
     Overlay,
@@ -30,6 +31,7 @@ impl LeafAllotmentType {
     }
 }
 
+#[derive(Clone)]
 pub struct Padding {
     pub padding_top: f64,
     pub padding_bottom: f64,
@@ -102,42 +104,44 @@ impl LeafCommonStyle {
         }
     }
 }
+
+#[derive(Clone)]
 pub struct LeafAllotmentStyle {
     pub allot_type: LeafAllotmentType,
     pub leaf: LeafCommonStyle,
 }
 
 impl LeafAllotmentStyle {
-    pub(super) fn empty() -> LeafAllotmentStyle {
+    pub(crate) fn empty() -> LeafAllotmentStyle {
         LeafAllotmentStyle {
             allot_type: LeafAllotmentType::Leaf,
             leaf: LeafCommonStyle::default()
         }
     }
 
-    pub(super) fn build(spec: &HashMap<String,String>) -> LeafAllotmentStyle {
+    pub(crate) fn build(spec: &HashMap<String,String>) -> LeafAllotmentStyle {
         let allot_type = LeafAllotmentType::build(spec);
         let leaf = LeafCommonStyle::build(spec);
         LeafAllotmentStyle { allot_type, leaf }
     }
 }
 
+#[derive(Clone)]
 pub struct ContainerAllotmentStyle {
     pub allot_type: ContainerAllotmentType,
     pub padding: Padding
 }
 
 impl ContainerAllotmentStyle {
-    pub(super) fn empty() -> ContainerAllotmentStyle {
+    pub(crate) fn empty() -> ContainerAllotmentStyle {
         ContainerAllotmentStyle {
             allot_type: ContainerAllotmentType::Stack,
             padding: Padding::empty()
         }
     }
 
-    pub(super) fn build(spec: &HashMap<String,String>) -> ContainerAllotmentStyle {
+    pub(crate) fn build(spec: &HashMap<String,String>) -> ContainerAllotmentStyle {
         let allot_type = ContainerAllotmentType::build(spec);
-        println!("type {:?}",allot_type);
         ContainerAllotmentStyle { allot_type, padding: Padding::build(spec) }
     }
 }

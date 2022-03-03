@@ -1,4 +1,4 @@
-use crate::{allotment::transformers::drawinginfo::DrawingInfo, Pen};
+use crate::{allotment::transformers::drawinginfo::DrawingInfo};
 use super::allotmentname::AllotmentName;
 
 pub struct PendingLeaf {

@@ -18,7 +18,6 @@ mod allotment {
         pub(crate) mod holder;
         pub(crate) mod pendingleaf;
         pub(crate) mod style;
-        pub(crate) mod stylegroup;
         pub(crate) mod stylebuilder;
     }
 
@@ -31,6 +30,12 @@ mod allotment {
         pub(crate) mod rangeused;
         pub(crate) mod carriageuniverse;    
         pub(crate) mod trainuniverse;
+    }
+
+    pub(crate) mod stylespec {
+        pub(crate) mod stylegroup;
+        pub(crate) mod styletree;
+        pub(crate) mod styletreebuilder;
     }
 
     pub(crate) mod transformers {
