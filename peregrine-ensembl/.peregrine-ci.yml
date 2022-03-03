@@ -7,7 +7,7 @@ stages:
 
 .base-peregrine-rules:
   rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH =~ /(master|staging)/'
       changes:
         - peregrine-ensembl/**/*
       when: always
