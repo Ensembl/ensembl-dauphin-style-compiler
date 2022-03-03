@@ -9,7 +9,7 @@ stages:
   rules:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
-        - backend-server/**/*
+        - peregrine-ensembl/**/*
 
 # Job template to build wasm files
 .build_wasm:
