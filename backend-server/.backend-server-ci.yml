@@ -12,6 +12,8 @@ variables:
     - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
       changes:
         - backend-server/**/*
+      when: always
+    - when: never
 
 .build_backend:
   extends: .base-be-rules
