@@ -85,7 +85,8 @@ pub struct PeregrineDom {
     canvas_frame: HtmlElement,
     canvas_container: HtmlElement,
     document: Document,
-    body: HtmlElement
+    body: HtmlElement,
+    device_pixel_ratio: f32
 }
 
 impl PeregrineDom {
@@ -96,12 +97,14 @@ impl PeregrineDom {
             Some(e) => e,
             None => parent(&canvas)?
         };
+        let device_pixel_ratio = web_sys::window().unwrap().device_pixel_ratio() as f32;
         Ok(PeregrineDom {
             document: get_document(&canvas)?,
             body: get_body(&canvas)?,
             canvas: to_canvas(canvas)?,
             canvas_container: to_html(container)?,
-            canvas_frame: to_html(canvas_frame)?
+            canvas_frame: to_html(canvas_frame)?,
+            device_pixel_ratio
         })
     }
 
@@ -109,6 +112,7 @@ impl PeregrineDom {
     pub(crate) fn canvas_frame(&self) -> &HtmlElement { &self.canvas_frame }
     pub(crate) fn document(&self) -> &Document { &self.document }
     pub(crate) fn body(&self) -> &HtmlElement { &self.body }
+    pub(crate) fn device_pixel_ratio(&self) -> f32 { self.device_pixel_ratio }
 
     pub(crate) fn set_useful_height(&self, height: u32) {
         let frame_height = self.canvas_frame.get_bounding_client_rect().height() as u32;
@@ -117,7 +121,9 @@ impl PeregrineDom {
     }
 
     pub(crate) fn set_canvas_size(&self, width: u32, height: u32) {
-        self.canvas().set_width(width);
-        self.canvas().set_height(height);
+        self.canvas().set_width((width as f32*self.device_pixel_ratio) as u32);
+        self.canvas().set_height((height as f32*self.device_pixel_ratio) as u32);
+        self.canvas().style().set_property("height",&format!("{}px",height));
+        self.canvas().style().set_property("width",&format!("{}px",width));
     }
 }
