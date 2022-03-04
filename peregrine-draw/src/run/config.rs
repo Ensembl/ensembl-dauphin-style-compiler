@@ -157,7 +157,7 @@ lazy_static! {
             ConfigKeyInfo { key: PgConfigKey::PinchMinScale, name: "touch.pinch-min-scale", default: &PgConfigValue::Float(1./1000000.) },
             ConfigKeyInfo { key: PgConfigKey::AuxBufferSize, name: "perf.aux-buffer-size", default: &PgConfigValue::Size(256*1024) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsWidth), name: "spectre.ants.width", default: &PgConfigValue::Float(1.) },
-            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(16.) },
+            ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsLength), name: "spectre.ants.length", default: &PgConfigValue::Float(8.) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsProp), name: "spectre.ants.prop", default: &PgConfigValue::Float(0.5) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::MarchingAntsColour), name: "spectre.ants.colour", default: &PgConfigValue::DirectColour(DirectColour(255,0,0,255)) },
             ConfigKeyInfo { key: PgConfigKey::Spectre(SpectreConfigKey::StainColour), name: "spectre.stain.colour", default: &PgConfigValue::DirectColour(DirectColour(50,50,50,100)) },

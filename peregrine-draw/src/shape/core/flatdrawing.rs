@@ -55,7 +55,7 @@ impl FlatBoundary {
         (v.0+self.padding.0,v.1+self.padding.1)
     }
 
-    fn get_texture_areas(&self) -> Result<CanvasTextureArea,Message> {
+    fn get_texture_areas_on_bitmap(&self) -> Result<CanvasTextureArea,Message> {
         Ok(CanvasTextureArea::new(
             self.pad(unpack(&self.text_origin)?),
             self.pad(unpack(&self.mask_origin)?),
@@ -69,6 +69,7 @@ fn unpack<T: Clone>(data: &Option<T>) -> Result<T,Message> {
 }
 
 pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
+    bitmap_multiplier: f32,
     hashed_items: HashMap<u64,H>,
     texts: KeyedData<H,(T,FlatBoundary)>,
     request: Option<FlatPositionCampaignHandle>,
@@ -77,8 +78,9 @@ pub(crate) struct FlatDrawingManager<H: KeyedHandle,T: FlatDrawingItem> {
 }
 
 impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
-    pub fn new() -> FlatDrawingManager<H,T> {
+    pub fn new(bitmap_multiplier: f32) -> FlatDrawingManager<H,T> {
         FlatDrawingManager {
+            bitmap_multiplier,
             hashed_items: HashMap::new(),
             texts: KeyedData::new(),
             groups: HashMap::new(),
@@ -156,7 +158,7 @@ impl<H: KeyedHandle+Clone,T: FlatDrawingItem> FlatDrawingManager<H,T> {
         self.canvas_id.as_ref().cloned()
     }
 
-    pub(crate) fn get_texture_areas(&self, handle: &H) -> Result<CanvasTextureArea,Message> {
-        self.texts.get(handle).1.get_texture_areas()
+    pub(crate) fn get_texture_areas_on_bitmap(&self, handle: &H) -> Result<CanvasTextureArea,Message> {
+        self.texts.get(handle).1.get_texture_areas_on_bitmap()
     }
 }

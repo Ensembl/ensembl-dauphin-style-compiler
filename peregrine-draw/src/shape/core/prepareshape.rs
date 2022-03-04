@@ -23,7 +23,7 @@ fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &R
     match shape.patina() {
         Patina::Drawn(drawn_variety,_) => {
             let width = match drawn_variety {
-                DrawnType::Stroke(w) => Some(*w as f64),
+                DrawnType::Stroke(w) => Some(*w),
                 DrawnType::Fill => None
             };
             match draw_group.shape_category() {

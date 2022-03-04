@@ -87,7 +87,7 @@ impl Pen {
     }
 
     pub fn name(&self) -> &str { &self.inner.geometry.name }
-    pub fn size(&self) -> u32 { self.inner.geometry.size }
+    pub fn size_in_webgl(&self) -> f64 { self.inner.geometry.size as f64 }
     pub fn colours(&self) -> &[DirectColour] { &self.inner.colours }
     pub fn background(&self) -> &Option<DirectColour> { &self.inner.background }
 
@@ -119,7 +119,7 @@ pub enum Colour {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DrawnType {
     Fill,
-    Stroke(u32)
+    Stroke(f64)
 }
 
 #[derive(Clone)]

@@ -125,13 +125,13 @@ fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &Draw
     Ok(())
 }
 
-fn dims_to_sizes(areas: &[CanvasTextureArea]) -> (Vec<f64>,Vec<f64>) {
+fn dims_to_sizes(areas: &[CanvasTextureArea], factor: f64) -> (Vec<f64>,Vec<f64>) {
     let mut x_sizes = vec![];
     let mut y_sizes = vec![];
     for dim in areas {
         let size = dim.size();
-        x_sizes.push(size.0 as f64);
-        y_sizes.push(size.1 as f64);
+        x_sizes.push(size.0 as f64 * factor);
+        y_sizes.push(size.1 as f64 * factor);
     }
     (x_sizes,y_sizes)
 }
@@ -161,11 +161,12 @@ fn draw_points_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: 
 }
 
 fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &HoleySpaceBaseArea, handles: &EachOrEvery<HeraldryHandle>, allotments: &EachOrEvery<Allotment>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge<f64>>, count: usize) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+    let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     let heraldry = tools.heraldry();
     let mut dims = vec![];
     let mut filter_builder = DataFilterBuilder::new();
     for (i,handle) in eoe_throw("heraldry",handles.iter(count))?.enumerate() {
-        let area = heraldry.get_texture_area(handle,&heraldry_canvas)?;
+        let area = heraldry.get_texture_area_on_bitmap(handle,&heraldry_canvas)?;
         if let Some(area) = area {
             dims.push(area);
             filter_builder.at(i);
@@ -185,6 +186,7 @@ pub(crate) enum ShapeToAdd {
 }
 
 pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, shape: GLShape) -> Result<ShapeToAdd,Message> {
+    let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     match shape {
         GLShape::Wiggle((start,end),yy,Plotter(height,colour),allotment) => {
             let mut geometry_yielder = GeometryYielder::new(GeometryProcessName::Wiggle);
@@ -198,25 +200,25 @@ pub(crate) fn add_shape_to_layer(layer: &mut Layer, gl: &mut WebGlGlobal, tools:
         GLShape::Text(points,handles,allotments,draw_group) => {
             // TODO factor
             let text = tools.text();
-            let dims = handles.iter()
-                .map(|handle| text.manager().get_texture_areas(handle))
+            let bitmap_dims = handles.iter()
+                .map(|handle| text.manager().get_texture_areas_on_bitmap(handle))
                 .collect::<Result<Vec<_>,_>>()?;
-            if dims.len() == 0 { return Ok(ShapeToAdd::None); }
-            let (x_sizes,y_sizes) = dims_to_sizes(&dims);
+            if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
+            let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
             let canvas = text.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas(layer,gl,&draw_group,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false)?;
+            let rectangles = draw_points_from_canvas(layer,gl,&draw_group,&points,x_sizes,y_sizes,&allotments,&canvas,&bitmap_dims,false)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Image(points,handles,allotments,kind) => {
             // TODO factor
             let bitmap = tools.bitmap();
-            let dims = handles.iter()
-                .map(|handle| bitmap.manager().get_texture_areas(handle))
+            let bitmap_dims = handles.iter()
+                .map(|handle| bitmap.manager().get_texture_areas_on_bitmap(handle))
                 .collect::<Result<Vec<_>,_>>()?;
-            if dims.len() == 0 { return Ok(ShapeToAdd::None); }
-                let (x_sizes,y_sizes) = dims_to_sizes(&dims);
+            if bitmap_dims.len() == 0 { return Ok(ShapeToAdd::None); }
+            let (x_sizes,y_sizes) = dims_to_sizes(&bitmap_dims,1./bitmap_multiplier);
             let canvas = bitmap.manager().canvas_id().ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-            let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&dims,false)?;
+            let rectangles = draw_points_from_canvas(layer,gl,&kind,&points,x_sizes,y_sizes,&allotments,&canvas,&bitmap_dims,false)?;
             Ok(ShapeToAdd::Dynamic(rectangles))
         },
         GLShape::Heraldry(area,handles,allotments,kind,heraldry_canvas,scale,edge) => {

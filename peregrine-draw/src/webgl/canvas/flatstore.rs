@@ -13,6 +13,7 @@ use super::canvasstore::CanvasStore;
 keyed_handle!(FlatId);
 
 pub(crate) struct FlatStore {
+    bitmap_multiplier: f32,
     canvas_store: CanvasStore,
     scratch: HashMap<CanvasWeave,Flat>,
     main_canvases: KeyedOptionalValues<FlatId,Flat>,
@@ -20,14 +21,17 @@ pub(crate) struct FlatStore {
 }
 
 impl FlatStore {
-    pub(crate) fn new() -> FlatStore {
+    pub(crate) fn new(bitmap_multiplier: f32) -> FlatStore {
         FlatStore {
+            bitmap_multiplier,
             canvas_store: CanvasStore::new(),
             scratch: HashMap::new(),
             main_canvases: KeyedOptionalValues::new(),
             png_cache: PngCache::new()
         }
     }
+
+    pub(crate) fn bitmap_multiplier(&self) -> f32 { self.bitmap_multiplier }
 
     pub(crate) fn scratch(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<&mut Flat,Message> {
         let mut use_cached = false;
@@ -38,14 +42,14 @@ impl FlatStore {
             }
         }
         if !use_cached {
-            let canvas = Flat::new(&mut self.canvas_store,&self.png_cache,document,&CanvasWeave::Crisp,size)?;
+            let canvas = Flat::new(&mut self.canvas_store,&self.png_cache,document,&CanvasWeave::Crisp,size,self.bitmap_multiplier)?;
             self.scratch.insert(weave.clone(),canvas);
         }
         Ok(self.scratch.get_mut(weave).unwrap())
     }
 
     pub(super) fn allocate(&mut self, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<FlatId,Message> {
-        Ok(self.main_canvases.add(Flat::new(&mut self.canvas_store,&self.png_cache,document,weave,size)?))
+        Ok(self.main_canvases.add(Flat::new(&mut self.canvas_store,&self.png_cache,document,weave,size,self.bitmap_multiplier)?))
     }
 
     pub(crate) fn get(&self, id: &FlatId) -> Result<&Flat,Message> {

@@ -76,7 +76,7 @@ impl ShapeDetails {
             },
             ShapeDetails::Text(shape) => {
                 for (position,allotment) in shape.position().iter().zip(common.iter_allotments()) {
-                    allotment.register_usage((*position.normal + shape.pen().size() as f64).ceil() as i64);
+                    allotment.register_usage((*position.normal + shape.pen().size_in_webgl() as f64).ceil() as i64);
                 }
             },
             ShapeDetails::Image(shape) => {

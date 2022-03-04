@@ -23,6 +23,7 @@ pub(crate) struct Bitmap {
     name: String,
     width: u32,
     height: u32,
+    scale: u32,
     bytes: Arc<Vec<u8>>
 }
 
@@ -31,6 +32,7 @@ impl Bitmap {
         self.bytes = asset.bytes().ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?.data().clone();
         self.width = asset.metadata_u32("width").ok_or_else(|| Message::BadAsset(format!("missing width: {}",name)))?;
         self.height = asset.metadata_u32("height").ok_or_else(|| Message::BadAsset(format!("missing height: {}",name)))?;
+        self.scale = asset.metadata_u32("scale").unwrap_or(100);
         Ok(())
     }
 
@@ -39,6 +41,7 @@ impl Bitmap {
             name: name.to_string(),
             width: 0,
             height: 0,
+            scale: 100,
             bytes: Arc::new(vec![])
         };
         let asset = assets.get(name).ok_or_else(|| Message::BadAsset(format!("missing asset: {}",name)))?;
@@ -49,7 +52,7 @@ impl Bitmap {
 
 impl FlatDrawingItem for Bitmap {
     fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
-        Ok((self.width,self.height))
+        Ok((self.width*self.scale/100,self.height*self.scale/100))
     }
 
     fn padding(&mut self, _: &mut WebGlGlobal) -> Result<(u32,u32),Message> { Ok((PAD,PAD)) }
@@ -61,7 +64,7 @@ impl FlatDrawingItem for Bitmap {
     }
 
     fn build(&mut self, canvas: &mut Flat, text_origin: (u32,u32), mask_origin: (u32,u32), size: (u32,u32)) -> Result<(),Message> {
-        canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0,255))?;
+        canvas.rectangle(pad(mask_origin),size,&DirectColour(0,0,0,255),false)?;
         canvas.draw_png(Some(self.name.clone()),pad(text_origin),size,&self.bytes)?;
         Ok(())
     }
@@ -73,9 +76,9 @@ pub struct DrawingBitmap {
 }
 
 impl DrawingBitmap {
-    pub fn new(assets: &Assets) -> DrawingBitmap {
+    pub fn new(assets: &Assets, bitmap_multiplier: f32) -> DrawingBitmap {
         DrawingBitmap {
-            manager: FlatDrawingManager::new(),
+            manager: FlatDrawingManager::new(bitmap_multiplier),
             assets: assets.clone()
         }
     }
