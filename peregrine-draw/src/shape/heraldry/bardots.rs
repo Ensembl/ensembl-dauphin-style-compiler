@@ -65,10 +65,10 @@ impl HeraldryBarDots {
         out
     }
 
-    pub(super) fn unit_size(&self) -> (u32,u32) {
+    fn unit_size(&self) -> (u32,u32) {
         match self.variety {
             Variety::Bar =>   (BAR_WIDTH,BAR_WIDTH),
-            Variety::Dots =>  if !self.dir { (self.number.0,BAR_WIDTH) } else { (BAR_WIDTH,self.number.0) }
+            Variety::Dots =>  if !self.dir { (self.number.0,self.number.1) } else { (self.number.1,self.number.0) }
         }
     }
 
@@ -76,7 +76,7 @@ impl HeraldryBarDots {
         let unit = self.unit_size();
         let mut out = match self.variety {
             Variety::Bar => (unit.0*self.number.0,unit.1),
-            Variety::Dots => (self.number.0*DOTS_REPEAT,BAR_WIDTH)
+            Variety::Dots => (self.number.0*DOTS_REPEAT,self.number.1)
         };
         if self.dir { out = (out.1,out.0); }
         out
