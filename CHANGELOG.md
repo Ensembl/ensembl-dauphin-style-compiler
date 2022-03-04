@@ -1,3 +1,14 @@
+# 0.2.1
+  * Build system improvements
+    * Document it
+    * Present previous options for confirmation to allow easy repeat builds
+    * Change DOckerfile in light of npm scope changes
+  * Reduce fuzziness
+    * Take devicepixelratio into account on both webgl and bitmap canvases
+    * Fix dotted lines in various minor ways
+    * Add scale option to pngs
+    * Fix scaling of canvas in integration (also bottom ruler reappears).
+
 # 0.2.0
   * Round sizes correctly in observer to avoid excessive CPU usage
   * Don't crash if window size becomes zero
