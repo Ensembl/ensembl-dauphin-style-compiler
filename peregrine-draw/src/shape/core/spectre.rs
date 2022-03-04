@@ -77,7 +77,7 @@ impl MarchingAnts {
         );
         let area = HoleySpaceBaseArea::Parametric(SpaceBaseArea::new(top_left,bottom_right));
         shapes.add_rectangle(area,Patina::Drawn(
-            DrawnType::Stroke(self.width as u32),
+            DrawnType::Stroke(self.width),
             EachOrEvery::Every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
         ),EachOrEvery::Every(window_origin));
         Ok(())

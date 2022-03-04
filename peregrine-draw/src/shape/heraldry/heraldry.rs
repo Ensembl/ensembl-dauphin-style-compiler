@@ -95,10 +95,11 @@ impl Heraldry {
 }
 
 impl FlatDrawingItem for Heraldry {
-    fn calc_size(&mut self, _gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+    fn calc_size(&mut self, gl: &mut WebGlGlobal) -> Result<(u32,u32),Message> {
+        let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier();
         Ok(match self {
             Heraldry::Stripe(_,_,_,count) => (STAMP*count.0,STAMP*count.1),
-            Heraldry::BarDots(dots) => dots.size()
+            Heraldry::BarDots(dots) => dots.size(bitmap_multiplier as f64)
         })
     }
 

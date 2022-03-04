@@ -119,7 +119,7 @@ pub enum Colour {
 #[cfg_attr(debug_assertions,derive(Debug))]
 pub enum DrawnType {
     Fill,
-    Stroke(u32)
+    Stroke(f64)
 }
 
 #[derive(Clone)]

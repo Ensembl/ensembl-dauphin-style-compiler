@@ -55,6 +55,7 @@ impl Flat {
         })
     }
 
+    pub(crate) fn bitmap_multiplier(&self) -> f64 { self.bitmap_multiplier }
     pub(crate) fn get_gl_texture(&self) -> Option<&SelfManagedWebGlTexture> { self.gl_texture.as_ref() }
     pub(crate) fn set_gl_texture(&mut self, texture: Option<SelfManagedWebGlTexture>) { self.gl_texture = texture; }
     pub(crate) fn is_active(&mut self) -> &mut bool { &mut self.is_active }
