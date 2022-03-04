@@ -166,8 +166,6 @@ impl SizeManager {
         let device_pixel_ratio = self.dom.device_pixel_ratio();
         *draw.webgl.lock().unwrap().refs().canvas_size = Some((apply_dpr(x,device_pixel_ratio),apply_dpr(y,device_pixel_ratio)));
         let mut stage = draw.stage.lock().unwrap();
-        //use web_sys::console;
-        //console::log_1(&format!("{}x{}",x,y).into());        
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())

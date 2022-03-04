@@ -11,8 +11,12 @@ const HTML : &str = r#"
 "#;
 
 const CSS : &str = r#"
+    .$-container {
+        height: 100%;
+        overflow: hidden;
+    }
+
     .$-browser {
-        height: 1234px;
     }
 
     .$-sticky {
