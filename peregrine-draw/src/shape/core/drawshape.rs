@@ -168,7 +168,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     for (i,handle) in eoe_throw("heraldry",handles.iter(count))?.enumerate() {
         let area = heraldry.get_texture_area_on_bitmap(handle,&heraldry_canvas)?;
         if let Some(area) = area {
-            dims.push(area.scale(1./bitmap_multiplier));
+            dims.push(area);
             filter_builder.at(i);
         }
     }
