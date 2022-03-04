@@ -21,8 +21,8 @@ fn pad(z: (u32,u32)) -> (u32,u32) {
 }
 
 fn stripe_stamp(canvas: &Flat, t: (u32,u32), m: (u32,u32), a: &DirectColour, b: &DirectColour, p: u32) -> Result<(),Message> {
-    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0,255))?;
-    canvas.rectangle(t,(STAMP,STAMP),b)?;
+    canvas.rectangle(m,(STAMP,STAMP),&DirectColour(0,0,0,255),true)?;
+    canvas.rectangle(t,(STAMP,STAMP),b,true)?;
     canvas.path(t,&[
         (0,    0),
         (p,    0),
@@ -180,11 +180,11 @@ pub struct DrawingHeraldry {
 }
 
 impl DrawingHeraldry {
-    pub fn new() -> DrawingHeraldry { 
+    pub fn new(bitmap_multiplier: f32) -> DrawingHeraldry { 
         DrawingHeraldry {
-            horiz: FlatDrawingManager::new(),
-            vert: FlatDrawingManager::new(),
-            crisp: FlatDrawingManager::new()
+            horiz: FlatDrawingManager::new(bitmap_multiplier),
+            vert: FlatDrawingManager::new(bitmap_multiplier),
+            crisp: FlatDrawingManager::new(bitmap_multiplier)
         }
     }
 
@@ -210,12 +210,12 @@ impl DrawingHeraldry {
         Ok(())
     }
 
-    pub(crate) fn get_texture_area(&self, handle: &HeraldryHandle, canvas: &HeraldryCanvas) -> Result<Option<CanvasTextureArea>,Message> {
+    pub(crate) fn get_texture_area_on_bitmap(&self, handle: &HeraldryHandle, canvas: &HeraldryCanvas) -> Result<Option<CanvasTextureArea>,Message> {
         Ok(match (canvas,handle) {
-            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(self.horiz.get_texture_areas(h)?),
-            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(self.horiz.get_texture_areas(h)?),
-            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some(self.vert.get_texture_areas(v)?),
-            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some(self.crisp.get_texture_areas(h)?),
+            (HeraldryCanvas::Horiz,HeraldryHandle::Horiz(h)) => Some(self.horiz.get_texture_areas_on_bitmap(h)?),
+            (HeraldryCanvas::Horiz,HeraldryHandle::HorizVert(h,_)) => Some(self.horiz.get_texture_areas_on_bitmap(h)?),
+            (HeraldryCanvas::Vert,HeraldryHandle::HorizVert(_,v)) => Some(self.vert.get_texture_areas_on_bitmap(v)?),
+            (HeraldryCanvas::Crisp,HeraldryHandle::Crisp(h)) => Some(self.crisp.get_texture_areas_on_bitmap(h)?),
             _ => None
         })
     }

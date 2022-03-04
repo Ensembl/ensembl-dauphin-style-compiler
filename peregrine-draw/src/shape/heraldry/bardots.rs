@@ -92,10 +92,10 @@ impl HeraldryBarDots {
         let offset = ((offset.0*unit.0) / 100,(offset.1*unit.1) / 100);
         match self.variety {
             Variety::Bar => {
-                canvas.rectangle(m,unit,&DirectColour(0,0,0,255))?;
+                canvas.rectangle(m,unit,&DirectColour(0,0,0,255),true)?;
             },
             Variety::Dots => {
-                canvas.rectangle(m,unit,&DirectColour(255,255,255,255))?;
+                canvas.rectangle(m,unit,&DirectColour(255,255,255,255),true)?;
                 canvas.path((m.0+offset.0,m.1+offset.1),&[
                     (0,       0),
                     (extent.0,0),
@@ -105,7 +105,7 @@ impl HeraldryBarDots {
             },
             _ => {}
         }
-        canvas.rectangle(t,unit,&self.col_a)?;
+        canvas.rectangle(t,unit,&self.col_a,true)?;
         canvas.path((t.0+offset.0,t.1+offset.1),&[
             (0,       0),
             (extent.0,0),

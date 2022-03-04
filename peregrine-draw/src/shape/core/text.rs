@@ -59,7 +59,7 @@ impl FlatDrawingItem for Text {
         let background = self.background.clone().unwrap_or_else(|| DirectColour(255,255,255,255));
         canvas.text(&self.text,pad(text_origin),size,&self.colour,&background)?;
         if self.background.is_some() {
-            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255))?;
+            canvas.rectangle(pad(mask_origin),size, &DirectColour(0,0,0,255),false)?;
         } else{
             canvas.text(&self.text,pad(mask_origin),size,&DirectColour(0,0,0,255),&DirectColour(255,255,255,255))?;
         }
@@ -70,7 +70,7 @@ impl FlatDrawingItem for Text {
 pub struct DrawingText(FlatDrawingManager<TextHandle,Text>);
 
 impl DrawingText {
-    pub fn new() -> DrawingText { DrawingText(FlatDrawingManager::new()) }
+    pub fn new(bitmap_multiplier: f32) -> DrawingText { DrawingText(FlatDrawingManager::new(bitmap_multiplier)) }
 
     pub fn add_text(&mut self, pen: &Pen, text: &str, colour: &DirectColour, background: &Option<DirectColour>) -> TextHandle {
         self.0.add(Text::new(pen,text,colour,background))

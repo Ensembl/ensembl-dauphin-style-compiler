@@ -6,8 +6,8 @@ use crate::util::message::Message;
 use super::canvasstore::CanvasStore;
 use peregrine_toolkit::js::exception::js_result_to_option_console;
 
-fn pen_to_font(pen: &Pen) -> String {
-    format!("{}px {}",pen.size(),pen.name())
+fn pen_to_font(pen: &Pen, bitmap_multiplier: f64) -> String {
+    format!("{}px {}",(pen.size_in_webgl() * bitmap_multiplier).round(),pen.name())
 }
 
 fn colour_to_css(c: &DirectColour) -> String {
@@ -20,6 +20,7 @@ fn draw_png_onload(context: CanvasRenderingContext2d, el: HtmlImageElement, orig
 }
 
 pub(crate) struct Flat {
+    bitmap_multiplier: f64,
     element: Option<HtmlFlatCanvas>,
     context: Option<CanvasRenderingContext2d>,
     weave: CanvasWeave,
@@ -33,13 +34,14 @@ pub(crate) struct Flat {
 }
 
 impl Flat {
-    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32)) -> Result<Flat,Message> {
+    pub(super) fn new(canvas_store: &mut CanvasStore, png_cache: &PngCache, document: &Document, weave: &CanvasWeave, size: (u32,u32), bitmap_multiplier: f32) -> Result<Flat,Message> {
         let el = canvas_store.allocate(document, size.0, size.1, weave.round_up())?;
         let context = el.element()
             .get_context("2d").map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?
             .unwrap()
             .dyn_into::<CanvasRenderingContext2d>().map_err(|_| Message::Canvas2DFailure("cannot get 2d context".to_string()))?;
         Ok(Flat {
+            bitmap_multiplier: bitmap_multiplier as f64,
             size: el.size(),
             element: Some(el),
             context: Some(context),
@@ -59,12 +61,12 @@ impl Flat {
 
     pub(crate) fn set_font(&mut self, pen: &Pen) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        let new_font = pen_to_font(pen);
+        let new_font = pen_to_font(pen,self.bitmap_multiplier);
         if let Some(old_font) = &self.font {
             if *old_font == new_font { return Ok(()); }
         }
         self.font = Some(new_font.to_string());
-        self.font_height = Some(pen.size());
+        self.font_height = Some((pen.size_in_webgl()*self.bitmap_multiplier) as u32);
         self.context()?.set_font(self.font.as_ref().unwrap());
         Ok(())
     }
@@ -76,11 +78,13 @@ impl Flat {
         Ok((width as u32,height as u32))
     }
 
-    pub(crate) fn rectangle(&self, origin: (u32,u32), size: (u32,u32), colour: &DirectColour) -> Result<(),Message> {
+    pub(crate) fn rectangle(&self, origin: (u32,u32), size: (u32,u32), colour: &DirectColour, multiply: bool) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
         let context = self.context()?;
         context.set_fill_style(&colour_to_css(colour).into()); // TODO background colours for pen
-        context.fill_rect(origin.0 as f64, origin.1 as f64, size.0 as f64, size.1 as f64);
+        let bitmap_multiplier = if multiply { self.bitmap_multiplier } else { 1. };
+        context.fill_rect(origin.0 as f64 * bitmap_multiplier, origin.1 as f64 * bitmap_multiplier,
+            size.0 as f64 * bitmap_multiplier, size.1 as f64 * bitmap_multiplier);
         Ok(())
     }
 
@@ -100,7 +104,7 @@ impl Flat {
             js_result_to_option_console(draw_png_onload(context,img2.clone(),origin,size));
             if let Some(name) = &name {
                 png_cache.set(name,img2.clone());
-            }    
+            }
         });
         img.set_onload(Some(&closure.as_ref().unchecked_ref()));
         Ok(())
@@ -143,7 +147,7 @@ impl Flat {
     // TODO white-bgd canvas
     pub(crate) fn text(&self, text: &str, origin: (u32,u32), size: (u32,u32), colour: &DirectColour, background: &DirectColour) -> Result<(),Message> {
         if self.discarded { return Err(Message::CodeInvariantFailed(format!("set_font on discarded flat canvas"))); }
-        self.rectangle(origin,size,background)?;
+        self.rectangle(origin,size,background,false)?;
         let context = self.context()?;
         context.set_text_baseline("top");
         context.set_fill_style(&colour_to_css(&colour).into());

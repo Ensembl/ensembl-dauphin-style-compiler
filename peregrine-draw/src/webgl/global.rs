@@ -39,7 +39,7 @@ impl WebGlGlobal {
             .dyn_into::<WebGlRenderingContext>().map_err(|_| Message::WebGLFailure(format!("cannot get webgl context")))?;
         let gpuspec = GPUSpec::new(&context)?;
         let program_store = ProgramStore::new()?;
-        let canvas_store = FlatStore::new();
+        let canvas_store = FlatStore::new(dom.device_pixel_ratio());
         let bindery = TextureBindery::new(&gpuspec);
         Ok(WebGlGlobal {
             program_store, 
