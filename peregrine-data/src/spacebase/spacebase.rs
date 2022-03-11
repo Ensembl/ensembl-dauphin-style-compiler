@@ -119,6 +119,18 @@ impl<X,Y> SpaceBase<X,Y> {
             len: self.len
         }
     }
+
+    pub fn into_new_allotment<F,A>(self, cb: F) -> SpaceBase<X,A> where F: Fn(&Y) -> A {
+        SpaceBase {
+            base: self.base,
+            normal: self.normal,
+            tangent: self.tangent,
+            allotment: self.allotment.clone().map(cb),
+            len: self.len
+        }
+    }
+
+    pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
 }
 
 impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
@@ -156,8 +168,6 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         let allotment = if let Some(allotment) = self.allotment.zip(&other.allotment,cbs.allotment) { allotment } else { return None; };
         Some(SpaceBase::new_unszied(&base,&normal,&tangent,&allotment))
     }
-
-    pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
 
     pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
         let base = self.base.iter(self.len).unwrap();

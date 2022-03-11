@@ -57,11 +57,11 @@ pub(crate) struct DrawingTools {
 }
 
 impl DrawingTools {
-    fn new(assets: &Assets, scale: Option<&Scale>, left: f64) -> DrawingTools {
+    fn new(assets: &Assets, scale: Option<&Scale>, left: f64, bitmap_multiplier: f32) -> DrawingTools {
         DrawingTools {
-            text: DrawingText::new(),
-            bitmap: DrawingBitmap::new(assets),
-            heraldry: DrawingHeraldry::new(),
+            text: DrawingText::new(bitmap_multiplier),
+            bitmap: DrawingBitmap::new(assets,bitmap_multiplier),
+            heraldry: DrawingHeraldry::new(bitmap_multiplier),
             zmenus: DrawingZMenusBuilder::new(scale, left)
         }
     }
@@ -99,7 +99,7 @@ impl DrawingBuilder {
         let gl_ref = gl.refs();
         Ok(DrawingBuilder {
             main_layer: Layer::new(gl_ref.program_store,left)?,
-            tools: DrawingTools::new(assets,scale,left),
+            tools: DrawingTools::new(assets,scale,left,gl_ref.flat_store.bitmap_multiplier()),
             flats: None,
             dynamic_shapes: vec![]
         })

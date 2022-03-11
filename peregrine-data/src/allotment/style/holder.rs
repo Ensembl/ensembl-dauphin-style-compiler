@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable}, leaf::FloatingLeaf, root::Root}};
 
 #[derive(Clone)]
@@ -69,9 +71,9 @@ pub enum LeafHolder {
 }
 
 impl LeafHolder {
-    pub(super) fn into_tranfsormable(self) -> Box<dyn Transformable> {
+    pub(super) fn into_tranfsormable(self) -> Arc<dyn Transformable> {
         match self {
-            LeafHolder::Leaf(leaf) => Box::new(leaf)
+            LeafHolder::Leaf(leaf) => Arc::new(leaf)
         }
     }
 }

@@ -77,7 +77,7 @@ impl StyleBuilder {
     }
 }
 
-pub(crate) fn transform(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: Vec<PendingLeaf>, styles: &AllotmentStyleGroup) -> Vec<Box<dyn Transformable>> {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&mut PendingLeaf>, styles: &AllotmentStyleGroup) {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
@@ -87,13 +87,12 @@ pub(crate) fn transform(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, 
         converter: converter.clone(),
         dustbin: FloatingLeaf::new(puzzle,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new())
     };
-    let mut out = vec![];
     for pending in pendings {
         let parts = AllotmentNamePart::new(pending.name().clone());
         let info = pending.drawing_info().clone();
-        out.push(styler.try_new_leaf(&parts,&info,styles).into_tranfsormable());
+        let xformable = styler.try_new_leaf(&parts,&info,styles).into_tranfsormable();
+        pending.set_transformable(xformable);
     }
-    out
 }
 
 #[cfg(test)]
@@ -102,9 +101,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
-
-    use super::transform;
+    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>]) -> Vec<PendingLeaf> {
         let heights = if heights.len() > 0 {
@@ -146,16 +143,16 @@ mod test {
         let builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(None));
         let root = ContainerHolder::Root(Root::new());
-        let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
+        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let transformable = transform(&builder,&converter,&root,pending,&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = transformable.iter().map(|x| x.make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("dustbin: false"));
@@ -179,16 +176,16 @@ mod test {
         let builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(None));
         let root = ContainerHolder::Root(Root::new());
-        let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
+        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[]);
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let transformable = transform(&builder,&converter,&root,pending,&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = transformable.iter().map(|x| x.make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("dustbin: false"));
@@ -220,17 +217,17 @@ mod test {
             RangeUsed::Part(2.,4.),
             RangeUsed::Part(4.,6.)
         ];
-        let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges);
+        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges);
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper")]);        
         add_style(&mut tree, "b/", &[("type","bumper")]);
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let transformable = transform(&builder,&converter,&root,pending,&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = transformable.iter().map(|x| x.make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);

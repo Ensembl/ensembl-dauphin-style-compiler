@@ -55,6 +55,7 @@ WORKDIR /srv/ensembl-client-integration/ensembl-client
 RUN --mount=type=cache,target=/root/npm/cache --mount=type=cache,target=/root/npm/cache  \
     npm install -g json && \
     json -I -f package.json -e "this.dependencies['ensembl-genome-browser']='file:./../ensembl-genome-browser'" && \
+    json -I -f package.json -e "this.dependencies['@ensembl/ensembl-genome-browser']='file:./../ensembl-genome-browser'" && \
     npm install && \
     npm run build
 

@@ -18,7 +18,7 @@ mkdir -p ./egb-tmp
 tar -c -z -f egb.tar.gz --files-from /dev/null
 
 # configure
-$SCRIPTPATH/../build-tools/menu.py --use-prev=.buildkit-config.prev $SCRIPTPATH/buildkit-menu.json .cfg || exit
+$SCRIPTPATH/../build-tools/menu.py --quick --use-prev=.buildkit-config.prev $SCRIPTPATH/buildkit-menu.json .cfg || exit
 source .cfg
 
 if [ "x$CFG_EGB" = "xlocal" ] ; then

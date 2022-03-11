@@ -9,8 +9,9 @@ def eprint(*args, **kwargs):
 
 use_rich = sys.stdout.isatty() 
 use_prev = False
+quick = False
 
-(optlist,args) = getopt.getopt(sys.argv[1:],[],['rich','no-rich','use-prev='])
+(optlist,args) = getopt.getopt(sys.argv[1:],[],['rich','no-rich','use-prev=','quick'])
 for (option,value) in optlist:
     if option == '--rich':
         use_rich = True
@@ -18,6 +19,8 @@ for (option,value) in optlist:
         use_rich = False
     elif option == '--use-prev':
         use_prev = value
+    elif option == '--quick':
+        quick = True
 
 if len(args) != 2:
     eprint("Syntax {0} [options] config-file.json output-file.sh".format(sys.argv[0]))
@@ -87,9 +90,11 @@ class Free:
     def label(self):
         return self.question
 
-    def ask(self, default):
+    def ask(self, default, skip_ask):
         if default is None:
             default = self.default
+        if skip_ask:
+            return self.default
         print(rich("\0y{0}\0- [\0g{1}\0-]? ".format(self.question,default)),end='',flush=True)
         line = sys.stdin.readline().strip()
         if line == '':
@@ -105,7 +110,7 @@ class ChooseOne:
     def label(self):
         return self.question
 
-    def ask(self, default):
+    def ask(self, default, skip_ask):
         options = self.options
         if default != None:
             try:
@@ -113,6 +118,8 @@ class ChooseOne:
                 options.insert(0,options.pop(index))
             except:
                 pass
+        if skip_ask:
+            return options[0]
         optstr = "/".join(["\0{0}{1}\0-".format("g" if i == 0 else "y",x) for (i,x) in enumerate(options)])
         while True:
             print(rich("\0y{0}\0- [{1}]? ".format(self.question,optstr)),end='',flush=True)
@@ -126,9 +133,9 @@ class ChooseOne:
             else:
                 return self.options[0]
 
-def ask(question,verifiers,default):
+def ask(question,verifiers,default,skip_ask):
     while True:
-        out = question.ask(default)
+        out = question.ask(default,skip_ask)
         error = None
         for verifier in verifiers:
             error = verifier.verify(out)
@@ -141,11 +148,14 @@ def ask(question,verifiers,default):
         print("\n")
 
 def ask_all(questions):
+    first = True
     while True:
+        skip_ask = ( quick and first)
+        first = False
         out = {}
         # Ask
         for q in questions:
-            out[q[0]] = ask(q[1],q[2],defaults.get(q[0],None))
+            out[q[0]] = ask(q[1],q[2],defaults.get(q[0],None),skip_ask)
 
         # Show settings for confirmation
         print(rich("\0X\0gSummary:\0-"))
@@ -154,7 +164,7 @@ def ask_all(questions):
         print("\n")
 
         # Confirm
-        confirm = ChooseOne("Are these ok?",["yes","reask","quit"]).ask(None)
+        confirm = ChooseOne("Are these ok?",["yes","reask","quit"]).ask(None,False)
         if confirm == "quit":
             sys.exit(1)
         elif confirm == "yes":

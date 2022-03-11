@@ -70,7 +70,7 @@ impl FloatingLeaf {
         }));
         let full_range_piece = full_range_piece(
             puzzle,
-            &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
+            &statics.top_style.coord_system,&base_range_piece,&pixel_range_piece,&converter);
         let indent = puzzle.new_piece(Some(0.));
         FloatingLeaf {
             statics: Arc::new(statics.clone()),
@@ -110,8 +110,12 @@ impl Ranged for FloatingLeaf {
 }
 
 impl Transformable for FloatingLeaf {
-    fn make(&self, solution: &PuzzleSolution) -> Box<dyn Transformer> {
-        Box::new(AnchoredLeaf::new(solution,self))
+    fn cloned(&self) -> Arc<dyn Transformable> {
+        Arc::new(self.clone())
+    }
+
+    fn make(&self, solution: &PuzzleSolution) -> Arc<dyn Transformer> {
+        Arc::new(AnchoredLeaf::new(solution,self))
     }
 }
 

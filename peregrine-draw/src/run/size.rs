@@ -109,6 +109,10 @@ impl SizeManagerState {
     }
 }
 
+fn apply_dpr(size: u32, device_pixel_ratio: f32) -> u32 {
+    ((size as f32) * device_pixel_ratio) as u32
+}
+
 #[derive(Clone)]
 pub(crate) struct SizeManager {
     state: Arc<Mutex<SizeManagerState>>,
@@ -159,13 +163,10 @@ impl SizeManager {
     }
 
     fn update_canvas_size(&self, draw: &mut LockedPeregrineInnerAPI, x: u32, y: u32) -> Result<(),Message> {
-//        let x = (x/4)*4;
-//        let y = (y/4)*4;
         self.dom.set_canvas_size(x,y);
-        *draw.webgl.lock().unwrap().refs().canvas_size = Some((x,y));
+        let device_pixel_ratio = self.dom.device_pixel_ratio();
+        *draw.webgl.lock().unwrap().refs().canvas_size = Some((apply_dpr(x,device_pixel_ratio),apply_dpr(y,device_pixel_ratio)));
         let mut stage = draw.stage.lock().unwrap();
-        //use web_sys::console;
-        //console::log_1(&format!("{}x{}",x,y).into());        
         stage.x_mut().set_size(x as f64);
         stage.y_mut().set_size(y as f64);
         Ok(())

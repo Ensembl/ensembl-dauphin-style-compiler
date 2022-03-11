@@ -28,8 +28,6 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         Some(SpaceBaseArea(top_left,bottom_right,len))
     }
 
-    pub fn len(&self) -> usize { self.2 }
-
     pub fn iter(&self) -> SpaceBaseAreaIterator<X,Y> {
         SpaceBaseAreaIterator {
             a: self.0.iter(),
@@ -70,6 +68,8 @@ impl<X: Clone + Add<Output=X> + Div<f64,Output=X>, Y: Clone> SpaceBaseArea<X,Y> 
 }
 
 impl<X,Y> SpaceBaseArea<X,Y> {
+    pub fn len(&self) -> usize { self.2 }
+
     pub fn demerge_by_allotment<F,K>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
         self.0.allotment.demerge(cb)
     }

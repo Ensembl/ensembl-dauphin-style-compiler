@@ -18,7 +18,7 @@ pub trait Transformer {
 }
 
 impl TransformerVariety {
-    pub fn spacebase_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBase<f64,Arc<dyn Transformer>>, filter: DataFilter) -> SpaceBase<f64,()> {
+    pub fn spacebase_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBase<f64,Arc<dyn Transformer>>) -> SpaceBase<f64,()> {
         match self {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
@@ -27,7 +27,7 @@ impl TransformerVariety {
         }
     }
 
-    pub fn spacebasearea_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBaseArea<f64,Arc<dyn Transformer>>, filter: DataFilter) -> SpaceBaseArea<f64,()> {
+    pub fn spacebasearea_transform(&self, coord_system: &CoordinateSystem, spacebase: &SpaceBaseArea<f64,Arc<dyn Transformer>>) -> SpaceBaseArea<f64,()> {
         match self {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
@@ -49,7 +49,7 @@ fn spacebase_transform(coord_system: &CoordinateSystem, spacebase: SpaceBase<f64
     let mut out = vec![];
     for (variety,filter) in spacebase.demerge_by_allotment(|x| x.choose_variety()).drain(..) {
         let items = spacebase.filter(&filter);
-        out.push(variety.spacebase_transform(coord_system,&items,filter));
+        out.push(variety.spacebase_transform(coord_system,&items));
     }
     out
 }
@@ -58,7 +58,7 @@ fn spacebasearea_transform(coord_system: &CoordinateSystem, spacebase: SpaceBase
     let mut out = vec![];
     for (variety,filter) in spacebase.demerge_by_allotment(|x| x.choose_variety()).drain(..) {
         let items = spacebase.filter(&filter);
-        out.push(variety.spacebasearea_transform(coord_system,&items,filter));
+        out.push(variety.spacebasearea_transform(coord_system,&items));
     }
     out
 }

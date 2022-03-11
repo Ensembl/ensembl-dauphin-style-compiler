@@ -1,14 +1,29 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox}};
-use std::hash::Hash;
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}};
+use std::{hash::Hash, sync::Arc};
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct TextShape<A: Clone> {
+pub struct TextShape<A> {
     position: SpaceBase<f64,A>,
     pen: Pen,
     text: EachOrEvery<String>
+}
+
+impl<A> TextShape<A> {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> TextShape<B> where F: Fn(&A) -> B {
+        TextShape {
+            position: self.position.map_allotments(cb),
+            pen: self.pen.clone(),
+            text: self.text.clone()
+        }
+    }
+}
+
+impl<A> Clone for TextShape<A> where A: Clone {
+    fn clone(&self) -> Self {
+        Self { position: self.position.clone(), pen: self.pen.clone(), text: self.text.clone() }
+    }
 }
 
 impl<A: Clone> TextShape<A> {
@@ -85,3 +100,30 @@ impl TextShape<AllotmentBox> {
         }
     }
 }
+
+impl TextShape<Arc<dyn Transformer>> {
+    fn demerge_by_variety(&self) -> Vec<(TransformerVariety,TextShape<Arc<dyn Transformer>>)> {
+        let demerge = self.position.allotments().demerge(|x| {
+            x.choose_variety()
+        });
+        let mut out = vec![];
+        for (variety,mut filter) in demerge {
+            filter.set_size(self.position.len());
+            out.push((variety,self.filter(&filter)));
+        }
+        out
+    }
+
+    pub fn make(&self, solution: &PuzzleSolution, common: &ShapeCommon) -> Vec<TextShape<()>> {
+        let mut out = vec![];
+        for (variety,rectangles) in self.demerge_by_variety() {
+            out.push(TextShape {
+                position: variety.spacebase_transform(&common.coord_system(),&self.position),
+                text: self.text.clone(),
+                pen: self.pen.clone()
+            });
+        }
+        out
+    }
+}
+

@@ -1,5 +1,5 @@
 stages:
-  - build_docker
+  - build
   - deploy
 
 variables:
@@ -7,8 +7,17 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   BASE: backend-server/k8s/base
 
-.build:
-  stage: build_docker
+.base-be-rules:
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - backend-server/**/*
+      when: always
+    - when: never
+
+.build_backend:
+  extends: .base-be-rules
+  stage: build
   image: docker
   services:
     - docker:dind
@@ -23,12 +32,8 @@ variables:
     - docker rmi ${DOCKER_IMAGE}
     - docker logout $CI_REGISTRY
 
-  rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
-      changes: 
-        - backend-server/*
-
-.deploy:
+.deploy_backend:
+  extends: .base-be-rules
   stage: deploy
   image: dockerhub.ebi.ac.uk/ensembl-web/deploy-tools:0.4
   before_script:
@@ -56,16 +61,13 @@ variables:
     - kustomize build ${BASE}/hi | kubectl apply -f -
     - kustomize build ${BASE}/lo | kubectl apply -f -
 
-  rules:
-    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH == "master"'
-      changes: 
-        - backend-server/*
+  needs: ["BE-Docker"]
 
-Docker:
-  extends: .build
+BE-Docker:
+  extends: .build_backend
 
 HX:Dev:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hx-dev
   variables:
@@ -74,7 +76,7 @@ HX:Dev:
     NFS_PATH: ${HX_NFS_PATH}
 
 HX:Staging:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hx-staging
   variables:
@@ -83,7 +85,7 @@ HX:Staging:
     NFS_PATH: ${HX_NFS_PATH}
     
 HL:Staging:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hh-staging
   variables:
@@ -92,7 +94,7 @@ HL:Staging:
     NFS_PATH: ${HL_NFS_PATH}
 
 HX:Internal:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hx-internal
   variables:
@@ -101,7 +103,7 @@ HX:Internal:
     NFS_PATH: ${HX_NFS_PATH}
 
 HL:Internal:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hh-internal
   variables:
@@ -110,7 +112,7 @@ HL:Internal:
     NFS_PATH: ${HL_NFS_PATH}
 
 HX:Production:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hx-live
   variables:
@@ -119,7 +121,7 @@ HX:Production:
     NFS_PATH: ${HX_NFS_PATH}
 
 HL:Production:
-  extends: .deploy
+  extends: .deploy_backend
   environment:
     name : wp-hh-live
   variables:

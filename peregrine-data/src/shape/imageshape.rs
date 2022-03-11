@@ -1,13 +1,27 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox}};
-use std::hash::Hash;
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}};
+use std::{hash::Hash, sync::Arc};
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct ImageShape<A: Clone> {
+pub struct ImageShape<A> {
     position: SpaceBase<f64,A>,
     names: EachOrEvery<String>
+}
+
+impl<A> ImageShape<A> {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> ImageShape<B> where F: Fn(&A) -> B {
+        ImageShape {
+            position: self.position.map_allotments(cb),
+            names: self.names.clone()
+        }
+    }
+}
+
+impl<A> Clone for ImageShape<A> where A: Clone {
+    fn clone(&self) -> Self {
+        Self { position: self.position.clone(), names: self.names.clone() }
+    }
 }
 
 impl<A: Clone> ImageShape<A> {
@@ -64,6 +78,20 @@ impl<A: Clone> ImageShape<A> {
     }
 }
 
+impl ImageShape<Arc<dyn Transformer>> {
+    fn demerge_by_variety(&self) -> Vec<(TransformerVariety,ImageShape<Arc<dyn Transformer>>)> {
+        let demerge = self.position.allotments().demerge(|x| {
+            x.choose_variety()
+        });
+        let mut out = vec![];
+        for (variety,mut filter) in demerge {
+            filter.set_size(self.position.len());
+            out.push((variety,self.filter(&filter)));
+        }
+        out
+    }
+}
+
 impl ImageShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<ImageShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(ImageShape {
@@ -79,5 +107,18 @@ impl ImageShape<AllotmentBox> {
             position: transform_spacebase2(solution,&common.coord_system(),&self.position),
             names: self.names.clone()
         }
+    }
+}
+
+impl ImageShape<Arc<dyn Transformer>> {
+    pub fn make(&self, solution: &PuzzleSolution, common: &ShapeCommon) -> Vec<ImageShape<()>> {
+        let mut out = vec![];
+        for (variety,rectangles) in self.demerge_by_variety() {
+            out.push(ImageShape {
+                position: variety.spacebase_transform(&common.coord_system(),&self.position),
+                names: self.names.clone()
+            });
+        }
+        out
     }
 }

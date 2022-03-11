@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, tree::allotmentbox::AllotmentBox}};
+use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer}};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -38,17 +38,33 @@ fn wiggle_filter(wanted_min: f64, wanted_max: f64, got_min: f64, got_max: f64, y
     (aim_min,aim_max,y)
 }
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct WiggleShape<A: Clone> {
+pub struct WiggleShape<A> {
     x_limits: (f64,f64),
     values: Arc<Vec<Option<f64>>>,
     plotter: Plotter,
     allotments: EachOrEvery<A> // actually always a single allotment
 }
 
+impl<A> Clone for WiggleShape<A> where A: Clone {
+    fn clone(&self) -> Self {
+        Self { x_limits: self.x_limits.clone(), values: self.values.clone(), plotter: self.plotter.clone(), allotments: self.allotments.clone() }
+    }
+}
+
 fn draw_wiggle(input: &[Option<f64>], height: f64) -> Vec<Option<f64>> {
     input.iter().map(|y| y.map(|y| ((1.-y)*height))).collect::<Vec<_>>()
+}
+
+impl<A> WiggleShape<A> {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> WiggleShape<B> where F: Fn(&A) -> B {
+        WiggleShape {
+            x_limits: self.x_limits.clone(),
+            values: self.values.clone(),
+            plotter: self.plotter.clone(),
+            allotments: self.allotments.map(cb)
+        }
+    }
 }
 
 impl<A: Clone> WiggleShape<A> {
@@ -143,3 +159,16 @@ impl WiggleShape<AllotmentBox> {
         }
     }
 }
+
+impl WiggleShape<Arc<dyn Transformer>> {
+    pub fn make(&self, solution: &PuzzleSolution, common: &ShapeCommon) -> Vec<WiggleShape<()>> {
+        let allotment = self.allotments.get(0).unwrap();
+        vec![WiggleShape {
+            x_limits: self.x_limits.clone(),
+            values: Arc::new(allotment.choose_variety().graph_transform(&common.coord_system(), allotment,&self.values)),
+            plotter: self.plotter.clone(),
+            allotments: EachOrEvery::Each(Arc::new(vec![()]))
+        }]
+    }
+}
+

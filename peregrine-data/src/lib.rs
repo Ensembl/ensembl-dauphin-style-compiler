@@ -28,7 +28,8 @@ mod allotment {
         pub(crate) mod basicallotmentspec;
         pub(crate) mod coordsystem;
         pub(crate) mod rangeused;
-        pub(crate) mod carriageuniverse;    
+        pub(crate) mod carriageuniverse;
+        pub(crate) mod carriageuniverse2;
         pub(crate) mod trainuniverse;
     }
 
@@ -176,6 +177,7 @@ mod shape {
     mod textshape;
     pub(crate) mod shape;
     mod carriageshapelist;
+    mod carriageshapelist2;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
@@ -230,6 +232,7 @@ mod util {
     pub mod message;
     pub mod miscpromises;
     pub mod eachorevery;
+    pub mod eachoreveryfilter;
     pub mod ringarray;
     pub mod vecutils;
 

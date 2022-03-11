@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
 
 use crate::allotment::{core::rangeused::RangeUsed, transformers::transformers::Transformer};
@@ -25,5 +27,6 @@ pub trait Ranged {
 }
 
 pub trait Transformable {
-    fn make(&self, solution: &PuzzleSolution) -> Box<dyn Transformer>;
+    fn cloned(&self) -> Arc<dyn Transformable>;
+    fn make(&self, solution: &PuzzleSolution) -> Arc<dyn Transformer>;
 }

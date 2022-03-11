@@ -1,6 +1,6 @@
-use std::{collections::HashMap};
+use std::{collections::HashMap, borrow::Cow};
 
-use crate::allotment::style::{allotmentname::{AllotmentName, AllotmentNamePart}, style::{LeafAllotmentStyle, ContainerAllotmentStyle}};
+use crate::allotment::style::{allotmentname::{AllotmentName, AllotmentNamePart}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, TopStyle}};
 
 use super::styletree::{StyleTree, StyleTreeNode};
 
@@ -95,12 +95,17 @@ impl BuilderNode {
         }
     }
 
-    fn build(&self) -> StyleTreeNode {
+    fn build(&self, top_style: Option<&TopStyle>) -> StyleTreeNode {
+        let top_style = if let Some(x) = top_style {
+            Cow::Borrowed(x)
+        } else { 
+            Cow::Owned(TopStyle::build(&self.container))
+        };
         let container = ContainerAllotmentStyle::build(&self.container);
-        let leaf = LeafAllotmentStyle::build(&self.leaf);
+        let leaf = LeafAllotmentStyle::build(&self.leaf,Some(&top_style));
         let mut node = StyleTreeNode::new(container,leaf,self.all);
         for (name,child) in &self.children {
-            node.add(name.as_ref(),child.build());
+            node.add(name.as_ref(),child.build(Some(&top_style)));
         }
         node
     }
@@ -139,10 +144,8 @@ impl StyleTreeBuilder {
             self.root.get_node(name).add_all(node);
         }
         self.all = vec![];
-        println!("{:?}",self);
         self.root.add_any();
-        println!("{:?}",self);
-        StyleTree::root(self.root.build()) 
+        StyleTree::root(self.root.build(None)) 
     }
 }
 

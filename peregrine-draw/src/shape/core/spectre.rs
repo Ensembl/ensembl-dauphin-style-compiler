@@ -81,7 +81,7 @@ impl MarchingAnts {
         );
         let obs = SpaceBaseArea::new(top_left_obs,bottom_right_obs).unwrap();
         shapes.add_rectangle(area,Patina::Drawn(
-            DrawnType::Stroke(self.width as u32),
+            DrawnType::Stroke(self.width),
             EachOrEvery::every(Colour::Bar(DirectColour(255,255,255,0),self.colour.clone(),(self.length,self.length),self.prop))
         ),Some(obs)).map_err(|x| Message::DataError(x))?;
         Ok(())

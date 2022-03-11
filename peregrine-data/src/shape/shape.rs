@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::sync::Arc;
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
 use super::imageshape::ImageShape;
@@ -13,7 +14,9 @@ use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
+use crate::allotment::boxes::boxtraits::Transformable;
 use crate::allotment::core::rangeused::RangeUsed;
+use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::tree::allotmentbox::AllotmentBox;
 
 pub trait ShapeDemerge {
@@ -26,13 +29,34 @@ pub trait ShapeDemerge {
     }
 }
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub enum ShapeDetails<A: Clone> {
+pub enum ShapeDetails<A> {
     Text(TextShape<A>),
     Image(ImageShape<A>),
     Wiggle(WiggleShape<A>),
     SpaceBaseRect(RectangleShape<A>)
+}
+
+impl<A> Clone for ShapeDetails<A> where A: Clone {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Text(arg0) => Self::Text(arg0.clone()),
+            Self::Image(arg0) => Self::Image(arg0.clone()),
+            Self::Wiggle(arg0) => Self::Wiggle(arg0.clone()),
+            Self::SpaceBaseRect(arg0) => Self::SpaceBaseRect(arg0.clone()),
+        }
+    }
+}
+
+impl<A> ShapeDetails<A> {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> ShapeDetails<B> where F: Fn(&A) -> B {
+        match self {
+            Self::Text(arg0) => ShapeDetails::<B>::Text(arg0.map_new_allotment(cb)),
+            Self::Image(arg0) => ShapeDetails::<B>::Image(arg0.map_new_allotment(cb)),
+            Self::Wiggle(arg0) => ShapeDetails::<B>::Wiggle(arg0.map_new_allotment(cb)),
+            Self::SpaceBaseRect(arg0) => ShapeDetails::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
+        }
+    }
 }
 
 impl<A: Clone> ShapeDetails<A> {
@@ -96,6 +120,17 @@ impl<A: Clone> ShapeDetails<A> {
     }
 }
 
+impl ShapeDetails<Arc<dyn Transformer>> {
+    pub fn make(&self, solution: &PuzzleSolution, common: &ShapeCommon) -> Vec<ShapeDetails<()>> {
+        match self {
+            ShapeDetails::SpaceBaseRect(shape) => shape.make(solution,common).drain(..).map(|x| ShapeDetails::SpaceBaseRect(x)).collect(),
+            ShapeDetails::Text(shape) => shape.make(solution,common).drain(..).map(|x| ShapeDetails::Text(x)).collect(),
+            ShapeDetails::Image(shape) => shape.make(solution,common).drain(..).map(|x| ShapeDetails::Image(x)).collect(),
+            ShapeDetails::Wiggle(shape) => shape.make(solution,common).drain(..).map(|x| ShapeDetails::Wiggle(x)).collect(),
+        }
+    }
+}
+
 impl ShapeDetails<AllotmentRequest> {
     pub fn register_space(&self, _common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
@@ -109,7 +144,7 @@ impl ShapeDetails<AllotmentRequest> {
                 }
             },
             ShapeDetails::Text(shape) => {
-                let size = shape.pen().size() as f64;
+                let size = shape.pen().size_in_webgl() as f64;
                 for (position,text) in shape.position().iter().zip(shape.iter_texts()) {
                     let allotment = position.allotment;
                     allotment.set_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
@@ -185,11 +220,25 @@ impl ShapeCommon {
     }
 }
 
-#[derive(Clone)]
 #[cfg_attr(debug_assertions,derive(Debug))]
-pub struct Shape<A: Clone> {
+pub struct Shape<A> {
     details: ShapeDetails<A>,
     common: ShapeCommon
+}
+
+impl<A> Clone for Shape<A> where A: Clone {
+    fn clone(&self) -> Self {
+        Self { details: self.details.clone(), common: self.common.clone() }
+    }
+}
+
+impl<A> Shape<A> {
+    pub fn map_new_allotment<F,B>(&self, cb: F) -> Shape<B> where F: Fn(&A) -> B {
+        Shape {
+            common: self.common.clone(),
+            details: self.details.map_new_allotment(cb)
+        }
+    }
 }
 
 impl<A: Clone> Shape<A> {
@@ -234,6 +283,17 @@ impl Shape<AllotmentBox> {
             common: self.common.clone(),
             details: self.details.transform(&self.common,solution)
         }
+    }
+}
+
+impl Shape<Arc<dyn Transformer>> {
+    pub fn make(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> {
+        self.details.make(solution,&self.common).drain(..).map(|details| 
+            Shape {
+                common: self.common.clone(),
+                details: details
+            }
+        ).collect()
     }
 }
 

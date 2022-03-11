@@ -6,8 +6,10 @@ file="bell.ogg"
 width=18
 height=18
 file="chevron-left.png"
+scale=200
 
 [sources.chevron-right]
 width=18
 height=18
 file="chevron-right.png"
+scale=200
