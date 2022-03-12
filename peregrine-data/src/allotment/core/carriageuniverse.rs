@@ -6,7 +6,7 @@ use crate::allotment::tree::allotmentbox::{AllotmentBoxBuilder, AllotmentBox};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
 use crate::api::PlayingField;
-use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety};
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety, ShapeRequest, ShapeRequestGroup};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle, PuzzleBuilder};
 
@@ -68,7 +68,7 @@ impl CarriageUniverseData {
         self.main.get_all_metadata(solution,allotment_metadata,out);
     }
 
-    fn allot(&mut self, extent: Option<&CarriageExtent>) -> PuzzleSolution {
+    fn allot(&mut self, extent: Option<&ShapeRequestGroup>) -> PuzzleSolution {
         let mut arbitrator = Arbitrator::new(extent,&self.puzzle);
         let puzzle = Puzzle::new(arbitrator.puzzle().clone());
         let mut solution = PuzzleSolution::new(&puzzle);
@@ -194,7 +194,7 @@ impl CarriageUniverse {
         self_data.union(&other_data);
     }
 
-    pub fn allot(&self, extent: Option<&CarriageExtent>) { 
+    pub fn allot(&self, extent: Option<&ShapeRequestGroup>) { 
         let solution = lock!(self.data).allot(extent);
         *lock!(self.solution) = Some(solution);
     }

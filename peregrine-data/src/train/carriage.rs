@@ -4,7 +4,7 @@ use peregrine_toolkit::sync::needed::Needed;
 
 use crate::api::MessageSender;
 use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList};
-use crate::shapeload::{ ShapeRequest };
+use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::shapeload::loadshapes::{LoadMode, load_carriage_shape_list };
@@ -19,22 +19,22 @@ struct UnloadedCarriage {
 }
 
 impl UnloadedCarriage {
-    fn make_shape_requests(&self, extent: &CarriageExtent) -> Vec<ShapeRequest> {
-        let mut shape_requests = vec![];
+    fn make_shape_requests(&self, extent: &CarriageExtent) -> ShapeRequestGroup {
         let track_config_list = extent.train().layout().track_config_list();
         let track_list = self.config.list_tracks();
         let pixel_size = extent.train().pixel_size();
+        let mut track_configs = vec![];
         for track in track_list {
             if let Some(track_config) = track_config_list.get_track(&track) {
-                shape_requests.push(ShapeRequest::new(&extent.region(),&track_config,pixel_size,self.warm));
+                track_configs.push(track_config.as_ref().clone());
             }
         }
-        shape_requests
+        ShapeRequestGroup::new(&extent.region(),&track_configs,pixel_size,self.warm)
     }
 
     async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<AnchoredCarriageShapeList>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
-        let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,Some(extent),&mode).await;
+        let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
         let shapes = if let Some(x) = shapes { x } else { return Ok(None); };
         if errors.len() != 0 {
             return Err(DataMessage::CarriageUnavailable(extent.clone(),errors));

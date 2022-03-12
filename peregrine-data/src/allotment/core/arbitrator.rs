@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}, borrow::BorrowMut};
 
 use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleSolution, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleValueHolder, PuzzleBuilder, ConstantPuzzlePiece}};
 
-use crate::{CarriageExtent, allotment::tree::collisionalgorithm::CollisionAlgorithmHolder};
+use crate::{CarriageExtent, allotment::tree::collisionalgorithm::CollisionAlgorithmHolder, ShapeRequest, ShapeRequestGroup};
 
 use super::rangeused::RangeUsed;
 
@@ -56,20 +56,20 @@ pub struct BpPxConverter {
 }
 
 impl BpPxConverter {
-    fn real_calc_max_px_per_bp(extent: &CarriageExtent) -> f64 {
-        let bp_per_carriage = extent.train().scale().bp_in_carriage() as f64;
-        let max_px_per_carriage = extent.train().pixel_size().max_px_per_carriage() as f64;
+    fn real_calc_max_px_per_bp(request: &ShapeRequestGroup) -> f64 {
+        let bp_per_carriage = request.region().scale().bp_in_carriage() as f64;
+        let max_px_per_carriage = request.pixel_size().max_px_per_carriage() as f64;
         max_px_per_carriage / bp_per_carriage
     }
 
-    fn calc_max_px_per_bp(extent: Option<&CarriageExtent>) -> Option<f64> {
+    fn calc_max_px_per_bp(extent: Option<&ShapeRequestGroup>) -> Option<f64> {
         extent.map(|e| BpPxConverter::real_calc_max_px_per_bp(e))
     }
 
-    pub(crate) fn new(extent: Option<&CarriageExtent>) -> BpPxConverter {
+    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BpPxConverter {
         BpPxConverter {
             max_px_per_bp: BpPxConverter::calc_max_px_per_bp(extent),
-            bp_start: extent.map(|x| x.left_right().0).unwrap_or(0.)
+            bp_start: extent.map(|x| x.region().min_value() as f64).unwrap_or(0.)
         }
     }
 
@@ -92,7 +92,7 @@ pub struct Arbitrator<'a> {
 }
 
 impl<'a> Arbitrator<'a> {
-    pub fn new(extent: Option<&CarriageExtent>, puzzle: &PuzzleBuilder) -> Arbitrator<'a> {
+    pub fn new(extent: Option<&ShapeRequestGroup>, puzzle: &PuzzleBuilder) -> Arbitrator<'a> {
         Arbitrator {
             parent: None,
             bumper: CollisionAlgorithmHolder::new(),

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, EachOrEvery };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, EachOrEvery, ShapeRequest, ShapeRequestGroup };
 
 pub struct CarriageShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
@@ -95,7 +95,7 @@ impl CarriageShapeListBuilder {
 pub struct FloatingCarriageShapeList {
     shapes: Arc<Vec<Shape<AllotmentRequest>>>,
     carriage_universe: CarriageUniverse,
-    extent: Option<CarriageExtent>
+    extent: Option<ShapeRequestGroup>
 }
 
 impl FloatingCarriageShapeList {
@@ -109,7 +109,7 @@ impl FloatingCarriageShapeList {
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
-    pub fn new(builder: CarriageShapeListBuilder, extent: Option<&CarriageExtent>) -> Result<FloatingCarriageShapeList,DataMessage> {
+    pub fn new(builder: CarriageShapeListBuilder, extent: Option<&ShapeRequestGroup>) -> Result<FloatingCarriageShapeList,DataMessage> {
         Ok(FloatingCarriageShapeList {
             shapes: Arc::new(builder.shapes),
             carriage_universe: builder.carriage_universe,

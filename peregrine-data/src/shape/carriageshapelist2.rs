@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::FloatingCarriageShapeList;
+use crate::{FloatingCarriageShapeList, ShapeRequest, ShapeRequestGroup};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 #[derive(Clone)]
@@ -129,7 +129,7 @@ impl CarriageShapeListBuilder2 {
 #[derive(Clone)]
 pub struct CarriageShapeList2 {
     carriage_universe: Arc<CarriageUniverse2>,
-    extent: Option<CarriageExtent>
+    extent: Option<ShapeRequestGroup>
 }
 
 impl CarriageShapeList2 {
@@ -140,7 +140,7 @@ impl CarriageShapeList2 {
         }
     }
 
-    pub fn new(input: CarriageShapeListBuilder2, extent: Option<&CarriageExtent>) -> Result<CarriageShapeList2,DataMessage> {
+    pub fn new(input: CarriageShapeListBuilder2, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
         let style = AllotmentStyleGroup::new(StyleTree::new(input.style));
         let mut shapes = vec![];
         for shape in &input.shapes {

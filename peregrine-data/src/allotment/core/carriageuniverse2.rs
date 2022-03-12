@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::puzzle::{PuzzleBuilder, PuzzleSolution};
 
-use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::Root, boxtraits::Transformable}}, Pen, CarriageExtent, Shape};
+use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::Root, boxtraits::Transformable}}, Pen, CarriageExtent, Shape, ShapeRequest, ShapeRequestGroup};
 
 use super::arbitrator::BpPxConverter;
 
@@ -28,7 +28,7 @@ impl CarriageUniverseBuilder {
         self.leafs.extend(other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
     }
 
-    fn make_transformable(mut self, style: &AllotmentStyleGroup, extent: Option<&CarriageExtent>) {
+    fn make_transformable(mut self, style: &AllotmentStyleGroup, extent: Option<&ShapeRequestGroup>) {
         let builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));
         let root = ContainerHolder::Root(Root::new());
@@ -41,7 +41,7 @@ pub struct CarriageUniverse2 {
 }
 
 impl CarriageUniverse2 {
-    pub fn new(builder: CarriageUniverseBuilder, mut shapes: Vec<Shape<PendingLeaf>>, style: &AllotmentStyleGroup, extent: Option<&CarriageExtent>) -> CarriageUniverse2 {
+    pub fn new(builder: CarriageUniverseBuilder, mut shapes: Vec<Shape<PendingLeaf>>, style: &AllotmentStyleGroup, extent: Option<&ShapeRequestGroup>) -> CarriageUniverse2 {
         builder.make_transformable(style,extent);
         let shapes = shapes.drain(..).map(|x| 
             x.map_new_allotment(|x| x.transformable().cloned())
@@ -64,12 +64,4 @@ impl CarriageUniverse2 {
         }
         CarriageUniverse2 { shapes: Arc::new(shapes) }
     }
-
-    /*
-    pub fn append(&mut self, more: &CarriageShapeListBuilder) {
-        self.shapes.extend(more.shapes.iter().cloned());
-        self.allotments = self.allotments.union(&more.allotments).cloned().collect();
-        self.carriage_universe.union(&more.carriage_universe);
-    }
-    */
 }
