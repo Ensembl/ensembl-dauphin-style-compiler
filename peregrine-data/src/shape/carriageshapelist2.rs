@@ -1,155 +1,167 @@
-use std::sync::Arc;
+use std::{sync::Arc, collections::HashMap};
 use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::pendingleaf::PendingLeaf, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}} };
+use crate::FloatingCarriageShapeList;
+use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
+
+#[derive(Clone)]
+enum PendingShape {
+    Rectangle(SpaceBaseArea<f64,PendingLeaf>, Patina, Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Image(SpaceBase<f64,PendingLeaf>, EachOrEvery<String>),
+    Text(SpaceBase<f64,PendingLeaf>, Pen,  EachOrEvery<String>),
+    Wiggle(f64,f64, Plotter, Vec<Option<f64>>, PendingLeaf)
+}
+
+impl PendingShape {
+    fn into_shape(&self, style: &AllotmentStyleGroup) -> Result<Vec<Shape<PendingLeaf>>,DataMessage> {
+        match self {
+            PendingShape::Rectangle(area,patina,wobble) => {
+                let mut out = vec![];
+                let depth = area.top_left().allotments().map(|leaf| {
+                    style.get_pending_leaf(leaf).leaf.depth
+                });
+                for (coord_system,filter) in area.demerge_by_allotment(|leaf| {
+                    &style.get_pending_leaf(leaf).leaf.top_style.coord_system
+                }) {
+                    let this_area = area.filter(&filter);
+                    let this_depth = depth.filter(&filter);
+                    let this_patina = patina.filter(&filter);
+                    out.push(RectangleShape::new2(this_area,coord_system,&this_depth,this_patina,wobble.clone())?);
+                }
+                Ok(out)
+            },
+            PendingShape::Image(position,name) => {
+                let mut out = vec![];
+                let depth = position.allotments().map(|leaf| {
+                    style.get_pending_leaf(leaf).leaf.depth
+                });
+                for (coord_system,filter) in position.demerge_by_allotment(|leaf| {
+                    &style.get_pending_leaf(leaf).leaf.top_style.coord_system
+                }) {
+                    let this_position = position.filter(&filter);
+                    let this_depth = depth.filter(&filter);
+                    let this_name = name.filter(&filter);
+                    out.push(ImageShape::new2(this_position,coord_system,&this_depth,this_name)?);
+                }
+                Ok(out)
+            },
+            PendingShape::Text(position,pen,text) => {
+                let mut out = vec![];
+                let depth = position.allotments().map(|leaf| {
+                    style.get_pending_leaf(leaf).leaf.depth
+                });
+                for (coord_system,filter) in position.demerge_by_allotment(|leaf| {
+                    &style.get_pending_leaf(leaf).leaf.top_style.coord_system
+                }) {
+                    let this_position = position.filter(&filter);
+                    let this_depth = depth.filter(&filter);
+                    let this_pen = pen.filter(&filter);
+                    let this_text = text.filter(&filter);
+                    out.push(TextShape::new2(this_position,coord_system,&this_depth,this_pen,this_text)?);
+                }
+                Ok(out)
+            },
+            // XXX don't copy values, use Arc
+            PendingShape::Wiggle(min,max,plotter,values,leaf) => {
+                let depth = style.get_pending_leaf(&leaf).leaf.depth;
+                let coord_system = &style.get_pending_leaf(&leaf).leaf.top_style.coord_system;
+                Ok(vec![WiggleShape::new2((*min,*max),values.clone(),depth,plotter.clone(),&leaf,coord_system)?])
+            }
+        }
+    }
+}
 
 pub struct CarriageShapeListBuilder2 {
-    shapes: Vec<Shape<PendingLeaf>>,
-    allotments: HashSet<AllotmentRequest>,
+    shapes: Vec<PendingShape>,
     assets: Assets,
-    carriage_universe: CarriageUniverseBuilder
+    carriage_universe: CarriageUniverseBuilder,
+    style: StyleTreeBuilder
 }
 
 impl CarriageShapeListBuilder2 {
-    pub fn new(allotment_metadata: &AllotmentMetadataStore, assets: &Assets) -> CarriageShapeListBuilder2 {
+    pub fn new(assets: &Assets) -> CarriageShapeListBuilder2 {
         CarriageShapeListBuilder2 {
             shapes: vec![],
             assets: assets.clone(),
-            allotments: HashSet::new(),
-            carriage_universe: CarriageUniverseBuilder::new()
+            carriage_universe: CarriageUniverseBuilder::new(),
+            style: StyleTreeBuilder::new()
         }
     }
 
-    pub fn carriage_universe(&self) -> &CarriageUniverseBuilder { &self.carriage_universe }
-
-    /*
-    fn push(&mut self, shape: Shape<PendingLeaf>) {
-        if !shape.is_empty() && !shape.common().coord_system().is_dustbin() {
-            shape.register_space(&self.assets);
-            self.shapes.push(shape);
-        }
+    pub fn use_allotment(&mut self, spec: &str) -> &PendingLeaf {
+        self.carriage_universe.pending_leaf(spec)
     }
 
-    fn extend(&mut self, mut shapes: Vec<Shape<PendingLeaf>>) {
-        for shape in shapes.drain(..) {
-            self.push(shape);
-        }
+    pub fn add_style(&mut self, spec: &str, props: HashMap<String,String>) {
+        self.style.add(spec,props);
     }
-    */
 
     pub fn len(&self) -> usize { self.shapes.len() }
-
-    pub fn vec_len(&self) -> usize {
-        let mut out = 0;
-        for shape in &self.shapes {
-            out += shape.len();
-        }
-        out
-    }
-
-    /*
-    pub fn use_allotment(&mut self, allotment: &AllotmentRequest) {
-        if !allotment.is_dustbin() {
-            self.allotments.insert(allotment.clone());
-        }
-    }
     
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,PendingLeaf>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
-        let depth = area.top_left().allotments().map(|a| a.depth());
-        self.extend(RectangleShape::<PendingLeaf>::new(area,depth,patina,wobble)?);
+        self.shapes.push(PendingShape::Rectangle(area,patina,wobble));
         Ok(())
     }
 
     pub fn add_text(&mut self, position: SpaceBase<f64,PendingLeaf>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
-        let depth = position.allotments().map(|a| a.depth());
-        self.extend(TextShape::<PendingLeaf>::new(position,depth,pen,text)?);
+        self.shapes.push(PendingShape::Text(position,pen,text));
         Ok(())
     }
 
     pub fn add_image(&mut self, position: SpaceBase<f64,PendingLeaf>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
-        let depth = position.allotments().map(|a| a.depth());
-        self.extend(ImageShape::<PendingLeaf>::new(position,depth,images)?);
+        self.shapes.push(PendingShape::Image(position,images));
         Ok(())
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: AllotmentRequest) -> Result<(),DataMessage> {
-        let depth = EachOrEvery::every(allotment.depth());
-        self.extend(WiggleShape::<PendingLeaf>::new((min,max),values,depth,plotter,allotment.clone())?);
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: PendingLeaf) -> Result<(),DataMessage> {
+        self.shapes.push(PendingShape::Wiggle(min,max,plotter,values,allotment));
         Ok(())
     }
 
-    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageShapeListBuilder {
-        let mut shapes = vec![];
-        for shape in self.shapes.iter() {
-            shapes.push(shape.filter_by_minmax(min_value,max_value));
-        }
-        CarriageShapeListBuilder { shapes, allotments: self.allotments.clone(), carriage_universe: self.carriage_universe.clone(), assets: self.assets.clone() }
-    }
-
-    pub fn append(&mut self, more: &CarriageShapeListBuilder) {
+    pub fn append(&mut self, more: &CarriageShapeListBuilder2) {
         self.shapes.extend(more.shapes.iter().cloned());
-        self.allotments = self.allotments.union(&more.allotments).cloned().collect();
         self.carriage_universe.union(&more.carriage_universe);
     }
 }
 
 #[derive(Clone)]
-pub struct FloatingCarriageShapeList2 {
-    shapes: Arc<Vec<Shape<PendingLeaf>>>,
-    carriage_universe: CarriageUniverse,
+pub struct CarriageShapeList2 {
+    carriage_universe: Arc<CarriageUniverse2>,
     extent: Option<CarriageExtent>
 }
 
-impl FloatingCarriageShapeList2 {
-    pub fn empty() -> FloatingCarriageShapeList2 {
-        FloatingCarriageShapeList2 {
-            shapes: Arc::new(vec![]),
-            carriage_universe: CarriageUniverse::new(&AllotmentMetadataStore::new()),
+impl CarriageShapeList2 {
+    pub fn empty() -> CarriageShapeList2 {
+        CarriageShapeList2 {
+            carriage_universe: Arc::new(CarriageUniverse2::new(CarriageUniverseBuilder::new(),vec![],&AllotmentStyleGroup::empty(),None)),
             extent: None
         }
     }
 
-    pub fn len(&self) -> usize { self.shapes.len() }
-
-    pub fn new(builder: CarriageShapeListBuilder2, extent: Option<&CarriageExtent>) -> Result<FloatingCarriageShapeList2,DataMessage> {
-        Ok(FloatingCarriageShapeList2 {
-            shapes: Arc::new(builder.shapes),
-            carriage_universe: builder.carriage_universe,
+    pub fn new(input: CarriageShapeListBuilder2, extent: Option<&CarriageExtent>) -> Result<CarriageShapeList2,DataMessage> {
+        let style = AllotmentStyleGroup::new(StyleTree::new(input.style));
+        let mut shapes = vec![];
+        for shape in &input.shapes {
+            let mut these_shapes = shape.into_shape(&style)?;
+            shapes.append(&mut these_shapes);
+        }
+        let carriage_universe = CarriageUniverse2::new(input.carriage_universe,shapes,&style,extent);
+        Ok(CarriageShapeList2 {
+            carriage_universe: Arc::new(carriage_universe),
             extent: extent.cloned()
         })
     }
-}
 
-#[derive(Clone)]
-pub struct AnchoredCarriageShapeList2 {
-    shapes: Arc<Vec<Shape<()>>>,
-    carriage_universe: CarriageUniverse
-}
-
-impl AnchoredCarriageShapeList2 {
-    pub fn empty() -> Result<AnchoredCarriageShapeList2,DataMessage> {
-        AnchoredCarriageShapeList2::new(&FloatingCarriageShapeList2::empty())
+    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> {
+        self.carriage_universe.get(solution)
     }
 
-    pub fn new(floating: &FloatingCarriageShapeList2) -> Result<AnchoredCarriageShapeList2,DataMessage> {
-        let puzzle = Puzzle::new(floating.carriage_universe.puzzle());
-        let mut solution = PuzzleSolution::new(&puzzle);
-        /* allotments are assigned here */
-        floating.carriage_universe.allot(floating.extent.as_ref());
-        /* shapes mapped to allotments here */
-        let mut shapes = floating.shapes.iter()
-            .map(|s| s.clone().allot(|r| r.allotment()))
-            .collect::<Result<Vec<_>,_>>()?;
-        let shapes = shapes.drain(..).map(|s| s.transform(&solution)).collect();
-        Ok(AnchoredCarriageShapeList2 {
-            carriage_universe: floating.carriage_universe.clone(),
-            shapes: Arc::new(shapes)
-        })
+    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageShapeList2 {
+        CarriageShapeList2 {
+            carriage_universe: Arc::new(self.carriage_universe.filter(min_value,max_value)),
+            extent: self.extent.clone()
+        }
     }
-
-    pub fn carriage_universe(&self) -> &CarriageUniverse { &self.carriage_universe}
-    pub fn shapes(&self) -> &Arc<Vec<Shape<()>>> { &self.shapes }
-    */
 }

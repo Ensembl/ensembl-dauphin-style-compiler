@@ -132,6 +132,17 @@ impl<X,Y> SpaceBase<X,Y> {
     pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
 
     pub fn len(&self) -> usize { self.len }
+
+    pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
+        let base = self.base.iter(self.len).unwrap();
+        let normal = self.normal.iter(self.len).unwrap();
+        let tangent = self.tangent.iter(self.len).unwrap();
+        let allotment = self.allotment.iter(self.len).unwrap();
+        let item = base.zip(normal).zip(tangent).zip(allotment);
+        SpaceBaseIterator {
+            item: Box::new(item)
+        }
+    }
 }
 
 impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
@@ -166,17 +177,6 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         let tangent =self.tangent.zip(&other.tangent,cbs.tangent);
         let allotment = self.allotment.zip(&other.allotment,cbs.allotment);
         SpaceBase::new_unszied(&base,&normal,&tangent,&allotment)
-    }
-
-    pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
-        let base = self.base.iter(self.len).unwrap();
-        let normal = self.normal.iter(self.len).unwrap();
-        let tangent = self.tangent.iter(self.len).unwrap();
-        let allotment = self.allotment.iter(self.len).unwrap();
-        let item = base.zip(normal).zip(tangent).zip(allotment);
-        SpaceBaseIterator {
-            item: Box::new(item)
-        }
     }
 
     pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBase<X,Y> {

@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer}, EachOrEvery};
+use crate::{AllotmentRequest, DataMessage, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer, style::pendingleaf::PendingLeaf}, EachOrEvery, CoordinateSystem};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -67,6 +67,18 @@ impl<A> WiggleShape<A> {
     }
 
     pub fn len(&self) -> usize { 1 }
+    pub fn plotter(&self) -> &Plotter { &self.plotter }
+
+    pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
+        self.allotments.iter(len).unwrap()
+    }
+}
+
+impl WiggleShape<PendingLeaf> {
+    pub fn new2(x_limits: (f64,f64), values: Vec<Option<f64>>, depth: i8, plotter: Plotter, pending_leaf: &PendingLeaf, coord_system: &CoordinateSystem) -> Result<Shape<PendingLeaf>,DataMessage> {
+        let details = WiggleShape::new_details(x_limits,values,plotter,pending_leaf.clone());
+        Ok(Shape::new(ShapeCommon::new(coord_system.clone(), EachOrEvery::every(depth)),ShapeDetails::Wiggle(details)))
+    }
 }
 
 impl<A: Clone> WiggleShape<A> {
@@ -105,7 +117,6 @@ impl<A: Clone> WiggleShape<A> {
 
     pub fn range(&self) -> (f64,f64) { self.x_limits }
     pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
-    pub fn plotter(&self) -> &Plotter { &self.plotter }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,WiggleShape<A>)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(1,|a| cat.categorise(common_in.coord_system()));
@@ -129,10 +140,6 @@ impl<A: Clone> WiggleShape<A> {
             plotter: self.plotter.clone(),
             allotments: self.allotments.clone()
         }
-    }
-
-    pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
-        self.allotments.iter(len).unwrap()
     }
 }
 

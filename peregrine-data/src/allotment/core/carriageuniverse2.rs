@@ -24,6 +24,10 @@ impl CarriageUniverseBuilder {
         self.leafs.get_mut(spec).unwrap()
     }
 
+    pub fn union(&mut self, other: &CarriageUniverseBuilder) {
+        self.leafs.extend(other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
+    }
+
     fn make_transformable(mut self, style: &AllotmentStyleGroup, extent: Option<&CarriageExtent>) {
         let builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));
@@ -52,4 +56,20 @@ impl CarriageUniverse2 {
         }
         out
     }
+
+    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageUniverse2 {
+        let mut shapes = vec![];
+        for shape in self.shapes.iter() {
+            shapes.push(shape.filter_by_minmax(min_value,max_value));
+        }
+        CarriageUniverse2 { shapes: Arc::new(shapes) }
+    }
+
+    /*
+    pub fn append(&mut self, more: &CarriageShapeListBuilder) {
+        self.shapes.extend(more.shapes.iter().cloned());
+        self.allotments = self.allotments.union(&more.allotments).cloned().collect();
+        self.carriage_universe.union(&more.carriage_universe);
+    }
+    */
 }

@@ -14,6 +14,7 @@ use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
 use crate::allotment::core::rangeused::RangeUsed;
+use crate::allotment::style::pendingleaf::PendingLeaf;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::tree::allotmentbox::AllotmentBox;
 use crate::util::eachorevery::EachOrEveryFilter;
@@ -130,6 +131,57 @@ impl ShapeDetails<Arc<dyn Transformer>> {
     }
 }
 
+impl ShapeDetails<PendingLeaf> {
+    pub fn register_space(&self, _common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
+        match &self {
+            ShapeDetails::SpaceBaseRect(shape) => {
+                for (top_left,bottom_right) in shape.area().iter() {
+                    top_left.allotment.update_drawing_info(|allotment| {
+                        allotment.merge_base_range(&RangeUsed::Part(*top_left.base,*bottom_right.base));
+                        allotment.merge_pixel_range(&RangeUsed::Part(*top_left.tangent,*bottom_right.tangent));
+                        allotment.merge_max_y(top_left.normal.ceil());
+                        allotment.merge_max_y(bottom_right.normal.ceil());
+                    });
+                }
+            },
+            ShapeDetails::Text(shape) => {
+                let size = shape.pen().size_in_webgl();
+                for (position,text) in shape.position().iter().zip(shape.iter_texts()) {
+                    position.allotment.update_drawing_info(|allotment| {
+                        allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                        allotment.merge_pixel_range(&RangeUsed::Part(0.,size*text.len() as f64)); // Not ideal: assume square
+                        allotment.merge_max_y((*position.normal + size).ceil());
+                    });
+                }
+            },
+            ShapeDetails::Image(shape) => {
+                for (position,asset_name) in shape.position().iter().zip(shape.iter_names()) {
+                    position.allotment.update_drawing_info(|allotment| {
+                        allotment.merge_base_range(&RangeUsed::Part(*position.base,*position.base+1.));
+                        if let Some(asset) = assets.get(asset_name) {
+                            if let Some(height) = asset.metadata_u32("height") {
+                                allotment.merge_max_y((position.normal + (height as f64)).ceil());
+                            }
+                            if let Some(width) = asset.metadata_u32("width") {
+                                allotment.merge_pixel_range(&RangeUsed::Part(0.,(position.normal + (width as f64)).ceil()));
+                            }
+                        }
+                    });
+                }
+            },
+            ShapeDetails::Wiggle(shape) => {
+                for allotment in shape.iter_allotments(1) {
+                    allotment.update_drawing_info(|allotment| {
+                        allotment.merge_base_range(&RangeUsed::All);
+                        allotment.merge_max_y(shape.plotter().0);
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 impl ShapeDetails<AllotmentRequest> {
     pub fn register_space(&self, _common: &ShapeCommon, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
@@ -241,6 +293,7 @@ impl<A> Shape<A> {
 
     pub fn len(&self) -> usize { self.details.len() }
     pub fn is_empty(&self) -> bool { self.len() == 0 }
+    pub fn common(&self) -> &ShapeCommon { &self.common }
 }
 
 impl<A: Clone> Shape<A> {
@@ -249,7 +302,6 @@ impl<A: Clone> Shape<A> {
     }
 
     pub fn details(&self) -> &ShapeDetails<A> { &self.details }
-    pub fn common(&self) -> &ShapeCommon { &self.common }
 
     pub(super) fn filter_shape(&self, filter: &EachOrEveryFilter) -> Shape<A> {
         let common = self.common.filter(&filter);
@@ -302,6 +354,12 @@ impl Shape<AllotmentRequest> {
         })
     }
 
+    pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
+        self.details.register_space(&self.common,assets)
+    }
+}
+
+impl Shape<PendingLeaf> {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         self.details.register_space(&self.common,assets)
     }

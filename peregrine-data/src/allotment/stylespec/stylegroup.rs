@@ -2,7 +2,7 @@ use std::{sync::{Mutex, Arc}, collections::HashMap, borrow::Borrow};
 
 use peregrine_toolkit::lock;
 
-use crate::allotment::{boxes::leaf, style::{allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, LeafAllotmentStyle}}};
+use crate::allotment::{boxes::leaf, style::{allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, LeafAllotmentStyle}, pendingleaf::PendingLeaf}};
 
 use super::styletree::StyleTree;
 
@@ -29,5 +29,9 @@ impl AllotmentStyleGroup {
 
     pub(crate) fn get_leaf(&self, name: &AllotmentNamePart) -> &LeafAllotmentStyle {
         self.tree.get_leaf(name)
+    }
+
+    pub(crate) fn get_pending_leaf(&self, leaf: &PendingLeaf) -> &LeafAllotmentStyle {
+        self.get_leaf(&AllotmentNamePart::new(leaf.name().clone()))
     }
 }

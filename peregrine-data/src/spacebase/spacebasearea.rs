@@ -15,6 +15,13 @@ impl<X: std::fmt::Debug, Y: std::fmt::Debug> std::fmt::Debug for SpaceBaseArea<X
 impl <X,Y> SpaceBaseArea<X,Y> {
     pub fn top_left(&self) -> &SpaceBase<X,Y> { &self.0 }
     pub fn bottom_right(&self) -> &SpaceBase<X,Y> { &self.1 }
+
+    pub fn iter(&self) -> SpaceBaseAreaIterator<X,Y> {
+        SpaceBaseAreaIterator {
+            a: self.0.iter(),
+            b: self.1.iter(),
+        }
+    }
 }
 
 impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
@@ -26,13 +33,6 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         let bottom_right = if let Some(b) = bottom_right.make(&compat) { b } else { return None; };
         let len = top_left.len();
         Some(SpaceBaseArea(top_left,bottom_right,len))
-    }
-
-    pub fn iter(&self) -> SpaceBaseAreaIterator<X,Y> {
-        SpaceBaseAreaIterator {
-            a: self.0.iter(),
-            b: self.1.iter(),
-        }
     }
 
     pub fn iter_other<'a,Z>(&self, other: &'a [Z]) -> impl Iterator<Item=&'a Z> {

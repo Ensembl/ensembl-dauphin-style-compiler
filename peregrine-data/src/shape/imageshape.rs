@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}, EachOrEvery};
+use crate::{AllotmentRequest, DataMessage, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::pendingleaf::PendingLeaf}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -18,6 +18,11 @@ impl<A> ImageShape<A> {
     }
 
     pub fn len(&self) -> usize { self.position.len() }
+    pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
+
+    pub fn iter_names(&self) -> impl Iterator<Item=&String> {
+        self.names.iter(self.position.len()).unwrap()
+    }
 }
 
 impl<A> Clone for ImageShape<A> where A: Clone {
@@ -26,10 +31,17 @@ impl<A> Clone for ImageShape<A> where A: Clone {
     }
 }
 
+impl ImageShape<PendingLeaf> {
+    pub fn new2(position: SpaceBase<f64,PendingLeaf>, coord_system: &CoordinateSystem, depth: &EachOrEvery<i8>, names: EachOrEvery<String>) -> Result<Shape<PendingLeaf>,DataMessage> {
+        let details = ImageShape::new_details(position,names.clone())?;
+        Ok(Shape::new(ShapeCommon::new(coord_system.clone(), depth.clone()),ShapeDetails::Image(details)))
+    }
+}
+
 impl<A: Clone> ImageShape<A> {
-    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Option<ImageShape<A>> {
-        if !names.compatible(position.len()) { return None; }
-        Some(ImageShape {
+    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Result<ImageShape<A>,DataMessage> {
+        if !names.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
+        Ok(ImageShape {
             position, names
         })
     }
@@ -38,7 +50,7 @@ impl<A: Clone> ImageShape<A> {
         let len = position.len();
         let mut out = vec![];
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
-        if let Some(details) = ImageShape::new_details(position,names) {
+        if let Ok(details) = ImageShape::new_details(position,names) {
             for (coord_system,mut filter) in demerge {
                 out.push(Shape::new(
                     ShapeCommon::new(coord_system,depth.clone()),
@@ -50,7 +62,6 @@ impl<A: Clone> ImageShape<A> {
     }
 
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
-    pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
         self.position.make_base_filter(min,max)
@@ -61,10 +72,6 @@ impl<A: Clone> ImageShape<A> {
             position: self.position.filter(filter),
             names: self.names.filter(&filter)
         }
-    }
-
-    pub fn iter_names(&self) -> impl Iterator<Item=&String> {
-        self.names.iter(self.position.len()).unwrap()
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape<A>)> where D: ShapeDemerge<X=T> {

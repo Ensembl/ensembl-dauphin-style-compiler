@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox, boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery};
+use crate::{AllotmentRequest, DataMessage, Patina, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox, boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -20,28 +20,14 @@ impl<A> RectangleShape<A> {
     }
 
     pub fn len(&self) -> usize { self.area.len() }
+    pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
 }
 
-// XXX pass in coord-system
 impl RectangleShape<PendingLeaf> {
-    /*
-    pub fn new2(area: SpaceBaseArea<f64,PendingLeaf>, style: &AllotmentStyleGroup, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Shape<PendingLeaf> {
-        let len = area.len();
-        let mut out = vec![];
-        let demerge = area.top_left().allotments().demerge(|leaf| {
-            style.get_leaf(&AllotmentNamePart::new(leaf.name().clone())).leaf.top_style.coord_system
-        });
-        for (coord_system,mut filter) in demerge {
-            filter.set_size(len);
-            let details = eoe_throw("add_rectangles",RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()))?;
-            out.push(Shape::new(
-                eoe_throw("add_rectangles",ShapeCommon::new(coord_system, depth.filter(&filter)))?,
-                ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
-            ));
-        }
-        Ok(out)
+    pub fn new2(area: SpaceBaseArea<f64,PendingLeaf>, coord_system: &CoordinateSystem, depth: &EachOrEvery<i8>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<PendingLeaf>,DataMessage> {
+        let details = RectangleShape::new_details(area,patina.clone(),wobble.clone())?;
+        Ok(Shape::new(ShapeCommon::new(coord_system.clone(), depth.clone()),ShapeDetails::SpaceBaseRect(details)))
     }
-    */
 }
 
 impl<A> Clone for RectangleShape<A> where A: Clone {
@@ -57,7 +43,7 @@ impl<A: Clone> RectangleShape<A> {
         let mut out = vec![];
         let demerge = area.top_left().allotments().demerge(len,|x| { x.coord_system() });
         for (coord_system,mut filter) in demerge {
-            if let Some(details) = RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()) {
+            if let Ok(details) = RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()) {
                 out.push(Shape::new(
                     ShapeCommon::new(coord_system, depth.filter(&filter)),
                     ShapeDetails::SpaceBaseRect(details.clone().filter(&filter))
@@ -67,16 +53,15 @@ impl<A: Clone> RectangleShape<A> {
         Ok(out)
     }
 
-    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Option<RectangleShape<A>> {
-        if !patina.compatible(area.len()) { return None; }
-        Some(RectangleShape {
+    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<RectangleShape<A>,DataMessage> {
+        if !patina.compatible(area.len()) { return Err(DataMessage::LengthMismatch(format!("rectangle patina"))); }
+        Ok(RectangleShape {
             area, patina, wobble
         })
     }
 
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
-    pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
 
     pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> RectangleShape<A> {
         RectangleShape {

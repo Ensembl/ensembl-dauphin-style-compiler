@@ -89,7 +89,7 @@ pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxCon
     };
     for pending in pendings {
         let parts = AllotmentNamePart::new(pending.name().clone());
-        let info = pending.drawing_info().clone();
+        let info = pending.drawing_info_clone();
         let xformable = styler.try_new_leaf(&parts,&info,styles).into_tranfsormable();
         pending.set_transformable(xformable);
     }
@@ -117,11 +117,12 @@ mod test {
         let mut out = vec![];
         for (name,height) in names.iter().zip(heights) {
             let mut leaf = PendingLeaf::new(&AllotmentName::new(name));
-            let info = leaf.drawing_info_mut();
-            info.merge_max_y(*height);
-            if let Some(ref mut pixel_range) = pixel_range_iter {
-                info.merge_pixel_range(pixel_range.next().unwrap());
-            }
+            leaf.update_drawing_info(|info| {
+                info.merge_max_y(*height);
+                if let Some(ref mut pixel_range) = pixel_range_iter {
+                    info.merge_pixel_range(pixel_range.next().unwrap());
+                }    
+            });
             out.push(leaf);
         }
         out
