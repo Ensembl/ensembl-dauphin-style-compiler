@@ -8,7 +8,7 @@ use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
-use peregrine_data::{ EachOrEvery, SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint };
+use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, EachOrEvery };
 use peregrine_toolkit::lock;
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
@@ -21,7 +21,7 @@ fn apply_wobble(pos: &SpaceBase<f64,()>, wobble: &SpaceBase<Observable<'static,f
         normal: &|a,b| { *a+*b },
         tangent: &|a,b| { *a+*b },
         allotment: &|a,_| { a.clone() }
-    }).unwrap_or_else(|| pos.clone())
+    })
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -94,8 +94,8 @@ fn sized_to_rectangle(spacebase: &SpaceBase<f64,()>, wobble: &Option<SpaceBase<O
         spacebase.clone()
     };
     let mut far = wobbled.clone();
-    far.fold_tangent(size_x,|v,z| { *v += z; });
-    far.fold_normal(size_y,|v,z| { *v += z; });
+    far.fold_tangent(size_x,|v,z| { *v + z });
+    far.fold_normal(size_y,|v,z| { *v + z });
     let area = eoe_throw("rl1",SpaceBaseArea::new(
         PartialSpaceBase::from_spacebase(spacebase.clone()),
                 PartialSpaceBase::from_spacebase(far)))?;

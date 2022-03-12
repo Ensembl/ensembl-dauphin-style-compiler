@@ -1,6 +1,227 @@
-use core::fmt;
-use std::{hash::Hash, sync::Arc};
-use crate::{DataFilter, DataMessage};
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::sync::Arc;
+
+fn un_rle<F>(input: &[(usize,usize)], cb: F) -> Arc<Vec<usize>> where F: Fn(usize) -> usize {
+    let mut out = vec![];
+    for (start,len) in input {
+        for i in *start..(*start+*len) {
+            out.push(i);
+        }
+    }
+    Arc::new(out)
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
+enum EachOrEveryIndex {
+    Unindexed,
+    Indexed(Arc<Vec<usize>>),
+    Every
+}
+
+#[cfg_attr(debug_assertions,derive(Debug))]
+pub struct EachOrEvery<X> {
+    index: EachOrEveryIndex,
+    data: Arc<Vec<X>>
+}
+
+impl<X> Clone for EachOrEvery<X> {
+    fn clone(&self) -> Self {
+        Self { index: self.index.clone(), data: self.data.clone() }
+    }
+}
+
+impl<X> EachOrEvery<X> {
+    pub fn each(data: Vec<X>) -> EachOrEvery<X> {
+        EachOrEvery {
+            index: EachOrEveryIndex::Unindexed,
+            data: Arc::new(data)
+        }
+    }
+
+    pub fn every(data: X) -> EachOrEvery<X> {
+        EachOrEvery {
+            index: EachOrEveryIndex::Every,
+            data: Arc::new(vec![data])
+        }
+    }
+
+    pub fn len(&self) -> Option<usize> {
+        match &self.index {
+            EachOrEveryIndex::Unindexed => Some(self.data.len()),
+            EachOrEveryIndex::Indexed(index) => Some(index.len()),
+            EachOrEveryIndex::Every => None
+        }
+    }
+
+    pub fn get(&self, pos: usize) -> Option<&X> {
+        match &self.index {
+            EachOrEveryIndex::Unindexed => self.data.get(pos),
+            EachOrEveryIndex::Indexed(index) => self.data.get(index[pos]),
+            EachOrEveryIndex::Every => self.data.get(0)
+        }
+    }
+
+    pub fn demerge<F,K: Hash+PartialEq+Eq>(&self, len: usize, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&X) -> K {
+        match &self.index {
+            EachOrEveryIndex::Unindexed => {
+                let mut out = HashMap::new();
+                for (i,value) in self.data.iter().enumerate() {
+                    out.entry(cb(value)).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
+                }
+                out.drain().map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
+            },
+            EachOrEveryIndex::Indexed(index) => {
+                let mut out = HashMap::new();
+                for (i,value) in index.iter().enumerate() {
+                    out.entry(cb(&self.data[*value])).or_insert_with(|| EachOrEveryFilterBuilder::new()).set(i);
+                }
+                out.drain().map(|(key,filter)| (key,filter.make(len))).collect::<Vec<_>>()
+            },
+            EachOrEveryIndex::Every => vec![(cb(&self.data[0]),EachOrEveryFilter::all(len))]
+        }
+    }
+
+    pub fn map<F,Y>(&self, f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
+        EachOrEvery {
+            index: self.index.clone(),
+            data: Arc::new(self.data.iter().map(f).collect())
+        }
+    }
+    
+    pub fn map_mut<F>(&mut self, f: F) where F: Fn(&X) -> X {
+        self.data = Arc::new(self.data.iter().map(f).collect::<Vec<_>>());
+    }
+
+    pub fn fold_mut<F,Z>(&mut self, data: &[Z], f: F) where F: Fn(&X,&Z) -> X {
+        self.data = Arc::new(self.data.iter().zip(data.iter()).map(|(x,z)| f(x,z)).collect::<Vec<_>>());
+    }
+
+    pub fn map_results<F,Y,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
+        let data = self.data.iter().map(f).collect::<Result<_,_>>()?;
+        Ok(EachOrEvery {
+            index: self.index.clone(),
+            data: Arc::new(data)
+        })
+    }
+
+    pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
+        match (&self.index,&other.index) {
+            (x,EachOrEveryIndex::Every) => {
+                EachOrEvery {
+                    index: x.clone(),
+                    data: Arc::new(self.data.iter().map(|a| cb(a,&other.data[0])).collect())
+                }
+            },
+
+            (EachOrEveryIndex::Unindexed, EachOrEveryIndex::Unindexed) => {
+                EachOrEvery {
+                    index: EachOrEveryIndex::Unindexed,
+                    data: Arc::new(self.data.iter().zip(other.data.iter()).map(|(a,b)| cb(a,b)).collect())
+                }
+            },
+
+            (EachOrEveryIndex::Indexed(index), EachOrEveryIndex::Unindexed) => {
+                EachOrEvery {
+                    index: EachOrEveryIndex::Unindexed,
+                    data: Arc::new(index.iter().zip(other.data.iter()).map(|(a,b)| cb(&self.data[*a],b)).collect())
+                }
+            },
+
+            (EachOrEveryIndex::Indexed(self_index), EachOrEveryIndex::Indexed(other_index)) => {
+                EachOrEvery {
+                    index: EachOrEveryIndex::Unindexed,
+                    data: Arc::new(self_index.iter().zip(other_index.iter()).map(|(a,b)| cb(&self.data[*a],&other.data[*b])).collect())
+                }
+            },
+
+            (EachOrEveryIndex::Every, EachOrEveryIndex::Unindexed) => other.zip(self,|a,b| cb(b,a)),
+            (EachOrEveryIndex::Every, EachOrEveryIndex::Indexed(_)) => other.zip(self,|a,b| cb(b,a)),
+            (EachOrEveryIndex::Unindexed, EachOrEveryIndex::Indexed(_)) => other.zip(self,|a,b| cb(b,a)),
+        }
+    }
+
+    pub fn iter<'a>(&'a self, len: usize) -> Option<impl Iterator<Item=&'a X>> {
+        if let Some(self_len) = self.len() {
+            if self_len != len { return None; }
+        }
+        Some(EachOrEveryIterator {
+            obj: self,
+            index: 0,
+            len
+        })
+    }
+
+    pub fn make_filter<F>(&self, len: usize, cb: F) -> EachOrEveryFilter where F: Fn(&X) -> bool {
+        match &self.index {
+            EachOrEveryIndex::Unindexed => {
+                let mut filter = EachOrEveryFilterBuilder::new();
+                for (i,value) in self.data.iter().enumerate() {
+                    if cb(value) {
+                        filter.set(i);
+                    }
+                }
+                filter.make(len)
+            },
+            EachOrEveryIndex::Indexed(index) => {
+                let mut filter = EachOrEveryFilterBuilder::new();
+                for (i,value) in index.iter().enumerate() {
+                    if cb(&self.data[*value]) {
+                        filter.set(i);
+                    }
+                }
+                filter.make(len)
+            },
+            EachOrEveryIndex::Every => {
+                if cb(&self.data[0]) {
+                    EachOrEveryFilter::all(len)
+                } else {
+                    EachOrEveryFilter::none(len)
+                }
+            }
+        }
+    }
+
+    pub fn filter(&self, data_filter: &EachOrEveryFilter) -> EachOrEvery<X> {
+        match &data_filter.data {
+            EachOrEveryFilterData::All => self.clone(),
+            EachOrEveryFilterData::None => EachOrEvery::each(vec![]),
+            EachOrEveryFilterData::Some(filter) => {
+                let index = match &self.index {
+                    EachOrEveryIndex::Every => EachOrEveryIndex::Every,
+                    EachOrEveryIndex::Unindexed => EachOrEveryIndex::Indexed(un_rle(&filter,|i| i)),
+                    EachOrEveryIndex::Indexed(index) => EachOrEveryIndex::Indexed(un_rle(&filter,|i| index[i]))
+                };
+                EachOrEvery { index, data: self.data.clone() }        
+            }
+        }
+    }
+
+    pub fn to_each(&self, len: usize) -> Option<EachOrEvery<X>> {
+        match &self.index {
+            EachOrEveryIndex::Every => {
+                Some(EachOrEvery {
+                    index: EachOrEveryIndex::Indexed(Arc::new(vec![0;len])),
+                    data: self.data.clone()
+                })
+            },
+            EachOrEveryIndex::Unindexed => {
+                if self.data.len() == len { Some(self.clone()) } else { None }
+            },
+            EachOrEveryIndex::Indexed(index) => {
+                if index.len() == len { Some(self.clone()) } else { None }
+            }
+        }
+    }
+
+    pub fn compatible(&self, len: usize) -> bool {
+        if let Some(self_len) = self.len() {
+            if self_len != len { return false; }
+        }
+        true
+    }
+}
 
 pub struct EachOrEveryIterator<'a,X> {
     obj: &'a EachOrEvery<X>,
@@ -13,46 +234,14 @@ impl<'a,X> Iterator for EachOrEveryIterator<'a,X> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index == self.len { return None; }
-        let out = match self.obj {
-            EachOrEvery::Each(v) => &v[self.index],
-            EachOrEvery::Every(v) => v
+        let out = match &self.obj.index {
+            EachOrEveryIndex::Unindexed => &self.obj.data[self.index],
+            EachOrEveryIndex::Indexed(index) => &self.obj.data[index[self.index]],
+            EachOrEveryIndex::Every => &self.obj.data[0]
         };
         self.index += 1;
         Some(out)
     }
-}
-
-pub enum EachOrEveryMut<'a,X> {
-    Each(&'a mut Vec<X>),
-    Every(&'a mut X)
-}
-
-impl<'a,X> EachOrEveryMut<'a,X> {
-    pub fn map<F>(&mut self, mut cb: F) where F: FnMut(&mut X) {
-        match self {
-            EachOrEveryMut::Each(items) => {
-                for item in items.iter_mut() {
-                    cb(item);
-                }
-            },
-            EachOrEveryMut::Every(x) => {
-                cb(x);
-            }
-        }
-    }
-}
-
-pub struct EachOrEveryBuilder<X>(EachOrEvery<X>);
-
-impl<X: Clone> EachOrEveryBuilder<X> {
-    pub fn as_mut<'a>(&'a mut self) -> EachOrEveryMut<'a,X> {
-        match &mut self.0 {
-            EachOrEvery::Each(x) => EachOrEveryMut::Each(Arc::make_mut(x)),
-            EachOrEvery::Every(x) => EachOrEveryMut::Every(Arc::make_mut(x))
-        }
-    }
-
-    pub fn make(self) -> EachOrEvery<X> { self.0 }
 }
 
 #[derive(Clone)]
@@ -97,199 +286,156 @@ impl EachOrEveryGroupCompatible {
     }
 }
 
-pub enum EachOrEvery<X> {
-    Each(Arc<Vec<X>>),
-    Every(Arc<X>)
+#[derive(Clone)]
+enum EachOrEveryFilterData {
+    All,
+    None,
+    Some(Vec<(usize,usize)>)
 }
 
-impl<X> EachOrEvery<X> {
-    pub fn each(data: Vec<X>) -> EachOrEvery<X> {
-        EachOrEvery::Each(Arc::new(data))
+#[derive(Clone)]
+pub struct EachOrEveryFilter {
+    data: EachOrEveryFilterData,
+    len: usize,
+    count: usize
+}
+
+impl EachOrEveryFilter {
+    pub fn all(len: usize) -> EachOrEveryFilter {
+        return EachOrEveryFilter {
+            data: EachOrEveryFilterData::All,
+            len, count: len
+        };
     }
 
-    pub fn every(data: X) -> EachOrEvery<X> {
-        EachOrEvery::Every(Arc::new(data))
+    pub fn none(len: usize) -> EachOrEveryFilter {
+        return EachOrEveryFilter {
+            data: EachOrEveryFilterData::None,
+            len, count: 0
+        };
     }
 
-    pub fn demerge<F,K: Hash+PartialEq+Eq>(&self,cb: F) -> Vec<(K,DataFilter)> where F: Fn(&X) -> K {
-        match self {
-            EachOrEvery::Each(v) => {
-                DataFilter::demerge(v,cb)
-            },
-            EachOrEvery::Every(v) => {
-                DataFilter::demerge(&[v.as_ref()],|x| cb(*x))
+    pub fn len(&self) -> usize { self.len }
+    pub fn count(&self) -> usize { self.count }
+
+    pub fn filter_clone<Z: Clone>(&self, input: &[Z]) -> Vec<Z> {
+        match &self.data {
+            EachOrEveryFilterData::All => input.to_vec(),
+            EachOrEveryFilterData::None => vec![],
+            EachOrEveryFilterData::Some(index) => {
+                let mut out = vec![];
+                for (offset,len) in index {
+                    for pos in 0..*len {
+                        out.push(input[offset+pos].clone());
+                    }
+                }
+                out
             }
         }
     }
 
-    pub fn map<F,Y>(&self, f: F) -> EachOrEvery<Y> where F: Fn(&X) -> Y {
-        match self {
-            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::Every(Arc::new(f(&v)))
-        }
-    }
+    pub fn and(&self, other: &EachOrEveryFilter) -> EachOrEveryFilter {
+        match (&self.data,&other.data) {
+            (EachOrEveryFilterData::All,_) => other.clone(),
+            (_,EachOrEveryFilterData::All) => self.clone(),
+            (EachOrEveryFilterData::None,_) => EachOrEveryFilter::none(self.len),
+            (_,EachOrEveryFilterData::None) => EachOrEveryFilter::none(self.len),
 
-    pub fn fullmap<F,Y>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
-        match self {
-            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::Every(Arc::new(f(&v)))
+            (EachOrEveryFilterData::Some(self_index), EachOrEveryFilterData::Some(other_index)) => {
+                intersect(self_index,other_index,self.len)
+            }
         }
-    }
-
-    pub fn as_builder(&self) -> EachOrEveryBuilder<X> {
-        EachOrEveryBuilder(self.clone())
     }
 }
 
-impl<X: Clone> EachOrEvery<X> {
-    pub fn as_builder_len(&self, len: usize) -> Option<EachOrEveryBuilder<X>> {
-        self.to_each(len).map(|x| EachOrEveryBuilder(x))
+struct NumIterator<'a> {
+    filter: &'a [(usize,usize)],
+    range_index: usize,
+    pos: usize
+}
+
+impl<'a> NumIterator<'a> {
+    fn new(filter: &'a [(usize,usize)]) -> NumIterator<'a> {
+        NumIterator { filter, range_index: 0, pos: 0 }
     }
 
-    pub fn to_each(&self, len: usize) -> Option<EachOrEvery<X>> {
-        Some(match self {
-            EachOrEvery::Every(x) => EachOrEvery::Each(Arc::new(vec![x.as_ref().clone();len])),
-            EachOrEvery::Each(x) if x.len() == len => EachOrEvery::Each(x.clone()),
-            _ => { return None; }
-        })
+    fn peek(&mut self) -> Option<usize> {
+        loop {
+            if self.range_index >= self.filter.len() { return None; }
+            if self.pos < self.filter[self.range_index].1 { break; }
+            self.pos = 0;
+            self.range_index += 1;
+        }
+        Some(self.filter[self.range_index].0 + self.pos)
     }
 
-    pub fn compatible(&self, len: usize) -> bool {
-        match self {
-            EachOrEvery::Each(v) => v.len() == len,
-            EachOrEvery::Every(_) => true
+    fn advance(&mut self, index: usize) {
+        loop {
+            if self.range_index >= self.filter.len() { return; }
+            let range = &self.filter[self.range_index];
+            if index < range.0 + range.1 {
+                self.pos = if index > range.0 { index - range.0 } else { 0 };
+                return;
+            }
+            self.pos = 0;
+            self.range_index += 1;
         }
     }
+}
 
-    pub fn empty(&self) -> bool {
-        match self {
-            EachOrEvery::Each(x) => x.len() == 0,
-            EachOrEvery::Every(_) => false
+fn intersect(a: &[(usize,usize)], b: &[(usize,usize)],len: usize) -> EachOrEveryFilter {
+    let mut a_iter = NumIterator::new(a);
+    let mut b_iter = NumIterator::new(b);
+    let mut out = EachOrEveryFilterBuilder::new();
+    loop {
+        match (a_iter.peek(),b_iter.peek()) {
+            (Some(a),Some(b)) => {
+                if a == b { 
+                    out.set(a);
+                    a_iter.advance(b+1); 
+                    b_iter.advance(a+1);
+                } else if a < b { 
+                    a_iter.advance(b);
+                } else if a > b {
+                    b_iter.advance(a);
+                }
+            },
+            _ => { break; }
         }
     }
+    out.make(len)
+}
 
-    pub fn get(&self, index: usize) -> Option<&X> {
-        match self {
-            EachOrEvery::Each(x) => x.get(index),
-            EachOrEvery::Every(x) => Some(x)
+// XXX run-length
+pub struct EachOrEveryFilterBuilder(Vec<(usize,usize)>,usize);
+
+impl EachOrEveryFilterBuilder {
+    pub fn new() -> EachOrEveryFilterBuilder { EachOrEveryFilterBuilder(vec![],0) }
+
+    pub fn set(&mut self, index: usize) {
+        self.1 += 1;
+        if let Some((last_index,last_len)) = self.0.last_mut() {
+            if *last_index + *last_len == index {
+                *last_len += 1;
+                return;
+            }
         }
+        self.0.push((index,1));
     }
 
-    pub fn iter<'a>(&'a self, len: usize) -> Option<impl Iterator<Item=&'a X>> {
-        match self {
-            EachOrEvery::Each(v) => {
-                if v.len() != len {
-                    return None;
+    pub fn make(self, len: usize) -> EachOrEveryFilter {
+        if self.0.len() == 0 {
+            EachOrEveryFilter::none(len)
+        } else {
+            if self.0.len() == 1 {
+                if self.0[0].0 == 0 && self.0[0].1 == len {
+                    return EachOrEveryFilter::all(len);
                 }
             }
-            _ => {}
-        }
-        Some(EachOrEveryIterator {
-            obj: self,
-            index: 0,
-            len
-        })
-    }
-
-    pub fn enumerated_map<F,Y: Clone>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(usize,&X) -> Y {
-        match self {
-            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().enumerate().map(|x| f(x.0,x.1)).collect()),
-            EachOrEvery::Every(v) => EachOrEvery::every(f(0,&v))
-        }
-    }
-
-    pub fn map_results<F,Y: Clone,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
-        Ok(match self {
-            EachOrEvery::Each(v) => EachOrEvery::each(v.iter().map(|x| f(x)).collect::<Result<_,_>>()?),
-            EachOrEvery::Every(v) => EachOrEvery::every(f(&v)?)
-        })
-    }
-
-    pub fn len(&self) -> Option<usize> {
-        match  self {
-            EachOrEvery::Each(x) => Some(x.len()),
-            EachOrEvery::Every(_) => None
-        }
-    }
-    
-    pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> Option<EachOrEvery<W>> where F: Fn(&X,&Y) -> W {
-        Some(match (self,other) {
-            (EachOrEvery::Every(a),EachOrEvery::Every(b)) => EachOrEvery::every(cb(a,b)),
-            (EachOrEvery::Every(a),EachOrEvery::Each(b)) =>
-                EachOrEvery::Each(Arc::new(b.iter().map(|b| cb(a,b)).collect::<Vec<W>>())),
-            (EachOrEvery::Each(a),EachOrEvery::Every(b)) => 
-                EachOrEvery::Each(Arc::new(a.iter().map(|a| cb(a,b)).collect::<Vec<W>>())),
-            (EachOrEvery::Each(a),EachOrEvery::Each(b)) if a.len() == b.len() => 
-                EachOrEvery::Each(Arc::new(
-                    a.iter().zip(b.iter()).map(|(a,b)| cb(a,b)).collect::<Vec<W>>()
-                )),
-            _  => { return None; }
-        })
-    }
-    
-}
-
-impl<X> Clone for EachOrEvery<X> {
-    fn clone(&self) -> Self {
-        match self {
-            Self::Each(arg0) => Self::Each(arg0.clone()),
-            Self::Every(arg0) => Self::Every(arg0.clone()),
-        }
-    }
-}
-
-impl<X> EachOrEvery<X> where X: Clone {
-    pub fn xxx_to_vec(&self) -> Vec<X> {
-        match self {
-            EachOrEvery::Each(x) => x.iter().cloned().collect(),
-            EachOrEvery::Every(x) => vec![x.as_ref().clone()]
-        }
-    }
-
-    pub fn merge<Y: Clone>(&self, other: &EachOrEvery<Y>) -> Option<EachOrEvery<(X,Y)>> {
-        match (self,other) {
-            (EachOrEvery::Each(x),EachOrEvery::Each(y)) => {
-                if x.len() != y.len() { return None; }
-                Some(EachOrEvery::each(x.iter().zip(y.iter()).map(|(x,y)| (x.clone(),y.clone())).collect()))
-            },
-            (EachOrEvery::Each(x),EachOrEvery::Every(y)) => {
-                Some(EachOrEvery::each(x.iter().map(|x| (x.clone(),y.as_ref().clone())).collect()))
-            },
-            (EachOrEvery::Every(x),EachOrEvery::Each(y)) => {
-                Some(EachOrEvery::each(y.iter().map(|y| (x.as_ref().clone(),y.clone())).collect()))
-            },
-            (EachOrEvery::Every(x),EachOrEvery::Every(y)) => {
-                Some(EachOrEvery::Every(Arc::new((x.as_ref().clone(),y.as_ref().clone()))))
+            EachOrEveryFilter {
+                data: EachOrEveryFilterData::Some(self.0),
+                len, count: self.1
             }
         }
     }
-
-    pub fn filter(&self, data_filter: &DataFilter) -> EachOrEvery<X> {
-        match self {
-            EachOrEvery::Each(v) => { EachOrEvery::each(data_filter.filter(&v)) },
-            EachOrEvery::Every(v) => { EachOrEvery::Every(v.clone()) }
-        }
-    }
-
-    pub fn new_filter<F>(&self, count: usize, cb: F) -> DataFilter  where F: Fn(&X) -> bool {
-        match self {
-            EachOrEvery::Each(v) => DataFilter::new(&mut v.iter(),cb),
-            EachOrEvery::Every(v) => {
-                if cb(v) { DataFilter::all(count) } else { DataFilter::empty(count) }
-            }
-        }
-    }
-}
-
-impl<X: fmt::Debug> fmt::Debug for EachOrEvery<X> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Each(arg0) => f.debug_tuple("Each").field(arg0).finish(),
-            Self::Every(arg0) => f.debug_tuple("Every").field(arg0).finish(),
-        }
-    }
-}
-
-pub fn eoe_throw<X>(kind: &str,input: Option<X>) -> Result<X,DataMessage> {
-    input.ok_or_else(|| DataMessage::LengthMismatch(kind.to_string()))
 }

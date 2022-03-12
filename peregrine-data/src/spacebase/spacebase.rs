@@ -1,9 +1,8 @@
 use std::ops::{Add, Div};
-use std::sync::Arc;
 use std::hash::Hash;
 
-use crate::util::eachorevery::EachOrEveryGroupCompatible;
-use crate::{EachOrEvery, DataFilter };
+use crate::util::eachorevery::{EachOrEveryFilter, EachOrEveryGroupCompatible};
+use crate::{ EachOrEvery };
 
 pub struct SpaceBasePoint<X,Y> {
     pub base: X,
@@ -52,8 +51,8 @@ pub struct SpaceBase<X,Y> {
 }
 
 impl<X,Y> SpaceBase<X,Y> {
-    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K {
-        self.allotment.demerge(cb)
+    pub fn demerge_by_allotment<F,K: Hash+PartialEq+Eq>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K {
+        self.allotment.demerge(self.len,cb)
     }
 }
 
@@ -131,11 +130,11 @@ impl<X,Y> SpaceBase<X,Y> {
     }
 
     pub fn allotments(&self) -> &EachOrEvery<Y> { &self.allotment }
+
+    pub fn len(&self) -> usize { self.len }
 }
 
 impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
-    pub fn len(&self) -> usize { self.len }
-
     fn compat(&self, compat: &mut EachOrEveryGroupCompatible) {
         compat.add(&self.base);
         compat.add(&self.normal);
@@ -161,12 +160,12 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         Some(out)
     }
 
-    pub fn merge<A,B,P: Clone,Q: Clone>(&self, other: SpaceBase<A,B>, cbs: SpaceBasePoint<&dyn (Fn(&X,&A) -> P),&dyn (Fn(&Y,&B) -> Q)>) -> Option<SpaceBase<P,Q>> {
-        let base = if let Some(base) = self.base.zip(&other.base,cbs.base) { base } else { return None; };
-        let normal = if let Some(normal) = self.normal.zip(&other.normal,cbs.normal) { normal } else { return None; };
-        let tangent = if let Some(tangent) = self.tangent.zip(&other.tangent,cbs.tangent) { tangent } else { return None; };
-        let allotment = if let Some(allotment) = self.allotment.zip(&other.allotment,cbs.allotment) { allotment } else { return None; };
-        Some(SpaceBase::new_unszied(&base,&normal,&tangent,&allotment))
+    pub fn merge<A,B,P: Clone,Q: Clone>(&self, other: SpaceBase<A,B>, cbs: SpaceBasePoint<&dyn (Fn(&X,&A) -> P),&dyn (Fn(&Y,&B) -> Q)>) -> SpaceBase<P,Q> {
+        let base = self.base.zip(&other.base,cbs.base);
+        let normal = self.normal.zip(&other.normal,cbs.normal);
+        let tangent =self.tangent.zip(&other.tangent,cbs.tangent);
+        let allotment = self.allotment.zip(&other.allotment,cbs.allotment);
+        SpaceBase::new_unszied(&base,&normal,&tangent,&allotment)
     }
 
     pub fn iter<'a>(&'a self) -> SpaceBaseIterator<'a,X,Y> {
@@ -180,7 +179,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> SpaceBase<X,Y> {
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBase<X,Y> {
         SpaceBase {
             base: self.base.filter(filter),
             normal: self.normal.filter(filter),
@@ -220,7 +219,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         let allotment = if self.len>0 {
             self.allotment.to_each(self.len).unwrap().map_results(&mut cb)?
         } else {
-            EachOrEvery::Each(Arc::new(vec![]))
+            EachOrEvery::each(vec![])
         };
         Ok(SpaceBase {
             base: self.base.clone(),
@@ -232,76 +231,56 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
     }
     // XXX not bool, result.
 
-    pub fn update_tangent_from_allotment<'a,F>(&mut self, cb: F) -> bool where F: Fn(&mut X,&Y) {
-        let tangent = self.tangent.zip(&self.allotment,|t,a| {
+    pub fn update_tangent_from_allotment<'a,F>(&mut self, cb: F) where F: Fn(&mut X,&Y) {
+        self.tangent = self.tangent.zip(&self.allotment,|t,a| {
             let mut t2 = t.clone();
             cb(&mut t2,a);
             t2
         });
-        if let Some(tangent) = tangent {
-            self.tangent = tangent;
-            true
-        } else {
-            false
-        }
     }
 
-    pub fn update_tangent<'a,F>(&mut self, cb: F) where F: FnMut(&mut X) {
-        let mut builder = self.tangent.as_builder();
-        builder.as_mut().map(cb);
-        self.tangent = builder.make();
+    pub fn update_tangent<'a,F>(&mut self, cb: F) where F: Fn(&X) -> X {
+        self.tangent.map_mut(cb);
     }
 
-    pub fn update_normal<'a,F>(&mut self, cb: F) where F: FnMut(&mut X) {
-        let mut builder = self.normal.as_builder();
-        builder.as_mut().map(cb);
-        self.normal = builder.make();
+    pub fn update_normal<'a,F>(&mut self, cb: F) where F: Fn(&X) -> X {
+        self.normal.map_mut(cb);
     }
 
-    pub fn update_normal_from_allotment<'a,F>(&mut self, cb: F) -> bool where F: Fn(&mut X,&Y) {
-        let normal = self.normal.zip(&self.allotment,|t,a| {
+    pub fn update_normal_from_allotment<'a,F>(&mut self, cb: F) where F: Fn(&mut X,&Y) {
+        self.normal = self.normal.zip(&self.allotment,|t,a| {
             let mut t2 = t.clone();
             cb(&mut t2,a);
             t2
         });
-        if let Some(normal) = normal {
-            self.normal = normal;
-            true
-        } else {
-            false
-        }
     }
 
-    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
-        self.tangent = if let Some(t) = self.tangent.to_each(values.len()) { t.clone() } else { return false; };        
-        let mut values2 = values.iter();
-        self.update_tangent(move |x| { cb(x,values2.next().unwrap()) });
+    pub fn fold_tangent<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&X,&Z) -> X {
+        self.tangent = if let Some(t) = self.tangent.to_each(values.len()) { t.clone() } else { return false; };
+        self.tangent.fold_mut(values,cb);
         true
     }
 
-    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&mut X,&Z) {
-        self.normal = if let Some(t) = self.normal.to_each(values.len()) { t.clone() } else { return false; };        
-        let mut values2 = values.iter();
-        self.update_normal(move |x| { cb(x,values2.next().unwrap()) });
+    pub fn fold_normal<F,Z>(&mut self, values: &[Z], cb: F) -> bool where F: Fn(&X,&Z) -> X {
+        self.normal = if let Some(n) = self.normal.to_each(values.len()) { n.clone() } else { return false; };
+        self.normal.fold_mut(values,cb);
         true
     }
 }
 
 impl<X: Clone + PartialOrd,Y> SpaceBase<X,Y> {
-    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
-        let mut filter = DataFilter::new(&mut self.base.iter(self.len).unwrap(),|base| {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> EachOrEveryFilter {
+        self.base.make_filter(self.len, |base| {
             let exclude =  *base >= max_value || *base < min_value;
             !exclude
-        });
-        filter.set_size(self.len);
-        filter
+        })
     }
 }
 
 impl<X: Clone + Add<Output=X>,Y: Clone> SpaceBase<X,Y> {
     pub fn delta(&mut self, x_size: &[X], y_size: &[X]) {
-        self.fold_tangent(x_size,|v,d| { *v = v.clone() + d.clone(); });
-        self.fold_normal(y_size,|v,d| { *v = v.clone() + d.clone(); });
+        self.fold_tangent(x_size,|v,d| { v.clone() + d.clone() });
+        self.fold_normal(y_size,|v,d| { v.clone() + d.clone() });
     }
 
     pub fn nudge_normal(&self, amt: X) -> SpaceBase<X,Y> {
@@ -326,15 +305,14 @@ impl<X: Clone + Add<Output=X>,Y: Clone> SpaceBase<X,Y> {
 }
 
 impl<X: Clone + Add<Output=X> + Div<f64,Output=X>,Y: Clone> SpaceBase<X,Y> {
-    pub fn middle_base(&self, other: &SpaceBase<X,Y>) -> Option<SpaceBase<X,Y>> {
-        self.base.zip(&other.base, |a,b| (a.clone()+b.clone())/2.).map(|base| 
-            SpaceBase {
-                base,
-                tangent: self.tangent.clone(),
-                normal: self.normal.clone(),
-                allotment: self.allotment.clone(),
-                len: self.len
-            }
-        )
+    pub fn middle_base(&self, other: &SpaceBase<X,Y>) -> SpaceBase<X,Y> {
+        let base =  self.base.zip(&other.base, |a,b| (a.clone()+b.clone())/2.);
+        SpaceBase {
+            base,
+            tangent: self.tangent.clone(),
+            normal: self.normal.clone(),
+            allotment: self.allotment.clone(),
+            len: self.len
+        }
     }
 }

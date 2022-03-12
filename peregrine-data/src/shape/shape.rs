@@ -10,14 +10,13 @@ use crate::AllotmentRequest;
 use crate::Assets;
 use crate::Colour;
 use crate::CoordinateSystem;
-use crate::DataFilter;
 use crate::DataMessage;
 use crate::DrawnType;
 use crate::EachOrEvery;
-use crate::allotment::boxes::boxtraits::Transformable;
 use crate::allotment::core::rangeused::RangeUsed;
 use crate::allotment::transformers::transformers::Transformer;
 use crate::allotment::tree::allotmentbox::AllotmentBox;
+use crate::util::eachorevery::EachOrEveryFilter;
 
 pub trait ShapeDemerge {
     type X: Hash + PartialEq + Eq;
@@ -57,9 +56,7 @@ impl<A> ShapeDetails<A> {
             Self::SpaceBaseRect(arg0) => ShapeDetails::<B>::SpaceBaseRect(arg0.map_new_allotment(cb)),
         }
     }
-}
 
-impl<A: Clone> ShapeDetails<A> {
     pub fn len(&self) -> usize {
         match &self {
             ShapeDetails::SpaceBaseRect(shape) => shape.len(),
@@ -68,8 +65,10 @@ impl<A: Clone> ShapeDetails<A> {
             ShapeDetails::Wiggle(shape) => shape.len()
         }
     }
+}
 
-    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+impl<A: Clone> ShapeDetails<A> {
+    pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
         match self {
             ShapeDetails::SpaceBaseRect(shape) => shape.make_base_filter(min,max),
             ShapeDetails::Text(shape) => shape.make_base_filter(min,max),
@@ -78,7 +77,7 @@ impl<A: Clone> ShapeDetails<A> {
         }
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> ShapeDetails<A> {
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> ShapeDetails<A> {
         match self {
             ShapeDetails::SpaceBaseRect(shape) => ShapeDetails::SpaceBaseRect(shape.filter(filter)),
             ShapeDetails::Text(shape) => ShapeDetails::Text(shape.filter(filter)),
@@ -205,14 +204,14 @@ pub struct ShapeCommon {
 }
 
 impl ShapeCommon {
-    pub fn new(coord_system: CoordinateSystem, depth: EachOrEvery<i8>) -> Option<ShapeCommon> {
-        Some(ShapeCommon { coord_system, depth })
+    pub fn new(coord_system: CoordinateSystem, depth: EachOrEvery<i8>) -> ShapeCommon {
+        ShapeCommon { coord_system, depth }
     }
 
     pub fn depth(&self) -> &EachOrEvery<i8> { &self.depth }
     pub fn coord_system(&self) -> &CoordinateSystem { &self.coord_system }
 
-    pub fn filter(&self, filter: &DataFilter) -> ShapeCommon {
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> ShapeCommon {
         ShapeCommon {
             coord_system: self.coord_system.clone(),
             depth: self.depth.filter(filter)
@@ -239,6 +238,9 @@ impl<A> Shape<A> {
             details: self.details.map_new_allotment(cb)
         }
     }
+
+    pub fn len(&self) -> usize { self.details.len() }
+    pub fn is_empty(&self) -> bool { self.len() == 0 }
 }
 
 impl<A: Clone> Shape<A> {
@@ -249,9 +251,7 @@ impl<A: Clone> Shape<A> {
     pub fn details(&self) -> &ShapeDetails<A> { &self.details }
     pub fn common(&self) -> &ShapeCommon { &self.common }
 
-    pub(super) fn filter_shape(&self, filter: &DataFilter) -> Shape<A> {
-        let mut filter = filter.clone();
-        filter.set_size(self.len());
+    pub(super) fn filter_shape(&self, filter: &EachOrEveryFilter) -> Shape<A> {
         let common = self.common.filter(&filter);
         let details = self.details.filter(&filter);
         Shape::new(common,details)
@@ -265,10 +265,7 @@ impl<A: Clone> Shape<A> {
         let common = self.common.filter(&filter);
         let details = self.details.filter(&filter).reduce_by_minmax(min_value,max_value);
         Shape::new(common,details)
-    }
-    
-    pub fn len(&self) -> usize { self.details.len() }
-    pub fn is_empty(&self) -> bool { self.len() == 0 }
+    }    
 }
 
 impl<Z: Clone> Shape<Z> {

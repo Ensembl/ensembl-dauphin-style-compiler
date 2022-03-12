@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, hash_map::DefaultHasher}, hash::{Hash, Hasher}, sync::Arc};
 use super::zmenu::ZMenu;
-use crate::{EachOrEvery, util::ringarray::{ DataFilter }};
+use crate::{ util::{eachorevery::EachOrEveryFilter}, EachOrEvery};
 
 pub(super) fn filter<F>(x: &[F], w: &[bool], primary: bool) -> Vec<F> where F: Clone {
     let mut out = vec![];
@@ -95,8 +95,8 @@ impl Pen {
         Pen::new_real(&self.inner.geometry,&bulk(self.inner.colours.to_vec(),len,primary),&self.inner.background)
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> Pen {
-        Pen::new_real(&self.inner.geometry,&filter.filter(&self.inner.colours),&self.inner.background)
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> Pen {
+        Pen::new_real(&self.inner.geometry,&filter.filter_clone(&self.inner.colours),&self.inner.background)
     }
 
     pub fn group_hash(&self) -> u64 { self.inner.geometry.hash }
@@ -129,7 +129,7 @@ pub enum Patina {
     ZMenu(ZMenu,Vec<(String,EachOrEvery<String>)>)
 }
 
-fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &DataFilter) -> Vec<(String,EachOrEvery<String>)> {
+fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &EachOrEveryFilter) -> Vec<(String,EachOrEvery<String>)> {
     let mut out = Vec::with_capacity(h.len());
     for (k,v) in h {
         out.push((k.to_string(),v.filter(filter)));
@@ -138,7 +138,7 @@ fn filter_zmenu(h : &Vec<(String,EachOrEvery<String>)>, filter: &DataFilter) -> 
 }
 
 impl Patina {
-    pub fn filter(&self, filter: &DataFilter) -> Patina {
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> Patina {
         match self {
             Patina::Drawn(drawn_type,colours) => Patina::Drawn(drawn_type.clone(),colours.filter(filter)),
             Patina::ZMenu(z,h) => Patina::ZMenu(z.clone(),filter_zmenu(h,filter))

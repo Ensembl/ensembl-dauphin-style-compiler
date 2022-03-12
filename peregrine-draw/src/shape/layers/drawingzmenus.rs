@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{ EachOrEvery, Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef };
+use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery };
 use crate::stage::stage::{ ReadStage };
 use crate::util::message::Message;
 

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, EachOrEvery, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::pendingleaf::PendingLeaf, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}} };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::pendingleaf::PendingLeaf, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}} };
 
 pub struct CarriageShapeListBuilder2 {
     shapes: Vec<Shape<PendingLeaf>>,
@@ -22,9 +22,9 @@ impl CarriageShapeListBuilder2 {
         }
     }
 
-    /*
     pub fn carriage_universe(&self) -> &CarriageUniverseBuilder { &self.carriage_universe }
 
+    /*
     fn push(&mut self, shape: Shape<PendingLeaf>) {
         if !shape.is_empty() && !shape.common().coord_system().is_dustbin() {
             shape.register_space(&self.assets);
@@ -37,6 +37,7 @@ impl CarriageShapeListBuilder2 {
             self.push(shape);
         }
     }
+    */
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
@@ -48,6 +49,7 @@ impl CarriageShapeListBuilder2 {
         out
     }
 
+    /*
     pub fn use_allotment(&mut self, allotment: &AllotmentRequest) {
         if !allotment.is_dustbin() {
             self.allotments.insert(allotment.clone());

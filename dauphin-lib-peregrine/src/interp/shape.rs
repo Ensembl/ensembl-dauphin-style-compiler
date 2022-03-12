@@ -28,7 +28,7 @@ impl InterpCommand for RectangleInterpCommand {
             Ok(geometry.allotment(*id as u32)?.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
-        if !allotments.empty() {
+        if allotments.len() != Some(0) {
             let area = SpaceBaseArea::new(
                 PartialSpaceBase::from_spacebase(top_left),
                 PartialSpaceBase::from_spacebase(bottom_right)).ok_or_else(|| err!("sb1"))?;
@@ -60,7 +60,7 @@ impl InterpCommand for Text2InterpCommand {
             geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
-        if !text.empty() || !allotments.empty() {
+        if text.len() != Some(0) || allotments.len() != Some(0) {
             let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
             let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
             zoo.lock().add_text(spacebase,pen,text)?;
@@ -83,7 +83,7 @@ impl InterpCommand for ImageInterpCommand {
             geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
         })?;
         let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
-        if !images.empty() && !allotments.empty() {
+        if images.len() != Some(0) && allotments.len() != Some(0) {
             let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
             let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
             zoo.lock().add_image(spacebase,images)?;

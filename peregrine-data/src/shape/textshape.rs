@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}};
+use crate::{AllotmentRequest, DataMessage, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}, EachOrEvery};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -18,6 +18,8 @@ impl<A> TextShape<A> {
             text: self.text.clone()
         }
     }
+
+    pub fn len(&self) -> usize { self.position.len() }
 }
 
 impl<A> Clone for TextShape<A> where A: Clone {
@@ -38,26 +40,25 @@ impl<A: Clone> TextShape<A> {
         let mut out = vec![];
         let len = position.len();
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
-        let details = eoe_throw("new_text",TextShape::new_details(position,pen,text))?;
-        for (coord_system,mut filter) in demerge {
-            filter.set_size(len);
-            out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(coord_system,depth.clone()))?,
-                ShapeDetails::Text(details.clone().filter(&mut filter))
-            ));
+        if let Some(details) = TextShape::new_details(position,pen,text) {
+            for (coord_system,mut filter) in demerge {
+                out.push(Shape::new(
+                    ShapeCommon::new(coord_system,depth.clone()),
+                    ShapeDetails::Text(details.clone().filter(&mut filter))
+                ));
+            }
         }
         Ok(out)
     }
 
-    pub fn len(&self) -> usize { self.position.len() }
     pub fn pen(&self) -> &Pen { &self.pen }
     pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
 
-    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
         self.position.make_base_filter(min,max)
     }
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> TextShape<A> {
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> TextShape<A> {
         TextShape {
             position: self.position.filter(filter),
             pen: self.pen.filter(filter),
@@ -70,10 +71,9 @@ impl<A: Clone> TextShape<A> {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,TextShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(|a| cat.categorise(common_in.coord_system()));
+        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
-            filter.set_size(self.position.len());
             let common = common_in.filter(&filter);
             out.push((draw_group,common,self.filter(&mut filter)));
         }
@@ -103,12 +103,11 @@ impl TextShape<AllotmentBox> {
 
 impl TextShape<Arc<dyn Transformer>> {
     fn demerge_by_variety(&self) -> Vec<(TransformerVariety,TextShape<Arc<dyn Transformer>>)> {
-        let demerge = self.position.allotments().demerge(|x| {
+        let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.choose_variety()
         });
         let mut out = vec![];
         for (variety,mut filter) in demerge {
-            filter.set_size(self.position.len());
             out.push((variety,self.filter(&filter)));
         }
         out

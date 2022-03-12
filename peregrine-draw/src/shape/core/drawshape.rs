@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DataFilterBuilder, DirectColour, DrawnType, EachOrEvery, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder };
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -165,16 +165,15 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     let heraldry = tools.heraldry();
     let mut dims = vec![];
-    let mut filter_builder = DataFilterBuilder::new();
+    let mut filter_builder = EachOrEveryFilterBuilder::new();
     for (i,handle) in eoe_throw("heraldry",handles.iter(count))?.enumerate() {
         let area = heraldry.get_texture_area_on_bitmap(handle,&heraldry_canvas)?;
         if let Some(area) = area {
             dims.push(area);
-            filter_builder.at(i);
+            filter_builder.set(i);
         }
     }
-    let mut filter = filter_builder.finish(count);
-    filter.set_size(area_a.len());
+    let mut filter = filter_builder.make(area_a.len());
     if filter.count() == 0 { return Ok(None); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
     Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),depth,&canvas,&dims,scale.is_free(),edge,wobble)?))

@@ -1,5 +1,5 @@
 use std::{ops::{Add, Div, Sub}};
-use crate::{util::{ringarray::{ DataFilter }, eachorevery::EachOrEveryGroupCompatible}};
+use crate::{util::{eachorevery::{EachOrEveryGroupCompatible, EachOrEveryFilter}}};
 use super::{spacebase::{SpaceBase, SpaceBaseIterator, SpaceBasePointRef, PartialSpaceBase}};
 use std::hash::Hash;
 
@@ -40,7 +40,7 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
         other.iter().cycle().take(len)
     }
 
-    pub fn filter(&self, filter: &DataFilter) -> SpaceBaseArea<X,Y> {
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBaseArea<X,Y> {
         SpaceBaseArea(self.0.filter(filter),self.1.filter(filter),filter.count())
     }
 
@@ -64,14 +64,14 @@ impl<X: Clone,Y: Clone> Clone for SpaceBaseArea<X,Y> {
 }
 
 impl<X: Clone + Add<Output=X> + Div<f64,Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
-    pub fn middle_base(&self) -> SpaceBase<X,Y> { self.0.middle_base(&self.1).unwrap() }
+    pub fn middle_base(&self) -> SpaceBase<X,Y> { self.0.middle_base(&self.1) }
 }
 
 impl<X,Y> SpaceBaseArea<X,Y> {
     pub fn len(&self) -> usize { self.2 }
 
-    pub fn demerge_by_allotment<F,K>(&self, cb: F) -> Vec<(K,DataFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
-        self.0.allotment.demerge(cb)
+    pub fn demerge_by_allotment<F,K>(&self, cb: F) -> Vec<(K,EachOrEveryFilter)> where F: Fn(&Y) -> K, K: Hash+PartialEq+Eq {
+        self.0.allotment.demerge(self.2,cb)
     }
 
     pub fn map_allotments<F,A>(&self, cb: F) -> SpaceBaseArea<X,A> where F: Fn(&Y) -> A {
@@ -113,13 +113,13 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
 }
 
 impl<X: Clone + PartialOrd, Y: Clone> SpaceBaseArea<X,Y> {
-    pub fn make_base_filter(&self, min_value: X, max_value: X) -> DataFilter {
-        let top_left = DataFilter::new(&mut self.0.base.iter(self.2).unwrap(),|base| {
+    pub fn make_base_filter(&self, min_value: X, max_value: X) -> EachOrEveryFilter {
+        let top_left = self.0.base.make_filter(self.2, |base|
             *base <= max_value
-        });
-        let bottom_right = DataFilter::new(&mut self.1.base.iter(self.2).unwrap(),|base| {
+        );
+        let bottom_right = self.1.base.make_filter(self.2, |base|
             *base >= min_value
-        });
+        );
         top_left.and(&bottom_right)
     }
 }

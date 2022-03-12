@@ -232,14 +232,12 @@ mod util {
     pub mod message;
     pub mod miscpromises;
     pub mod eachorevery;
-    pub mod eachoreveryfilter;
-    pub mod ringarray;
     pub mod vecutils;
 
     pub use self::builder::Builder;
     pub use self::miscpromises::CountingPromise;
     pub use self::message::DataMessage;
-    pub use self::eachorevery::EachOrEvery;
+    pub use self::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 }
 
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
@@ -266,9 +264,8 @@ pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
-pub use self::util::ringarray::{ DataFilter, DataFilterBuilder };
 pub use self::util::vecutils::expand_by_repeating;
-pub use self::util::eachorevery::EachOrEvery;
+pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 pub use self::spacebase::{ 
     reactive, HollowEdge2, SpaceBase, SpaceBaseArea, PartialSpaceBase,
     SpaceBasePoint, SpaceBasePointRef

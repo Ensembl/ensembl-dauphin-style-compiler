@@ -2,7 +2,7 @@ use std::{borrow::Borrow, sync::Arc};
 
 use peregrine_toolkit::puzzle::{Puzzle, PuzzleValueHolder, PuzzlePiece, ConstantPuzzlePiece, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleSolution, PuzzleBuilder};
 
-use crate::{AllotmentMetadata, allotment::{core::arbitrator::Arbitrator, boxes::boxtraits::Stackable}, CoordinateSystem, SpaceBase, PartialSpaceBase, SpaceBaseArea, DataFilter};
+use crate::{AllotmentMetadata, allotment::{core::arbitrator::Arbitrator, boxes::boxtraits::Stackable}, CoordinateSystem, SpaceBase, PartialSpaceBase, SpaceBaseArea};
 
 use super::{allotmentbox::AllotmentBox};
 

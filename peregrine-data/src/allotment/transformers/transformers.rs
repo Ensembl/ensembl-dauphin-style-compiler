@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::{CoordinateSystem, SpaceBase, DataFilter, SpaceBaseArea, PartialSpaceBase};
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}, simple::SimpleTransformerHolder};
 

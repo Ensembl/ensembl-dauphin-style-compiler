@@ -1,6 +1,6 @@
 use std::{sync::Arc};
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, EachOrEvery, Patina, CarriageShapeListBuilder, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, Patina, CarriageShapeListBuilder, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}, EachOrEvery};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -55,26 +55,26 @@ impl MarchingAnts {
         let pos2 = self.area2.tlbr().clone();
         shapes.use_allotment(&window_origin);
         let top_left = PartialSpaceBase::from_spacebase(SpaceBase::new(
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![window_origin.clone()]))
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![window_origin.clone()])
         ).unwrap());
         let bottom_right =  PartialSpaceBase::from_spacebase(SpaceBase::new(
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![0.])),
-            &EachOrEvery::Each(Arc::new(vec![window_origin]))
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![0.]),
+            &EachOrEvery::each(vec![window_origin])
         ).unwrap());
         let area = eoe_throw("w1",SpaceBaseArea::new(top_left,bottom_right))?;
         let top_left_obs = PartialSpaceBase::new(
-            &EachOrEvery::Each(Arc::new(vec![Observable::constant(0.)])),
+            &EachOrEvery::each(vec![Observable::constant(0.)]),
             &EachOrEvery::every(pos2.0.observable()),
             &EachOrEvery::every(pos2.1.observable()),
             &EachOrEvery::every(())
         );
         let bottom_right_obs = PartialSpaceBase::new(
-            &EachOrEvery::Each(Arc::new(vec![Observable::constant(0.)])),
+            &EachOrEvery::each(vec![Observable::constant(0.)]),
             &EachOrEvery::every(pos2.2.observable()),
             &EachOrEvery::every(pos2.3.observable()),
             &EachOrEvery::every(())
@@ -94,11 +94,11 @@ fn make_stain_param2(var: Option<&reactive::Variable<'static,f64>>, c: f64) -> O
 
 fn make_stain_point<X: Clone,Y: Clone>(base: X, normal: X, tangent: X, allotment: &Y) -> Result<PartialSpaceBase<X,Y>,Message> {
     Ok(PartialSpaceBase::from_spacebase(
-        eoe_throw("stain1",SpaceBase::new(&EachOrEvery::Each(Arc::new(vec![base])),
-        &EachOrEvery::Each(Arc::new(vec![normal])),
-        &EachOrEvery::Each(Arc::new(vec![tangent])),
-            &EachOrEvery::every(allotment.clone())))?))
-
+        eoe_throw("stain1",SpaceBase::new(&EachOrEvery::each(vec![base]),
+        &EachOrEvery::each(vec![normal]),
+        &EachOrEvery::each(vec![tangent]),
+        &EachOrEvery::every(allotment.clone())))?
+    ))
 }
 
 fn make_stain_rect3(n1: f64, t1: f64, b1: f64, ar: &AllotmentRequest) -> Result<SpaceBaseArea<f64,AllotmentRequest>,Message> {

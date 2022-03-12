@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer}};
+use crate::{AllotmentRequest, DataMessage, Plotter, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer}, EachOrEvery};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -65,6 +65,8 @@ impl<A> WiggleShape<A> {
             allotments: self.allotments.map(cb)
         }
     }
+
+    pub fn len(&self) -> usize { 1 }
 }
 
 impl<A: Clone> WiggleShape<A> {
@@ -81,14 +83,14 @@ impl<A: Clone> WiggleShape<A> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         out.push(Shape::new(
-            eoe_throw("add_wiggle",ShapeCommon::new(allotment.coord_system(),depth))?,
+            ShapeCommon::new(allotment.coord_system(),depth),
             ShapeDetails::Wiggle(details)
         ));
         Ok(out)
     }
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> WiggleShape<A> {
-        let y = if filter.filter(&[()]).len() > 0 {
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> WiggleShape<A> {
+        let y = if filter.filter_clone(&[()]).len() > 0 {
             self.values.clone()
         } else {
             Arc::new(vec![])
@@ -101,24 +103,22 @@ impl<A: Clone> WiggleShape<A> {
         }
     }
 
-    pub fn len(&self) -> usize { 1 }
     pub fn range(&self) -> (f64,f64) { self.x_limits }
     pub fn values(&self) -> Arc<Vec<Option<f64>>> { self.values.clone() }
     pub fn plotter(&self) -> &Plotter { &self.plotter }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,WiggleShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.allotments.demerge(|a| cat.categorise(common_in.coord_system()));
+        let demerge = self.allotments.demerge(1,|a| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
-            filter.set_size(1);
             let common = common_in.filter(&filter);
             out.push((draw_group,common,self.filter(&mut filter)));
         }
         out
     }
 
-    pub fn make_base_filter(&self, _min: f64, _max: f64) -> DataFilter {
-        DataFilter::all(1)
+    pub fn make_base_filter(&self, _min: f64, _max: f64) -> EachOrEveryFilter {
+        EachOrEveryFilter::all(1)
     }
 
     pub fn reduce_by_minmax(&self, min: f64, max: f64) -> WiggleShape<A> {
@@ -155,7 +155,7 @@ impl WiggleShape<AllotmentBox> {
             x_limits: self.x_limits.clone(),
             values: Arc::new(transform_yy(solution,common.coord_system(),allotment,&self.values)),
             plotter: self.plotter.clone(),
-            allotments: EachOrEvery::Each(Arc::new(vec![()]))
+            allotments: EachOrEvery::each(vec![()])
         }
     }
 }
@@ -167,7 +167,7 @@ impl WiggleShape<Arc<dyn Transformer>> {
             x_limits: self.x_limits.clone(),
             values: Arc::new(allotment.choose_variety().graph_transform(&common.coord_system(), allotment,&self.values)),
             plotter: self.plotter.clone(),
-            allotments: EachOrEvery::Each(Arc::new(vec![()]))
+            allotments: EachOrEvery::each(vec![()])
         }]
     }
 }

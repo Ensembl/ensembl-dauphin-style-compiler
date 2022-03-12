@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataFilter, DataMessage, EachOrEvery, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::eachorevery::eoe_throw, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}};
+use crate::{AllotmentRequest, DataMessage, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}}, EachOrEvery};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -16,6 +16,8 @@ impl<A> ImageShape<A> {
             names: self.names.clone()
         }
     }
+
+    pub fn len(&self) -> usize { self.position.len() }
 }
 
 impl<A> Clone for ImageShape<A> where A: Clone {
@@ -36,26 +38,25 @@ impl<A: Clone> ImageShape<A> {
         let len = position.len();
         let mut out = vec![];
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
-        let details = eoe_throw("add_image",ImageShape::new_details(position,names))?;
-        for (coord_system,mut filter) in demerge {
-            filter.set_size(len);
-            out.push(Shape::new(
-                eoe_throw("add_image",ShapeCommon::new(coord_system,depth.clone()))?,
-                ShapeDetails::Image(details.filter(&mut filter))
-            ));
+        if let Some(details) = ImageShape::new_details(position,names) {
+            for (coord_system,mut filter) in demerge {
+                out.push(Shape::new(
+                    ShapeCommon::new(coord_system,depth.clone()),
+                    ShapeDetails::Image(details.filter(&mut filter))
+                ));
+            }    
         }
         Ok(out)        
     }
 
-    pub fn len(&self) -> usize { self.position.len() }
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
     pub fn position(&self) -> &SpaceBase<f64,A> { &self.position }
 
-    pub fn make_base_filter(&self, min: f64, max: f64) -> DataFilter {
+    pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
         self.position.make_base_filter(min,max)
     }
 
-    pub(super) fn filter(&self, filter: &DataFilter) -> ImageShape<A> {
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> ImageShape<A> {
         ImageShape {
             position: self.position.filter(filter),
             names: self.names.filter(&filter)
@@ -67,11 +68,10 @@ impl<A: Clone> ImageShape<A> {
     }
 
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,ImageShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(|_| cat.categorise(common_in.coord_system()));
+        let demerge = self.position.allotments().demerge(self.position.len(),|_| cat.categorise(common_in.coord_system()));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
             let common = common_in.filter(&filter);
-            filter.set_size(self.position.len());
             out.push((draw_group,common,self.filter(&filter)));
         }
         out
@@ -80,12 +80,11 @@ impl<A: Clone> ImageShape<A> {
 
 impl ImageShape<Arc<dyn Transformer>> {
     fn demerge_by_variety(&self) -> Vec<(TransformerVariety,ImageShape<Arc<dyn Transformer>>)> {
-        let demerge = self.position.allotments().demerge(|x| {
+        let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.choose_variety()
         });
         let mut out = vec![];
         for (variety,mut filter) in demerge {
-            filter.set_size(self.position.len());
             out.push((variety,self.filter(&filter)));
         }
         out
