@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::puzzle::{PuzzleBuilder, PuzzleSolution};
 
-use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::Root, boxtraits::Transformable}}, Pen, CarriageExtent, Shape, ShapeRequest, ShapeRequestGroup};
+use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::Root, boxtraits::Transformable}}, Pen, CarriageExtent, Shape, ShapeRequest, ShapeRequestGroup, EachOrEvery};
 
 use super::arbitrator::BpPxConverter;
 
@@ -28,11 +28,11 @@ impl CarriageUniverseBuilder {
         self.leafs.extend(other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
     }
 
-    fn make_transformable(mut self, style: &AllotmentStyleGroup, extent: Option<&ShapeRequestGroup>) {
+    fn make_transformable(&self, style: &AllotmentStyleGroup, extent: Option<&ShapeRequest>) {
         let builder = PuzzleBuilder::new();
-        let converter = Arc::new(BpPxConverter::new(extent));
+        let converter = Arc::new(BpPxConverter::new2(extent));
         let root = ContainerHolder::Root(Root::new());
-        make_transformable(&builder,&converter,&root,&mut self.leafs.values_mut(),&style);
+        make_transformable(&builder,&converter,&root,&mut self.leafs.values(),&style);
     }
 }
 
@@ -41,9 +41,9 @@ pub struct CarriageUniverse2 {
 }
 
 impl CarriageUniverse2 {
-    pub fn new(builder: CarriageUniverseBuilder, mut shapes: Vec<Shape<PendingLeaf>>, style: &AllotmentStyleGroup, extent: Option<&ShapeRequestGroup>) -> CarriageUniverse2 {
+    pub fn new(builder: &CarriageUniverseBuilder, mut shapes: EachOrEvery<Shape<PendingLeaf>>, style: &AllotmentStyleGroup, extent: Option<&ShapeRequest>) -> CarriageUniverse2 {
         builder.make_transformable(style,extent);
-        let shapes = shapes.drain(..).map(|x| 
+        let shapes = shapes.iter(shapes.len().unwrap()).unwrap().map(|x| 
             x.map_new_allotment(|x| x.transformable().cloned())
         ).collect::<Vec<_>>();
         CarriageUniverse2 { shapes: Arc::new(shapes) }

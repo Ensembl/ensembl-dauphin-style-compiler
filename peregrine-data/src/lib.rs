@@ -188,6 +188,7 @@ mod shape {
     pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
     pub use self::zmenu::ZMenu;
     pub use self::carriageshapelist::{ CarriageShapeListBuilder, FloatingCarriageShapeList, AnchoredCarriageShapeList };
+    pub use self::carriageshapelist2::{ CarriageShapeListBuilder2, CarriageShapeList2 };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
@@ -251,7 +252,8 @@ pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
     ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, CarriageShapeListBuilder,
-    AnchoredCarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, FloatingCarriageShapeList
+    AnchoredCarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, FloatingCarriageShapeList,
+    CarriageShapeListBuilder2, CarriageShapeList2
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;

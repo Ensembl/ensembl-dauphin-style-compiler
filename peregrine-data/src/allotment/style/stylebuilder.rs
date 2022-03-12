@@ -77,7 +77,7 @@ impl StyleBuilder {
     }
 }
 
-pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&mut PendingLeaf>, styles: &AllotmentStyleGroup) {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, styles: &AllotmentStyleGroup) {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
@@ -149,7 +149,7 @@ mod test {
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
@@ -182,7 +182,7 @@ mod test {
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
@@ -224,7 +224,7 @@ mod test {
         add_style(&mut tree, "b/", &[("type","bumper")]);
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        make_transformable(&builder,&converter,&root,&mut pending.iter_mut(),&style_group);
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&style_group);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());

@@ -6,6 +6,7 @@ use crate::allotment::{boxes::leaf, style::{allotmentname::{AllotmentNamePart, A
 
 use super::styletree::StyleTree;
 
+#[derive(Clone)]
 pub struct AllotmentStyleGroup {
     tree: Arc<StyleTree>
 }

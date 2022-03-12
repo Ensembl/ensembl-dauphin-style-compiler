@@ -75,16 +75,14 @@ impl PendingShape {
 
 pub struct CarriageShapeListBuilder2 {
     shapes: Vec<PendingShape>,
-    assets: Assets,
     carriage_universe: CarriageUniverseBuilder,
     style: StyleTreeBuilder
 }
 
 impl CarriageShapeListBuilder2 {
-    pub fn new(assets: &Assets) -> CarriageShapeListBuilder2 {
+    pub fn new() -> CarriageShapeListBuilder2 {
         CarriageShapeListBuilder2 {
             shapes: vec![],
-            assets: assets.clone(),
             carriage_universe: CarriageUniverseBuilder::new(),
             style: StyleTreeBuilder::new()
         }
@@ -127,41 +125,56 @@ impl CarriageShapeListBuilder2 {
 }
 
 #[derive(Clone)]
-pub struct CarriageShapeList2 {
-    carriage_universe: Arc<CarriageUniverse2>,
-    extent: Option<ShapeRequestGroup>
+pub struct CarriageShapeListRaw {
+    shapes: EachOrEvery<Shape<PendingLeaf>>,
+    carriage_universe: Arc<CarriageUniverseBuilder>,
+    style: AllotmentStyleGroup
 }
 
-impl CarriageShapeList2 {
-    pub fn empty() -> CarriageShapeList2 {
-        CarriageShapeList2 {
-            carriage_universe: Arc::new(CarriageUniverse2::new(CarriageUniverseBuilder::new(),vec![],&AllotmentStyleGroup::empty(),None)),
-            extent: None
-        }
-    }
-
-    pub fn new(input: CarriageShapeListBuilder2, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
+impl CarriageShapeListRaw {
+    pub fn new(input: CarriageShapeListBuilder2) -> Result<CarriageShapeListRaw,DataMessage> {
         let style = AllotmentStyleGroup::new(StyleTree::new(input.style));
         let mut shapes = vec![];
         for shape in &input.shapes {
             let mut these_shapes = shape.into_shape(&style)?;
             shapes.append(&mut these_shapes);
         }
-        let carriage_universe = CarriageUniverse2::new(input.carriage_universe,shapes,&style,extent);
+        Ok(CarriageShapeListRaw {
+            shapes: EachOrEvery::each(shapes),
+            carriage_universe: Arc::new(input.carriage_universe),
+            style
+        })
+    }
+
+    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageShapeListRaw {
+        CarriageShapeListRaw {
+            shapes: self.shapes.map(|shape| shape.filter_by_minmax(min_value,max_value)),
+            carriage_universe: self.carriage_universe.clone(),
+            style: self.style.clone()
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CarriageShapeList2 {
+    carriage_universe: Arc<CarriageUniverse2>
+}
+
+impl CarriageShapeList2 {
+    pub fn empty() -> CarriageShapeList2 {
+        CarriageShapeList2 {
+            carriage_universe: Arc::new(CarriageUniverse2::new(&mut CarriageUniverseBuilder::new(),EachOrEvery::each(vec![]),&AllotmentStyleGroup::empty(),None)),
+        }
+    }
+
+    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequest>) -> Result<CarriageShapeList2,DataMessage> {
+        let carriage_universe = CarriageUniverse2::new(&input.carriage_universe,input.shapes,&input.style,extent);
         Ok(CarriageShapeList2 {
             carriage_universe: Arc::new(carriage_universe),
-            extent: extent.cloned()
         })
     }
 
     pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> {
         self.carriage_universe.get(solution)
-    }
-
-    pub fn filter(&self, min_value: f64, max_value: f64) -> CarriageShapeList2 {
-        CarriageShapeList2 {
-            carriage_universe: Arc::new(self.carriage_universe.filter(min_value,max_value)),
-            extent: self.extent.clone()
-        }
     }
 }
