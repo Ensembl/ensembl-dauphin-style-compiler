@@ -98,7 +98,7 @@ impl<X> EachOrEvery<X> {
         self.data = Arc::new(self.data.iter().zip(data.iter()).map(|(x,z)| f(x,z)).collect::<Vec<_>>());
     }
 
-    pub fn map_results<F,Y,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
+    pub fn map_results<F,Y,E>(&self, f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
         let data = self.data.iter().map(f).collect::<Result<_,_>>()?;
         Ok(EachOrEvery {
             index: self.index.clone(),
@@ -106,7 +106,7 @@ impl<X> EachOrEvery<X> {
         })
     }
 
-    pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
+    pub fn inner_zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
         match (&self.index,&other.index) {
             (x,EachOrEveryIndex::Every) => {
                 EachOrEvery {
@@ -136,9 +136,19 @@ impl<X> EachOrEvery<X> {
                 }
             },
 
-            (EachOrEveryIndex::Every, EachOrEveryIndex::Unindexed) => other.zip(self,|a,b| cb(b,a)),
-            (EachOrEveryIndex::Every, EachOrEveryIndex::Indexed(_)) => other.zip(self,|a,b| cb(b,a)),
-            (EachOrEveryIndex::Unindexed, EachOrEveryIndex::Indexed(_)) => other.zip(self,|a,b| cb(b,a)),
+            _ => panic!()
+        }
+    }
+
+    pub fn zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
+        match (&self.index,&other.index) {
+            (EachOrEveryIndex::Every, EachOrEveryIndex::Unindexed) |
+            (EachOrEveryIndex::Every, EachOrEveryIndex::Indexed(_)) |
+            (EachOrEveryIndex::Unindexed, EachOrEveryIndex::Indexed(_)) => 
+                other.inner_zip(self,|a,b| cb(b,a)),
+
+            _ =>
+                self.inner_zip(other,cb)
         }
     }
 

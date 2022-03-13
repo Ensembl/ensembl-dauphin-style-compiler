@@ -24,15 +24,17 @@ impl CarriageUniverseBuilder {
         self.leafs.get_mut(spec).unwrap()
     }
 
-    pub fn union(&mut self, other: &CarriageUniverseBuilder) {
-        self.leafs.extend(other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
+    pub fn union(&self, other: &CarriageUniverseBuilder) -> CarriageUniverseBuilder {
+        let mut leafs = self.leafs.clone();
+        leafs.extend(other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
+        CarriageUniverseBuilder { leafs }
     }
 
-    fn make_transformable(&self, style: &AllotmentStyleGroup, extent: Option<&ShapeRequest>) {
+    fn make_transformable(&self, extent: Option<&ShapeRequest>) {
         let builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new2(extent));
         let root = ContainerHolder::Root(Root::new());
-        make_transformable(&builder,&converter,&root,&mut self.leafs.values(),&style);
+        make_transformable(&builder,&converter,&root,&mut self.leafs.values());
     }
 }
 
@@ -41,9 +43,9 @@ pub struct CarriageUniverse2 {
 }
 
 impl CarriageUniverse2 {
-    pub fn new(builder: &CarriageUniverseBuilder, mut shapes: EachOrEvery<Shape<PendingLeaf>>, style: &AllotmentStyleGroup, extent: Option<&ShapeRequest>) -> CarriageUniverse2 {
-        builder.make_transformable(style,extent);
-        let shapes = shapes.iter(shapes.len().unwrap()).unwrap().map(|x| 
+    pub fn new(builder: &CarriageUniverseBuilder, shapes: &[Shape<PendingLeaf>], extent: Option<&ShapeRequest>) -> CarriageUniverse2 {
+        builder.make_transformable(extent);
+        let shapes = shapes.iter().map(|x| 
             x.map_new_allotment(|x| x.transformable().cloned())
         ).collect::<Vec<_>>();
         CarriageUniverse2 { shapes: Arc::new(shapes) }

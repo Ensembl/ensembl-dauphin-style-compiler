@@ -188,7 +188,7 @@ mod shape {
     pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
     pub use self::zmenu::ZMenu;
     pub use self::carriageshapelist::{ CarriageShapeListBuilder, FloatingCarriageShapeList, AnchoredCarriageShapeList };
-    pub use self::carriageshapelist2::{ CarriageShapeListBuilder2, CarriageShapeList2 };
+    pub use self::carriageshapelist2::{ CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
