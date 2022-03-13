@@ -1,5 +1,5 @@
 use peregrine_toolkit::lock;
-use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, CarriageShapeListBuilder, add_task, api::MessageSender, Scale, core::pixelsize::PixelSize, CarriageExtent, AllotmentRequest, AnchoredCarriageShapeList, shape::FloatingCarriageShapeList, ShapeRequestGroup };
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, CarriageShapeListBuilder, add_task, api::MessageSender, Scale, core::pixelsize::PixelSize, CarriageExtent, AllotmentRequest, AnchoredCarriageShapeList, shape::{FloatingCarriageShapeList, CarriageShapeListRaw}, ShapeRequestGroup, CarriageShapeList2 };
 
 #[derive(Clone)]
 pub enum LoadMode {
@@ -24,7 +24,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> (Option<AnchoredCarriageShapeList>,Vec<DataMessage>) {
+pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> (Option<CarriageShapeList2>,Vec<DataMessage>) {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{
@@ -43,12 +43,12 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
         })
     }).collect();
     if !mode.build_shapes() { return (None,errors); }
-    let mut new_shapes = CarriageShapeListBuilder::new(&base.allotment_metadata,&*lock!(base.assets));
+    let mut new_shapes = CarriageShapeListRaw::empty();
     for future in tracks {
         future.finish_future().await;
         match future.take_result().as_ref().unwrap() {
             Ok(zoo) => {
-                new_shapes.append(&zoo);
+                new_shapes = new_shapes.union(&zoo);
             },
             Err(e) => {
                 if let Some(messages) = &messages {
@@ -58,15 +58,7 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             }
         }
     }
-    let floating = FloatingCarriageShapeList::new(new_shapes,Some(&shape_requests));
-    let floating = match floating {
-        Ok(floating) => floating,
-        Err(e) => {
-            errors.push(e);
-            return (None,errors);
-        }
-    };
-    let anchored = AnchoredCarriageShapeList::new(&floating);
+    let anchored = CarriageShapeList2::new(new_shapes,Some(&shape_requests));
     let anchored = match anchored {
         Ok(anchored) => anchored,
         Err(e) => {

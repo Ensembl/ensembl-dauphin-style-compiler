@@ -179,7 +179,6 @@ impl AllotmentMetadata {
 
 #[derive(Clone,Debug)]
 pub struct AllotmentMetadataReport {
-    allotments: Arc<Vec<AllotmentMetadata>>,
     summary: Arc<Vec<HashMap<String,String>>>,
     hash: u64
 }
@@ -207,7 +206,6 @@ impl AllotmentMetadataReport {
             a.hash(&mut state);
         }
         AllotmentMetadataReport {
-            allotments: Arc::new(allotments),
             summary: Arc::new(summary),
             hash: state.finish()
         }

@@ -29,7 +29,8 @@ impl RailwayDependents {
     fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) -> Result<(),DataMessage> {
         let mut playing_field = PlayingField::empty();
         for carriage in carriages {
-            playing_field.union(&carriage.shapes()?.carriage_universe().playingfield());
+            todo!();
+            //XXX playing_field.union(&carriage.shapes()?.carriage_universe().playingfield());
         }
         self.playing_field.update(playing_field, |playing_field| {
             events.draw_notify_playingfield(playing_field.clone());

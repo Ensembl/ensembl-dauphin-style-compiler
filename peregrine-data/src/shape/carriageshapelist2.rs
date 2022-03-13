@@ -151,6 +151,13 @@ impl CarriageShapeListRaw {
         })
     }
 
+    pub fn empty() -> CarriageShapeListRaw {
+        CarriageShapeListRaw {
+            shapes: Arc::new(vec![]),
+            carriage_universe: Arc::new(CarriageUniverseBuilder::new())
+        }
+    }
+
     pub fn union(&self, more: &CarriageShapeListRaw) -> CarriageShapeListRaw {
         let mut shapes = self.shapes.as_ref().to_vec();
         shapes.extend(more.shapes.iter().cloned());
@@ -180,14 +187,13 @@ impl CarriageShapeList2 {
         }
     }
 
-    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequest>) -> Result<CarriageShapeList2,DataMessage> {
+    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
         let carriage_universe = CarriageUniverse2::new(&input.carriage_universe,&input.shapes,extent);
         Ok(CarriageShapeList2 {
             carriage_universe: Arc::new(carriage_universe),
         })
     }
 
-    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> {
-        self.carriage_universe.get(solution)
-    }
+    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> { self.carriage_universe.get(solution) }
+    pub fn puzzle(&self) -> &Puzzle { self.carriage_universe.puzzle() }
 }

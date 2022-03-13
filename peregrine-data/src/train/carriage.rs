@@ -3,7 +3,7 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2};
 use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -32,7 +32,7 @@ impl UnloadedCarriage {
         ShapeRequestGroup::new(&extent.region(),&track_configs,pixel_size,self.warm)
     }
 
-    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<AnchoredCarriageShapeList>,DataMessage> {
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<CarriageShapeList2>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
         let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
         let shapes = if let Some(x) = shapes { x } else { return Ok(None); };
@@ -46,8 +46,8 @@ impl UnloadedCarriage {
 enum CarriageState {
     Unloaded(UnloadedCarriage),
     Loading,
-    Pending(AnchoredCarriageShapeList),
-    Loaded(AnchoredCarriageShapeList)
+    Pending(CarriageShapeList2),
+    Loaded(CarriageShapeList2)
 }
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
@@ -104,10 +104,13 @@ impl Carriage {
     }
 
     pub fn shapes(&self) -> Result<AnchoredCarriageShapeList,DataMessage> {
+        todo!();
+        /*
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => { Ok(s.clone()) },
-            _ => AnchoredCarriageShapeList::empty()
+            _ => Ok(CarriageShapeList2::empty())
         }
+        */
     }
 
     pub fn set_ready(&self) {

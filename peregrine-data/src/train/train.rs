@@ -81,7 +81,8 @@ impl TrainData {
     }
 
     fn allotter_metadata(&self) -> Result<Option<AllotmentMetadataReport>,DataMessage> {
-        self.central_carriage().map(|c| c.shapes().map(|c| c.carriage_universe().make_metadata_report().clone())).transpose()
+        todo!()
+//XXX        self.central_carriage().map(|c| c.shapes().map(|c| c.carriage_universe().make_metadata_report().clone())).transpose()
     }
 
     fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
