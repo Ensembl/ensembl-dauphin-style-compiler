@@ -24,6 +24,7 @@ mod allotment {
     pub(crate) mod core {
         pub(crate) mod arbitrator;
         pub(crate) mod allotmentmetadata;
+        pub(crate) mod allotmentmetadata2;
         pub(crate) mod allotmentrequest;
         pub(crate) mod basicallotmentspec;
         pub(crate) mod coordsystem;
@@ -258,7 +259,10 @@ pub use self::shape::{
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
-    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy
+    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy,
+};
+pub use self::allotment::core::allotmentmetadata2::{
+    AllotmentMetadataReport2
 };
 pub use self::allotment::{transform_spacebase, transform_spacebasearea};
 pub use self::allotment::core::carriageuniverse::CarriageUniverse;

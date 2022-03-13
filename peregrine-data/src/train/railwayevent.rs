@@ -2,6 +2,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 
 use crate::AllotmentMetadataReport;
+use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::api::PlayingField;
 use crate::train::Carriage;
@@ -9,7 +10,7 @@ use crate::train::train::Train;
 use crate::core::Viewport;
 
 enum RailwayEvent {
-    DrawSendAllotmentMetadata(AllotmentMetadataReport),
+    DrawSendAllotmentMetadata(AllotmentMetadataReport2),
     LoadTrainData(Train),
     LoadCarriageData(Carriage),
     DrawSetCarriages(Train,Vec<Carriage>),
@@ -35,7 +36,7 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::LoadTrainData(train.clone()));
     }
 
-    pub(super) fn draw_send_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
+    pub(super) fn draw_send_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport2) {
         self.0.lock().unwrap().push(RailwayEvent::DrawSendAllotmentMetadata(metadata.clone()));
     }
 

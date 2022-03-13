@@ -66,7 +66,8 @@ pub struct Padding {
     pub padding_top: f64,
     pub padding_bottom: f64,
     pub min_height: f64,
-    pub indent: f64
+    pub indent: f64,
+    pub report: Option<String>
 }
 
 impl Padding {
@@ -75,7 +76,8 @@ impl Padding {
             padding_top: 0.,
             padding_bottom: 0.,
             min_height: 0.,
-            indent: 0.
+            indent: 0.,
+            report: None
         }
     }
 
@@ -88,7 +90,8 @@ impl Padding {
         let min_height = min_height.parse::<f64>().ok().unwrap_or(0.);
         let indent = spec.get("indent").map(|x| x.as_str()).unwrap_or("0");
         let indent = indent.parse::<f64>().ok().unwrap_or(0.);
-        Padding {padding_top, padding_bottom, min_height, indent }
+        let report = spec.get("report").cloned();
+        Padding {padding_top, padding_bottom, min_height, indent, report }
     }
 }
 

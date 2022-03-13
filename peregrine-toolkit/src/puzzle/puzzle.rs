@@ -3,6 +3,9 @@ use crate::lock;
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
+use lazy_static::lazy_static;
+use identitynumber::{identitynumber, hashable};
+
 #[cfg(test)]
 use std::sync::MutexGuard;
 
@@ -62,7 +65,11 @@ impl Puzzle {
     }
 }
 
+identitynumber!(IDS);
+hashable!(PuzzleSolution,id);
+
 pub struct PuzzleSolution {
+    id: u64,
     graph: Arc<Mutex<PuzzleGraph>>,
     mapping: Vec<Option<AnswerIndex>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>,
@@ -73,6 +80,7 @@ pub struct PuzzleSolution {
 impl PuzzleSolution {
     pub fn new(puzzle: &Puzzle) -> PuzzleSolution {
         PuzzleSolution {
+            id: IDS.next(),
             graph: puzzle.0.graph.clone(),
             mapping: vec![None;lock!(puzzle.0.pieces).len()],
             pieces: puzzle.0.pieces.clone(),
@@ -80,6 +88,8 @@ impl PuzzleSolution {
             num_solved: 0
         }
     }
+
+    pub fn id(&self) -> u64 { self.id }
 
     #[cfg(test)]
     pub(super) fn graph(&self) -> MutexGuard<PuzzleGraph> { lock!(self.graph) }

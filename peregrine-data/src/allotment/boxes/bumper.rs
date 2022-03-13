@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use js_sys::Intl::Collator;
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleDependency, PuzzleBuilder}, lock};
 
-use crate::allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed}, style::style::Padding, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
+use crate::allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::Ranged};
 
@@ -11,8 +11,8 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::Ranged};
 pub struct Bumper(Padder<UnpaddedBumper>);
 
 impl Bumper {
-    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding) -> Bumper {
-        Bumper(Padder::new(puzzle,padding,|info| UnpaddedBumper::new(puzzle,info)))        
+    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Bumper {
+        Bumper(Padder::new(puzzle,padding,metadata,|info| UnpaddedBumper::new(puzzle,info)))        
     }
 
     pub fn add_child<F>(&mut self, child: &F) where F: Stackable + Ranged {

@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
-    Viewport
+    Viewport, AllotmentMetadataReport2
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -49,7 +49,7 @@ impl PeregrineIntegration for PgIntegration {
         Ok(())
     }
 
-    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport) {
+    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport2) {
         self.report.set_allotter_metadata(metadata);
     }
 

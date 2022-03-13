@@ -1,9 +1,11 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
+use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
+use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2, Shape};
 use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -103,14 +105,29 @@ impl Carriage {
         }
     }
 
-    pub fn shapes(&self) -> Result<AnchoredCarriageShapeList,DataMessage> {
-        todo!();
-        /*
+    pub fn metadata(&self) -> Result<AllotmentMetadataReport2,DataMessage> {
         match &*lock!(self.state) {
-            CarriageState::Pending(s) | CarriageState::Loaded(s) => { Ok(s.clone()) },
-            _ => Ok(CarriageShapeList2::empty())
+            CarriageState::Pending(s) | CarriageState::Loaded(s) => {
+                let mut solution = PuzzleSolution::new(s.puzzle());
+                // TODO the inter-carriage stuff
+                solution.solve();
+                Ok(s.get_metadata(&solution))
+            },
+            _ => Ok(AllotmentMetadataReport2::empty())
         }
-        */
+
+    }
+
+    pub fn shapes(&self) -> Result<Vec<Shape<()>>,DataMessage> {
+        match &*lock!(self.state) {
+            CarriageState::Pending(s) | CarriageState::Loaded(s) => {
+                let mut solution = PuzzleSolution::new(s.puzzle());
+                // TODO the inter-carriage stuff
+                solution.solve();
+                Ok(s.get(&solution)) 
+            },
+            _ => Ok(vec![])
+        }
     }
 
     pub fn set_ready(&self) {

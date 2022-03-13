@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece}, lock};
 
-use crate::allotment::{style::style::Padding, boxes::boxtraits::Stackable};
+use crate::allotment::{style::style::Padding, boxes::boxtraits::Stackable, core::allotmentmetadata2::AllotmentMetadata2Builder};
 
 use super::{padder::{Padder, PadderInfo}};
 
@@ -10,8 +10,8 @@ use super::{padder::{Padder, PadderInfo}};
 pub struct Stacker(Padder<UnpaddedStacker>);
 
 impl Stacker {
-    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding) -> Stacker {
-        Stacker(Padder::new(puzzle,padding,|info| UnpaddedStacker::new(puzzle,info)))
+    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Stacker {
+        Stacker(Padder::new(puzzle,padding,metadata,|info| UnpaddedStacker::new(puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {

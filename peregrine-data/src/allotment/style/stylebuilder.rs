@@ -2,32 +2,32 @@ use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}};
 
-use crate::{allotment::{core::arbitrator::BpPxConverter, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety};
+use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}, pendingleaf::PendingLeaf};
 
-pub struct StyleBuilder {
+pub struct StyleBuilder<'a> {
     root: ContainerHolder,
     puzzle: PuzzleBuilder,
     converter: Arc<BpPxConverter>,
     leafs_made: HashMap<Vec<String>,LeafHolder>,
     containers_made: HashMap<Vec<String>,ContainerHolder>,
-    anchors: HashMap<String,PuzzlePiece<f64>>,
+    metadata: &'a mut AllotmentMetadata2Builder,
     dustbin: FloatingLeaf
 }
 
-impl StyleBuilder {
-    fn new_container(&self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> ContainerHolder {
+impl<'a> StyleBuilder<'a> {
+    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> ContainerHolder {
         let style = styles.get_container(name);
         match style.allot_type {
             ContainerAllotmentType::Stack => {
-                ContainerHolder::Stack(Stacker::new(&self.puzzle,&style.padding))
+                ContainerHolder::Stack(Stacker::new(&self.puzzle,&style.padding,self.metadata))
             },
             ContainerAllotmentType::Overlay => {
-                ContainerHolder::Overlay(Overlay::new(&self.puzzle,&style.padding))
+                ContainerHolder::Overlay(Overlay::new(&self.puzzle,&style.padding,self.metadata))
             },
             ContainerAllotmentType::Bumper => {
-                ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.padding))
+                ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.padding,self.metadata))
             }
         }
     }
@@ -77,14 +77,14 @@ impl StyleBuilder {
     }
 }
 
-pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>) {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadata2Builder) {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
         containers_made: HashMap::new(),
-        anchors: HashMap::new(),
         puzzle: puzzle.clone(),
         converter: converter.clone(),
+        metadata,
         dustbin: FloatingLeaf::new(puzzle,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new())
     };
     for pending in pendings {
@@ -102,7 +102,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadata2}}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<PendingLeaf> {
         let heights = if heights.len() > 0 {
@@ -151,7 +151,7 @@ mod test {
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
-        make_transformable(&builder,&converter,&root,&mut pending.iter());
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new());
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
@@ -184,7 +184,7 @@ mod test {
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
         let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
-        make_transformable(&builder,&converter,&root,&mut pending.iter());
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new());
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
@@ -221,12 +221,14 @@ mod test {
             RangeUsed::Part(4.,6.)
         ];
         let mut tree = StyleTreeBuilder::new();
-        add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper")]);        
-        add_style(&mut tree, "b/", &[("type","bumper")]);
+        add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","bumper"),("report","track")]);        
+        add_style(&mut tree, "b/", &[("type","bumper"),("report","track")]);
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges,&style_group);
-        make_transformable(&builder,&converter,&root,&mut pending.iter());
+        let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges,&style_group);
+        let mut metadata = AllotmentMetadata2Builder::new();
+        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut metadata);
+        let metadata = AllotmentMetadata2::new(&metadata);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
@@ -248,5 +250,17 @@ mod test {
         assert!(descs[4].contains("height: 2.0"));
         assert!(descs[5].contains("top: 21.0"));
         assert!(descs[5].contains("height: 3.0"));
+        let metadata = metadata.get(&solution);
+        let metadata = metadata.summarize();
+        assert_eq!(2,metadata.len());
+        let (a,b) = (&metadata[0],&metadata[1]);
+        assert!(a.contains_key("offset"));
+        let (a,b) = if a.get("offset") == Some(&"0".to_string()) { (a,b) } else { (b,a) };
+        assert_eq!(Some(&"track".to_string()),a.get("type"));
+        assert_eq!(Some(&"0".to_string()),a.get("offset"));
+        assert_eq!(Some(&"21".to_string()),a.get("height"));
+        assert_eq!(Some(&"track".to_string()),b.get("type"));
+        assert_eq!(Some(&"21".to_string()),b.get("offset"));
+        assert_eq!(Some(&"24".to_string()),b.get("height"));
     }
 }

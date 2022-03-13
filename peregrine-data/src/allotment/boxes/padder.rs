@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece};
 
-use crate::{allotment::{core::arbitrator::Arbitrator, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
 
 fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
@@ -52,8 +54,17 @@ impl<T: Clone> Clone for Padder<T> {
     }
 }
 
+fn add_report(metadata: &mut AllotmentMetadata2Builder, key: &str, top: &PuzzleValueHolder<f64>, height: &PuzzleValueHolder<f64>) {
+    let mut values = HashMap::new();
+    values.insert("type".to_string(), PuzzleValueHolder::new(ConstantPuzzlePiece::new(key.to_string())));
+    values.insert("offset".to_string(), PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),|v| v.to_string())));
+    values.insert("height".to_string(), PuzzleValueHolder::new(DerivedPuzzlePiece::new(height.clone(),|v| v.to_string())));
+    let group = AllotmentMetadataGroup::new(values);
+    metadata.add(group);
+}
+
 impl<T> Padder<T> {
-    pub fn new<F>(puzzle: &PuzzleBuilder, padding: &Padding, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
+    pub fn new<F>(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
         let top = puzzle.new_piece(None);
         let padding_top = padding.padding_top;
         let padding_bottom = padding.padding_bottom;
@@ -67,6 +78,9 @@ impl<T> Padder<T> {
             draw_top, child_height,
             indent: indent(&puzzle,self_indent,&inherited_indent)
         };
+        if let Some(report) = &padding.report {
+            add_report(metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
+        }
         let child = ctor(&info);
         Padder {
             child: Box::new(child),

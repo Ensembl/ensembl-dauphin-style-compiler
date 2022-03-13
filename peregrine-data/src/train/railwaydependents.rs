@@ -2,14 +2,14 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField, DataMessage};
+use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField, DataMessage, allotment::core::allotmentmetadata2::AllotmentMetadataReport2};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,
     playing_field: MutexOnChange<PlayingField>,
-    metadata: MutexOnChange<AllotmentMetadataReport>,
+    metadata: MutexOnChange<AllotmentMetadataReport2>,
     visual_blocker: Blocker,
     #[allow(unused)]
     visual_lockout: Mutex<Option<Lockout>>

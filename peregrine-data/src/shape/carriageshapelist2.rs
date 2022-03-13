@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
+use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::{FloatingCarriageShapeList, ShapeRequest, ShapeRequestGroup};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
@@ -195,5 +196,7 @@ impl CarriageShapeList2 {
     }
 
     pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> { self.carriage_universe.get(solution) }
+    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport2 { self.carriage_universe.get_metadata(solution) }
+    
     pub fn puzzle(&self) -> &Puzzle { self.carriage_universe.puzzle() }
 }

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
 
-use crate::{allotment::{core::arbitrator::Arbitrator, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
 
 use super::{padder::{Padder, PadderInfo}};
 
@@ -10,8 +10,8 @@ use super::{padder::{Padder, PadderInfo}};
 pub struct Overlay(Padder<UnpaddedOverlay>);
 
 impl Overlay {
-    pub fn new(puzzle: &PuzzleBuilder, metadata: &Padding) -> Overlay {
-        Overlay(Padder::new(puzzle,metadata,|info| UnpaddedOverlay::new(puzzle,info)))
+    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Overlay {
+        Overlay(Padder::new(puzzle,padding,metadata,|info| UnpaddedOverlay::new(puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {

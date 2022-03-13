@@ -1,3 +1,4 @@
+use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::{AllotmentMetadataReport};
 use crate::core::channel::ChannelIntegration;
 use crate::{DataMessage};
@@ -62,7 +63,7 @@ pub trait PeregrineIntegration {
     fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage>;
     fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
-    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport);
+    fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport2);
     fn set_playing_field(&mut self, playing_field: PlayingField);
     fn channel(&self) -> Box<dyn ChannelIntegration>;
 }
