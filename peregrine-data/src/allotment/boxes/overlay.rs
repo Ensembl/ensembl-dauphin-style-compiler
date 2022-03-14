@@ -2,16 +2,16 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}};
+use super::{padder::{Padder, PadderInfo}, boxtraits::Coordinated};
 
 #[derive(Clone)]
 pub struct Overlay(Padder<UnpaddedOverlay>);
 
 impl Overlay {
-    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Overlay {
-        Overlay(Padder::new(puzzle,padding,metadata,|info| UnpaddedOverlay::new(puzzle,info)))
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Overlay {
+        Overlay(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedOverlay::new(puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {
@@ -47,6 +47,10 @@ impl UnpaddedOverlay {
         child.set_indent(&self.info.indent);
         lock!(self.kid_heights).push(child.height());
     }
+}
+
+impl Coordinated for Overlay {
+    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
 }
 
 impl Stackable for Overlay {

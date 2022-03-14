@@ -3,9 +3,10 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
+use crate::allotment::boxes::root::PlayingField2;
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2, Shape};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2, Shape, PlayingField};
 use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -105,6 +106,18 @@ impl Carriage {
         }
     }
 
+    pub fn playing_field(&self) -> Result<PlayingField2,DataMessage> {
+        match &*lock!(self.state) {
+            CarriageState::Pending(s) | CarriageState::Loaded(s) => {
+                let mut solution = PuzzleSolution::new(s.puzzle());
+                // TODO the inter-carriage stuff
+                solution.solve();
+                Ok(s.playing_field(&solution))
+            },
+            _ => Ok(PlayingField2::empty())
+        }        
+    }
+
     pub fn metadata(&self) -> Result<AllotmentMetadataReport2,DataMessage> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
@@ -115,7 +128,6 @@ impl Carriage {
             },
             _ => Ok(AllotmentMetadataReport2::empty())
         }
-
     }
 
     pub fn shapes(&self) -> Result<Vec<Shape<()>>,DataMessage> {

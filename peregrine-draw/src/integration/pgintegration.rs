@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
-    Viewport, AllotmentMetadataReport2
+    Viewport, AllotmentMetadataReport2, PlayingField2
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -78,7 +78,7 @@ impl PeregrineIntegration for PgIntegration {
         }
     }
 
-    fn set_playing_field(&mut self, playing_field: PlayingField) {
+    fn set_playing_field(&mut self, playing_field: PlayingField2) {
         self.dom.set_useful_height(playing_field.height() as u32);
         lock!(self.stage).notify_playingfield(&playing_field);
     }

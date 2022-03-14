@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
+
+use super::boxtraits::Coordinated;
 
 fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
@@ -25,6 +27,7 @@ fn indent(puzzle: &PuzzleBuilder, self_indent: f64, inherited_indent: &PuzzlePie
 
 pub struct Padder<T> {
     child: Box<T>,
+    coord_system: CoordinateSystem,
     /* incoming variables */
     top: PuzzlePiece<f64>,
     inherited_indent: PuzzlePiece<f64>,
@@ -45,6 +48,7 @@ impl<T: Clone> Clone for Padder<T> {
     fn clone(&self) -> Self {
         Self {
             child: self.child.clone(),
+            coord_system: self.coord_system.clone(),
             top: self.top.clone(),
             inherited_indent: self.inherited_indent.clone(),
             self_indent: self.self_indent.clone(),
@@ -64,7 +68,7 @@ fn add_report(metadata: &mut AllotmentMetadata2Builder, key: &str, top: &PuzzleV
 }
 
 impl<T> Padder<T> {
-    pub fn new<F>(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
+    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
         let top = puzzle.new_piece(None);
         let padding_top = padding.padding_top;
         let padding_bottom = padding.padding_bottom;
@@ -84,6 +88,7 @@ impl<T> Padder<T> {
         let child = ctor(&info);
         Padder {
             child: Box::new(child),
+            coord_system: coord_system.clone(),
             top, inherited_indent, self_indent, height,
             info
         }
@@ -92,6 +97,10 @@ impl<T> Padder<T> {
     pub fn draw_top(&self) -> &PuzzleValueHolder<f64> { &self.info.draw_top }
     pub fn child(&self) -> &T { &self.child }
     pub fn child_mut(&mut self) -> &mut T { &mut self.child }
+}
+
+impl<T> Coordinated for Padder<T> {
+    fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
 }
 
 impl<T> Stackable for Padder<T> {

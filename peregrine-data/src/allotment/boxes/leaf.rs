@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueH
 
 use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
-use super::{boxtraits::{Stackable, Ranged, Transformable}};
+use super::{boxtraits::{Stackable, Ranged, Transformable, Coordinated }};
 
 fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, base_range: &PuzzlePiece<RangeUsed<f64>>, pixel_range: &PuzzlePiece<RangeUsed<f64>>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
     let base_range = base_range.clone();
@@ -117,6 +117,10 @@ impl Transformable for FloatingLeaf {
     fn make(&self, solution: &PuzzleSolution) -> Arc<dyn Transformer> {
         Arc::new(AnchoredLeaf::new(solution,self))
     }
+}
+
+impl Coordinated for FloatingLeaf {
+    fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.top_style.coord_system }
 }
 
 #[cfg_attr(test,derive(Debug))]

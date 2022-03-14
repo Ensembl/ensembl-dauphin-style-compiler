@@ -1,10 +1,10 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 
-use crate::AllotmentMetadataReport;
+use crate::allotment::boxes::root::PlayingField2;
+use crate::{AllotmentMetadataReport, PlayingField};
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::api::{ CarriageSpeed, PeregrineCore };
-use crate::api::PlayingField;
 use crate::train::Carriage;
 use crate::train::train::Train;
 use crate::core::Viewport;
@@ -16,7 +16,7 @@ enum RailwayEvent {
     DrawSetCarriages(Train,Vec<Carriage>),
     DrawStartTransition(Train,u64,CarriageSpeed),
     DrawNotifyViewport(Viewport,bool),
-    DrawNotifyPlayingField(PlayingField),
+    DrawNotifyPlayingField(PlayingField2),
     DrawCreateTrain(Train),
     DrawDropTrain(Train),
     DrawDropCarriage(Carriage)
@@ -56,7 +56,7 @@ impl RailwayEvents {
         self.0.lock().unwrap().push(RailwayEvent::DrawNotifyViewport(viewport.clone(),future));
     }
 
-    pub(super) fn draw_notify_playingfield(&mut self, playing_field: PlayingField) {
+    pub(super) fn draw_notify_playingfield(&mut self, playing_field: PlayingField2) {
         self.0.lock().unwrap().push(RailwayEvent::DrawNotifyPlayingField(playing_field));
     }
 

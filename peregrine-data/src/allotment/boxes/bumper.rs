@@ -3,21 +3,25 @@ use std::sync::{Arc, Mutex};
 use js_sys::Intl::Collator;
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleDependency, PuzzleBuilder}, lock};
 
-use crate::allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}};
+use crate::{allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::Ranged};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Ranged, Coordinated}};
 
 #[derive(Clone)]
 pub struct Bumper(Padder<UnpaddedBumper>);
 
 impl Bumper {
-    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Bumper {
-        Bumper(Padder::new(puzzle,padding,metadata,|info| UnpaddedBumper::new(puzzle,info)))        
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Bumper {
+        Bumper(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedBumper::new(puzzle,info)))        
     }
 
     pub fn add_child<F>(&mut self, child: &F) where F: Stackable + Ranged {
         self.0.child_mut().add_child(child)
     }
+}
+
+impl Coordinated for Bumper {
+    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
 }
 
 impl Stackable for Bumper {

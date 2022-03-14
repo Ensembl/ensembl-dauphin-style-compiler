@@ -21,13 +21,13 @@ impl<'a> StyleBuilder<'a> {
         let style = styles.get_container(name);
         match style.allot_type {
             ContainerAllotmentType::Stack => {
-                ContainerHolder::Stack(Stacker::new(&self.puzzle,&style.padding,self.metadata))
+                ContainerHolder::Stack(Stacker::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             },
             ContainerAllotmentType::Overlay => {
-                ContainerHolder::Overlay(Overlay::new(&self.puzzle,&style.padding,self.metadata))
+                ContainerHolder::Overlay(Overlay::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             },
             ContainerAllotmentType::Bumper => {
-                ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.padding,self.metadata))
+                ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             }
         }
     }
@@ -143,9 +143,9 @@ mod test {
 
     #[test]
     fn allotment_smoke() {
-        let builder = PuzzleBuilder::new();
+        let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(None));
-        let root = ContainerHolder::Root(Root::new());
+        let root = ContainerHolder::Root(Root::new(&mut builder));
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
@@ -176,9 +176,9 @@ mod test {
 
     #[test]
     fn allotment_overlay() {
-        let builder = PuzzleBuilder::new();
+        let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(None));
-        let root = ContainerHolder::Root(Root::new());
+        let root = ContainerHolder::Root(Root::new(&mut builder));
         let mut tree = StyleTreeBuilder::new();
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
@@ -209,9 +209,9 @@ mod test {
 
     #[test]
     fn allotment_bumper() {
-        let builder = PuzzleBuilder::new();
+        let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(None));
-        let root = ContainerHolder::Root(Root::new());
+        let root = ContainerHolder::Root(Root::new(&mut builder));
         let ranges = [
             RangeUsed::Part(0.,3.),
             RangeUsed::Part(2.,5.),

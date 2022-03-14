@@ -2,16 +2,16 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece}, lock};
 
-use crate::allotment::{style::style::Padding, boxes::boxtraits::Stackable, core::allotmentmetadata2::AllotmentMetadata2Builder};
+use crate::{allotment::{style::style::Padding, boxes::boxtraits::Stackable, core::allotmentmetadata2::AllotmentMetadata2Builder}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}};
+use super::{padder::{Padder, PadderInfo}, boxtraits::Coordinated};
 
 #[derive(Clone)]
 pub struct Stacker(Padder<UnpaddedStacker>);
 
 impl Stacker {
-    pub fn new(puzzle: &PuzzleBuilder, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Stacker {
-        Stacker(Padder::new(puzzle,padding,metadata,|info| UnpaddedStacker::new(puzzle,info)))
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Stacker {
+        Stacker(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedStacker::new(puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {
@@ -67,4 +67,8 @@ impl Stackable for Stacker {
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
     fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
+}
+
+impl Coordinated for Stacker {
+    fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
 }

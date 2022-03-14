@@ -5,8 +5,7 @@ use crate::allotment::lineargroup::lineargroup::LinearGroup;
 use crate::allotment::tree::allotmentbox::{AllotmentBoxBuilder, AllotmentBox};
 use crate::allotment::tree::leafboxlinearentry::BoxAllotmentLinearGroupHelper;
 use crate::allotment::tree::maintrack::MainTrackLinearHelper;
-use crate::api::PlayingField;
-use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety, ShapeRequest, ShapeRequestGroup};
+use crate::{AllotmentMetadata, AllotmentMetadataReport, AllotmentMetadataStore, AllotmentRequest, CoordinateSystem, CarriageExtent, CoordinateSystemVariety, ShapeRequest, ShapeRequestGroup, PlayingField};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle, PuzzleBuilder};
 
@@ -135,8 +134,8 @@ impl CarriageUniverseData {
         window_tracks.set_root(&mut solution,0.,left as f64);
 
         /* update playing fields */
-        self.playingfield = PlayingField::new_height((top_offset.total_height(&solution)+bottom_offset.total_height(&solution)) as i64);
-        self.playingfield.union(&PlayingField::new_squeeze(left_offset.total_height(&solution) as i64,right_offset.total_height(&solution) as i64));
+        self.playingfield = PlayingField::new_height((top_offset.total_height(&solution)+bottom_offset.total_height(&solution)));
+        self.playingfield.union(&PlayingField::new_squeeze(left_offset.total_height(&solution),right_offset.total_height(&solution)));
 
         solution
     }

@@ -31,6 +31,7 @@ mod allotment {
         pub(crate) mod rangeused;
         pub(crate) mod carriageuniverse;
         pub(crate) mod carriageuniverse2;
+        pub mod playingfield;
         pub(crate) mod trainuniverse;
     }
 
@@ -69,7 +70,7 @@ mod api {
     mod queue;
 
     pub use agentstore::AgentStore;
-    pub use api::{ PeregrineIntegration, CarriageSpeed, PlayingField };
+    pub use api::{ PeregrineIntegration, CarriageSpeed };
     pub use self::pgcore::{ PeregrineCore, MessageSender, PeregrineCoreBase };
     pub use queue::{ ApiMessage, PeregrineApiQueue };
 }
@@ -242,7 +243,7 @@ mod util {
     pub use self::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 }
 
-pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore, PlayingField };
+pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
 pub use self::index::{ StickStore, AuthorityStore };
@@ -257,6 +258,8 @@ pub use self::shape::{
     CarriageShapeListBuilder2, CarriageShapeList2
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
+pub use self::allotment::core::playingfield::PlayingField;
+pub use self::allotment::boxes::root::PlayingField2;
 pub use self::allotment::core::allotmentrequest::AllotmentRequest;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy,

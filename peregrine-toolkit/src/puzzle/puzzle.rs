@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, borrow::Borrow};
+use std::{sync::{Arc, Mutex}, borrow::Borrow, mem};
 use crate::lock;
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
@@ -26,6 +26,7 @@ impl PuzzleDependency {
 
 #[derive(Clone)] // XXX not Clone
 pub struct PuzzleBuilder {
+    readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzleBuilder) + 'static>>>>,
     graph: Arc<Mutex<PuzzleGraph>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>
 }
@@ -34,7 +35,8 @@ impl PuzzleBuilder {
     pub fn new() -> PuzzleBuilder {
         PuzzleBuilder {
             graph: Arc::new(Mutex::new(PuzzleGraph::new())),
-            pieces: Arc::new(Mutex::new(vec![]))
+            pieces: Arc::new(Mutex::new(vec![])),
+            readies: Arc::new(Mutex::new(vec![]))
         }
     }
 
@@ -45,6 +47,17 @@ impl PuzzleBuilder {
         let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),default);
         pieces.push(out.erased());
         out
+    }
+
+    pub fn add_ready<F>(&self, cb: F) where F: FnOnce(&mut PuzzleBuilder) + 'static {
+        lock!(self.readies).push(Box::new(cb));
+    }
+
+    fn run_readies(&mut self) {
+        let readies = mem::replace(&mut *lock!(self.readies),vec![]);
+        for ready in readies {
+            ready(self);
+        }
     }
 }
 
@@ -58,7 +71,8 @@ impl Puzzle {
         }
     }
 
-    pub fn new(builder: PuzzleBuilder) -> Puzzle {
+    pub fn new(mut builder: PuzzleBuilder) -> Puzzle {
+        builder.run_readies();
         let out = Puzzle(Arc::new(builder));
         out.puzzle_ready();
         out

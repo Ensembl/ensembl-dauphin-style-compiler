@@ -2,13 +2,13 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField, DataMessage, allotment::core::allotmentmetadata2::AllotmentMetadataReport2};
+use crate::{AllotmentMetadataReport, Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, PlayingField, DataMessage, allotment::{core::allotmentmetadata2::AllotmentMetadataReport2, boxes::root::PlayingField2}};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,
-    playing_field: MutexOnChange<PlayingField>,
+    playing_field: MutexOnChange<PlayingField2>,
     metadata: MutexOnChange<AllotmentMetadataReport2>,
     visual_blocker: Blocker,
     #[allow(unused)]
@@ -27,10 +27,9 @@ impl RailwayDependents {
     }
 
     fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) -> Result<(),DataMessage> {
-        let mut playing_field = PlayingField::empty();
+        let mut playing_field = PlayingField2::empty();
         for carriage in carriages {
-            todo!();
-            //XXX playing_field.union(&carriage.shapes()?.carriage_universe().playingfield());
+            playing_field = playing_field.union(&carriage.playing_field()?);
         }
         self.playing_field.update(playing_field, |playing_field| {
             events.draw_notify_playingfield(playing_field.clone());

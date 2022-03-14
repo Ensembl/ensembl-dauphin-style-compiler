@@ -161,6 +161,7 @@ impl LeafAllotmentStyle {
 #[derive(Clone)]
 pub struct ContainerAllotmentStyle {
     pub allot_type: ContainerAllotmentType,
+    pub coord_system: CoordinateSystem,
     pub padding: Padding
 }
 
@@ -168,12 +169,13 @@ impl ContainerAllotmentStyle {
     pub(crate) fn empty() -> ContainerAllotmentStyle {
         ContainerAllotmentStyle {
             allot_type: ContainerAllotmentType::Stack,
+            coord_system: TopStyle::default().coord_system,
             padding: Padding::empty()
         }
     }
 
-    pub(crate) fn build(spec: &HashMap<String,String>) -> ContainerAllotmentStyle {
+    pub(crate) fn build(spec: &HashMap<String,String>,topstyle: &TopStyle) -> ContainerAllotmentStyle {
         let allot_type = ContainerAllotmentType::build(spec);
-        ContainerAllotmentStyle { allot_type, padding: Padding::build(spec) }
+        ContainerAllotmentStyle { allot_type, padding: Padding::build(spec), coord_system: topstyle.coord_system.clone() }
     }
 }

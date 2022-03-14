@@ -101,7 +101,7 @@ impl BuilderNode {
         } else { 
             Cow::Owned(TopStyle::build(&self.container))
         };
-        let container = ContainerAllotmentStyle::build(&self.container);
+        let container = ContainerAllotmentStyle::build(&self.container,&top_style);
         let leaf = LeafAllotmentStyle::build(&self.leaf,Some(&top_style));
         let mut node = StyleTreeNode::new(container,leaf,self.all);
         for (name,child) in &self.children {

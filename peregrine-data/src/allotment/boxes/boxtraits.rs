@@ -2,9 +2,13 @@ use std::sync::Arc;
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
 
-use crate::allotment::{core::rangeused::RangeUsed, transformers::transformers::Transformer};
+use crate::{allotment::{core::rangeused::RangeUsed, transformers::transformers::Transformer}, CoordinateSystem};
 
-pub trait Stackable {
+pub trait Coordinated {
+    fn coordinate_system(&self) -> &CoordinateSystem;
+}
+
+pub trait Stackable : Coordinated {
     fn set_top(&self, value: &PuzzleValueHolder<f64>);
     fn height(&self) -> PuzzleValueHolder<f64>;
     fn set_indent(&self, value: &PuzzleValueHolder<f64>);
