@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, borrow::Borrow, mem};
-use crate::lock;
+use crate::{lock, log_extra};
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
@@ -41,10 +41,19 @@ impl PuzzleBuilder {
     }
 
     // XXX should be mut
-    pub fn new_piece<T: 'static>(&self, default: Option<T>) -> PuzzlePiece<T> {
+    pub fn new_piece<T: 'static>(&self) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
-        let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),default);
+        let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),|| None);
+        pieces.push(out.erased());
+        out
+    }
+
+    // XXX should be mut
+    pub fn new_piece_default<T: Clone+'static>(&self, default: T) -> PuzzlePiece<T> {
+        let mut pieces = lock!(self.pieces);
+        let id = pieces.len();
+        let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),move || Some(default.clone()));
         pieces.push(out.erased());
         out
     }
@@ -111,13 +120,30 @@ impl PuzzleSolution {
     /* only pub(super) for testing */
     pub(super) fn all_solved(&self) -> bool { self.num_solved == self.mapping.len() }
 
+    #[cfg(debug_assertions)]
+    fn confess(&self) {
+        use crate::warn;
+
+        for piece in lock!(self.pieces).iter() {
+            if !piece.is_solved(self) {
+                warn!("unsolved: {}",piece.name());
+            }
+        }
+    }
+
     pub fn solve(&mut self) -> bool {
         let pieces = self.pieces.clone();
         for piece in lock!(pieces).iter_mut() {
-            piece.apply_defaults(self);
+            piece.apply_defaults(self,false);
         }
         let mut solver = PuzzleSolver::new(self,lock!(self.graph).borrow());
         solver.run(self);
+        for piece in lock!(pieces).iter_mut() {
+            piece.apply_defaults(self,true);
+        }
+        log_extra!("{} pieces, {} solved",self.mapping.len(),self.num_solved);
+        #[cfg(debug_assertions)]
+        self.confess();
         self.all_solved()
     }
 
@@ -164,9 +190,9 @@ mod test {
     fn puzzle_smoke() {
         for order in 0..6 {
             let mut builder = PuzzleBuilder::new();
-            let q1 = builder.new_piece(None);
-            let q2 = builder.new_piece(None);
-            let q3 = builder.new_piece(None);
+            let q1 = builder.new_piece();
+            let q2 = builder.new_piece();
+            let q3 = builder.new_piece();
             let (p1,p2,p3) = match order {
                 0 => (q1,q2,q3),
                 1 => (q1,q3,q2),
@@ -203,8 +229,8 @@ mod test {
     #[test]
     fn puzzle_drop() {
         let mut builder = PuzzleBuilder::new();
-        let p1 = builder.new_piece(None);
-        let p2 = builder.new_piece(None);
+        let p1 = builder.new_piece();
+        let p2 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);      
         let mut s2 = PuzzleSolution::new(&puzzle);      
@@ -235,9 +261,9 @@ mod test {
     #[test]
     fn puzzle_default() {
         let mut builder = PuzzleBuilder::new();
-        let p1 = builder.new_piece(Some(7));
-        let p2 = builder.new_piece(None);
-        let p3 = builder.new_piece(None);
+        let p1 = builder.new_piece_default(7);
+        let p2 = builder.new_piece();
+        let p3 = builder.new_piece();
         let p1b = p1.clone();
         p2.add_solver(&[p1.dependency()], move |solution| {
             Some(p1b.get_clone(solution) + 2)

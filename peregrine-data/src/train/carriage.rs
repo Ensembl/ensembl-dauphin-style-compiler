@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
@@ -68,6 +68,12 @@ impl CarriageSerialSource {
     }
 }
 
+fn try_solve(solution: &mut PuzzleSolution) {
+    if !solution.solve() {
+        log!("incomplete solution");
+    }
+}
+
 #[derive(Clone)]
 pub struct Carriage {
     try_lifecycle: Needed,
@@ -111,7 +117,7 @@ impl Carriage {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());
                 // TODO the inter-carriage stuff
-                solution.solve();
+                try_solve(&mut solution);
                 Ok(s.playing_field(&solution))
             },
             _ => Ok(PlayingField2::empty())
@@ -123,7 +129,7 @@ impl Carriage {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());
                 // TODO the inter-carriage stuff
-                solution.solve();
+                try_solve(&mut solution);
                 Ok(s.get_metadata(&solution))
             },
             _ => Ok(AllotmentMetadataReport2::empty())
@@ -135,7 +141,7 @@ impl Carriage {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());
                 // TODO the inter-carriage stuff
-                solution.solve();
+                try_solve(&mut solution);
                 Ok(s.get(&solution)) 
             },
             _ => Ok(vec![])

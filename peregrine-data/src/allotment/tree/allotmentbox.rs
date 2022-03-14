@@ -25,7 +25,7 @@ impl AllotmentBoxBuilder {
             children: vec![],
             self_indent: self_indent.cloned(),
             current_bottom: PuzzleValueHolder::new(ConstantPuzzlePiece::new(natural_height)),
-            final_bottom: arbitrator.puzzle().new_piece(Some(0.))
+            final_bottom: arbitrator.puzzle().new_piece_default(0.)
         }
     }
 
@@ -38,7 +38,7 @@ impl AllotmentBoxBuilder {
             children: vec![],
             self_indent: self_indent.clone(),
             current_bottom: PuzzleValueHolder::new(ConstantPuzzlePiece::new(natural_height)),
-            final_bottom: arbitrator.puzzle().new_piece(Some(0.))
+            final_bottom: arbitrator.puzzle().new_piece_default(0.)
         }
     }
 
@@ -82,7 +82,7 @@ impl AllotmentBoxBuilder {
     pub fn append(&mut self, child: AllotmentBox) {
         let old_bottom = self.current_bottom.clone();
         let padded_height = self.padded_height_piece().clone();
-        let bottom = self.puzzle.new_piece(None);
+        let bottom = self.puzzle.new_piece();
         bottom.add_solver(&[old_bottom.dependency(),padded_height.dependency()], move |solution| {
             Some(old_bottom.get_clone(solution) + padded_height.get_clone(solution))
         });
@@ -132,9 +132,9 @@ impl AllotmentBox {
     pub fn new(mut builder: AllotmentBoxBuilder) -> AllotmentBox {
         builder.finalise();
         AllotmentBox {
-            offset_from_container: builder.puzzle.new_piece(Some(0.)),
-            offset_from_root: builder.puzzle.new_piece(Some(0.)),
-            indent: builder.puzzle.new_piece(Some(0.)),
+            offset_from_container: builder.puzzle.new_piece_default(0.),
+            offset_from_root: builder.puzzle.new_piece_default(0.),
+            indent: builder.puzzle.new_piece_default(0.),
             allot_box: Arc::new(builder)
         }
     }
@@ -164,7 +164,7 @@ impl AllotmentBox {
     pub fn bottom_delayed(&self) -> PuzzleValueHolder<f64> {
         let offset_from_root = self.offset_from_root.clone();
         let padded_height = self.padded_height_piece();
-        let piece = self.allot_box.puzzle.new_piece(None);
+        let piece = self.allot_box.puzzle.new_piece();
         piece.add_solver(&[padded_height.dependency(),self.offset_from_root.dependency()], move |solution| {
             Some(offset_from_root.get_clone(solution) + padded_height.get_clone(solution))
         });
@@ -172,7 +172,7 @@ impl AllotmentBox {
     }
 
     fn padded_height_piece(&self) -> PuzzleValueHolder<f64> {
-        let piece = self.allot_box.puzzle.new_piece(Some(0.));
+        let piece = self.allot_box.puzzle.new_piece_default(0.);
         let bottom = self.allot_box.current_bottom.clone();
         let padding_top = self.allot_box.padding_top.clone();
         let padding_bottom = self.allot_box.padding_bottom.clone();

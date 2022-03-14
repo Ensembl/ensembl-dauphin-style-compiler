@@ -11,7 +11,9 @@ fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, bas
     let pixel_range = pixel_range.clone();
     let bp_px_converter = bp_px_converter.clone();
     let coord_system = coord_system.clone();
-    let piece = puzzle.new_piece(Some(RangeUsed::None));
+    let mut piece = puzzle.new_piece_default(RangeUsed::None);
+    #[cfg(debug_assertions)]
+    piece.set_name("leaf/full_range_piece");
     piece.add_solver(&[base_range.dependency(),pixel_range.dependency(),bp_px_converter.dependency()],move |solution| {
         let base_range = base_range.get_clone(solution);
         let pixel_range = pixel_range.get_clone(solution);
@@ -41,7 +43,9 @@ pub struct FloatingLeaf {
 impl FloatingLeaf {
     pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
         let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
-        let base_range_piece = puzzle.new_piece(None);
+        let mut base_range_piece = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        base_range_piece.set_name("FLoatingLeaf/base_range_piece");
         let drawing_info = Arc::new(drawing_info.clone());
         let drawing_info2 = drawing_info.clone();
         base_range_piece.add_ready(|piece| {
@@ -49,21 +53,27 @@ impl FloatingLeaf {
                 Some(drawing_info2.base_range().clone())
             });
         });
-        let pixel_range_piece = puzzle.new_piece(None);
+        let pixel_range_piece = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        base_range_piece.set_name("FLoatingLeaf/pixel_range_piece");
         let drawing_info2 = drawing_info.clone();
         pixel_range_piece.add_ready(|piece| {
             piece.add_solver(&[], move |_solution| {
                 Some(drawing_info2.pixel_range().clone())
             });
         });
-        let max_y_piece = puzzle.new_piece(None);
+        let mut max_y_piece = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        max_y_piece.set_name("FLoatingLeaf/max_y_piece");
         let drawing_info2 = drawing_info.clone();
         max_y_piece.add_ready(|piece| {
             piece.add_solver(&[], move |_solution| {
                 Some(drawing_info2.max_y())
             });
         });
-        let top = puzzle.new_piece(if statics.dustbin { Some(0.) } else { None });
+        let mut top = if statics.dustbin { puzzle.new_piece_default(0.) } else { puzzle.new_piece() };
+        #[cfg(debug_assertions)]
+        top.set_name("FLoatingLeaf/top");
         let drawing_info2 = drawing_info.clone();
         let bottom = PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| {
             top + drawing_info2.max_y()
@@ -71,7 +81,9 @@ impl FloatingLeaf {
         let full_range_piece = full_range_piece(
             puzzle,
             &statics.top_style.coord_system,&base_range_piece,&pixel_range_piece,&converter);
-        let indent = puzzle.new_piece(Some(0.));
+        let mut indent = puzzle.new_piece_default(0.);
+        #[cfg(debug_assertions)]
+        indent.set_name("FLoatingLeaf/indent");
         FloatingLeaf {
             statics: Arc::new(statics.clone()),
             drawing_info,

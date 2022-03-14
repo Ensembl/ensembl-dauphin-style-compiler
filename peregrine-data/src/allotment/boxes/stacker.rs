@@ -44,7 +44,9 @@ impl UnpaddedStacker {
     }
 
     fn add_child(&mut self, child: &dyn Stackable) {
-        let piece = self.puzzle.new_piece(None);
+        let mut piece = self.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        piece.set_name("stacker/add_child");
         let top = self.top.clone();
         let current_height = lock!(self.current_height).clone();
         piece.add_solver(&[current_height.dependency(),top.dependency()], move |solution| {
@@ -54,7 +56,9 @@ impl UnpaddedStacker {
         child.set_indent(&PuzzleValueHolder::new(self.padder_info.indent.clone()));
         let child_height = child.height();
         let old_current_height = lock!(self.current_height).clone();
-        let new_current_height = self.puzzle.new_piece(None);
+        let mut new_current_height = self.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        new_current_height.set_name("stacker/new_current_height");
         new_current_height.add_solver(&[child_height.dependency(),old_current_height.dependency()], move |solution| {
             Some(old_current_height.get_clone(solution) + child_height.get_clone(solution))
         });

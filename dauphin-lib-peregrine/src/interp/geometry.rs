@@ -6,6 +6,7 @@ use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::util::{get_instance, get_peregrine, vec_to_eoe};
 
@@ -24,6 +25,7 @@ simple_interp_command!(BarredInterpCommand,BarredDeserializer,37,6,(0,1,2,3,4,5)
 simple_interp_command!(BpRangeInterpCommand,BpRangeDeserializer,45,1,(0));
 simple_interp_command!(SpotColourInterpCommand,SpotColourDeserializer,46,2,(0,1));
 simple_interp_command!(PpcInterpCommand,PpcDeserializer,49,1,(0));
+simple_interp_command!(StyleInterpCommand,StyleDeserializer,50,3,(0,1,2));
 
 impl InterpCommand for BpRangeInterpCommand {
     fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
@@ -359,5 +361,22 @@ impl InterpCommand for PlotterInterpCommand {
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(vec![id as usize]));
         Ok(CommandResult::SyncResult())
+    }
+}
+
+impl InterpCommand for StyleInterpCommand {
+    fn execute(&self, context: &mut InterpContext) -> anyhow::Result<CommandResult> {
+        let registers = context.registers_mut();
+        let spec = registers.get_strings(&self.0)?[0].clone();        
+        let keys = registers.get_strings(&self.1)?;
+        let values = registers.get_strings(&self.2)?;
+        drop(registers);
+        let mut props = HashMap::new();
+        for (key,value) in keys.iter().zip(values.iter()) {
+            props.insert(key.to_string(),value.to_string());
+        }
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        lock!(zoo).as_mut().unwrap().add_style(&spec,props);
+        Ok(CommandResult::SyncResult())       
     }
 }

@@ -10,8 +10,9 @@ markings := ruler_markings(interval,min,max);
 
 allotment_top := use_allotment("window-top/ruler/main/content");
 
-style_allotment("window-top/ruler/main/",["system"][],["tracking"][]);
-style_allotment("window-top/ruler/main/content",["depth","priority"][],["55","0"][]);
+style("window-top/",["system"][],["tracking"][]);
+style("window-top/ruler/main/",["system"][],["tracking"][]);
+style("window-top/ruler/main/content",["depth","priority"][],["55","0"][]);
 
 marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);
 

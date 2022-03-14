@@ -58,7 +58,9 @@ impl UnpaddedBumper {
     fn make_token<F>(&mut self, child: &F) -> PuzzleValueHolder<CollisionToken> where F: Stackable + Ranged {
         let height = child.height();
         let full_range = child.full_range();     
-        let piece = self.puzzle.new_piece(None);
+        let mut piece = self.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        piece.set_name("bumper/make_token");
         let algorithm = self.algorithm.clone();
         piece.add_solver(&[height.dependency(),full_range.dependency()], move |solution| {
             Some(algorithm.add_entry(&full_range.get_clone(solution),height.get_clone(solution)))
@@ -67,7 +69,9 @@ impl UnpaddedBumper {
     }
 
     fn set_child_top<F>(&mut self, child: &F, token: &PuzzleValueHolder<CollisionToken>) where F: Stackable {
-        let child_top = self.puzzle.new_piece(None);
+        let mut child_top = self.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        child_top.set_name("bumper/child_top");
         let token = token.clone();
         let top = self.info.draw_top.clone();
         /* dependency on child_height ensures bumping is run so that token is not None */

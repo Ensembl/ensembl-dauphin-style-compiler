@@ -110,9 +110,9 @@ mod test {
 
     fn setup(p2_solver: bool) -> Setup {
         let mut builder = PuzzleBuilder::new();
-        let p3 = builder.new_piece(None);
-        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
-        let p2 = builder.new_piece(None);
+        let p3 = builder.new_piece();
+        let p1 : PuzzlePiece<i32> = builder.new_piece();
+        let p2 = builder.new_piece();
         if p2_solver {
             let p1b = p1.clone();
             p2.add_solver(&[p1.dependency()], move |solution| {
@@ -207,9 +207,9 @@ mod test {
     #[test]
     fn solver_unsolvable() {
         let mut builder = PuzzleBuilder::new();
-        let p3 = builder.new_piece(None);
-        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
-        let p2 = builder.new_piece(None);
+        let p3 = builder.new_piece();
+        let p1 : PuzzlePiece<i32> = builder.new_piece();
+        let p2 = builder.new_piece();
         p2.add_solver(&[p1.dependency(),p3.dependency()], move |_| Some(0));
         p3.add_solver(&[p1.dependency(),p2.dependency()], move |_| Some(0));
         let puzzle = Puzzle::new(builder);
@@ -221,9 +221,9 @@ mod test {
     #[test]
     fn solver_solvable() {
         let mut builder = PuzzleBuilder::new();
-        let p3 = builder.new_piece(None);
-        let p1 : PuzzlePiece<i32> = builder.new_piece(None);
-        let p2 = builder.new_piece(None);
+        let p3 = builder.new_piece();
+        let p1 : PuzzlePiece<i32> = builder.new_piece();
+        let p2 = builder.new_piece();
         p2.add_solver(&[p1.dependency(),p3.dependency()], move |_| Some(0));
         p3.add_solver(&[p1.dependency()], move |_| Some(0));
         let puzzle = Puzzle::new(builder);

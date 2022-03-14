@@ -62,9 +62,9 @@ mod test {
     #[test]
     fn derived() {
         let mut builder = PuzzleBuilder::new();
-        let p1 = builder.new_piece(None);
+        let p1 = builder.new_piece();
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = builder.new_piece(None);
+        let p3 = builder.new_piece();
         let p2b = p2.clone();
         p3.add_solver(&[p2.dependency()], move |solution| {
             Some(p2b.get_clone(solution) + 2)
@@ -83,7 +83,7 @@ mod test {
         let mut builder = PuzzleBuilder::new();
         let p1 = ConstantPuzzlePiece::new(3);
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
-        let p3 = builder.new_piece(None);
+        let p3 = builder.new_piece();
         let p2b = p2.clone();
         p3.add_solver(&[p2.dependency()], move |solution| {
             Some(p2b.get_clone(solution) + 2)

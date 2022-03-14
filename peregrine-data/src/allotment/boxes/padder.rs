@@ -11,7 +11,9 @@ fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> 
 }
 
 fn height(puzzle: &PuzzleBuilder, draw_top: &PuzzleValueHolder<f64>, child_height: &PuzzlePiece<f64>, min_height: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
-    let piece = puzzle.new_piece(None);
+    let mut piece = puzzle.new_piece();
+    #[cfg(debug_assertions)]
+    piece.set_name("padder/height");
     let draw_top = draw_top.clone();
     let child_height = child_height.clone();
     piece.add_solver(&[draw_top.dependency(),child_height.dependency()], move |solution| {
@@ -69,14 +71,20 @@ fn add_report(metadata: &mut AllotmentMetadata2Builder, key: &str, top: &PuzzleV
 
 impl<T> Padder<T> {
     pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
-        let top = puzzle.new_piece(None);
+        let mut top = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        top.set_name("padder/top");
         let padding_top = padding.padding_top;
         let padding_bottom = padding.padding_bottom;
         let min_height = padding.min_height;
-        let inherited_indent = puzzle.new_piece(Some(0.));
+        let mut inherited_indent = puzzle.new_piece_default(0.);
+        #[cfg(debug_assertions)]
+        inherited_indent.set_name("padder/inherited-indent");
         let self_indent = padding.indent;
         let draw_top = draw_top(&top,padding_top);
-        let child_height = puzzle.new_piece(None);
+        let mut child_height = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        child_height.set_name("padder/child-height");
         let height = height(&puzzle,&draw_top,&child_height,min_height,padding_bottom);
         let info = PadderInfo {
             draw_top, child_height,

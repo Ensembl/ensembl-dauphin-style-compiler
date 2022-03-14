@@ -16,7 +16,9 @@ pub trait Stackable : Coordinated {
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64>;
 
     fn bottom_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
-        let piece = puzzle.new_piece(None);
+        let mut piece = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        piece.set_name("bottom_anchor");
         let top = self.top_anchor(puzzle);
         let height = self.height();
         piece.add_solver(&[top.dependency(),height.dependency()],move |solution| {

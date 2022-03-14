@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, mem, cmp::max};
 
-use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, PuzzleValue, PuzzleSolution}, lock};
+use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, PuzzleValue, PuzzleSolution}, lock, log};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
@@ -13,9 +13,12 @@ struct MaxValue {
 
 impl MaxValue {
     fn new(builder: &PuzzleBuilder, default: f64) -> MaxValue {
+        let mut output = builder.new_piece_default(default);
+        #[cfg(debug_assertions)]
+        output.set_name("max value");
         MaxValue { 
             inputs: vec![],
-            output: builder.new_piece(Some(default))
+            output
         }
     }
 

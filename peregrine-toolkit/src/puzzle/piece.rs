@@ -7,7 +7,14 @@ use super::{puzzle::{PuzzleSolution, PuzzleDependency}, graph::PuzzleGraph, answ
 pub(super) trait ErasedPiece {
     fn puzzle_ready(&mut self);
     fn finish(&self, index: &AnswerIndex);
-    fn apply_defaults(&mut self, solution: &mut PuzzleSolution);
+    fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool);
+    fn is_solved(&self, solution: &PuzzleSolution) -> bool;
+
+    #[cfg(debug_assertions)]
+    fn name(&self) -> String;
+
+    #[cfg(debug_assertions)]
+    fn set_name(&mut self, name: &str);
 }
 
 pub trait PuzzleValue<T: 'static> {
@@ -45,12 +52,16 @@ impl<T: 'static> Clone for PuzzleValueHolder<T> {
     fn clone(&self) -> Self { Self(self.0.clone()) }
 }
 
-pub struct PuzzlePiece<T> {
+pub struct PuzzlePiece<T> {    
     graph: Arc<Mutex<PuzzleGraph>>,
     dependency: PuzzleDependency,
     answers: Answers<T>,
-    default: Arc<Mutex<Option<T>>>,
-    readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>) + 'static>>>>
+    pre_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
+    post_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
+    readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>) + 'static>>>>,
+
+    #[cfg(debug_assertions)]
+    name: Arc<Mutex<String>>
 }
 
 impl<T> Clone for PuzzlePiece<T> {
@@ -59,20 +70,26 @@ impl<T> Clone for PuzzlePiece<T> {
             graph: self.graph.clone(),
             dependency: self.dependency.clone(),
             answers: self.answers.clone(),
-            default: self.default.clone(),
-            readies: self.readies.clone()
+            pre_default: self.pre_default.clone(),
+            post_default: self.post_default.clone(),
+            readies: self.readies.clone(),
+            #[cfg(debug_assertions)]
+            name: self.name.clone()
         }
     }
 }
 
 impl<T: 'static> PuzzlePiece<T> {
-    pub(super) fn new(graph: &Arc<Mutex<PuzzleGraph>>, dependency: PuzzleDependency, default: Option<T>) -> PuzzlePiece<T> {
+    pub(super) fn new<F>(graph: &Arc<Mutex<PuzzleGraph>>, dependency: PuzzleDependency, default: F) -> PuzzlePiece<T> where F: Fn() -> Option<T> + 'static {
         PuzzlePiece {
             graph: graph.clone(),
             dependency,
             answers: Answers::new(),
-            default: Arc::new(Mutex::new(default)),
-            readies: Arc::new(Mutex::new(vec![]))
+            pre_default: Arc::new(Mutex::new(Arc::new(default))),
+            post_default: Arc::new(Mutex::new(Arc::new(|| None))),
+            readies: Arc::new(Mutex::new(vec![])),
+            #[cfg(debug_assertions)]
+            name: Arc::new(Mutex::new("".to_string()))
         }
     }
 
@@ -91,7 +108,8 @@ impl<T: 'static> PuzzlePiece<T> {
     }
 
     pub fn add_solver<F>(&self, dependencies: &[PuzzleDependency], callback: F) where F: Fn(&mut PuzzleSolution) -> Option<T> + 'static {
-        *lock!(self.default) = None; // rely on solver
+        *lock!(self.post_default) = lock!(self.pre_default).clone();
+        *lock!(self.pre_default) = Arc::new(|| None); // rely on solver
         let self2 = self.clone();
         /* Do all this in nesting callback to avoid polymorphism infecting solver */
         let solver = move |solution: &mut PuzzleSolution| {
@@ -105,6 +123,12 @@ impl<T: 'static> PuzzlePiece<T> {
     pub fn add_ready<F>(&self, cb: F) where F: FnOnce(&mut PuzzlePiece<T>) + 'static {
         lock!(self.readies).push(Box::new(cb))
     }
+
+    #[cfg(debug_assertions)]
+    pub fn name(&self) -> String { self.erased().name().to_string() }
+
+    #[cfg(debug_assertions)]
+    pub fn set_name(&mut self, name: &str) { self.erased().set_name(name); }
 }
 
 impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
@@ -126,15 +150,27 @@ impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
         }
     }
 
+    fn is_solved(&self, solution: &PuzzleSolution) -> bool {
+        self.try_get(solution).is_some()
+    }
+
     fn finish(&self, index: &AnswerIndex) {
         self.answers.finish(index);
     }
 
-    fn apply_defaults(&mut self, solution: &mut PuzzleSolution) {
-        if let Some(default) = lock!(self.default).take() {
+    fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool) {
+        let ctor = if post { &self.post_default } else { &self.pre_default };
+        if let Some(default) = (lock!(ctor))() {
+            #[cfg(debug_assertions)]
             self.set_answer(solution,default);
         }
     }
+
+    #[cfg(debug_assertions)]
+    fn set_name(&mut self, name: &str) { *lock!(self.name) = name.to_string(); }
+
+    #[cfg(debug_assertions)]
+    fn name(&self) -> String { lock!(&self.name).to_string() }
 }
 
 #[cfg(test)]
@@ -148,7 +184,7 @@ mod text {
     #[test]
     fn piece_set() {
         let mut builder = PuzzleBuilder::new();
-        let p1 = builder.new_piece(None);
+        let p1 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         let mut s2 = PuzzleSolution::new(&puzzle);
@@ -173,7 +209,7 @@ mod text {
     #[test]
     fn piece_double_set() {
         let mut builder = PuzzleBuilder::new();
-        let p1 = builder.new_piece(None);
+        let p1 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
         p1.set_answer(&mut s1,1);
@@ -186,7 +222,7 @@ mod text {
     fn piece_ready() {
         let mut builder = PuzzleBuilder::new();
         let flag = Arc::new(Mutex::new(false));
-        let p1 : PuzzlePiece<()> = builder.new_piece(None);
+        let p1 : PuzzlePiece<()> = builder.new_piece();
         let flag2 = flag.clone();
         p1.add_ready(move |p| {
             *lock!(flag2) = true;
