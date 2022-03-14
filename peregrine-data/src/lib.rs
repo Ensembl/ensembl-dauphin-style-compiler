@@ -243,6 +243,7 @@ mod util {
     pub use self::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 }
 
+pub use self::allotment::style::pendingleaf::PendingLeaf;
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };

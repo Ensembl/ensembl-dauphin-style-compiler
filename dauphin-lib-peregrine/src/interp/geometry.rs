@@ -1,10 +1,12 @@
 use anyhow::anyhow as err;
+use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, CarriageShapeListBuilder, ShapeRequest, ZMenu, SpaceBase};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, CarriageShapeListBuilder, ShapeRequest, ZMenu, SpaceBase, CarriageShapeListBuilder2};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
 use std::cmp::max;
+use std::sync::{Arc, Mutex};
 use crate::util::{get_instance, get_peregrine, vec_to_eoe};
 
 simple_interp_command!(ZMenuInterpCommand,ZMenuDeserializer,14,2,(0,1));
@@ -222,24 +224,19 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let registers = context.registers_mut();
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
-        let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
-        let carriage_universe = zoo.lock().carriage_universe().clone();
-        let requests = name.drain(..).map(|name| {
-            carriage_universe.make_request(&name).ok_or_else(||
-                DataMessage::NoSuchAllotment(name)
-            )
-        }).collect::<Result<Vec<_>,DataMessage>>()?;
-        drop(carriage_universe);
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let mut shapes_lock = lock!(zoo);
+        let shapes = shapes_lock.as_mut().unwrap();
+        let requests = name.drain(..).map(|name| shapes.use_allotment(&name).clone()).collect::<Vec<_>>();
+        drop(shapes);
+        drop(shapes_lock);
+        drop(zoo);
         let peregrine = get_peregrine(context)?;
         let geometry_builder = peregrine.geometry_builder(); 
         let ids = requests.iter().map(|request| {
-            geometry_builder.add_allotment(request.clone()) as usize           
+            geometry_builder.add_allotment(request.clone()) as usize
         }).collect();
         drop(peregrine);
-        let zoo = get_instance::<Builder<CarriageShapeListBuilder>>(context,"out")?;
-        for request in &requests {
-            zoo.lock().use_allotment(request);
-        }
         let registers = context.registers_mut();
         registers.write(&self.0,InterpValue::Indexes(ids));
         Ok(CommandResult::SyncResult())

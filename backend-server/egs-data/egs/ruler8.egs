@@ -1,0 +1,19 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+
+min_max := bp_range();
+min := [min_max][@==0];
+max := [min_max][@==1];
+
+interval := ruler_interval(max - min,12);
+markings := ruler_markings(interval,min,max);
+
+allotment_top := use_allotment("window-top/ruler/main/content");
+
+style_allotment("window-top/ruler/main/",["system"][],["tracking"][]);
+style_allotment("window-top/ruler/main/content",["depth","priority"][],["55","0"][]);
+
+marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);
+
+/* markers */
+rectangle(spacebase(markings,0,0),spacebase(markings,16,0),marker_patina,allotment_top);

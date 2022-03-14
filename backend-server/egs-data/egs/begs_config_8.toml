@@ -22,17 +22,17 @@ render=["gene","gene-overview"]
 # NAME_IN_FILE="NAME_FOR_CHANNEL"
 # ...
 
-[begs.stick]
-startup="sa-startup"
+[begs.stick8]
+startup8="sa-startup"
 lookup="sa-lookup"
 jump="sa-jump"
 
-[begs.boot]
+[begs.boot8]
 boot="boot"
 
-[begs.render4]
+[begs.render8]
 zoomed-seq="zoomed-seq"
-zoomed-transcript="zoomed-transcript"
+zoomed-transcript-6="zoomed-transcript"
 transcript="transcript"
 gene="gene"
 gene-overview="gene-overview"
