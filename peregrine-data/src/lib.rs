@@ -187,9 +187,8 @@ mod shape {
     pub use self::core::{ 
         Patina, Pen, Colour, DirectColour, Plotter, DrawnType
     };
-    pub use self::shape::{ Shape, ShapeDemerge, ShapeDetails, ShapeCommon };
+    pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::carriageshapelist::{ CarriageShapeListBuilder, FloatingCarriageShapeList, AnchoredCarriageShapeList };
     pub use self::carriageshapelist2::{ CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
@@ -244,6 +243,7 @@ mod util {
 }
 
 pub use self::allotment::style::pendingleaf::PendingLeaf;
+pub use self::allotment::style::style::LeafCommonStyle;
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
 pub use self::core::channel::{ Channel, PacketPriority, ChannelLocation, ChannelIntegration };
@@ -253,10 +253,10 @@ pub use self::run::{ PgCommander, PgCommanderTaskSpec, PgDauphin, Commander, Ins
 pub use self::request::core::packet::{ RequestPacket, ResponsePacket };
 pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
-    Patina, Colour, DirectColour, DrawnType, ShapeDetails, ShapeCommon,
-    ZMenu, Pen, Plotter, Shape, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, CarriageShapeListBuilder,
-    AnchoredCarriageShapeList, ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json, FloatingCarriageShapeList,
-    CarriageShapeListBuilder2, CarriageShapeList2
+    Patina, Colour, DirectColour, DrawnType, Shape,
+    ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
+    /*AnchoredCarriageShapeList,*/ ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
+    CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::playingfield::PlayingField;

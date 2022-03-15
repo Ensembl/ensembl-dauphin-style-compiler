@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use peregrine_data::reactive::Observable;
-use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder };
+use peregrine_data::{ Colour, DirectColour, DrawnType, Patina, Plotter, ZMenu, SpaceBaseArea, HollowEdge2, SpaceBase, EachOrEvery, EachOrEveryFilterBuilder, LeafCommonStyle };
 use super::directcolourdraw::DirectYielder;
 use super::spotcolourdraw::SpotColourYielder;
 use super::text::TextHandle;
@@ -103,11 +103,11 @@ impl DrawingShapePatina {
 }
 
 pub(crate) enum GLShape {
-    Text(SpaceBase<f64,()>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
-    Image(SpaceBase<f64,()>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
-    Heraldry(SpaceBaseArea<f64,()>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    Text(SpaceBase<f64,LeafCommonStyle>,Vec<TextHandle>,EachOrEvery<i8>,DrawGroup),
+    Image(SpaceBase<f64,LeafCommonStyle>,Vec<BitmapHandle>,EachOrEvery<i8>,DrawGroup),
+    Heraldry(SpaceBaseArea<f64,LeafCommonStyle>,EachOrEvery<HeraldryHandle>,EachOrEvery<i8>,DrawGroup,HeraldryCanvas,HeraldryScale,Option<HollowEdge2<f64>>,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
     Wiggle((f64,f64),Arc<Vec<Option<f64>>>,Plotter,i8),
-    SpaceBaseRect(SpaceBaseArea<f64,()>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
+    SpaceBaseRect(SpaceBaseArea<f64,LeafCommonStyle>,SimpleShapePatina,EachOrEvery<i8>,DrawGroup,Option<SpaceBaseArea<Observable<'static,f64>,()>>),
 }
 
 fn add_colour(addable: &mut dyn ProcessStanzaAddable, simple_shape_patina: &DrawingShapePatina, count: usize) -> Result<(),Message> {
@@ -137,7 +137,7 @@ fn dims_to_sizes(areas: &[CanvasTextureArea], factor: f64) -> (Vec<f64>,Vec<f64>
     (x_sizes,y_sizes)
 }
 
-fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,()>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, area: &SpaceBaseArea<f64,LeafCommonStyle>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
@@ -149,7 +149,7 @@ fn draw_area_from_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &D
     Ok(Box::new(Rectangles::new(rectangles)))
 }
 
-fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,()>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
+fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group: &DrawGroup, points: &SpaceBase<f64,LeafCommonStyle>, x_sizes: Vec<f64>, y_sizes:Vec<f64>, depth: &EachOrEvery<i8>, canvas: &FlatId, dims: &[CanvasTextureArea], free: bool, wobble: Option<SpaceBase<Observable<'static,f64>,()>>) -> Result<Box<dyn DynamicShape>,Message> {
     let mut geometry_yielder = draw_group.geometry_yielder();
     let mut patina_yielder = TextureYielder::new(canvas,free);
     let left = layer.left();
@@ -161,7 +161,7 @@ fn draw_points_from_canvas2(layer: &mut Layer, gl: &mut WebGlGlobal, draw_group:
     Ok(Box::new(Rectangles::new(rectangles)))
 }
 
-fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,()>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
+fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut DrawingTools, kind: &DrawGroup, area_a: &SpaceBaseArea<f64,LeafCommonStyle>, handles: &EachOrEvery<HeraldryHandle>, depth: &EachOrEvery<i8>, heraldry_canvas: &HeraldryCanvas, scale: &HeraldryScale, edge: &Option<HollowEdge2<f64>>, count: usize, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Option<Box<dyn DynamicShape>>,Message> {
     let bitmap_multiplier = gl.refs().flat_store.bitmap_multiplier() as f64;
     let heraldry = tools.heraldry();
     let mut dims = vec![];
@@ -181,7 +181,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
 
 pub(crate) enum ShapeToAdd {
     Dynamic(Box<dyn DynamicShape>),
-    ZMenu(SpaceBaseArea<f64,()>,ZMenu,Vec<(String,EachOrEvery<String>)>),
+    ZMenu(SpaceBaseArea<f64,LeafCommonStyle>,ZMenu,Vec<(String,EachOrEvery<String>)>),
     None
 }
 

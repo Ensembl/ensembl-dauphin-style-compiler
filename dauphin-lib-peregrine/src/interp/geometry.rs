@@ -1,7 +1,7 @@
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, CarriageShapeListBuilder, ShapeRequest, ZMenu, SpaceBase, CarriageShapeListBuilder2};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, CarriageShapeListBuilder2};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;

@@ -1,6 +1,6 @@
-use std::{collections::HashMap, borrow::Cow};
+use std::{collections::HashMap, borrow::Cow, path::Path};
 
-use crate::allotment::style::{allotmentname::{AllotmentName, AllotmentNamePart}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, TopStyle}};
+use crate::allotment::style::{allotmentname::{AllotmentName, AllotmentNamePart}, style::{LeafAllotmentStyle, ContainerAllotmentStyle}};
 
 use super::styletree::{StyleTree, StyleTreeNode};
 
@@ -95,17 +95,12 @@ impl BuilderNode {
         }
     }
 
-    fn build(&self, top_style: Option<&TopStyle>) -> StyleTreeNode {
-        let top_style = if let Some(x) = top_style {
-            Cow::Borrowed(x)
-        } else { 
-            Cow::Owned(TopStyle::build(&self.container))
-        };
-        let container = ContainerAllotmentStyle::build(&self.container,&top_style);
-        let leaf = LeafAllotmentStyle::build(&self.leaf,Some(&top_style));
+    fn build(&self) -> StyleTreeNode {
+        let container = ContainerAllotmentStyle::build(&self.container);
+        let leaf = LeafAllotmentStyle::build(&self.leaf);
         let mut node = StyleTreeNode::new(container,leaf,self.all);
         for (name,child) in &self.children {
-            node.add(name.as_ref(),child.build(Some(&top_style)));
+            node.add(name.as_ref(),child.build());
         }
         node
     }
@@ -145,13 +140,13 @@ impl StyleTreeBuilder {
         }
         self.all = vec![];
         self.root.add_any();
-        StyleTree::root(self.root.build(None)) 
+        StyleTree::root(self.root.build()) 
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::allotment::{style::allotmentname::AllotmentName, tree::container};
+    use crate::allotment::{style::allotmentname::AllotmentName };
 
     use super::*;
 
@@ -170,7 +165,7 @@ mod test {
 
     fn leaf(tree: &StyleTree, spec: &str) -> i8 {
         let leaf = tree.get_leaf(&AllotmentNamePart::new(AllotmentName::new(spec)));
-        leaf.leaf.depth
+        leaf.leaf.make().depth
     }
 
     #[test]

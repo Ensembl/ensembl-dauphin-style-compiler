@@ -1,4 +1,4 @@
-use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeCommon, ShapeDemerge, ShapeDetails, CoordinateSystem, HollowEdge2, EachOrEvery };
+use peregrine_data::{ Colour, DrawnType, Patina, RectangleShape, Shape, ShapeDemerge, CoordinateSystem, HollowEdge2, EachOrEvery, LeafCommonStyle };
 use super::super::layers::layer::{ Layer };
 use super::super::layers::drawing::DrawingTools;
 use crate::shape::core::drawshape::{SimpleShapePatina};
@@ -7,9 +7,9 @@ use crate::shape::triangles::drawgroup::{DrawGroup, ShapeCategory};
 use crate::util::message::Message;
 use super::drawshape::{ GLShape };
 
-fn split_spacebaserect(tools: &mut DrawingTools, common: &ShapeCommon, shape: &RectangleShape<()>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
+fn split_spacebaserect(tools: &mut DrawingTools, shape: &RectangleShape<LeafCommonStyle>, draw_group: &DrawGroup) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
-    let depth = common.depth().clone();
+    let depth = shape.area().top_left().allotments().map(|x| x.depth);
     let wobble = shape.wobble().clone();
     match shape.patina() {
         Patina::Drawn(drawn_variety,_) => {
@@ -104,19 +104,16 @@ impl ShapeDemerge for GLCategoriser {
     }
 }
 
-pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<()>) -> Result<Vec<GLShape>,Message> {
+pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTools, shape: Shape<LeafCommonStyle>) -> Result<Vec<GLShape>,Message> {
     let mut out = vec![];
     let demerge = shape.demerge(&GLCategoriser());
     for (draw_group,shape) in demerge {
-        let common = shape.common();
-        let depth = common.depth().clone();
-        match shape.details() {
-            ShapeDetails::Wiggle(shape) => {
-                if let Some(depth) = depth.get(0) {
-                    out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),*depth));
-                }
+        match shape {
+            Shape::Wiggle(shape) => {
+                out.push(GLShape::Wiggle(shape.range(),shape.values(),shape.plotter().clone(),shape.get_style().depth));
             },
-            ShapeDetails::Text(shape) => {
+            Shape::Text(shape) => {
+                let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_text = tools.text();
                 let colours_iter = shape.pen().colours().iter().cycle();
                 let background = shape.pen().background();
@@ -126,14 +123,15 @@ pub(crate) fn prepare_shape_in_layer(_layer: &mut Layer, tools: &mut DrawingTool
                 }).collect();
                 out.push(GLShape::Text(shape.position().clone(),handles,depth,draw_group));
             },
-            ShapeDetails::Image(shape) => {
+            Shape::Image(shape) => {
+                let depth = shape.position().allotments().map(|x| x.depth);
                 let drawing_bitmap = tools.bitmap();
                 let names = shape.iter_names().collect::<Vec<_>>();
                 let handles = names.iter().map(|asset| drawing_bitmap.add_bitmap(asset)).collect::<Result<Vec<_>,_>>()?;
                 out.push(GLShape::Image(shape.position().clone(),handles,depth,draw_group));
             },
-            ShapeDetails::SpaceBaseRect(shape) => {
-                out.append(&mut split_spacebaserect(tools,&common,&shape,&draw_group)?);
+            Shape::SpaceBaseRect(shape) => {
+                out.append(&mut split_spacebaserect(tools,&shape,&draw_group)?);
             }
         }
     }

@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, Pen, Shape, ShapeDemerge, ShapeDetails, shape::shape::ShapeCommon, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::pendingleaf::PendingLeaf}, EachOrEvery, CoordinateSystem};
+use crate::{AllotmentRequest, DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -29,9 +29,9 @@ impl<A> TextShape<A> {
 }
 
 impl TextShape<PendingLeaf> {
-    pub fn new2(position: SpaceBase<f64,PendingLeaf>, coord_system: &CoordinateSystem, depth: &EachOrEvery<i8>, pen: Pen, text: EachOrEvery<String>) -> Result<Shape<PendingLeaf>,DataMessage> {
+    pub fn new2(position: SpaceBase<f64,PendingLeaf>, pen: Pen, text: EachOrEvery<String>) -> Result<Shape<PendingLeaf>,DataMessage> {
         let details = TextShape::new_details(position,pen,text.clone())?;
-        Ok(Shape::new(ShapeCommon::new(coord_system.clone(), depth.clone()),ShapeDetails::Text(details)))
+        Ok(Shape::Text(details))
     }
 }
 
@@ -49,24 +49,17 @@ impl<A: Clone> TextShape<A> {
         })
     }
 
-    pub fn new(position: SpaceBase<f64,AllotmentRequest>, depth: EachOrEvery<i8>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
+    pub fn new(position: SpaceBase<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
         let mut out = vec![];
         let len = position.len();
         let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
         if let Ok(details) = TextShape::new_details(position,pen,text) {
             for (coord_system,mut filter) in demerge {
-                out.push(Shape::new(
-                    ShapeCommon::new(coord_system,depth.clone()),
-                    ShapeDetails::Text(details.clone().filter(&mut filter))
-                ));
+                out.push(Shape::Text(details.clone().filter(&mut filter)));
             }
         }
         Ok(out)
-    }
-
-    pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
-        self.position.make_base_filter(min,max)
     }
 
     pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> TextShape<A> {
@@ -76,13 +69,22 @@ impl<A: Clone> TextShape<A> {
             text: self.text.filter(filter)
         }
     }
+}
 
-    pub fn demerge<T: Hash + PartialEq + Eq,D>(self, common_in: &ShapeCommon, cat: &D) -> Vec<(T,ShapeCommon,TextShape<A>)> where D: ShapeDemerge<X=T> {
-        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(common_in.coord_system()));
+impl TextShape<PendingLeaf> {
+    pub fn base_filter(&self, min: f64, max: f64) -> TextShape<PendingLeaf> {
+        let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
+        let filter = self.position.make_base_filter(min,max);
+        self.filter(&filter.or(&non_tracking))
+    }
+}
+
+impl TextShape<LeafCommonStyle> {
+    pub fn demerge<T: Hash + PartialEq + Eq,D>(self,  cat: &D) -> Vec<(T,TextShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
+        let demerge = self.position.allotments().demerge(self.position.len(),|a| cat.categorise(&a.coord_system));
         let mut out = vec![];
         for (draw_group,mut filter) in demerge {
-            let common = common_in.filter(&filter);
-            out.push((draw_group,common,self.filter(&mut filter)));
+            out.push((draw_group,self.filter(&mut filter)));
         }
         out
     }
@@ -98,6 +100,7 @@ impl TextShape<AllotmentRequest> {
     }
 }
 
+/*
 impl TextShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> TextShape<()> {
         TextShape {
@@ -107,9 +110,10 @@ impl TextShape<AllotmentBox> {
         }
     }
 }
+*/
 
 impl TextShape<Arc<dyn Transformer>> {
-    fn demerge_by_variety(&self) -> Vec<(TransformerVariety,TextShape<Arc<dyn Transformer>>)> {
+    fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<Arc<dyn Transformer>>)> {
         let demerge = self.position.allotments().demerge(self.position.len(),|x| {
             x.choose_variety()
         });
@@ -120,11 +124,11 @@ impl TextShape<Arc<dyn Transformer>> {
         out
     }
 
-    pub fn make(&self, solution: &PuzzleSolution, common: &ShapeCommon) -> Vec<TextShape<()>> {
+    pub fn make(&self, solution: &PuzzleSolution) -> Vec<TextShape<LeafCommonStyle>> {
         let mut out = vec![];
-        for (variety,rectangles) in self.demerge_by_variety() {
+        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
             out.push(TextShape {
-                position: variety.spacebase_transform(&common.coord_system(),&self.position),
+                position: variety.spacebase_transform(&coord_system,&self.position),
                 text: self.text.clone(),
                 pen: self.pen.clone()
             });

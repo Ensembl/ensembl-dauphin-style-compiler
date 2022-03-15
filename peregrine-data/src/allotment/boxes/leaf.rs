@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, borrow::Borrow, collections::{hash_map::RandomState, HashMap}};
 
-use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, Puzzle, PuzzleBuilder, ConstantPuzzlePiece}};
+use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, Puzzle, PuzzleBuilder, ConstantPuzzlePiece}, log};
 
 use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
@@ -42,6 +42,8 @@ pub struct FloatingLeaf {
 
 impl FloatingLeaf {
     pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
+        #[cfg(debug_assertions)]
+        log!("FloatingLeaf {:?}",statics);
         let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
         let mut base_range_piece = puzzle.new_piece();
         #[cfg(debug_assertions)]
@@ -71,7 +73,7 @@ impl FloatingLeaf {
                 Some(drawing_info2.max_y())
             });
         });
-        let mut top = if statics.dustbin { puzzle.new_piece_default(0.) } else { puzzle.new_piece() };
+        let mut top = if statics.coord_system.is_dustbin() { puzzle.new_piece_default(0.) } else { puzzle.new_piece() };
         #[cfg(debug_assertions)]
         top.set_name("FLoatingLeaf/top");
         let drawing_info2 = drawing_info.clone();
@@ -80,7 +82,7 @@ impl FloatingLeaf {
         }));
         let full_range_piece = full_range_piece(
             puzzle,
-            &statics.top_style.coord_system,&base_range_piece,&pixel_range_piece,&converter);
+            &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
         let mut indent = puzzle.new_piece_default(0.);
         #[cfg(debug_assertions)]
         indent.set_name("FLoatingLeaf/indent");
@@ -129,10 +131,12 @@ impl Transformable for FloatingLeaf {
     fn make(&self, solution: &PuzzleSolution) -> Arc<dyn Transformer> {
         Arc::new(AnchoredLeaf::new(solution,self))
     }
+
+    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
 }
 
 impl Coordinated for FloatingLeaf {
-    fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.top_style.coord_system }
+    fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
 }
 
 #[cfg_attr(test,derive(Debug))]
@@ -156,8 +160,9 @@ impl AnchoredLeaf {
 }
 
 impl Transformer for AnchoredLeaf {
-    fn choose_variety(&self) -> TransformerVariety { TransformerVariety::SimpleTransformer }
+    fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
     fn into_simple_transformer(&self) -> SimpleTransformerHolder { SimpleTransformerHolder(Arc::new(self.clone())) }
+    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
 
     #[cfg(test)]
     fn describe(&self) -> String {
@@ -170,4 +175,5 @@ impl SimpleTransformer for AnchoredLeaf {
     fn bottom(&self) -> f64 { self.top + self.height }
     fn indent(&self) -> f64 { self.indent }
     fn as_simple_transformer(&self) -> &dyn SimpleTransformer { self }
+    fn get_style(&self) -> &LeafCommonStyle { &self.statics }
 }

@@ -6,7 +6,7 @@ use crate::core::channel::PacketPriority;
 use crate::util::builder::Builder;
 use std::any::Any;
 use std::sync::{ Arc };
-use crate::shape::{CarriageShapeListBuilder, CarriageShapeListRaw};
+use crate::shape::{CarriageShapeListRaw};
 use super::programloader::ProgramLoader;
 use super::loadshapes::LoadMode;
 use super::shaperequest::ShapeRequest;

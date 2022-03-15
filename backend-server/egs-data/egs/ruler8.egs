@@ -8,13 +8,21 @@ max := [min_max][@==1];
 interval := ruler_interval(max - min,12);
 markings := ruler_markings(interval,min,max);
 
+allotment_window_top := use_allotment("window-top/ruler/background/content");
 allotment_top := use_allotment("window-top/ruler/main/content");
 
-style("window-top/",["system"][],["tracking"][]);
+style("window-top/",["system"][],["window"][]);
 style("window-top/ruler/main/",["system"][],["tracking"][]);
 style("window-top/ruler/main/content",["depth","priority"][],["55","0"][]);
 
 marker_patina := patina_hollow(spot_colour(direct_colour(120,120,120,255)),1);
+
+/* top and bottom separators */
+rectangle(spacebase(0,16,0),spacebase(1,16,0),marker_patina,allotment_window_top);
+
+/* text */
+textpen := pen("'Lato', sans-serif",12,direct_colour(120,120,120,255),[][]);
+text2(spacebase(markings,2,4),textpen,comma_format(markings),allotment_top);
 
 /* markers */
 rectangle(spacebase(markings,0,0),spacebase(markings,16,0),marker_patina,allotment_top);

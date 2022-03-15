@@ -5,8 +5,9 @@ use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::boxes::root::PlayingField2;
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
+use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, AnchoredCarriageShapeList, CarriageShapeList2, Shape, PlayingField};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, PlayingField, Shape};
 use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -136,7 +137,7 @@ impl Carriage {
         }
     }
 
-    pub fn shapes(&self) -> Result<Vec<Shape<()>>,DataMessage> {
+    pub fn shapes(&self) -> Result<Vec<Shape<LeafCommonStyle>>,DataMessage> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());

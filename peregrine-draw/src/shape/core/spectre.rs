@@ -1,6 +1,6 @@
-use std::{sync::Arc};
+use std::{sync::Arc, collections::HashMap};
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, Patina, CarriageShapeListBuilder, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}, EachOrEvery};
+use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder2, PendingLeaf, LeafCommonStyle, Pen};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -49,22 +49,24 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[101]",0));
-        let window_origin = shapes.carriage_universe().make_request("window:origin[101]").unwrap(); // XXX
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+        let leaf = shapes.use_allotment("window/origin/ants").clone();
+        let mut props = HashMap::new();
+        props.insert("depth".to_string(),"101".to_string());
+        props.insert("system".to_string(), "window".to_string());
+        shapes.add_style("window/origin/ants",props);
         let pos2 = self.area2.tlbr().clone();
-        shapes.use_allotment(&window_origin);
         let top_left = PartialSpaceBase::from_spacebase(SpaceBase::new(
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![0.]),
-            &EachOrEvery::each(vec![window_origin.clone()])
+            &EachOrEvery::each(vec![leaf.clone()])
         ).unwrap());
         let bottom_right =  PartialSpaceBase::from_spacebase(SpaceBase::new(
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![0.]),
             &EachOrEvery::each(vec![0.]),
-            &EachOrEvery::each(vec![window_origin])
+            &EachOrEvery::each(vec![leaf.clone()])
         ).unwrap());
         let area = eoe_throw("w1",SpaceBaseArea::new(top_left,bottom_right))?;
         let top_left_obs = PartialSpaceBase::new(
@@ -101,7 +103,7 @@ fn make_stain_point<X: Clone,Y: Clone>(base: X, normal: X, tangent: X, allotment
     ))
 }
 
-fn make_stain_rect3(n1: f64, t1: f64, b1: f64, ar: &AllotmentRequest) -> Result<SpaceBaseArea<f64,AllotmentRequest>,Message> {
+fn make_stain_rect3(n1: f64, t1: f64, b1: f64, ar: &PendingLeaf) -> Result<SpaceBaseArea<f64,PendingLeaf>,Message> {
     let top_left = make_stain_point(0.,0.,0.,ar)?;
     let bottom_right = make_stain_point(b1,n1,t1,ar)?;
     Ok(SpaceBaseArea::new(top_left,bottom_right).unwrap())
@@ -133,30 +135,32 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
-        allotment_metadata.add(AllotmentMetadataRequest::new("window:origin[100]",-1));
-        let window_origin = shapes.carriage_universe().make_request("window:origin[100]").unwrap(); // XXX
-        shapes.use_allotment(&window_origin);
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+        let leaf = shapes.use_allotment("window/origin/stain").clone();
+        let mut props = HashMap::new();
+        props.insert("depth".to_string(),"101".to_string());
+        props.insert("system".to_string(), "window".to_string());
+        shapes.add_style("window/origin/stain",props);
         let mut rectangles = vec![];
         let pos2 = self.area2.tlbr().clone();
         if self.invert {
             /* top left of screen to bottom of screen, along lefthand edge of selection */
             rectangles.push(
-                (make_stain_rect3(-1.,0.,0.,&window_origin)?,
+                (make_stain_rect3(-1.,0.,0.,&leaf)?,
                  make_stain_rect2(None,None,None,Some(&pos2.1),0.)?));
             /* top right of screen to bottom of screen, along righthand edge of selection */
             rectangles.push(
-                (make_stain_rect3(-1.,-1.,1.,&window_origin)?,
+                (make_stain_rect3(-1.,-1.,1.,&leaf)?,
                  make_stain_rect2(None,Some(&pos2.3),None,None,1.)?));
                  /* length of top of shape from top of screen to that shape */
             rectangles.push((
-                make_stain_rect3(0.,0.,0.,&window_origin)?,
+                make_stain_rect3(0.,0.,0.,&leaf)?,
                 make_stain_rect2(None,Some(&pos2.1),Some(&pos2.0),Some(&pos2.3),0.)?));
                 /* length of bottom of shape from bottom of shape to bottom of screen */
-            rectangles.push((make_stain_rect3(-1.,0.,0.,&window_origin)?,
+            rectangles.push((make_stain_rect3(-1.,0.,0.,&leaf)?,
                             make_stain_rect2(Some(&pos2.2),Some(&pos2.1),None,Some(&pos2.3),0.)?));
         } else {
-            rectangles.push((make_stain_rect3(0.,0.,0.,&window_origin)?,
+            rectangles.push((make_stain_rect3(0.,0.,0.,&leaf)?,
                             make_stain_rect2(Some(&pos2.0),Some(&pos2.1),Some(&pos2.2),Some(&pos2.3),0.)?));
         }
         for (area,wobble) in rectangles.drain(..) {           
@@ -175,7 +179,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes,allotment_metadata)?,
             Spectre::Stain(a) => a.draw(shapes,allotment_metadata)?,

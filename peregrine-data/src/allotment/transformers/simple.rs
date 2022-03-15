@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, SpaceBase};
+use crate::{CoordinateSystem, SpaceBase, allotment::style::style::LeafCommonStyle};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}};
 
@@ -9,6 +9,8 @@ pub trait SimpleTransformer {
     fn bottom(&self) -> f64;
     fn indent(&self) -> f64;
     fn as_simple_transformer(&self) -> &dyn SimpleTransformer;
+    fn get_style(&self) -> &LeafCommonStyle;
+
 }
 
 #[derive(Clone)]
@@ -17,7 +19,7 @@ pub struct SimpleTransformerHolder(pub Arc<dyn SimpleTransformer>);
 impl SpaceBaseTransformer for SimpleTransformerHolder {
     type X = SimpleTransformerHolder;
 
-    fn transform_spacebase(coord_system: &CoordinateSystem, input: &SpaceBase<f64,SimpleTransformerHolder>) -> SpaceBase<f64,()> {
+    fn transform_spacebase(coord_system: &CoordinateSystem, input: &SpaceBase<f64,SimpleTransformerHolder>) -> SpaceBase<f64,LeafCommonStyle> {
         let mut output = input.clone();
         if coord_system.up_from_bottom() {
             output.update_normal_from_allotment(|n,a| { *n = (a.0.bottom() as f64) - *n; });
@@ -25,7 +27,7 @@ impl SpaceBaseTransformer for SimpleTransformerHolder {
             output.update_normal_from_allotment(|n,a| { *n += a.0.top() as f64; });
         }
         output.update_tangent_from_allotment(|t,a| { *t += a.0.indent() as f64; });
-        output.fullmap_allotments_results::<_,_,()>(|_| Ok(())).ok().unwrap()    
+        output.fullmap_allotments_results::<_,_,LeafCommonStyle>(|x| Ok(x.0.get_style().clone())).ok().unwrap()    
     }
 }
 

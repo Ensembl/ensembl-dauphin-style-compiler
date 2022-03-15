@@ -1,5 +1,7 @@
 use std::{collections::HashMap};
 
+use peregrine_toolkit::log;
+
 use crate::allotment::style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle}, allotmentname::AllotmentNamePart};
 
 use super::styletreebuilder::StyleTreeBuilder;
@@ -93,6 +95,8 @@ impl StyleTree {
     }
 
     pub fn get_leaf(&self, name: &AllotmentNamePart) -> &LeafAllotmentStyle {
+        #[cfg(debug_assertions)]
+        log!("get_leaf({:?})={:?}",name,self.root.get_leaf(name));
         self.root.get_leaf(name).unwrap_or(&self.empty_leaf)
     }
 

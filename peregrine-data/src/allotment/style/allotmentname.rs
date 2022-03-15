@@ -28,6 +28,26 @@ impl AllotmentName {
     pub fn is_dustbin(&self) -> bool { self.name.len() == 0 }
 }
 
+pub struct AllotmentNamePrefixes<'a> {
+    name: &'a AllotmentNamePart,
+    end: usize
+}
+
+impl<'a> Iterator for AllotmentNamePrefixes<'a> {
+    type Item=AllotmentNamePart;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.end < self.name.end {
+            let mut out = self.name.clone();
+            out.end = self.end;
+            self.end += 1;
+            Some(out)
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Clone,Debug)]
 pub struct AllotmentNamePart {
     name: AllotmentName,
@@ -41,6 +61,13 @@ impl AllotmentNamePart {
             start: 0,
             end: name.name.len(),
             name
+        }
+    }
+
+    pub(crate) fn iter_prefixes(&self) -> impl Iterator<Item=AllotmentNamePart> + '_ {
+        AllotmentNamePrefixes {
+            name: self,
+            end: 0
         }
     }
 

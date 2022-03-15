@@ -356,6 +356,19 @@ impl EachOrEveryFilter {
             }
         }
     }
+
+    pub fn or(&self, other: &EachOrEveryFilter) -> EachOrEveryFilter {
+        match (&self.data,&other.data) {
+            (EachOrEveryFilterData::All,_) => EachOrEveryFilter::all(self.len()),
+            (_,EachOrEveryFilterData::All) => EachOrEveryFilter::all(self.len()),
+            (EachOrEveryFilterData::None,_) => other.clone(),
+            (_,EachOrEveryFilterData::None) => self.clone(),
+
+            (EachOrEveryFilterData::Some(self_index), EachOrEveryFilterData::Some(other_index)) => {
+                union(self_index,other_index,self.len)
+            }
+        }
+    }
 }
 
 struct NumIterator<'a> {
@@ -408,6 +421,31 @@ fn intersect(a: &[(usize,usize)], b: &[(usize,usize)],len: usize) -> EachOrEvery
                     a_iter.advance(b);
                 } else if a > b {
                     b_iter.advance(a);
+                }
+            },
+            _ => { break; }
+        }
+    }
+    out.make(len)
+}
+
+fn union(a: &[(usize,usize)], b: &[(usize,usize)],len: usize) -> EachOrEveryFilter {
+    let mut a_iter = NumIterator::new(a);
+    let mut b_iter = NumIterator::new(b);
+    let mut out = EachOrEveryFilterBuilder::new();
+    loop {
+        match (a_iter.peek(),b_iter.peek()) {
+            (Some(a),Some(b)) => {
+                if a == b { 
+                    out.set(a);
+                    a_iter.advance(b+1); 
+                    b_iter.advance(a+1);
+                } else if a < b {
+                    out.set(a);
+                    a_iter.advance(a+1);
+                } else if a > b {
+                    out.set(b);
+                    b_iter.advance(b+1);
                 }
             },
             _ => { break; }

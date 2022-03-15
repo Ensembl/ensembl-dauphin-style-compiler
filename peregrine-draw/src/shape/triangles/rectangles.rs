@@ -8,13 +8,13 @@ use crate::shape::util::arrayutil::{rectangle4};
 use crate::shape::util::iterators::eoe_throw;
 use crate::webgl::{ ProcessStanzaElements };
 use peregrine_data::reactive::{Observable, Observer};
-use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, EachOrEvery };
+use peregrine_data::{ SpaceBaseArea, SpaceBase, PartialSpaceBase, HollowEdge2, SpaceBasePoint, EachOrEvery, LeafCommonStyle };
 use peregrine_toolkit::lock;
 use super::drawgroup::DrawGroup;
 use super::triangleadder::TriangleAdder;
 use crate::util::message::Message;
 
-fn apply_wobble(pos: &SpaceBase<f64,()>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,()> {
+fn apply_wobble(pos: &SpaceBase<f64,LeafCommonStyle>, wobble: &SpaceBase<Observable<'static,f64>,()>) -> SpaceBase<f64,LeafCommonStyle> {
     let wobble = wobble.map_all(|obs| obs.get());
     pos.merge(wobble,SpaceBasePoint {
         base: &|a,b| { *a+*b },
@@ -26,15 +26,15 @@ fn apply_wobble(pos: &SpaceBase<f64,()>, wobble: &SpaceBase<Observable<'static,f
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct RectanglesLocationArea {
-    spacebase: SpaceBaseArea<f64,()>,
+    spacebase: SpaceBaseArea<f64,LeafCommonStyle>,
     wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>,
-    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,()>>>,
+    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,LeafCommonStyle>>>,
     depth: EachOrEvery<i8>,
     edge: Option<HollowEdge2<f64>>
 }
 
 impl RectanglesLocationArea {
-    fn new(spacebase: &SpaceBaseArea<f64,()>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Message> {
+    fn new(spacebase: &SpaceBaseArea<f64,LeafCommonStyle>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, edge: Option<HollowEdge2<f64>>) -> Result<RectanglesLocationArea,Message> {
         Ok(RectanglesLocationArea {
             wobbled_spacebase: Arc::new(Mutex::new(area_to_rectangle(spacebase,&wobble,&edge)?)),
             spacebase: spacebase.clone(),
@@ -45,7 +45,7 @@ impl RectanglesLocationArea {
     fn depths(&self) -> &EachOrEvery<i8> { &self.depth }
     fn len(&self) -> usize { self.spacebase.len() }
     fn any_dynamic(&self) -> bool { self.wobble.is_some() }
-    fn wobbled_location(&self) -> SpaceBaseArea<f64,()> { lock!(self.wobbled_spacebase).clone() }
+    fn wobbled_location(&self) -> SpaceBaseArea<f64,LeafCommonStyle> { lock!(self.wobbled_spacebase).clone() }
 
     fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
         self.wobble.as_ref().map(|wobble| {
@@ -79,15 +79,15 @@ impl RectanglesLocationArea {
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 struct RectanglesLocationSized {
-    spacebase: SpaceBase<f64,()>,
+    spacebase: SpaceBase<f64,LeafCommonStyle>,
     wobble: Option<SpaceBase<Observable<'static,f64>,()>>,
-    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,()>>>,
+    wobbled_spacebase: Arc<Mutex<SpaceBaseArea<f64,LeafCommonStyle>>>,
     depth: EachOrEvery<i8>,
     size_x: Vec<f64>,
     size_y: Vec<f64>
 }
 
-fn sized_to_rectangle(spacebase: &SpaceBase<f64,()>, wobble: &Option<SpaceBase<Observable<'static,f64>,()>>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,()>,Message> {
+fn sized_to_rectangle(spacebase: &SpaceBase<f64,LeafCommonStyle>, wobble: &Option<SpaceBase<Observable<'static,f64>,()>>, size_x: &[f64], size_y: &[f64]) -> Result<SpaceBaseArea<f64,LeafCommonStyle>,Message> {
     let wobbled = if let Some(wobble) = wobble {
         apply_wobble(spacebase,&wobble)
     } else {
@@ -102,7 +102,7 @@ fn sized_to_rectangle(spacebase: &SpaceBase<f64,()>, wobble: &Option<SpaceBase<O
     Ok(area)
 }
 
-fn apply_hollow(area: &SpaceBaseArea<f64,()>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,()>{
+fn apply_hollow(area: &SpaceBaseArea<f64,LeafCommonStyle>, edge: &Option<HollowEdge2<f64>>) -> SpaceBaseArea<f64,LeafCommonStyle> {
     if let Some(edge) = edge {
         area.hollow_edge(&edge)
     } else {
@@ -110,7 +110,7 @@ fn apply_hollow(area: &SpaceBaseArea<f64,()>, edge: &Option<HollowEdge2<f64>>) -
     }
 }
 
-fn area_to_rectangle(area: &SpaceBaseArea<f64,()>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,()>,Message> {
+fn area_to_rectangle(area: &SpaceBaseArea<f64,LeafCommonStyle>,  wobble: &Option<SpaceBaseArea<Observable<'static,f64>,()>>, edge: &Option<HollowEdge2<f64>>) -> Result<SpaceBaseArea<f64,LeafCommonStyle>,Message> {
     if let Some(wobble) = wobble {
         let top_left = apply_wobble(area.top_left(),wobble.top_left());
         let bottom_right = apply_wobble(area.bottom_right(),wobble.bottom_right());    
@@ -123,7 +123,7 @@ fn area_to_rectangle(area: &SpaceBaseArea<f64,()>,  wobble: &Option<SpaceBaseAre
 }
 
 impl RectanglesLocationSized {
-    fn new(spacebase: &SpaceBase<f64,()>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>) -> Result<RectanglesLocationSized,Message> {
+    fn new(spacebase: &SpaceBase<f64,LeafCommonStyle>, wobble: Option<SpaceBase<Observable<'static,f64>,()>>, depth: EachOrEvery<i8>, size_x: Vec<f64>, size_y: Vec<f64>) -> Result<RectanglesLocationSized,Message> {
         Ok(RectanglesLocationSized { 
             wobbled_spacebase: Arc::new(Mutex::new(sized_to_rectangle(spacebase,&wobble,&size_x,&size_y)?)),
             spacebase: spacebase.clone(),
@@ -134,7 +134,7 @@ impl RectanglesLocationSized {
     fn depths(&self) -> &EachOrEvery<i8> { &self.depth }
     fn len(&self) -> usize { self.spacebase.len() }
     fn any_dynamic(&self) -> bool { self.wobble.is_some() }
-    fn wobbled_location(&self) -> SpaceBaseArea<f64,()> { lock!(self.wobbled_spacebase).clone() }
+    fn wobbled_location(&self) -> SpaceBaseArea<f64,LeafCommonStyle> { lock!(self.wobbled_spacebase).clone() }
 
     fn wobble(&mut self) -> Option<Box<dyn FnMut() + 'static>> {
         self.wobble.as_ref().map(|wobble| {
@@ -170,7 +170,7 @@ enum RectanglesLocation {
 }
 
 impl RectanglesLocation {
-    fn wobbled_location(&self) -> SpaceBaseArea<f64,()> {
+    fn wobbled_location(&self) -> SpaceBaseArea<f64,LeafCommonStyle> {
         match self {
             RectanglesLocation::Area(area) => area.wobbled_location(),
             RectanglesLocation::Sized(sized) => sized.wobbled_location()
@@ -224,12 +224,12 @@ pub(crate) struct RectanglesData {
 }
 
 impl RectanglesData {
-    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &SpaceBaseArea<f64,()>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
+    pub(crate) fn new_area(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, area: &SpaceBaseArea<f64,LeafCommonStyle>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, edge: &Option<HollowEdge2<f64>>, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
         let location = RectanglesLocation::Area(RectanglesLocationArea::new(area,wobble,depth.clone(),edge.clone())?);
         Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
     }
 
-    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,()>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
+    pub(crate) fn new_sized(layer: &mut Layer, geometry_yielder: &mut GeometryYielder, patina_yielder: &mut dyn PatinaYielder, points: &SpaceBase<f64,LeafCommonStyle>, x_sizes: Vec<f64>, y_sizes: Vec<f64>, depth: &EachOrEvery<i8>, left: f64, hollow: bool, kind: &DrawGroup, wobble: Option<SpaceBase<Observable<'static,f64>,()>>)-> Result<RectanglesData,Message> {
         let location = RectanglesLocation::Sized(RectanglesLocationSized::new(points,wobble,depth.clone(),x_sizes,y_sizes)?);
         Self::real_new(layer,geometry_yielder,patina_yielder,location,left,hollow,kind)
     }
@@ -296,12 +296,12 @@ impl Rectangles {
     }
 }
 
-fn add_spacebase4(point: &PartialSpaceBase<f64,()>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase4(point: &PartialSpaceBase<f64,LeafCommonStyle>,depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>) -> Result<(Vec<f32>,Vec<f32>),Message> {
     let area = eoe_throw("as1",SpaceBaseArea::new(point.clone(),point.clone()))?;
     add_spacebase_area4(&area,depth,group,left,width)
 }
 
-fn add_spacebase_area4(area: &SpaceBaseArea<f64,()>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
+fn add_spacebase_area4(area: &SpaceBaseArea<f64,LeafCommonStyle>, depth: &EachOrEvery<i8>, group: &DrawGroup, left: f64, width: Option<f64>)-> Result<(Vec<f32>,Vec<f32>),Message> {
     let mut data = vec![];
     let mut depths = vec![];
     for ((top_left,bottom_right),depth) in area.iter().zip(eoe_throw("t",depth.iter(area.len()))?) {

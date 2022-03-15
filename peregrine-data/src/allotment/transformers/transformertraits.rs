@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase};
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase, allotment::style::style::LeafCommonStyle};
 
 pub trait SpaceBaseTransformer {
     type X;
 
-    fn transform_spacebase(coord_system: &CoordinateSystem, input: &SpaceBase<f64,Self::X>) -> SpaceBase<f64,()>;
+    fn transform_spacebase(coord_system: &CoordinateSystem, input: &SpaceBase<f64,Self::X>) -> SpaceBase<f64,LeafCommonStyle>;
 
-    fn transform_spacebasearea(coord_system: &CoordinateSystem, input: &SpaceBaseArea<f64,Self::X>) -> SpaceBaseArea<f64,()> {
+    fn transform_spacebasearea(coord_system: &CoordinateSystem, input: &SpaceBaseArea<f64,Self::X>) -> SpaceBaseArea<f64,LeafCommonStyle> {
         let top_left = Self::transform_spacebase(coord_system,input.top_left());
         let bottom_right = Self::transform_spacebase(coord_system,&input.bottom_right());
         SpaceBaseArea::new(PartialSpaceBase::from_spacebase(top_left),PartialSpaceBase::from_spacebase(bottom_right)).unwrap()

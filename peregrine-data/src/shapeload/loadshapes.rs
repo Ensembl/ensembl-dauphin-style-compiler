@@ -1,5 +1,5 @@
 use peregrine_toolkit::lock;
-use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, CarriageShapeListBuilder, add_task, api::MessageSender, Scale, core::pixelsize::PixelSize, CarriageExtent, AllotmentRequest, AnchoredCarriageShapeList, shape::{FloatingCarriageShapeList, CarriageShapeListRaw}, ShapeRequestGroup, CarriageShapeList2 };
+use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender, Scale, core::pixelsize::PixelSize, CarriageExtent, AllotmentRequest, /*AnchoredCarriageShapeList,*/ shape::{CarriageShapeListRaw}, ShapeRequestGroup, CarriageShapeList2 };
 
 #[derive(Clone)]
 pub enum LoadMode {

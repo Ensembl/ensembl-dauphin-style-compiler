@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Clone,Hash,PartialEq,Eq,Debug)]
 pub enum CoordinateSystemVariety {
     /* base = bp, tangent = x-px, normal = y-px (-ve = error!)
@@ -45,6 +47,12 @@ impl CoordinateSystem {
             _ => false
         };
         CoordinateSystem(variety,direction)
+    }
+
+    pub fn build(spec: &HashMap<String,String>) -> Option<CoordinateSystem> {
+        spec.get("system").map(|coord_system| {
+            CoordinateSystem::from_string(coord_system, spec.get("direction").map(|x| x.as_str()).unwrap_or(""))
+        })
     }
 
     pub fn is_dustbin(&self) -> bool {

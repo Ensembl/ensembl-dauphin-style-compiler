@@ -1,5 +1,5 @@
 use std::{collections::HashMap, rc::Rc, sync::{Arc, Mutex}};
-use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery };
+use peregrine_data::{ Scale, ZMenu, ZMenuGenerator, ZMenuProxy, SpaceBaseArea, SpaceBasePointRef, EachOrEvery, LeafCommonStyle };
 use crate::stage::stage::{ ReadStage };
 use crate::util::message::Message;
 
@@ -25,7 +25,7 @@ const VERT_ZONE_HEIGHT : u64 = 200;
 
 struct ZMenuUnscaledEntry {
     generator: ZMenuGenerator,
-    area: SpaceBaseArea<f64,()>
+    area: SpaceBaseArea<f64,LeafCommonStyle>
 }
 
 fn order(a: f64, b: f64) -> (f64,f64) {
@@ -47,7 +47,7 @@ impl DrawingZMenusBuilder {
         }
     }
 
-    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64,()>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
+    pub(crate) fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafCommonStyle>, zmenu: ZMenu, values: Vec<(String,EachOrEvery<String>)>) {
         let mut map_values = HashMap::new();
         for (k,v) in values.iter() {
             map_values.insert(k.to_string(),v.clone());
@@ -62,7 +62,7 @@ impl DrawingZMenusBuilder {
 }
 
 struct ZMenuEntry {
-    area: SpaceBaseArea<f64,()>,
+    area: SpaceBaseArea<f64,LeafCommonStyle>,
     index: usize,
     proxy: Rc<ZMenuProxy>,
     order: usize
@@ -105,7 +105,7 @@ impl ScaledZMenus {
         out
     }
 
-    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64,()>, bottom_right: &SpaceBasePointRef<f64,()>) -> ((f64,u64),(f64,u64)) {
+    fn maximum_footprint(&self, top_left: &SpaceBasePointRef<f64,LeafCommonStyle>, bottom_right: &SpaceBasePointRef<f64,LeafCommonStyle>) -> ((f64,u64),(f64,u64)) {
         /* y-coordinate */
         let (top_px,bottom_px) = order(*top_left.normal,*bottom_right.normal);
         /* x-coordinate */
@@ -118,7 +118,7 @@ impl ScaledZMenus {
     }
 
     // TODO no-bp zmenus
-    fn get_zones(&self, top_left: &SpaceBasePointRef<f64,()>, bottom_right: &SpaceBasePointRef<f64,()>) -> Vec<u64> {
+    fn get_zones(&self, top_left: &SpaceBasePointRef<f64,LeafCommonStyle>, bottom_right: &SpaceBasePointRef<f64,LeafCommonStyle>) -> Vec<u64> {
         let ((left_scr,top_px),(right_scr,bottom_px)) = self.maximum_footprint(top_left,bottom_right);
         let mut out = vec![];
         for v_zone in (top_px/VERT_ZONE_HEIGHT)..((bottom_px/VERT_ZONE_HEIGHT)+1) {

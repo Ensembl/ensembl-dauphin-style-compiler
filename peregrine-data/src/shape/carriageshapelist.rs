@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, Shape, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, EachOrEvery, ShapeRequest, ShapeRequestGroup };
+use crate::{AllotmentMetadataStore, Assets, DataMessage, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, EachOrEvery, ShapeRequest, ShapeRequestGroup, LeafCommonStyle };
 
+/*
 pub struct CarriageShapeListBuilder {
     shapes: Vec<Shape<AllotmentRequest>>,
     allotments: HashSet<AllotmentRequest>,
@@ -120,7 +121,7 @@ impl FloatingCarriageShapeList {
 
 #[derive(Clone)]
 pub struct AnchoredCarriageShapeList {
-    shapes: Arc<Vec<Shape<()>>>,
+    shapes: Arc<Vec<Shape<LeafCommonStyle>>>,
     carriage_universe: CarriageUniverse
 }
 
@@ -146,5 +147,6 @@ impl AnchoredCarriageShapeList {
     }
 
     pub fn carriage_universe(&self) -> &CarriageUniverse { &self.carriage_universe}
-    pub fn shapes(&self) -> &Arc<Vec<Shape<()>>> { &self.shapes }
+    pub fn shapes(&self) -> &Arc<Vec<Shape<LeafCommonStyle>>> { &self.shapes }
 }
+*/

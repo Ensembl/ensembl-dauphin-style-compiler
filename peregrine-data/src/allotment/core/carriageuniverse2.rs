@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle};
 
-use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, Shape, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField};
+use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape};
 
 use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}};
 
@@ -69,7 +69,7 @@ impl CarriageUniverse2 {
         self.root.playing_field(solution)
     }
 
-    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<()>> {
+    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<LeafCommonStyle>> {
         let mut out = vec![];
         for input in self.shapes.iter() {
             out.append(&mut input.map_new_allotment(|x| x.make(solution)).make(solution));

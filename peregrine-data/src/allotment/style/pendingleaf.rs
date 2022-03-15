@@ -2,14 +2,14 @@ use std::{sync::{Arc, Mutex}, borrow::BorrowMut};
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::Transformable, stylespec::stylegroup::AllotmentStyleGroup}};
+use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::Transformable, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
 use super::allotmentname::AllotmentName;
 
 #[derive(Clone)]
 pub struct PendingLeaf {
     name: AllotmentName,
     drawing_info: Arc<Mutex<DrawingInfo>>,
-    style: Arc<Mutex<Option<AllotmentStyleGroup>>>,
+    style: Arc<Mutex<Option<(Arc<AllotmentStyleGroup>,Arc<LeafCommonStyle>)>>>,
     transformable: Arc<Mutex<Option<Arc<dyn Transformable>>>>
 }
 
@@ -24,7 +24,8 @@ impl PendingLeaf {
     }
 
     pub(crate) fn set_style(&self, style: &AllotmentStyleGroup) {
-        *lock!(self.style) = Some(style.clone());
+        let leaf = style.get_common_leaf(&self);
+        *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf)));
     }
 
     pub(crate) fn set_transformable(&self, xformable: Arc<dyn Transformable>) {
@@ -33,8 +34,9 @@ impl PendingLeaf {
 
     /* only call after set_transformable has been called! (via make_transformable) */
     pub fn transformable(&self) -> Arc<dyn Transformable> { lock!(self.transformable).as_ref().unwrap().clone() }
-    
-    pub fn style(&self) -> AllotmentStyleGroup { lock!(self.style).as_ref().unwrap().clone() }
+
+    pub fn leaf_style(&self) -> Arc<LeafCommonStyle> { lock!(self.style).as_ref().unwrap().1.clone() }
+    pub fn style(&self) -> Arc<AllotmentStyleGroup> { lock!(self.style).as_ref().unwrap().0.clone() }
     pub fn name(&self) -> &AllotmentName {&self.name }
     pub fn drawing_info_clone(&self) -> DrawingInfo { lock!(self.drawing_info).clone() }
     pub fn update_drawing_info<F,T>(&self, mut cb: F) -> T where F: FnMut(&mut DrawingInfo) -> T {
