@@ -8,7 +8,7 @@ halt(only_warm(),[data]);
 values := delta_seq(data,"values");
 x_range := [positive_seq(data,"range")];
 
-allotment := use_allotment("tracks/track/variant/main/content");
+allotment := use_allotment("tracks/track/variant/main/main/content");
 allotment_track_name := use_allotment("tracks/track/variant/title/content");
 
 style("tracks/track/variant/",["priority"][],["1000"][]);
