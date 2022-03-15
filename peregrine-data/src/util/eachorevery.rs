@@ -6,7 +6,7 @@ fn un_rle<F>(input: &[(usize,usize)], cb: F) -> Arc<Vec<usize>> where F: Fn(usiz
     let mut out = vec![];
     for (start,len) in input {
         for i in *start..(*start+*len) {
-            out.push(i);
+            out.push(cb(i));
         }
     }
     Arc::new(out)
