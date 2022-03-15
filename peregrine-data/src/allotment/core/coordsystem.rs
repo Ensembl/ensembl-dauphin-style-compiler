@@ -40,19 +40,17 @@ impl CoordinateSystemVariety {
 pub struct CoordinateSystem(pub CoordinateSystemVariety,pub bool);
 
 impl CoordinateSystem {
-    pub fn from_string(name: &str, direction: &str) -> CoordinateSystem {
-        let variety = CoordinateSystemVariety::from_string(name);
-        let direction = match direction {
-            "reverse" => true,
-            _ => false
-        };
-        CoordinateSystem(variety,direction)
+    pub fn build(spec: &HashMap<String,String>) -> (Option<CoordinateSystemVariety>,Option<bool>) {
+        (
+            spec.get("system").map(|coord_system| CoordinateSystemVariety::from_string(coord_system)),
+            spec.get("direction").map(|x| x == "reverse")
+        )
     }
 
-    pub fn build(spec: &HashMap<String,String>) -> Option<CoordinateSystem> {
-        spec.get("system").map(|coord_system| {
-            CoordinateSystem::from_string(coord_system, spec.get("direction").map(|x| x.as_str()).unwrap_or(""))
-        })
+    pub fn from_build(coord_system: Option<CoordinateSystemVariety>, reverse: Option<bool>) -> CoordinateSystem {
+        let coord_system = coord_system.unwrap_or(CoordinateSystemVariety::Window);
+        let reverse = reverse.unwrap_or(false);
+        CoordinateSystem(coord_system,reverse)
     }
 
     pub fn is_dustbin(&self) -> bool {

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use peregrine_toolkit::log;
+
 use crate::{CoordinateSystem, CoordinateSystemVariety};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
@@ -70,7 +72,8 @@ impl Padding {
 #[derive(Clone)]
 pub struct LeafInheritStyle {
     priority: Option<i64>,
-    coord_system: Option<CoordinateSystem>,
+    coord_system: Option<CoordinateSystemVariety>,
+    reverse: Option<bool>,
     depth: Option<i8>
 }
 
@@ -79,6 +82,7 @@ impl LeafInheritStyle {
         LeafInheritStyle {
             priority: None,
             coord_system: None,
+            reverse: None,
             depth: None
         }
     }
@@ -88,10 +92,10 @@ impl LeafInheritStyle {
         let priority = priority.map(|x| x.parse::<i64>().ok()).flatten();
         let depth = spec.get("depth").map(|x| x.as_str());
         let depth = depth.map(|x| x.parse::<i8>().ok()).flatten();
-        let coord_system = CoordinateSystem::build(spec);
+        let (coord_system,reverse) = CoordinateSystem::build(spec);
         LeafInheritStyle {
             priority, depth,
-            coord_system
+            coord_system, reverse
         }
     }
 
@@ -105,13 +109,18 @@ impl LeafInheritStyle {
         if other.coord_system.is_some() {
             self.coord_system = other.coord_system.clone();
         }
+        if other.reverse.is_some() {
+            self.reverse = other.reverse.clone();
+        }
     }
 
     pub(crate) fn make(&self) -> LeafCommonStyle {
+        let variety = self.coord_system.as_ref().unwrap_or(&CoordinateSystemVariety::Window).clone();
+        let reverse = self.reverse.unwrap_or(false);
         LeafCommonStyle {
             depth: self.depth.unwrap_or(0),
             priority: self.priority.unwrap_or(0),
-            coord_system: self.coord_system.as_ref().unwrap_or(&CoordinateSystem(CoordinateSystemVariety::Window,false)).clone()
+            coord_system: CoordinateSystem(variety,reverse)
         }
     }
 }
@@ -184,10 +193,11 @@ impl ContainerAllotmentStyle {
 
     pub(crate) fn build(spec: &HashMap<String,String>) -> ContainerAllotmentStyle {
         let allot_type = ContainerAllotmentType::build(spec);
+        let (coord_system,reverse) = CoordinateSystem::build(spec);
         ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
-            coord_system: CoordinateSystem::build(spec).unwrap_or(CoordinateSystem(CoordinateSystemVariety::Tracking,false)),
+            coord_system: CoordinateSystem::from_build(coord_system,reverse),
             leaf: LeafInheritStyle::new(spec)
         }
     }
