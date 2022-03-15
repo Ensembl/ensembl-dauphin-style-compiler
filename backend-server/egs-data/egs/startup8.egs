@@ -31,6 +31,23 @@ stmt new_thin_allotment(p,name,prio,switch_id,has_labels) {
     track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
 }
 
+stmt gene_std(p) {
+    track_add_tag(p,"local");
+    track_add_trigger(p,["track","gene-pc-fwd"]);
+    track_add_trigger(p,["track","gene-pc-rev"]);
+    track_add_trigger(p,["track","gene-other-fwd"]);
+    track_add_trigger(p,["track","gene-other-rev"]);
+    track_add_trigger(p,["track","gene-pc-fwd"]);
+    track_add_switch(p,["settings"]);
+    track_add_switch(p,["focus"]);
+    track_add_switch(p,["track","focus"]);
+    new_allotment(p,"track:focus",-1000000,"focus","1");
+    new_allotment(p,"track:gene-other-fwd",-1000,"gene-other-fwd","1");
+    new_allotment(p,"track:gene-pc-fwd",-1100,"gene-pc-fwd","1");
+    new_allotment(p,"track:gene-pc-rev",1000,"gene-pc-rev","1");
+    new_allotment(p,"track:gene-other-rev",1100,"gene-other-rev","1");
+}
+
 /* TOP-LEVEL */
 p := track_new("self()","framing",1,60,60);
 new_thin_allotment(p,"left:left-pad",-2000000,"pad-left","");
@@ -45,6 +62,40 @@ new_thin_allotment(p,"track-bottom:ruler-bottom",2000000,"ruler-bottom","");
 track_add_trigger(p,["ruler"]);
 track_add_switch(p,["settings"]);
 track_apply(p);
+
+/* GENES & TRANSCRIPTS */
+/* exon-structure; labels ; zmenus; sequence blocks */
+/*
+p := track_new("self()","zoomed-transcript",0,sequence_scale,sequence_scale);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+*/
+/* exon-structure; labels ; zmenus; no sequence blocks */
+/*
+p := track_new("self()","transcript",sequence_scale,19,6);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+*/
+/* no exon-structure; labels; zmenus */
+p := track_new("self()","gene",19,21,4);
+track_add_tag(p,"local");
+gene_std(p);
+track_apply(p);
+/* no exon-structure; no labels; zmenus */
+/*
+p := track_new("self()","gene",21,23,3);
+gene_std(p);
+track_set_switch(p,["scale","no-labels"]);
+track_apply(p);
+*/
+/* no exon-struxcture; no labels ; no-zmenus */
+/*
+p := track_new("self()","gene-overview",23,100,6);
+gene_std(p);
+track_apply(p);
+*/
 
 /* VARIANT */
 p := track_new("self()","variant",1,100,1);

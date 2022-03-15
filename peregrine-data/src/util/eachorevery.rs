@@ -106,6 +106,15 @@ impl<X> EachOrEvery<X> {
         })
     }
 
+    pub fn fullmap_results<F,Y,E>(&self, mut f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
+        Ok(if let Some(len) = self.len() {
+            let out = self.iter(len).unwrap().map(|x| f(x)).collect::<Result<Vec<_>,_>>()?;
+            EachOrEvery::each(out)
+        } else {
+            EachOrEvery::every(f(&self.data[0])?)
+        })
+    }
+
     pub fn inner_zip<W,F,Y>(&self, other: &EachOrEvery<Y>, cb: F) -> EachOrEvery<W> where F: Fn(&X,&Y) -> W {
         match (&self.index,&other.index) {
             (x,EachOrEveryIndex::Every) => {

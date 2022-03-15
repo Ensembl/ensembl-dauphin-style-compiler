@@ -217,7 +217,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
     pub fn fullmap_allotments_results<F,A: Clone,E>(&self, mut cb: F) -> Result<SpaceBase<X,A>,E> 
                 where F: FnMut(&Y) -> Result<A,E> {
         let allotment = if self.len>0 {
-            self.allotment.to_each(self.len).unwrap().map_results(&mut cb)?
+            self.allotment.to_each(self.len).unwrap().fullmap_results(&mut cb)?
         } else {
             EachOrEvery::each(vec![])
         };

@@ -13,6 +13,12 @@ pub struct PendingLeaf {
     transformable: Arc<Mutex<Option<Arc<dyn Transformable>>>>
 }
 
+impl std::fmt::Debug for PendingLeaf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{:?}",self.name())
+    }
+}
+
 impl PendingLeaf {
     pub fn new(name: &AllotmentName) -> PendingLeaf {
         PendingLeaf {

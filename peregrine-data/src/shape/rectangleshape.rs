@@ -1,4 +1,4 @@
-use peregrine_toolkit::puzzle::PuzzleSolution;
+use peregrine_toolkit::{puzzle::PuzzleSolution, log};
 
 use crate::{AllotmentRequest, DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox, boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
@@ -136,7 +136,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {
-                area: variety.spacebasearea_transform(&coord_system,&self.area),
+                area: variety.spacebasearea_transform(&coord_system,&rectangles.area),
                 patina: self.patina.clone(),
                 wobble: self.wobble.clone()
             });

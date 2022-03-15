@@ -205,7 +205,7 @@ impl InterpCommand for AppendGroupInterpCommand {
             if allotment.is_empty() {
                 out.push("".to_string());
             } else {
-                out.push(format!("{}\"{}\"",allotment,group));
+                out.push(format!("{}/{}",allotment,group));
             }
         }
         registers.write(&self.0, InterpValue::Strings(out));
