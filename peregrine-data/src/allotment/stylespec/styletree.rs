@@ -95,8 +95,6 @@ impl StyleTree {
     }
 
     pub fn get_leaf(&self, name: &AllotmentNamePart) -> &LeafAllotmentStyle {
-        #[cfg(debug_assertions)]
-        log!("get_leaf({:?})={:?}",name,self.root.get_leaf(name));
         self.root.get_leaf(name).unwrap_or(&self.empty_leaf)
     }
 

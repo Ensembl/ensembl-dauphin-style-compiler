@@ -39,7 +39,11 @@ impl<'a> StyleBuilder<'a> {
             container.clone()
         } else {
             let mut parent_container = if let Some((_,parent)) = name.pop() {
-                self.try_new_container(&parent,styles)
+                if parent.empty() {
+                    self.root.clone()
+                } else {
+                    self.try_new_container(&parent,styles)
+                }
             } else {
                 self.root.clone()
             };

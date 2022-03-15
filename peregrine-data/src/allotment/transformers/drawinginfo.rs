@@ -2,6 +2,7 @@ use peregrine_toolkit::lock;
 
 use crate::allotment::core::rangeused::RangeUsed;
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct DrawingInfo {
     base_range: RangeUsed<f64>,

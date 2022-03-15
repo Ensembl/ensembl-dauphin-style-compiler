@@ -10,6 +10,7 @@ use crate::{ShapeRequest, ShapeRequestGroup, PlayingField, Shape};
 use crate::{AllotmentMetadataStore, Assets, DataMessage, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct CarriageShapeListBuilder2 {
+    assets: Assets,
     shapes: Vec<Shape<PendingLeaf>>,
     leafs: Vec<PendingLeaf>,
     carriage_universe: CarriageUniverseBuilder,
@@ -17,12 +18,13 @@ pub struct CarriageShapeListBuilder2 {
 }
 
 impl CarriageShapeListBuilder2 {
-    pub fn new() -> CarriageShapeListBuilder2 {
+    pub fn new(assets: &Assets) -> CarriageShapeListBuilder2 {
         CarriageShapeListBuilder2 {
             shapes: vec![],
             leafs: vec![],
             carriage_universe: CarriageUniverseBuilder::new(),
-            style: StyleTreeBuilder::new()
+            style: StyleTreeBuilder::new(),
+            assets: assets.clone()
         }
     }
 
@@ -37,24 +39,29 @@ impl CarriageShapeListBuilder2 {
     }
 
     pub fn len(&self) -> usize { self.shapes.len() }
-    
+
+    fn push_shape(&mut self, shape: Shape<PendingLeaf>) {
+        shape.register_space(&self.assets);
+        self.shapes.push(shape);
+    }
+
     pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,PendingLeaf>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
-        self.shapes.push(RectangleShape::new2(area,patina,wobble)?);
+        self.push_shape(RectangleShape::new2(area,patina,wobble)?);
         Ok(())
     }
 
     pub fn add_text(&mut self, position: SpaceBase<f64,PendingLeaf>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
-        self.shapes.push(TextShape::new2(position,pen,text)?);
+        self.push_shape(TextShape::new2(position,pen,text)?);
         Ok(())
     }
 
     pub fn add_image(&mut self, position: SpaceBase<f64,PendingLeaf>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
-        self.shapes.push(ImageShape::new2(position,images)?);
+        self.push_shape(ImageShape::new2(position,images)?);
         Ok(())
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: PendingLeaf) -> Result<(),DataMessage> {
-        self.shapes.push(WiggleShape::new2((min,max),values,plotter,&allotment)?);
+        self.push_shape(WiggleShape::new2((min,max),values,plotter,&allotment)?);
         Ok(())
     }
 

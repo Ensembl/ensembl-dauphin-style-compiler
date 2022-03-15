@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece}, log};
 
 use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
@@ -10,15 +10,14 @@ fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> 
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
 }
 
-fn height(puzzle: &PuzzleBuilder, draw_top: &PuzzleValueHolder<f64>, child_height: &PuzzlePiece<f64>, min_height: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
+fn height(puzzle: &PuzzleBuilder, child_height: &PuzzlePiece<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
     let mut piece = puzzle.new_piece();
     #[cfg(debug_assertions)]
     piece.set_name("padder/height");
-    let draw_top = draw_top.clone();
     let child_height = child_height.clone();
-    piece.add_solver(&[draw_top.dependency(),child_height.dependency()], move |solution| {
+    piece.add_solver(&[child_height.dependency()], move |solution| {
         let internal_height = child_height.get_clone(solution).max(min_height);
-        Some(draw_top.get_clone(solution) + internal_height + padding_bottom)
+        Some(padding_top + internal_height + padding_bottom)
     });
     PuzzleValueHolder::new(piece)
 }
@@ -85,7 +84,7 @@ impl<T> Padder<T> {
         let mut child_height = puzzle.new_piece();
         #[cfg(debug_assertions)]
         child_height.set_name("padder/child-height");
-        let height = height(&puzzle,&draw_top,&child_height,min_height,padding_bottom);
+        let height = height(&puzzle,&child_height,min_height,padding_top,padding_bottom);
         let info = PadderInfo {
             draw_top, child_height,
             indent: indent(&puzzle,self_indent,&inherited_indent)

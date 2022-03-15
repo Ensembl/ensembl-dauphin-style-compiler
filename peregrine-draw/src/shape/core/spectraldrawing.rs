@@ -5,7 +5,7 @@ use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, w
 use super::spectre::Spectre;
 
 fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<Drawing,Message> {
-    let mut shapes = CarriageShapeListBuilder2::new();
+    let mut shapes = CarriageShapeListBuilder2::new(&Assets::empty());
     for spectre in spectres {
         spectre.draw(&mut shapes,allotment_metadata)?;
     }

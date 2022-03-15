@@ -14,12 +14,7 @@ sense := positive_seq(data,"sense");
 allotment := use_allotment("tracks/track/contig/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
 
-
-style("tracks/",["system","padding-top","priority"][],["tracking","8","0"][]);
-style("tracks/track/*/title/",["system"][],["window"][]);
-style("tracks/track/",["system","padding-top","padding-bottom"][],["tracking","8","8"][]);
-style("tracks/track/*/",["system","padding-top"][],["tracking","10"][]);
-style("tracks/track/*/title/",["priority"][],["-1000"][]);
+style("tracks/track/contig/",["priority"][],["0"][]);
 
 neg_colour := spot_colour(direct_colour(128,128,128,255));
 pos_colour := spot_colour(direct_colour(200,200,200,255));
