@@ -15,6 +15,15 @@ import "lib:peregrine"; use "peregrine";
 100Mb   26
 */
 
+sequence_scale := 9;
+
+stmt new_allotment(p,name,prio,switch_id,has_labels) {
+    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height"];
+    meta_values := [[switch_id],[has_labels],["16"],["16"],["64"]];
+
+    track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
+}
+
 stmt new_thin_allotment(p,name,prio,switch_id,has_labels) {
     meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height","secret-track"];
     meta_values := [[switch_id],[has_labels],["0"],["0"],["20"],["1"]];
@@ -34,5 +43,22 @@ p := track_new("self()","ruler",1,100,1);
 new_thin_allotment(p,"track-top:ruler-top",-2000000,"ruler-top","");
 new_thin_allotment(p,"track-bottom:ruler-bottom",2000000,"ruler-bottom","");
 track_add_trigger(p,["ruler"]);
+track_add_switch(p,["settings"]);
+track_apply(p);
+
+/* CONTIGS */
+/* shimmer */
+p := track_new("self()","contig",26,200,3);
+new_allotment(p,"track:contig",0,"contig","");
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_set_switch(p,["scale","shimmer"]);
+track_apply(p);
+/* regular */
+p := track_new("self()","contig",sequence_scale,26,3);
+new_allotment(p,"track:contig",0,"contig","");
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
 track_apply(p);

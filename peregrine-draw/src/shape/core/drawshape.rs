@@ -176,7 +176,7 @@ fn draw_heraldry_canvas(layer: &mut Layer, gl: &mut WebGlGlobal, tools: &mut Dra
     let mut filter = filter_builder.make(area_a.len());
     if filter.count() == 0 { return Ok(None); }
     let canvas = heraldry.canvas_id(&heraldry_canvas).ok_or_else(|| Message::CodeInvariantFailed("no canvas id A".to_string()))?;
-    Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),depth,&canvas,&dims,scale.is_free(),edge,wobble)?))
+    Ok(Some(draw_area_from_canvas(layer,gl,kind,&area_a.filter(&filter),&depth.filter(&filter),&canvas,&dims,scale.is_free(),edge,wobble)?))
 }
 
 pub(crate) enum ShapeToAdd {

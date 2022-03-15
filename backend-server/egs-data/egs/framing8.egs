@@ -1,13 +1,13 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
 
-pad_left := use_allotment("pad-left");
-pad_right := use_allotment("pad-right");
+//pad_left := use_allotment("pad-left");
+//pad_right := use_allotment("pad-right");
 
 style("pad-left",["system","depth"][],["sideways","57"][]);
 style("pad-right",["system","dirrection","depth"][],["sideways","reverse","54"][]);
 
 
 white_patina := patina_filled(spot_colour(direct_colour(255,255,255,255)));
-rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);
-rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_right);
+//rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_left);
+//rectangle(spacebase(0,0,0),spacebase(1,48,0),white_patina,pad_right);

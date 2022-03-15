@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, collections::HashMap};
 
-use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}};
+use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}, log};
 
 use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety};
 
@@ -17,7 +17,7 @@ pub struct StyleBuilder<'a> {
 }
 
 impl<'a> StyleBuilder<'a> {
-    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> (ContainerHolder,LeafInheritStyle) {
+    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> (ContainerHolder,ContainerAllotmentStyle) {
         let style = styles.get_container(name);
         let container = match style.allot_type {
             ContainerAllotmentType::Stack => {
@@ -30,7 +30,7 @@ impl<'a> StyleBuilder<'a> {
                 ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             }
         };
-        (container,style.leaf.clone())
+        (container,style.clone())
     }
 
     fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> ContainerHolder {
@@ -43,8 +43,8 @@ impl<'a> StyleBuilder<'a> {
             } else {
                 self.root.clone()
             };
-            let (new_container,self_leaf_style) = self.new_container(name,styles);
-            parent_container.add_container(&new_container);
+            let (new_container,self_conrtainer_style) = self.new_container(name,styles);
+            parent_container.add_container(&new_container,&self_conrtainer_style);
             self.containers_made.insert(sequence,new_container.clone());
             new_container
         }
@@ -52,7 +52,7 @@ impl<'a> StyleBuilder<'a> {
 
     fn new_floating_leaf(&self, container: &mut ContainerHolder,  name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> FloatingLeaf {
         let child = FloatingLeaf::new(&self.puzzle,&self.converter,&leaf_style,info);
-        container.add_leaf(&LeafHolder::Leaf(child.clone()));
+        container.add_leaf(&LeafHolder::Leaf(child.clone()),leaf_style);
         child
     }
 
@@ -159,8 +159,7 @@ mod test {
         let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
-        assert!(descs[0].contains("dustbin: false"));
-        assert!(descs[0].contains("coord_system: CoordinateSystem(Tracking, false)"));
+        assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
         assert!(descs[0].contains("top: 10.0"));
         assert!(descs[0].contains("height: 1.0"));
         assert!(descs[1].contains("top: 11.0"));
@@ -192,8 +191,7 @@ mod test {
         let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
-        assert!(descs[0].contains("dustbin: false"));
-        assert!(descs[0].contains("coord_system: CoordinateSystem(Tracking, false)"));
+        assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
         assert!(descs[0].contains("top: 10.0"));
         assert!(descs[0].contains("height: 1.0"));
         assert!(descs[1].contains("top: 10.0"));
@@ -237,8 +235,7 @@ mod test {
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);
-        assert!(descs[0].contains("dustbin: false"));
-        assert!(descs[0].contains("coord_system: CoordinateSystem(Tracking, false)"));
+        assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
         assert!(descs[0].contains("top: 15.0"));
         assert!(descs[0].contains("height: 1.0"));
         assert!(descs[1].contains("top: 13.0"));

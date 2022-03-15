@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable}, leaf::FloatingLeaf, root::Root}};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable}, leaf::FloatingLeaf, root::Root}}, LeafCommonStyle};
+
+use super::style::{ContainerAllotmentStyle, LeafAllotmentStyle};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -11,13 +13,13 @@ pub enum ContainerHolder {
 }
 
 impl ContainerHolder {
-    pub(super) fn add_leaf(&mut self, child: &LeafHolder) {
+    pub(super) fn add_leaf(&mut self, child: &LeafHolder, style: &LeafCommonStyle) {
         match (self,child) {
             (ContainerHolder::Root(root),LeafHolder::Leaf(leaf)) => {
                 root.add_child(leaf);
             },
             (ContainerHolder::Stack(stack),LeafHolder::Leaf(leaf)) => {
-                stack.add_child(leaf);
+                stack.add_child(leaf,style.priority);
             },
             (ContainerHolder::Overlay(overlay),LeafHolder::Leaf(leaf)) => {
                 overlay.add_child(leaf);
@@ -46,7 +48,7 @@ impl ContainerHolder {
         }
     }
 
-    pub(super) fn add_container(&mut self, container: &ContainerHolder) -> Result<(),String> {
+    pub(super) fn add_container(&mut self, container: &ContainerHolder, style: &ContainerAllotmentStyle) -> Result<(),String> {
         match self {
             ContainerHolder::Bumper(_) => {
                 return Err("container is not ranged".to_string());
@@ -58,7 +60,7 @@ impl ContainerHolder {
                 parent.add_child(container.get_stackable()?);            
             },
             ContainerHolder::Stack(parent) => {
-                parent.add_child(container.get_stackable()?);
+                parent.add_child(container.get_stackable()?,style.priority);
             }
         }
         Ok(())

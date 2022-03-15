@@ -1,0 +1,34 @@
+import "lib:std"; use "std";
+import "lib:peregrine"; use "peregrine";
+import "file:common.egs"; use "common";
+
+endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
+
+data := get_data("self()",endpoint,get_region());
+halt(only_warm(),[data]);
+
+start := delta_seq(data,"contig_starts");
+end := start + delta_seq(data,"contig_lengths");
+sense := positive_seq(data,"sense");
+
+allotment := use_allotment("tracks/track/contig/main/content");
+allotment_track_name := use_allotment("tracks/track/contig/title/content");
+
+
+style("tracks/",["system","padding-top","priority"][],["tracking","8","0"][]);
+style("tracks/track/*/title/",["system"][],["window"][]);
+style("tracks/track/",["system","padding-top","padding-bottom"][],["tracking","8","8"][]);
+style("tracks/track/*/",["system","padding-top"][],["tracking","10"][]);
+style("tracks/track/*/title/",["priority"][],["-1000"][]);
+
+neg_colour := spot_colour(direct_colour(128,128,128,255));
+pos_colour := spot_colour(direct_colour(200,200,200,255));
+patina := patina_filled(index(sense,[neg_colour,pos_colour]));
+
+rectangle_on_genome(start,end,5,patina,allotment);
+
+/* track names */
+draw_track_names(["Contigs"],[["track","contig","name"]],[allotment_track_name]);
+
+/* track category */
+//draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[60]")]);

@@ -37,7 +37,8 @@ impl AllotmentStyleGroup {
         for name in AllotmentNamePart::new(leaf.name().clone()).iter_prefixes() {
             inherit.override_style(&self.get_container(&name).leaf);
         }
-        inherit.override_style(&self.get_leaf(&AllotmentNamePart::new(leaf.name().clone())).leaf);
-        inherit.make()
+        let style = self.get_leaf(&AllotmentNamePart::new(leaf.name().clone()));
+        inherit.override_style(&style.leaf);
+        inherit.make(&style)
     }
 }

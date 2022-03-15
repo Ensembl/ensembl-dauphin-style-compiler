@@ -165,7 +165,7 @@ mod test {
 
     fn leaf(tree: &StyleTree, spec: &str) -> i8 {
         let leaf = tree.get_leaf(&AllotmentNamePart::new(AllotmentName::new(spec)));
-        leaf.leaf.make().depth
+        leaf.leaf.make(leaf).depth
     }
 
     #[test]
