@@ -42,8 +42,6 @@ pub struct FloatingLeaf {
 
 impl FloatingLeaf {
     pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
-        #[cfg(debug_assertions)]
-        log!("FloatingLeaf {:?}",statics);
         let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
         let mut base_range_piece = puzzle.new_piece();
         #[cfg(debug_assertions)]
