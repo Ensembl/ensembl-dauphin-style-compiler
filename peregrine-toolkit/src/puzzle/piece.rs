@@ -161,7 +161,6 @@ impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
     fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool) {
         let ctor = if post { &self.post_default } else { &self.pre_default };
         if let Some(default) = (lock!(ctor))() {
-            #[cfg(debug_assertions)]
             self.set_answer(solution,default);
         }
     }

@@ -126,9 +126,9 @@ impl TextShape<Arc<dyn Transformer>> {
 
     pub fn make(&self, solution: &PuzzleSolution) -> Vec<TextShape<LeafCommonStyle>> {
         let mut out = vec![];
-        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
+        for ((variety,coord_system),texts) in self.demerge_by_variety() {
             out.push(TextShape {
-                position: variety.spacebase_transform(&coord_system,&self.position),
+                position: variety.spacebase_transform(&coord_system,&texts.position),
                 text: self.text.clone(),
                 pen: self.pen.clone()
             });

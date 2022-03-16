@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use peregrine_toolkit::log;
-
 use crate::{CoordinateSystem, CoordinateSystemVariety};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
@@ -10,6 +8,7 @@ pub enum LeafAllotmentType {
     Leaf
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub enum ContainerAllotmentType {
     Stack,

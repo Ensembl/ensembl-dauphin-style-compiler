@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
@@ -95,7 +96,19 @@ impl<X> EachOrEvery<X> {
     }
 
     pub fn fold_mut<F,Z>(&mut self, data: &[Z], f: F) where F: Fn(&X,&Z) -> X {
-        self.data = Arc::new(self.data.iter().zip(data.iter()).map(|(x,z)| f(x,z)).collect::<Vec<_>>());
+        match &self.index {
+            EachOrEveryIndex::Every | EachOrEveryIndex::Unindexed => {
+                self.data = Arc::new(self.data.iter().zip(data.iter().cycle()).map(|(x,z)| f(x,z)).collect::<Vec<_>>());
+            },
+            EachOrEveryIndex::Indexed(index) => {
+                let mut out = vec![];
+                for (i,z) in index.iter().zip(data.iter()) {
+                    out.push(f(&self.data[*i],z));
+                }
+                self.data = Arc::new(out);
+                self.index = EachOrEveryIndex::Unindexed;
+            }
+        }
     }
 
     pub fn map_results<F,Y,E>(&self, f: F) -> Result<EachOrEvery<Y>,E> where F: FnMut(&X) -> Result<Y,E> {
@@ -203,6 +216,7 @@ impl<X> EachOrEvery<X> {
     }
 
     pub fn filter(&self, data_filter: &EachOrEveryFilter) -> EachOrEvery<X> {
+        if let Some(len) = self.len() { if data_filter.len() != len { panic!(); }}
         match &data_filter.data {
             EachOrEveryFilterData::All => self.clone(),
             EachOrEveryFilterData::None => EachOrEvery::each(vec![]),
@@ -305,6 +319,7 @@ impl EachOrEveryGroupCompatible {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 enum EachOrEveryFilterData {
     All,
@@ -312,6 +327,7 @@ enum EachOrEveryFilterData {
     Some(Vec<(usize,usize)>)
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct EachOrEveryFilter {
     data: EachOrEveryFilterData,
@@ -345,7 +361,7 @@ impl EachOrEveryFilter {
                 let mut out = vec![];
                 for (offset,len) in index {
                     for pos in 0..*len {
-                        out.push(input[offset+pos].clone());
+                        out.push(input[(offset+pos)%input.len()].clone());
                     }
                 }
                 out
@@ -447,8 +463,8 @@ fn union(a: &[(usize,usize)], b: &[(usize,usize)],len: usize) -> EachOrEveryFilt
             (Some(a),Some(b)) => {
                 if a == b { 
                     out.set(a);
-                    a_iter.advance(b+1); 
-                    b_iter.advance(a+1);
+                    a_iter.advance(a+1); 
+                    b_iter.advance(b+1);
                 } else if a < b {
                     out.set(a);
                     a_iter.advance(a+1);
@@ -457,7 +473,15 @@ fn union(a: &[(usize,usize)], b: &[(usize,usize)],len: usize) -> EachOrEveryFilt
                     b_iter.advance(b+1);
                 }
             },
-            _ => { break; }
+            (Some(a),None) => {
+                out.set(a);
+                a_iter.advance(a+1);
+            },
+            (None,Some(b)) => {
+                out.set(b);
+                b_iter.advance(b+1);
+            },
+            (None,None) => { break; }
         }
     }
     out.make(len)

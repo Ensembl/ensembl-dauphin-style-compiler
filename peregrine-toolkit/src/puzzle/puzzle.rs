@@ -3,6 +3,7 @@ use crate::{lock, log_extra};
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
+use js_sys::Date;
 use lazy_static::lazy_static;
 use identitynumber::{identitynumber, hashable};
 
@@ -137,11 +138,13 @@ impl PuzzleSolution {
             piece.apply_defaults(self,false);
         }
         let mut solver = PuzzleSolver::new(self,lock!(self.graph).borrow());
+        let from = Date::now();
         solver.run(self);
+        let took = Date::now() - from;
         for piece in lock!(pieces).iter_mut() {
             piece.apply_defaults(self,true);
         }
-        log_extra!("{} pieces, {} solved",self.mapping.len(),self.num_solved);
+        log_extra!("{} pieces, {} solved took {}ms",self.mapping.len(),self.num_solved,took);
         #[cfg(debug_assertions)]
         self.confess();
         self.all_solved()
