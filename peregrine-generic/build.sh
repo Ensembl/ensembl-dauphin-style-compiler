@@ -12,8 +12,11 @@ source .cfg
 
 FLAGS=""
 
-if [ "x$CFG_DEBUG_WEB_GL" = "xyes" ] ; then
+if [ "x$CFG_DEBUG_WEBGL" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg debug_webgl"
+fi
+if [ "x$CFG_DEBUG_PUZZLE" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg warn_missing_piece"
 fi
 
 case "$CFG_CONSOLE" in

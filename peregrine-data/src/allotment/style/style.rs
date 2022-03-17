@@ -174,7 +174,8 @@ pub struct ContainerAllotmentStyle {
     pub coord_system: CoordinateSystem,
     pub leaf: LeafInheritStyle,
     pub padding: Padding,
-    pub priority: i64
+    pub priority: i64,
+    pub ranged: bool
 }
 
 impl ContainerAllotmentStyle {
@@ -184,7 +185,8 @@ impl ContainerAllotmentStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Tracking,false),
             leaf: LeafInheritStyle::empty(),
             padding: Padding::empty(),
-            priority: 0
+            priority: 0,
+            ranged: false
         }
     }
 
@@ -193,12 +195,14 @@ impl ContainerAllotmentStyle {
         let (coord_system,reverse) = CoordinateSystem::build(spec);
         let priority = spec.get("priority").map(|x| x.as_str());
         let priority = priority.map(|x| x.parse::<i64>().ok()).flatten().unwrap_or(0);
+        let ranged = spec.get("extent").map(|x| x.as_str()).unwrap_or("wide") == "compact";
         ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
             coord_system: CoordinateSystem::from_build(coord_system,reverse),
             leaf: LeafInheritStyle::new(spec),
-            priority
+            priority,
+            ranged
         }
     }
 }

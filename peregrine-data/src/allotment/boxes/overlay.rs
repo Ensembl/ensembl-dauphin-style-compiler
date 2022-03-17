@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock, log};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed}, style::{style::Padding}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::Coordinated};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }, rangecontainer::RangeMerger};
 
 #[derive(Clone)]
 pub struct Overlay(Padder<UnpaddedOverlay>);
@@ -15,21 +15,22 @@ impl Overlay {
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {
-        self.0.child_mut().add_child(child)
+        self.0.add_child(child,0)
     }
 }
 
 #[derive(Clone)]
 struct UnpaddedOverlay {
     info: PadderInfo,
-    kid_heights: Arc<Mutex<Vec<PuzzleValueHolder<f64>>>>
+    kid_heights: Arc<Mutex<Vec<PuzzleValueHolder<f64>>>>,
 }
 
 impl UnpaddedOverlay {
-    fn new(puzzle: &PuzzleBuilder, info: &PadderInfo) -> UnpaddedOverlay {
+    fn new(puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
         let kid_heights = Arc::new(Mutex::new(vec![]));
         let kid_heights2 = kid_heights.clone();
-        let height2 = info.child_height.clone();
+        let mut height2 = info.child_height.clone();
+        height2.set_name("ch in overlay");
         info.child_height.add_ready(move |_| {
             let deps = lock!(kid_heights2).iter().map(|x : &PuzzleValueHolder<f64>| x.dependency()).collect::<Vec<_>>();
             height2.add_solver(&deps, move |solution| {
@@ -39,10 +40,15 @@ impl UnpaddedOverlay {
                 Some(height)
             })
         });
-        UnpaddedOverlay { info: info.clone(), kid_heights }
+        UnpaddedOverlay { 
+            info: info.clone(), 
+            kid_heights
+        }
     }
+}
 
-    fn add_child(&mut self, child: &dyn Stackable) {
+impl StackableAddable for UnpaddedOverlay {
+    fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
         child.set_top(&self.info.draw_top);
         child.set_indent(&self.info.indent);
         lock!(self.kid_heights).push(child.height());
@@ -58,4 +64,5 @@ impl Stackable for Overlay {
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
     fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }

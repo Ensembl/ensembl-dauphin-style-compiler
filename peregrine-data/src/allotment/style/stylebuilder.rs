@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}, log};
 
-use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety};
+use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety, DataMessage};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle, LeafInheritStyle}, pendingleaf::PendingLeaf};
 
@@ -19,7 +19,7 @@ pub struct StyleBuilder<'a> {
 impl<'a> StyleBuilder<'a> {
     fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> (ContainerHolder,ContainerAllotmentStyle) {
         let style = styles.get_container(name);
-        let container = match style.allot_type {
+        let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
                 ContainerHolder::Stack(Stacker::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             },
@@ -33,24 +33,24 @@ impl<'a> StyleBuilder<'a> {
         (container,style.clone())
     }
 
-    fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> ContainerHolder {
+    fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
         let sequence = name.sequence().to_vec();
         if let Some(container) = self.containers_made.get(&sequence) {
-            container.clone()
+            Ok(container.clone())
         } else {
             let mut parent_container = if let Some((_,parent)) = name.pop() {
                 if parent.empty() {
                     self.root.clone()
                 } else {
-                    self.try_new_container(&parent,styles)
+                    self.try_new_container(&parent,styles)?
                 }
             } else {
                 self.root.clone()
             };
             let (new_container,self_conrtainer_style) = self.new_container(name,styles);
-            parent_container.add_container(&new_container,&self_conrtainer_style);
+            parent_container.add_container(&new_container,&self_conrtainer_style)?;
             self.containers_made.insert(sequence,new_container.clone());
-            new_container
+            Ok(new_container)
         }
     }
 
@@ -60,28 +60,28 @@ impl<'a> StyleBuilder<'a> {
         child
     }
 
-    fn new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> LeafHolder {
-        if let Some((_,rest)) = name.pop() {
-            let mut container = self.try_new_container(&rest,styles);
+    fn new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> Result<LeafHolder,DataMessage> {
+        Ok(if let Some((_,rest)) = name.pop() {
+            let mut container = self.try_new_container(&rest,styles)?;
             LeafHolder::Leaf(self.new_floating_leaf(&mut container,name,info,styles,&leaf_style))
         } else {
             LeafHolder::Leaf(self.dustbin.clone())
-        }
+        })
     }
 
-    fn try_new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> LeafHolder {
+    fn try_new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> Result<LeafHolder,DataMessage> {
         let sequence = name.sequence().to_vec();
-        if let Some(leaf) = self.leafs_made.get(&sequence) {
+        Ok(if let Some(leaf) = self.leafs_made.get(&sequence) {
             leaf.clone()
         } else {
-            let out = self.new_leaf(name,info,styles,leaf_style);
+            let out = self.new_leaf(name,info,styles,leaf_style)?;
             self.leafs_made.insert(sequence,out.clone());
             out
-        }
+        })
     }
 }
 
-pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadata2Builder) {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadata2Builder) -> Result<(),DataMessage> {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
@@ -96,9 +96,10 @@ pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxCon
         let info = pending.drawing_info_clone();
         let styles = pending.style();
         let leaf_style = pending.leaf_style();
-        let xformable = styler.try_new_leaf(&parts,&info,&styles,&leaf_style).into_tranfsormable();
+        let xformable = styler.try_new_leaf(&parts,&info,&styles,&leaf_style)?.into_tranfsormable();
         pending.set_transformable(xformable);
     }
+    Ok(())
 }
 
 #[cfg(test)]

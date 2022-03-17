@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable}, leaf::FloatingLeaf, root::Root}}, LeafCommonStyle};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::Root}}, LeafCommonStyle, DataMessage};
 
 use super::style::{ContainerAllotmentStyle, LeafAllotmentStyle};
 
@@ -9,7 +9,7 @@ pub enum ContainerHolder {
     Root(Root),
     Stack(Stacker),
     Overlay(Overlay),
-    Bumper(Bumper)
+    Bumper(Bumper),
 }
 
 impl ContainerHolder {
@@ -30,37 +30,28 @@ impl ContainerHolder {
         }
     }
 
-    fn get_stackable(&self) -> Result<&dyn Stackable,String> {
-        match self {
-            ContainerHolder::Root(_) => Err("root is not stackable".to_string()),
-            ContainerHolder::Stack(x) => Ok(x),
-            ContainerHolder::Overlay(x) => Ok(x),
-            ContainerHolder::Bumper(x) => Ok(x)
-        }
+    pub(super) fn stackable(&self) -> Result<&dyn Stackable,DataMessage> {
+        Ok(match self {
+            ContainerHolder::Root(_) => { return Err(DataMessage::BadBoxStack(format!("cannot add root as child"))); }
+            ContainerHolder::Stack(x) => x,
+            ContainerHolder::Overlay(x) => x,
+            ContainerHolder::Bumper(x) => x
+        })
     }
 
-    fn get_stackable_ranged(&self) -> Result<(),String> {
+    pub(super) fn add_container(&mut self, container: &ContainerHolder, style: &ContainerAllotmentStyle) -> Result<(),DataMessage> {
         match self {
-            ContainerHolder::Root(x) => Err("root is not ranged".to_string()),
-            ContainerHolder::Stack(x) => Err("stack is not ranged".to_string()),
-            ContainerHolder::Overlay(x) => Err("oferlay is not ranged".to_string()),
-            ContainerHolder::Bumper(x) => Err("bumper is not ranged".to_string()),
-        }
-    }
-
-    pub(super) fn add_container(&mut self, container: &ContainerHolder, style: &ContainerAllotmentStyle) -> Result<(),String> {
-        match self {
-            ContainerHolder::Bumper(_) => {
-                return Err("container is not ranged".to_string());
+            ContainerHolder::Bumper(parent) => {
+                parent.add_child(container.stackable()?);
             },
             ContainerHolder::Root(parent) => {
-                parent.add_child(container.get_stackable()?);
+                parent.add_child(container.stackable()?);
             },
             ContainerHolder::Overlay(parent) => {
-                parent.add_child(container.get_stackable()?);            
+                parent.add_child(container.stackable()?);            
             },
             ContainerHolder::Stack(parent) => {
-                parent.add_child(container.get_stackable()?,style.priority);
+                parent.add_child(container.stackable()?,style.priority);
             }
         }
         Ok(())

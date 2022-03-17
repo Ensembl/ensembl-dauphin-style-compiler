@@ -10,6 +10,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DEBUG_PUZZLE",
+        "question": "Debug puzzle pieces",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_CONSOLE",
         "question": "Console verbosity",
         "options": ["default","quiet","noisy"]

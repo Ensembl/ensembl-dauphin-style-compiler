@@ -1,5 +1,5 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::{lock, log, error};
 use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
@@ -8,7 +8,7 @@ use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
 use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, PlayingField, Shape};
-use crate::shapeload::{ ShapeRequest, ShapeRequestGroup };
+use crate::shapeload::{ ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::shapeload::loadshapes::{LoadMode, load_carriage_shape_list };
@@ -41,6 +41,7 @@ impl UnloadedCarriage {
         let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
         let shapes = if let Some(x) = shapes { x } else { return Ok(None); };
         if errors.len() != 0 {
+            error!("{:?}",errors);
             return Err(DataMessage::CarriageUnavailable(extent.clone(),errors));
         }    
         Ok(Some(shapes))

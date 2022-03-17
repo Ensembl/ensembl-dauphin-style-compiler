@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle};
 
-use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape};
+use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape, DataMessage};
 
 use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}};
 
@@ -32,13 +32,13 @@ impl CarriageUniverseBuilder {
         }
     }
 
-    fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> (Puzzle,AllotmentMetadata2Builder,Root) {
+    fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> Result<(Puzzle,AllotmentMetadata2Builder,Root),DataMessage> {
         let mut metadata = AllotmentMetadata2Builder::new();
         let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));
         let root = Root::new(&mut builder);
-        make_transformable(&builder,&converter,&ContainerHolder::Root(root.clone()),&mut self.leafs.values(),&mut metadata);
-        (Puzzle::new(builder),metadata,root)
+        make_transformable(&builder,&converter,&ContainerHolder::Root(root.clone()),&mut self.leafs.values(),&mut metadata)?;
+        Ok((Puzzle::new(builder),metadata,root))
     }
 }
 
@@ -51,16 +51,16 @@ pub struct CarriageUniverse2 {
 }
 
 impl CarriageUniverse2 {
-    pub fn new(builder: &CarriageUniverseBuilder, shapes: &[Shape<PendingLeaf>], extent: Option<&ShapeRequestGroup>) -> CarriageUniverse2 {
-        let (puzzle,metadata,root) = builder.make_transformable(extent);
+    pub fn new(builder: &CarriageUniverseBuilder, shapes: &[Shape<PendingLeaf>], extent: Option<&ShapeRequestGroup>) -> Result<CarriageUniverse2,DataMessage> {
+        let (puzzle,metadata,root) = builder.make_transformable(extent)?;
         let shapes = shapes.iter().map(|x| 
             x.map_new_allotment(|x| x.transformable().cloned())
         ).collect::<Vec<_>>();
-        CarriageUniverse2 {
+        Ok(CarriageUniverse2 {
             shapes: Arc::new(shapes),
             metadata: AllotmentMetadata2::new(&metadata),
             puzzle, root
-        }
+        })
     }
 
     pub fn puzzle(&self) -> &Puzzle { &self.puzzle }

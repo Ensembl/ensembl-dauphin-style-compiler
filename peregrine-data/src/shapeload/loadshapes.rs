@@ -1,4 +1,4 @@
-use peregrine_toolkit::lock;
+use peregrine_toolkit::error;
 use crate::{DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, add_task, api::MessageSender, Scale, core::pixelsize::PixelSize, CarriageExtent, AllotmentRequest, /*AnchoredCarriageShapeList,*/ shape::{CarriageShapeListRaw}, ShapeRequestGroup, CarriageShapeList2 };
 
 #[derive(Clone)]
@@ -62,6 +62,7 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
     let anchored = match anchored {
         Ok(anchored) => anchored,
         Err(e) => {
+            error!("{:?}",e);
             errors.push(e);
             return (None,errors);
         }

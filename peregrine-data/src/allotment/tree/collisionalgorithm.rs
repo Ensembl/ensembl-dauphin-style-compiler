@@ -76,6 +76,8 @@ impl CollisionAlgorithm {
         }
     }
 
+    fn len(&self) -> usize { self.parts.len() }
+
     fn add_entry(&mut self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
         match range {
             RangeUsed::None => { CollisionToken::new(0.) },
@@ -124,4 +126,6 @@ impl CollisionAlgorithmHolder {
     pub(crate) fn bump(&self) -> f64 {
         lock!(self.0).bump()
     }
+
+    pub(crate) fn len(&self) -> usize { lock!(self.0).len() }
 }

@@ -18,10 +18,12 @@ pub mod puzzle {
     mod graph;
     mod piece;
     mod puzzle;
+    mod util;
 
     pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleSolution, PuzzleDependency };
     pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece };
     pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
+    pub use util::{ FoldValue };
 }
 
 pub mod boom;

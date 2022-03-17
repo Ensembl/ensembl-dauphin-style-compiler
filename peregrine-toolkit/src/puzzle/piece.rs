@@ -9,18 +9,13 @@ pub(super) trait ErasedPiece {
     fn finish(&self, index: &AnswerIndex);
     fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool);
     fn is_solved(&self, solution: &PuzzleSolution) -> bool;
-
-    #[cfg(debug_assertions)]
-    fn name(&self) -> String;
-
-    #[cfg(debug_assertions)]
-    fn set_name(&mut self, name: &str);
+    fn erased_dependency(&self) -> PuzzleDependency;
 }
 
 pub trait PuzzleValue<T: 'static> {
-    fn dependency(&self) -> PuzzleDependency;
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>>;
     fn get(&self, solution: &PuzzleSolution) -> Arc<T> { self.try_get(solution).unwrap() }
+    fn dependency(&self) -> PuzzleDependency;
 }
 
 pub trait ClonablePuzzleValue<T: 'static + Clone> : PuzzleValue<T> {
@@ -42,8 +37,9 @@ impl<T: 'static> PuzzleValueHolder<T> {
 }
 
 impl<T: 'static> PuzzleValue<T> for PuzzleValueHolder<T> {
-    fn dependency(&self) -> PuzzleDependency { self.0.dependency() }
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> { self.0.try_get(solution) }
+
+    fn dependency(&self) -> PuzzleDependency { self.0.dependency() }
 }
 
 impl<T: 'static+ Clone> ClonablePuzzleValue<T> for PuzzleValueHolder<T> {}
@@ -59,9 +55,6 @@ pub struct PuzzlePiece<T> {
     pre_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
     post_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
     readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>) + 'static>>>>,
-
-    #[cfg(debug_assertions)]
-    name: Arc<Mutex<String>>
 }
 
 impl<T> Clone for PuzzlePiece<T> {
@@ -73,8 +66,6 @@ impl<T> Clone for PuzzlePiece<T> {
             pre_default: self.pre_default.clone(),
             post_default: self.post_default.clone(),
             readies: self.readies.clone(),
-            #[cfg(debug_assertions)]
-            name: self.name.clone()
         }
     }
 }
@@ -87,9 +78,7 @@ impl<T: 'static> PuzzlePiece<T> {
             answers: Answers::new(),
             pre_default: Arc::new(Mutex::new(Arc::new(default))),
             post_default: Arc::new(Mutex::new(Arc::new(|| None))),
-            readies: Arc::new(Mutex::new(vec![])),
-            #[cfg(debug_assertions)]
-            name: Arc::new(Mutex::new("".to_string()))
+            readies: Arc::new(Mutex::new(vec![]))
         }
     }
 
@@ -125,19 +114,19 @@ impl<T: 'static> PuzzlePiece<T> {
     }
 
     #[cfg(debug_assertions)]
-    pub fn name(&self) -> String { self.erased().name().to_string() }
-
-    #[cfg(debug_assertions)]
-    pub fn set_name(&mut self, name: &str) { self.erased().set_name(name); }
+    pub fn set_name(&mut self, name: &str) { 
+        self.dependency.set_name(name);
+    }
 }
 
 impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
-    fn dependency(&self) -> PuzzleDependency { self.dependency.clone() }
-
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> {
         let index = if let Some(x) = solution.get_answer_index(&self.dependency) { x } else { return None; };
         self.answers.get(&index)
     }
+
+    fn dependency(&self) -> PuzzleDependency { self.dependency.clone() }
+
 }
 
 impl<T: 'static+ Clone> ClonablePuzzleValue<T> for PuzzlePiece<T> {}
@@ -165,11 +154,7 @@ impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
         }
     }
 
-    #[cfg(debug_assertions)]
-    fn set_name(&mut self, name: &str) { *lock!(self.name) = name.to_string(); }
-
-    #[cfg(debug_assertions)]
-    fn name(&self) -> String { lock!(&self.name).to_string() }
+    fn erased_dependency(&self) -> PuzzleDependency { self.dependency.clone() }
 }
 
 #[cfg(test)]

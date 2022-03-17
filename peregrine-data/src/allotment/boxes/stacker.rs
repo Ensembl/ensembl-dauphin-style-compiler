@@ -1,10 +1,10 @@
 use std::{sync::{Arc, Mutex}, mem};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece}, lock, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, FoldValue}, lock, log};
 
-use crate::{allotment::{style::style::Padding, boxes::boxtraits::Stackable, core::allotmentmetadata2::AllotmentMetadata2Builder}, CoordinateSystem};
+use crate::{allotment::{style::{style::Padding}, boxes::boxtraits::Stackable, core::{allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed}}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::Coordinated};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}, rangecontainer::RangeMerger};
 
 #[derive(Clone)]
 pub struct Stacker(Padder<UnpaddedStacker>);
@@ -15,53 +15,72 @@ impl Stacker {
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable, priority: i64) {
-        self.0.child_mut().add_child(child,priority)
+        self.0.add_child(child,priority)
     }
 }
 
 struct AddedChild {
+    priority: i64,
     top: PuzzlePiece<f64>,
-    bottom: PuzzlePiece<f64>,
-    priority: i64
+    height: PuzzleValueHolder<f64>
 }
 
 struct AddedChildren {
-    children: Vec<AddedChild>
+    children: Vec<AddedChild>,
+    self_top: PuzzleValueHolder<f64>,
+    self_height: FoldValue<f64>,
+    relative_tops: PuzzlePiece<Vec<f64>>
 }
 
 impl AddedChildren {
-    fn new() -> AddedChildren {
+    fn new(puzzle: &PuzzleBuilder, top: &PuzzleValueHolder<f64>, height: &PuzzlePiece<f64>) -> AddedChildren {
+        let mut relative_tops = puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        relative_tops.set_name("relative_tops");
         AddedChildren {
-            children: vec![]
+            children: vec![],
+            self_top: top.clone(),
+            self_height: FoldValue::new(height.clone(),|a,b| a+b),
+            relative_tops
         }
     }
 
     fn add_child(&mut self, puzzle: &mut PuzzleBuilder, top: &PuzzlePiece<f64>, height: &PuzzleValueHolder<f64>, priority: i64) {
-        let mut bottom = puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        bottom.set_name("bottom");
-        let top2 = top.clone();
-        let height2 = height.clone();
-        bottom.add_solver(&[top.dependency(),height.dependency()], move |solution| {
-            Some(top2.get_clone(solution) + height2.get_clone(solution))
-        });
         self.children.push(AddedChild {
+            priority,
             top: top.clone(),
-            bottom, priority
-        })
+            height: height.clone()
+        });
     }
 
-    fn compute(&mut self, top: PuzzleValueHolder<f64>) -> PuzzleValueHolder<f64> {
-        let mut bottom = top;
+    fn ready(&mut self) {
         self.children.sort_by_cached_key(|c| c.priority);
-        for child in &self.children {
-            let bottom2 = bottom.clone();
-            child.top.add_solver(&[bottom.dependency()], move |solution| {
-                Some(bottom2.get_clone(solution))
-            });
-            bottom = PuzzleValueHolder::new(child.bottom.clone());
+        let heights = self.children.iter().map(|c| c.height.clone()).collect::<Vec<_>>();
+        /* calculate our own height */
+        for child_height in &heights {
+            self.self_height.add(&child_height);
         }
-        bottom
+        self.self_height.build();
+        /* set relative tops */
+        let height_deps = heights.iter().map(|x| x.dependency().clone()).collect::<Vec<_>>();
+        self.relative_tops.add_solver(&height_deps, move |solution| {
+            let mut tops = vec![];
+            let mut top = 0.;
+            for height in &heights {
+                tops.push(top);
+                top += height.get_clone(solution);
+            }
+            Some(tops)
+        });
+        /* set child tops */
+        for (i,child) in self.children.iter().enumerate() {
+            let self_top = self.self_top.clone();
+            let children_before = i;
+            let relative_tops = self.relative_tops.clone();
+            child.top.add_solver(&[self.self_top.dependency(),self.relative_tops.dependency()], move |solution| {
+                Some(self_top.get_clone(solution) + relative_tops.get_clone(solution)[children_before])
+            });
+        }
     }
 }
 
@@ -75,20 +94,16 @@ struct UnpaddedStacker {
 impl UnpaddedStacker {
     fn new(puzzle: &PuzzleBuilder, padder_info: &PadderInfo) -> UnpaddedStacker {
         let top = padder_info.draw_top.clone();
-        let total_height = padder_info.child_height.clone();
-        let total_height2 = total_height.clone();
-        let children = Arc::new(Mutex::new(AddedChildren::new()));
+        let children = Arc::new(Mutex::new(AddedChildren::new(puzzle,&top,&padder_info.child_height)));
         let children2 = children.clone();
-        total_height.add_ready(move |_| {
-            let top2 = top.clone();
-            let height = lock!(children2).compute(top.clone());
-            total_height2.add_solver(&[height.dependency(),top.dependency()], move |solution| {
-                Some(height.get_clone(solution) - top2.get_clone(solution))
-            })
+        puzzle.add_ready(move |_| {
+            lock!(children2).ready();
         });
         UnpaddedStacker { puzzle: puzzle.clone(), padder_info: padder_info.clone(), children }
     }
+}
 
+impl StackableAddable for UnpaddedStacker {
     fn add_child(&mut self, child: &dyn Stackable, priority: i64) {
         let mut top = self.puzzle.new_piece();
         #[cfg(debug_assertions)]
@@ -104,6 +119,7 @@ impl Stackable for Stacker {
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
     fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }
 
 impl Coordinated for Stacker {

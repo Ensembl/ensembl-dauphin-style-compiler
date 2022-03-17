@@ -1,5 +1,9 @@
-use std::{sync::{Arc, Mutex}, borrow::Borrow, mem};
+use std::{sync::{Arc, Mutex}, borrow::Borrow, mem, collections::HashSet, hash::Hasher };
 use crate::{lock, log_extra};
+use std::hash::Hash;
+
+#[cfg(debug_assertions)]
+use crate::warn;
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
@@ -11,17 +15,46 @@ use identitynumber::{identitynumber, hashable};
 use std::sync::MutexGuard;
 
 #[cfg_attr(test,derive(Debug))]
-#[derive(Clone,PartialEq,Eq,Hash)]
+#[derive(Clone)]
 pub struct PuzzleDependency {
-    index: Option<usize>
+    index: Option<usize>,
+    #[cfg(debug_assertions)]
+    name: Arc<Mutex<String>>
+}
+
+impl PartialEq for PuzzleDependency {
+    fn eq(&self, other: &Self) -> bool { self.index == other.index }
+}
+
+impl Eq for PuzzleDependency {}
+
+impl Hash for PuzzleDependency {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.index.hash(state); }
 }
 
 impl PuzzleDependency {
     fn new(index: usize) -> PuzzleDependency {
-        PuzzleDependency { index: Some(index) }
+        PuzzleDependency {
+            index: Some(index),
+            #[cfg(debug_assertions)]
+            name: Arc::new(Mutex::new("".to_string()))
+         }
     }
 
-    pub(super) fn none() -> PuzzleDependency { PuzzleDependency { index: None }}
+    #[cfg(debug_assertions)]
+    pub fn name(&self) -> String { lock!(self.name).clone() }
+
+    #[cfg(debug_assertions)]
+    pub fn set_name(&mut self, name: &str) { *lock!(self.name) = name.to_string(); }
+
+    pub(super) fn none() -> PuzzleDependency {
+        PuzzleDependency {
+             index: None,
+             #[cfg(debug_assertions)]
+             name: Arc::new(Mutex::new("".to_string()))
+        }
+    }
+
     pub(super) fn index(&self) -> Option<usize> { self.index }
 }
 
@@ -45,7 +78,8 @@ impl PuzzleBuilder {
     pub fn new_piece<T: 'static>(&self) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
-        let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),|| None);
+        let dependency = PuzzleDependency::new(id);
+        let out = PuzzlePiece::new(&self.graph,dependency,|| None);
         pieces.push(out.erased());
         out
     }
@@ -54,7 +88,8 @@ impl PuzzleBuilder {
     pub fn new_piece_default<T: Clone+'static>(&self, default: T) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
-        let out = PuzzlePiece::new(&self.graph,PuzzleDependency::new(id),move || Some(default.clone()));
+        let dependency = PuzzleDependency::new(id);
+        let out = PuzzlePiece::new(&self.graph,dependency,move || Some(default.clone()));
         pieces.push(out.erased());
         out
     }
@@ -123,12 +158,15 @@ impl PuzzleSolution {
 
     #[cfg(debug_assertions)]
     fn confess(&self) {
-        use crate::warn;
-
+        let mut names = HashSet::new();
         for piece in lock!(self.pieces).iter() {
             if !piece.is_solved(self) {
-                warn!("unsolved: {}",piece.name());
+                names.insert(piece.erased_dependency().name().to_string());
             }
+        }
+        for name in &names {
+            #[cfg(warn_missing_piece)]
+            warn!("unsolved: {}",name);
         }
     }
 

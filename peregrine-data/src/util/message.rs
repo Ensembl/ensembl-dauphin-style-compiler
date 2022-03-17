@@ -46,7 +46,8 @@ pub enum DataMessage {
     NoSuchAllotment(String),
     AllotmentNotCreated(String),
     ConfigError(ConfigError),
-    LengthMismatch(String)
+    LengthMismatch(String),
+    BadBoxStack(String)
 }
 
 impl PeregrineMessage for DataMessage {
@@ -83,7 +84,7 @@ impl PeregrineMessage for DataMessage {
     }
 
     fn code(&self) -> (u64,u64) {
-        // Next code is 29; 0 is reserved; 499 is last.
+        // Next code is 30; 0 is reserved; 499 is last.
         match self {
             DataMessage::BadDauphinProgram(s) => (1,calculate_hash(s)),
             DataMessage::BadBootstrapCannotStart(_,cause) => (2,calculate_hash(&cause.code())),
@@ -114,6 +115,7 @@ impl PeregrineMessage for DataMessage {
             DataMessage::ConfigError(e) => (17,calculate_hash(e)),
             DataMessage::AllotmentNotCreated(e) => (27,calculate_hash(e)),
             DataMessage::LengthMismatch(e) => (28,calculate_hash(e)),
+            DataMessage::BadBoxStack(e) => (29,calculate_hash(e)),
         }
     }
 
@@ -163,7 +165,8 @@ impl PeregrineMessage for DataMessage {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
                 ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),
                 ConfigError::UninitialisedKey(k) => format!("uninitialised config key {}",k),    
-            }
+            },
+            DataMessage::BadBoxStack(k) => format!("bad box stack: {}",k)
         }
     }
 
@@ -204,7 +207,8 @@ impl PeregrineMessage for DataMessage {
                 ConfigError::UnknownConfigKey(k) => format!("unknown config key '{}",k),
                 ConfigError::BadConfigValue(k,r) => format!("bad config value for key '{}': {}",k,r),
                 ConfigError::UninitialisedKey(k) => format!("uninitialised config key {}",k),    
-            }
+            },
+            DataMessage::BadBoxStack(k) => format!("bad box stack: {}",k)
         }
     }
 

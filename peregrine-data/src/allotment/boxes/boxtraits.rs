@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
 
-use crate::{allotment::{core::rangeused::RangeUsed, transformers::transformers::Transformer, style::style::LeafCommonStyle}, CoordinateSystem};
+use crate::{allotment::{core::rangeused::RangeUsed, transformers::transformers::Transformer, style::{style::LeafCommonStyle}}, CoordinateSystem};
 
 pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;
@@ -26,10 +26,12 @@ pub trait Stackable : Coordinated {
         });
         PuzzleValueHolder::new(piece)
     }
+
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>>;
 }
 
-pub trait Ranged {
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>>;
+pub trait StackableAddable {
+    fn add_child(&mut self, child: &dyn Stackable, priority: i64);
 }
 
 pub trait Transformable {

@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueH
 
 use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
-use super::{boxtraits::{Stackable, Ranged, Transformable, Coordinated }};
+use super::{boxtraits::{Stackable, Transformable, Coordinated }};
 
 fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, base_range: &PuzzlePiece<RangeUsed<f64>>, pixel_range: &PuzzlePiece<RangeUsed<f64>>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
     let base_range = base_range.clone();
@@ -115,10 +115,14 @@ impl Stackable for FloatingLeaf {
     fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
         PuzzleValueHolder::new(self.top.clone())
     }
-}
 
-impl Ranged for FloatingLeaf {
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.full_range_piece.clone() }
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { 
+        if self.statics.coord_system.is_tracking() {
+            self.full_range_piece.clone()
+        } else {
+            PuzzleValueHolder::new(ConstantPuzzlePiece::new(RangeUsed::None))
+        }
+    }
 }
 
 impl Transformable for FloatingLeaf {

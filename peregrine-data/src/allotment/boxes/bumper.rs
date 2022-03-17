@@ -1,22 +1,21 @@
-use std::sync::{Arc, Mutex};
+use std::{sync::{Arc, Mutex}, borrow::Borrow};
 
-use js_sys::Intl::Collator;
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleDependency, PuzzleBuilder}, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleDependency, PuzzleBuilder}, lock, log};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::style::Padding, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
+use crate::{allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::{style::Padding}, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::{Ranged, Coordinated}};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}, rangecontainer::{RangeMerger}};
 
 #[derive(Clone)]
 pub struct Bumper(Padder<UnpaddedBumper>);
 
 impl Bumper {
     pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Bumper {
-        Bumper(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedBumper::new(puzzle,info)))        
+        Bumper(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedBumper::new(puzzle,info,false)))        
     }
 
-    pub fn add_child<F>(&mut self, child: &F) where F: Stackable + Ranged {
-        self.0.child_mut().add_child(child)
+    pub fn add_child(&mut self, child: &dyn Stackable) {
+        self.0.add_child(child,0)
     }
 }
 
@@ -29,6 +28,7 @@ impl Stackable for Bumper {
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
     fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }
 
 #[derive(Clone)]
@@ -36,26 +36,34 @@ pub struct UnpaddedBumper {
     puzzle: PuzzleBuilder,
     algorithm: CollisionAlgorithmHolder,
     info: PadderInfo,
-    tokens: Arc<Mutex<Vec<PuzzleValueHolder<CollisionToken>>>>
+    tokens: Arc<Mutex<Vec<PuzzleValueHolder<CollisionToken>>>>,
+    ranges: Arc<Mutex<Option<RangeMerger>>>
 }
 
 impl UnpaddedBumper {
-    pub fn new(puzzle: &PuzzleBuilder, info: &PadderInfo) -> UnpaddedBumper {
+    pub fn new(puzzle: &PuzzleBuilder, info: &PadderInfo, keep_range: bool) -> UnpaddedBumper {
         let algorithm = CollisionAlgorithmHolder::new();
         let algorithm2 = algorithm.clone();
-        info.child_height.add_solver(&[], move |_solution| {
-            let height = algorithm2.bump();
-            Some(height)
+        let child_height = info.child_height.clone();
+        let tokens =  Arc::new(Mutex::new(vec![]));
+        let tokens2 = tokens.clone();
+        puzzle.add_ready(move |_| {
+            let dependencies = lock!(tokens2).iter().map(|x : &PuzzleValueHolder<CollisionToken>| x.dependency()).collect::<Vec<_>>();
+            child_height.add_solver(&dependencies, move |_solution| {
+                let height = algorithm2.bump();
+                Some(height)
+            });
         });
         UnpaddedBumper {
             puzzle: puzzle.clone(),
             algorithm,
             info: info.clone(),
-            tokens: Arc::new(Mutex::new(vec![]))
+            tokens,
+            ranges: Arc::new(Mutex::new(if keep_range { Some(RangeMerger::new(puzzle)) } else { None }))
         }
     }
 
-    fn make_token<F>(&mut self, child: &F) -> PuzzleValueHolder<CollisionToken> where F: Stackable + Ranged {
+    fn make_token(&mut self, child: &dyn Stackable) -> PuzzleValueHolder<CollisionToken> {
         let height = child.height();
         let full_range = child.full_range();     
         let mut piece = self.puzzle.new_piece();
@@ -68,7 +76,7 @@ impl UnpaddedBumper {
         PuzzleValueHolder::new(piece)
     }
 
-    fn set_child_top<F>(&mut self, child: &F, token: &PuzzleValueHolder<CollisionToken>) where F: Stackable {
+    fn set_child_top(&mut self, child: &dyn Stackable, token: &PuzzleValueHolder<CollisionToken>) {
         let mut child_top = self.puzzle.new_piece();
         #[cfg(debug_assertions)]
         child_top.set_name("bumper/child_top");
@@ -80,11 +88,16 @@ impl UnpaddedBumper {
         });
         child.set_top(&PuzzleValueHolder::new(child_top));
     }
+}
 
-    pub fn add_child<F>(&mut self, child: &F) where F: Stackable + Ranged {
+impl StackableAddable for UnpaddedBumper {
+    fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
         let token = self.make_token(child);
         self.set_child_top(child,&token);
         child.set_indent(&self.info.indent);
         lock!(self.tokens).push(token);
+        if let Some(ranges) = &*lock!(self.ranges) {
+            ranges.add(&child.full_range());
+        }
     }
 }

@@ -1,44 +1,10 @@
 use std::{sync::{Arc, Mutex}, mem, cmp::max};
 
-use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, PuzzleValue, PuzzleSolution}, lock, log};
+use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, PuzzleValue, PuzzleSolution, FoldValue}, lock, log};
 
 use crate::{CoordinateSystemVariety, CoordinateSystem};
 
 use super::boxtraits::Stackable;
-
-struct MaxValue {
-    output: PuzzlePiece<f64>,
-    inputs: Vec<PuzzleValueHolder<f64>>
-}
-
-impl MaxValue {
-    fn new(builder: &PuzzleBuilder, default: f64) -> MaxValue {
-        let mut output = builder.new_piece_default(default);
-        #[cfg(debug_assertions)]
-        output.set_name("max value");
-        MaxValue { 
-            inputs: vec![],
-            output
-        }
-    }
-
-    fn add(&mut self, value: &PuzzleValueHolder<f64>) {
-        self.inputs.push(value.clone());
-    }
-
-    fn build(&mut self) {
-        let dependencies = self.inputs.iter().map(|holder| holder.dependency()).collect::<Vec<_>>();
-        let inputs = mem::replace(&mut self.inputs,vec![]);
-        self.output.add_solver(&dependencies, move |solution| {
-            let values = inputs.iter().map(|piece| piece.get(solution).as_ref().clone());
-            values.fold(None, |a: Option<f64>, b| {
-                Some(if let Some(a) = a { a.max(b) } else { b })
-            })
-        });
-    }
-
-    fn get(&self) -> &PuzzlePiece<f64> { &self.output }
-}
 
 #[derive(PartialEq,Clone,Debug)]
 pub struct PlayingField2 {
@@ -65,20 +31,27 @@ impl PlayingField2 {
     pub fn squeeze(&self) -> (f64,f64) { self.squeeze }
 }
 
+fn new_max(puzzle: &mut PuzzleBuilder) -> FoldValue<f64> {
+    let mut piece = puzzle.new_piece_default(0.);
+    #[cfg(debug_assertions)]
+    piece.set_name("new_max");
+    FoldValue::new(piece,|a,b| a.max(b))
+}
+
 pub struct PlayingFieldHolder {
-    top: MaxValue,
-    bottom: MaxValue,
-    left: MaxValue,
-    right: MaxValue
+    top: FoldValue<f64>,
+    bottom: FoldValue<f64>,
+    left: FoldValue<f64>,
+    right: FoldValue<f64>
 }
 
 impl PlayingFieldHolder {
     fn new(puzzle: &mut PuzzleBuilder) -> PlayingFieldHolder {
         PlayingFieldHolder {
-            top: MaxValue::new(puzzle,0.),
-            bottom: MaxValue::new(puzzle,0.),
-            left: MaxValue::new(puzzle,0.),
-            right: MaxValue::new(puzzle,0.),
+            top: new_max(puzzle),
+            bottom: new_max(puzzle),
+            left: new_max(puzzle),
+            right: new_max(puzzle),
         }
     }
 

@@ -119,14 +119,14 @@ pub struct CarriageShapeList2 {
 }
 
 impl CarriageShapeList2 {
-    pub fn empty() -> CarriageShapeList2 {
-        CarriageShapeList2 {
-            carriage_universe: Arc::new(CarriageUniverse2::new(&mut CarriageUniverseBuilder::new(),&vec![],None)),
-        }
+    pub fn empty() -> Result<CarriageShapeList2,DataMessage> {
+        Ok(CarriageShapeList2 {
+            carriage_universe: Arc::new(CarriageUniverse2::new(&mut CarriageUniverseBuilder::new(),&vec![],None)?),
+        })
     }
 
     pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
-        let carriage_universe = CarriageUniverse2::new(&input.carriage_universe,&input.shapes,extent);
+        let carriage_universe = CarriageUniverse2::new(&input.carriage_universe,&input.shapes,extent)?;
         Ok(CarriageShapeList2 {
             carriage_universe: Arc::new(carriage_universe),
         })

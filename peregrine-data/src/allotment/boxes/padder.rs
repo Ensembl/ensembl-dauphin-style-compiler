@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece}, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece}, log, lock};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}}, style::style::Padding, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}, rangeused::RangeUsed}, style::{style::Padding}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
-use super::boxtraits::Coordinated;
+use super::{boxtraits::{Coordinated, StackableAddable}, rangecontainer::RangeMerger};
 
 fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
@@ -35,7 +35,8 @@ pub struct Padder<T> {
     self_indent: f64,
     /* outgoing variables */
     info: PadderInfo,
-    height: PuzzleValueHolder<f64>
+    height: PuzzleValueHolder<f64>,
+    ranges: Arc<Mutex<RangeMerger>>
 }
 
 #[derive(Clone)]
@@ -49,6 +50,7 @@ impl<T: Clone> Clone for Padder<T> {
     fn clone(&self) -> Self {
         Self {
             child: self.child.clone(),
+            ranges: self.ranges.clone(),
             coord_system: self.coord_system.clone(),
             top: self.top.clone(),
             inherited_indent: self.inherited_indent.clone(),
@@ -95,6 +97,7 @@ impl<T> Padder<T> {
         let child = ctor(&info);
         Padder {
             child: Box::new(child),
+            ranges: Arc::new(Mutex::new(RangeMerger::new(puzzle))),
             coord_system: coord_system.clone(),
             top, inherited_indent, self_indent, height,
             info
@@ -129,5 +132,14 @@ impl<T> Stackable for Padder<T> {
 
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
         PuzzleValueHolder::new(self.info.draw_top.clone())
+    }
+
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { lock!(self.ranges).output() }    
+}
+
+impl<T: StackableAddable> StackableAddable for Padder<T> {
+    fn add_child(&mut self, child: &dyn Stackable, priority: i64) {
+        self.child.add_child(child,priority);
+        lock!(self.ranges).add(&child.full_range());
     }
 }
