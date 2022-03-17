@@ -4,14 +4,14 @@ use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, Cl
 
 use crate::{allotment::{core::{arbitrator::Arbitrator, rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder}, style::{style::Padding}, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}, rangecontainer::{RangeMerger}};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 
 #[derive(Clone)]
 pub struct Bumper(Padder<UnpaddedBumper>);
 
 impl Bumper {
     pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder) -> Bumper {
-        Bumper(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedBumper::new(puzzle,info,false)))        
+        Bumper(Padder::new(puzzle,coord_system,padding,metadata,|info| UnpaddedBumper::new(puzzle,info)))        
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {
@@ -36,12 +36,11 @@ pub struct UnpaddedBumper {
     puzzle: PuzzleBuilder,
     algorithm: CollisionAlgorithmHolder,
     info: PadderInfo,
-    tokens: Arc<Mutex<Vec<PuzzleValueHolder<CollisionToken>>>>,
-    ranges: Arc<Mutex<Option<RangeMerger>>>
+    tokens: Arc<Mutex<Vec<PuzzleValueHolder<CollisionToken>>>>
 }
 
 impl UnpaddedBumper {
-    pub fn new(puzzle: &PuzzleBuilder, info: &PadderInfo, keep_range: bool) -> UnpaddedBumper {
+    pub fn new(puzzle: &PuzzleBuilder, info: &PadderInfo) -> UnpaddedBumper {
         let algorithm = CollisionAlgorithmHolder::new();
         let algorithm2 = algorithm.clone();
         let child_height = info.child_height.clone();
@@ -58,8 +57,7 @@ impl UnpaddedBumper {
             puzzle: puzzle.clone(),
             algorithm,
             info: info.clone(),
-            tokens,
-            ranges: Arc::new(Mutex::new(if keep_range { Some(RangeMerger::new(puzzle)) } else { None }))
+            tokens
         }
     }
 
@@ -96,8 +94,5 @@ impl StackableAddable for UnpaddedBumper {
         self.set_child_top(child,&token);
         child.set_indent(&self.info.indent);
         lock!(self.tokens).push(token);
-        if let Some(ranges) = &*lock!(self.ranges) {
-            ranges.add(&child.full_range());
-        }
     }
 }

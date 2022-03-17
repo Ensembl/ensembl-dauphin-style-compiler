@@ -4,7 +4,7 @@ use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleV
 
 use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed}, style::{style::Padding}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }, rangecontainer::RangeMerger};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }};
 
 #[derive(Clone)]
 pub struct Overlay(Padder<UnpaddedOverlay>);
@@ -30,6 +30,7 @@ impl UnpaddedOverlay {
         let kid_heights = Arc::new(Mutex::new(vec![]));
         let kid_heights2 = kid_heights.clone();
         let mut height2 = info.child_height.clone();
+        #[cfg(debug_assertions)]
         height2.set_name("ch in overlay");
         info.child_height.add_ready(move |_| {
             let deps = lock!(kid_heights2).iter().map(|x : &PuzzleValueHolder<f64>| x.dependency()).collect::<Vec<_>>();

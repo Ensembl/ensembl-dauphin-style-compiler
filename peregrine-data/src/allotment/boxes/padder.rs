@@ -1,10 +1,10 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece}, log, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, log, lock};
 
 use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}, rangeused::RangeUsed}, style::{style::Padding}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
-use super::{boxtraits::{Coordinated, StackableAddable}, rangecontainer::RangeMerger};
+use super::{boxtraits::{Coordinated, StackableAddable}};
 
 fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
@@ -36,7 +36,8 @@ pub struct Padder<T> {
     /* outgoing variables */
     info: PadderInfo,
     height: PuzzleValueHolder<f64>,
-    ranges: Arc<Mutex<RangeMerger>>
+    ranges: Arc<Mutex<FoldValue<RangeUsed<f64>>>>,
+    full_range: PuzzleValueHolder<RangeUsed<f64>>
 }
 
 #[derive(Clone)]
@@ -57,6 +58,7 @@ impl<T: Clone> Clone for Padder<T> {
             self_indent: self.self_indent.clone(),
             info: self.info.clone(),
             height: self.height.clone(),
+            full_range: self.full_range.clone()
         }
     }
 }
@@ -95,12 +97,19 @@ impl<T> Padder<T> {
             add_report(metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
         }
         let child = ctor(&info);
+        let mut full_range = puzzle.new_piece();
+        let ranges = Arc::new(Mutex::new(FoldValue::new(full_range.clone(), |x : RangeUsed<f64>,y| x.merge(&y))));
+        let ranges2 = ranges.clone();
+        puzzle.add_ready(move |solution| lock!(ranges2).build());
+        #[cfg(debug_assertions)]
+        full_range.set_name("padder/full_range");
         Padder {
             child: Box::new(child),
-            ranges: Arc::new(Mutex::new(RangeMerger::new(puzzle))),
+            ranges,
             coord_system: coord_system.clone(),
             top, inherited_indent, self_indent, height,
-            info
+            info, 
+            full_range: PuzzleValueHolder::new(full_range.clone())
         }
     }
 
@@ -134,7 +143,7 @@ impl<T> Stackable for Padder<T> {
         PuzzleValueHolder::new(self.info.draw_top.clone())
     }
 
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { lock!(self.ranges).output() }    
+    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.full_range.clone() }
 }
 
 impl<T: StackableAddable> StackableAddable for Padder<T> {

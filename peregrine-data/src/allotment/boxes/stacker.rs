@@ -4,7 +4,7 @@ use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleV
 
 use crate::{allotment::{style::{style::Padding}, boxes::boxtraits::Stackable, core::{allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed}}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}, rangecontainer::RangeMerger};
+use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 
 #[derive(Clone)]
 pub struct Stacker(Padder<UnpaddedStacker>);

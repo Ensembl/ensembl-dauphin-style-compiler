@@ -3,7 +3,6 @@ mod allotment {
         pub(crate) mod boxtraits;
         pub(crate) mod leaf;
         pub(crate) mod overlay;
-        pub(crate) mod rangecontainer;
         pub(crate) mod stacker;
         pub(crate) mod bumper;
         pub(crate) mod padder;
