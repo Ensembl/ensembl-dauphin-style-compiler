@@ -59,8 +59,21 @@ potential_tracks_bgd := [
     "tracks/track/focus/main/background/content"
 ];
 
+/*
+
+/ <- stack
+title/ <- track title
+main/ <- overlay
+main/background/ <- chevrons (WINDOW)
+main/main/ <- bumper
+main/main/<id>/ <- stacker
+main/main/<id>/blocks/ <- blocks
+main/main/<id>/text/ <- label
+
+*/
+
 style("tracks/track/gene-other-rev/",["priority"][],["110"][]);
-style("tracks/track/gene-pc-rwe/",["priority"][],["100"][]);
+style("tracks/track/gene-pc-rev/",["priority"][],["100"][]);
 style("tracks/track/gene-other-fwd/",["priority"][],["-110"][]);
 style("tracks/track/gene-pc-fwd/",["priority"][],["-100"][]);
 style("tracks/track/focus/",["priority"][],["1000"][]);
