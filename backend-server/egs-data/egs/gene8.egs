@@ -76,7 +76,7 @@ style("tracks/track/gene-other-rev/",["priority"][],["110"][]);
 style("tracks/track/gene-pc-rev/",["priority"][],["100"][]);
 style("tracks/track/gene-other-fwd/",["priority"][],["-110"][]);
 style("tracks/track/gene-pc-fwd/",["priority"][],["-100"][]);
-style("tracks/track/focus/",["priority"][],["1000"][]);
+style("tracks/track/focus/",["priority"][],["-900"][]);
 
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);

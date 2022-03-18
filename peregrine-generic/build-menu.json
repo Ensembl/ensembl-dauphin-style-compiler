@@ -15,6 +15,11 @@
         "options": ["no","yes"]
     },
     {
+        "key": "CFG_DISABLE_ANTICIPATE",
+        "question": "Disable anticipation",
+        "options": ["no","yes"]
+    },
+    {
         "key": "CFG_CONSOLE",
         "question": "Console verbosity",
         "options": ["default","quiet","noisy"]

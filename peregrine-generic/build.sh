@@ -18,6 +18,9 @@ fi
 if [ "x$CFG_DEBUG_PUZZLE" = "xyes" ] ; then
   FLAGS="$FLAGS --cfg warn_missing_piece"
 fi
+if [ "x$CFG_DISABLE_ANTICIPATE" = "xyes" ] ; then
+  FLAGS="$FLAGS --cfg disable_anticipate"
+fi
 
 case "$CFG_CONSOLE" in
   noisy)

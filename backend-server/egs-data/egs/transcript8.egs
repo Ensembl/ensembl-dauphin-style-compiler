@@ -41,13 +41,13 @@ thick_end := thick_start + delta_seq(data,"thick_lengths");
 exon_gene_indexes := derun(delta_seq(data,"exon_counts"));
 
 exon_focus_id := index(exon_gene_indexes,[focus_id]);
-
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
 exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
 exon_thick_limit_end := index(exon_gene_indexes,[thick_end]);
 trunc_left := exon_thick_limit_start>exon_start;
 trunc_right := exon_thick_limit_end<exon_end;
+
 
 /* ... update exons to thick limit */
 exon_thick_start := exon_start;
@@ -98,6 +98,7 @@ main/main/<id>/ <- stacker
 main/main/<id>/diagram/ <- overlay
 main/main/<id>/diagram/far-under <- central dotted line
 main/main/<id>/diagram/under <- central solid line
+main/main/<id>/diagram/far-over <- solid exon box
 main/main/<id>/text/ <- label
 
 */
@@ -106,13 +107,16 @@ style("tracks/track/gene-other-rev/",["priority"][],["110"][]);
 style("tracks/track/gene-pc-rev/",["priority"][],["100"][]);
 style("tracks/track/gene-other-fwd/",["priority"][],["-110"][]);
 style("tracks/track/gene-pc-fwd/",["priority"][],["-100"][]);
-style("tracks/track/focus/",["priority"][],["1000"][]);
+style("tracks/track/focus/",["priority"][],["-900"][]);
 
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/",["type"][],["overlay"][]);
-style("**/main/main/*/diagram/far-under",["depth"][],["-2"][]);
 style("**/main/main/*/diagram/under",["depth"][],["-3"][]);
+style("**/main/main/*/diagram/far-under",["depth"][],["-2"][]);
+style("**/main/main/*/diagram/blanking",["depth"][],["1"][]);
+style("**/main/main/*/diagram/over",["depth"][],["2"][]);
+style("**/main/main/*/diagram/far-over",["depth"][],["3"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);
 
 potential_tracks := [
@@ -153,13 +157,37 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 
+/*
+ * Exon allotments
+ */
 
-use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
-base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),gene_id)];
+exon_allotment_idx := len([exon_start]) (*) 0;
+exon_allotment_idx#[exon_strand > 0] (+=) 2;
+exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
+exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
+thick_exon_allotment_idx := exon_allotment_idx#[thick_exons];
+
+exon_gene_ids := index(exon_gene_indexes,[gene_id]);
+thick_exon_gene_ids := exon_gene_ids#[thick_exons];
+
+use_allotment_names(root_allotment_names,enabled_tracks,potential_tracks);
+base_allotment_names := [append_group(index(allotment_idx,root_allotment_names),gene_id)];
+base_exon_allotment_names := [append_group(index(exon_allotment_idx,root_allotment_names),exon_gene_ids)];
+base_thick_exon_allotment_names := [append_group(index(thick_exon_allotment_idx,root_allotment_names),thick_exon_gene_ids)];
+
 allotment_names := [append_group(base_allotment_names[],["diagram"][])];
+exon_allotment_names := [append_group(base_exon_allotment_names[],["diagram"][])];
+thick_exon_allotment_names := [append_group(base_thick_exon_allotment_names[],["diagram"][])];
+
 allotment_under := use_allotment(append_group(allotment_names[],["under"][]));
 allotment_far_under := use_allotment(append_group(allotment_names[],["far-under"][]));
+allotment_far_over := use_allotment(append_group(allotment_names[],["far-over"][]));
+allotment_exon_blanking := use_allotment(append_group(exon_allotment_names[],["blanking"][]));
+allotment_exon_over := use_allotment(append_group(exon_allotment_names[],["far-over"][]));
+allotment_thick_exon_far_over := use_allotment(append_group(thick_exon_allotment_names[],["far-over"][]));
 
+notice(format([exon_allotment_idx]));
+notice(format([append_group(thick_exon_allotment_names[],["far-over"][])]));
 
 //allotment := use_allotment(append_group(index(allotment_idx,allotment_names),gene_id));
 //allotment_under := use_allotment(append_group(index(allotment_idx,allotment_under_names),gene_id));
@@ -174,24 +202,9 @@ alienate(allotment);
 focus_start := start#[allotment_idx==4];
 focus_end := end#[allotment_idx==4];
 
-/*
- * Exon allotments
- */
-
-/*
-exon_allotment_idx := len([exon_start]) (*) 0;
-exon_allotment_idx#[exon_strand > 0] (+=) 2;
-exon_allotment_idx#[in(exon_gene_biotype,["protein_coding"])] (+=) 1;
-exon_allotment_idx#[exon_focus_id==focus_gene] := 4;
-
-exon_gene_ids := index(exon_gene_indexes,[gene_id]);
-
-exon_allotment := use_allotment(append_group(index(exon_allotment_idx,allotment_over_names),exon_gene_ids));
-exon_allotment_over := use_allotment(append_group(index(exon_allotment_idx,allotment_very_over_names),exon_gene_ids));
-blanking_exon_allotment := use_allotment(append_group(index(exon_allotment_idx,blanking_allotment_names),exon_gene_ids));
-
-thick_exon_allotment := exon_allotment_over#[thick_exons];
-*/
+//exon_allotment := use_allotment(append_group(index(exon_allotment_idx,allotment_over_names),exon_gene_ids));
+//exon_allotment_over := index(exon_allotment_idx,[allotment_far_over]);
+//blanking_exon_allotment := use_allotment(append_group(index(exon_allotment_idx,blanking_allotment_names),exon_gene_ids));
 
 /*
  * Filter labels by which tracks are configured to have labels
@@ -237,9 +250,9 @@ under_patina := patina_filled(index(allotment_idx,[non_pc_colour,pc_colour,non_p
 under_dotted_patina := patina_hollow(index(allotment_idx,[dotted_non_pc_colour,dotted_pc_colour,dotted_non_pc_colour,dotted_pc_colour,dotted_focus_colour]),1);
 hollow_patina := patina_hollow(index(allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 //exon_patina := patina_filled(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
-//exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
+exon_hollow_patina := patina_hollow(index(exon_allotment_idx,[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]),1);
 white_patina := patina_filled(spot_colour(direct_colour(255,255,255,255)));
-//thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
+thick_exon_patina := patina_filled(index(exon_allotment_idx#[thick_exons],[non_pc_colour,pc_colour,non_pc_colour,pc_colour,focus_colour]));
 text_colour := direct_colour(111,129,144,255);
 text_size := 10;
 
@@ -268,15 +281,14 @@ ge_zmenu_patina := patina_zmenu(zmenu_tmpl,["symbol","id","track","type"],[[gene
  */
 
 /* draw gene-extent dotted lines */
-//rectangle_on_genome(start,start,6,hollow_patina,allotment); // left stop
-//rectangle_on_genome(end,end,6,hollow_patina,allotment); // right stop
+rectangle_on_genome(start,start,6,hollow_patina,allotment_far_under); // left stop
+rectangle_on_genome(end,end,6,hollow_patina,allotment_far_under); // right stop
 rectangle_on_genome_offset(start,end,1,under_dotted_patina,allotment_far_under,3); // central dotted line
 rectangle_on_genome_offset(transcript_start,transcript_end,1,under_patina,allotment_under,3); // central line
 
-
-//rectangle_on_genome(exon_start,exon_end,6,white_patina,blanking_exon_allotment); // exon white box
-//rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,exon_allotment); // exon hollow box
-//rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,thick_exon_allotment); // exon solid box
+rectangle_on_genome(exon_start,exon_end,6,white_patina,allotment_exon_blanking); // exon white box
+rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,allotment_exon_over); // exon hollow box
+rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,allotment_thick_exon_far_over); // exon solid box
 
 /* zmenu areas */
 //rectangle_on_genome(start,end,8,zmenu_patina,allotment);

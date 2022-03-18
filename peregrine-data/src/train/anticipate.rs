@@ -77,6 +77,10 @@ impl Anticipate {
         }
     }
 
+    fn enabled(&self) -> bool {
+        !cfg!(disable_anticipate)
+    }
+
     fn lightweight(&self) -> bool {
         cfg!(debug_assertions)
     }
@@ -129,15 +133,17 @@ impl Anticipate {
             if extent == old_extent { return Ok(()); }
         }
         self.stream.clear();
-        if self.lightweight() {
-            //self.build_tasks(extent,2,2,false)?;
-        } else {
-            self.build_tasks(extent,8,0,true)?;
-            self.build_tasks(extent,8,0,false)?;
-            self.build_tasks(extent,8,2,false)?;
-            self.build_tasks(extent,8,6,false)?;
-            self.build_tasks(extent,30,2,false)?;
-            self.build_tasks(extent,30,6,false)?;
+        if self.enabled() {
+            if self.lightweight() {
+                self.build_tasks(extent,2,2,false)?;
+            } else {
+                self.build_tasks(extent,8,0,true)?;
+                self.build_tasks(extent,8,0,false)?;
+                self.build_tasks(extent,8,2,false)?;
+                self.build_tasks(extent,8,6,false)?;
+                self.build_tasks(extent,30,2,false)?;
+                self.build_tasks(extent,30,6,false)?;
+            }
         }
         *self.extent.lock().unwrap() = Some(extent.clone());
         Ok(())
