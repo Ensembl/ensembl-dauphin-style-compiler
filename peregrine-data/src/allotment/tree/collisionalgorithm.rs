@@ -123,9 +123,6 @@ impl CollisionAlgorithmHolder {
         lock!(self.0).add_entry(range,height)
     }
 
-    pub(crate) fn bump(&self) -> f64 {
-        lock!(self.0).bump()
-    }
-
+    pub(crate) fn bump(&self) -> f64 { lock!(self.0).bump() }
     pub(crate) fn len(&self) -> usize { lock!(self.0).len() }
 }

@@ -100,7 +100,7 @@ impl<T> Padder<T> {
         let mut full_range = puzzle.new_piece();
         let ranges = Arc::new(Mutex::new(FoldValue::new(full_range.clone(), |x : RangeUsed<f64>,y| x.merge(&y))));
         let ranges2 = ranges.clone();
-        puzzle.add_ready(move |solution| lock!(ranges2).build());
+        puzzle.add_ready(move |_| lock!(ranges2).build());
         #[cfg(debug_assertions)]
         full_range.set_name("padder/full_range");
         Padder {

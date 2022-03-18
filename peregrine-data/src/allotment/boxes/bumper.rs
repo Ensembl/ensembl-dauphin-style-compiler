@@ -32,67 +32,85 @@ impl Stackable for Bumper {
 }
 
 #[derive(Clone)]
+struct BumpItem {
+    range: PuzzleValueHolder<RangeUsed<f64>>,
+    height: PuzzleValueHolder<f64>,
+    top: PuzzlePiece<f64>,
+    token: PuzzlePiece<CollisionToken>
+}
+
+#[derive(Clone)]
 pub struct UnpaddedBumper {
     puzzle: PuzzleBuilder,
-    algorithm: CollisionAlgorithmHolder,
     info: PadderInfo,
-    tokens: Arc<Mutex<Vec<PuzzleValueHolder<CollisionToken>>>>
+    items: Arc<Mutex<Vec<BumpItem>>>,
 }
 
 impl UnpaddedBumper {
     pub fn new(puzzle: &PuzzleBuilder, info: &PadderInfo) -> UnpaddedBumper {
-        let algorithm = CollisionAlgorithmHolder::new();
-        let algorithm2 = algorithm.clone();
-        let child_height = info.child_height.clone();
-        let tokens =  Arc::new(Mutex::new(vec![]));
-        let tokens2 = tokens.clone();
+        let our_top = info.draw_top.clone();
+        let mut algorithm =  puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        algorithm.set_name("algorithm");
+        algorithm.add_solver(&[], |_| {
+            Some(CollisionAlgorithmHolder::new())
+        });
+        let items  = Arc::new(Mutex::new(Vec::<BumpItem>::new()));
+        let solved = info.child_height.clone();
+        let items2 = items.clone();
         puzzle.add_ready(move |_| {
-            let dependencies = lock!(tokens2).iter().map(|x : &PuzzleValueHolder<CollisionToken>| x.dependency()).collect::<Vec<_>>();
-            child_height.add_solver(&dependencies, move |_solution| {
-                let height = algorithm2.bump();
-                Some(height)
+            let items = lock!(items2);
+            let mut dependencies = vec![];
+            for item in &*items {
+                let algorithm2 = algorithm.clone();
+                let item2 = item.clone();
+                item.token.add_solver(&[algorithm.dependency(),item.range.dependency(),item.height.dependency()], move |solution| {
+                    let algorithm = &algorithm2.get(solution);
+                    Some(algorithm.add_entry(&item2.range.get_clone(solution),item2.height.get_clone(solution)))
+                });
+                dependencies.push(item.token.dependency());
+            }
+            dependencies.push(algorithm.dependency());
+            let algorithm2 = algorithm.clone();
+            solved.add_solver(&dependencies, move |solution| {
+                Some(algorithm2.get(solution).bump())
             });
+            for item in &*items {
+                let item2 = item.clone();
+                let our_top2 = our_top.clone();
+                item.top.add_solver(&[our_top.dependency(),item.token.dependency(),solved.dependency()], move |solution| {
+                    Some(our_top2.get_clone(solution) + item2.token.get(solution).get())
+                });
+            }
         });
         UnpaddedBumper {
             puzzle: puzzle.clone(),
-            algorithm,
             info: info.clone(),
-            tokens
+            items
         }
     }
 
-    fn make_token(&mut self, child: &dyn Stackable) -> PuzzleValueHolder<CollisionToken> {
-        let height = child.height();
-        let full_range = child.full_range();     
-        let mut piece = self.puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        piece.set_name("bumper/make_token");
-        let algorithm = self.algorithm.clone();
-        piece.add_solver(&[height.dependency(),full_range.dependency()], move |solution| {
-            Some(algorithm.add_entry(&full_range.get_clone(solution),height.get_clone(solution)))
-        });
-        PuzzleValueHolder::new(piece)
-    }
-
-    fn set_child_top(&mut self, child: &dyn Stackable, token: &PuzzleValueHolder<CollisionToken>) {
+    fn set_child_top(&mut self, child: &dyn Stackable) {
         let mut child_top = self.puzzle.new_piece();
         #[cfg(debug_assertions)]
         child_top.set_name("bumper/child_top");
-        let token = token.clone();
-        let top = self.info.draw_top.clone();
-        /* dependency on child_height ensures bumping is run so that token is not None */
-        child_top.add_solver(&[token.dependency(),top.dependency(),self.info.child_height.dependency()], move |solution| {
-            Some(token.get_clone(solution).get() + top.get_clone(solution))
+        let mut token = self.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        token.set_name("bumper/token");
+        let child_top2 = child_top.clone();
+        lock!(self.items).push(BumpItem {
+            range: child.full_range(),
+            height: child.height(),
+            top: child_top,
+            token
         });
-        child.set_top(&PuzzleValueHolder::new(child_top));
+        child.set_top(&PuzzleValueHolder::new(child_top2.clone()));
     }
 }
 
 impl StackableAddable for UnpaddedBumper {
     fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
-        let token = self.make_token(child);
-        self.set_child_top(child,&token);
+        self.set_child_top(child);
         child.set_indent(&self.info.indent);
-        lock!(self.tokens).push(token);
     }
 }
