@@ -74,13 +74,13 @@ use_allotment_names(base_allotment_names,enabled_tracks,potential_tracks);
 use_allotment_names(allotment_names_bgd,enabled_tracks,potential_tracks_bgd);
 use_allotments(allotments_bgd,enabled_tracks,allotment_names_bgd);
 
-/*
 use_allotments(allotments_wallpaper,enabled_tracks,[
-    "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
-    "track:gene-other-fwd:wallpaper[-10]","track:gene-pc-fwd:wallpaper[-10]",
-    "track:focus:wallpaper[-10]"
+    "tracks/track/gene-other-rev/main/background/content",
+    "tracks/track/gene-pc-rev/main/background/content",
+    "tracks/track/gene-other-fwd/main/background/content",
+    "tracks/track/gene-pc-fwd/main/background/content",
+    "tracks/track/focus/main/background/content",
 ]);
-*/
 
 use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/gene-other-rev/title/content",
@@ -89,16 +89,6 @@ use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/gene-pc-fwd/title/content",
     "tracks/track/focus/title/content",
 ]);
-
-/*
-use_allotment_names(allotment_text_names,enabled_tracks,[
-    "tracks/track/gene-other-rev/main/main/blocks/content",
-    "tracks/track/gene-pc-rev/main/main/blocks/content",
-    "tracks/track/gene-other-fwd/main/main/blocks/content",
-    "tracks/track/gene-pc-fwd/main/main/prinsipal/content",
-    "tracks/track/focus/main/main/blocks/content"
-]);
-*/
 
 tracks_used_cat := ["","","","",""];
 tracks_used_cat[enabled_tracks] := gene_cat_allotments[enabled_tracks];
@@ -155,8 +145,8 @@ enabled_labels := get_switch([
 
 enabled_gene_labels := index(allotment_idx,[enabled_labels]);
 
-//text_allotment#[enabled_gene_labels==false] := use_allotment("");
-//text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
+text_allotment#[enabled_gene_labels==false] := use_allotment("");
+text_allotment#[get_switch(["scale","no-labels"])] := use_allotment("");
 
 gene_labels := if(get_switch(["track","gene-pc-fwd","label","id"]),gene_id,gene_name);
 
@@ -216,7 +206,7 @@ image_underneath(chevron_spacing,0,"chevron-right",allotments_bgd[@==3]);
 
 /* focus chevrons */
 focus_strand := strand#[focus_id==focus_gene];
-//image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_wallpaper[@==4]);
+image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_strand],allotments_wallpaper[@==4]);
 
 /* track names */
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);

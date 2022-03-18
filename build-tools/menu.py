@@ -203,3 +203,5 @@ with open(output_file,'w') as f:
 if use_prev:
     with open(use_prev,'w') as f:
         json.dump(answers,f)
+
+print()

@@ -84,12 +84,10 @@ track_add_tag(p,"local");
 gene_std(p);
 track_apply(p);
 /* no exon-structure; no labels; zmenus */
-/*
 p := track_new("self()","gene",21,23,3);
 gene_std(p);
 track_set_switch(p,["scale","no-labels"]);
 track_apply(p);
-*/
 /* no exon-struxcture; no labels ; no-zmenus */
 /*
 p := track_new("self()","gene-overview",23,100,6);
