@@ -87,11 +87,9 @@ gene_std(p);
 track_set_switch(p,["scale","no-labels"]);
 track_apply(p);
 /* no exon-struxcture; no labels ; no-zmenus */
-/*
 p := track_new("self()","gene-overview",23,100,6);
 gene_std(p);
 track_apply(p);
-*/
 
 /* VARIANT */
 p := track_new("self()","variant",1,100,1);

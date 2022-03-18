@@ -127,6 +127,13 @@ potential_tracks := [
     "tracks/track/focus/main/main"
 ];
 
+use_allotments(allotments_trackname,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/content",
+    "tracks/track/gene-pc-rev/title/content",
+    "tracks/track/gene-other-fwd/title/content",
+    "tracks/track/gene-pc-fwd/title/content",
+    "tracks/track/focus/title/content",
+]);
 
 //use_allotment_names(blanking_allotment_names,enabled_tracks,[append_depth(potential_tracks[],-1)]);
 //use_allotment_names(allotment_under_names,enabled_tracks,[append_depth(potential_tracks[],-2)]);
@@ -185,9 +192,6 @@ allotment_far_over := use_allotment(append_group(allotment_names[],["far-over"][
 allotment_exon_blanking := use_allotment(append_group(exon_allotment_names[],["blanking"][]));
 allotment_exon_over := use_allotment(append_group(exon_allotment_names[],["far-over"][]));
 allotment_thick_exon_far_over := use_allotment(append_group(thick_exon_allotment_names[],["far-over"][]));
-
-notice(format([exon_allotment_idx]));
-notice(format([append_group(thick_exon_allotment_names[],["far-over"][])]));
 
 //allotment := use_allotment(append_group(index(allotment_idx,allotment_names),gene_id));
 //allotment_under := use_allotment(append_group(index(allotment_idx,allotment_under_names),gene_id));
@@ -291,9 +295,9 @@ rectangle_on_genome(exon_start,exon_end,6,exon_hollow_patina,allotment_exon_over
 rectangle_on_genome(exon_thick_start,exon_thick_end,6,thick_exon_patina,allotment_thick_exon_far_over); // exon solid box
 
 /* zmenu areas */
-//rectangle_on_genome(start,end,8,zmenu_patina,allotment);
-//rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment);
-//rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment);
+rectangle_on_genome(start,end,8,zmenu_patina,allotment_far_under);
+rectangle_on_genome(start,end,8,tr_zmenu_patina,allotment_far_under);
+rectangle_on_genome(start,end,8,ge_zmenu_patina,allotment_far_under);
 
 /* label */
 //text_underneath(start,8,textpen,gene_labels,text_allotment);
@@ -319,7 +323,7 @@ enabled_names := get_switch([
 ][]);
 
 /* track names */
-//draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
+draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 
 /* track category */
 //draw_track_category("G",allotments_cat);
