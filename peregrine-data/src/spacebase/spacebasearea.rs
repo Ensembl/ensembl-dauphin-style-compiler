@@ -115,7 +115,7 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
 impl<X: Clone + PartialOrd, Y: Clone> SpaceBaseArea<X,Y> {
     pub fn make_base_filter(&self, min_value: X, max_value: X) -> EachOrEveryFilter {
         let top_left = self.0.base.make_filter(self.2, |base|
-            *base <= max_value
+            *base < max_value
         );
         let bottom_right = self.1.base.make_filter(self.2, |base|
             *base >= min_value

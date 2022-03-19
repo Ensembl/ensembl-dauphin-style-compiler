@@ -268,10 +268,10 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
     }
 }
 
-impl<X: Clone + PartialOrd,Y> SpaceBase<X,Y> {
-    pub fn make_base_filter(&self, min_value: X, max_value: X) -> EachOrEveryFilter {
+impl<Y: Clone> SpaceBase<f64,Y> {
+    pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> EachOrEveryFilter {
         self.base.make_filter(self.len, |base| {
-            let exclude =  *base >= max_value || *base < min_value;
+            let exclude =  base.floor() >= max_value || base.ceil() < min_value;
             !exclude
         })
     }
