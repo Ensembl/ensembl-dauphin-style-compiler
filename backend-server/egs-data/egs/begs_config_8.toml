@@ -31,7 +31,7 @@ jump="sa-jump"
 boot="boot"
 
 [begs.render8]
-zoomed-seq="zoomed-seq"
+zoomed-seq8="zoomed-seq"
 zoomed-transcript8="zoomed-transcript"
 transcript8="transcript"
 gene8="gene"

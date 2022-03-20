@@ -114,6 +114,14 @@ track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
 track_apply(p);
 
+/* SEQUENCE */
+p := track_new("self()","zoomed-seq",0,sequence_scale,3);
+new_allotment(p,"track:contig",0,"contig","");
+track_add_tag(p,"local");
+track_add_trigger(p,["track","contig"]);
+track_add_switch(p,["settings"]);
+track_apply(p);
+
 /* GC */
 p := track_new("self()","gc",1,100,3);
 new_allotment(p,"track:gc",2000,"gc","");
