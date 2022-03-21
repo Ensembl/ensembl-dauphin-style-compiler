@@ -1,4 +1,4 @@
-use peregrine_toolkit::puzzle::PuzzleSolution;
+use peregrine_toolkit::{puzzle::PuzzleSolution };
 
 use crate::{AllotmentRequest, DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
@@ -118,22 +118,21 @@ impl TextShape<Arc<dyn Transformer>> {
             x.choose_variety()
         });
         let mut out = vec![];
-        for (variety,mut filter) in demerge {
+        for (variety,filter) in demerge {
             out.push((variety,self.filter(&filter)));
         }
         out
     }
 
-    pub fn make(&self, solution: &PuzzleSolution) -> Vec<TextShape<LeafCommonStyle>> {
+    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<TextShape<LeafCommonStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),texts) in self.demerge_by_variety() {
             out.push(TextShape {
                 position: variety.spacebase_transform(&coord_system,&texts.position),
-                text: self.text.clone(),
-                pen: self.pen.clone()
+                text: texts.text.clone(),
+                pen: texts.pen.clone()
             });
         }
         out
     }
 }
-

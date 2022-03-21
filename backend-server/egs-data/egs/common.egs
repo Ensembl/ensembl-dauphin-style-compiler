@@ -48,9 +48,9 @@ stmt draw_track_names(track_names,switch_names,allotments) {
     name_text_size := 10;
     name_text_colour := direct_colour(111,129,144,255);
 
-   // switches := get_switch(switch_names[]);
+    switches := get_switch(switch_names[]);
     label_allotments := allotments;
-    //label_allotments[switches==false] := use_allotment("");
+    label_allotments[switches==false] := use_allotment("");
 
     textpen_trackname := pen("'Lato', sans-serif",name_text_size,name_text_colour,[][]);
     text2(spacebase(len(track_names) (*) 0,0,8),textpen_trackname,track_names[],label_allotments[]);

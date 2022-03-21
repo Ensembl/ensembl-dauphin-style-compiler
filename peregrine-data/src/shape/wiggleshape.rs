@@ -173,7 +173,7 @@ impl WiggleShape<AllotmentBox> {
 */
 
 impl WiggleShape<Arc<dyn Transformer>> {
-    pub fn make(&self, solution: &PuzzleSolution) -> Vec<WiggleShape<LeafCommonStyle>> {
+    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<WiggleShape<LeafCommonStyle>> {
         let allotment = self.allotments.get(0).unwrap();
         let (variety,coord_system) = allotment.choose_variety();
         vec![WiggleShape {

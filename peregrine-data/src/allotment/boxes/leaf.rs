@@ -130,7 +130,7 @@ impl Coordinated for FloatingLeaf {
     fn coordinate_system(&self) -> &CoordinateSystem { &self.statics.coord_system }
 }
 
-#[cfg_attr(test,derive(Debug))]
+#[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
 pub struct AnchoredLeaf {
     statics: Arc<LeafCommonStyle>,
@@ -152,10 +152,10 @@ impl AnchoredLeaf {
 
 impl Transformer for AnchoredLeaf {
     fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) { (TransformerVariety::SimpleTransformer,self.statics.coord_system.clone()) }
-    fn into_simple_transformer(&self) -> SimpleTransformerHolder { SimpleTransformerHolder(Arc::new(self.clone())) }
+    fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { Some(SimpleTransformerHolder(Arc::new(self.clone()))) }
     fn get_style(&self) -> &LeafCommonStyle { &self.statics }
 
-    #[cfg(test)]
+    #[cfg(any(debug_assertions,test))]
     fn describe(&self) -> String {
         format!("{:?}",self)
     }

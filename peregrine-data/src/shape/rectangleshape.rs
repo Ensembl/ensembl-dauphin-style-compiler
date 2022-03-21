@@ -132,13 +132,13 @@ impl RectangleShape<AllotmentBox> {
 */
 
 impl RectangleShape<Arc<dyn Transformer>> {
-    pub fn make(&self, solution: &PuzzleSolution) -> Vec<RectangleShape<LeafCommonStyle>> {
+    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<RectangleShape<LeafCommonStyle>> {
         let mut out = vec![];
         for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
             out.push(RectangleShape {
                 area: variety.spacebasearea_transform(&coord_system,&rectangles.area),
-                patina: self.patina.clone(),
-                wobble: self.wobble.clone()
+                patina: rectangles.patina.clone(),
+                wobble: rectangles.wobble.clone()
             });
         }
         out

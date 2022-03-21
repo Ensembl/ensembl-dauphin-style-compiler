@@ -1,20 +1,23 @@
 use std::sync::Arc;
-use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, PartialSpaceBase, allotment::style::style::LeafCommonStyle};
+
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, allotment::style::style::{LeafCommonStyle, LeafAllotmentStyle}, CoordinateSystemVariety};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}, simple::SimpleTransformerHolder};
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 #[derive(Hash,PartialEq,Eq)]
 pub enum TransformerVariety {
+    DustbinTransformer,
     SimpleTransformer
 }
 
 pub trait Transformer {
     fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem);
-    fn into_simple_transformer(&self) -> SimpleTransformerHolder { panic!(); }
+    fn into_simple_transformer(&self) -> Option<SimpleTransformerHolder> { None }
     fn get_style(&self) -> &LeafCommonStyle;
 
-    #[cfg(test)]
+    #[cfg(any(debug_assertions,test))]
     fn describe(&self) -> String;
 }
 
@@ -24,7 +27,8 @@ impl TransformerVariety {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebase(coord_system,&items)
-            }
+            },
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|x| LeafCommonStyle::dustbin()) }
         }
     }
 
@@ -33,38 +37,37 @@ impl TransformerVariety {
             TransformerVariety::SimpleTransformer => {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebasearea(coord_system,&items)
-            }
+            },
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|x| LeafCommonStyle::dustbin()) }
         }
     }
 
     pub fn graph_transform(&self, coord_system: &CoordinateSystem, allot_box: &Arc<dyn Transformer>, values: &[Option<f64>]) -> Vec<Option<f64>> {
         match self {
             TransformerVariety::SimpleTransformer => {
-                SimpleTransformerHolder::transform_yy(coord_system,&allot_box.into_simple_transformer(),values)
-            }
+                SimpleTransformerHolder::transform_yy(coord_system,allot_box.into_simple_transformer(),values)
+            },
+            TransformerVariety::DustbinTransformer => { values.to_vec() }
         }
     }
 }
 
-fn spacebase_transform(spacebase: SpaceBase<f64,Arc<dyn Transformer>>) -> Vec<SpaceBase<f64,LeafCommonStyle>> {
-    let mut out = vec![];
-    for ((variety,coord_system),filter) in spacebase.demerge_by_allotment(|x| x.choose_variety()).drain(..) {
-        let items = spacebase.filter(&filter);
-        out.push(variety.spacebase_transform(&coord_system,&items));
+#[derive(Clone)]
+pub struct DustbinTransformer(Arc<LeafCommonStyle>);
+
+impl DustbinTransformer {
+    pub fn new() -> DustbinTransformer {
+        DustbinTransformer(Arc::new(LeafCommonStyle::dustbin()))
     }
-    out
 }
 
-fn spacebasearea_transform(spacebase: SpaceBaseArea<f64,Arc<dyn Transformer>>) -> Vec<SpaceBaseArea<f64,LeafCommonStyle>> {
-    let mut out = vec![];
-    for ((variety,coord_system),filter) in spacebase.demerge_by_allotment(|x| x.choose_variety()).drain(..) {
-        let items = spacebase.filter(&filter);
-        out.push(variety.spacebasearea_transform(&coord_system,&items));
+impl Transformer for DustbinTransformer {
+    fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) {
+        (TransformerVariety::DustbinTransformer,CoordinateSystem(CoordinateSystemVariety::Dustbin,false))
     }
-    out
-}
 
-fn graph_transform(allot_box: &Arc<dyn Transformer>, values: &[Option<f64>]) -> Vec<Option<f64>> {
-    let (variety,coord_system) = allot_box.choose_variety();
-    variety.graph_transform(&coord_system,allot_box,values)
+    fn get_style(&self) -> &LeafCommonStyle { self.0.as_ref() }
+
+    #[cfg(any(debug_assertions,test))]
+    fn describe(&self) -> String { "dustbin".to_string() }
 }
