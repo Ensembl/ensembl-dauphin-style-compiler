@@ -70,6 +70,7 @@ Build-npm:dev:
 # Build node package in downstream pipeline for master branch
 # This will eventually trigger deployment on ensembl-client master branch
 Build-npm:Live:
+  extends: .base-peregrine-rules
   stage: deploy
   variables:
     # Pass branch name to downstream pipeline as a variable
