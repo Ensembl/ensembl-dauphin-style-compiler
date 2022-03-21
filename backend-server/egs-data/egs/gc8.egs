@@ -12,6 +12,7 @@ halt(only_warm(),[data]);
 allotment := use_allotment("tracks/track/gc/main/main/content");
 allotment_track_name := use_allotment("tracks/track/gc/title/content");
 allotment_track_background := use_allotment("tracks/track/gc/main/background/content");
+allotment_letter := use_allotment("tracks/track/gc/title/letter/content");
 
 style("tracks/track/gc/",["priority"][],["900"][]);
 
@@ -28,7 +29,7 @@ wiggle(x_range[@==0],x_range[@==1],p,values,true,allotment);
 draw_track_names(["%GC"],[["track","gc","name"]],[allotment_track_name]);
 
 /* track category */
-//draw_track_category("G",[use_allotment("track:gc:wallpaper{left:left-pad}[60]")]);
+draw_track_category("G",[allotment_letter]);
 
 /* horizontal line */
 line_patina := patina_hollow(spot_colour(direct_colour(208,208,208,255)),1);

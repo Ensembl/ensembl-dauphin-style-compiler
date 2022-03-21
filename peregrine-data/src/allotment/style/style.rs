@@ -17,31 +17,33 @@ pub enum Indent {
     Top,
     Left,
     Bottom,
-    Right
+    Right,
+    Datum(String)
+}
+
+fn remove_bracketed(input: &str, prefix: &str, suffix: &str) -> Option<String> {
+    if input.starts_with(prefix) && input.ends_with(suffix) {
+        Some(input[prefix.len()..(input.len()-suffix.len())].to_string())
+    } else {
+        None
+    }
 }
 
 impl Indent {
     fn build(spec: &HashMap<String,String>) -> Option<Indent> {
-        match spec.get("indent").map(|x| x.as_str()) {
+        let spec = spec.get("indent").map(|x| x.as_str());
+        if let Some(spec) = spec {
+            if let Some(datum) = remove_bracketed(spec,"datum(",")") {
+                return Some(Indent::Datum(datum));
+            }
+        }
+        match spec {
             Some("top") => Some(Indent::Top),
             Some("bottom") => Some(Indent::Bottom),
             Some("left") => Some(Indent::Left),
             Some("right") => Some(Indent::Right),
             Some("none") => Some(Indent::None),
             _ => None
-        }
-    }
-
-    pub fn make(&self, playing_field: &PlayingFieldPieces) -> PuzzleValueHolder<f64> {
-        match match self {
-            Indent::None => None,
-            Indent::Top => Some(&playing_field.top),
-            Indent::Left => Some(&playing_field.left),
-            Indent::Bottom => Some(&playing_field.bottom),
-            Indent::Right => Some(&playing_field.right)
-        } {
-            Some(piece) => PuzzleValueHolder::new(piece.clone()),
-            None => PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.))
         }
     }
 }
@@ -223,7 +225,8 @@ pub struct ContainerAllotmentStyle {
     pub leaf: LeafInheritStyle,
     pub padding: Padding,
     pub priority: i64,
-    pub ranged: bool
+    pub ranged: bool,
+    pub set_align: Option<String>
 }
 
 impl ContainerAllotmentStyle {
@@ -234,7 +237,8 @@ impl ContainerAllotmentStyle {
             leaf: LeafInheritStyle::empty(),
             padding: Padding::empty(),
             priority: 0,
-            ranged: false
+            ranged: false,
+            set_align: None
         }
     }
 
@@ -244,13 +248,15 @@ impl ContainerAllotmentStyle {
         let priority = spec.get("priority").map(|x| x.as_str());
         let priority = priority.map(|x| x.parse::<i64>().ok()).flatten().unwrap_or(0);
         let ranged = spec.get("extent").map(|x| x.as_str()).unwrap_or("wide") == "compact";
+        let set_align = spec.get("set-datum").map(|x| x.to_string());
         ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
             coord_system: CoordinateSystem::from_build(coord_system,reverse),
             leaf: LeafInheritStyle::new(spec),
             priority,
-            ranged
+            ranged,
+            set_align
         }
     }
 }

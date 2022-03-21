@@ -23,6 +23,7 @@ mod allotment {
 
     pub(crate) mod core {
         pub(crate) mod arbitrator;
+        pub(crate) mod aligner;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod allotmentmetadata2;
         pub(crate) mod allotmentrequest;

@@ -45,6 +45,7 @@ pub struct PlayingFieldHolder {
     right: FoldValue<f64>
 }
 
+#[derive(Clone)]
 pub struct PlayingFieldPieces {
     pub top: PuzzlePiece<f64>,
     pub bottom: PuzzlePiece<f64>,

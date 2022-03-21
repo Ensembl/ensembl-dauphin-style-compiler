@@ -102,6 +102,14 @@ use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/focus/title/content",
 ]);
 
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/letter/content",
+    "tracks/track/gene-pc-rev/title/letter/content",
+    "tracks/track/gene-other-fwd/title/letter/content",
+    "tracks/track/gene-pc-fwd/title/letter/content",
+    "tracks/track/focus/title/letter/content",
+]);
+
 /* apply solidity in thick region ... */
 /* ... find thick limits for each exon */
 exon_thick_limit_start := index(exon_gene_indexes,[thick_start]);
@@ -277,7 +285,7 @@ rectangle_on_genome(start,end,16,tr_zmenu_patina,allotment_gene_over);
 rectangle_on_genome(start,end,16,ge_zmenu_patina,allotment_gene_over);
 
 /* track category */
-//draw_track_category("G",allotments_cat);
+draw_track_category("G",allotments_letter);
 
 /* focus swatch */
 //draw_focus_swatch(allotments_cat[@==4]);

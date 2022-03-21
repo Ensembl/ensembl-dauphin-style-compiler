@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, log, lock};
 
-use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}, rangeused::RangeUsed}, style::{style::Padding}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
+use crate::{allotment::{core::{arbitrator::Arbitrator, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}, rangeused::RangeUsed, aligner::Aligner}, style::{style::{Padding, ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, AllotmentMetadata, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, StackableAddable}};
 
@@ -73,17 +73,17 @@ fn add_report(metadata: &mut AllotmentMetadata2Builder, key: &str, top: &PuzzleV
 }
 
 impl<T> Padder<T> {
-    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, padding: &Padding, metadata: &mut AllotmentMetadata2Builder, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
+    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
         let mut top = puzzle.new_piece();
         #[cfg(debug_assertions)]
         top.set_name("padder/top");
-        let padding_top = padding.padding_top;
-        let padding_bottom = padding.padding_bottom;
-        let min_height = padding.min_height;
+        let padding_top = style.padding.padding_top;
+        let padding_bottom = style.padding.padding_bottom;
+        let min_height = style.padding.min_height;
         let mut inherited_indent = puzzle.new_piece_default(0.);
         #[cfg(debug_assertions)]
         inherited_indent.set_name("padder/inherited-indent");
-        let self_indent = padding.indent;
+        let self_indent = style.padding.indent;
         let draw_top = draw_top(&top,padding_top);
         let mut child_height = puzzle.new_piece();
         #[cfg(debug_assertions)]
@@ -93,7 +93,7 @@ impl<T> Padder<T> {
             draw_top, child_height,
             indent: indent(&puzzle,self_indent,&inherited_indent)
         };
-        if let Some(report) = &padding.report {
+        if let Some(report) = &style.padding.report {
             add_report(metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
         }
         let child = ctor(&info);
@@ -103,6 +103,9 @@ impl<T> Padder<T> {
         puzzle.add_ready(move |_| lock!(ranges2).build());
         #[cfg(debug_assertions)]
         full_range.set_name("padder/full_range");
+        if let Some(datum) = &style.set_align {
+            aligner.set_datum(puzzle,datum,&PuzzleValueHolder::new(top.clone()));
+        }
         Padder {
             child: Box::new(child),
             ranges,

@@ -135,6 +135,14 @@ use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/focus/title/content",
 ]);
 
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/letter/content",
+    "tracks/track/gene-pc-rev/title/letter/content",
+    "tracks/track/gene-other-fwd/title/letter/content",
+    "tracks/track/gene-pc-fwd/title/letter/content",
+    "tracks/track/focus/title/letter/content",
+]);
+
 //use_allotment_names(blanking_allotment_names,enabled_tracks,[append_depth(potential_tracks[],-1)]);
 //use_allotment_names(allotment_under_names,enabled_tracks,[append_depth(potential_tracks[],-2)]);
 //use_allotment_names(allotment_far_under_names,enabled_tracks,[append_depth(potential_tracks[],-3)]);
@@ -326,7 +334,7 @@ enabled_names := get_switch([
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 
 /* track category */
-//draw_track_category("G",allotments_cat);
+draw_track_category("G",allotments_letter);
 
 /* focus swatch */
 //draw_focus_swatch(allotments_cat[@==4]);

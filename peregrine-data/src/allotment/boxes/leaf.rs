@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, borrow::Borrow, collections::{hash_map::RandomStat
 
 use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, Puzzle, PuzzleBuilder, ConstantPuzzlePiece}, log};
 
-use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
+use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}, aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated }, root::PlayingFieldPieces};
 
@@ -41,7 +41,7 @@ pub struct FloatingLeaf {
 }
 
 impl FloatingLeaf {
-    pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, playing_field: &PlayingFieldPieces) -> FloatingLeaf {
+    pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
         let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
         let mut base_range_piece = puzzle.new_piece();
         #[cfg(debug_assertions)]
@@ -81,7 +81,7 @@ impl FloatingLeaf {
         let full_range_piece = full_range_piece(
             puzzle,
             &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
-        let mut indent = statics.indent.make(playing_field);
+        let indent = aligner.get(puzzle,&statics.indent);
         FloatingLeaf {
             statics: Arc::new(statics.clone()),
             drawing_info,

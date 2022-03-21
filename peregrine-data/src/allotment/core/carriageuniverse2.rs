@@ -4,7 +4,7 @@ use peregrine_toolkit::puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle};
 
 use crate::{allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape, DataMessage};
 
-use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}};
+use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}, aligner::Aligner};
 
 pub struct CarriageUniverseBuilder {
     leafs: HashMap<String,PendingLeaf>
@@ -37,7 +37,8 @@ impl CarriageUniverseBuilder {
         let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));
         let root = Root::new(&mut builder);
-        make_transformable(&builder,&converter,&ContainerHolder::Root(root.clone()),&mut self.leafs.values(),&mut metadata)?;
+        let aligner = Aligner::new(&root);
+        make_transformable(&builder,&converter,&ContainerHolder::Root(root.clone()),&mut self.leafs.values(),&mut metadata,&aligner)?;
         Ok((Puzzle::new(builder),metadata,root))
     }
 }

@@ -103,6 +103,14 @@ use_allotments(allotments_trackname,enabled_tracks,[
     "tracks/track/focus/title/content",
 ]);
 
+use_allotments(allotments_letter,enabled_tracks,[
+    "tracks/track/gene-other-rev/title/letter/content",
+    "tracks/track/gene-pc-rev/title/letter/content",
+    "tracks/track/gene-other-fwd/title/letter/content",
+    "tracks/track/gene-pc-fwd/title/letter/content",
+    "tracks/track/focus/title/letter/content",
+]);
+
 tracks_used_cat := ["","","","",""];
 tracks_used_cat[enabled_tracks] := gene_cat_allotments[enabled_tracks];
 
@@ -225,7 +233,7 @@ image_underneath(chevron_spacing,0,["chevron-left","chevron-right"][@==focus_str
 draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 
 /* track category */
-//draw_track_category("G",allotments_cat);
+draw_track_category("G",allotments_letter);
 
 /* focus swatch */
 //draw_focus_swatch(allotments_cat[@==4]);

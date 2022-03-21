@@ -23,6 +23,7 @@ allotment := use_allotment("track:contig");
 
 allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
+allotment_letter := use_allotment("tracks/track/contig/title/letter/content");
 
 style("tracks/track/contig/",["priority"][],["0"][]);
 
@@ -54,5 +55,5 @@ bond(seq_start,0.7);
 bond(seq_start#[three_bonds],0.5);
 
 /* track category */
-//draw_track_category("G",[use_allotment("track:contig:wallpaper{left:left-pad}[60]")]);
+draw_track_category("G",[allotment_letter]);
 

@@ -10,6 +10,8 @@ x_range := [positive_seq(data,"range")];
 
 allotment := use_allotment("tracks/track/variant/main/main/content");
 allotment_track_name := use_allotment("tracks/track/variant/title/content");
+allotment_letter := use_allotment("tracks/track/variant/title/letter/content");
+
 
 style("tracks/track/variant/",["priority"][],["1000"][]);
 
@@ -42,4 +44,4 @@ rectangle(spacebase(r_start,0,-1),spacebase(r_end,5,1),patina,allotment);
 draw_track_names(["Variants"],[["track","variant","name"]],[allotment_track_name]);
 
 /* track category */
-//draw_track_category("V",[use_allotment("track:variant:wallpaper{left:left-pad}[60]")]);
+draw_track_category("V",[allotment_letter]);
