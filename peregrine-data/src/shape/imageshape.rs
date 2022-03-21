@@ -127,12 +127,12 @@ impl ImageShape<AllotmentBox> {
 */
 
 impl ImageShape<Arc<dyn Transformer>> {
-    pub fn make(&self, solution: &PuzzleSolution) -> Vec<ImageShape<LeafCommonStyle>> {
+    pub fn make(&self, _solution: &PuzzleSolution) -> Vec<ImageShape<LeafCommonStyle>> {
         let mut out = vec![];
-        for ((variety,coord_system),rectangles) in self.demerge_by_variety() {
+        for ((variety,coord_system),images) in self.demerge_by_variety() {
             out.push(ImageShape {
                 position: variety.spacebase_transform(&coord_system,&self.position),
-                names: self.names.clone()
+                names: images.names.clone()
             });
         }
         out
