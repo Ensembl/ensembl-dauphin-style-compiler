@@ -15,6 +15,14 @@ variables:
       when: always
     - when: never
 
+.base-be-branches-rules-template: &base-be-branches-rules
+  rules:
+    - if: '$CI_DEPLOY_FREEZE == null && $CI_COMMIT_BRANCH != "master"'
+      changes:
+        - backend-server/**/*
+      when: always
+    - when: never
+
 .build_backend:
   extends: .base-be-rules
   stage: build
@@ -65,6 +73,23 @@ variables:
 
 BE-Docker:
   extends: .build_backend
+
+BE-Docker:
+  <<: *base-be-branches-rules
+  stage: build
+  image: docker
+  services:
+    - docker:dind
+
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - cd backend-server
+
+  script:
+    - docker build -t ${DOCKER_IMAGE} --no-cache .
+    - docker push ${DOCKER_IMAGE}
+    - docker rmi ${DOCKER_IMAGE}
+    - docker logout $CI_REGISTRY
 
 HX:Dev:
   extends: .deploy_backend
