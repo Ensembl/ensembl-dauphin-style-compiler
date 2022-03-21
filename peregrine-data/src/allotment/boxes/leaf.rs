@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueH
 
 use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{Arbitrator, BpPxConverter}}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
-use super::{boxtraits::{Stackable, Transformable, Coordinated }};
+use super::{boxtraits::{Stackable, Transformable, Coordinated }, root::PlayingFieldPieces};
 
 fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, base_range: &PuzzlePiece<RangeUsed<f64>>, pixel_range: &PuzzlePiece<RangeUsed<f64>>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
     let base_range = base_range.clone();
@@ -37,11 +37,11 @@ pub struct FloatingLeaf {
     max_y_piece: PuzzlePiece<f64>,
     top: PuzzlePiece<f64>,
     bottom: PuzzleValueHolder<f64>,
-    indent: PuzzlePiece<f64>
+    indent: PuzzleValueHolder<f64>
 }
 
 impl FloatingLeaf {
-    pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo) -> FloatingLeaf {
+    pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, playing_field: &PlayingFieldPieces) -> FloatingLeaf {
         let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
         let mut base_range_piece = puzzle.new_piece();
         #[cfg(debug_assertions)]
@@ -81,9 +81,7 @@ impl FloatingLeaf {
         let full_range_piece = full_range_piece(
             puzzle,
             &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
-        let mut indent = puzzle.new_piece_default(0.);
-        #[cfg(debug_assertions)]
-        indent.set_name("FLoatingLeaf/indent");
+        let mut indent = statics.indent.make(playing_field);
         FloatingLeaf {
             statics: Arc::new(statics.clone()),
             drawing_info,
@@ -91,21 +89,12 @@ impl FloatingLeaf {
             top, bottom
         }
     }
-
-    pub fn leaf_common(&self) -> &LeafCommonStyle { &self.statics }
 }
 
 impl Stackable for FloatingLeaf {
     fn set_top(&self, value: &PuzzleValueHolder<f64>) {
         let value = value.clone();
         self.top.add_solver(&[value.dependency()], move |solution| {
-            Some(value.get_clone(solution))
-        })
-    }
-
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>) {
-        let value = value.clone();
-        self.indent.add_solver(&[value.dependency()], move |solution| {
             Some(value.get_clone(solution))
         })
     }

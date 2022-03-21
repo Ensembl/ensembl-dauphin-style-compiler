@@ -11,7 +11,6 @@ pub trait Coordinated {
 pub trait Stackable : Coordinated {
     fn set_top(&self, value: &PuzzleValueHolder<f64>);
     fn height(&self) -> PuzzleValueHolder<f64>;
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>);
 
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64>;
 

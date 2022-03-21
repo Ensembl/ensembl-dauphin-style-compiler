@@ -1,11 +1,49 @@
 use std::collections::HashMap;
 
-use crate::{CoordinateSystem, CoordinateSystemVariety};
+use peregrine_toolkit::puzzle::{PuzzleValueHolder, ConstantPuzzlePiece};
+
+use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::boxes::root::PlayingFieldPieces};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
 pub enum LeafAllotmentType {
     Leaf
+}
+
+#[cfg_attr(any(test,debug_assertions),derive(Debug))]
+#[derive(Clone)]
+pub enum Indent {
+    None,
+    Top,
+    Left,
+    Bottom,
+    Right
+}
+
+impl Indent {
+    fn build(spec: &HashMap<String,String>) -> Option<Indent> {
+        match spec.get("indent").map(|x| x.as_str()) {
+            Some("top") => Some(Indent::Top),
+            Some("bottom") => Some(Indent::Bottom),
+            Some("left") => Some(Indent::Left),
+            Some("right") => Some(Indent::Right),
+            Some("none") => Some(Indent::None),
+            _ => None
+        }
+    }
+
+    pub fn make(&self, playing_field: &PlayingFieldPieces) -> PuzzleValueHolder<f64> {
+        match match self {
+            Indent::None => None,
+            Indent::Top => Some(&playing_field.top),
+            Indent::Left => Some(&playing_field.left),
+            Indent::Bottom => Some(&playing_field.bottom),
+            Indent::Right => Some(&playing_field.right)
+        } {
+            Some(piece) => PuzzleValueHolder::new(piece.clone()),
+            None => PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.))
+        }
+    }
 }
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -72,7 +110,8 @@ impl Padding {
 pub struct LeafInheritStyle {
     coord_system: Option<CoordinateSystemVariety>,
     reverse: Option<bool>,
-    depth: Option<i8>
+    depth: Option<i8>,
+    indent: Option<Indent>
 }
 
 impl LeafInheritStyle {
@@ -80,7 +119,8 @@ impl LeafInheritStyle {
         LeafInheritStyle {
             coord_system: None,
             reverse: None,
-            depth: None
+            depth: None,
+            indent: None
         }
     }
 
@@ -88,8 +128,9 @@ impl LeafInheritStyle {
         let depth = spec.get("depth").map(|x| x.as_str());
         let depth = depth.map(|x| x.parse::<i8>().ok()).flatten();
         let (coord_system,reverse) = CoordinateSystem::build(spec);
+        let indent = Indent::build(spec);
         LeafInheritStyle {
-            depth, coord_system, reverse
+            depth, coord_system, reverse, indent
         }
     }
 
@@ -103,6 +144,9 @@ impl LeafInheritStyle {
         if other.reverse.is_some() {
             self.reverse = other.reverse.clone();
         }
+        if other.indent.is_some() {
+            self.indent = other.indent.clone();
+        }
     }
 
     pub(crate) fn make(&self, style: &LeafAllotmentStyle) -> LeafCommonStyle {
@@ -111,7 +155,8 @@ impl LeafInheritStyle {
         LeafCommonStyle {
             depth: self.depth.unwrap_or(0),
             coord_system: CoordinateSystem(variety,reverse),
-            priority: style.priority
+            priority: style.priority,
+            indent: self.indent.as_ref().unwrap_or(&Indent::None).clone()
         }
     }
 }
@@ -121,7 +166,8 @@ impl LeafInheritStyle {
 pub struct LeafCommonStyle {
     pub coord_system: CoordinateSystem,
     pub depth: i8,
-    pub priority: i64
+    pub priority: i64,
+    pub indent: Indent
 }
 
 impl LeafCommonStyle {
@@ -129,7 +175,8 @@ impl LeafCommonStyle {
         LeafCommonStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Dustbin,false),
             depth: 0,
-            priority: 0
+            priority: 0,
+            indent: Indent::None
         }
     }
 
@@ -137,7 +184,8 @@ impl LeafCommonStyle {
         LeafCommonStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Window,false),
             depth: 0,
-            priority: 0
+            priority: 0,
+            indent: Indent::None
         }
     }
 }

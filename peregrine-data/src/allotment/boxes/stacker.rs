@@ -110,14 +110,12 @@ impl StackableAddable for UnpaddedStacker {
         top.set_name("stacker/add_child");
         child.set_top(&PuzzleValueHolder::new(top.clone()));
         lock!(self.children).add_child(&mut self.puzzle,&top,&child.height(),priority);
-        child.set_indent(&PuzzleValueHolder::new(self.padder_info.indent.clone()));
     }
 }
 
 impl Stackable for Stacker {
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
     fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }

@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzlePiece}, log};
 
-use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety, DataMessage};
+use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable, root::PlayingFieldPieces}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety, DataMessage};
 
 use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle, LeafInheritStyle}, pendingleaf::PendingLeaf};
 
@@ -17,7 +17,7 @@ pub struct StyleBuilder<'a> {
 }
 
 impl<'a> StyleBuilder<'a> {
-    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> (ContainerHolder,ContainerAllotmentStyle) {
+    fn new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<(ContainerHolder,ContainerAllotmentStyle),DataMessage> {
         let style = styles.get_container(name);
         let container = match &style.allot_type {
             ContainerAllotmentType::Stack => {
@@ -30,7 +30,7 @@ impl<'a> StyleBuilder<'a> {
                 ContainerHolder::Bumper(Bumper::new(&self.puzzle,&style.coord_system,&style.padding,self.metadata))
             }
         };
-        (container,style.clone())
+        Ok((container,style.clone()))
     }
 
     fn try_new_container(&mut self, name: &AllotmentNamePart, styles: &AllotmentStyleGroup) -> Result<ContainerHolder,DataMessage> {
@@ -47,23 +47,23 @@ impl<'a> StyleBuilder<'a> {
             } else {
                 self.root.clone()
             };
-            let (new_container,self_conrtainer_style) = self.new_container(name,styles);
+            let (new_container,self_conrtainer_style) = self.new_container(name,styles)?;
             parent_container.add_container(&new_container,&self_conrtainer_style)?;
             self.containers_made.insert(sequence,new_container.clone());
             Ok(new_container)
         }
     }
 
-    fn new_floating_leaf(&self, container: &mut ContainerHolder,  name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> FloatingLeaf {
-        let child = FloatingLeaf::new(&self.puzzle,&self.converter,&leaf_style,info);
+    fn new_floating_leaf(&self, container: &mut ContainerHolder,  name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> Result<FloatingLeaf,DataMessage> {
+        let child = FloatingLeaf::new(&self.puzzle,&self.converter,&leaf_style,info,&self.root.as_root()?.playing_field_pieces());
         container.add_leaf(&LeafHolder::Leaf(child.clone()),leaf_style);
-        child
+        Ok(child)
     }
 
     fn new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> Result<LeafHolder,DataMessage> {
         Ok(if let Some((_,rest)) = name.pop() {
             let mut container = self.try_new_container(&rest,styles)?;
-            LeafHolder::Leaf(self.new_floating_leaf(&mut container,name,info,styles,&leaf_style))
+            LeafHolder::Leaf(self.new_floating_leaf(&mut container,name,info,styles,&leaf_style)?)
         } else {
             LeafHolder::Leaf(self.dustbin.clone())
         })
@@ -89,7 +89,7 @@ pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxCon
         puzzle: puzzle.clone(),
         converter: converter.clone(),
         metadata,
-        dustbin: FloatingLeaf::new(puzzle,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new())
+        dustbin: FloatingLeaf::new(puzzle,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&root.as_root()?.playing_field_pieces())
     };
     for pending in pendings {
         let parts = AllotmentNamePart::new(pending.name().clone());

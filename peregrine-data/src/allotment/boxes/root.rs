@@ -45,6 +45,24 @@ pub struct PlayingFieldHolder {
     right: FoldValue<f64>
 }
 
+pub struct PlayingFieldPieces {
+    pub top: PuzzlePiece<f64>,
+    pub bottom: PuzzlePiece<f64>,
+    pub left: PuzzlePiece<f64>,
+    pub right: PuzzlePiece<f64>
+}
+
+impl PlayingFieldPieces {
+    fn new(holder: &PlayingFieldHolder) -> PlayingFieldPieces {
+        PlayingFieldPieces {
+            top: holder.top.get().clone(),
+            bottom: holder.bottom.get().clone(),
+            left: holder.left.get().clone(),
+            right: holder.right.get().clone(),
+        }
+    }
+}
+
 impl PlayingFieldHolder {
     fn new(puzzle: &mut PuzzleBuilder) -> PlayingFieldHolder {
         PlayingFieldHolder {
@@ -97,9 +115,12 @@ impl Root {
     }
 
     pub fn add_child(&self, child: &dyn Stackable) {
-        child.set_indent(&PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)));
         child.set_top(&PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)));
         lock!(self.playing_field).set(child.coordinate_system(),&child.height());
+    }
+
+    pub fn playing_field_pieces(&self) -> PlayingFieldPieces {
+        PlayingFieldPieces::new(&&*lock!(self.playing_field))
     }
 
     pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField2 {

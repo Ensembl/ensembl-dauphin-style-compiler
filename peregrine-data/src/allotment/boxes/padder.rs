@@ -132,13 +132,6 @@ impl<T> Stackable for Padder<T> {
 
     fn height(&self) -> PuzzleValueHolder<f64> { self.height.clone() }
 
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>) {
-        let value = value.clone();
-        self.inherited_indent.add_solver(&[value.dependency()], move |solution| {
-            Some(value.get_clone(solution))
-        });
-    }
-
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
         PuzzleValueHolder::new(self.info.draw_top.clone())
     }

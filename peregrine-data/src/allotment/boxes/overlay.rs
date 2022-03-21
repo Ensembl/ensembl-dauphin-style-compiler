@@ -51,7 +51,6 @@ impl UnpaddedOverlay {
 impl StackableAddable for UnpaddedOverlay {
     fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
         child.set_top(&self.info.draw_top);
-        child.set_indent(&self.info.indent);
         lock!(self.kid_heights).push(child.height());
     }
 }
@@ -63,7 +62,6 @@ impl Coordinated for Overlay {
 impl Stackable for Overlay {
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
     fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }

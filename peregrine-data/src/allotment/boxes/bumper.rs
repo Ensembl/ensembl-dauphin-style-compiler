@@ -26,7 +26,6 @@ impl Coordinated for Bumper {
 impl Stackable for Bumper {
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
-    fn set_indent(&self, value: &PuzzleValueHolder<f64>) { self.0.set_indent(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
     fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
 }
@@ -111,6 +110,5 @@ impl UnpaddedBumper {
 impl StackableAddable for UnpaddedBumper {
     fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
         self.set_child_top(child);
-        child.set_indent(&self.info.indent);
     }
 }
