@@ -14,7 +14,7 @@ allotment_track_name := use_allotment("tracks/track/gc/title/content");
 allotment_track_background := use_allotment("tracks/track/gc/main/background/content");
 allotment_letter := use_allotment("tracks/track/gc/title/letter/content");
 
-style("tracks/track/gc/",["priority"][],["900"][]);
+style("tracks/track/gc/",["priority","report"][],["900","track;switch-id=gc"][]);
 
 values := delta_seq(data,"values");
 values := values / 25;

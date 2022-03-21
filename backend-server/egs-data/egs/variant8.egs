@@ -12,8 +12,7 @@ allotment := use_allotment("tracks/track/variant/main/main/content");
 allotment_track_name := use_allotment("tracks/track/variant/title/content");
 allotment_letter := use_allotment("tracks/track/variant/title/letter/content");
 
-
-style("tracks/track/variant/",["priority"][],["1000"][]);
+style("tracks/track/variant/",["priority","report"][],["1000","track;switch-id=variant"][]);
 
 colours := [
     simple_colour(direct_colour(255,255,255,255)), // white = 0

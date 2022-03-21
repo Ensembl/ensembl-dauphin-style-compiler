@@ -54,13 +54,13 @@ main/main/<id>/text/ <- label
 
 */
 
-style("tracks/track/gene-other-rev/",["priority"][],["110"][]);
-style("tracks/track/gene-pc-rev/",["priority"][],["100"][]);
-style("tracks/track/gene-other-fwd/",["priority"][],["-110"][]);
-style("tracks/track/gene-pc-fwd/",["priority"][],["-100"][]);
-style("tracks/track/focus/",["priority"][],["-900"][]);
+style("tracks/track/gene-other-rev/",["priority","report"][],["110","track;switch-id=gene-other-rev"][]);
+style("tracks/track/gene-pc-rev/",["priority","report"][],["100","track;switch-id=gene-pc-rev"][]);
+style("tracks/track/gene-other-fwd/",["priority","report"][],["-110","track;switch-id=gene-other-fwd"][]);
+style("tracks/track/gene-pc-fwd/",["priority","report"][],["-100","track;switch-id=gene-pc-fwd"][]);
+style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=focus"][]);
 
-style("**/main/main/",["type"][],["overlay"][]); /* ! */
+style("**/main/main/",["type"][],["overlay",][]); /* ! */
 style("**/main/main/*/",["type"][],["overlay"][]);
 style("**/main/main/*/blocks/",["depth"][],["4"][]);
 style("**/main/background/content",["depth","padding-top"][],["-10","32"][]);

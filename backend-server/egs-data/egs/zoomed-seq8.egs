@@ -25,7 +25,7 @@ allotment := use_allotment("tracks/track/contig/main/main/content");
 allotment_track_name := use_allotment("tracks/track/contig/title/content");
 allotment_letter := use_allotment("tracks/track/contig/title/letter/content");
 
-style("tracks/track/contig/",["priority"][],["0"][]);
+style("tracks/track/contig/",["priority","report"][],["0","track;switch-id=contig"][]);
 
 height := 12;
 

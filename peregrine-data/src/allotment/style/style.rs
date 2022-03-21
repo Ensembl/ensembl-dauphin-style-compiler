@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, ConstantPuzzlePiece};
 
@@ -73,13 +73,28 @@ impl LeafAllotmentType {
     }
 }
 
+fn parse_report_value(input: &str) -> Option<Arc<HashMap<String,String>>> {
+    let parts = input.split(";").collect::<Vec<_>>();
+    let mut out = HashMap::new();
+    for item in &parts {
+        let (key,value) = if let Some(eq_at) = item.find("=") {
+            let (k,v) = item.split_at(eq_at);
+            (k,&v[1..])
+        } else {
+            ("type",*item)
+        };
+        out.insert(key.to_string(),value.to_string());
+    }
+    Some(Arc::new(out))
+}
+
 #[derive(Clone)]
 pub struct Padding {
     pub padding_top: f64,
     pub padding_bottom: f64,
     pub min_height: f64,
     pub indent: f64,
-    pub report: Option<String>
+    pub report: Option<Arc<HashMap<String,String>>>
 }
 
 impl Padding {
@@ -102,7 +117,7 @@ impl Padding {
         let min_height = min_height.parse::<f64>().ok().unwrap_or(0.);
         let indent = spec.get("indent").map(|x| x.as_str()).unwrap_or("0");
         let indent = indent.parse::<f64>().ok().unwrap_or(0.);
-        let report = spec.get("report").cloned();
+        let report = spec.get("report").and_then(|r| parse_report_value(r));
         Padding {padding_top, padding_bottom, min_height, indent, report }
     }
 }

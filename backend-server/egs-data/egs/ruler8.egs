@@ -18,7 +18,7 @@ allotment_overlay_bottom := use_allotment("window-bottom/ruler/background/overla
 allotment_bottom := use_allotment("window-bottom/ruler/main/content");
 
 style("**/ruler/",["type","priority"][],["overlay","-1000"][]);
-style("**/ruler/background/",["type"][],["overlay"][]);
+style("**/ruler/background/",["type","depth"][],["overlay","55"][]);
 style("**/ruler/main/",["system"][],["tracking-special"][]);
 style("**/ruler/main/content",["depth"][],["55"][]);
 style("**/ruler/background/overlay",["depth"][],["58"][]);

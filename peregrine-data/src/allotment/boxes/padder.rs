@@ -63,9 +63,11 @@ impl<T: Clone> Clone for Padder<T> {
     }
 }
 
-fn add_report(metadata: &mut AllotmentMetadata2Builder, key: &str, top: &PuzzleValueHolder<f64>, height: &PuzzleValueHolder<f64>) {
+fn add_report(metadata: &mut AllotmentMetadata2Builder, in_values: &HashMap<String,String>, top: &PuzzleValueHolder<f64>, height: &PuzzleValueHolder<f64>) {
     let mut values = HashMap::new();
-    values.insert("type".to_string(), PuzzleValueHolder::new(ConstantPuzzlePiece::new(key.to_string())));
+    for (key,value) in in_values {
+        values.insert(key.to_string(),PuzzleValueHolder::new(ConstantPuzzlePiece::new(value.to_string())));
+    }
     values.insert("offset".to_string(), PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),|v| v.to_string())));
     values.insert("height".to_string(), PuzzleValueHolder::new(DerivedPuzzlePiece::new(height.clone(),|v| v.to_string())));
     let group = AllotmentMetadataGroup::new(values);

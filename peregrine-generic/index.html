@@ -115,11 +115,13 @@
           } else if(kind=="endstops") {
               console.log("endstops: " + more[0])
           } else if(kind=="track_summary") {
+            console.log(more[0]);
             let tbody = document.getElementById("track-metadata");
             for(const track of more[0].summary) {
                 if(track.type != "track") { continue; } /* don't care */
                 all_tracks[track["switch-id"]] = track;
             }
+            console.log(all_tracks);
             tbody.innerHTML = "";
             for(const track_name in all_tracks) {
                 let track = all_tracks[track_name];
