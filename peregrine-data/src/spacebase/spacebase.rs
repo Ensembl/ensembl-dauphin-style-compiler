@@ -143,6 +143,16 @@ impl<X,Y> SpaceBase<X,Y> {
             item: Box::new(item)
         }
     }
+
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBase<X,Y> {
+        SpaceBase {
+            base: self.base.filter(filter),
+            normal: self.normal.filter(filter),
+            tangent: self.tangent.filter(filter),
+            allotment:self.allotment.filter(filter),
+            len: filter.count()
+        }
+    }
 }
 
 impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
@@ -177,16 +187,6 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
         let tangent =self.tangent.zip(&other.tangent,cbs.tangent);
         let allotment = self.allotment.zip(&other.allotment,cbs.allotment);
         SpaceBase::new_unszied(&base,&normal,&tangent,&allotment)
-    }
-
-    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBase<X,Y> {
-        SpaceBase {
-            base: self.base.filter(filter),
-            normal: self.normal.filter(filter),
-            tangent: self.tangent.filter(filter),
-            allotment:self.allotment.filter(filter),
-            len: filter.count()
-        }
     }
 
     pub fn replace_normal(&self, other: &SpaceBase<X,Y>) -> Option<SpaceBase<X,Y>> {
@@ -268,7 +268,7 @@ impl<X: Clone, Y: Clone> SpaceBase<X,Y> {
     }
 }
 
-impl<Y: Clone> SpaceBase<f64,Y> {
+impl<Y> SpaceBase<f64,Y> {
     pub fn make_base_filter(&self, min_value: f64, max_value: f64) -> EachOrEveryFilter {
         self.base.make_filter(self.len, |base| {
             let exclude =  base.floor() >= max_value || base.ceil() < min_value;

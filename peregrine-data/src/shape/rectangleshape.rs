@@ -11,11 +11,26 @@ pub struct RectangleShape<A> {
 }
 
 impl<A> RectangleShape<A> {
+    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<RectangleShape<A>,DataMessage> {
+        if !patina.compatible(area.len()) { return Err(DataMessage::LengthMismatch(format!("rectangle patina"))); }
+        Ok(RectangleShape {
+            area, patina, wobble
+        })
+    }
+
     pub fn map_new_allotment<F,B>(&self, cb: F) -> RectangleShape<B> where F: Fn(&A) -> B {
         RectangleShape {
             area: self.area.map_allotments(cb),
             patina: self.patina.clone(),
             wobble: self.wobble.clone()
+        }
+    }
+
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> RectangleShape<A> {
+        RectangleShape {
+            area: self.area.filter(filter),
+            patina: self.patina.filter(filter),
+            wobble: self.wobble.as_ref().map(|w| w.filter(filter))
         }
     }
 
@@ -56,23 +71,8 @@ impl<A: Clone> RectangleShape<A> {
         Ok(out)
     }
 
-    pub fn new_details(area: SpaceBaseArea<f64,A>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<RectangleShape<A>,DataMessage> {
-        if !patina.compatible(area.len()) { return Err(DataMessage::LengthMismatch(format!("rectangle patina"))); }
-        Ok(RectangleShape {
-            area, patina, wobble
-        })
-    }
-
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
-
-    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> RectangleShape<A> {
-        RectangleShape {
-            area: self.area.filter(filter),
-            patina: self.patina.filter(filter),
-            wobble: self.wobble.as_ref().map(|w| w.filter(filter))
-        }
-    }
 }
 
 impl RectangleShape<LeafCommonStyle> {

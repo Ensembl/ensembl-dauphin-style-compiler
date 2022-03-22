@@ -218,8 +218,7 @@ impl<X> EachOrEvery<X> {
 
     pub fn filter(&self, data_filter: &EachOrEveryFilter) -> EachOrEvery<X> {
         if let Some(len) = self.len() { if data_filter.len() != len {
-            log!("filter {:?} self.len()={:?}!!!!",data_filter,len);
-            panic!();
+            panic!("bad filter size");
         }}
          match &data_filter.data {
             EachOrEveryFilterData::All => self.clone(),

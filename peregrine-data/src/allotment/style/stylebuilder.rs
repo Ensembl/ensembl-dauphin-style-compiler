@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, puzzle::{PuzzleBuilder, PuzzleValueHolder, PuzzleP
 
 use crate::{allotment::{core::{arbitrator::BpPxConverter, allotmentmetadata2::AllotmentMetadata2Builder, aligner::Aligner}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}, boxtraits::Transformable, root::PlayingFieldPieces}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, CoordinateSystem, CoordinateSystemVariety, DataMessage};
 
-use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle, LeafInheritStyle}, pendingleaf::PendingLeaf};
+use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{LeafAllotmentStyle, ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle, LeafInheritStyle}, pendingleaf::{PendingLeaf, PendingLeafMap}};
 
 pub struct StyleBuilder<'a> {
     aligner: Aligner,
@@ -82,7 +82,7 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner) -> Result<(),DataMessage> {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, plm: &mut PendingLeafMap, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner) -> Result<(),DataMessage> {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
@@ -99,7 +99,7 @@ pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, converter: &Arc<BpPxCon
         let styles = pending.style();
         let leaf_style = pending.leaf_style();
         let xformable = styler.try_new_leaf(&parts,&info,&styles,&leaf_style)?.into_tranfsormable();
-        pending.set_transformable(xformable);
+        pending.set_transformable(plm,xformable);
     }
     Ok(())
 }
@@ -110,9 +110,9 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadata2}, aligner::Aligner}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::PendingLeaf, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadata2}, aligner::Aligner}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::{PendingLeaf, PendingLeafSource, PendingLeafMap}, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
-    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<PendingLeaf> {
+    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> (PendingLeafMap,Vec<PendingLeaf>) {
         let heights = if heights.len() > 0 {
             heights.iter().cycle()
         } else {
@@ -124,8 +124,9 @@ mod test {
             None
         };
         let mut out = vec![];
+        let mut source = PendingLeafSource::new();
         for (name,height) in names.iter().zip(heights) {
-            let mut leaf = PendingLeaf::new(&AllotmentName::new(name));
+            let mut leaf = PendingLeaf::new(&mut source, &AllotmentName::new(name));
             leaf.set_style(style);
             leaf.update_drawing_info(|info| {
                 info.merge_max_y(*height);
@@ -135,7 +136,7 @@ mod test {
             });
             out.push(leaf);
         }
-        out
+        (PendingLeafMap::new(&source),out)
     }
 
     fn add_style(group: &mut StyleTreeBuilder, name: &str, values: &[(&str,&str)]) {
@@ -160,12 +161,12 @@ mod test {
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5")]);
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
-        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new(),&aligner);
+        let (mut plm, mut pending) = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
+        make_transformable(&builder,&mut plm,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new(),&aligner);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable(&plm).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -194,12 +195,12 @@ mod test {
         add_style(&mut tree, "a/", &[("padding-top","10"),("padding-bottom","5"),("type","overlay")]);        
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let mut pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
-        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new(),&aligner);
+        let (mut plm, mut pending) = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&[],&style_group);
+        make_transformable(&builder,&mut plm,&converter,&root,&mut pending.iter(),&mut AllotmentMetadata2Builder::new(),&aligner);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable(&plm).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         assert!(descs[0].contains("coord_system: CoordinateSystem(Window, false)"));
@@ -237,14 +238,14 @@ mod test {
         add_style(&mut tree, "b/", &[("type","bumper"),("report","track")]);
         add_style(&mut tree, "a/1", &[("depth","10"),("coordinate-system","window")]);
         let style_group = AllotmentStyleGroup::new(StyleTree::new(tree));
-        let pending = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges,&style_group);
+        let (mut plm, pending) = make_pendings(&["a/1","a/2","a/3","b/1","b/2","b/3"],&[1.,2.,3.],&ranges,&style_group);
         let mut metadata = AllotmentMetadata2Builder::new();
-        make_transformable(&builder,&converter,&root,&mut pending.iter(),&mut metadata,&aligner);
+        make_transformable(&builder,&mut plm,&converter,&root,&mut pending.iter(),&mut metadata,&aligner);
         let metadata = AllotmentMetadata2::new(&metadata);
         let puzzle = Puzzle::new(builder);
         let mut solution = PuzzleSolution::new(&puzzle);
         assert!(solution.solve());
-        let transformers = pending.iter().map(|x| x.transformable().make(&solution)).collect::<Vec<_>>();
+        let transformers = pending.iter().map(|x| x.transformable(&plm).make(&solution)).collect::<Vec<_>>();
         let descs = transformers.iter().map(|x| x.describe()).collect::<Vec<_>>();
         assert_eq!(6,descs.len());
         println!("{:?}",descs);

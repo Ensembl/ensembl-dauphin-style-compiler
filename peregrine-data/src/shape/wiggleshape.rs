@@ -72,20 +72,7 @@ impl<A> WiggleShape<A> {
     pub fn iter_allotments(&self, len: usize) -> impl Iterator<Item=&A> {
         self.allotments.iter(len).unwrap()
     }
-}
 
-impl WiggleShape<PendingLeaf> {
-    pub fn new2(x_limits: (f64,f64), values: Vec<Option<f64>>,plotter: Plotter, pending_leaf: &PendingLeaf) -> Result<Shape<PendingLeaf>,DataMessage> {
-        let details = WiggleShape::new_details(x_limits,values,plotter,pending_leaf.clone());
-        Ok(Shape::Wiggle(details))
-    }
-}
-
-impl WiggleShape<LeafCommonStyle> {
-    pub fn get_style(&self) -> &LeafCommonStyle { &self.allotments.get(0).unwrap() }
-}
-
-impl<A: Clone> WiggleShape<A> {
     pub fn new_details(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: A) -> WiggleShape<A> {
         WiggleShape {
             x_limits,
@@ -95,6 +82,29 @@ impl<A: Clone> WiggleShape<A> {
         }
     }
 
+    pub fn base_filter(&self, min: f64, max: f64) -> WiggleShape<A> {
+        let (aim_min,aim_max,new_y) = wiggle_filter(min,max,self.x_limits.0,self.x_limits.1,&self.values);
+        WiggleShape {
+            x_limits: (aim_min,aim_max),
+            values: Arc::new(new_y),
+            plotter: self.plotter.clone(),
+            allotments: self.allotments.clone()
+        }
+    }
+}
+
+impl WiggleShape<PendingLeaf> {
+    pub fn new2(x_limits: (f64,f64), values: Vec<Option<f64>>,plotter: Plotter, pending_leaf: PendingLeaf) -> Result<Shape<PendingLeaf>,DataMessage> {
+        let details = WiggleShape::new_details(x_limits,values,plotter,pending_leaf);
+        Ok(Shape::Wiggle(details))
+    }
+}
+
+impl WiggleShape<LeafCommonStyle> {
+    pub fn get_style(&self) -> &LeafCommonStyle { &self.allotments.get(0).unwrap() }
+}
+
+impl<A: Clone> WiggleShape<A> {
     pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
@@ -121,16 +131,6 @@ impl<A: Clone> WiggleShape<A> {
 
     pub fn make_base_filter(&self, _min: f64, _max: f64) -> EachOrEveryFilter {
         EachOrEveryFilter::all(1)
-    }
-
-    pub fn base_filter(&self, min: f64, max: f64) -> WiggleShape<A> {
-        let (aim_min,aim_max,new_y) = wiggle_filter(min,max,self.x_limits.0,self.x_limits.1,&self.values);
-        WiggleShape {
-            x_limits: (aim_min,aim_max),
-            values: Arc::new(new_y),
-            plotter: self.plotter.clone(),
-            allotments: self.allotments.clone()
-        }
     }
 }
 

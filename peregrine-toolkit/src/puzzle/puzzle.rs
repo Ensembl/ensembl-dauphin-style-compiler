@@ -3,6 +3,7 @@ use crate::{lock, log_extra};
 use std::hash::Hash;
 
 #[cfg(debug_assertions)]
+#[allow(unused)]
 use crate::warn;
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
@@ -58,8 +59,11 @@ impl PuzzleDependency {
     pub(super) fn index(&self) -> Option<usize> { self.index }
 }
 
+identitynumber!(BIDS);
+
 #[derive(Clone)] // XXX not Clone
 pub struct PuzzleBuilder {
+    pub bid: u64,
     readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzleBuilder) + 'static>>>>,
     graph: Arc<Mutex<PuzzleGraph>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>
@@ -68,6 +72,7 @@ pub struct PuzzleBuilder {
 impl PuzzleBuilder {
     pub fn new() -> PuzzleBuilder {
         PuzzleBuilder {
+            bid: BIDS.next(),
             graph: Arc::new(Mutex::new(PuzzleGraph::new())),
             pieces: Arc::new(Mutex::new(vec![])),
             readies: Arc::new(Mutex::new(vec![]))
@@ -79,7 +84,7 @@ impl PuzzleBuilder {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
         let dependency = PuzzleDependency::new(id);
-        let out = PuzzlePiece::new(&self.graph,dependency,|| None);
+        let out = PuzzlePiece::new(&self.graph,dependency,|| None,self.bid);
         pieces.push(out.erased());
         out
     }
@@ -89,7 +94,7 @@ impl PuzzleBuilder {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
         let dependency = PuzzleDependency::new(id);
-        let out = PuzzlePiece::new(&self.graph,dependency,move || Some(default.clone()));
+        let out = PuzzlePiece::new(&self.graph,dependency,move || Some(default.clone()),self.bid);
         pieces.push(out.erased());
         out
     }
@@ -122,12 +127,15 @@ impl Puzzle {
         out.puzzle_ready();
         out
     }
+
+    pub fn bid(&self) -> u64 { self.0.bid }
 }
 
 identitynumber!(IDS);
 hashable!(PuzzleSolution,id);
 
 pub struct PuzzleSolution {
+    pub bid: u64,
     id: u64,
     graph: Arc<Mutex<PuzzleGraph>>,
     mapping: Vec<Option<AnswerIndex>>,
@@ -139,6 +147,7 @@ pub struct PuzzleSolution {
 impl PuzzleSolution {
     pub fn new(puzzle: &Puzzle) -> PuzzleSolution {
         PuzzleSolution {
+            bid: puzzle.0.bid,
             id: IDS.next(),
             graph: puzzle.0.graph.clone(),
             mapping: vec![None;lock!(puzzle.0.pieces).len()],
@@ -182,7 +191,7 @@ impl PuzzleSolution {
         for piece in lock!(pieces).iter_mut() {
             piece.apply_defaults(self,true);
         }
-        log_extra!("{} pieces, {} solved took {}ms",self.mapping.len(),self.num_solved,took);
+        log_extra!("{} pieces, {} solved took {}ms id={}",self.mapping.len(),self.num_solved,took,self.id);
         #[cfg(debug_assertions)]
         self.confess();
         self.all_solved()

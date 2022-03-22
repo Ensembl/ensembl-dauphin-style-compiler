@@ -61,7 +61,7 @@ impl CarriageShapeListBuilder2 {
     }
 
     pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: PendingLeaf) -> Result<(),DataMessage> {
-        self.push_shape(WiggleShape::new2((min,max),values,plotter,&allotment)?);
+        self.push_shape(WiggleShape::new2((min,max),values,plotter,allotment)?);
         Ok(())
     }
 

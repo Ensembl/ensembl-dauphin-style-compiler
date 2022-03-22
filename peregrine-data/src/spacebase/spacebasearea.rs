@@ -22,6 +22,10 @@ impl <X,Y> SpaceBaseArea<X,Y> {
             b: self.1.iter(),
         }
     }
+
+    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBaseArea<X,Y> {
+        SpaceBaseArea(self.0.filter(filter),self.1.filter(filter),filter.count())
+    }
 }
 
 impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
@@ -38,10 +42,6 @@ impl<X: Clone, Y: Clone> SpaceBaseArea<X,Y> {
     pub fn iter_other<'a,Z>(&self, other: &'a [Z]) -> impl Iterator<Item=&'a Z> {
         let len = self.len();
         other.iter().cycle().take(len)
-    }
-
-    pub fn filter(&self, filter: &EachOrEveryFilter) -> SpaceBaseArea<X,Y> {
-        SpaceBaseArea(self.0.filter(filter),self.1.filter(filter),filter.count())
     }
 
     pub fn fullmap_allotments_results<F,G,A: Clone,E>(&self, cb: F, cb2: G) -> Result<SpaceBaseArea<X,A>,E> 
@@ -112,7 +112,7 @@ impl<X: Clone + Add<Output=X> + Sub<Output=X>, Y: Clone> SpaceBaseArea<X,Y> {
     }
 }
 
-impl<X: Clone + PartialOrd, Y: Clone> SpaceBaseArea<X,Y> {
+impl<X: PartialOrd, Y> SpaceBaseArea<X,Y> {
     pub fn make_base_filter(&self, min_value: X, max_value: X) -> EachOrEveryFilter {
         let top_left = self.0.base.make_filter(self.2, |base|
             *base < max_value

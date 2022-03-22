@@ -55,6 +55,7 @@ pub struct PuzzlePiece<T> {
     pre_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
     post_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
     readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>) + 'static>>>>,
+    bid: u64
 }
 
 impl<T> Clone for PuzzlePiece<T> {
@@ -66,19 +67,21 @@ impl<T> Clone for PuzzlePiece<T> {
             pre_default: self.pre_default.clone(),
             post_default: self.post_default.clone(),
             readies: self.readies.clone(),
+            bid: self.bid.clone()
         }
     }
 }
 
 impl<T: 'static> PuzzlePiece<T> {
-    pub(super) fn new<F>(graph: &Arc<Mutex<PuzzleGraph>>, dependency: PuzzleDependency, default: F) -> PuzzlePiece<T> where F: Fn() -> Option<T> + 'static {
+    pub(super) fn new<F>(graph: &Arc<Mutex<PuzzleGraph>>, dependency: PuzzleDependency, default: F, bid: u64) -> PuzzlePiece<T> where F: Fn() -> Option<T> + 'static {
         PuzzlePiece {
             graph: graph.clone(),
             dependency,
-            answers: Answers::new(),
+            answers: Answers::new(bid),
             pre_default: Arc::new(Mutex::new(Arc::new(default))),
             post_default: Arc::new(Mutex::new(Arc::new(|| None))),
-            readies: Arc::new(Mutex::new(vec![]))
+            readies: Arc::new(Mutex::new(vec![])),
+            bid
         }
     }
 
@@ -88,12 +91,13 @@ impl<T: 'static> PuzzlePiece<T> {
     pub(super) fn len(&self) -> usize { self.answers.len() }
 
     pub fn set_answer(&self, solution: &mut PuzzleSolution, value: T) {
-        let index = self.answers.set(value);
+        let index = self.answers.set(value,solution.id());
         if !solution.set_answer_index(&self.dependency,&index) {
             /* double set: naughty user or default application */
             self.answers.finish(&index);
+        } else {
+            solution.just_answered().push(self.dependency.clone());
         }
-        solution.just_answered().push(self.dependency.clone());
     }
 
     pub fn add_solver<F>(&self, dependencies: &[PuzzleDependency], callback: F) where F: Fn(&mut PuzzleSolution) -> Option<T> + 'static {
@@ -122,6 +126,8 @@ impl<T: 'static> PuzzlePiece<T> {
 impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> {
         let index = if let Some(x) = solution.get_answer_index(&self.dependency) { x } else { return None; };
+        #[cfg(any(debug_assertions,test))]
+        self.answers.check_for_aliens(solution.bid,&self.dependency.name());
         self.answers.get(&index)
     }
 

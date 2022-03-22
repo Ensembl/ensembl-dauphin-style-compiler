@@ -26,6 +26,21 @@ impl<A> TextShape<A> {
     pub fn iter_texts(&self) -> impl Iterator<Item=&String> {
         self.text.iter(self.position.len()).unwrap()
     }
+
+    pub fn new_details(position: SpaceBase<f64,A>, pen: Pen, text: EachOrEvery<String>) -> Result<TextShape<A>,DataMessage> {
+        if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
+        Ok(TextShape {
+            position, pen, text
+        })
+    }
+
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> TextShape<A> {
+        TextShape {
+            position: self.position.filter(filter),
+            pen: self.pen.filter(filter),
+            text: self.text.filter(filter)
+        }
+    }
 }
 
 impl TextShape<PendingLeaf> {
@@ -42,13 +57,6 @@ impl<A> Clone for TextShape<A> where A: Clone {
 }
 
 impl<A: Clone> TextShape<A> {
-    pub fn new_details(position: SpaceBase<f64,A>, pen: Pen, text: EachOrEvery<String>) -> Result<TextShape<A>,DataMessage> {
-        if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
-        Ok(TextShape {
-            position, pen, text
-        })
-    }
-
     pub fn new(position: SpaceBase<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
         let mut out = vec![];
@@ -60,14 +68,6 @@ impl<A: Clone> TextShape<A> {
             }
         }
         Ok(out)
-    }
-
-    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> TextShape<A> {
-        TextShape {
-            position: self.position.filter(filter),
-            pen: self.pen.filter(filter),
-            text: self.text.filter(filter)
-        }
     }
 }
 

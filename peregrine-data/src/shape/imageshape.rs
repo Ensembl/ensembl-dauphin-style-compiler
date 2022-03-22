@@ -23,6 +23,20 @@ impl<A> ImageShape<A> {
     pub fn iter_names(&self) -> impl Iterator<Item=&String> {
         self.names.iter(self.position.len()).unwrap()
     }
+
+    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Result<ImageShape<A>,DataMessage> {
+        if !names.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
+        Ok(ImageShape {
+            position, names
+        })
+    }
+
+    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> ImageShape<A> {
+        ImageShape {
+            position: self.position.filter(filter),
+            names: self.names.filter(&filter)
+        }
+    }
 }
 
 impl<A> Clone for ImageShape<A> where A: Clone {
@@ -39,13 +53,6 @@ impl ImageShape<PendingLeaf> {
 }
 
 impl<A: Clone> ImageShape<A> {
-    pub fn new_details(position: SpaceBase<f64,A>, names: EachOrEvery<String>) -> Result<ImageShape<A>,DataMessage> {
-        if !names.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("image patina"))); }
-        Ok(ImageShape {
-            position, names
-        })
-    }
-
     pub fn new(position: SpaceBase<f64,AllotmentRequest>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
@@ -62,13 +69,6 @@ impl<A: Clone> ImageShape<A> {
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
         self.position.make_base_filter(min,max)
-    }
-
-    pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> ImageShape<A> {
-        ImageShape {
-            position: self.position.filter(filter),
-            names: self.names.filter(&filter)
-        }
     }
 }
 
