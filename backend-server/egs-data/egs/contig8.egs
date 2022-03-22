@@ -1,6 +1,6 @@
 import "lib:std"; use "std";
 import "lib:peregrine"; use "peregrine";
-import "file:common.egs"; use "common";
+import "file:common8.egs"; use "common8";
 
 endpoint := ["contig","shimmer-contig"][(@==1)==get_switch(["scale","shimmer"])];
 

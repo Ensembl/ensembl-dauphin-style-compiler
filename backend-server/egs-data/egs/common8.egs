@@ -1,12 +1,23 @@
 use "std";
 use "peregrine";
 
-module "common";
+module "common8";
 
 stmt use_allotments(our_allotments,enabled_tracks,potential_tracks) {
     tracks_used := ["","","","",""];
     tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
     our_allotments := [use_allotment(tracks_used[])];
+}
+
+stmt use_allotment_names(our_allotments,enabled_tracks,potential_tracks) {
+    tracks_used := ["","","","",""];
+    tracks_used[enabled_tracks] := potential_tracks[enabled_tracks];
+    our_allotments := [tracks_used[]];
+}
+
+stmt force_allotment(forced_names) {
+    x := use_allotment(forced_names);
+    alienate(x);
 }
 
 gene_cat_allotments := [
@@ -42,7 +53,7 @@ stmt draw_track_names(track_names,switch_names,allotments) {
     label_allotments[switches==false] := use_allotment("");
 
     textpen_trackname := pen("'Lato', sans-serif",name_text_size,name_text_colour,[][]);
-    text2(spacebase(len(track_names) (*) 0,-18,8),textpen_trackname,track_names[],label_allotments[]);
+    text2(spacebase(len(track_names) (*) 0,0,8),textpen_trackname,track_names[],label_allotments[]);
 }
 
 stmt draw_track_category(category,allotments) {
@@ -50,12 +61,12 @@ stmt draw_track_category(category,allotments) {
     cat_text_colour := direct_colour(0,0,0,255);
 
     textpen_cat := pen("'Lato', sans-serif",cat_text_size,cat_text_colour,[][]);
-    text2(spacebase(len(allotments) (*) 0,-4,16),textpen_cat,category,allotments[]);
+    text2(spacebase(len(allotments) (*) 0,0,16),textpen_cat,category,allotments[]);
 }
 
 stmt draw_focus_swatch(allotment_value) {
     swatch_patina := patina_filled(simple_colour(direct_colour(88,168,249,255)));
-    rectangle(spacebase(0,-16,0),spacebase(0,16,5),swatch_patina,allotment_value);
+    rectangle(spacebase(0,0,0),spacebase(0,16,5),swatch_patina,allotment_value);
 }
 
 stmt red_dotted(pstart,pend,pallotment) {
@@ -63,3 +74,13 @@ stmt red_dotted(pstart,pend,pallotment) {
     rectangle(spacebase(pstart,0,0),spacebase(pstart,-1,0),dots_patina,pallotment);
     rectangle(spacebase(pend,0,0),spacebase(pend,-1,0),dots_patina,pallotment);
 }
+
+style("dots/",["system","depth"][],["tracking-special","56"][]);
+style("tracks/",["padding-top","priority"][],["16","0"][]);
+style("tracks/track/*/",["padding-top","padding-bottom"][],["8","8"][]);
+style("tracks/track/*/title/",["system","type","indent","padding-top","padding-bottom","priority"][],["window","overlay","left","2","2","-1000"][]);
+style("tracks/track/*/main/",["type","priority"][],["overlay","0"][]);
+style("tracks/track/*/main/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
+style("tracks/track/*/title/letter/",["system","indent","depth"][],["window","datum(pad-left)","60"][]);
+style("tracks/track/*/main/main/",["system","priority"][],["tracking","1000"][]);
+style("tracks/track/*/main/background/",["system"][],["window"][]);
