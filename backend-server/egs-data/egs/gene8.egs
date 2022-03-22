@@ -111,9 +111,6 @@ use_allotments(allotments_letter,enabled_tracks,[
     "tracks/track/focus/title/letter/content",
 ]);
 
-tracks_used_cat := ["","","","",""];
-tracks_used_cat[enabled_tracks] := gene_cat_allotments[enabled_tracks];
-
 /*
  * Which allotment and track does data go into?
  *
@@ -133,15 +130,12 @@ allotment_idx#[in(gene_biotype,["protein_coding"])] (+=) 1;
 focus_gene := list_switch(["focus","gene"]);
 allotment_idx#[focus_id==focus_gene] := 4;
 
-force_allotment(base_allotment_names[]);
 base_allotment_names := [append_group(index(allotment_idx,base_allotment_names),gene_id)];
 allotment_names := [append_group(base_allotment_names[],["blocks"][])];
 allotment := use_allotment(append_group(allotment_names[],["content"][]));
 
 text_allotment_names :=  [append_group(base_allotment_names[],["text"][])];
 text_allotment := use_allotment(append_group(text_allotment_names[],["content"][]));
-
-allotments_cat := [use_allotment(tracks_used_cat[])];
 
 track_name := index(allotment_idx,potential_tracks);
 
@@ -236,7 +230,7 @@ draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 draw_track_category("G",allotments_letter);
 
 /* focus swatch */
-//draw_focus_swatch(allotments_cat[@==4]);
+draw_focus_swatch(allotments_letter[@==4]);
 
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);

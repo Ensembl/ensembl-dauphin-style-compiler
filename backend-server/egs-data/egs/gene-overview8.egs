@@ -24,13 +24,6 @@ focus_id := string_seq(data,"focus_ids");
  * What are the current track settings?
  */
 
-potential_tracks := ["track:gene-other-rev[4]","track:gene-pc-rev[4]","track:gene-other-fwd[4]","track:gene-pc-fwd[4]","track:focus[4]"];
-potential_tracks_wallpaper := [
-    "track:gene-other-rev:wallpaper[-10]","track:gene-pc-rev:wallpaper[-10]",
-    "track:gene-other-fwd:wallpaper[-10]","track:gene-pc-fwd:wallpaper[-10]",
-    "track:focus:wallpaper[-10]"
-];
-
 enabled_tracks := get_switch([
     ["track","gene-other-rev"],
     ["track","gene-pc-rev"],
@@ -39,7 +32,6 @@ enabled_tracks := get_switch([
     ["track","focus","label"],
     ["track","focus"]
 ][]);
-
 
 /*
 
@@ -165,8 +157,8 @@ draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 draw_track_category("G",allotments_letter);
 
 /* focus swatch */
-//draw_focus_swatch(allotments_cat[@==4]);
+draw_focus_swatch(allotments_letter[@==4]);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","track-window:red-dots:window[56]"][(@==1)==(get_switch(["track","focus"]))]);
-//red_dotted(focus_start,focus_end,dots_allotment);
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_start,focus_end,dots_allotment);

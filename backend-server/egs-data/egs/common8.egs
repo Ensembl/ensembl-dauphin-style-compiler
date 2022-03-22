@@ -15,19 +15,6 @@ stmt use_allotment_names(our_allotments,enabled_tracks,potential_tracks) {
     our_allotments := [tracks_used[]];
 }
 
-stmt force_allotment(forced_names) {
-    x := use_allotment(forced_names);
-    alienate(x);
-}
-
-gene_cat_allotments := [
-    "track:gene-other-rev:wallpaper{left:left-pad}[60]",
-    "track:gene-pc-rev:wallpaper{left:left-pad}[60]",
-    "track:gene-other-fwd:wallpaper{left:left-pad}[60]",
-    "track:gene-pc-fwd:wallpaper{left:left-pad}[60]",
-    "track:focus:wallpaper{left:left-pad}[60]",
-];
-
 gene_name_switches := [
     ["track","gene-other-rev","name"],
     ["track","gene-pc-rev","name"],
@@ -66,7 +53,7 @@ stmt draw_track_category(category,allotments) {
 
 stmt draw_focus_swatch(allotment_value) {
     swatch_patina := patina_filled(simple_colour(direct_colour(88,168,249,255)));
-    rectangle(spacebase(0,0,0),spacebase(0,16,5),swatch_patina,allotment_value);
+    rectangle(spacebase(0,-9,0),spacebase(0,20,5),swatch_patina,allotment_value);
 }
 
 stmt red_dotted(pstart,pend,pallotment) {

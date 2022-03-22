@@ -143,17 +143,7 @@ use_allotments(allotments_letter,enabled_tracks,[
     "tracks/track/focus/title/letter/content",
 ]);
 
-//use_allotment_names(blanking_allotment_names,enabled_tracks,[append_depth(potential_tracks[],-1)]);
-//use_allotment_names(allotment_under_names,enabled_tracks,[append_depth(potential_tracks[],-2)]);
-//use_allotment_names(allotment_far_under_names,enabled_tracks,[append_depth(potential_tracks[],-3)]);
-//use_allotment_names(allotment_over_names,enabled_tracks,[append_depth(potential_tracks[],2)]);
-//use_allotment_names(allotment_very_over_names,enabled_tracks,[append_depth(potential_tracks[],3)]);
-
-//force_allotment(allotment_names[]);
-
 use_allotments(allotments_wallpaper,enabled_tracks,potential_tracks_wallpaper);
-//use_allotments(allotments_trackname,enabled_tracks,[append_depth(potential_tracks_trackname[],-10)]);
-//use_allotments(allotments_cat,enabled_tracks,gene_cat_allotments);
 
 /*
  * Which allotment and track does data go into?
@@ -215,10 +205,6 @@ alienate(allotment);
 focus_start := start#[allotment_idx==4];
 focus_end := end#[allotment_idx==4];
 
-//exon_allotment := use_allotment(append_group(index(exon_allotment_idx,allotment_over_names),exon_gene_ids));
-//exon_allotment_over := index(exon_allotment_idx,[allotment_far_over]);
-//blanking_exon_allotment := use_allotment(append_group(index(exon_allotment_idx,blanking_allotment_names),exon_gene_ids));
-
 /*
  * Filter labels by which tracks are configured to have labels
  */
@@ -246,7 +232,6 @@ track_name := index(allotment_idx,potential_tracks);
  * (driven by allotment for gene)
  */
 
-// XXX allow types to overlap with functions/vars
 base_non_pc_colour := direct_colour(200,200,200,255);
 base_pc_colour := direct_colour(128,128,128,255);
 base_focus_colour := direct_colour(39,154,252,255);
@@ -273,8 +258,6 @@ textpen := pen("'Lato', sans-serif",text_size,text_colour,[][]);
 /*
  * prepare the zmenus
  */
-
-// TODO multiline strings
 
 /* metadata */
 zmenu_patina := patina_zmenu(zmenu(""),["type"],[["gene-and-one-transcript"]][]);
@@ -337,7 +320,7 @@ draw_track_names(gene_track_names,gene_name_switches,allotments_trackname);
 draw_track_category("G",allotments_letter);
 
 /* focus swatch */
-//draw_focus_swatch(allotments_cat[@==4]);
+draw_focus_swatch(allotments_letter[@==4]);
 
 /* red-dotted lines */
 dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
