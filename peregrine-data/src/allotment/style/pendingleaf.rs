@@ -3,48 +3,16 @@ use std::{sync::{Arc, Mutex}, borrow::BorrowMut, collections::HashMap};
 use peregrine_toolkit::lock;
 
 use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable, DustbinTransformable}, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
-use super::allotmentname::AllotmentName;
-
-#[cfg_attr(debug_assertions,derive(Debug))]
-#[derive(Clone)]
-pub struct PendingLeafSource {
-    next_index: Arc<Mutex<usize>>,
-    #[cfg(debug_assertions)]
-    closed: Arc<Mutex<bool>>
-}
-
-impl PendingLeafSource {
-    pub fn new() -> PendingLeafSource {
-        PendingLeafSource {
-            next_index: Arc::new(Mutex::new(0)),
-            #[cfg(debug_assertions)]
-            closed: Arc::new(Mutex::new(false))
-        }
-    }
-
-    pub fn id(&self) -> usize {
-        #[cfg(debug_assertions)]
-        if *lock!(self.closed) {
-            panic!("allocate from closed!");
-        }
-        let mut index = lock!(self.next_index);
-        *index += 1;
-        *index - 1
-    }
-}
+use super::allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher};
 
 pub struct PendingLeafMap {
-    transformables: HashMap<AllotmentName,Arc<dyn Transformable>>
+    transformables: HashMap<AllotmentName,Arc<dyn Transformable>,BuildPassThroughHasher>
 }
 
 impl PendingLeafMap {
-    pub fn new(source: &PendingLeafSource) -> PendingLeafMap {
-        #[cfg(debug_assertions)]
-        { *lock!(source.closed) = true; }
-        let index_len = *lock!(source.next_index);
-        let dustbin = Arc::new(DustbinTransformable::new());
+    pub fn new() -> PendingLeafMap {
         PendingLeafMap {
-            transformables: HashMap::new()
+            transformables: new_efficient_allotmentname_hashmap()
         }
     }
 
@@ -60,7 +28,6 @@ impl PendingLeafMap {
 #[derive(Clone)]
 pub struct PendingLeaf {
     name: AllotmentName,
-    index: Arc<Mutex<usize>>,
     drawing_info: Arc<Mutex<DrawingInfo>>,
     style: Arc<Mutex<Option<(Arc<AllotmentStyleGroup>,Arc<LeafCommonStyle>)>>>
 }
@@ -72,17 +39,12 @@ impl std::fmt::Debug for PendingLeaf {
 }
 
 impl PendingLeaf {
-    pub fn new(source: &mut PendingLeafSource, name: &AllotmentName) -> PendingLeaf {
+    pub fn new(name: &AllotmentName) -> PendingLeaf {
         PendingLeaf {
             name: name.clone(),
-            index: Arc::new(Mutex::new(source.id())),
             drawing_info: Arc::new(Mutex::new(DrawingInfo::new())),
             style: Arc::new(Mutex::new(None))
         }
-    }
-
-    pub fn new_source(&mut self, source: &mut PendingLeafSource) {
-        *lock!(self.index) = source.id();
     }
 
     pub(crate) fn set_style(&self, style: &AllotmentStyleGroup) {

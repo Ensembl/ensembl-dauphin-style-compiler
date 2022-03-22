@@ -110,7 +110,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadata2}, aligner::Aligner}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::{PendingLeaf, PendingLeafSource, PendingLeafMap}, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+    use crate::{allotment::{core::{arbitrator::BpPxConverter, rangeused::RangeUsed, allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadata2}, aligner::Aligner}, boxes::root::Root, style::{allotmentname::AllotmentName, self, holder::ContainerHolder, pendingleaf::{PendingLeaf, PendingLeafMap}, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> (PendingLeafMap,Vec<PendingLeaf>) {
         let heights = if heights.len() > 0 {
@@ -124,9 +124,8 @@ mod test {
             None
         };
         let mut out = vec![];
-        let mut source = PendingLeafSource::new();
         for (name,height) in names.iter().zip(heights) {
-            let mut leaf = PendingLeaf::new(&mut source, &AllotmentName::new(name));
+            let mut leaf = PendingLeaf::new(&AllotmentName::new(name));
             leaf.set_style(style);
             leaf.update_drawing_info(|info| {
                 info.merge_max_y(*height);
@@ -136,7 +135,7 @@ mod test {
             });
             out.push(leaf);
         }
-        (PendingLeafMap::new(&source),out)
+        (PendingLeafMap::new(),out)
     }
 
     fn add_style(group: &mut StyleTreeBuilder, name: &str, values: &[(&str,&str)]) {

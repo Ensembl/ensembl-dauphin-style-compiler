@@ -1,13 +1,27 @@
-use std::sync::Arc;
+use std::{sync::Arc, hash::{Hash, Hasher, BuildHasher}, collections::{hash_map::{DefaultHasher}, HashMap}};
 
 const TOKEN_ALL : &str = "**";
 
-
-#[derive(Clone,Debug,Hash,PartialEq,Eq)]
+#[derive(Clone,Debug)]
 pub struct AllotmentName {
+    hash: Arc<u64>,
     name: Arc<Vec<String>>,
     container: bool
 }
+
+impl Hash for AllotmentName {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.hash.hash(state);
+    }
+}
+
+impl PartialEq for AllotmentName {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash
+    }
+}
+
+impl Eq for AllotmentName {}
 
 impl AllotmentName {
     pub(crate) fn new(spec: &str) -> AllotmentName {
@@ -17,7 +31,11 @@ impl AllotmentName {
             name.pop();
             container = true;
         }
+        let mut hasher = DefaultHasher::new();
+        name.hash(&mut hasher);
+        container.hash(&mut hasher);
         AllotmentName {
+            hash: Arc::new(hasher.finish()),
             name: Arc::new(name),
             container
         }
@@ -26,6 +44,32 @@ impl AllotmentName {
     pub(crate) fn sequence(&self) -> &[String] { &self.name }
     pub(crate) fn is_container(&self) -> bool { self.container }
     pub fn is_dustbin(&self) -> bool { self.name.len() == 0 }
+}
+
+pub struct PassThroughHasher(u64);
+
+impl Hasher for PassThroughHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for &byte in bytes {
+            self.0 = (self.0<<8) | (byte as u64);
+        }
+    }
+    
+    fn finish(&self) -> u64 { self.0 }
+}
+
+#[derive(Clone)]
+pub struct BuildPassThroughHasher;
+
+impl BuildHasher for BuildPassThroughHasher {
+    type Hasher = PassThroughHasher;
+    fn build_hasher(&self) -> PassThroughHasher {
+        PassThroughHasher(0)
+    }
+}
+
+pub fn new_efficient_allotmentname_hashmap<T>() -> HashMap<AllotmentName,T,BuildPassThroughHasher> {
+    HashMap::<_,_,BuildPassThroughHasher>::with_hasher(BuildPassThroughHasher)
 }
 
 pub struct AllotmentNamePrefixes<'a> {

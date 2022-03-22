@@ -239,5 +239,5 @@ draw_track_category("G",allotments_letter);
 //draw_focus_swatch(allotments_cat[@==4]);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","track-window:red-dots:window[56]"][(@==1)==(get_switch(["track","focus"]))]);
-//red_dotted(focus_start,focus_end,dots_allotment);
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_start,focus_end,dots_allotment);

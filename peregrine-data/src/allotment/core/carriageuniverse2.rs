@@ -1,46 +1,39 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, error, lock, log};
 
-use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafSource, PendingLeafMap}, allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape, DataMessage};
+use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafMap}, allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, PassThroughHasher, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape, DataMessage};
 
 use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}, aligner::Aligner};
 
 pub struct CarriageUniverseBuilder {
-    source: PendingLeafSource,
-    leafs: HashMap<String,PendingLeaf>
+    leafs: HashMap<AllotmentName,PendingLeaf,BuildPassThroughHasher>
 }
 
 impl CarriageUniverseBuilder {
     pub fn new() -> CarriageUniverseBuilder {
         CarriageUniverseBuilder {
-            source: PendingLeafSource::new(),
-            leafs: HashMap::new()
+            leafs: new_efficient_allotmentname_hashmap()
         }
     }
 
     pub fn pending_leaf(&mut self, spec: &str) -> &mut PendingLeaf {
-        if !self.leafs.contains_key(spec) {
-            self.leafs.insert(spec.to_string(),PendingLeaf::new(&mut self.source,&AllotmentName::new(spec)));
+        let name = AllotmentName::new(spec);
+        if !self.leafs.contains_key(&name) {
+            self.leafs.insert(name.clone(),PendingLeaf::new(&AllotmentName::new(spec)));
         }
-        self.leafs.get_mut(spec).unwrap()
+        self.leafs.get_mut(&name).unwrap()
     }
 
     pub fn union(&self, other: &CarriageUniverseBuilder) -> CarriageUniverseBuilder {
-        let mut new_source = self.source.clone();
         let mut leafs = self.leafs.clone();
-        leafs.extend(other.leafs.iter().map(|(k,v)| {
-            let mut v = v.clone();
-            v.new_source(&mut new_source);
-            (k.clone(),v)
-        }));
+        leafs.extend(&mut other.leafs.iter().map(|(k,v)| (k.clone(),v.clone())));
         CarriageUniverseBuilder {
-            source: new_source,
             leafs
         }
     }
 
     fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> Result<(Puzzle,AllotmentMetadata2Builder,Root,PendingLeafMap),DataMessage> {
-        let mut plm = PendingLeafMap::new(&self.source);
+        let mut plm = PendingLeafMap::new();
         let mut metadata = AllotmentMetadata2Builder::new();
         let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));

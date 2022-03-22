@@ -141,6 +141,11 @@ allotment_idx#[focus_id==focus_gene] := 4;
 //allotment := index(allotment_idx,allotments);
 //allotment_over := index(allotment_idx,allotments_over);
 
+
+focus_start := start#[allotment_idx==4];
+focus_end := end#[allotment_idx==4];
+
+
 exon_focus_id := index(exon_gene_indexes,[focus_id]);
 
 exon_allotment_idx := len([exon_start]) (*) 0;
@@ -192,7 +197,6 @@ thick_seq_patina := patina_filled(thick_seq_colour);
 thin_seq_patina := patina_hollow(thin_seq_colour,1);
 
 thick_textpen := pen("'Lato', sans-serif",text_size,thick_text_colour,thick_colour);
-thin_textpen := pen("'Lato', sans-serif",text_size,thick_colour,[][]);
 
 /******/
 
@@ -262,6 +266,9 @@ thin_seq_allotment_far_over := index(thin_seq_gene_index,[allotment_gene_far_ove
 
 indented_rectangle_on_genome(thin_seq_start,thin_seq_start + 1,12,thin_seq_patina,thin_seq_allotment_over);
 coords := spacebase(thin_seq_start + 0.5,0,-4);
+
+text_colour := index(index(thin_seq_gene_index,[allotment_idx]),[normal_text_colour,normal_text_colour,normal_text_colour,normal_text_colour,focus_text_colour]);
+thin_textpen := pen("'Lato', sans-serif",text_size,text_colour,thick_text_colour);
 text2(coords,thin_textpen,thin_seq_letter,thin_seq_allotment_far_over);
 
 /* track names */
@@ -291,5 +298,6 @@ draw_track_category("G",allotments_letter);
 //draw_focus_swatch(allotments_cat[@==4]);
 
 /* red-dotted lines */
-dots_allotment := use_allotment(["","track-window:red-dots:window[56]"][(@==1)==(get_switch(["track","focus"]))]);
-//red_dotted(focus_start,focus_end,dots_allotment);
+
+dots_allotment := use_allotment(["","dots/content"][(@==1)==(get_switch(["track","focus"]))]);
+red_dotted(focus_start,focus_end,dots_allotment);

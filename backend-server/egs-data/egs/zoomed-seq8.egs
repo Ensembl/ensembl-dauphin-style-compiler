@@ -56,4 +56,3 @@ bond(seq_start#[three_bonds],0.5);
 
 /* track category */
 draw_track_category("G",[allotment_letter]);
-
