@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, borrow::BorrowMut};
+use std::{sync::{Arc, Mutex}, borrow::BorrowMut, collections::HashMap};
 
 use peregrine_toolkit::lock;
 
@@ -34,7 +34,7 @@ impl PendingLeafSource {
 }
 
 pub struct PendingLeafMap {
-    transformables: Vec<Arc<dyn Transformable>>
+    transformables: HashMap<AllotmentName,Arc<dyn Transformable>>
 }
 
 impl PendingLeafMap {
@@ -44,16 +44,16 @@ impl PendingLeafMap {
         let index_len = *lock!(source.next_index);
         let dustbin = Arc::new(DustbinTransformable::new());
         PendingLeafMap {
-            transformables: vec![dustbin;index_len]
+            transformables: HashMap::new()
         }
     }
 
-    fn set_transformable(&mut self, index: usize, transformable: &Arc<dyn Transformable>) {
-        self.transformables[index] = transformable.clone();
+    fn set_transformable(&mut self, name: &AllotmentName, transformable: &Arc<dyn Transformable>) {
+        self.transformables.insert(name.clone(),transformable.clone());
     }
 
-    fn transformable(&self, index: usize) -> &Arc<dyn Transformable> {
-        &self.transformables[index]
+    fn transformable(&self, name: &AllotmentName) -> &Arc<dyn Transformable> {
+        self.transformables.get(name).unwrap()
     }
 }
 
@@ -91,12 +91,12 @@ impl PendingLeaf {
     }
 
     pub(crate) fn set_transformable(&self, plm: &mut PendingLeafMap, xformable: Arc<dyn Transformable>) {
-        plm.set_transformable(*lock!(self.index),&xformable);
+        plm.set_transformable(&self.name,&xformable);
     }
 
     /* only call after set_transformable has been called! (via make_transformable) */
     pub fn transformable(&self, plm: &PendingLeafMap) -> Arc<dyn Transformable> { 
-        plm.transformable(*lock!(self.index)).clone()
+        plm.transformable(&self.name).clone()
     }
 
     pub fn leaf_style(&self) -> Arc<LeafCommonStyle> { lock!(self.style).as_ref().unwrap().1.clone() }
