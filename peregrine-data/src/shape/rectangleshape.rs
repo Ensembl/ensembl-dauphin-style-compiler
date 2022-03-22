@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::PuzzleSolution, log};
 
-use crate::{AllotmentRequest, DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{transform_spacebasearea2, tree::allotmentbox::AllotmentBox, boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -59,6 +59,7 @@ impl<A> Clone for RectangleShape<A> where A: Clone {
 }
 
 impl<A: Clone> RectangleShape<A> {
+    /*
     pub fn new(area: SpaceBaseArea<f64,AllotmentRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = area.len();
         let mut out = vec![];
@@ -70,6 +71,7 @@ impl<A: Clone> RectangleShape<A> {
         }
         Ok(out)
     }
+    */
 
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
@@ -109,6 +111,7 @@ impl RectangleShape<Arc<dyn Transformer>> {
     }
 }
 
+/*
 impl RectangleShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(RectangleShape {
@@ -119,7 +122,6 @@ impl RectangleShape<AllotmentRequest> {
     }
 }
 
-/*
 impl RectangleShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> RectangleShape<()> {
         RectangleShape {

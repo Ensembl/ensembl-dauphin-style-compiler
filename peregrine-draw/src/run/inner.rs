@@ -7,7 +7,7 @@ use std::sync::{ Mutex, Arc };
 use crate::util::message::{ Message, message_register_callback, routed_message, message_register_default };
 use crate::input::translate::targetreporter::TargetReporter;
 use js_sys::Date;
-use peregrine_data::{AllotmentMetadataStore, Assets, Commander, PeregrineCore};
+use peregrine_data::{Assets, Commander, PeregrineCore};
 use peregrine_dauphin::peregrine_dauphin;
 use peregrine_message::MessageKind;
 use peregrine_toolkit::log;
@@ -147,7 +147,6 @@ impl PeregrineInnerAPI {
         let redraw_needed = stage.lock().unwrap().redraw_needed();
         report.run(&commander);
         core.application_ready();
-        let allotment_metadata = AllotmentMetadataStore::new(); // XXX unify with core?
         message_sender.add(Message::Ready);
         let out = PeregrineInnerAPI {
             config: config.draw.clone(),
@@ -158,7 +157,7 @@ impl PeregrineInnerAPI {
             commander: commander.clone(),
             trainset, stage, webgl,
             dom: dom.clone(),
-            spectre_manager: SpectreManager::new(&config.draw,&allotment_metadata,&redraw_needed),
+            spectre_manager: SpectreManager::new(&config.draw,&redraw_needed),
             input: input.clone(),
             sound: sound.clone(),
             report: report.clone(),

@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -53,6 +53,7 @@ impl ImageShape<PendingLeaf> {
 }
 
 impl<A: Clone> ImageShape<A> {
+    /*/
     pub fn new(position: SpaceBase<f64,AllotmentRequest>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let len = position.len();
         let mut out = vec![];
@@ -64,6 +65,7 @@ impl<A: Clone> ImageShape<A> {
         }
         Ok(out)
     }
+    */
 
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
 
@@ -106,6 +108,7 @@ impl ImageShape<LeafCommonStyle> {
     }
 }
 
+/*
 impl ImageShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<ImageShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(ImageShape {
@@ -115,7 +118,6 @@ impl ImageShape<AllotmentRequest> {
     }
 }
 
-/*
 impl ImageShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> ImageShape<()> {
         ImageShape {

@@ -2,7 +2,6 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 
 use crate::allotment::boxes::root::PlayingField2;
-use crate::{AllotmentMetadataReport, PlayingField};
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::Carriage;

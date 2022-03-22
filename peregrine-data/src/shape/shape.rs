@@ -6,7 +6,6 @@ use super::imageshape::ImageShape;
 use super::rectangleshape::RectangleShape;
 use super::textshape::TextShape;
 use super::wiggleshape::WiggleShape;
-use crate::AllotmentRequest;
 use crate::Assets;
 use crate::Colour;
 use crate::CoordinateSystem;
@@ -17,7 +16,6 @@ use crate::allotment::core::rangeused::RangeUsed;
 use crate::allotment::style::pendingleaf::PendingLeaf;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::allotment::transformers::transformers::Transformer;
-use crate::allotment::tree::allotmentbox::AllotmentBox;
 use crate::util::eachorevery::EachOrEveryFilter;
 
 pub trait ShapeDemerge {
@@ -180,6 +178,7 @@ impl Shape<PendingLeaf> {
     }
 }
 
+/*
 impl Shape<AllotmentRequest> {
     pub fn register_space(&self, assets: &Assets) -> Result<(),DataMessage> {
         match &self {
@@ -234,3 +233,4 @@ impl Shape<AllotmentRequest> {
         })
     }
 }
+*/

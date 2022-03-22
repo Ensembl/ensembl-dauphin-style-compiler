@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use keyed::{KeyedOptionalValues, keyed_handle };
-use peregrine_data::{AllotmentMetadataStore, Assets, reactive::Reactive};
+use peregrine_data::{Assets, reactive::Reactive};
 use peregrine_toolkit::{lock, sync::needed::{Needed, NeededLock}};
 use crate::{Message, run::PgPeregrineConfig, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::{spectraldrawing::SpectralDrawing, spectre::{MarchingAnts, Spectre, Stain, AreaVariables2}};
@@ -85,18 +85,16 @@ impl SpectreState {
 pub(crate) struct SpectreManager {
     state: Arc<Mutex<SpectreState>>,
     drawing: SpectralDrawing,
-    config: Arc<PgPeregrineConfig>,
-    allotment_metadata: AllotmentMetadataStore
+    config: Arc<PgPeregrineConfig>
 }
 
 impl SpectreManager {
-    pub(crate) fn new(config: &Arc<PgPeregrineConfig>, allotment_metadata: &AllotmentMetadataStore, redraw_needed: &Needed) -> SpectreManager {
+    pub(crate) fn new(config: &Arc<PgPeregrineConfig>, redraw_needed: &Needed) -> SpectreManager {
         let reactive = Reactive::new();
         SpectreManager {
             state: Arc::new(Mutex::new(SpectreState::new(redraw_needed))),
             drawing: SpectralDrawing::new(&reactive),
-            config: config.clone(),
-            allotment_metadata: allotment_metadata.clone()
+            config: config.clone()
         }
     }
 
@@ -119,7 +117,7 @@ impl SpectreManager {
 
     pub(crate) fn draw(&mut self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, stage: &ReadStage, session: &mut DrawingSession) -> Result<(),Message> {
         if self.state.lock().unwrap().new_shapes() {
-            self.drawing.set(gl,assets,&self.allotment_metadata,&self.get_spectres())?;
+            self.drawing.set(gl,assets,&self.get_spectres())?;
         }
         self.drawing.draw(&mut *lock!(gl),stage,session)
     }

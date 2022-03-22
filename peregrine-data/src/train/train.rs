@@ -10,7 +10,7 @@ use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
 use crate::util::message::DataMessage;
-use crate::{PgCommanderTaskSpec, AllotmentMetadataReport};
+use crate::{PgCommanderTaskSpec};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 

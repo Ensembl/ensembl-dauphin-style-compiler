@@ -1,6 +1,6 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
-    AllotmentMetadataReport, Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, PlayingField, 
+    Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
     Viewport, AllotmentMetadataReport2, PlayingField2
 };
 use peregrine_toolkit::lock;

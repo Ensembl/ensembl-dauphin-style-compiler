@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::PuzzleSolution };
 
-use crate::{AllotmentRequest, DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transform_spacebase2, tree::allotmentbox::AllotmentBox, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -57,6 +57,7 @@ impl<A> Clone for TextShape<A> where A: Clone {
 }
 
 impl<A: Clone> TextShape<A> {
+    /*
     pub fn new(position: SpaceBase<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
         let mut out = vec![];
@@ -69,6 +70,7 @@ impl<A: Clone> TextShape<A> {
         }
         Ok(out)
     }
+    */
 }
 
 impl TextShape<PendingLeaf> {
@@ -90,6 +92,7 @@ impl TextShape<LeafCommonStyle> {
     }
 }
 
+/*
 impl TextShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<TextShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         Ok(TextShape {
@@ -100,7 +103,6 @@ impl TextShape<AllotmentRequest> {
     }
 }
 
-/*
 impl TextShape<AllotmentBox> {
     pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> TextShape<()> {
         TextShape {

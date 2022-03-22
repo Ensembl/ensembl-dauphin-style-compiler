@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}};
 use commander::{CommanderStream, cdr_tick, cdr_timer };
-use peregrine_data::{AllotmentMetadataReport, ZMenuFixed, AllotmentMetadataReport2};
+use peregrine_data::{ZMenuFixed, AllotmentMetadataReport2};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use crate::{Message, PgCommanderWeb, util::message::Endstop};
 use super::{PgConfigKey, PgPeregrineConfig};

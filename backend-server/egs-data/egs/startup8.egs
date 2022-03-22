@@ -17,20 +17,6 @@ import "lib:peregrine"; use "peregrine";
 
 sequence_scale := 9;
 
-stmt new_allotment(p,name,prio,switch_id,has_labels) {
-    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height"];
-    meta_values := [[switch_id],[has_labels],["16"],["16"],["64"]];
-
-    track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
-}
-
-stmt new_thin_allotment(p,name,prio,switch_id,has_labels) {
-    meta_keys := ["switch-id","has-labels","padding-top","padding-bottom","min-height","secret-track"];
-    meta_values := [[switch_id],[has_labels],["0"],["0"],["20"],["1"]];
-
-    track_add_allotment(p,name,prio,meta_keys[],meta_values[]);
-}
-
 stmt gene_std(p) {
     track_add_tag(p,"local");
     track_add_trigger(p,["track","gene-pc-fwd"]);
@@ -41,17 +27,10 @@ stmt gene_std(p) {
     track_add_switch(p,["settings"]);
     track_add_switch(p,["focus"]);
     track_add_switch(p,["track","focus"]);
-    new_allotment(p,"track:focus",-1000000,"focus","1");
-    new_allotment(p,"track:gene-other-fwd",-1000,"gene-other-fwd","1");
-    new_allotment(p,"track:gene-pc-fwd",-1100,"gene-pc-fwd","1");
-    new_allotment(p,"track:gene-pc-rev",1000,"gene-pc-rev","1");
-    new_allotment(p,"track:gene-other-rev",1100,"gene-other-rev","1");
 }
 
 /* TOP-LEVEL */
 p := track_new("self()","framing",1,60,60);
-new_thin_allotment(p,"left:left-pad",-2000000,"pad-left","");
-new_thin_allotment(p,"right:right-pad",-2000000,"pad-right","");
 track_add_trigger(p,["track"]);
 track_apply(p);
 
@@ -84,15 +63,12 @@ track_apply(p);
 
 /* RULER */
 p := track_new("self()","ruler",1,100,1);
-new_thin_allotment(p,"track-top:ruler-top",-2000000,"ruler-top","");
-new_thin_allotment(p,"track-bottom:ruler-bottom",2000000,"ruler-bottom","");
 track_add_trigger(p,["ruler"]);
 track_add_switch(p,["settings"]);
 track_apply(p);
 
 /* GC */
 p := track_new("self()","gc",1,100,3);
-new_allotment(p,"track:gc",2000,"gc","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","gc"]);
 track_add_switch(p,["settings"]);
@@ -101,7 +77,6 @@ track_apply(p);
 
 /* VARIANT */
 p := track_new("self()","variant",1,100,1);
-new_allotment(p,"track:variant",3000,"variant","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","variant"]);
 track_add_switch(p,["settings"]);
@@ -111,7 +86,6 @@ track_apply(p);
 /* CONTIGS */
 /* shimmer */
 p := track_new("self()","contig",26,200,3);
-new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
@@ -119,7 +93,6 @@ track_set_switch(p,["scale","shimmer"]);
 track_apply(p);
 /* regular */
 p := track_new("self()","contig",sequence_scale,26,3);
-new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);
@@ -128,7 +101,6 @@ track_apply(p);
 
 /* SEQUENCE */
 p := track_new("self()","zoomed-seq",0,sequence_scale,3);
-new_allotment(p,"track:contig",0,"contig","");
 track_add_tag(p,"local");
 track_add_trigger(p,["track","contig"]);
 track_add_switch(p,["settings"]);

@@ -6,8 +6,8 @@ use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectanglesha
 use crate::allotment::boxes::root::PlayingField2;
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::allotment::style::style::LeafCommonStyle;
-use crate::{ShapeRequest, ShapeRequestGroup, PlayingField, Shape};
-use crate::{AllotmentMetadataStore, Assets, DataMessage, CarriageUniverse, AllotmentRequest, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
+use crate::{ShapeRequest, ShapeRequestGroup, Shape};
+use crate::{Assets, DataMessage, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct CarriageShapeListBuilder2 {
     assets: Assets,

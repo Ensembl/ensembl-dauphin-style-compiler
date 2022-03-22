@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{AllotmentRequest, DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transform_yy, tree::allotmentbox::AllotmentBox, transformers::transformers::Transformer, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, Pen};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, Pen};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -105,12 +105,14 @@ impl WiggleShape<LeafCommonStyle> {
 }
 
 impl<A: Clone> WiggleShape<A> {
+    /*
     pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
         let mut out = vec![];
         let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
         out.push(Shape::Wiggle(details));
         Ok(out)
     }
+    */
 
     pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> WiggleShape<A> {
         let y = if filter.filter_clone(&[()]).len() > 0 {
@@ -134,6 +136,7 @@ impl<A: Clone> WiggleShape<A> {
     }
 }
 
+/*
 impl WiggleShape<AllotmentRequest> {
     pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
         let allotments = self.allotments.map_results(cb)?;
@@ -145,6 +148,7 @@ impl WiggleShape<AllotmentRequest> {
         })
     }
 }
+*/
 
 impl WiggleShape<LeafCommonStyle> {
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {

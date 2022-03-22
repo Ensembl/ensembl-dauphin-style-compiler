@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 
-use peregrine_data::{AllotmentMetadataRequest, AllotmentMetadataStore, Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, AllotmentRequest, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder2, PendingLeaf, LeafCommonStyle, Pen};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder2, PendingLeaf, LeafCommonStyle, Pen};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -49,7 +49,7 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/ants").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -135,7 +135,7 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/stain").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -179,13 +179,13 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2, allotment_metadata: &AllotmentMetadataStore) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
         match self {
-            Spectre::MarchingAnts(a) => a.draw(shapes,allotment_metadata)?,
-            Spectre::Stain(a) => a.draw(shapes,allotment_metadata)?,
+            Spectre::MarchingAnts(a) => a.draw(shapes)?,
+            Spectre::Stain(a) => a.draw(shapes)?,
             Spectre::Compound(spectres) => {
                 for spectre in spectres {
-                    spectre.draw(shapes,allotment_metadata)?;
+                    spectre.draw(shapes)?;
                 }
             }
         }

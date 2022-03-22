@@ -11,7 +11,7 @@ use peregrine_dauphin_queue::{ PgDauphinQueue };
 use peregrine_message::PeregrineMessage;
 use peregrine_toolkit::sync::blocker::Blocker;
 use std::sync::{ Arc, Mutex };
-use crate::{AllBackends, AllotmentMetadataStore, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
+use crate::{AllBackends, Assets, Commander, CountingPromise, PgCommander, PgDauphin};
 use crate::api::PeregrineApiQueue;
 use crate::api::queue::ApiMessage;
 use crate::api::AgentStore;
@@ -43,7 +43,6 @@ pub struct PeregrineCoreBase {
     pub manager: RequestManager,
     pub booted: CountingPromise,
     pub queue: PeregrineApiQueue,
-    pub allotment_metadata: AllotmentMetadataStore,
     pub identity: Arc<Mutex<u64>>,
     pub integration: Arc<Mutex<Box<dyn PeregrineIntegration>>>,
     pub assets: Arc<Mutex<Assets>>,
@@ -71,7 +70,6 @@ impl PeregrineCore {
         let manager = RequestManager::new(integration.channel(),&commander,&messages,&version);
         let all_backends = AllBackends::new(&manager,&metrics,&messages);
         let booted = CountingPromise::new();
-        let allotment_metadata = AllotmentMetadataStore::new();
         let base = PeregrineCoreBase {
             metrics,
             booted,
@@ -83,7 +81,6 @@ impl PeregrineCore {
             all_backends,
             integration: Arc::new(Mutex::new(integration)),
             queue: PeregrineApiQueue::new(visual_blocker),
-            allotment_metadata,
             identity: Arc::new(Mutex::new(0)),
             assets: Arc::new(Mutex::new(Assets::empty())),
             version

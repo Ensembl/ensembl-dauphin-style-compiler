@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
-use peregrine_data::{AllotmentMetadataReport, DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, AllotmentMetadataReport2};
+use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, AllotmentMetadataReport2};
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {

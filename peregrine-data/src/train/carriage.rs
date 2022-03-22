@@ -7,7 +7,7 @@ use crate::allotment::boxes::root::PlayingField2;
 use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, PlayingField, Shape};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, Shape};
 use crate::shapeload::{ ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;

@@ -14,7 +14,7 @@ use super::decompress::{
     ClassifyCommandType, SplitStringCommandType, BaseFlipCommandType
 };
 use super::track::{ 
-    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType, AddAllotmentCommandType,
+    NewLaneCommandType, AddTagCommandType, AddTrackCommandType, DataSourceCommandType,
     AddSwitchCommandType, SetSwitchCommandType, ClearSwitchCommandType, AppendGroupCommandType, AppendDepthCommandType
 };
 use super::geometry:: {
@@ -26,10 +26,11 @@ use super::shape::{ WiggleCommandType, RectangleCommandType, Text2CommandType, I
 use super::switch::{ GetSwitchCommandType, ListSwitchCommandType };
 
 pub fn peregrine_id() -> CommandSetId {
-    CommandSetId::new("peregrine",(46,0),0x1CE0E3893119B43)
+    CommandSetId::new("peregrine",(47,0),0xD685980F7B96D320)
 }
 
 pub fn make_peregrine() -> CompLibRegister {
+    // 10 is free
     let mut set = CompLibRegister::new(&peregrine_id(),Some(make_peregrine_interp()));
     set.push("add_stick_authority",Some(0),AddAuthorityCommandType());
     set.push("get_stick_id",Some(1),GetStickIdCommandType());
@@ -41,7 +42,6 @@ pub fn make_peregrine() -> CompLibRegister {
     set.push("wiggle",Some(7),WiggleCommandType());
     set.push("track_apply",Some(8),DataSourceCommandType());
     set.push("patina_hollow",Some(9),PatinaHollowCommandType());
-    set.push("track_add_allotment",Some(10),AddAllotmentCommandType());
     set.push("track_add_switch",Some(11),AddSwitchCommandType());
     set.push("use_allotment",Some(12),UseAllotmentCommandType());
     set.push("direct_colour",Some(13),DirectColourCommandType());

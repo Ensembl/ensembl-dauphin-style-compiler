@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, error, lock, log};
 
-use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafMap}, allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, PassThroughHasher, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, PlayingField, Shape, DataMessage};
+use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafMap}, allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, PassThroughHasher, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, Shape, DataMessage};
 
 use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}, aligner::Aligner};
 

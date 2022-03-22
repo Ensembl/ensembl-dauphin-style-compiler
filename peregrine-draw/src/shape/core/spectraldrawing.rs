@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{AllotmentMetadataStore, Assets, reactive::Reactive, CarriageShapeListBuilder2, CarriageShapeListRaw, CarriageShapeList2};
+use peregrine_data::{Assets, reactive::Reactive, CarriageShapeListBuilder2, CarriageShapeListRaw, CarriageShapeList2};
 use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleBuilder, PuzzleSolution}};
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::spectre::Spectre;
 
-fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<Drawing,Message> {
+fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) -> Result<Drawing,Message> {
     let mut shapes = CarriageShapeListBuilder2::new(&Assets::empty());
     for spectre in spectres {
-        spectre.draw(&mut shapes,allotment_metadata)?;
+        spectre.draw(&mut shapes)?;
     }
     let raw = CarriageShapeListRaw::new(shapes).map_err(|e| Message::DataError(e))?;
     let list = CarriageShapeList2::new(raw,None).map_err(|e| Message::DataError(e))?;
@@ -25,12 +25,12 @@ impl SpectralDrawing {
         SpectralDrawing(Arc::new(Mutex::new(None)),reactive.clone())
     }
 
-    pub(crate) fn set(&self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, allotment_metadata: &AllotmentMetadataStore, spectres: &[Spectre]) -> Result<(),Message> {
+    pub(crate) fn set(&self, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) -> Result<(),Message> {
         let mut drawing_holder = self.0.lock().unwrap();
         if let Some(drawing_holder) = drawing_holder.as_mut() {
             drawing_holder.discard(&mut *lock!(gl))?;
         }
-        let mut drawing = draw_spectres(gl,assets,allotment_metadata,spectres)?;
+        let mut drawing = draw_spectres(gl,assets,spectres)?;
         drawing.recompute()?;
         *drawing_holder = Some(drawing);
         Ok(())

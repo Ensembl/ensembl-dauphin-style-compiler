@@ -9,10 +9,6 @@ mod allotment {
         pub(crate) mod root;
     }
 
-    mod lineargroup {
-        pub(crate) mod lineargroup;
-    }
-
     pub(crate) mod style {
         pub(crate) mod allotmentname;
         pub(crate) mod holder;
@@ -24,15 +20,10 @@ mod allotment {
     pub(crate) mod core {
         pub(crate) mod arbitrator;
         pub(crate) mod aligner;
-        pub(crate) mod allotmentmetadata;
         pub(crate) mod allotmentmetadata2;
-        pub(crate) mod allotmentrequest;
-        pub(crate) mod basicallotmentspec;
         pub(crate) mod coordsystem;
         pub(crate) mod rangeused;
-        pub(crate) mod carriageuniverse;
         pub(crate) mod carriageuniverse2;
-        pub mod playingfield;
         pub(crate) mod trainuniverse;
     }
 
@@ -52,16 +43,7 @@ mod allotment {
     pub(crate) mod tree {
         //pub(crate) mod allotmentspec;
         pub(crate) mod collisionalgorithm;
-        pub(crate) mod collidegroup;
-        pub mod leaftransformer;
-        pub(crate) mod leafboxlinearentry;    
-        pub(crate) mod maintrack;
-        pub(crate) mod maintrackspec;
-        pub(crate) mod allotmentbox;    
-        pub(crate) mod container;
     }
-
-    pub use tree::leaftransformer::{ transform_yy, transform_spacebase, transform_spacebase2, transform_spacebasearea, transform_spacebasearea2 };
 }
 
 mod api {
@@ -179,7 +161,6 @@ mod shape {
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
-    mod carriageshapelist;
     mod carriageshapelist2;
     mod zmenu;
     mod zmenufixed;
@@ -260,17 +241,10 @@ pub use self::shape::{
     CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
-pub use self::allotment::core::playingfield::PlayingField;
 pub use self::allotment::boxes::root::PlayingField2;
-pub use self::allotment::core::allotmentrequest::AllotmentRequest;
-pub use self::allotment::core::allotmentmetadata::{
-    AllotmentMetadataStore, AllotmentMetadata, AllotmentMetadataRequest, AllotmentMetadataReport, MetadataMergeStrategy,
-};
 pub use self::allotment::core::allotmentmetadata2::{
     AllotmentMetadataReport2
 };
-pub use self::allotment::{transform_spacebase, transform_spacebasearea};
-pub use self::allotment::core::carriageuniverse::CarriageUniverse;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };
