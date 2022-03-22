@@ -3,11 +3,10 @@ use peregrine_toolkit::{lock, log, error};
 use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
-use crate::allotment::boxes::root::PlayingField2;
-use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
+use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, Shape};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList2, Shape, PlayingField};
 use crate::shapeload::{ ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -114,7 +113,7 @@ impl Carriage {
         }
     }
 
-    pub fn playing_field(&self) -> Result<PlayingField2,DataMessage> {
+    pub fn playing_field(&self) -> Result<PlayingField,DataMessage> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());
@@ -122,11 +121,11 @@ impl Carriage {
                 try_solve(&mut solution);
                 Ok(s.playing_field(&solution))
             },
-            _ => Ok(PlayingField2::empty())
+            _ => Ok(PlayingField::empty())
         }        
     }
 
-    pub fn metadata(&self) -> Result<AllotmentMetadataReport2,DataMessage> {
+    pub fn metadata(&self) -> Result<AllotmentMetadataReport,DataMessage> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 let mut solution = PuzzleSolution::new(s.puzzle());
@@ -134,7 +133,7 @@ impl Carriage {
                 try_solve(&mut solution);
                 Ok(s.get_metadata(&solution))
             },
-            _ => Ok(AllotmentMetadataReport2::empty())
+            _ => Ok(AllotmentMetadataReport::empty())
         }
     }
 

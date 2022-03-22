@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{ Arc, Mutex };
 use commander::cdr_identity;
 use lazy_static::lazy_static;
-use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, AllotmentMetadataReport2};
+use peregrine_data::{DataMessage, ZMenuFixed, zmenu_fixed_vec_to_json, AllotmentMetadataReport};
 use peregrine_message::{MessageAction, MessageKind, MessageLikelihood, PeregrineMessage};
 
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -27,7 +27,7 @@ pub enum Endstop {
 pub enum Message {
     CurrentLocation(String,u64,u64),
     TargetLocation(String,u64,u64),
-    AllotmentMetadataReport(AllotmentMetadataReport2),
+    AllotmentMetadataReport(AllotmentMetadataReport),
     ZMenuEvent(f64,f64,Vec<ZMenuFixed>),
     HitEndstop(Vec<Endstop>),
     Ready,

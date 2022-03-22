@@ -76,6 +76,8 @@ impl CollisionAlgorithm {
         }
     }
 
+    #[cfg(any(text,debug_assertions))]
+    #[allow(unused)]
     fn len(&self) -> usize { self.parts.len() }
 
     fn add_entry(&mut self, range: &RangeUsed<f64>, height: f64) -> CollisionToken {
@@ -124,5 +126,8 @@ impl CollisionAlgorithmHolder {
     }
 
     pub(crate) fn bump(&self) -> f64 { lock!(self.0).bump() }
+
+    #[cfg(any(text,debug_assertions))]
+    #[allow(unused)]
     pub(crate) fn len(&self) -> usize { lock!(self.0).len() }
 }

@@ -2,14 +2,14 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, DataMessage, allotment::{core::allotmentmetadata2::AllotmentMetadataReport2, boxes::root::PlayingField2}};
+use crate::{Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, DataMessage, allotment::{core::allotmentmetadata::AllotmentMetadataReport}, PlayingField};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,
-    playing_field: MutexOnChange<PlayingField2>,
-    metadata: MutexOnChange<AllotmentMetadataReport2>,
+    playing_field: MutexOnChange<PlayingField>,
+    metadata: MutexOnChange<AllotmentMetadataReport>,
     visual_blocker: Blocker,
     #[allow(unused)]
     visual_lockout: Mutex<Option<Lockout>>
@@ -27,7 +27,7 @@ impl RailwayDependents {
     }
 
     fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) -> Result<(),DataMessage> {
-        let mut playing_field = PlayingField2::empty();
+        let mut playing_field = PlayingField::empty();
         for carriage in carriages {
             playing_field = playing_field.union(&carriage.playing_field()?);
         }

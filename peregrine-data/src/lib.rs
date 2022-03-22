@@ -18,12 +18,13 @@ mod allotment {
     }
 
     pub(crate) mod core {
-        pub(crate) mod arbitrator;
+        pub(crate) mod bppxconverter;
         pub(crate) mod aligner;
-        pub(crate) mod allotmentmetadata2;
+        pub(crate) mod allotmentmetadata;
         pub(crate) mod coordsystem;
         pub(crate) mod rangeused;
-        pub(crate) mod carriageuniverse2;
+        pub(crate) mod carriageuniverse;
+        pub mod playingfield;
         pub(crate) mod trainuniverse;
     }
 
@@ -241,9 +242,9 @@ pub use self::shape::{
     CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
-pub use self::allotment::boxes::root::PlayingField2;
-pub use self::allotment::core::allotmentmetadata2::{
-    AllotmentMetadataReport2
+pub use self::allotment::core::playingfield::PlayingField;
+pub use self::allotment::core::allotmentmetadata::{
+    AllotmentMetadataReport
 };
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;

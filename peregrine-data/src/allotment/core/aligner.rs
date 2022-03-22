@@ -2,7 +2,9 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ConstantPuzzlePiece, PuzzlePiece, PuzzleBuilder, PuzzleValue}, lock};
 
-use crate::{allotment::{boxes::root::{PlayingFieldPieces, Root}, style::style::Indent}, DataMessage};
+use crate::{allotment::{boxes::root::{Root}, style::style::Indent}};
+
+use super::playingfield::PlayingFieldPieces;
 
 struct Datum {
     piece: PuzzlePiece<f64>

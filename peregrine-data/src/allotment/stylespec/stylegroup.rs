@@ -1,8 +1,6 @@
-use std::{sync::{Mutex, Arc}, collections::HashMap, borrow::Borrow};
+use std::{sync::{Arc}};
 
-use peregrine_toolkit::lock;
-
-use crate::{allotment::{boxes::leaf, style::{allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}, pendingleaf::PendingLeaf}}, LeafCommonStyle};
+use crate::{allotment::{style::{allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}, pendingleaf::PendingLeaf}}, LeafCommonStyle};
 
 use super::styletree::StyleTree;
 

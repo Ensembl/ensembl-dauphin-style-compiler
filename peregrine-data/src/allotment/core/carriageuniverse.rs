@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, error, lock, log};
+use std::{collections::HashMap, sync::{Arc}};
+use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}};
 
-use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafMap}, allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, PassThroughHasher, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, stylespec::stylegroup::AllotmentStyleGroup, boxes::{root::{Root, PlayingField2}, boxtraits::Transformable}}, Pen, CarriageExtent, ShapeRequest, ShapeRequestGroup, EachOrEvery, Shape, DataMessage};
+use crate::{allotment::{style::{pendingleaf::{PendingLeaf, PendingLeafMap}, allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::make_transformable, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}}, ShapeRequestGroup, Shape, DataMessage};
 
-use super::{arbitrator::BpPxConverter, allotmentmetadata2::{AllotmentMetadataReport2, AllotmentMetadata2, AllotmentMetadata2Builder}, aligner::Aligner};
+use super::{bppxconverter::BpPxConverter, allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, aligner::Aligner, playingfield::PlayingField};
 
 pub struct CarriageUniverseBuilder {
     leafs: HashMap<AllotmentName,PendingLeaf,BuildPassThroughHasher>
@@ -32,9 +32,9 @@ impl CarriageUniverseBuilder {
         }
     }
 
-    fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> Result<(Puzzle,AllotmentMetadata2Builder,Root,PendingLeafMap),DataMessage> {
+    fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> Result<(Puzzle,AllotmentMetadataBuilder,Root,PendingLeafMap),DataMessage> {
         let mut plm = PendingLeafMap::new();
-        let mut metadata = AllotmentMetadata2Builder::new();
+        let mut metadata = AllotmentMetadataBuilder::new();
         let mut builder = PuzzleBuilder::new();
         let converter = Arc::new(BpPxConverter::new(extent));
         let root = Root::new(&mut builder);
@@ -45,29 +45,29 @@ impl CarriageUniverseBuilder {
 }
 
 #[derive(Clone)]
-pub struct CarriageUniverse2 {
+pub struct CarriageUniverse {
     shapes: Arc<Vec<Shape<Arc<dyn Transformable>>>>,
-    metadata: AllotmentMetadata2,
+    metadata: AllotmentMetadata,
     puzzle: Puzzle,
     root: Root
 }
 
-impl CarriageUniverse2 {
-    pub fn new(builder: &CarriageUniverseBuilder, shapes: &[Shape<PendingLeaf>], extent: Option<&ShapeRequestGroup>) -> Result<CarriageUniverse2,DataMessage> {
+impl CarriageUniverse {
+    pub fn new(builder: &CarriageUniverseBuilder, shapes: &[Shape<PendingLeaf>], extent: Option<&ShapeRequestGroup>) -> Result<CarriageUniverse,DataMessage> {
         let (puzzle,metadata,root,plm) = builder.make_transformable(extent)?;
         let shapes = shapes.iter().map(|x| 
             x.map_new_allotment(|x| x.transformable(&plm).cloned())
         ).collect::<Vec<_>>();
-        Ok(CarriageUniverse2 {
+        Ok(CarriageUniverse {
             shapes: Arc::new(shapes),
-            metadata: AllotmentMetadata2::new(&metadata),
+            metadata: AllotmentMetadata::new(&metadata),
             puzzle, root
         })
     }
 
     pub fn puzzle(&self) -> &Puzzle { &self.puzzle }
 
-    pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField2 {
+    pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField {
         self.root.playing_field(solution)
     }
 
@@ -79,7 +79,7 @@ impl CarriageUniverse2 {
         out
     }
 
-    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport2 {
+    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport {
         self.metadata.get(solution)
     }
 }

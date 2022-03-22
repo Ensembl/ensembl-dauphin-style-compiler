@@ -21,17 +21,17 @@ impl AllotmentMetadataGroup {
 }
 
 #[derive(Clone,Debug)]
-pub struct AllotmentMetadataReport2 {
+pub struct AllotmentMetadataReport {
     summary: Arc<Vec<HashMap<String,String>>>,
     hash: u64
 }
 
-impl AllotmentMetadataReport2 {
-    pub fn empty() -> AllotmentMetadataReport2 {
+impl AllotmentMetadataReport {
+    pub fn empty() -> AllotmentMetadataReport {
         Self::new(vec![])
     }
 
-    fn new(summary: Vec<HashMap<String,String>>) -> AllotmentMetadataReport2 {
+    fn new(summary: Vec<HashMap<String,String>>) -> AllotmentMetadataReport {
         let mut state = DefaultHasher::new();
         for member in &summary {
             let mut keys = member.keys().collect::<Vec<_>>();
@@ -41,7 +41,7 @@ impl AllotmentMetadataReport2 {
                 member.get(key).hash(&mut state);
             }
         }
-        AllotmentMetadataReport2 {
+        AllotmentMetadataReport {
             hash: state.finish(),
             summary: Arc::new(summary)
         }
@@ -52,28 +52,28 @@ impl AllotmentMetadataReport2 {
     }
 }
 
-impl Hash for AllotmentMetadataReport2 {
+impl Hash for AllotmentMetadataReport {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
     }
 }
 
-impl PartialEq for AllotmentMetadataReport2 {
-    fn eq(&self, other: &AllotmentMetadataReport2) -> bool {
+impl PartialEq for AllotmentMetadataReport {
+    fn eq(&self, other: &AllotmentMetadataReport) -> bool {
         self.hash == other.hash
     }
 }
 
-impl Eq for AllotmentMetadataReport2 {}
+impl Eq for AllotmentMetadataReport {}
 
 
-pub struct AllotmentMetadata2Builder {
+pub struct AllotmentMetadataBuilder {
     groups: Vec<AllotmentMetadataGroup>
 }
 
-impl AllotmentMetadata2Builder {
-    pub fn new() -> AllotmentMetadata2Builder {
-        AllotmentMetadata2Builder {
+impl AllotmentMetadataBuilder {
+    pub fn new() -> AllotmentMetadataBuilder {
+        AllotmentMetadataBuilder {
             groups: vec![]
         }
     }
@@ -81,23 +81,17 @@ impl AllotmentMetadata2Builder {
     pub fn add(&mut self, group: AllotmentMetadataGroup) {
         self.groups.push(group);
     }
-
-    pub fn union(&self, other: &AllotmentMetadata2Builder) -> AllotmentMetadata2Builder {
-        let mut groups = self.groups.clone();
-        groups.extend(other.groups.iter().cloned());
-        AllotmentMetadata2Builder { groups }
-    }
 }
 
 #[derive(Clone)]
-pub struct AllotmentMetadata2 {
+pub struct AllotmentMetadata {
     groups: Arc<Vec<AllotmentMetadataGroup>>,
-    cache: Arc<Mutex<LruCache<u64,AllotmentMetadataReport2>>>
+    cache: Arc<Mutex<LruCache<u64,AllotmentMetadataReport>>>
 }
 
-impl AllotmentMetadata2 {
-    pub fn new(builder: &AllotmentMetadata2Builder) -> AllotmentMetadata2 {
-        AllotmentMetadata2 {
+impl AllotmentMetadata {
+    pub fn new(builder: &AllotmentMetadataBuilder) -> AllotmentMetadata {
+        AllotmentMetadata {
             groups: Arc::new(builder.groups.clone()),
             cache: Arc::new(Mutex::new(LruCache::new(16)))
         }
@@ -107,12 +101,12 @@ impl AllotmentMetadata2 {
         self.groups.iter().map(|group| group.get(solution)).collect()
     }
 
-    pub fn get(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport2 {
+    pub fn get(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport {
         let mut cache = lock!(self.cache);
         if let Some(cached) = cache.get(&solution.id()) {
             return cached.clone();
         }
-        let data = AllotmentMetadataReport2::new(self.calculate(solution));
+        let data = AllotmentMetadataReport::new(self.calculate(solution));
         cache.put(solution.id(),data.clone());
         data
     }

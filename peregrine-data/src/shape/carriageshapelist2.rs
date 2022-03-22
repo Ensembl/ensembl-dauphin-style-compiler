@@ -3,11 +3,10 @@ use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::allotment::boxes::root::PlayingField2;
-use crate::allotment::core::allotmentmetadata2::AllotmentMetadataReport2;
+use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::style::style::LeafCommonStyle;
-use crate::{ShapeRequest, ShapeRequestGroup, Shape};
-use crate::{Assets, DataMessage, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse2::{CarriageUniverse2, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
+use crate::{ShapeRequest, ShapeRequestGroup, Shape, PlayingField};
+use crate::{Assets, DataMessage, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse::{CarriageUniverse, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct CarriageShapeListBuilder2 {
     assets: Assets,
@@ -115,25 +114,25 @@ impl CarriageShapeListRaw {
 
 #[derive(Clone)]
 pub struct CarriageShapeList2 {
-    carriage_universe: Arc<CarriageUniverse2>
+    carriage_universe: Arc<CarriageUniverse>
 }
 
 impl CarriageShapeList2 {
     pub fn empty() -> Result<CarriageShapeList2,DataMessage> {
         Ok(CarriageShapeList2 {
-            carriage_universe: Arc::new(CarriageUniverse2::new(&mut CarriageUniverseBuilder::new(),&vec![],None)?),
+            carriage_universe: Arc::new(CarriageUniverse::new(&mut CarriageUniverseBuilder::new(),&vec![],None)?),
         })
     }
 
     pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
-        let carriage_universe = CarriageUniverse2::new(&input.carriage_universe,&input.shapes,extent)?;
+        let carriage_universe = CarriageUniverse::new(&input.carriage_universe,&input.shapes,extent)?;
         Ok(CarriageShapeList2 {
             carriage_universe: Arc::new(carriage_universe),
         })
     }
 
     pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<LeafCommonStyle>> { self.carriage_universe.get(solution) }
-    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport2 { self.carriage_universe.get_metadata(solution) }
-    pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField2 { self.carriage_universe.playing_field(solution) }    
+    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport { self.carriage_universe.get_metadata(solution) }
+    pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField { self.carriage_universe.playing_field(solution) }    
     pub fn puzzle(&self) -> &Puzzle { self.carriage_universe.puzzle() }
 }

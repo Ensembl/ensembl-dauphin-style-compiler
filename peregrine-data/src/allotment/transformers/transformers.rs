@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, allotment::style::style::{LeafCommonStyle, LeafAllotmentStyle}, CoordinateSystemVariety};
+use crate::{CoordinateSystem, SpaceBase, SpaceBaseArea, allotment::style::style::{LeafCommonStyle}, CoordinateSystemVariety};
 
 use super::{transformertraits::{SpaceBaseTransformer, GraphTransformer}, simple::SimpleTransformerHolder};
 
@@ -28,7 +28,7 @@ impl TransformerVariety {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebase(coord_system,&items)
             },
-            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|x| LeafCommonStyle::dustbin()) }
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafCommonStyle::dustbin()) }
         }
     }
 
@@ -38,7 +38,7 @@ impl TransformerVariety {
                 let items = spacebase.map_allotments(|a| a.into_simple_transformer());
                 SimpleTransformerHolder::transform_spacebasearea(coord_system,&items)
             },
-            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|x| LeafCommonStyle::dustbin()) }
+            TransformerVariety::DustbinTransformer => { spacebase.map_allotments(|_| LeafCommonStyle::dustbin()) }
         }
     }
 
@@ -50,24 +50,4 @@ impl TransformerVariety {
             TransformerVariety::DustbinTransformer => { values.to_vec() }
         }
     }
-}
-
-#[derive(Clone)]
-pub struct DustbinTransformer(Arc<LeafCommonStyle>);
-
-impl DustbinTransformer {
-    pub fn new() -> DustbinTransformer {
-        DustbinTransformer(Arc::new(LeafCommonStyle::dustbin()))
-    }
-}
-
-impl Transformer for DustbinTransformer {
-    fn choose_variety(&self) -> (TransformerVariety,CoordinateSystem) {
-        (TransformerVariety::DustbinTransformer,CoordinateSystem(CoordinateSystemVariety::Dustbin,false))
-    }
-
-    fn get_style(&self) -> &LeafCommonStyle { self.0.as_ref() }
-
-    #[cfg(any(debug_assertions,test))]
-    fn describe(&self) -> String { "dustbin".to_string() }
 }

@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex}, borrow::Borrow, collections::{hash_map::RandomStat
 
 use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, Puzzle, PuzzleBuilder, ConstantPuzzlePiece}, log};
 
-use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, arbitrator::{BpPxConverter}, aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
+use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, bppxconverter::{BpPxConverter}, aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
 
-use super::{boxtraits::{Stackable, Transformable, Coordinated }, root::PlayingFieldPieces};
+use super::{boxtraits::{Stackable, Transformable, Coordinated }};
 
 fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, base_range: &PuzzlePiece<RangeUsed<f64>>, pixel_range: &PuzzlePiece<RangeUsed<f64>>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
     let base_range = base_range.clone();

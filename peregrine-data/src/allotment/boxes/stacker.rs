@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex}, mem};
+use std::{sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, FoldValue}, lock, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, FoldValue}, lock};
 
-use crate::{allotment::{style::{style::{Padding, ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, core::{allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed, aligner::Aligner}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, core::{allotmentmetadata::AllotmentMetadataBuilder, rangeused::RangeUsed, aligner::Aligner}}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 
@@ -10,7 +10,7 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAdda
 pub struct Stacker(Padder<UnpaddedStacker>);
 
 impl Stacker {
-    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner) -> Stacker {
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Stacker {
         Stacker(Padder::new(puzzle,coord_system,style,metadata,aligner,|info| UnpaddedStacker::new(puzzle,info)))
     }
 
@@ -45,7 +45,7 @@ impl AddedChildren {
         }
     }
 
-    fn add_child(&mut self, puzzle: &mut PuzzleBuilder, top: &PuzzlePiece<f64>, height: &PuzzleValueHolder<f64>, priority: i64) {
+    fn add_child(&mut self, _puzzle: &mut PuzzleBuilder, top: &PuzzlePiece<f64>, height: &PuzzleValueHolder<f64>, priority: i64) {
         self.children.push(AddedChild {
             priority,
             top: top.clone(),
@@ -87,7 +87,6 @@ impl AddedChildren {
 #[derive(Clone)]
 struct UnpaddedStacker {
     puzzle: PuzzleBuilder,
-    padder_info: PadderInfo,
     children: Arc<Mutex<AddedChildren>>
 }
 
@@ -99,7 +98,7 @@ impl UnpaddedStacker {
         puzzle.add_ready(move |_| {
             lock!(children2).ready();
         });
-        UnpaddedStacker { puzzle: puzzle.clone(), padder_info: padder_info.clone(), children }
+        UnpaddedStacker { puzzle: puzzle.clone(), children }
     }
 }
 

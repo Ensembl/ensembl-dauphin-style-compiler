@@ -1,4 +1,4 @@
-use peregrine_data::{StickId, Viewport, PlayingField2};
+use peregrine_data::{StickId, Viewport, PlayingField};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::{ webgl::{ SourceInstrs, UniformProto, GLArity, UniformHandle, ProgramBuilder, Process }};
@@ -141,7 +141,7 @@ impl Stage {
     pub fn x_mut(&mut self) -> &mut StageAxis { &mut self.x }
     pub fn y_mut(&mut self) -> &mut StageAxis { &mut self.y }
 
-    pub fn notify_playingfield(&mut self, playing_field: &PlayingField2) {
+    pub fn notify_playingfield(&mut self, playing_field: &PlayingField) {
         let squeeze = playing_field.squeeze();
         self.x.set_squeeze((squeeze.0 as f32, squeeze.1 as f32));
     }

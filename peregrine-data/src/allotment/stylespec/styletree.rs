@@ -1,7 +1,5 @@
 use std::{collections::HashMap};
 
-use peregrine_toolkit::log;
-
 use crate::allotment::style::{style::{ContainerAllotmentStyle, LeafAllotmentStyle}, allotmentname::AllotmentNamePart};
 
 use super::styletreebuilder::StyleTreeBuilder;

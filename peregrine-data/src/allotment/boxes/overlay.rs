@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
 
-use crate::{allotment::{core::{ allotmentmetadata2::AllotmentMetadata2Builder, rangeused::RangeUsed, aligner::Aligner}, style::{style::{Padding, ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, CoordinateSystem};
+use crate::{allotment::{core::{ allotmentmetadata::AllotmentMetadataBuilder, rangeused::RangeUsed, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }};
 
@@ -10,7 +10,7 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAdda
 pub struct Overlay(Padder<UnpaddedOverlay>);
 
 impl Overlay {
-    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner) -> Overlay {
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Overlay {
         Overlay(Padder::new(puzzle,coord_system,style,metadata,aligner,|info| UnpaddedOverlay::new(puzzle,info)))
     }
 
@@ -26,7 +26,7 @@ struct UnpaddedOverlay {
 }
 
 impl UnpaddedOverlay {
-    fn new(puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
+    fn new(_puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
         let kid_heights = Arc::new(Mutex::new(vec![]));
         let kid_heights2 = kid_heights.clone();
         let mut height2 = info.child_height.clone();

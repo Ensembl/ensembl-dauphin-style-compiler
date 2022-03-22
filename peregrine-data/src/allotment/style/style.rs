@@ -1,8 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, ConstantPuzzlePiece};
-
-use crate::{CoordinateSystem, CoordinateSystemVariety, allotment::boxes::root::PlayingFieldPieces};
+use crate::{CoordinateSystem, CoordinateSystemVariety};
 
 #[cfg_attr(any(test,debug_assertions),derive(Debug))]
 #[derive(Clone)]
@@ -68,7 +66,7 @@ impl ContainerAllotmentType {
 }
 
 impl LeafAllotmentType {
-    fn build(spec: &HashMap<String,String>) -> LeafAllotmentType {
+    fn build(_spec: &HashMap<String,String>) -> LeafAllotmentType {
         LeafAllotmentType::Leaf
     }
 }

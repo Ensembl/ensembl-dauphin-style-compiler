@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::{Root, PlayingFieldPieces}}}, LeafCommonStyle, DataMessage, PlayingField2};
+use crate::{allotment::{boxes::{stacker::Stacker, overlay::Overlay, bumper::Bumper}, boxes::{boxtraits::{Stackable, Transformable }, leaf::FloatingLeaf, root::{Root}}}, LeafCommonStyle, DataMessage};
 
-use super::style::{ContainerAllotmentStyle, LeafAllotmentStyle};
+use super::style::{ContainerAllotmentStyle};
 
 #[derive(Clone)]
 pub enum ContainerHolder {
@@ -27,13 +27,6 @@ impl ContainerHolder {
             (ContainerHolder::Bumper(bumper),LeafHolder::Leaf(leaf)) => {
                 bumper.add_child(leaf);
             }
-        }
-    }
-
-    pub(super) fn as_root(&self) -> Result<&Root,DataMessage> {
-        match self {
-            ContainerHolder::Root(r) => Ok(r),
-            _ => Err(DataMessage::BadBoxStack(format!("root is not root")))
         }
     }
 

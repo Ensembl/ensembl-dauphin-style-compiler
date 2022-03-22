@@ -41,7 +41,7 @@ impl AllotmentName {
         }
     }
 
-    pub(crate) fn sequence(&self) -> &[String] { &self.name }
+    pub fn sequence(&self) -> &[String] { &self.name }
     pub(crate) fn is_container(&self) -> bool { self.container }
     pub fn is_dustbin(&self) -> bool { self.name.len() == 0 }
 }

@@ -1,8 +1,8 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, log, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, lock};
 
-use crate::{allotment::{core::{allotmentmetadata2::{AllotmentMetadata2Builder, AllotmentMetadataGroup}, rangeused::RangeUsed, aligner::Aligner}, style::{style::{Padding, ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, rangeused::RangeUsed, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable}, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, StackableAddable}};
 
@@ -22,7 +22,7 @@ fn height(puzzle: &PuzzleBuilder, child_height: &PuzzlePiece<f64>, min_height: f
     PuzzleValueHolder::new(piece)
 }
 
-fn indent(puzzle: &PuzzleBuilder, self_indent: f64, inherited_indent: &PuzzlePiece<f64>) -> PuzzleValueHolder<f64> {
+fn indent(_puzzle: &PuzzleBuilder, self_indent: f64, inherited_indent: &PuzzlePiece<f64>) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(inherited_indent.clone(),move |v| v + self_indent))
 }
 
@@ -63,7 +63,7 @@ impl<T: Clone> Clone for Padder<T> {
     }
 }
 
-fn add_report(metadata: &mut AllotmentMetadata2Builder, in_values: &HashMap<String,String>, top: &PuzzleValueHolder<f64>, height: &PuzzleValueHolder<f64>) {
+fn add_report(metadata: &mut AllotmentMetadataBuilder, in_values: &HashMap<String,String>, top: &PuzzleValueHolder<f64>, height: &PuzzleValueHolder<f64>) {
     let mut values = HashMap::new();
     for (key,value) in in_values {
         values.insert(key.to_string(),PuzzleValueHolder::new(ConstantPuzzlePiece::new(value.to_string())));
@@ -75,7 +75,7 @@ fn add_report(metadata: &mut AllotmentMetadata2Builder, in_values: &HashMap<Stri
 }
 
 impl<T> Padder<T> {
-    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
+    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
         let mut top = puzzle.new_piece();
         #[cfg(debug_assertions)]
         top.set_name("padder/top");
@@ -117,10 +117,6 @@ impl<T> Padder<T> {
             full_range: PuzzleValueHolder::new(full_range.clone())
         }
     }
-
-    pub fn draw_top(&self) -> &PuzzleValueHolder<f64> { &self.info.draw_top }
-    pub fn child(&self) -> &T { &self.child }
-    pub fn child_mut(&mut self) -> &mut T { &mut self.child }
 }
 
 impl<T> Coordinated for Padder<T> {
@@ -137,7 +133,7 @@ impl<T> Stackable for Padder<T> {
 
     fn height(&self) -> PuzzleValueHolder<f64> { self.height.clone() }
 
-    fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
+    fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
         PuzzleValueHolder::new(self.info.draw_top.clone())
     }
 

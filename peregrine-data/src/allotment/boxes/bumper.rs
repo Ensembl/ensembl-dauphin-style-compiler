@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex}, borrow::Borrow};
+use std::{sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleDependency, PuzzleBuilder}, lock, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder}, lock };
 
-use crate::{allotment::{core::{rangeused::RangeUsed, allotmentmetadata2::AllotmentMetadata2Builder, aligner::Aligner}, style::{style::{Padding, ContainerAllotmentStyle}}, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
+use crate::{allotment::{core::{rangeused::RangeUsed, allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 
@@ -10,7 +10,7 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAdda
 pub struct Bumper(Padder<UnpaddedBumper>);
 
 impl Bumper {
-    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadata2Builder, aligner: &Aligner) -> Bumper {
+    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Bumper {
         Bumper(Padder::new(puzzle,coord_system,style,metadata,aligner,|info| UnpaddedBumper::new(puzzle,info)))        
     }
 
@@ -41,7 +41,6 @@ struct BumpItem {
 #[derive(Clone)]
 pub struct UnpaddedBumper {
     puzzle: PuzzleBuilder,
-    info: PadderInfo,
     items: Arc<Mutex<Vec<BumpItem>>>,
 }
 
@@ -84,7 +83,6 @@ impl UnpaddedBumper {
         });
         UnpaddedBumper {
             puzzle: puzzle.clone(),
-            info: info.clone(),
             items
         }
     }

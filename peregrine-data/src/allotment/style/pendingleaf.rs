@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}, borrow::BorrowMut, collections::HashMap};
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable, DustbinTransformable}, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
+use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
 use super::allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher};
 
 pub struct PendingLeafMap {
