@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -45,28 +45,14 @@ impl<A> Clone for ImageShape<A> where A: Clone {
     }
 }
 
-impl ImageShape<PendingLeaf> {
-    pub fn new2(position: SpaceBase<f64,PendingLeaf>, names: EachOrEvery<String>) -> Result<Shape<PendingLeaf>,DataMessage> {
+impl ImageShape<LeafRequest> {
+    pub fn new2(position: SpaceBase<f64,LeafRequest>, names: EachOrEvery<String>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = ImageShape::new_details(position,names.clone())?;
         Ok(Shape::Image(details))
     }
 }
 
 impl<A: Clone> ImageShape<A> {
-    /*/
-    pub fn new(position: SpaceBase<f64,AllotmentRequest>, names: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
-        let len = position.len();
-        let mut out = vec![];
-        let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
-        if let Ok(details) = ImageShape::new_details(position,names) {
-            for (coord_system,mut filter) in demerge {
-                out.push(Shape::Image(details.filter(&mut filter)));
-            }    
-        }
-        Ok(out)
-    }
-    */
-
     pub fn names(&self) -> &EachOrEvery<String> { &self.names }
 
     pub fn make_base_filter(&self, min: f64, max: f64) -> EachOrEveryFilter {
@@ -87,8 +73,8 @@ impl ImageShape<Arc<dyn Transformer>> {
     }
 }
 
-impl ImageShape<PendingLeaf> {
-    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<PendingLeaf> {
+impl ImageShape<LeafRequest> {
+    pub fn base_filter(&self, min: f64, max: f64) -> ImageShape<LeafRequest> {
         let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
         let filter = self.position.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
@@ -107,26 +93,6 @@ impl ImageShape<LeafCommonStyle> {
         out
     }
 }
-
-/*
-impl ImageShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<ImageShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
-        Ok(ImageShape {
-            position: self.position.fullmap_allotments_results(cb)?,
-            names: self.names.clone(),
-        })
-    }
-}
-
-impl ImageShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> ImageShape<()> {
-        ImageShape {
-            position: transform_spacebase2(solution,&common.coord_system(),&self.position),
-            names: self.names.clone()
-        }
-    }
-}
-*/
 
 impl ImageShape<Arc<dyn Transformer>> {
     pub fn make(&self, _solution: &PuzzleSolution) -> Vec<ImageShape<LeafCommonStyle>> {

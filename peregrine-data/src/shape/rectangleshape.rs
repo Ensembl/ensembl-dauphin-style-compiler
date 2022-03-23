@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::PuzzleSolution, log};
 
-use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, Patina, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBaseArea, reactive::Observable, allotment::{boxes::boxtraits::Transformable, transformers::transformers::{Transformer, TransformerVariety}, style::{allotmentname::AllotmentNamePart, style::{LeafCommonStyle, LeafAllotmentStyle}}, stylespec::stylegroup::AllotmentStyleGroup}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -38,13 +38,13 @@ impl<A> RectangleShape<A> {
     pub fn area(&self) -> &SpaceBaseArea<f64,A> { &self.area }
 }
 
-impl RectangleShape<PendingLeaf> {
-    pub fn new2(area: SpaceBaseArea<f64,PendingLeaf>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<PendingLeaf>,DataMessage> {
+impl RectangleShape<LeafRequest> {
+    pub fn new2(area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = RectangleShape::new_details(area,patina.clone(),wobble.clone())?;
         Ok(Shape::SpaceBaseRect(details))
     }
 
-    pub fn base_filter(&self, min_value: f64, max_value: f64) -> RectangleShape<PendingLeaf> {
+    pub fn base_filter(&self, min_value: f64, max_value: f64) -> RectangleShape<LeafRequest> {
         let non_tracking = self.area.top_left().allotments().make_filter(self.area.len(),|a| !a.leaf_style().coord_system.is_tracking());
         let filter = self.area.make_base_filter(min_value,max_value);
         self.filter(&filter.or(&non_tracking))
@@ -59,20 +59,6 @@ impl<A> Clone for RectangleShape<A> where A: Clone {
 }
 
 impl<A: Clone> RectangleShape<A> {
-    /*
-    pub fn new(area: SpaceBaseArea<f64,AllotmentRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
-        let len = area.len();
-        let mut out = vec![];
-        let demerge = area.top_left().allotments().demerge(len,|x| { x.coord_system() });
-        for (coord_system,mut filter) in demerge {
-            if let Ok(details) = RectangleShape::new_details(area.filter(&filter),patina.clone(),wobble.clone()) {
-                out.push(Shape::SpaceBaseRect(details.clone().filter(&filter)));
-            }
-        }
-        Ok(out)
-    }
-    */
-
     pub fn patina(&self) -> &Patina { &self.patina }
     pub fn wobble(&self) -> &Option<SpaceBaseArea<Observable<'static,f64>,()>> { &self.wobble }
 }
@@ -110,28 +96,6 @@ impl RectangleShape<Arc<dyn Transformer>> {
         out
     }
 }
-
-/*
-impl RectangleShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<RectangleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
-        Ok(RectangleShape {
-            area: self.area.fullmap_allotments_results(&cb,&cb)?,
-            patina: self.patina.clone(),
-            wobble: self.wobble.clone()
-        })
-    }
-}
-
-impl RectangleShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> RectangleShape<()> {
-        RectangleShape {
-            area: transform_spacebasearea2(solution,&common.coord_system(),&self.area),
-            patina: self.patina.clone(),
-            wobble: self.wobble.clone()
-        }
-    }
-}
-*/
 
 impl RectangleShape<Arc<dyn Transformer>> {
     pub fn make(&self, _solution: &PuzzleSolution) -> Vec<RectangleShape<LeafCommonStyle>> {

@@ -1,6 +1,6 @@
 use std::{sync::Arc, collections::HashMap};
 
-use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder2, PendingLeaf, LeafCommonStyle, Pen};
+use peregrine_data::{Colour, DirectColour, DrawnType, Patina, SpaceBase, SpaceBaseArea, PartialSpaceBase, reactive::{Reactive, Observable}, EachOrEvery, CarriageShapeListBuilder, LeafRequest, LeafCommonStyle, Pen};
 use crate::{Message, run::{PgConfigKey, PgPeregrineConfig}, shape::util::iterators::eoe_throw};
 use peregrine_data::reactive;
 use super::spectremanager::SpectreConfigKey;
@@ -49,7 +49,7 @@ impl MarchingAnts {
         })
     }
 
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/ants").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -103,7 +103,7 @@ fn make_stain_point<X: Clone,Y: Clone>(base: X, normal: X, tangent: X, allotment
     ))
 }
 
-fn make_stain_rect3(n1: f64, t1: f64, b1: f64, ar: &PendingLeaf) -> Result<SpaceBaseArea<f64,PendingLeaf>,Message> {
+fn make_stain_rect3(n1: f64, t1: f64, b1: f64, ar: &LeafRequest) -> Result<SpaceBaseArea<f64,LeafRequest>,Message> {
     let top_left = make_stain_point(0.,0.,0.,ar)?;
     let bottom_right = make_stain_point(b1,n1,t1,ar)?;
     Ok(SpaceBaseArea::new(top_left,bottom_right).unwrap())
@@ -135,7 +135,7 @@ impl Stain {
         })
     }
     
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
         let leaf = shapes.use_allotment("window/origin/stain").clone();
         let mut props = HashMap::new();
         props.insert("depth".to_string(),"101".to_string());
@@ -179,7 +179,7 @@ pub(crate) enum Spectre {
 }
 
 impl Spectre {
-    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder2) -> Result<(),Message> {
+    pub(crate) fn draw(&self, shapes: &mut CarriageShapeListBuilder) -> Result<(),Message> {
         match self {
             Spectre::MarchingAnts(a) => a.draw(shapes)?,
             Spectre::Stain(a) => a.draw(shapes)?,

@@ -1,8 +1,8 @@
-use std::{sync::{Arc, Mutex}, borrow::Borrow, collections::{hash_map::RandomState, HashMap}};
+use std::{sync::{Arc}};
 
-use peregrine_toolkit::{lock, puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, DerivedPuzzlePiece, PuzzleValue, ClonablePuzzleValue, Puzzle, PuzzleBuilder, ConstantPuzzlePiece}, log};
+use peregrine_toolkit::{puzzle::{PuzzlePiece, PuzzleSolution, PuzzleValueHolder, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece}};
 
-use crate::{CoordinateSystem, allotment::{core::{rangeused::RangeUsed, bppxconverter::{BpPxConverter}, aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle}, CoordinateSystemVariety};
+use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated }};
 
@@ -30,13 +30,9 @@ fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, bas
 #[derive(Clone)]
 pub struct FloatingLeaf {
     statics: Arc<LeafCommonStyle>,
-    drawing_info: Arc<DrawingInfo>,
-    base_range_piece: PuzzlePiece<RangeUsed<f64>>,
-    pixel_range_piece: PuzzlePiece<RangeUsed<f64>>,
     full_range_piece: PuzzleValueHolder<RangeUsed<f64>>,
     max_y_piece: PuzzlePiece<f64>,
     top: PuzzlePiece<f64>,
-    bottom: PuzzleValueHolder<f64>,
     indent: PuzzleValueHolder<f64>
 }
 
@@ -74,19 +70,14 @@ impl FloatingLeaf {
         let mut top = if statics.coord_system.is_dustbin() { puzzle.new_piece_default(0.) } else { puzzle.new_piece() };
         #[cfg(debug_assertions)]
         top.set_name("FLoatingLeaf/top");
-        let drawing_info2 = drawing_info.clone();
-        let bottom = PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| {
-            top + drawing_info2.max_y()
-        }));
         let full_range_piece = full_range_piece(
             puzzle,
             &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
         let indent = aligner.get(puzzle,&statics.indent);
         FloatingLeaf {
             statics: Arc::new(statics.clone()),
-            drawing_info,
-            base_range_piece, pixel_range_piece, max_y_piece, full_range_piece, indent,
-            top, bottom
+            max_y_piece, full_range_piece, indent,
+            top
         }
     }
 }

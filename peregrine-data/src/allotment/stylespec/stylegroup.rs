@@ -1,6 +1,6 @@
 use std::{sync::{Arc}};
 
-use crate::{allotment::{style::{allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}, pendingleaf::PendingLeaf}}, LeafCommonStyle};
+use crate::{allotment::{style::{allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, LeafAllotmentStyle, LeafInheritStyle}}}, LeafCommonStyle, LeafRequest};
 
 use super::styletree::StyleTree;
 
@@ -30,7 +30,7 @@ impl AllotmentStyleGroup {
         self.tree.get_leaf(name)
     }
 
-    pub(crate) fn get_common_leaf(&self, leaf: &PendingLeaf) -> LeafCommonStyle {
+    pub(crate) fn get_common_leaf(&self, leaf: &LeafRequest) -> LeafCommonStyle {
         let mut inherit = LeafInheritStyle::empty();
         for name in AllotmentNamePart::new(leaf.name().clone()).iter_prefixes() {
             inherit.override_style(&self.get_container(&name).leaf);

@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder}, lock };
 
-use crate::{allotment::{core::{rangeused::RangeUsed, allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::{boxtraits::Stackable}, tree::collisionalgorithm::{CollisionAlgorithmHolder, CollisionToken}}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed, collisionalgorithm::{CollisionToken, CollisionAlgorithmHolder}}}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 

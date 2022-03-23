@@ -2,16 +2,15 @@ use std::{sync::{Arc, Mutex}, borrow::BorrowMut, collections::HashMap};
 
 use peregrine_toolkit::lock;
 
-use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup}, LeafCommonStyle};
-use super::allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher};
+use crate::{allotment::{transformers::drawinginfo::DrawingInfo, boxes::boxtraits::{Transformable}, stylespec::stylegroup::AllotmentStyleGroup, style::allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}}, LeafCommonStyle};
 
-pub struct PendingLeafMap {
+pub struct LeafRequestMap {
     transformables: HashMap<AllotmentName,Arc<dyn Transformable>,BuildPassThroughHasher>
 }
 
-impl PendingLeafMap {
-    pub fn new() -> PendingLeafMap {
-        PendingLeafMap {
+impl LeafRequestMap {
+    pub fn new() -> LeafRequestMap {
+        LeafRequestMap {
             transformables: new_efficient_allotmentname_hashmap()
         }
     }
@@ -26,21 +25,21 @@ impl PendingLeafMap {
 }
 
 #[derive(Clone)]
-pub struct PendingLeaf {
+pub struct LeafRequest {
     name: AllotmentName,
     drawing_info: Arc<Mutex<DrawingInfo>>,
     style: Arc<Mutex<Option<(Arc<AllotmentStyleGroup>,Arc<LeafCommonStyle>)>>>
 }
 
-impl std::fmt::Debug for PendingLeaf {
+impl std::fmt::Debug for LeafRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{:?}",self.name())
     }
 }
 
-impl PendingLeaf {
-    pub fn new(name: &AllotmentName) -> PendingLeaf {
-        PendingLeaf {
+impl LeafRequest {
+    pub fn new(name: &AllotmentName) -> LeafRequest {
+        LeafRequest {
             name: name.clone(),
             drawing_info: Arc::new(Mutex::new(DrawingInfo::new())),
             style: Arc::new(Mutex::new(None))
@@ -52,12 +51,12 @@ impl PendingLeaf {
         *lock!(self.style) = Some((Arc::new(style.clone()),Arc::new(leaf)));
     }
 
-    pub(crate) fn set_transformable(&self, plm: &mut PendingLeafMap, xformable: Arc<dyn Transformable>) {
+    pub(crate) fn set_transformable(&self, plm: &mut LeafRequestMap, xformable: Arc<dyn Transformable>) {
         plm.set_transformable(&self.name,&xformable);
     }
 
     /* only call after set_transformable has been called! (via make_transformable) */
-    pub fn transformable(&self, plm: &PendingLeafMap) -> Arc<dyn Transformable> { 
+    pub fn transformable(&self, plm: &LeafRequestMap) -> Arc<dyn Transformable> { 
         plm.transformable(&self.name).clone()
     }
 

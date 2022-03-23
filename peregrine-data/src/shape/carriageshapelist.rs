@@ -1,24 +1,23 @@
 use std::{sync::Arc, collections::HashMap};
-use std::collections::HashSet;
 use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::style::style::LeafCommonStyle;
-use crate::{ShapeRequest, ShapeRequestGroup, Shape, PlayingField};
-use crate::{Assets, DataMessage, CarriageExtent, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{style::{pendingleaf::PendingLeaf, allotmentname::AllotmentName}, core::carriageuniverse::{CarriageUniverse, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
+use crate::{ShapeRequestGroup, Shape, PlayingField, LeafRequest};
+use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{core::carriageuniverse::{CarriageUniverse, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
-pub struct CarriageShapeListBuilder2 {
+pub struct CarriageShapeListBuilder {
     assets: Assets,
-    shapes: Vec<Shape<PendingLeaf>>,
-    leafs: Vec<PendingLeaf>,
+    shapes: Vec<Shape<LeafRequest>>,
+    leafs: Vec<LeafRequest>,
     carriage_universe: CarriageUniverseBuilder,
     style: StyleTreeBuilder
 }
 
-impl CarriageShapeListBuilder2 {
-    pub fn new(assets: &Assets) -> CarriageShapeListBuilder2 {
-        CarriageShapeListBuilder2 {
+impl CarriageShapeListBuilder {
+    pub fn new(assets: &Assets) -> CarriageShapeListBuilder {
+        CarriageShapeListBuilder {
             shapes: vec![],
             leafs: vec![],
             carriage_universe: CarriageUniverseBuilder::new(),
@@ -27,7 +26,7 @@ impl CarriageShapeListBuilder2 {
         }
     }
 
-    pub fn use_allotment(&mut self, spec: &str) -> &PendingLeaf {
+    pub fn use_allotment(&mut self, spec: &str) -> &LeafRequest {
         let leaf = self.carriage_universe.pending_leaf(spec);
         self.leafs.push(leaf.clone());
         leaf
@@ -39,32 +38,32 @@ impl CarriageShapeListBuilder2 {
 
     pub fn len(&self) -> usize { self.shapes.len() }
 
-    fn push_shape(&mut self, shape: Shape<PendingLeaf>) {
+    fn push_shape(&mut self, shape: Shape<LeafRequest>) {
         shape.register_space(&self.assets);
         self.shapes.push(shape);
     }
 
-    pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,PendingLeaf>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
+    pub fn add_rectangle(&mut self, area: SpaceBaseArea<f64,LeafRequest>, patina: Patina, wobble: Option<SpaceBaseArea<Observable<'static,f64>,()>>) -> Result<(),DataMessage> {
         self.push_shape(RectangleShape::new2(area,patina,wobble)?);
         Ok(())
     }
 
-    pub fn add_text(&mut self, position: SpaceBase<f64,PendingLeaf>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
+    pub fn add_text(&mut self, position: SpaceBase<f64,LeafRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<(),DataMessage> {
         self.push_shape(TextShape::new2(position,pen,text)?);
         Ok(())
     }
 
-    pub fn add_image(&mut self, position: SpaceBase<f64,PendingLeaf>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
+    pub fn add_image(&mut self, position: SpaceBase<f64,LeafRequest>, images: EachOrEvery<String>) -> Result<(),DataMessage> {
         self.push_shape(ImageShape::new2(position,images)?);
         Ok(())
     }
 
-    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: PendingLeaf) -> Result<(),DataMessage> {
+    pub fn add_wiggle(&mut self, min: f64, max: f64, plotter: Plotter, values: Vec<Option<f64>>, allotment: LeafRequest) -> Result<(),DataMessage> {
         self.push_shape(WiggleShape::new2((min,max),values,plotter,allotment)?);
         Ok(())
     }
 
-    pub fn append(&mut self, more: &CarriageShapeListBuilder2) {
+    pub fn append(&mut self, more: &CarriageShapeListBuilder) {
         self.shapes.extend(more.shapes.iter().cloned());
         self.carriage_universe.union(&more.carriage_universe);
     }
@@ -72,12 +71,12 @@ impl CarriageShapeListBuilder2 {
 
 #[derive(Clone)]
 pub struct CarriageShapeListRaw {
-    shapes: Arc<Vec<Shape<PendingLeaf>>>,
+    shapes: Arc<Vec<Shape<LeafRequest>>>,
     carriage_universe: Arc<CarriageUniverseBuilder>
 }
 
 impl CarriageShapeListRaw {
-    pub fn new(input: CarriageShapeListBuilder2) -> Result<CarriageShapeListRaw,DataMessage> {
+    pub fn new(input: CarriageShapeListBuilder) -> Result<CarriageShapeListRaw,DataMessage> {
         let style = AllotmentStyleGroup::new(StyleTree::new(input.style));
         for leaf in input.leafs {
             leaf.set_style(&style);
@@ -113,20 +112,20 @@ impl CarriageShapeListRaw {
 }
 
 #[derive(Clone)]
-pub struct CarriageShapeList2 {
+pub struct CarriageShapeList {
     carriage_universe: Arc<CarriageUniverse>
 }
 
-impl CarriageShapeList2 {
-    pub fn empty() -> Result<CarriageShapeList2,DataMessage> {
-        Ok(CarriageShapeList2 {
+impl CarriageShapeList {
+    pub fn empty() -> Result<CarriageShapeList,DataMessage> {
+        Ok(CarriageShapeList {
             carriage_universe: Arc::new(CarriageUniverse::new(&mut CarriageUniverseBuilder::new(),&vec![],None)?),
         })
     }
 
-    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList2,DataMessage> {
+    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList,DataMessage> {
         let carriage_universe = CarriageUniverse::new(&input.carriage_universe,&input.shapes,extent)?;
-        Ok(CarriageShapeList2 {
+        Ok(CarriageShapeList {
             carriage_universe: Arc::new(carriage_universe),
         })
     }

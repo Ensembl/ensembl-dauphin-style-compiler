@@ -2,9 +2,9 @@ use std::{sync::{Arc}, collections::HashMap};
 
 use peregrine_toolkit::{puzzle::{PuzzleBuilder}};
 
-use crate::{allotment::{core::{bppxconverter::BpPxConverter, allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup}, DataMessage};
+use crate::{allotment::{core::{allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner, leafrequest::LeafRequestMap}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, util::bppxconverter::BpPxConverter}, DataMessage, LeafRequest};
 
-use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}, pendingleaf::{PendingLeaf, PendingLeafMap}};
+use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
 pub struct StyleBuilder<'a> {
     aligner: Aligner,
@@ -82,7 +82,7 @@ impl<'a> StyleBuilder<'a> {
     }
 }
 
-pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, plm: &mut PendingLeafMap, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&PendingLeaf>, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Result<(),DataMessage> {
+pub(crate) fn make_transformable(puzzle: &PuzzleBuilder, plm: &mut LeafRequestMap, converter: &Arc<BpPxConverter>, root: &ContainerHolder, pendings: &mut dyn Iterator<Item=&LeafRequest>, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Result<(),DataMessage> {
     let mut styler = StyleBuilder {
         root: root.clone(),
         leafs_made: HashMap::new(),
@@ -110,9 +110,9 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{bppxconverter::BpPxConverter, rangeused::RangeUsed, allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadata}, aligner::Aligner}, boxes::root::Root, style::{allotmentname::AllotmentName, holder::ContainerHolder, pendingleaf::{PendingLeaf, PendingLeafMap}, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}};
+    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadata}, aligner::Aligner, leafrequest::LeafRequestMap}, boxes::root::Root, style::{allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
 
-    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> (PendingLeafMap,Vec<PendingLeaf>) {
+    fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> (LeafRequestMap,Vec<LeafRequest>) {
         let heights = if heights.len() > 0 {
             heights.iter().cycle()
         } else {
@@ -125,7 +125,7 @@ mod test {
         };
         let mut out = vec![];
         for (name,height) in names.iter().zip(heights) {
-            let leaf = PendingLeaf::new(&AllotmentName::new(name));
+            let leaf = LeafRequest::new(&AllotmentName::new(name));
             leaf.set_style(style);
             leaf.update_drawing_info(|info| {
                 info.merge_max_y(*height);
@@ -135,7 +135,7 @@ mod test {
             });
             out.push(leaf);
         }
-        (PendingLeafMap::new(),out)
+        (LeafRequestMap::new(),out)
     }
 
     fn add_style(group: &mut StyleTreeBuilder, name: &str, values: &[(&str,&str)]) {

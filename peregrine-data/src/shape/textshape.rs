@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::PuzzleSolution };
 
-use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem};
+use crate::{DataMessage, Pen, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, SpaceBase, allotment::{transformers::transformers::{Transformer, TransformerVariety}, style::{style::LeafCommonStyle}, core::coordsystem}, EachOrEvery, CoordinateSystem, LeafRequest};
 use std::{hash::Hash, sync::Arc};
 
 #[cfg_attr(debug_assertions,derive(Debug))]
@@ -43,8 +43,8 @@ impl<A> TextShape<A> {
     }
 }
 
-impl TextShape<PendingLeaf> {
-    pub fn new2(position: SpaceBase<f64,PendingLeaf>, pen: Pen, text: EachOrEvery<String>) -> Result<Shape<PendingLeaf>,DataMessage> {
+impl TextShape<LeafRequest> {
+    pub fn new2(position: SpaceBase<f64,LeafRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = TextShape::new_details(position,pen,text.clone())?;
         Ok(Shape::Text(details))
     }
@@ -56,25 +56,8 @@ impl<A> Clone for TextShape<A> where A: Clone {
     }
 }
 
-impl<A: Clone> TextShape<A> {
-    /*
-    pub fn new(position: SpaceBase<f64,AllotmentRequest>, pen: Pen, text: EachOrEvery<String>) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
-        if !text.compatible(position.len()) { return Err(DataMessage::LengthMismatch(format!("text patina"))); }
-        let mut out = vec![];
-        let len = position.len();
-        let demerge = position.demerge_by_allotment(|x| { x.coord_system() });
-        if let Ok(details) = TextShape::new_details(position,pen,text) {
-            for (coord_system,mut filter) in demerge {
-                out.push(Shape::Text(details.clone().filter(&mut filter)));
-            }
-        }
-        Ok(out)
-    }
-    */
-}
-
-impl TextShape<PendingLeaf> {
-    pub fn base_filter(&self, min: f64, max: f64) -> TextShape<PendingLeaf> {
+impl TextShape<LeafRequest> {
+    pub fn base_filter(&self, min: f64, max: f64) -> TextShape<LeafRequest> {
         let non_tracking = self.position.allotments().make_filter(self.position.len(),|a| !a.leaf_style().coord_system.is_tracking());
         let filter = self.position.make_base_filter(min,max);
         self.filter(&filter.or(&non_tracking))
@@ -91,28 +74,6 @@ impl TextShape<LeafCommonStyle> {
         out
     }
 }
-
-/*
-impl TextShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<TextShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
-        Ok(TextShape {
-            position: self.position.fullmap_allotments_results(cb)?,
-            pen: self.pen.clone(),
-            text: self.text.clone(),
-        })
-    }
-}
-
-impl TextShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> TextShape<()> {
-        TextShape {
-            position: transform_spacebase2(solution,&common.coord_system(),&self.position),
-            pen: self.pen.clone(),
-            text: self.text.clone()
-        }
-    }
-}
-*/
 
 impl TextShape<Arc<dyn Transformer>> {
     fn demerge_by_variety(&self) -> Vec<((TransformerVariety,CoordinateSystem),TextShape<Arc<dyn Transformer>>)> {

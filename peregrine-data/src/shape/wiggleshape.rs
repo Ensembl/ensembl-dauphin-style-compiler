@@ -1,6 +1,6 @@
 use peregrine_toolkit::puzzle::PuzzleSolution;
 
-use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{pendingleaf::PendingLeaf, style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, Pen};
+use crate::{DataMessage, Plotter, ShapeDemerge, Shape, util::{eachorevery::EachOrEveryFilter}, allotment::{transformers::transformers::Transformer, style::{style::LeafCommonStyle}}, EachOrEvery, CoordinateSystem, Pen, LeafRequest};
 use std::{cmp::{max, min}, hash::Hash, sync::Arc};
 
 const SCALE : i64 = 200; // XXX configurable
@@ -93,8 +93,8 @@ impl<A> WiggleShape<A> {
     }
 }
 
-impl WiggleShape<PendingLeaf> {
-    pub fn new2(x_limits: (f64,f64), values: Vec<Option<f64>>,plotter: Plotter, pending_leaf: PendingLeaf) -> Result<Shape<PendingLeaf>,DataMessage> {
+impl WiggleShape<LeafRequest> {
+    pub fn new2(x_limits: (f64,f64), values: Vec<Option<f64>>,plotter: Plotter, pending_leaf: LeafRequest) -> Result<Shape<LeafRequest>,DataMessage> {
         let details = WiggleShape::new_details(x_limits,values,plotter,pending_leaf);
         Ok(Shape::Wiggle(details))
     }
@@ -105,15 +105,6 @@ impl WiggleShape<LeafCommonStyle> {
 }
 
 impl<A: Clone> WiggleShape<A> {
-    /*
-    pub fn new(x_limits: (f64,f64), values: Vec<Option<f64>>, plotter: Plotter, allotment: AllotmentRequest) -> Result<Vec<Shape<AllotmentRequest>>,DataMessage> {
-        let mut out = vec![];
-        let details = WiggleShape::new_details(x_limits,values,plotter,allotment.clone());
-        out.push(Shape::Wiggle(details));
-        Ok(out)
-    }
-    */
-
     pub(super) fn filter(&self, filter: &EachOrEveryFilter) -> WiggleShape<A> {
         let y = if filter.filter_clone(&[()]).len() > 0 {
             self.values.clone()
@@ -136,20 +127,6 @@ impl<A: Clone> WiggleShape<A> {
     }
 }
 
-/*
-impl WiggleShape<AllotmentRequest> {
-    pub fn allot<F,E>(self, cb: F) -> Result<WiggleShape<AllotmentBox>,E> where F: Fn(&AllotmentRequest) -> Result<AllotmentBox,E> {
-        let allotments = self.allotments.map_results(cb)?;
-        Ok(WiggleShape {
-            x_limits: self.x_limits,
-            values: self.values,
-            plotter: self.plotter,
-            allotments
-        })
-    }
-}
-*/
-
 impl WiggleShape<LeafCommonStyle> {
     pub fn demerge<T: Hash + PartialEq + Eq,D>(self, cat: &D) -> Vec<(T,WiggleShape<LeafCommonStyle>)> where D: ShapeDemerge<X=T> {
         let demerge = self.allotments.demerge(1,|a| cat.categorise(&a.coord_system));
@@ -161,20 +138,6 @@ impl WiggleShape<LeafCommonStyle> {
     }
 
 }
-
-/*
-impl WiggleShape<AllotmentBox> {
-    pub fn transform(&self, common: &ShapeCommon, solution: &PuzzleSolution) -> WiggleShape<LeafCommonStyle> {
-        let allotment = self.allotments.get(0).unwrap();
-        WiggleShape {
-            x_limits: self.x_limits.clone(),
-            values: Arc::new(transform_yy(solution,common.coord_system(),allotment,&self.values)),
-            plotter: self.plotter.clone(),
-            allotments: EachOrEvery::each(vec![])
-        }
-    }
-}
-*/
 
 impl WiggleShape<Arc<dyn Transformer>> {
     pub fn make(&self, _solution: &PuzzleSolution) -> Vec<WiggleShape<LeafCommonStyle>> {

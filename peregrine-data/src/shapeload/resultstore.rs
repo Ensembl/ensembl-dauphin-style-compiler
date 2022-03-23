@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use commander::cdr_current_time;
 use std::collections::HashMap;
-use crate::CarriageShapeListBuilder2;
+use crate::CarriageShapeListBuilder;
 use crate::core::channel::PacketPriority;
 use crate::util::builder::Builder;
 use std::any::Any;
@@ -21,7 +21,7 @@ async fn make_unfiltered_shapes(base: PeregrineCoreBase, program_loader: Program
     base.booted.wait().await;
     let priority = if mode.high_priority() { PacketPriority::RealTime } else { PacketPriority::Batch };
     let mut payloads = HashMap::new();
-    let shapes = Arc::new(Mutex::new(Some(CarriageShapeListBuilder2::new(&lock!(base.assets).clone()))));
+    let shapes = Arc::new(Mutex::new(Some(CarriageShapeListBuilder::new(&lock!(base.assets).clone()))));
     let net_ms = Arc::new(Mutex::new(0.));
     payloads.insert("request".to_string(),Box::new(request.clone()) as Box<dyn Any>);
     payloads.insert("out".to_string(),Box::new(shapes.clone()) as Box<dyn Any>);

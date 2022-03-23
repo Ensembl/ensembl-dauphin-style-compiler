@@ -12,18 +12,16 @@ mod allotment {
     pub(crate) mod style {
         pub(crate) mod allotmentname;
         pub(crate) mod holder;
-        pub(crate) mod pendingleaf;
         pub(crate) mod style;
         pub(crate) mod stylebuilder;
     }
 
     pub(crate) mod core {
-        pub(crate) mod bppxconverter;
         pub(crate) mod aligner;
         pub(crate) mod allotmentmetadata;
         pub(crate) mod coordsystem;
-        pub(crate) mod rangeused;
         pub(crate) mod carriageuniverse;
+        pub(crate) mod leafrequest;
         pub mod playingfield;
         pub(crate) mod trainuniverse;
     }
@@ -41,9 +39,10 @@ mod allotment {
         pub(crate) mod transformers;
     }
 
-    pub(crate) mod tree {
-        //pub(crate) mod allotmentspec;
+    pub(crate) mod util {
+        pub(crate) mod bppxconverter;
         pub(crate) mod collisionalgorithm;
+        pub(crate) mod rangeused;
     }
 }
 
@@ -162,7 +161,7 @@ mod shape {
     pub mod rectangleshape;
     mod textshape;
     pub(crate) mod shape;
-    mod carriageshapelist2;
+    mod carriageshapelist;
     mod zmenu;
     mod zmenufixed;
     mod wiggleshape;
@@ -172,7 +171,7 @@ mod shape {
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::carriageshapelist2::{ CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw };
+    pub use self::carriageshapelist::{ CarriageShapeListBuilder, CarriageShapeList, CarriageShapeListRaw };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
@@ -225,7 +224,7 @@ mod util {
     pub use self::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
 }
 
-pub use self::allotment::style::pendingleaf::PendingLeaf;
+pub use self::allotment::core::leafrequest::LeafRequest;
 pub use self::allotment::style::style::LeafCommonStyle;
 pub use self::api::{ PeregrineCore, PeregrineCoreBase, PeregrineIntegration, PeregrineApiQueue, CarriageSpeed, AgentStore };
 pub use self::core::{ Asset, Assets, PgdPeregrineConfig, ConfigKey, Stick, StickId, StickTopology, Scale, Viewport };
@@ -239,7 +238,7 @@ pub use self::shape::{
     Patina, Colour, DirectColour, DrawnType, Shape,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
     /*AnchoredCarriageShapeList,*/ ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
-    CarriageShapeListBuilder2, CarriageShapeList2, CarriageShapeListRaw
+    CarriageShapeListBuilder, CarriageShapeList, CarriageShapeListRaw
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::playingfield::PlayingField;

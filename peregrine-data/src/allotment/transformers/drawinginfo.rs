@@ -1,4 +1,5 @@
-use crate::allotment::core::rangeused::RangeUsed;
+use crate::allotment::util::rangeused::RangeUsed;
+
 
 #[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]

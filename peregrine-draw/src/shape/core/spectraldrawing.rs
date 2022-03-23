@@ -1,16 +1,16 @@
 use std::sync::{Arc, Mutex};
-use peregrine_data::{Assets, reactive::Reactive, CarriageShapeListBuilder2, CarriageShapeListRaw, CarriageShapeList2};
+use peregrine_data::{Assets, reactive::Reactive, CarriageShapeListBuilder, CarriageShapeListRaw, CarriageShapeList};
 use peregrine_toolkit::{lock, puzzle::{Puzzle, PuzzleBuilder, PuzzleSolution}};
 use crate::{Message, shape::layers::drawing::Drawing, stage::stage::ReadStage, webgl::{DrawingSession, global::WebGlGlobal}};
 use super::spectre::Spectre;
 
 fn draw_spectres(gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets, spectres: &[Spectre]) -> Result<Drawing,Message> {
-    let mut shapes = CarriageShapeListBuilder2::new(&Assets::empty());
+    let mut shapes = CarriageShapeListBuilder::new(&Assets::empty());
     for spectre in spectres {
         spectre.draw(&mut shapes)?;
     }
     let raw = CarriageShapeListRaw::new(shapes).map_err(|e| Message::DataError(e))?;
-    let list = CarriageShapeList2::new(raw,None).map_err(|e| Message::DataError(e))?;
+    let list = CarriageShapeList::new(raw,None).map_err(|e| Message::DataError(e))?;
     let mut puzzle = PuzzleSolution::new(&Puzzle::new(PuzzleBuilder::new()));
     puzzle.solve();
     let shapes = list.get(&puzzle);

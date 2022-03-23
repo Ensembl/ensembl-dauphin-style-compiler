@@ -1,7 +1,7 @@
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, CarriageShapeListBuilder2};
+use peregrine_data::{Builder, Colour, DataMessage, DirectColour, DrawnType, EachOrEvery, Patina, Pen, Plotter, ShapeRequest, ZMenu, SpaceBase, CarriageShapeListBuilder};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register, InterpValue };
 use serde_cbor::Value as CborValue;
@@ -226,7 +226,7 @@ impl InterpCommand for UseAllotmentInterpCommand {
         let registers = context.registers_mut();
         let mut name = registers.get_strings(&self.1)?.to_vec();
         drop(registers);
-        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
         let mut shapes_lock = lock!(zoo);
         let shapes = shapes_lock.as_mut().unwrap();
         let requests = name.drain(..).map(|name| shapes.use_allotment(&name).clone()).collect::<Vec<_>>();
@@ -375,7 +375,7 @@ impl InterpCommand for StyleInterpCommand {
         for (key,value) in keys.iter().zip(values.iter()) {
             props.insert(key.to_string(),value.to_string());
         }
-        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
         lock!(zoo).as_mut().unwrap().add_style(&spec,props);
         Ok(CommandResult::SyncResult())       
     }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
 
-use crate::{allotment::{core::rangeused::RangeUsed, transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}}}, CoordinateSystem};
+use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}}, util::rangeused::RangeUsed}, CoordinateSystem};
 
 pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use anyhow::anyhow as err;
 use peregrine_toolkit::lock;
 use crate::simple_interp_command;
-use peregrine_data::{Builder, SpaceBaseArea, PartialSpaceBase, DataMessage, CarriageShapeListBuilder2};
+use peregrine_data::{Builder, SpaceBaseArea, PartialSpaceBase, DataMessage, CarriageShapeListBuilder};
 use dauphin_interp::command::{ CommandDeserializer, InterpCommand, CommandResult };
 use dauphin_interp::runtime::{ InterpContext, Register };
 use serde_cbor::Value as CborValue;
@@ -30,7 +30,7 @@ impl InterpCommand for RectangleInterpCommand {
         let allotments = allotment_id.map_results::<_,_,anyhow::Error>(|id| {
             Ok(geometry.allotment(*id as u32)?.as_ref().clone())
         })?;
-        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
         if allotments.len() != Some(0) {
             let area = SpaceBaseArea::new(
                 PartialSpaceBase::from_spacebase(top_left),
@@ -62,7 +62,7 @@ impl InterpCommand for Text2InterpCommand {
         let allotments = allotment_id.map_results(|id| {
             geometry.allotment(*id as u32).map(|x| x.as_ref().clone())
         })?;
-        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
         if text.len() != Some(0) || allotments.len() != Some(0) {
             let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
             let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
@@ -88,7 +88,7 @@ impl InterpCommand for ImageInterpCommand {
         if images.len() != Some(0) && allotments.len() != Some(0) {
             let mut allotments_iter = allotments.iter(spacebase.len()).ok_or_else(|| err!("sb2"))?;
             let spacebase = spacebase.fullmap_allotments_results::<_,_,DataMessage>(move |_| Ok(allotments_iter.next().unwrap().clone()))?;
-            let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+            let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
             lock!(zoo).as_mut().unwrap().add_image(spacebase,images)?;
         }
         Ok(CommandResult::SyncResult())
@@ -110,7 +110,7 @@ impl InterpCommand for WiggleInterpCommand {
         let geometry = peregrine.geometry_builder();
         let plotter = geometry.plotter(plotter_id as u32)?.as_ref().clone();
         let allotment = geometry.allotment(allotment_id as u32)?;
-        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder2>>>>(context,"out")?;
+        let zoo = get_instance::<Arc<Mutex<Option<CarriageShapeListBuilder>>>>(context,"out")?;
         lock!(zoo).as_mut().unwrap().add_wiggle(x_min,x_max,plotter,values,allotment.as_ref().clone())?;
         Ok(CommandResult::SyncResult())
     }

@@ -1,8 +1,9 @@
 use std::{sync::{Arc, Mutex}, ops::Range, cmp::Ordering};
 use peregrine_toolkit::lock;
 
-use crate::allotment::core::rangeused::RangeUsed;
 use peregrine_toolkit::watermark::Watermark;
+
+use super::rangeused::RangeUsed;
 
 #[derive(Clone)]
 pub(crate) struct CollisionToken(Arc<Mutex<f64>>);
