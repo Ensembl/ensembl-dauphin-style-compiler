@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, Carriage, CarriageSerial, CarriageSpeed, PeregrineCore, Scale, Train, TrainSerial, ZMenuProxy, DrawingCarriage};
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy, DrawingCarriage};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
@@ -14,8 +14,8 @@ use crate::util::message::Message;
 
 #[derive(Clone)]
 enum FadeState {
-    Constant(Option<TrainSerial>),
-    Fading(Option<TrainSerial>,TrainSerial,CarriageSpeed,Option<f64>,Arc<NeededLock>)
+    Constant(Option<u64>),
+    Fading(Option<u64>,u64,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlRailwayData {
@@ -26,7 +26,7 @@ struct GlRailwayData {
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
     commander: PgCommanderWeb,
-    trains: HashMap<TrainSerial,GLTrain>,
+    trains: HashMap<u64,GLTrain>,
     carriages: HashMap<DrawingCarriage,GLCarriage>,
     fade_state: FadeState,
     redraw_needed: Needed
@@ -49,7 +49,7 @@ impl GlRailwayData {
         })
     }
 
-    fn get_our_train(&mut self, index: TrainSerial) -> &mut GLTrain {
+    fn get_our_train(&mut self, index: u64) -> &mut GLTrain {
         self.trains.get_mut(&index).unwrap()
     }
 
@@ -83,7 +83,7 @@ impl GlRailwayData {
         }
     }
 
-    fn set_max(&mut self, serial: TrainSerial, len: u64) {
+    fn set_max(&mut self, serial: u64, len: u64) {
         self.get_our_train(serial).set_max(len);
     }
 
@@ -164,7 +164,7 @@ impl GlRailwayData {
         Ok(complete)
     }
 
-    fn train_scale(&mut self, serial: TrainSerial)-> u64 {
+    fn train_scale(&mut self, serial: u64)-> u64 {
         self.get_our_train(serial).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 

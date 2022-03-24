@@ -3,10 +3,10 @@ use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::allotment::core::heighttracker::{HeightTrackerMerger, HeightTracker};
+use crate::allotment::core::heighttracker::{HeightTrackerMerger};
 use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
-use super::carriage::{Carriage, CarriageSerialSource};
+use super::carriage::{Carriage};
 use super::carriageset::CarriageSet;
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
@@ -16,9 +16,11 @@ use crate::{PgCommanderTaskSpec};
 use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::core::Viewport;
 
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
+
 struct TrainData {
     try_lifecycle: Needed,
-    serial_source: CarriageSerialSource,
     broken: bool,
     active: bool,
     extent: TrainExtent,
@@ -32,11 +34,10 @@ struct TrainData {
 }
 
 impl TrainData {
-    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource, validity_counter: u64) -> Result<TrainData,DataMessage> {
+    fn new(extent: &TrainExtent, try_lifecycle: &Needed, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<TrainData,DataMessage> {
         let train_track_config_list = TrainTrackConfigList::new(&extent.layout(),&extent.scale());
         let mut out = TrainData {
             try_lifecycle: try_lifecycle.clone(),
-            serial_source: serial_source.clone(),
             broken: false,
             active: false,
             extent: extent.clone(),
@@ -112,7 +113,7 @@ impl TrainData {
     fn set_position(&mut self, carriage_event: &mut RailwayEvents, viewport: &Viewport) -> Result<(),DataMessage> {
         self.viewport = viewport.clone();
         let carriage = self.extent.scale().carriage(viewport.position()?);
-        let carriages = CarriageSet::new_using(&self.try_lifecycle,&self.serial_source,&self.extent,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
+        let carriages = CarriageSet::new_using(&self.try_lifecycle,&self.extent,&self.track_configs,carriage_event,carriage,self.carriages.take().unwrap(),&self.messages);
         self.carriages = Some(carriages);
         Ok(())
     }
@@ -161,21 +162,20 @@ impl TrainData {
     }
 }
 
-#[derive(Clone,Debug,Copy,PartialEq,Eq,Hash)]
-pub struct TrainSerial(u64);
+identitynumber!(IDS);
 
 // XXX circular chroms
 #[derive(Clone)]
-pub struct Train(Arc<Mutex<TrainData>>,MessageSender,TrainSerial);
+pub struct Train(Arc<Mutex<TrainData>>,MessageSender,u64);
 
 impl Train {
-    pub(super) fn new(try_lifecycle: &Needed, serial: u64, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, serial_source: &CarriageSerialSource, validity_counter: u64) -> Result<Train,DataMessage> {
-        let out = Train(Arc::new(Mutex::new(TrainData::new(id,try_lifecycle,carriage_event,viewport,&messages,serial_source,validity_counter)?)),messages.clone(),TrainSerial(serial));
+    pub(super) fn new(try_lifecycle: &Needed, id: &TrainExtent, carriage_event: &mut RailwayEvents, viewport: &Viewport, messages: &MessageSender, validity_counter: u64) -> Result<Train,DataMessage> {
+        let out = Train(Arc::new(Mutex::new(TrainData::new(id,try_lifecycle,carriage_event,viewport,&messages,validity_counter)?)),messages.clone(),IDS.next());
         carriage_event.load_train_data(&out);
         Ok(out)
     }
 
-    pub fn serial(&self) -> TrainSerial { self.2 }
+    pub fn serial(&self) -> u64 { self.2 }
 
     pub(super) fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
         lock!(self.0).each_current_carriage(state,cb);

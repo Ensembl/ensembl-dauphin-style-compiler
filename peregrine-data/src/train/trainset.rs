@@ -5,7 +5,7 @@ use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
 use super::train::{ Train };
-use super::carriage::{Carriage, CarriageSerialSource};
+use super::carriage::{Carriage};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::util::message::DataMessage;
@@ -17,7 +17,6 @@ use crate::util::message::DataMessage;
 
 pub struct TrainSet {
     try_lifecycle: Needed,
-    serial_source: CarriageSerialSource,
     current: Option<Train>,
     future: Option<Train>,
     wanted: Option<Train>,
@@ -33,7 +32,6 @@ pub struct TrainSet {
 
 impl TrainSet {
     pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> TrainSet {
-        let serial_source = CarriageSerialSource::new();
         TrainSet {
             try_lifecycle: try_lifecycle.clone(),
             current: None,
@@ -42,8 +40,7 @@ impl TrainSet {
             target: None,
             next_train_serial: 0,
             messages: base.messages.clone(),
-            dependents: RailwayDependents::new(base,result_store,&serial_source,visual_blocker,try_lifecycle),
-            serial_source,
+            dependents: RailwayDependents::new(base,result_store,visual_blocker,try_lifecycle),
             viewport: None,
             sketchy: false,
             validity_counter: 1,
@@ -186,7 +183,7 @@ impl TrainSet {
         }
         /* do it */
         self.next_train_serial +=1;
-        let wanted = Train::new(&self.try_lifecycle,self.next_train_serial,&extent,events,viewport,&self.messages,&self.serial_source,self.target_validity_counter)?;
+        let wanted = Train::new(&self.try_lifecycle,&extent,events,viewport,&self.messages,self.target_validity_counter)?;
         events.draw_create_train(&wanted);
         self.wanted = Some(wanted);
         Ok(())

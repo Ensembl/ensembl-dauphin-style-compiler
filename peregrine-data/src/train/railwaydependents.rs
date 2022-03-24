@@ -4,7 +4,7 @@ use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker:
 
 use crate::{Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, DataMessage, allotment::{core::{allotmentmetadata::AllotmentMetadataReport, trainstate::TrainState}}, PlayingField};
 
-use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
+use super::{anticipate::Anticipate, railwayevent::RailwayEvents, train::Train};
 
 pub struct RailwayDependents {
     anticipate: Anticipate,
@@ -16,9 +16,9 @@ pub struct RailwayDependents {
 }
 
 impl RailwayDependents {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, serial_source: &CarriageSerialSource, visual_blocker: &Blocker, try_lifecycle: &Needed) -> RailwayDependents {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> RailwayDependents {
         RailwayDependents {
-            anticipate: Anticipate::new(base,try_lifecycle,result_store,serial_source),
+            anticipate: Anticipate::new(base,try_lifecycle,result_store),
             playing_field: MutexOnChange::new(),
             metadata: MutexOnChange::new(),
             visual_blocker: visual_blocker.clone(),

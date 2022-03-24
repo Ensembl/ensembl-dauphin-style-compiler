@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use peregrine_toolkit::sync::needed::Needed;
 use crate::{Carriage, CarriageExtent, DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
-use super::{carriage::CarriageSerialSource, trainextent::TrainExtent};
+use super::{trainextent::TrainExtent};
 
 struct AnticipateTask {
     carriages: Vec<Carriage>,
@@ -60,18 +60,16 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
 
 pub struct Anticipate {
     try_lifecycle: Needed,
-    serial_source: CarriageSerialSource,
     extent: Arc<Mutex<Option<CarriageExtent>>>,
     stream: CommanderStream<AnticipateTask>
 }
 
 impl Anticipate {
-    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore, serial_source: &CarriageSerialSource) -> Anticipate {
+    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore) -> Anticipate {
         let stream = CommanderStream::new();
         run_anticipator(&base,&result_store,&stream);
         Anticipate {
             try_lifecycle: try_lifecycle.clone(),
-            serial_source: serial_source.clone(),
             extent: Arc::new(Mutex::new(None)),
             stream
         }
@@ -90,7 +88,7 @@ impl Anticipate {
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
         let train_extent = TrainExtent::new(layout,scale,pixel_size);
         let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
-        let carriage = Carriage::new(&self.try_lifecycle,&self.serial_source,&carriage_extent,&train_track_config_list,None,true);
+        let carriage = Carriage::new(&self.try_lifecycle,&carriage_extent,&train_track_config_list,None,true);
         carriages.push(carriage);
     }
 

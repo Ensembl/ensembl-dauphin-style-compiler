@@ -17,7 +17,8 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::shapeload::loadshapes::{LoadMode, load_carriage_shape_list };
 
 use super::railwayevent::RailwayEvents;
-use super::train;
+use lazy_static::lazy_static;
+use identitynumber::identitynumber;
 
 #[derive(Clone)]
 struct UnloadedCarriage {
@@ -59,36 +60,23 @@ enum CarriageState {
     Loaded(CarriageShapes)
 }
 
-#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
-pub struct CarriageSerial(u64);
-
-#[derive(Clone)]
-pub(crate) struct CarriageSerialSource(Arc<Mutex<u64>>);
-
-impl CarriageSerialSource {
-    pub(crate) fn new() -> CarriageSerialSource { CarriageSerialSource(Arc::new(Mutex::new(0))) }
-    fn next(&self) -> CarriageSerial {
-        let mut v = lock!(self.0);
-        *v += 1;
-        CarriageSerial(*v)
-    }
-}
+identitynumber!(IDS);
 
 #[derive(Clone)]
 pub struct Carriage {
     try_lifecycle: Needed,
     moribund: Arc<Mutex<bool>>,
-    serial: CarriageSerial,
+    serial: u64,
     extent: CarriageExtent,
     state: Arc<Mutex<CarriageState>>
 }
 
 impl Carriage {
-    pub(crate) fn new(try_lifecycle: &Needed, serial_source: &CarriageSerialSource, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> Carriage {
+    pub(crate) fn new(try_lifecycle: &Needed, extent: &CarriageExtent, configs: &TrainTrackConfigList, messages: Option<&MessageSender>, warm: bool) -> Carriage {
         Carriage {
             try_lifecycle: try_lifecycle.clone(),
             moribund: Arc::new(Mutex::new(false)),
-            serial: serial_source.next(),
+            serial: IDS.next(),
             extent: extent.clone(),
             state: Arc::new(Mutex::new(CarriageState::Unloaded(UnloadedCarriage {
                 config: configs.clone(),
@@ -99,11 +87,10 @@ impl Carriage {
     }
 
     fn hash_by_serial<H>(&self, state: &mut H) where H: hash::Hasher {
-        self.serial.0.hash(state);
+        self.serial.hash(state);
     }
 
     pub(crate) fn is_moribund(&self) -> bool { *lock!(self.moribund) }
-    pub(crate) fn serial(&self) -> CarriageSerial { self.serial }
     pub(crate) fn extent(&self) -> &CarriageExtent { &self.extent }
 
     pub(super) fn set_moribund(&self,carriage_events: &mut RailwayEvents) {

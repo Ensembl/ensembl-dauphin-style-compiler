@@ -2,7 +2,7 @@ use std::cmp::max;
 use peregrine_toolkit::sync::needed::Needed;
 
 use super::railwayevent::RailwayEvents;
-use super::carriage::{Carriage, CarriageSerialSource};
+use super::carriage::{Carriage};
 use super::trainextent::TrainExtent;
 use crate::{CarriageExtent};
 use crate::api::MessageSender;
@@ -17,7 +17,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    fn create(try_lifecycle: &Needed, serial_source: &CarriageSerialSource, extent: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
+    fn create(try_lifecycle: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, mut old: CarriageSet, messages: &MessageSender) -> CarriageSet {
         let flank = if extent.scale().is_milestone() { MILESTONE_CARRIAGE_FLANK } else { CARRIAGE_FLANK };
         let start = max((centre as i64)-(flank as i64),0) as u64;
         let old_start = old.start;
@@ -43,7 +43,7 @@ impl CarriageSet {
             carriages.push(if steal {
                 old_carriages.next().unwrap().1
             } else {
-                let out = Carriage::new(&try_lifecycle,serial_source,&CarriageExtent::new(extent,index),configs,Some(messages),false);
+                let out = Carriage::new(&try_lifecycle,&CarriageExtent::new(extent,index),configs,Some(messages),false);
                 carriage_events.load_carriage_data(&out);
                 out
             });
@@ -60,18 +60,11 @@ impl CarriageSet {
 
     pub(super) fn size(&self) -> usize { self.carriages.len() }
 
-    pub(super) fn new_using(try_lifecycle: &Needed, serial_source: &CarriageSerialSource, train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
-        CarriageSet::create(try_lifecycle,serial_source,train_id,configs,carriage_events,centre,old,messages)
+    pub(super) fn new_using(try_lifecycle: &Needed, train_id: &TrainExtent, configs: &TrainTrackConfigList, carriage_events: &mut RailwayEvents, centre: u64, old: CarriageSet, messages: &MessageSender) -> CarriageSet {
+        CarriageSet::create(try_lifecycle,train_id,configs,carriage_events,centre,old,messages)
     }
 
     pub(super) fn carriages(&self) -> &Vec<Carriage> { &self.carriages }
-
-    pub(super) fn ready(&self) -> bool {
-        for c in &self.carriages {
-            if !c.ready() { return false; }
-        }
-        true
-    }
 
     pub(super) fn has_shapes(&self) -> bool {
         for c in &self.carriages {

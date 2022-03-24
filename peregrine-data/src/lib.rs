@@ -205,8 +205,8 @@ mod train {
     mod trainset;
 
     pub use carriageextent::CarriageExtent;
-    pub use carriage::{ Carriage, CarriageSerial, DrawingCarriage };
-    pub use train::{ Train, TrainSerial };
+    pub use carriage::{ Carriage, DrawingCarriage };
+    pub use train::{ Train };
     pub use railway::Railway;
 }
 
@@ -249,7 +249,7 @@ pub use self::allotment::core::allotmentmetadata::{
 pub use self::allotment::core::trainstate::TrainState;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ Carriage, CarriageExtent, DrawingCarriage, Train, TrainSerial, CarriageSerial };
+pub use self::train::{ Carriage, CarriageExtent, DrawingCarriage, Train };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };
