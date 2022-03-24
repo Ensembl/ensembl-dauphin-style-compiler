@@ -24,7 +24,7 @@ mod allotment {
         pub(crate) mod heighttracker;
         pub(crate) mod leafrequest;
         pub mod playingfield;
-        pub(crate) mod trainuniverse;
+        pub(crate) mod trainstate;
     }
 
     pub(crate) mod stylespec {
@@ -246,6 +246,7 @@ pub use self::allotment::core::playingfield::PlayingField;
 pub use self::allotment::core::allotmentmetadata::{
     AllotmentMetadataReport
 };
+pub use self::allotment::core::trainstate::TrainState;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
 pub use self::train::{ Carriage, CarriageExtent, Train, TrainSerial, CarriageSerial };

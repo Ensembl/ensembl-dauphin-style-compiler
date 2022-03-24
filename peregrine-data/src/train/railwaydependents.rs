@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use peregrine_toolkit::{lock, plumbing::onchange::MutexOnChange, sync::{blocker::{Blocker, Lockout}, needed::Needed}};
 
-use crate::{Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, DataMessage, allotment::{core::allotmentmetadata::AllotmentMetadataReport}, PlayingField};
+use crate::{Carriage, CarriageExtent, ShapeStore, PeregrineCoreBase, DataMessage, allotment::{core::{allotmentmetadata::AllotmentMetadataReport, trainstate::TrainState}}, PlayingField};
 
 use super::{anticipate::Anticipate, carriage::CarriageSerialSource, railwayevent::RailwayEvents, train::Train};
 
@@ -26,10 +26,11 @@ impl RailwayDependents {
         }
     }
 
-    fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) {
+    fn draw_update_playingfield(&self, quiescent: Option<&Train>, carriages: &[Carriage], events: &mut RailwayEvents) {
+        let train_state = quiescent.map(|t| t.state()).unwrap_or_else(|| TrainState::independent());
         let mut playing_field = PlayingField::empty();
         for carriage in carriages {
-            playing_field = playing_field.union(&carriage.playing_field());
+            playing_field = playing_field.union(&carriage.playing_field(&train_state));
         }
         self.playing_field.update(playing_field, |playing_field| {
             events.draw_notify_playingfield(playing_field.clone());
@@ -65,7 +66,7 @@ impl RailwayDependents {
 
     pub(super) fn carriages_loaded(&self, quiescent: Option<&Train>, carriages: &[Carriage], events: &mut RailwayEvents) {
         self.draw_update_allotment_metadata(quiescent,events);
-        self.draw_update_playingfield(carriages,events);
+        self.draw_update_playingfield(quiescent,carriages,events);
     }
 
     pub(super) fn busy(&self, busy: bool) {

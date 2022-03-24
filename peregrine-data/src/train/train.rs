@@ -3,6 +3,7 @@ use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
+use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
 use super::carriage::{Carriage, CarriageSerialSource};
 use super::carriageset::CarriageSet;
@@ -25,6 +26,7 @@ struct TrainData {
     carriages: Option<CarriageSet>,
     messages: MessageSender,
     track_configs: TrainTrackConfigList,
+    train_state: TrainState,
     validity_counter: u64
 }
 
@@ -42,6 +44,7 @@ impl TrainData {
             max: None,
             messages: messages.clone(),
             track_configs: train_track_config_list,
+            train_state: TrainState::independent(),
             validity_counter
         };
         out.set_position(carriage_event,viewport)?;
@@ -63,6 +66,7 @@ impl TrainData {
         self.active = false;
     }
 
+    fn state(&self) -> &TrainState { &self.train_state }
     fn is_active(&self) -> bool { self.active }
     fn viewport(&self) -> &Viewport { &self.viewport }
     fn extent(&self) -> &TrainExtent { &self.extent }
@@ -82,7 +86,7 @@ impl TrainData {
     }
 
     fn allotter_metadata(&self) ->Option<AllotmentMetadataReport> {
-        self.central_carriage().map(|c| c.metadata())
+        self.central_carriage().map(|c| c.metadata(&self.train_state))
     }
 
     fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
@@ -171,6 +175,7 @@ impl Train {
         }
     }
 
+    pub fn state(&self) -> TrainState { lock!(self.0).state().clone() }
     pub fn extent(&self) -> TrainExtent { self.0.lock().unwrap().extent().clone() }
     pub fn viewport(&self) -> Viewport { self.0.lock().unwrap().viewport().clone() }
     pub fn is_active(&self) -> bool { self.0.lock().unwrap().is_active() }

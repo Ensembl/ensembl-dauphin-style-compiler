@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, Carriage, CarriageExtent, ZMenuProxy};
+use peregrine_data::{Assets, Carriage, CarriageExtent, ZMenuProxy, TrainState};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
@@ -62,7 +62,7 @@ impl GLCarriage {
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let shapes = carriage.shapes().unwrap(); // XXX
+                let shapes = carriage.shapes(&TrainState::independent()).unwrap(); // XXX
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets).await;
                 carriage.set_ready();
                 redraw_needed.set();

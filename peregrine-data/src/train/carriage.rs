@@ -1,11 +1,10 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::{lock, log, error};
-use peregrine_toolkit::puzzle::PuzzleSolution;
+use peregrine_toolkit::{lock, error};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::allotment::core::carriageuniverse::{CarriageUniverse, CarriageSolution};
-use crate::allotment::core::heighttracker::HeightTracker;
+use crate::allotment::core::carriageuniverse::{CarriageUniverse, CarriageSolution, CarriageShapes};
+use crate::allotment::core::trainstate::TrainState;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
 use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, Shape, PlayingField};
@@ -52,8 +51,8 @@ impl UnloadedCarriage {
 enum CarriageState {
     Unloaded(UnloadedCarriage),
     Loading,
-    Pending(CarriageSolution),
-    Loaded(CarriageSolution)
+    Pending(CarriageShapes),
+    Loaded(CarriageShapes)
 }
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
@@ -68,12 +67,6 @@ impl CarriageSerialSource {
         let mut v = lock!(self.0);
         *v += 1;
         CarriageSerial(*v)
-    }
-}
-
-fn try_solve(solution: &mut PuzzleSolution) {
-    if !solution.solve() {
-        log!("incomplete solution");
     }
 }
 
@@ -115,28 +108,28 @@ impl Carriage {
         }
     }
 
-    pub fn playing_field(&self) -> PlayingField {
+    pub fn playing_field(&self, train_state: &TrainState) -> PlayingField {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                s.playing_field()
+                s.get(train_state).playing_field()
             },
             _ => PlayingField::empty()
         }        
     }
 
-    pub fn metadata(&self) -> AllotmentMetadataReport {
+    pub fn metadata(&self, train_state: &TrainState) -> AllotmentMetadataReport {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                s.metadata()
+                s.get(train_state).metadata()
             },
             _ => AllotmentMetadataReport::empty()
         }
     }
 
-    pub fn shapes(&self) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
+    pub fn shapes(&self, train_state: &TrainState) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                Some(s.shapes().clone())
+                Some(s.get(train_state).shapes().clone())
             },
             _ => None
         }
@@ -172,7 +165,7 @@ impl Carriage {
         if let Some(mut unloaded) = unloaded {
             *lock!(self.state) = CarriageState::Loading;
             if let Some(universe) = unloaded.load(&self.extent,base,result_store,mode).await? {
-                *lock!(self.state) = CarriageState::Pending(CarriageSolution::new(&universe,&HeightTracker::empty()));
+                *lock!(self.state) = CarriageState::Pending(CarriageShapes::new(&universe));
             }
         }
         Ok(())

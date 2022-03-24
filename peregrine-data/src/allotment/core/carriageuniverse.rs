@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::{Arc}};
-use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, log_extra};
+use std::{collections::HashMap, sync::{Arc, Mutex}};
+use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, log_extra, lock};
 
 use crate::{allotment::{style::{allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::{make_transformable}, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, CarriageShapeListRaw};
 
-use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, aligner::Aligner, playingfield::PlayingField, leafrequest::LeafRequestMap, heighttracker::{HeightTrackerPieces, HeightTracker}};
+use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, aligner::Aligner, playingfield::PlayingField, leafrequest::LeafRequestMap, heighttracker::{HeightTrackerPieces, HeightTracker}, trainstate::TrainState};
 
 pub(crate) struct CarriageUniversePrep {
     pub puzzle: PuzzleBuilder,
@@ -117,9 +117,9 @@ pub struct CarriageSolution {
 }
 
 impl CarriageSolution {
-    pub(crate) fn new(universe: &CarriageUniverse, height_tracker: &HeightTracker) -> CarriageSolution {
+    pub(crate) fn new(universe: &CarriageUniverse, train_state: &TrainState) -> CarriageSolution {
         let mut solution = PuzzleSolution::new(&universe.puzzle);
-        universe.height_tracker.set_extra_height(&mut solution,height_tracker);
+        train_state.update_puzzle(&mut solution, &universe.height_tracker);
         solution.solve();
         let shapes = universe.get(&solution);
         CarriageSolution {
@@ -137,5 +137,53 @@ impl CarriageSolution {
 
     pub fn metadata(&self) -> AllotmentMetadataReport {
         self.universe.get_metadata(&self.solution)
+    }
+}
+
+#[derive(Clone)]
+struct CarriageShapeCache {
+    train_state: TrainState,
+    shapes: CarriageSolution
+}
+
+#[derive(Clone)]
+pub struct CarriageShapes {
+    universe: CarriageUniverse,
+    independent: CarriageShapeCache,
+    cache: Arc<Mutex<CarriageShapeCache>>
+}
+
+impl CarriageShapes {
+    pub fn new(universe: &CarriageUniverse) -> CarriageShapes {
+        let independent_state = TrainState::independent();
+        let independent = CarriageSolution::new(universe,&independent_state);
+        let cache = CarriageShapeCache {
+            train_state: independent_state.clone(),
+            shapes: independent.clone()
+        };
+        let independent = CarriageShapeCache {
+            train_state: independent_state.clone(),
+            shapes: independent.clone()
+        };
+        CarriageShapes {
+            universe: universe.clone(),
+            cache: Arc::new(Mutex::new(cache)),
+            independent
+        }
+    }
+
+    pub(crate) fn get(&self, state: &TrainState) -> CarriageSolution {
+        if state == &self.independent.train_state {
+            return self.independent.shapes.clone();
+        }
+        let mut cache = lock!(&self.cache);
+        if state == &cache.train_state {
+            return cache.shapes.clone();
+        }
+        let shapes = CarriageSolution::new(&self.universe,state);
+        cache.train_state = state.clone();
+        cache.shapes = shapes.clone();
+        drop(cache);
+        shapes
     }
 }

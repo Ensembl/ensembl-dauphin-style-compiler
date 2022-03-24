@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc, fmt, hash::Hash};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, fmt, hash::{Hash, Hasher}};
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece};
 
@@ -61,7 +61,7 @@ impl HeightTrackerPieces {
         }
     }
 
-    /* must called pre-solve */
+    /* must be called pre-solve */
     pub(crate) fn set_extra_height(&self, solution: &mut PuzzleSolution, heights: &HeightTracker) {
         for (name,entry) in &self.heights {
             entry.set_full_height(solution,heights.get(name));
@@ -69,27 +69,59 @@ impl HeightTrackerPieces {
     }
 }
 
+#[derive(Clone)]
 pub struct HeightTracker {
-    heights: HashMap<AllotmentName,f64>
+    hash: u64,
+    heights: Arc<HashMap<AllotmentName,i64>>
+}
+
+impl PartialEq for HeightTracker {
+    fn eq(&self, other: &Self) -> bool { self.hash == other.hash }
+}
+
+impl Eq for HeightTracker {}
+
+impl Hash for HeightTracker {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.hash.hash(state); }
 }
 
 impl HeightTracker {
+    const ROUND : f64 = 1000.;
+
+    fn to_fixed(input: f64) -> i64 { (input*Self::ROUND).round() as i64 }
+    fn from_fixed(input: i64) -> f64 { (input as f64)/Self::ROUND }
+
+    fn calc_hash(input: &HashMap<AllotmentName,i64>) -> u64 {
+        let mut names = input.keys().collect::<Vec<_>>();
+        names.sort_by_cached_key(|name| name.hash_value());
+        let mut state = DefaultHasher::new();
+        for name in names {
+            name.hash_value().hash(&mut state);
+            input.get(name).cloned().unwrap().hash(&mut state);
+        }
+        state.finish()
+    }
+
     pub(crate) fn empty() -> HeightTracker {
+        let empty = HashMap::new();
+        let hash = Self::calc_hash(&empty);
         HeightTracker {
-            heights: HashMap::new()
+            hash,
+            heights: Arc::new(empty)
         }
     }
 
     pub(crate) fn new(pieces: &HeightTrackerPieces, solution: &PuzzleSolution) -> HeightTracker {
         let mut out = HashMap::new();
         for (name,height) in pieces.heights.iter() {
-            out.insert(name.clone(),height.get_used(solution));
+            out.insert(name.clone(),Self::to_fixed(height.get_used(solution)));
         }
-        HeightTracker { heights: out }
+        let hash = Self::calc_hash(&out);
+        HeightTracker { hash, heights: Arc::new(out) }
     }
 
     fn get(&self, name: &AllotmentName) -> f64 {
-        self.heights.get(name).cloned().unwrap_or(0.)
+        Self::from_fixed(self.heights.get(name).cloned().unwrap_or(0))
     }
 }
 
@@ -97,7 +129,7 @@ impl HeightTracker {
 impl fmt::Debug for HeightTracker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut out = vec![];
-        for (name,height) in &self.heights {
+        for (name,height) in &*self.heights {
             out.push(format!("{:?}: {}",name,height));
         }
         write!(f,"heights: {}",out.join(", "))
