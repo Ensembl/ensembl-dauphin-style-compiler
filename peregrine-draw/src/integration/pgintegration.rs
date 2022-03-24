@@ -1,7 +1,7 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{
     Assets, Carriage, CarriageSpeed, ChannelIntegration, PeregrineIntegration, 
-    Viewport, AllotmentMetadataReport, PlayingField
+    Viewport, AllotmentMetadataReport, PlayingField, DrawingCarriage
 };
 use peregrine_toolkit::lock;
 use super::pgchannel::PgChannel;
@@ -36,15 +36,15 @@ impl PeregrineIntegration for PgIntegration {
         self.trainset.drop_train(train);
     }
 
-    fn create_carriage(&mut self, carriage: &Carriage) {
+    fn create_carriage(&mut self, carriage: &DrawingCarriage) {
         self.trainset.create_carriage(carriage,&self.webgl,&self.assets);
     }
 
-    fn drop_carriage(&mut self, carriage: &Carriage) {
+    fn drop_carriage(&mut self, carriage: &DrawingCarriage) {
         self.trainset.drop_carriage(carriage);
     }
 
-    fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage> {
+    fn set_carriages(&mut self, train: &Train, carriages: &[DrawingCarriage]) -> Result<(),DataMessage> {
         self.trainset.set_carriages(train,carriages);
         Ok(())
     }

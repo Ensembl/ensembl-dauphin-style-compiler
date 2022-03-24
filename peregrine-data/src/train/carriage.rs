@@ -1,3 +1,5 @@
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{self, Hash, Hasher};
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::{lock, error};
 use peregrine_toolkit::sync::needed::Needed;
@@ -15,6 +17,7 @@ use crate::switch::trackconfiglist::TrainTrackConfigList;
 use crate::shapeload::loadshapes::{LoadMode, load_carriage_shape_list };
 
 use super::railwayevent::RailwayEvents;
+use super::train;
 
 #[derive(Clone)]
 struct UnloadedCarriage {
@@ -95,9 +98,13 @@ impl Carriage {
         }
     }
 
-    pub fn is_moribund(&self) -> bool { *lock!(self.moribund) }
-    pub fn serial(&self) -> CarriageSerial { self.serial }
-    pub fn extent(&self) -> &CarriageExtent { &self.extent }
+    fn hash_by_serial<H>(&self, state: &mut H) where H: hash::Hasher {
+        self.serial.0.hash(state);
+    }
+
+    pub(crate) fn is_moribund(&self) -> bool { *lock!(self.moribund) }
+    pub(crate) fn serial(&self) -> CarriageSerial { self.serial }
+    pub(crate) fn extent(&self) -> &CarriageExtent { &self.extent }
 
     pub(super) fn set_moribund(&self,carriage_events: &mut RailwayEvents) {
         *lock!(self.moribund) = true;
@@ -109,7 +116,7 @@ impl Carriage {
         }
     }
 
-    pub fn playing_field(&self, train_state: &TrainState) -> PlayingField {
+    pub(crate) fn playing_field(&self, train_state: &TrainState) -> PlayingField {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 s.get(train_state).playing_field()
@@ -118,7 +125,7 @@ impl Carriage {
         }        
     }
 
-    pub fn metadata(&self, train_state: &TrainState) -> AllotmentMetadataReport {
+    pub(crate) fn metadata(&self, train_state: &TrainState) -> AllotmentMetadataReport {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 s.get(train_state).metadata()
@@ -127,7 +134,7 @@ impl Carriage {
         }
     }
 
-    pub fn shapes(&self, train_state: &TrainState) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
+    fn shapes(&self, train_state: &TrainState) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
                 Some(s.get(train_state).shapes().clone())
@@ -136,7 +143,7 @@ impl Carriage {
         }
     }
 
-    pub fn set_ready(&self) {
+    fn set_ready(&self) {
         let mut state = lock!(self.state);
         if let CarriageState::Pending(shapes) = &*state {
             *state = CarriageState::Loaded(shapes.clone());
@@ -184,5 +191,41 @@ impl Carriage {
 
 #[derive(Clone)]
 pub struct DrawingCarriage {
-    carriage: Arc<Carriage>
+    hash: Arc<u64>,
+    carriage: Arc<Carriage>,
+    train_state: Arc<TrainState>
+}
+
+impl PartialEq for DrawingCarriage {
+    fn eq(&self, other: &Self) -> bool { self.hash == other.hash }
+}
+
+impl Eq for DrawingCarriage {}
+
+impl Hash for DrawingCarriage {
+    fn hash<H: Hasher>(&self, state: &mut H) { self.hash.hash(state); }
+}
+
+impl DrawingCarriage {
+    fn calc_hash(carriage: &Carriage, train_state: &TrainState) -> u64 {
+        let mut state = DefaultHasher::new();
+        carriage.hash_by_serial(&mut state);
+        train_state.hash(&mut state);
+        state.finish()
+    }
+
+    pub fn new(carriage: &Carriage, train_state: &TrainState) -> DrawingCarriage {
+        let hash = Self::calc_hash(carriage,train_state);
+        DrawingCarriage {
+            carriage: Arc::new(carriage.clone()),
+            hash: Arc::new(hash),
+            train_state: Arc::new(train_state.clone())
+        }
+    }
+
+    pub fn extent(&self) -> &CarriageExtent { &self.carriage.extent() }
+    pub fn shapes(&self) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
+        self.carriage.shapes(&self.train_state)
+    }
+    pub fn set_ready(&self) { self.carriage.set_ready() }
 }

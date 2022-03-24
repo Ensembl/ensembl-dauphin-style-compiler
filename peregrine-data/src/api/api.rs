@@ -1,7 +1,8 @@
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::core::channel::ChannelIntegration;
+use crate::train::carriage::DrawingCarriage;
 use crate::{DataMessage, PlayingField};
-use crate::train::{ Carriage, Train };
+use crate::train::{ Train };
 use crate::core::Viewport;
 use crate::core::Assets;
 
@@ -18,10 +19,10 @@ pub trait PeregrineIntegration {
     fn create_train(&mut self, train: &Train);
     fn drop_train(&mut self, train: &Train);
 
-    fn create_carriage(&mut self, carriage: &Carriage);
-    fn drop_carriage(&mut self, carriage: &Carriage);
+    fn create_carriage(&mut self, carriage: &DrawingCarriage);
+    fn drop_carriage(&mut self, carriage: &DrawingCarriage);
 
-    fn set_carriages(&mut self, train: &Train, carriages: &[Carriage]) -> Result<(),DataMessage>;
+    fn set_carriages(&mut self, train: &Train, carriages: &[DrawingCarriage]) -> Result<(),DataMessage>;
     fn start_transition(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),DataMessage>;
     fn notify_viewport(&mut self, viewport: &Viewport, future: bool);
     fn notify_allotment_metadata(&mut self, metadata: &AllotmentMetadataReport);

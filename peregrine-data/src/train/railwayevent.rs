@@ -1,12 +1,14 @@
 use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::lock;
 
-use crate::PlayingField;
+use crate::{PlayingField, TrainState};
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::api::{ CarriageSpeed, PeregrineCore };
 use crate::train::Carriage;
 use crate::train::train::Train;
 use crate::core::Viewport;
+
+use super::carriage::DrawingCarriage;
 
 enum RailwayEvent {
     DrawSendAllotmentMetadata(AllotmentMetadataReport),
@@ -83,7 +85,8 @@ impl RailwayEvents {
                     objects.base.integration.lock().unwrap().notify_allotment_metadata(&metadata);
                 },
                 RailwayEvent::DrawSetCarriages(train,carriages) => {
-                    let r = objects.base.integration.lock().unwrap().set_carriages(&train,&carriages);
+                    let drawing_carriages = carriages.iter().map(|c| DrawingCarriage::new(c,&TrainState::independent())).collect::<Vec<_>>();
+                    let r = lock!(objects.base.integration).set_carriages(&train,&drawing_carriages);
                     if let Err(r) = r { errors.push(r); }
                 },
                 RailwayEvent::DrawStartTransition(index,max,speed) => {
@@ -108,7 +111,8 @@ impl RailwayEvents {
                     lock!(objects.base.integration).drop_train(&train);
                 },
                 RailwayEvent::DrawDropCarriage(carriage) => {
-                    lock!(objects.base.integration).drop_carriage(&carriage);
+                    let drawing_carriage = DrawingCarriage::new(&carriage,&TrainState::independent());
+                    lock!(objects.base.integration).drop_carriage(&drawing_carriage);
                 }
 
             }

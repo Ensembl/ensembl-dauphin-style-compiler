@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
-use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::loadshapes::LoadMode};
-use super::{railwayevent::RailwayEvents, trainset::TrainSet};
+use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::loadshapes::LoadMode, TrainState};
+use super::{railwayevent::RailwayEvents, trainset::TrainSet, carriage::DrawingCarriage};
 
 #[derive(Clone)]
 pub struct Railway {
@@ -34,9 +34,9 @@ impl Railway {
                         let mut carriage = carriage;
                         let r = carriage.load(&objects2.base,&objects2.agent_store.lane_store,LoadMode::RealTime).await;
                         if r.is_ok() && !carriage.is_moribund() {
-                            lock!(objects2.base.integration).create_carriage(&carriage);
+                            lock!(objects2.base.integration).create_carriage(&DrawingCarriage::new(&carriage,&TrainState::independent()));
                         }
-                        Ok(r)        
+                        Ok(r)
                     }),
                     stats: false
                 });
