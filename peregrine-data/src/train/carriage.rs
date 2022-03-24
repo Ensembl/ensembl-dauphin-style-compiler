@@ -3,7 +3,8 @@ use peregrine_toolkit::{lock, error};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::allotment::core::carriageuniverse::{CarriageUniverse, CarriageSolution, CarriageShapes};
+use crate::allotment::core::carriageuniverse::{CarriageUniverse, CarriageShapes};
+use crate::allotment::core::heighttracker::HeightTracker;
 use crate::allotment::core::trainstate::TrainState;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
@@ -170,4 +171,18 @@ impl Carriage {
         }
         Ok(())
     }
+
+    pub(super) fn height_tracker(&self, train_state: &TrainState) -> HeightTracker {
+        match &*lock!(self.state) {
+            CarriageState::Pending(s) | CarriageState::Loaded(s) => {
+                s.get(train_state).height_tracker()
+            },
+            _ => HeightTracker::empty()
+        }        
+    }
+}
+
+#[derive(Clone)]
+pub struct DrawingCarriage {
+    carriage: Arc<Carriage>
 }

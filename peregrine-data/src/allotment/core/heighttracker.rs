@@ -69,6 +69,33 @@ impl HeightTrackerPieces {
     }
 }
 
+pub struct HeightTrackerMerger {
+    heights: HashMap<AllotmentName,i64>
+}
+
+impl HeightTrackerMerger {
+    pub fn new() -> HeightTrackerMerger {
+        HeightTrackerMerger {
+            heights: HashMap::new()
+        }
+    }
+
+    pub fn merge(&mut self, other: &HeightTracker) {
+        for (name,more_height) in other.heights.iter() {
+            let height = self.heights.entry(name.clone()).or_insert(0);
+            *height = (*height).max(*more_height);
+        }
+    }
+
+    pub fn to_height_tracker(self) -> HeightTracker {
+        let hash = HeightTracker::calc_hash(&self.heights);
+        HeightTracker {
+            hash,
+            heights: Arc::new(self.heights)
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct HeightTracker {
     hash: u64,
@@ -130,7 +157,7 @@ impl fmt::Debug for HeightTracker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut out = vec![];
         for (name,height) in &*self.heights {
-            out.push(format!("{:?}: {}",name,height));
+            out.push(format!("{:?}: {}",name,Self::from_fixed(*height)));
         }
         write!(f,"heights: {}",out.join(", "))
     }

@@ -85,6 +85,10 @@ impl CarriageUniverse {
         })
     }
 
+    fn height_tracker(&self, solution: &PuzzleSolution) -> HeightTracker {
+        HeightTracker::new(&self.height_tracker,solution)
+    }
+
     pub fn puzzle(&self) -> &Puzzle { &self.puzzle }
 
     pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField {
@@ -92,11 +96,6 @@ impl CarriageUniverse {
     }
 
     pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<LeafCommonStyle>> {
-        /* */
-        let heights = HeightTracker::new(&self.height_tracker,solution);
-        #[cfg(debug_assertions)]
-        log_extra!("heights {:?}",heights);
-        /* */
         let mut out = vec![];
         for input in self.shapes.iter() {
             out.append(&mut input.map_new_allotment(|x| x.make(solution)).make(solution));
@@ -130,6 +129,7 @@ impl CarriageSolution {
     }
 
     pub fn shapes(&self) -> &Arc<Vec<Shape<LeafCommonStyle>>> { &self.shapes }
+    pub fn height_tracker(&self) -> HeightTracker { self.universe.height_tracker(&self.solution) }
 
     pub fn playing_field(&self) -> PlayingField {
         self.universe.playing_field(&self.solution)

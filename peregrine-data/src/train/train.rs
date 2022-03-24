@@ -1,8 +1,9 @@
 use std::sync::{ Arc, Mutex };
-use peregrine_toolkit::lock;
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
+use crate::allotment::core::heighttracker::{HeightTrackerMerger, HeightTracker};
 use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
 use super::carriage::{Carriage, CarriageSerialSource};
@@ -138,7 +139,20 @@ impl TrainData {
         self.carriages.as_ref().map(|x| x.carriages().to_vec()).unwrap_or_else(|| vec![])
     }
 
+    fn manage_state(&mut self) {
+        let mut merger = HeightTrackerMerger::new();
+        for carriage in &self.carriages() {
+            merger.merge(&carriage.height_tracker(&TrainState::independent()));
+        }
+        let train_state = TrainState::new(merger.to_height_tracker());
+        if train_state != self.train_state {
+            log!("train state changed!");
+            self.train_state = train_state;
+        }
+    }
+
     fn set_carriages(&mut self, train: &Train, events: &mut RailwayEvents) {
+        self.manage_state();
         if let Some(_) = &mut self.carriages {
             if self.active {
                 events.draw_set_carriages(train,&self.carriages());

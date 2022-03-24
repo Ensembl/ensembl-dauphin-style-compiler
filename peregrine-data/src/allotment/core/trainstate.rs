@@ -14,7 +14,7 @@ impl TrainState {
         }
     }
 
-    fn new(height_tracker: HeightTracker) -> TrainState {
+    pub(crate) fn new(height_tracker: HeightTracker) -> TrainState {
         TrainState {
             height_tracker
         }
