@@ -86,6 +86,7 @@ fn parse_report_value(input: &str) -> Option<Arc<HashMap<String,String>>> {
     Some(Arc::new(out))
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct Padding {
     pub padding_top: f64,
@@ -231,6 +232,7 @@ impl LeafAllotmentStyle {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct ContainerAllotmentStyle {
     pub allot_type: ContainerAllotmentType,
@@ -239,7 +241,8 @@ pub struct ContainerAllotmentStyle {
     pub padding: Padding,
     pub priority: i64,
     pub ranged: bool,
-    pub set_align: Option<String>
+    pub set_align: Option<String>,
+    pub tracked_height: bool
 }
 
 impl ContainerAllotmentStyle {
@@ -251,7 +254,8 @@ impl ContainerAllotmentStyle {
             padding: Padding::empty(),
             priority: 0,
             ranged: false,
-            set_align: None
+            set_align: None,
+            tracked_height: false
         }
     }
 
@@ -262,6 +266,7 @@ impl ContainerAllotmentStyle {
         let priority = priority.map(|x| x.parse::<i64>().ok()).flatten().unwrap_or(0);
         let ranged = spec.get("extent").map(|x| x.as_str()).unwrap_or("wide") == "compact";
         let set_align = spec.get("set-datum").map(|x| x.to_string());
+        let tracked_height = spec.get("height-adjust").map(|x| x.as_str()).unwrap_or("default") == "tracking";
         ContainerAllotmentStyle {
             allot_type,
             padding: Padding::build(spec),
@@ -269,7 +274,8 @@ impl ContainerAllotmentStyle {
             leaf: LeafInheritStyle::new(spec),
             priority,
             ranged,
-            set_align
+            set_align,
+            tracked_height
         }
     }
 }

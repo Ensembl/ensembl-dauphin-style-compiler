@@ -1,6 +1,6 @@
 use std::{mem, sync::Arc};
 
-use super::{PuzzlePiece, PuzzleBuilder, PuzzleValueHolder, PuzzleValue};
+use super::{PuzzlePiece, PuzzleValueHolder, PuzzleValue};
 
 pub struct FoldValue<T: Clone+'static>  {
     callback: Arc<dyn Fn(T,T) -> T>,
@@ -19,6 +19,10 @@ impl<T: Clone> FoldValue<T> {
 
     pub fn add(&mut self, value: &PuzzleValueHolder<T>) {
         self.inputs.push(value.clone());
+    }
+
+    pub fn merge(&mut self, other: &FoldValue<T>) {
+        self.inputs.extend(&mut other.inputs.iter().cloned());
     }
 
     pub fn build(&mut self) {

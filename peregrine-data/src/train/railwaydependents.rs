@@ -26,28 +26,26 @@ impl RailwayDependents {
         }
     }
 
-    fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) -> Result<(),DataMessage> {
+    fn draw_update_playingfield(&self, carriages: &[Carriage], events: &mut RailwayEvents) {
         let mut playing_field = PlayingField::empty();
         for carriage in carriages {
-            playing_field = playing_field.union(&carriage.playing_field()?);
+            playing_field = playing_field.union(&carriage.playing_field());
         }
         self.playing_field.update(playing_field, |playing_field| {
             events.draw_notify_playingfield(playing_field.clone());
         });
-        Ok(())
     }
 
-    fn draw_update_allotment_metadata(&self, quiescent: Option<&Train>, events: &mut RailwayEvents) -> Result<(),DataMessage> {
+    fn draw_update_allotment_metadata(&self, quiescent: Option<&Train>, events: &mut RailwayEvents) {
         if let Some(train) = quiescent {
             if train.is_active() {
-                if let Some(metadata) = train.allotter_metadata()? {
+                if let Some(metadata) = train.allotter_metadata() {
                     self.metadata.update(metadata,|metadata| {
                         events.draw_send_allotment_metadata(&metadata);
                     });
                 }
             }
         }
-        Ok(())
     }
 
     fn update_visual_lock(&self, busy: bool) {

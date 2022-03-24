@@ -19,11 +19,13 @@ use super::styletreebuilder::StyleTreeBuilder;
  * not-None leaves.
  */
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 struct Styles {
     container: ContainerAllotmentStyle,
     leaf: LeafAllotmentStyle,
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub(super) struct StyleTreeNode {
     here: Styles,
     all: bool,
@@ -75,6 +77,7 @@ impl StyleTreeNode {
     }
 }
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct StyleTree {
     root: StyleTreeNode,
     empty_container: ContainerAllotmentStyle,

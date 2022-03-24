@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, FoldValue}, lock};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, core::{allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable}};
 
@@ -10,8 +10,8 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAdda
 pub struct Stacker(Padder<UnpaddedStacker>);
 
 impl Stacker {
-    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Stacker {
-        Stacker(Padder::new(puzzle,coord_system,style,metadata,aligner,|info| UnpaddedStacker::new(puzzle,info)))
+    pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Stacker {
+        Stacker(Padder::new(prep,name,style,aligner,|prep,info| UnpaddedStacker::new(&prep.puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable, priority: i64) {

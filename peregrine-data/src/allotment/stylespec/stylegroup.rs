@@ -4,6 +4,7 @@ use crate::{allotment::{style::{allotmentname::{AllotmentNamePart}, style::{Cont
 
 use super::styletree::StyleTree;
 
+#[cfg_attr(debug_assertions,derive(Debug))]
 #[derive(Clone)]
 pub struct AllotmentStyleGroup {
     tree: Arc<StyleTree>

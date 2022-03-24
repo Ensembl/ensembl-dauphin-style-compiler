@@ -21,6 +21,7 @@ mod allotment {
         pub(crate) mod allotmentmetadata;
         pub(crate) mod coordsystem;
         pub(crate) mod carriageuniverse;
+        pub(crate) mod heighttracker;
         pub(crate) mod leafrequest;
         pub mod playingfield;
         pub(crate) mod trainuniverse;
@@ -171,7 +172,7 @@ mod shape {
     };
     pub use self::shape::{ ShapeDemerge, Shape };
     pub use self::zmenu::ZMenu;
-    pub use self::carriageshapelist::{ CarriageShapeListBuilder, CarriageShapeList, CarriageShapeListRaw };
+    pub use self::carriageshapelist::{ CarriageShapeListBuilder, CarriageShapeListRaw };
     pub use self::zmenufixed::{ ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator, ZMenuProxy, zmenu_fixed_vec_to_json, zmenu_to_json };
 }
 
@@ -237,8 +238,8 @@ pub use self::request::core::backend::{ AllBackends, Backend };
 pub use self::shape::{ 
     Patina, Colour, DirectColour, DrawnType, Shape,
     ZMenu, Pen, Plotter, ZMenuFixed, ZMenuFixedSequence, ZMenuFixedBlock, ZMenuFixedItem, ZMenuGenerator,
-    /*AnchoredCarriageShapeList,*/ ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
-    CarriageShapeListBuilder, CarriageShapeList, CarriageShapeListRaw
+    ZMenuProxy, zmenu_fixed_vec_to_json, ShapeDemerge, zmenu_to_json,
+    CarriageShapeListBuilder, CarriageShapeListRaw
 };
 pub use self::allotment::core::coordsystem::{ CoordinateSystem, CoordinateSystemVariety };
 pub use self::allotment::core::playingfield::PlayingField;

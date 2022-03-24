@@ -1,10 +1,8 @@
 use std::{sync::Arc, collections::HashMap};
-use peregrine_toolkit::puzzle::{PuzzleSolution, Puzzle};
 
 use super::{core::{ Patina, Pen, Plotter }, imageshape::ImageShape, rectangleshape::RectangleShape, textshape::TextShape, wiggleshape::WiggleShape};
-use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
-use crate::allotment::style::style::LeafCommonStyle;
-use crate::{ShapeRequestGroup, Shape, PlayingField, LeafRequest};
+use crate::allotment::core::{heighttracker::HeightTrackerPieces};
+use crate::{ShapeRequestGroup, Shape, LeafRequest};
 use crate::{Assets, DataMessage, SpaceBaseArea, reactive::Observable, SpaceBase, allotment::{core::carriageuniverse::{CarriageUniverse, CarriageUniverseBuilder}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}}, EachOrEvery };
 
 pub struct CarriageShapeListBuilder {
@@ -109,29 +107,8 @@ impl CarriageShapeListRaw {
             carriage_universe: self.carriage_universe.clone(),
         }
     }
-}
 
-#[derive(Clone)]
-pub struct CarriageShapeList {
-    carriage_universe: Arc<CarriageUniverse>
-}
-
-impl CarriageShapeList {
-    pub fn empty() -> Result<CarriageShapeList,DataMessage> {
-        Ok(CarriageShapeList {
-            carriage_universe: Arc::new(CarriageUniverse::new(&mut CarriageUniverseBuilder::new(),&vec![],None)?),
-        })
+    pub fn to_universe(&self, extent: Option<&ShapeRequestGroup>) -> Result<CarriageUniverse,DataMessage> {
+        CarriageUniverse::new(&self.carriage_universe,&self.shapes,extent)
     }
-
-    pub fn new(input: CarriageShapeListRaw, extent: Option<&ShapeRequestGroup>) -> Result<CarriageShapeList,DataMessage> {
-        let carriage_universe = CarriageUniverse::new(&input.carriage_universe,&input.shapes,extent)?;
-        Ok(CarriageShapeList {
-            carriage_universe: Arc::new(carriage_universe),
-        })
-    }
-
-    pub fn get(&self, solution: &PuzzleSolution) -> Vec<Shape<LeafCommonStyle>> { self.carriage_universe.get(solution) }
-    pub fn get_metadata(&self, solution: &PuzzleSolution) -> AllotmentMetadataReport { self.carriage_universe.get_metadata(solution) }
-    pub fn playing_field(&self, solution: &PuzzleSolution) -> PlayingField { self.carriage_universe.playing_field(solution) }    
-    pub fn puzzle(&self) -> &Puzzle { self.carriage_universe.puzzle() }
 }

@@ -1,8 +1,8 @@
-use std::{sync::Arc, hash::{Hash, Hasher, BuildHasher}, collections::{hash_map::{DefaultHasher}, HashMap}};
+use std::{sync::Arc, hash::{Hash, Hasher, BuildHasher}, collections::{hash_map::{DefaultHasher}, HashMap}, fmt};
 
 const TOKEN_ALL : &str = "**";
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub struct AllotmentName {
     hash: Arc<u64>,
     name: Arc<Vec<String>>,
@@ -24,13 +24,7 @@ impl PartialEq for AllotmentName {
 impl Eq for AllotmentName {}
 
 impl AllotmentName {
-    pub(crate) fn new(spec: &str) -> AllotmentName {
-        let mut name = spec.split("/").map(|x| x.to_string()).collect::<Vec<_>>();
-        let mut container = false;
-        if let Some("") = name.last().map(|x| x.as_str()) {
-            name.pop();
-            container = true;
-        }
+    fn do_new(name: Vec<String>, container: bool) -> AllotmentName {
         let mut hasher = DefaultHasher::new();
         name.hash(&mut hasher);
         container.hash(&mut hasher);
@@ -41,9 +35,31 @@ impl AllotmentName {
         }
     }
 
+    pub(crate) fn new(spec: &str) -> AllotmentName {
+        let mut name = spec.split("/").map(|x| x.to_string()).collect::<Vec<_>>();
+        let mut container = false;
+        if let Some("") = name.last().map(|x| x.as_str()) {
+            name.pop();
+            container = true;
+        }
+        Self::do_new(name,container)
+    }
+
+    pub(crate) fn from_part(part: &AllotmentNamePart) -> AllotmentName {
+        Self::do_new(part.sequence().to_vec(),part.name.container)
+    }
+
+    pub fn hash_value(&self) -> u64 { *self.hash }
     pub fn sequence(&self) -> &[String] { &self.name }
     pub(crate) fn is_container(&self) -> bool { self.container }
     pub fn is_dustbin(&self) -> bool { self.name.len() == 0 }
+}
+
+#[cfg(debug_assertions)]
+impl fmt::Debug for AllotmentName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}{}",self.sequence().join("/"),if self.container { "/" } else { "" })
+    }
 }
 
 pub struct PassThroughHasher(u64);

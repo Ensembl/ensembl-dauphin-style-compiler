@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, borrow::Borrow, mem, collections::HashSet, hash::Hasher };
-use crate::{lock, log_extra};
+use crate::{lock, log_extra, time::now};
 use std::hash::Hash;
 
 #[cfg(debug_assertions)]
@@ -8,7 +8,6 @@ use crate::warn;
 
 use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
-use js_sys::Date;
 use lazy_static::lazy_static;
 use identitynumber::{identitynumber, hashable};
 
@@ -173,8 +172,8 @@ impl PuzzleSolution {
                 names.insert(piece.erased_dependency().name().to_string());
             }
         }
+        #[cfg(warn_missing_piece)]
         for name in &names {
-            #[cfg(warn_missing_piece)]
             warn!("unsolved: {}",name);
         }
     }
@@ -185,9 +184,9 @@ impl PuzzleSolution {
             piece.apply_defaults(self,false);
         }
         let mut solver = PuzzleSolver::new(self,lock!(self.graph).borrow());
-        let from = Date::now();
+        let from = now();
         solver.run(self);
-        let took = Date::now() - from;
+        let took = now() - from;
         for piece in lock!(pieces).iter_mut() {
             piece.apply_defaults(self,true);
         }
@@ -239,7 +238,7 @@ mod test {
     #[test]
     fn puzzle_smoke() {
         for order in 0..6 {
-            let mut builder = PuzzleBuilder::new();
+            let builder = PuzzleBuilder::new();
             let q1 = builder.new_piece();
             let q2 = builder.new_piece();
             let q3 = builder.new_piece();
@@ -278,7 +277,7 @@ mod test {
 
     #[test]
     fn puzzle_drop() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece();
         let p2 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
@@ -310,7 +309,7 @@ mod test {
 
     #[test]
     fn puzzle_default() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece_default(7);
         let p2 = builder.new_piece();
         let p3 = builder.new_piece();

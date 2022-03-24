@@ -25,6 +25,14 @@ impl BpPxConverter {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn new_test() -> BpPxConverter {
+        BpPxConverter {
+            max_px_per_bp: Some(1.),
+            bp_start: 0.
+        }
+    }
+
     pub fn full_pixel_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>) -> RangeUsed<f64> {
         if let Some(max_px_per_bp) = self.max_px_per_bp {
             base_range.plus_scalar(-self.bp_start).pixel_range(pixel_range,max_px_per_bp)

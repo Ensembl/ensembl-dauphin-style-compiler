@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, lock};
 
-use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner, heighttracker::HeightTrackerPieces, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, StackableAddable}};
 
@@ -75,43 +75,46 @@ fn add_report(metadata: &mut AllotmentMetadataBuilder, in_values: &HashMap<Strin
 }
 
 impl<T> Padder<T> {
-    pub fn new<F>(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&PadderInfo) -> T {
-        let mut top = puzzle.new_piece();
+    pub(crate) fn new<F>(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&mut CarriageUniversePrep, &PadderInfo) -> T {
+        let mut top = prep.puzzle.new_piece();
         #[cfg(debug_assertions)]
         top.set_name("padder/top");
         let padding_top = style.padding.padding_top;
         let padding_bottom = style.padding.padding_bottom;
         let min_height = style.padding.min_height;
-        let mut inherited_indent = puzzle.new_piece_default(0.);
+        let mut inherited_indent = prep.puzzle.new_piece_default(0.);
         #[cfg(debug_assertions)]
         inherited_indent.set_name("padder/inherited-indent");
         let self_indent = style.padding.indent;
         let draw_top = draw_top(&top,padding_top);
-        let mut child_height = puzzle.new_piece();
+        let mut child_height = prep.puzzle.new_piece();
         #[cfg(debug_assertions)]
         child_height.set_name("padder/child-height");
-        let height = height(&puzzle,&child_height,min_height,padding_top,padding_bottom);
+        let height = height(&prep.puzzle,&child_height,min_height,padding_top,padding_bottom);
         let info = PadderInfo {
             draw_top, child_height,
-            indent: indent(&puzzle,self_indent,&inherited_indent)
+            indent: indent(&prep.puzzle,self_indent,&inherited_indent)
         };
         if let Some(report) = &style.padding.report {
-            add_report(metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
+            add_report(&mut prep.metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
         }
-        let child = ctor(&info);
-        let mut full_range = puzzle.new_piece();
+        let child = ctor(prep,&info);
+        let mut full_range = prep.puzzle.new_piece();
         let ranges = Arc::new(Mutex::new(FoldValue::new(full_range.clone(), |x : RangeUsed<f64>,y| x.merge(&y))));
         let ranges2 = ranges.clone();
-        puzzle.add_ready(move |_| lock!(ranges2).build());
+        prep.puzzle.add_ready(move |_| lock!(ranges2).build());
         #[cfg(debug_assertions)]
         full_range.set_name("padder/full_range");
         if let Some(datum) = &style.set_align {
-            aligner.set_datum(puzzle,datum,&PuzzleValueHolder::new(top.clone()));
+            aligner.set_datum(&prep.puzzle,datum,&PuzzleValueHolder::new(top.clone()));
+        }
+        if style.tracked_height {
+            prep.height_tracker.add(&AllotmentName::from_part(name),&height);
         }
         Padder {
             child: Box::new(child),
             ranges,
-            coord_system: coord_system.clone(),
+            coord_system: style.coord_system.clone(),
             top, inherited_indent, self_indent, height,
             info, 
             full_range: PuzzleValueHolder::new(full_range.clone())

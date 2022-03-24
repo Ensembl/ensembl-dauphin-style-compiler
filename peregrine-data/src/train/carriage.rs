@@ -4,9 +4,11 @@ use peregrine_toolkit::puzzle::PuzzleSolution;
 use peregrine_toolkit::sync::needed::Needed;
 
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
+use crate::allotment::core::carriageuniverse::{CarriageUniverse, CarriageSolution};
+use crate::allotment::core::heighttracker::HeightTracker;
 use crate::allotment::style::style::LeafCommonStyle;
 use crate::api::MessageSender;
-use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, /*AnchoredCarriageShapeList, */ CarriageShapeList, Shape, PlayingField};
+use crate::{CarriageExtent, ShapeStore, PeregrineCoreBase, Shape, PlayingField};
 use crate::shapeload::{ ShapeRequestGroup };
 use crate::util::message::DataMessage;
 use crate::switch::trackconfiglist::TrainTrackConfigList;
@@ -35,7 +37,7 @@ impl UnloadedCarriage {
         ShapeRequestGroup::new(&extent.region(),&track_configs,pixel_size,self.warm)
     }
 
-    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<CarriageShapeList>,DataMessage> {
+    async fn load(&mut self, extent: &CarriageExtent, base: &PeregrineCoreBase, result_store: &ShapeStore, mode: LoadMode) -> Result<Option<CarriageUniverse>,DataMessage> {
         let shape_requests = self.make_shape_requests(extent);
         let (shapes,errors) = load_carriage_shape_list(base,result_store,self.messages.as_ref(),shape_requests,&mode).await;
         let shapes = if let Some(x) = shapes { x } else { return Ok(None); };
@@ -50,8 +52,8 @@ impl UnloadedCarriage {
 enum CarriageState {
     Unloaded(UnloadedCarriage),
     Loading,
-    Pending(CarriageShapeList),
-    Loaded(CarriageShapeList)
+    Pending(CarriageSolution),
+    Loaded(CarriageSolution)
 }
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
@@ -113,39 +115,30 @@ impl Carriage {
         }
     }
 
-    pub fn playing_field(&self) -> Result<PlayingField,DataMessage> {
+    pub fn playing_field(&self) -> PlayingField {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                let mut solution = PuzzleSolution::new(s.puzzle());
-                // TODO the inter-carriage stuff
-                try_solve(&mut solution);
-                Ok(s.playing_field(&solution))
+                s.playing_field()
             },
-            _ => Ok(PlayingField::empty())
+            _ => PlayingField::empty()
         }        
     }
 
-    pub fn metadata(&self) -> Result<AllotmentMetadataReport,DataMessage> {
+    pub fn metadata(&self) -> AllotmentMetadataReport {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                let mut solution = PuzzleSolution::new(s.puzzle());
-                // TODO the inter-carriage stuff
-                try_solve(&mut solution);
-                Ok(s.get_metadata(&solution))
+                s.metadata()
             },
-            _ => Ok(AllotmentMetadataReport::empty())
+            _ => AllotmentMetadataReport::empty()
         }
     }
 
-    pub fn shapes(&self) -> Result<Vec<Shape<LeafCommonStyle>>,DataMessage> {
+    pub fn shapes(&self) -> Option<Arc<Vec<Shape<LeafCommonStyle>>>> {
         match &*lock!(self.state) {
             CarriageState::Pending(s) | CarriageState::Loaded(s) => {
-                let mut solution = PuzzleSolution::new(s.puzzle());
-                // TODO the inter-carriage stuff
-                try_solve(&mut solution);
-                Ok(s.get(&solution)) 
+                Some(s.shapes().clone())
             },
-            _ => Ok(vec![])
+            _ => None
         }
     }
 
@@ -178,8 +171,8 @@ impl Carriage {
         };
         if let Some(mut unloaded) = unloaded {
             *lock!(self.state) = CarriageState::Loading;
-            if let Some(new_state) = unloaded.load(&self.extent,base,result_store,mode).await? {
-                *lock!(self.state) = CarriageState::Pending(new_state);
+            if let Some(universe) = unloaded.load(&self.extent,base,result_store,mode).await? {
+                *lock!(self.state) = CarriageState::Pending(CarriageSolution::new(&universe,&HeightTracker::empty()));
             }
         }
         Ok(())

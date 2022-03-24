@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
 
-use crate::{allotment::{core::{ allotmentmetadata::AllotmentMetadataBuilder, aligner::Aligner}, style::{style::{ContainerAllotmentStyle}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }};
 
@@ -10,8 +10,8 @@ use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAdda
 pub struct Overlay(Padder<UnpaddedOverlay>);
 
 impl Overlay {
-    pub fn new(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, style: &ContainerAllotmentStyle, metadata: &mut AllotmentMetadataBuilder, aligner: &Aligner) -> Overlay {
-        Overlay(Padder::new(puzzle,coord_system,style,metadata,aligner,|info| UnpaddedOverlay::new(puzzle,info)))
+    pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Overlay {
+        Overlay(Padder::new(prep,name,style,aligner,|prep,info| UnpaddedOverlay::new(&prep.puzzle,info)))
     }
 
     pub fn add_child(&mut self, child: &dyn Stackable) {
