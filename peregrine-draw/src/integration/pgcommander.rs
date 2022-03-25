@@ -49,6 +49,7 @@ pub fn js_panic(e: Result<(),Message>) {
 struct CommanderSleepState {
     raf: Option<Raf>,
     timer: Option<Timer>,
+    yesterday: Option<Timer>,
     quantity: Arc<Mutex<SleepQuantity>>
 }
 
@@ -82,7 +83,7 @@ impl CommanderState {
 
     fn yesterday(&self) {
         let mut state = self.sleep_state.lock().unwrap();
-        state.timer.as_mut().unwrap().go(0);
+        state.yesterday.as_mut().unwrap().go(0);
     }
 
     fn tick(&self) {
@@ -129,6 +130,7 @@ impl PgCommanderWeb {
         let sleep_state = Arc::new(Mutex::new(CommanderSleepState {
             quantity: quantity.clone(),
             raf: None,
+            yesterday: None,
             timer: None
         }));
         let (bell_sender, bell_receiver) = make_bell()?;
@@ -148,6 +150,12 @@ impl PgCommanderWeb {
         }));
         let weak_state = state.downgrade();
         lock!(state.sleep_state).timer = Some(Timer::new( move || {
+            if let Some(state) = weak_state.upgrade() {
+                state.cb_tick();
+            }
+        }));
+        let weak_state = state.downgrade();
+        lock!(state.sleep_state).yesterday = Some(Timer::new( move || {
             if let Some(state) = weak_state.upgrade() {
                 state.cb_tick();
             }
