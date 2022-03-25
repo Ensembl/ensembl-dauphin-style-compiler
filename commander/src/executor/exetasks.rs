@@ -73,6 +73,10 @@ impl ExecutorTasks {
         self.runnable.add(&self.tasks,&handle);
     }
 
+    pub(super) fn something_runnable(&self) -> bool {
+        self.runnable.something_runnable()
+    }
+
     pub(crate) fn unblock_task(&mut self, handle: &TaskContainerHandle) {
         self.runnable.unblock(&self.tasks,&handle);
     }
