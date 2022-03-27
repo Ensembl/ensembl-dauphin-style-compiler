@@ -106,7 +106,7 @@ impl BuilderNode {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
 pub struct StyleTreeBuilder {
     root: BuilderNode,
     all: Vec<(AllotmentNamePart,BuilderNode)> // not a proper tree node: never has children
@@ -134,7 +134,6 @@ impl StyleTreeBuilder {
     }
 
     pub(super) fn build(&mut self) -> StyleTree {
-        println!("{:?}",self);
         for (name,node) in &self.all {
             self.root.get_node(name).add_all(node);
         }

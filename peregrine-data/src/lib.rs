@@ -90,6 +90,7 @@ mod index {
 }
 
 mod shapeload {
+    pub(crate) mod carriageprocess;
     mod datastore;
     mod shaperequest;
     pub(crate) mod loadshapes;
@@ -205,7 +206,8 @@ mod train {
     mod trainset;
 
     pub use carriageextent::CarriageExtent;
-    pub use carriage::{ Carriage, DrawingCarriage };
+    pub use carriage::{ DrawingCarriage };
+    pub use trainextent::TrainExtent;
     pub use train::{ Train };
     pub use railway::Railway;
 }
@@ -249,7 +251,7 @@ pub use self::allotment::core::allotmentmetadata::{
 pub use self::allotment::core::trainstate::TrainState;
 pub use self::switch::switch::{ Switches };
 pub use self::switch::track::Track;
-pub use self::train::{ Carriage, CarriageExtent, DrawingCarriage, Train };
+pub use self::train::{ CarriageExtent, DrawingCarriage, Train, TrainExtent };
 pub use self::util::{ CountingPromise, DataMessage, Builder };
 pub use self::util::vecutils::expand_by_repeating;
 pub use self::util::eachorevery::{ EachOrEvery, EachOrEveryFilterBuilder };

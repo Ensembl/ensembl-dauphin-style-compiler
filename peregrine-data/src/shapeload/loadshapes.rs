@@ -24,7 +24,7 @@ impl LoadMode {
     }
 }
 
-pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> (Option<CarriageUniverse>,Vec<DataMessage>) {
+pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_store: &ShapeStore, messages: Option<&MessageSender>, shape_requests: ShapeRequestGroup, mode: &LoadMode) -> Result<CarriageUniverse,Vec<DataMessage>> {
     let mut errors = vec![];
     let lane_store = result_store.clone();
     let tracks : Vec<_> = shape_requests.iter().map(|request|{
@@ -42,7 +42,7 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
             })
         })
     }).collect();
-    if !mode.build_shapes() { return (None,errors); }
+    if !mode.build_shapes() { return Err(errors); }
     let mut new_shapes = CarriageShapeListRaw::empty();
     for future in tracks {
         future.finish_future().await;
@@ -64,8 +64,8 @@ pub(crate) async fn load_carriage_shape_list(base: &PeregrineCoreBase, result_st
         Err(e) => {
             error!("{:?}",e);
             errors.push(e);
-            return (None,errors);
+            return Err(errors);
         }
     };
-    (Some(anchored),errors)
+    Ok(anchored)
 }

@@ -1,23 +1,25 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{Carriage, CarriageExtent, DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
+use crate::{CarriageExtent, DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
 use super::{trainextent::TrainExtent};
+use crate::shapeload::carriageprocess::CarriageProcess;
 
 struct AnticipateTask {
-    carriages: Vec<Carriage>,
+    carriages: Vec<CarriageProcess>,
     batch: bool
 }
 
 impl AnticipateTask {
-    fn new(carriages: Vec<Carriage>, batch: bool) -> AnticipateTask {
+    fn new(carriages: Vec<CarriageProcess>, batch: bool) -> AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
-    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
+    async fn run(&mut self, try_lifecycle: &Needed, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
         let mut handles = vec![];
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {
+            let try_lifecycle = try_lifecycle.clone();
             let load_mode = load_mode.clone();
             let result_store = result_store.clone();
             let base2 = base.clone();
@@ -40,10 +42,11 @@ impl AnticipateTask {
     }
 }
 
-fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
+fn run_anticipator(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
+    let try_lifecycle = try_lifecycle.clone();
     add_task::<()>(&base.commander,PgCommanderTaskSpec {
         name: format!("anticipator"),
         prio: 9,
@@ -52,14 +55,13 @@ fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: 
         stats: false,
         task: Box::pin(async move {
             loop {
-                stream.get().await.run(&base2,&result_store).await?;
+                stream.get().await.run(&try_lifecycle,&base2,&result_store).await?;
             }
         })
     });
 }
 
 pub struct Anticipate {
-    try_lifecycle: Needed,
     extent: Arc<Mutex<Option<CarriageExtent>>>,
     stream: CommanderStream<AnticipateTask>
 }
@@ -67,9 +69,8 @@ pub struct Anticipate {
 impl Anticipate {
     pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore) -> Anticipate {
         let stream = CommanderStream::new();
-        run_anticipator(&base,&result_store,&stream);
+        run_anticipator(&base,&try_lifecycle,&result_store,&stream);
         Anticipate {
-            try_lifecycle: try_lifecycle.clone(),
             extent: Arc::new(Mutex::new(None)),
             stream
         }
@@ -83,16 +84,16 @@ impl Anticipate {
         cfg!(debug_assertions)
     }
 
-    fn build_carriage(&self, carriages: &mut Vec<Carriage>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
+    fn build_carriage(&self, carriages: &mut Vec<CarriageProcess>, layout: &Layout, scale: &Scale, pixel_size: &PixelSize, index: i64) {
         if index < 0 { return; }
         let train_track_config_list = TrainTrackConfigList::new(layout,scale); // TODO cache
         let train_extent = TrainExtent::new(layout,scale,pixel_size);
         let carriage_extent = CarriageExtent::new(&train_extent,index as u64);
-        let carriage = Carriage::new(&self.try_lifecycle,&carriage_extent,&train_track_config_list,None,true);
+        let carriage = CarriageProcess::new(&carriage_extent,None,&train_track_config_list,None,true);
         carriages.push(carriage);
     }
 
-    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<Carriage>,DataMessage> {
+    fn build_carriages(&self, layout: &Layout, extent: &CarriageExtent, amount_depth: i64, amount_width: i64) -> Result<Vec<CarriageProcess>,DataMessage> {
         let mut carriages = vec![];
         let base_index = extent.index();
         for offset in -amount_width..(amount_width+1) {

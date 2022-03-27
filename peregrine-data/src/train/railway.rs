@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
-use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}};
-use crate::{Carriage, DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::loadshapes::LoadMode, TrainState};
-use super::{railwayevent::RailwayEvents, trainset::TrainSet, carriage::DrawingCarriage};
+use peregrine_toolkit::{lock, sync::{blocker::Blocker, needed::Needed}, log};
+use crate::{DataMessage, ShapeStore, PeregrineCore, PeregrineCoreBase, PgCommanderTaskSpec, Viewport, add_task, api::MessageSender, async_complete_task, shapeload::{loadshapes::LoadMode, carriageprocess::CarriageProcess}};
+use super::{railwayevent::RailwayEvents, trainset::TrainSet};
 
 #[derive(Clone)]
 pub struct Railway {
@@ -20,11 +20,12 @@ impl Railway {
         }
     }
 
-    async fn load_carriages(&self, objects: &mut PeregrineCore, mut carriages: Vec<Carriage>) {
+    async fn load_carriages(&self, objects: &mut PeregrineCore, mut carriages: Vec<CarriageProcess>) {
         let mut loads = vec![];
         let commander= objects.base.commander.clone();
         for carriage in carriages.drain(..) {
             let objects2 = objects.clone();
+            let try_lifecycle = self.try_lifecycle.clone();
             let handle = add_task(&commander,PgCommanderTaskSpec {
                     name: format!("single carriage loader"),
                     prio: 1,
@@ -33,9 +34,7 @@ impl Railway {
                     task: Box::pin(async move {
                         let mut carriage = carriage;
                         let r = carriage.load(&objects2.base,&objects2.agent_store.lane_store,LoadMode::RealTime).await;
-                        if r.is_ok() && !carriage.is_moribund() {
-                            lock!(objects2.base.integration).create_carriage(&DrawingCarriage::new(&carriage,&TrainState::independent()));
-                        }
+                        try_lifecycle.set();
                         Ok(r)
                     }),
                     stats: false
@@ -43,7 +42,7 @@ impl Railway {
             loads.push(handle);
         }
         for future in loads {
-            let r = future.finish_future().await;
+            future.finish_future().await;
             let r = future.take_result().unwrap();
             if let Err(e) = r {
                 self.messages.send(e.clone());
@@ -64,7 +63,7 @@ impl Railway {
         self.run_events(events,objects);
     }
 
-    fn run_load_carriages(&self, objects: &mut PeregrineCore, loads: Vec<Carriage>) {
+    fn run_load_carriages(&self, objects: &mut PeregrineCore, loads: Vec<CarriageProcess>) {
         let mut self2 = self.clone();
         let mut objects2 = objects.clone();
         let loads = loads.clone();
@@ -84,7 +83,7 @@ impl Railway {
     }
 
     pub fn set(&self, objects: &mut PeregrineCore, viewport: &Viewport) -> Result<(),DataMessage> {
-        let mut events = RailwayEvents::new();
+        let mut events = RailwayEvents::new(&self.try_lifecycle);
         if viewport.ready() {
             lock!(self.train_set).set_position(&mut events,viewport)?;
         }
@@ -94,7 +93,7 @@ impl Railway {
     }
 
     pub fn transition_complete(&self, objects: &mut PeregrineCore) {
-        let mut events = RailwayEvents::new();
+        let mut events = RailwayEvents::new(&self.try_lifecycle);
         lock!(self.train_set).transition_complete(&mut events);
         self.run_events(events,objects);
     }

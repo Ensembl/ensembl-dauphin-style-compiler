@@ -31,6 +31,7 @@ pub struct LeafRequest {
     style: Arc<Mutex<Option<(Arc<AllotmentStyleGroup>,Arc<LeafCommonStyle>)>>>
 }
 
+#[cfg(debug_assertions)]
 impl std::fmt::Debug for LeafRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{:?}",self.name())

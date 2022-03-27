@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
-use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy, DrawingCarriage};
-use peregrine_toolkit::lock;
+use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy, DrawingCarriage, TrainExtent};
+use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;
@@ -14,8 +14,8 @@ use crate::util::message::Message;
 
 #[derive(Clone)]
 enum FadeState {
-    Constant(Option<u64>),
-    Fading(Option<u64>,u64,CarriageSpeed,Option<f64>,Arc<NeededLock>)
+    Constant(Option<TrainExtent>),
+    Fading(Option<TrainExtent>,TrainExtent,CarriageSpeed,Option<f64>,Arc<NeededLock>)
 }
 
 struct GlRailwayData {
@@ -26,7 +26,7 @@ struct GlRailwayData {
     slow_cross_fade_overlap_prop: f64,
     fast_fade_overlap_prop: f64,
     commander: PgCommanderWeb,
-    trains: HashMap<u64,GLTrain>,
+    trains: HashMap<TrainExtent,GLTrain>,
     carriages: HashMap<DrawingCarriage,GLCarriage>,
     fade_state: FadeState,
     redraw_needed: Needed
@@ -49,16 +49,16 @@ impl GlRailwayData {
         })
     }
 
-    fn get_our_train(&mut self, index: u64) -> &mut GLTrain {
-        self.trains.get_mut(&index).unwrap()
+    fn get_our_train(&mut self, extent: &TrainExtent) -> &mut GLTrain {
+        self.trains.get_mut(extent).unwrap()
     }
 
     fn create_train(&mut self, train: &Train) {
-        self.trains.insert(train.serial(),GLTrain::new(&self.redraw_needed));
+        self.trains.insert(train.extent(),GLTrain::new(&self.redraw_needed));
     }
 
     fn drop_train(&mut self, train: &Train) {
-        self.trains.remove(&train.serial());
+        self.trains.remove(&train.extent());
     }
 
     fn create_carriage(&mut self, carriage: &DrawingCarriage, gl: &Arc<Mutex<WebGlGlobal>>, assets: &Assets) -> Result<(),Message> {
@@ -75,7 +75,7 @@ impl GlRailwayData {
     fn set_carriages(&mut self, train: &Train, new_carriages: &[DrawingCarriage]) -> Result<(),Message> {
         match new_carriages.iter().map(|c| self.carriages.get(c).cloned()).collect::<Option<Vec<_>>>() {
             Some(carriages) => {
-                self.get_our_train(train.serial()).set_carriages(carriages)
+                self.get_our_train(&train.extent()).set_carriages(carriages)
             },
             None => {
                 Err(Message::CodeInvariantFailed(format!("missing carriages")))
@@ -83,18 +83,18 @@ impl GlRailwayData {
         }
     }
 
-    fn set_max(&mut self, serial: u64, len: u64) {
-        self.get_our_train(serial).set_max(len);
+    fn set_max(&mut self, extent: &TrainExtent, len: u64) {
+        self.get_our_train(extent).set_max(len);
     }
 
     fn start_fade(&mut self, train: &Train, speed: CarriageSpeed) -> Result<(),Message> {
-        let from = match self.fade_state {            
+        let from = match &self.fade_state {            
             FadeState::Constant(x) => x,
             FadeState::Fading(_,_,_,_,_) => {
                 return Err(Message::CodeInvariantFailed("overlapping fades sent to UI".to_string()));
             }
         };
-        self.fade_state = FadeState::Fading(from,train.serial(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
+        self.fade_state = FadeState::Fading(from.clone(),train.extent(),speed,None,Arc::new(self.redraw_needed.clone().lock()));
         Ok(())
     }
 
@@ -126,15 +126,15 @@ impl GlRailwayData {
     fn notify_fade_state(&mut self) {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
-            FadeState::Constant(Some(index)) => {
-                self.get_our_train(index).set_opacity(1.);
+            FadeState::Constant(Some(extent)) => {
+                self.get_our_train(&extent).set_opacity(1.);
             },
             FadeState::Fading(from,to,speed,Some(elapsed),_) => {
                 let prop_out = self.fade_time(&speed,elapsed,true);
                 let prop_in = self.fade_time(&speed,elapsed,false);
-                self.get_our_train(to).set_opacity(prop_in);
+                self.get_our_train(&to).set_opacity(prop_in);
                 if let Some(from) = from {
-                    self.get_our_train(from).set_opacity(prop_out);
+                    self.get_our_train(&from).set_opacity(prop_out);
                 }
             },
             FadeState::Fading(_,_,_,None,_) => {}
@@ -150,7 +150,7 @@ impl GlRailwayData {
                 let prop = self.prop(&speed,elapsed.unwrap());
                 if prop >= 1.{
                     if let Some(from) = from {
-                        self.get_our_train(from).discard(gl)?;
+                        self.get_our_train(&from).discard(gl)?;
                     }
                     self.fade_state = FadeState::Constant(Some(to));
                     self.redraw_needed.set(); // probably not needed; belt-and-braces
@@ -164,8 +164,8 @@ impl GlRailwayData {
         Ok(complete)
     }
 
-    fn train_scale(&mut self, serial: u64)-> u64 {
-        self.get_our_train(serial).scale().map(|x| x.get_index()).unwrap_or(0)
+    fn train_scale(&mut self, extent: &TrainExtent)-> u64 {
+        self.get_our_train(extent).scale().map(|x| x.get_index()).unwrap_or(0)
     }
 
     fn get_draws(&mut self) -> Vec<GLTrain> {
@@ -173,20 +173,20 @@ impl GlRailwayData {
         match self.fade_state.clone() {
             FadeState::Constant(None) => {},
             FadeState::Constant(Some(train)) => {
-                out.push(self.get_our_train(train).clone());
+                out.push(self.get_our_train(&train).clone());
             },
             FadeState::Fading(from,to,_,_,_) => {
                 if let Some(from) = from {
-                    if self.train_scale(from) > self.train_scale(to) {
+                    if self.train_scale(&from) > self.train_scale(&to) {
                         /* zooming in, give priority to more detailed target */
-                        out.push(self.get_our_train(to).clone());
-                        out.push(self.get_our_train(from).clone());
+                        out.push(self.get_our_train(&to).clone());
+                        out.push(self.get_our_train(&from).clone());
                     } else {
                         /* zooming out, give priority to more detailed source */
-                        out.push(self.get_our_train(from).clone());
-                        out.push(self.get_our_train(to).clone());                    }
+                        out.push(self.get_our_train(&from).clone());
+                        out.push(self.get_our_train(&to).clone());                    }
                 } else {
-                    out.push(self.get_our_train(to).clone());
+                    out.push(self.get_our_train(&to).clone());
                 }
             },
         }
@@ -196,16 +196,16 @@ impl GlRailwayData {
     fn scale(&mut self) -> Option<Scale> {
         match self.fade_state.clone() {
             FadeState::Constant(None) => None,
-            FadeState::Constant(Some(train)) => self.get_our_train(train).scale(),
-            FadeState::Fading(_,to,_,_,_) => self.get_our_train(to).scale()
+            FadeState::Constant(Some(train)) => self.get_our_train(&train).scale(),
+            FadeState::Fading(_,to,_,_,_) => self.get_our_train(&to).scale()
         }
     }
 
     fn get_hotspot(&mut self, stage: &ReadStage, position: (f64,f64)) -> Result<Vec<Rc<ZMenuProxy>>,Message> {
-        match self.fade_state {
-            FadeState::Constant(x) => x,
+        match &self.fade_state {
+            FadeState::Constant(x) => x.as_ref(),
             FadeState::Fading(_,x,_,_,_) => Some(x)
-        }.map(|id| {
+        }.cloned().as_ref().map(|id| {
             self.get_our_train(id).get_hotspot(stage,position)
         }).unwrap_or(Ok(vec![]))
     }
@@ -256,7 +256,7 @@ impl GlRailway {
 
     pub fn start_fade(&mut self, train: &Train, max: u64, speed: CarriageSpeed) -> Result<(),Message> {
         self.data.lock().unwrap().start_fade(train,speed)?;
-        self.data.lock().unwrap().set_max(train.serial(),max);
+        self.data.lock().unwrap().set_max(&train.extent(),max);
         Ok(())
     }
 

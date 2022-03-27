@@ -1,4 +1,4 @@
-use peregrine_data::{Assets, Carriage, CarriageExtent, ZMenuProxy, TrainState, DrawingCarriage};
+use peregrine_data::{Assets, CarriageExtent, ZMenuProxy, DrawingCarriage};
 use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::asynconce::AsyncOnce;
 use peregrine_toolkit::sync::needed::Needed;
@@ -62,9 +62,8 @@ impl GLCarriage {
             drawing: AsyncOnce::new(async move {
                 let carriage = carriage2;
                 let scale = carriage.extent().train().scale();
-                let shapes = carriage.shapes().unwrap(); // XXX
+                let shapes = carriage.solution().shapes().clone();
                 let drawing = Drawing::new(Some(scale),shapes,&gl,carriage.extent().left_right().0,&assets).await;
-                carriage.set_ready();
                 redraw_needed.set();
                 drawing
             })
@@ -73,11 +72,12 @@ impl GLCarriage {
         Ok(our_carriage)
     }
 
-    pub(super) async fn preflight(&self, _carriage: &DrawingCarriage) -> Result<(),Message> {
+    pub(super) async fn preflight(&self, carriage: &DrawingCarriage) -> Result<(),Message> {
         let state = lock!(self.0);
         let drawing = state.drawing.clone();
         drop(state);
         drawing.get().await.as_ref().map(|_| ()).map_err(|e| e.clone())?;
+        carriage.set_ready();
         Ok(())
     }
 

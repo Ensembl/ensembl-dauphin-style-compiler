@@ -1,11 +1,10 @@
 use peregrine_toolkit::sync::blocker::{Blocker};
 use peregrine_toolkit::sync::needed::Needed;
-use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase};
+use crate::{CarriageExtent, CarriageSpeed, ShapeStore, PeregrineCoreBase, DrawingCarriage};
 use crate::api::MessageSender;
 use crate::core::{Layout, Scale, Viewport};
 use super::railwaydependents::RailwayDependents;
 use super::train::{ Train };
-use super::carriage::{Carriage};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::util::message::DataMessage;
@@ -67,13 +66,13 @@ impl TrainSet {
         if let Some(current) = &self.current { cb(state,current); }
     }
 
-    fn each_current_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&Carriage) {
-        self.each_current_train(state,&|state,train| train.each_current_carriage(state,cb));
+    fn each_current_drawing_carriage<X,F>(&self, state: &mut X, cb: &F) where F: Fn(&mut X,&DrawingCarriage) {
+        self.each_current_train(state,&|state,train| train.each_current_drawing_carriage(state,cb));
     }
 
-    fn all_current_carriages(&self) -> Vec<Carriage> {
+    fn all_current_drawing_carriages(&self) -> Vec<DrawingCarriage> {
         let mut out = vec![];
-        self.each_current_carriage(&mut out, &|out,carriage| {
+        self.each_current_drawing_carriage(&mut out, &|out,carriage| {
             out.push(carriage.clone())
         });
         out
@@ -91,7 +90,7 @@ impl TrainSet {
                 wanted.set_active(events,speed);
                 let viewport = wanted.viewport();
                 self.future = Some(wanted);
-                self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_carriages(),events);
+                self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),events);
                 self.draw_notify_viewport(events);
                 self.try_new_wanted(events,&viewport);
             }
@@ -241,25 +240,26 @@ impl TrainSet {
         /* now future is free, maybe wanted can go there? */
         self.try_advance_wanted_to_future(events);
         /* stuff may have happened above, tell dependents */
-        self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_carriages(),events);
+        self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),events);
     }
 
     pub(super) fn move_and_lifecycle_trains(&mut self) -> RailwayEvents {
-        let mut events = RailwayEvents::new();
-        if let Some(wanted) = &mut self.wanted {
+        let mut events = RailwayEvents::new(&self.try_lifecycle);
+        if let Some(train) = &mut self.wanted {
             /* wanted may be ready now */
+            train.set_drawing_carriages(&mut events);
             self.try_advance_wanted_to_future(&mut events);
         }
         if let Some(train) = &mut self.future {
             /* future may have moved */
-            train.set_carriages(&mut events);
+            train.set_drawing_carriages(&mut events);
         }
         if let Some(train) = &mut self.current {
             /* current may have moved */
-            train.set_carriages(&mut events);
+            train.set_drawing_carriages(&mut events);
         }
         /* stuff may have happened above, tell dependents */
-        self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_carriages(),&mut events);
+        self.dependents.carriages_loaded(self.quiescent_target(),&self.all_current_drawing_carriages(),&mut events);
         events
     }
 
@@ -268,7 +268,7 @@ impl TrainSet {
     }
 
     pub(super) fn set_sketchy(&mut self, yn: bool) -> Result<RailwayEvents,DataMessage> {
-        let mut events = RailwayEvents::new();
+        let mut events = RailwayEvents::new(&self.try_lifecycle);
         self.sketchy = yn;
         if !yn {
             self.reset_position(&mut events)?;
@@ -277,7 +277,7 @@ impl TrainSet {
     }
 
     pub(super) fn invalidate(&mut self) -> Result<RailwayEvents,DataMessage> {
-        let mut events = RailwayEvents::new();
+        let mut events = RailwayEvents::new(&self.try_lifecycle);
         self.validity_counter += 1;
         /* create events */
         self.reset_position(&mut events)?;

@@ -108,7 +108,8 @@ impl<'a> Iterator for AllotmentNamePrefixes<'a> {
     }
 }
 
-#[derive(Clone,Debug)]
+#[cfg_attr(debug_assertions,derive(Debug))]
+#[derive(Clone)]
 pub struct AllotmentNamePart {
     name: AllotmentName,
     start: usize,
