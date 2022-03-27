@@ -69,7 +69,7 @@ impl CarriageLifecycleSet {
     }
 
     pub(super) fn all_ready(&self) -> bool {
-        self.0.values().all(|x| x.drawing_carriage().is_some())
+        self.0.values().all(|x| x.drawing_carriage().map(|x| x.is_ready()).unwrap_or(false))
     }
 
     pub(super) fn add_process(&mut self, index: u64, process: CarriageProcess) {
