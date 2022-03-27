@@ -196,6 +196,7 @@ pub(crate) mod switch {
 mod train {
     mod anticipate;
     pub(crate) mod carriage;
+    mod carriagelifecycle;
     mod railwayevent;
     mod carriageextent;
     mod carriageset;

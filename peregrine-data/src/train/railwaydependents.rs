@@ -16,9 +16,9 @@ pub struct RailwayDependents {
 }
 
 impl RailwayDependents {
-    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker, try_lifecycle: &Needed) -> RailwayDependents {
+    pub(super) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore, visual_blocker: &Blocker) -> RailwayDependents {
         RailwayDependents {
-            anticipate: Anticipate::new(base,try_lifecycle,result_store),
+            anticipate: Anticipate::new(base,result_store),
             playing_field: MutexOnChange::new(),
             metadata: MutexOnChange::new(),
             visual_blocker: visual_blocker.clone(),

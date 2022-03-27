@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{ Arc, Mutex };
 use peregrine_data::{Assets, CarriageSpeed, PeregrineCore, Scale, Train, ZMenuProxy, DrawingCarriage, TrainExtent};
-use peregrine_toolkit::{lock, log};
+use peregrine_toolkit::lock;
 use peregrine_toolkit::sync::needed::{Needed, NeededLock};
 use super::glcarriage::GLCarriage;
 use super::gltrain::GLTrain;

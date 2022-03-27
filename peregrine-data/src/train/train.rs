@@ -7,7 +7,7 @@ use peregrine_toolkit::sync::needed::Needed;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
-use super::carriageset::{DrawingCarriageSet};
+use super::carriageset::{CarriageSet};
 use super::railwayevent::RailwayEvents;
 use super::trainextent::TrainExtent;
 use crate::run::{ add_task, async_complete_task };
@@ -21,7 +21,7 @@ struct TrainData {
     active: bool,
     viewport: Viewport,
     max: Option<u64>,
-    carriages: DrawingCarriageSet,
+    carriages: CarriageSet,
     messages: MessageSender,
     train_state: TrainState,
     validity_counter: u64
@@ -34,7 +34,7 @@ impl TrainData {
             broken: false,
             active: false,
             viewport: viewport.clone(),
-            carriages: DrawingCarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
+            carriages: CarriageSet::new(&try_lifecycle, extent,&train_track_config_list,messages),
             max: None,
             messages: messages.clone(),
             train_state: TrainState::independent(),

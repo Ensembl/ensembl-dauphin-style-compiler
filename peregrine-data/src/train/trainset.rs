@@ -39,7 +39,7 @@ impl TrainSet {
             target: None,
             next_train_serial: 0,
             messages: base.messages.clone(),
-            dependents: RailwayDependents::new(base,result_store,visual_blocker,try_lifecycle),
+            dependents: RailwayDependents::new(base,result_store,visual_blocker),
             viewport: None,
             sketchy: false,
             validity_counter: 1,

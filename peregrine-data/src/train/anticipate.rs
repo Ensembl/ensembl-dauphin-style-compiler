@@ -1,6 +1,5 @@
 use std::{sync::{Arc, Mutex}};
 use commander::CommanderStream;
-use peregrine_toolkit::sync::needed::Needed;
 use crate::{CarriageExtent, DataMessage, ShapeStore, PeregrineCoreBase, PgCommanderTaskSpec, Scale, add_task, core::{Layout, pixelsize::PixelSize}, shapeload::loadshapes::LoadMode, switch::trackconfiglist::TrainTrackConfigList };
 use super::{trainextent::TrainExtent};
 use crate::shapeload::carriageprocess::CarriageProcess;
@@ -15,11 +14,10 @@ impl AnticipateTask {
         AnticipateTask { carriages, batch }
     }
 
-    async fn run(&mut self, try_lifecycle: &Needed, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
+    async fn run(&mut self, base: &PeregrineCoreBase, result_store: &ShapeStore) -> Result<(),DataMessage> {
         let mut handles = vec![];
         let load_mode = if self.batch { LoadMode::Network } else { LoadMode::Batch };
         for mut carriage in self.carriages.drain(..) {
-            let try_lifecycle = try_lifecycle.clone();
             let load_mode = load_mode.clone();
             let result_store = result_store.clone();
             let base2 = base.clone();
@@ -42,11 +40,10 @@ impl AnticipateTask {
     }
 }
 
-fn run_anticipator(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
+fn run_anticipator(base: &PeregrineCoreBase, result_store: &ShapeStore, stream: &CommanderStream<AnticipateTask>) {
     let stream = stream.clone();
     let base2 = base.clone();
     let result_store = result_store.clone();
-    let try_lifecycle = try_lifecycle.clone();
     add_task::<()>(&base.commander,PgCommanderTaskSpec {
         name: format!("anticipator"),
         prio: 9,
@@ -55,7 +52,7 @@ fn run_anticipator(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_stor
         stats: false,
         task: Box::pin(async move {
             loop {
-                stream.get().await.run(&try_lifecycle,&base2,&result_store).await?;
+                stream.get().await.run(&base2,&result_store).await?;
             }
         })
     });
@@ -67,9 +64,9 @@ pub struct Anticipate {
 }
 
 impl Anticipate {
-    pub(crate) fn new(base: &PeregrineCoreBase, try_lifecycle: &Needed, result_store: &ShapeStore) -> Anticipate {
+    pub(crate) fn new(base: &PeregrineCoreBase, result_store: &ShapeStore) -> Anticipate {
         let stream = CommanderStream::new();
-        run_anticipator(&base,&try_lifecycle,&result_store,&stream);
+        run_anticipator(&base,&result_store,&stream);
         Anticipate {
             extent: Arc::new(Mutex::new(None)),
             stream
