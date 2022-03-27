@@ -174,7 +174,7 @@ impl PuzzleSolution {
         }
         #[cfg(warn_missing_piece)]
         for name in &names {
-            warn!("unsolved: {}",name);
+            warn!("unsolved: {} ({})",name,self.id);
         }
     }
 

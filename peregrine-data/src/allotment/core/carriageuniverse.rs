@@ -1,5 +1,5 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, log_extra, lock};
+use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, lock};
 
 use crate::{allotment::{style::{allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::{make_transformable}, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, CarriageShapeListRaw};
 
@@ -118,7 +118,7 @@ pub struct CarriageSolution {
 impl CarriageSolution {
     pub(crate) fn new(universe: &CarriageUniverse, train_state: &TrainState) -> CarriageSolution {
         let mut solution = PuzzleSolution::new(&universe.puzzle);
-        train_state.update_puzzle(&mut solution, &universe.height_tracker);
+        train_state.update_puzzle(&mut solution,&universe.height_tracker);
         solution.solve();
         let shapes = universe.get(&solution);
         CarriageSolution {

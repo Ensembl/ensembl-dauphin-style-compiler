@@ -1,6 +1,6 @@
-use std::{collections::{HashMap, hash_map::DefaultHasher}, sync::Arc, fmt, hash::{Hash, Hasher}};
+use std::{collections::{HashMap, hash_map::{DefaultHasher}}, sync::Arc, fmt, hash::{Hash, Hasher}};
 
-use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, FoldValue, PuzzleSolution, ClonablePuzzleValue, PuzzlePiece}, error, log};
 
 use crate::allotment::{style::allotmentname::AllotmentName};
 
@@ -25,40 +25,60 @@ impl HeightTrackerEntry {
     fn set_full_height(&self, solution: &mut PuzzleSolution, full_height: f64) {
         self.extra.set_answer(solution,full_height);
     }
+
+    fn get_piece(&self) -> &PuzzlePiece<f64> {
+        &self.extra
+    }
 }
 
 pub struct HeightTrackerPieces {
     puzzle: PuzzleBuilder,
-    heights: HashMap<AllotmentName,HeightTrackerEntry>
+    heights: HashMap<AllotmentName,HeightTrackerEntry>,
+
+    #[cfg(debug_assertions)]
+    built: bool,
 }
 
 impl HeightTrackerPieces {
     pub(crate) fn new(puzzle: &PuzzleBuilder) -> HeightTrackerPieces {
         HeightTrackerPieces {
             puzzle: puzzle.clone(),
-            heights: HashMap::new()
+            heights: HashMap::new(),
+            #[cfg(debug_assertions)]
+            built: false
         }
     }
 
-    pub(crate) fn add(&mut self, name: &AllotmentName, height: &PuzzleValueHolder<f64>) {
-        self.heights.entry(name.clone()).or_insert({
-            let mut output = self.puzzle.new_piece();
+    fn ensure_entry(&mut self, name: &AllotmentName) -> &mut HeightTrackerEntry {
+        let puzzle = self.puzzle.clone();
+        self.heights.entry(name.clone()).or_insert_with( || {
+            let mut output = puzzle.new_piece();
             #[cfg(debug_assertions)]
             output.set_name("height tracker in");
-            let mut extra = self.puzzle.new_piece_default(0.); // XXX no default
+            let mut extra = puzzle.new_piece_default(0.); // XXX no default
             #[cfg(debug_assertions)]
             extra.set_name("height tracker out");
             HeightTrackerEntry {  
                 extra,
                 used: FoldValue::new(output,|a,b| { f64::max(a,b) })
             }
-        }).add(height);
+        })
+    }
+
+    pub(crate) fn add(&mut self, name: &AllotmentName, height: &PuzzleValueHolder<f64>) {
+        self.ensure_entry(name).add(height);
     }
 
     pub(crate) fn build(&mut self) {
+        #[cfg(debug_assertions)]
+        { self.built = true; }
         for values in self.heights.values_mut() {
             values.build();
         }
+    }
+
+    pub(crate) fn get_piece(&mut self, name: &AllotmentName) -> &PuzzlePiece<f64> {
+        self.ensure_entry(name).get_piece()
     }
 
     /* must be called pre-solve */
@@ -139,6 +159,11 @@ impl HeightTracker {
     }
 
     pub(crate) fn new(pieces: &HeightTrackerPieces, solution: &PuzzleSolution) -> HeightTracker {
+        #[cfg(debug_assertions)]
+        if !pieces.built {
+            error!("unbuilt tracker!");
+            panic!();
+        }
         let mut out = HashMap::new();
         for (name,height) in pieces.heights.iter() {
             out.insert(name.clone(),Self::to_fixed(height.get_used(solution)));
