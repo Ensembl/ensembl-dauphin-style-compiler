@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
-use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, lock};
+use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, lock, log};
 
 use crate::{allotment::{style::{allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::{make_transformable}, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, CarriageShapeListRaw};
 
-use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, aligner::Aligner, playingfield::PlayingField, leafrequest::LeafRequestMap, heighttracker::{HeightTrackerPieces, HeightTracker}, trainstate::TrainState};
+use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, playingfield::PlayingField, leafrequest::LeafRequestMap, heighttracker::{HeightTrackerPieces, HeightTracker}, trainstate::TrainState};
 
 pub(crate) struct CarriageUniversePrep {
     pub puzzle: PuzzleBuilder,
@@ -143,47 +143,62 @@ impl CarriageSolution {
 #[derive(Clone)]
 struct CarriageShapeCache {
     train_state: TrainState,
-    shapes: CarriageSolution
+    shapes: Option<CarriageSolution>
+}
+
+impl CarriageShapeCache {
+    fn new(train_state: &TrainState) -> CarriageShapeCache {
+        CarriageShapeCache {
+            train_state: train_state.clone(),
+            shapes: None
+        }
+    }
+
+    fn get(&mut self, universe: &CarriageUniverse, train_state: &TrainState) -> Option<&CarriageSolution> {
+        if train_state != &self.train_state { return None; }
+        if self.shapes.is_none() {
+            log!("new solution!");
+            self.shapes = Some(CarriageSolution::new(universe,&self.train_state));
+        }
+        Some(self.shapes.as_ref().unwrap())
+    }
+
+    fn set(&mut self, train_state: &TrainState, shapes: &CarriageSolution) {
+        self.train_state = train_state.clone();
+        self.shapes = Some(shapes.clone());
+    }
 }
 
 #[derive(Clone)]
 pub struct CarriageShapes {
     universe: CarriageUniverse,
-    independent: CarriageShapeCache,
+    independent: Arc<Mutex<CarriageShapeCache>>,
     cache: Arc<Mutex<CarriageShapeCache>>
 }
 
 impl CarriageShapes {
     pub fn new(universe: &CarriageUniverse) -> CarriageShapes {
         let independent_state = TrainState::independent();
-        let independent = CarriageSolution::new(universe,&independent_state);
-        let cache = CarriageShapeCache {
-            train_state: independent_state.clone(),
-            shapes: independent.clone()
-        };
-        let independent = CarriageShapeCache {
-            train_state: independent_state.clone(),
-            shapes: independent.clone()
-        };
         CarriageShapes {
             universe: universe.clone(),
-            cache: Arc::new(Mutex::new(cache)),
-            independent
+            cache: Arc::new(Mutex::new(CarriageShapeCache::new(&independent_state))),
+            independent: Arc::new(Mutex::new(CarriageShapeCache::new(&independent_state)))
         }
     }
 
+    fn try_get(&self, whither: &Arc<Mutex<CarriageShapeCache>>, train_state: &TrainState) -> Option<CarriageSolution> {
+        lock!(whither).get(&self.universe,train_state).cloned()
+    }
+
     pub(crate) fn get(&self, state: &TrainState) -> CarriageSolution {
-        if state == &self.independent.train_state {
-            return self.independent.shapes.clone();
+        if let Some(solution) = self.try_get(&self.independent,state) {
+            return solution.clone();
         }
-        let mut cache = lock!(&self.cache);
-        if state == &cache.train_state {
-            return cache.shapes.clone();
+        if let Some(solution) = self.try_get(&self.cache,state) {
+            return solution.clone();
         }
         let shapes = CarriageSolution::new(&self.universe,state);
-        cache.train_state = state.clone();
-        cache.shapes = shapes.clone();
-        drop(cache);
+        lock!(self.cache).set(state,&shapes);
         shapes
     }
 }

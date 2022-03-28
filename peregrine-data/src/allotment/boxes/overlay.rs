@@ -32,7 +32,7 @@ impl UnpaddedOverlay {
         let mut height2 = info.child_height.clone();
         #[cfg(debug_assertions)]
         height2.set_name("ch in overlay");
-        info.child_height.add_ready(move |_| {
+        info.child_height.add_ready(move |_,_| {
             let deps = lock!(kid_heights2).iter().map(|x : &PuzzleValueHolder<f64>| x.dependency()).collect::<Vec<_>>();
             height2.add_solver(&deps, move |solution| {
                 let height = lock!(kid_heights2).iter()

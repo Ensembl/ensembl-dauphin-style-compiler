@@ -1,6 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-use super::{piece::{PuzzleValue, ClonablePuzzleValue}, puzzle::{PuzzleDependency, PuzzleSolution}};
+use crate::lock;
+
+use super::{piece::{PuzzleValue, ClonablePuzzleValue}, puzzle::{PuzzleDependency, PuzzleSolution, DelaySlot}, PuzzleBuilder, PuzzleValueHolder};
 
 #[derive(Clone)]
 pub struct DerivedPuzzlePiece<T,U> {
@@ -42,7 +44,7 @@ impl<T: Clone> Clone for ConstantPuzzlePiece<T> {
 }
 
 impl<T: 'static> PuzzleValue<T> for ConstantPuzzlePiece<T> {
-    fn dependency(&self) -> PuzzleDependency { PuzzleDependency::none() }
+    fn dependency(&self) -> PuzzleDependency { PuzzleDependency::constant() }
 
     fn try_get(&self, _solution: &PuzzleSolution) -> Option<Arc<T>> {
         Some(self.0.clone())
@@ -50,6 +52,59 @@ impl<T: 'static> PuzzleValue<T> for ConstantPuzzlePiece<T> {
 }
 
 impl<T: Clone + 'static> ClonablePuzzleValue<T> for ConstantPuzzlePiece<T> {}
+
+pub struct DelayedPuzzleValue<T: 'static>(DelaySlot,Arc<Mutex<Option<PuzzleValueHolder<T>>>>);
+
+impl<T> DelayedPuzzleValue<T> {
+    pub fn new(builder: &PuzzleBuilder) -> DelayedPuzzleValue<T> {
+        DelayedPuzzleValue(builder.allocate_delayed(),Arc::new(Mutex::new(None)))
+    }
+
+    pub fn set(&self, builder: &PuzzleBuilder, target: PuzzleValueHolder<T>) {
+        builder.set_delayed(&self.0,target.dependency());
+        *lock!(self.1) = Some(target);
+    }
+}
+
+impl<T: Clone> Clone for DelayedPuzzleValue<T> {
+    fn clone(&self) -> Self { DelayedPuzzleValue(self.0.clone(),self.1.clone()) }
+}
+
+impl<T: 'static> PuzzleValue<T> for DelayedPuzzleValue<T> {
+    fn dependency(&self) -> PuzzleDependency { PuzzleDependency::delayed(&self.0) }
+
+    fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> {
+        lock!(self.1).as_ref().and_then(|x| x.try_get(solution))
+    }
+}
+
+impl<T: Clone + 'static> ClonablePuzzleValue<T> for DelayedPuzzleValue<T> {}
+
+pub struct DelayedConstant<T>(Arc<Mutex<Option<Arc<T>>>>);
+
+impl<T> DelayedConstant<T> {
+    pub fn new() -> DelayedConstant<T> {
+        DelayedConstant(Arc::new(Mutex::new(None)))
+    }
+
+    pub fn set(&self, value: T) {
+        *lock!(self.0) = Some(Arc::new(value));
+    }
+}
+
+impl<T:Clone> Clone for DelayedConstant<T> {
+    fn clone(&self) -> Self { DelayedConstant(self.0.clone()) } 
+}
+
+impl<T: 'static> PuzzleValue<T> for DelayedConstant<T> {
+    fn dependency(&self) -> PuzzleDependency { PuzzleDependency::constant() }
+
+    fn try_get(&self, _solution: &PuzzleSolution) -> Option<Arc<T>> {
+        lock!(self.0).as_ref().cloned()
+    }
+}
+
+impl<T: Clone + 'static> ClonablePuzzleValue<T> for DelayedConstant<T> {}
 
 #[cfg(test)]
 mod test {
@@ -61,7 +116,7 @@ mod test {
 
     #[test]
     fn derived() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece();
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
         let p3 = builder.new_piece();
@@ -80,7 +135,7 @@ mod test {
 
     #[test]
     fn constant() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = ConstantPuzzlePiece::new(3);
         let p2 = DerivedPuzzlePiece::new(p1.clone(),|x| *x*5);
         let p3 = builder.new_piece();

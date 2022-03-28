@@ -1,16 +1,16 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue}, lock, log};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzlePiece, DerivedPuzzlePiece, ClonablePuzzleValue, PuzzleValue, ConstantPuzzlePiece, FoldValue, DelayedPuzzleValue}, lock, log};
 
 use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner, heighttracker::HeightTrackerPieces, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, StackableAddable}};
 
-fn draw_top(top: &PuzzlePiece<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
+fn draw_top(top: &DelayedPuzzleValue<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
     PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
 }
 
-fn height(puzzle: &PuzzleBuilder, child_height: &PuzzlePiece<f64>, tracked_height: &PuzzlePiece<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
+fn height(puzzle: &PuzzleBuilder, child_height: &PuzzlePiece<f64>, tracked_height: &DelayedPuzzleValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
     let mut piece = puzzle.new_piece();
     #[cfg(debug_assertions)]
     piece.set_name("padder/height");
@@ -25,18 +25,12 @@ fn height(puzzle: &PuzzleBuilder, child_height: &PuzzlePiece<f64>, tracked_heigh
     PuzzleValueHolder::new(piece)
 }
 
-fn indent(_puzzle: &PuzzleBuilder, self_indent: f64, inherited_indent: &PuzzlePiece<f64>) -> PuzzleValueHolder<f64> {
-    PuzzleValueHolder::new(DerivedPuzzlePiece::new(inherited_indent.clone(),move |v| v + self_indent))
-}
-
 pub struct Padder<T> {
+    builder: PuzzleBuilder,
     child: Box<T>,
     coord_system: CoordinateSystem,
     /* incoming variables */
-    top: PuzzlePiece<f64>,
-    inherited_indent: PuzzlePiece<f64>,
-    tracked_height: PuzzlePiece<f64>,
-    self_indent: f64,
+    top: DelayedPuzzleValue<f64>,
     /* outgoing variables */
     info: PadderInfo,
     height: PuzzleValueHolder<f64>,
@@ -47,22 +41,19 @@ pub struct Padder<T> {
 #[derive(Clone)]
 pub struct PadderInfo {
     pub child_height: PuzzlePiece<f64>, /* children set this */
-    pub draw_top: PuzzleValueHolder<f64>,
-    pub indent: PuzzleValueHolder<f64>,
+    pub draw_top: PuzzleValueHolder<f64>
 }
 
 impl<T: Clone> Clone for Padder<T> {
     fn clone(&self) -> Self {
         Self {
+            builder: self.builder.clone(),
             child: self.child.clone(),
             ranges: self.ranges.clone(),
             coord_system: self.coord_system.clone(),
             top: self.top.clone(),
-            inherited_indent: self.inherited_indent.clone(),
-            self_indent: self.self_indent.clone(),
             info: self.info.clone(),
             height: self.height.clone(),
-            tracked_height: self.tracked_height.clone(),
             full_range: self.full_range.clone()
         }
     }
@@ -81,38 +72,29 @@ fn add_report(metadata: &mut AllotmentMetadataBuilder, in_values: &HashMap<Strin
 
 impl<T> Padder<T> {
     pub(crate) fn new<F>(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, ctor: F) -> Padder<T> where F: FnOnce(&mut CarriageUniversePrep, &PadderInfo) -> T {
-        let mut top = prep.puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        top.set_name("padder/top");
+        let top = DelayedPuzzleValue::new(&prep.puzzle);
         let padding_top = style.padding.padding_top;
         let padding_bottom = style.padding.padding_bottom;
         let min_height = style.padding.min_height;
-        let mut inherited_indent = prep.puzzle.new_piece_default(0.);
-        #[cfg(debug_assertions)]
-        inherited_indent.set_name("padder/inherited-indent");
-        let self_indent = style.padding.indent;
         let draw_top = draw_top(&top,padding_top);
         let mut child_height = prep.puzzle.new_piece();
         #[cfg(debug_assertions)]
         child_height.set_name("padder/child-height");
-        let mut tracked_height = prep.puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        tracked_height.set_name("padder/tracked-height");
+        let tracked_height = DelayedPuzzleValue::new(&prep.puzzle);
         let height = height(&prep.puzzle,&child_height,&tracked_height,min_height,padding_top,padding_bottom);
         let info = PadderInfo {
-            draw_top, child_height,
-            indent: indent(&prep.puzzle,self_indent,&inherited_indent)
+            draw_top, child_height
         };
         if let Some(report) = &style.padding.report {
             add_report(&mut prep.metadata,report,&PuzzleValueHolder::new(top.clone()),&height);
         }
         let child = ctor(prep,&info);
         let mut full_range = prep.puzzle.new_piece();
+        #[cfg(debug_assertions)]
+        full_range.set_name("padder/full_range");
         let ranges = Arc::new(Mutex::new(FoldValue::new(full_range.clone(), |x : RangeUsed<f64>,y| x.merge(&y))));
         let ranges2 = ranges.clone();
         prep.puzzle.add_ready(move |_| lock!(ranges2).build());
-        #[cfg(debug_assertions)]
-        full_range.set_name("padder/full_range");
         if let Some(datum) = &style.set_align {
             aligner.set_datum(&prep.puzzle,datum,&PuzzleValueHolder::new(top.clone()));
         }
@@ -120,19 +102,16 @@ impl<T> Padder<T> {
             let our_name = AllotmentName::from_part(name);
             prep.height_tracker.add(&our_name,&height);
             let global_piece = prep.height_tracker.get_piece(&our_name).clone();
-            tracked_height.add_solver(&[global_piece.dependency()], move |solution| {
-                Some(global_piece.get_clone(solution))
-            });
+            tracked_height.set(&mut prep.puzzle,PuzzleValueHolder::new(global_piece));
         } else {
-            tracked_height.add_solver(&[], move |_| {
-                Some(0.)
-            });
+            tracked_height.set(&mut prep.puzzle,PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)));
         }
         Padder {
+            builder: prep.puzzle.clone(),
             child: Box::new(child),
             ranges,
             coord_system: style.coord_system.clone(),
-            top, inherited_indent, self_indent, height, tracked_height,
+            top, height,
             info, 
             full_range: PuzzleValueHolder::new(full_range.clone())
         }
@@ -146,9 +125,7 @@ impl<T> Coordinated for Padder<T> {
 impl<T> Stackable for Padder<T> {
     fn set_top(&self, value: &PuzzleValueHolder<f64>) {
         let value = value.clone();
-        self.top.add_solver(&[value.dependency()], move |solution| {
-            Some(value.get_clone(solution))
-        });
+        self.top.set(&self.builder,value);
     }
 
     fn height(&self) -> PuzzleValueHolder<f64> { self.height.clone() }

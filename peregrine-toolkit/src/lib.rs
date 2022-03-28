@@ -21,7 +21,7 @@ pub mod puzzle {
     mod util;
 
     pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleSolution, PuzzleDependency };
-    pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece };
+    pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant };
     pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
     pub use util::{ FoldValue };
 }

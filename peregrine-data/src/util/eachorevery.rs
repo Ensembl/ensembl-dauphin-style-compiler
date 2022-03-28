@@ -2,7 +2,6 @@ use core::panic;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
-use peregrine_toolkit::log;
 
 fn un_rle<F>(input: &[(usize,usize)], cb: F) -> Arc<Vec<usize>> where F: Fn(usize) -> usize {
     let mut out = vec![];
@@ -85,10 +84,15 @@ impl<X> EachOrEvery<X> {
         }
     }
 
-    pub fn map<F,Y>(&self, f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
+    pub fn map<F,Y>(&self, mut f: F) -> EachOrEvery<Y> where F: FnMut(&X) -> Y {
+        /* not using functional style because code path is hot */
+        let mut new_data = Vec::with_capacity(self.data.len());
+        for e in self.data.iter() {
+            new_data.push(f(e));
+        }
         EachOrEvery {
             index: self.index.clone(),
-            data: Arc::new(self.data.iter().map(f).collect())
+            data: Arc::new(new_data)
         }
     }
     

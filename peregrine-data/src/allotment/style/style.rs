@@ -92,7 +92,6 @@ pub struct Padding {
     pub padding_top: f64,
     pub padding_bottom: f64,
     pub min_height: f64,
-    pub indent: f64,
     pub report: Option<Arc<HashMap<String,String>>>
 }
 
@@ -102,7 +101,6 @@ impl Padding {
             padding_top: 0.,
             padding_bottom: 0.,
             min_height: 0.,
-            indent: 0.,
             report: None
         }
     }
@@ -114,10 +112,8 @@ impl Padding {
         let padding_bottom = padding_bottom.parse::<f64>().ok().unwrap_or(0.);
         let min_height = spec.get("min-height").map(|x| x.as_str()).unwrap_or("0");
         let min_height = min_height.parse::<f64>().ok().unwrap_or(0.);
-        let indent = spec.get("indent").map(|x| x.as_str()).unwrap_or("0");
-        let indent = indent.parse::<f64>().ok().unwrap_or(0.);
         let report = spec.get("report").and_then(|r| parse_report_value(r));
-        Padding {padding_top, padding_bottom, min_height, indent, report }
+        Padding {padding_top, padding_bottom, min_height, report }
     }
 }
 

@@ -2,14 +2,17 @@ use std::{sync::{Arc, Mutex}, mem};
 
 use crate::lock;
 
-use super::{puzzle::{PuzzleSolution, PuzzleDependency}, graph::PuzzleGraph, answers::{Answers, AnswerIndex},};
+use super::{puzzle::{PuzzleSolution, PuzzleDependency}, graph::PuzzleGraph, answers::{Answers, AnswerIndex}, PuzzleBuilder,};
 
 pub(super) trait ErasedPiece {
-    fn puzzle_ready(&mut self);
+    fn puzzle_ready(&mut self, builder: &PuzzleBuilder);
     fn finish(&self, index: &AnswerIndex);
     fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool);
     fn is_solved(&self, solution: &PuzzleSolution) -> bool;
     fn erased_dependency(&self) -> PuzzleDependency;
+
+    #[cfg(debug_assertions)]
+    fn name(&self) -> String;
 }
 
 pub trait PuzzleValue<T: 'static> {
@@ -50,12 +53,15 @@ impl<T: 'static> Clone for PuzzleValueHolder<T> {
 
 pub struct PuzzlePiece<T> {    
     graph: Arc<Mutex<PuzzleGraph>>,
-    dependency: PuzzleDependency,
+    dependency: usize,
     answers: Answers<T>,
     pre_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
     post_default: Arc<Mutex<Arc<dyn Fn() -> Option<T>>>>,
-    readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>) + 'static>>>>,
-    bid: u64
+    readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzlePiece<T>,&PuzzleBuilder) + 'static>>>>,
+    bid: u64,
+
+    #[cfg(debug_assertions)]
+    name: Arc<Mutex<String>>
 }
 
 impl<T> Clone for PuzzlePiece<T> {
@@ -67,13 +73,16 @@ impl<T> Clone for PuzzlePiece<T> {
             pre_default: self.pre_default.clone(),
             post_default: self.post_default.clone(),
             readies: self.readies.clone(),
-            bid: self.bid.clone()
+            bid: self.bid.clone(),
+
+            #[cfg(debug_assertions)]
+            name: self.name.clone()
         }
     }
 }
 
 impl<T: 'static> PuzzlePiece<T> {
-    pub(super) fn new<F>(graph: &Arc<Mutex<PuzzleGraph>>, dependency: PuzzleDependency, default: F, bid: u64) -> PuzzlePiece<T> where F: Fn() -> Option<T> + 'static {
+    pub(super) fn new<F>(graph: &Arc<Mutex<PuzzleGraph>>, dependency: usize, default: F, bid: u64) -> PuzzlePiece<T> where F: Fn() -> Option<T> + 'static {
         PuzzlePiece {
             graph: graph.clone(),
             dependency,
@@ -81,7 +90,10 @@ impl<T: 'static> PuzzlePiece<T> {
             pre_default: Arc::new(Mutex::new(Arc::new(default))),
             post_default: Arc::new(Mutex::new(Arc::new(|| None))),
             readies: Arc::new(Mutex::new(vec![])),
-            bid
+            bid,
+
+            #[cfg(debug_assertions)]
+            name: Arc::new(Mutex::new("".to_string()))
         }
     }
 
@@ -92,7 +104,7 @@ impl<T: 'static> PuzzlePiece<T> {
 
     pub fn set_answer(&self, solution: &mut PuzzleSolution, value: T) {
         let index = self.answers.set(value,solution.id());
-        if !solution.set_answer_index(&self.dependency,&index) {
+        if !solution.set_answer_index(self.dependency,&index) {
             /* double set: naughty user or default application */
             self.answers.finish(&index);
         } else {
@@ -110,38 +122,37 @@ impl<T: 'static> PuzzlePiece<T> {
                 self2.set_answer(solution,answer);
             }
         };
-        lock!(self.graph).add_solver(&self.dependency,dependencies,Arc::new(solver));
+        lock!(self.graph).add_solver(&PuzzleDependency::variable(self.dependency),dependencies,Arc::new(solver));
     }
 
-    pub fn add_ready<F>(&self, cb: F) where F: FnOnce(&mut PuzzlePiece<T>) + 'static {
+    pub fn add_ready<F>(&self, cb: F) where F: FnOnce(&mut PuzzlePiece<T>,&PuzzleBuilder) + 'static {
         lock!(self.readies).push(Box::new(cb))
     }
 
     #[cfg(debug_assertions)]
     pub fn set_name(&mut self, name: &str) { 
-        self.dependency.set_name(name);
+        *lock!(self.name) = name.to_string();
     }
 }
 
 impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> {
-        let index = if let Some(x) = solution.get_answer_index(&self.dependency) { x } else { return None; };
+        let index = solution.get_answer_index(self.dependency);
         #[cfg(any(debug_assertions,test))]
-        self.answers.check_for_aliens(solution.bid,&self.dependency.name());
-        self.answers.get(&index)
+        self.answers.check_for_aliens(solution.bid,&lock!(self.name));
+        index.and_then(|index| self.answers.get(&index))
     }
 
-    fn dependency(&self) -> PuzzleDependency { self.dependency.clone() }
-
+    fn dependency(&self) -> PuzzleDependency { PuzzleDependency::variable(self.dependency) }
 }
 
 impl<T: 'static+ Clone> ClonablePuzzleValue<T> for PuzzlePiece<T> {}
 
 impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
-    fn puzzle_ready(&mut self) {
+    fn puzzle_ready(&mut self, builder: &PuzzleBuilder) {
         let readies = mem::replace(lock!(self.readies).as_mut(),vec![]);
         for ready in readies {
-            ready(self);
+            ready(self,builder);
         }
     }
 
@@ -160,7 +171,10 @@ impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
         }
     }
 
-    fn erased_dependency(&self) -> PuzzleDependency { self.dependency.clone() }
+    #[cfg(debug_assertions)]
+    fn name(&self) -> String { lock!(self.name).to_string() }
+
+    fn erased_dependency(&self) -> PuzzleDependency { PuzzleDependency::variable(self.dependency) }
 }
 
 #[cfg(test)]
@@ -173,7 +187,7 @@ mod text {
     
     #[test]
     fn piece_set() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
@@ -198,7 +212,7 @@ mod text {
 
     #[test]
     fn piece_double_set() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let p1 = builder.new_piece();
         let puzzle = Puzzle::new(builder);
         let mut s1 = PuzzleSolution::new(&puzzle);
@@ -210,11 +224,11 @@ mod text {
 
     #[test]
     fn piece_ready() {
-        let mut builder = PuzzleBuilder::new();
+        let builder = PuzzleBuilder::new();
         let flag = Arc::new(Mutex::new(false));
         let p1 : PuzzlePiece<()> = builder.new_piece();
         let flag2 = flag.clone();
-        p1.add_ready(move |p| {
+        p1.add_ready(move |p,_| {
             *lock!(flag2) = true;
         });
         assert_eq!(false,*lock!(flag));

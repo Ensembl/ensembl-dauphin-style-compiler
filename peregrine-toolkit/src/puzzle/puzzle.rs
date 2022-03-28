@@ -1,44 +1,54 @@
-use std::{sync::{Arc, Mutex}, borrow::Borrow, mem, collections::HashSet, hash::Hasher };
+use std::{sync::{Arc, Mutex}, collections::{HashSet,HashMap}, mem };
 use crate::{lock, log_extra, time::now};
-use std::hash::Hash;
 
 #[cfg(debug_assertions)]
 #[allow(unused)]
 use crate::warn;
 
-use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver}, answers::{AnswerIndex}, piece::{ErasedPiece}};
+use super::{piece::{PuzzlePiece}, graph::{PuzzleGraph, PuzzleSolver, PuzzleGraphReady}, answers::{AnswerIndex}, piece::{ErasedPiece}};
 
 use lazy_static::lazy_static;
 use identitynumber::{identitynumber, hashable};
 
-#[cfg(test)]
-use std::sync::MutexGuard;
+#[cfg_attr(test,derive(Debug,PartialEq,Eq))]
+#[derive(Clone)]
+enum PuzzleDependencyValue {
+    Constant,
+    Variable(usize),
+    Delayed(DelaySlot)
+}
 
 #[cfg_attr(test,derive(Debug))]
 #[derive(Clone)]
 pub struct PuzzleDependency {
-    index: Option<usize>,
+    index: PuzzleDependencyValue,
     #[cfg(debug_assertions)]
     name: Arc<Mutex<String>>
 }
 
+#[cfg(test)]
 impl PartialEq for PuzzleDependency {
-    fn eq(&self, other: &Self) -> bool { self.index == other.index }
-}
-
-impl Eq for PuzzleDependency {}
-
-impl Hash for PuzzleDependency {
-    fn hash<H: Hasher>(&self, state: &mut H) { self.index.hash(state); }
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
 }
 
 impl PuzzleDependency {
-    fn new(index: usize) -> PuzzleDependency {
+    pub(super) fn variable(index: usize) -> PuzzleDependency {
         PuzzleDependency {
-            index: Some(index),
+            index: PuzzleDependencyValue::Variable(index),
             #[cfg(debug_assertions)]
             name: Arc::new(Mutex::new("".to_string()))
          }
+    }
+
+    #[cfg(test)]
+    pub(super) fn partial_resolve(&self) -> Option<usize> {
+        match &self.index {
+            PuzzleDependencyValue::Constant => None,
+            PuzzleDependencyValue::Variable(x) => Some(*x),
+            PuzzleDependencyValue::Delayed(_) => None
+        }
     }
 
     #[cfg(debug_assertions)]
@@ -47,25 +57,44 @@ impl PuzzleDependency {
     #[cfg(debug_assertions)]
     pub fn set_name(&mut self, name: &str) { *lock!(self.name) = name.to_string(); }
 
-    pub(super) fn none() -> PuzzleDependency {
+    pub(super) fn constant() -> PuzzleDependency {
         PuzzleDependency {
-             index: None,
+             index: PuzzleDependencyValue::Constant,
              #[cfg(debug_assertions)]
              name: Arc::new(Mutex::new("".to_string()))
         }
     }
 
-    pub(super) fn index(&self) -> Option<usize> { self.index }
+    pub(super) fn delayed(slot: &DelaySlot) -> PuzzleDependency {
+        PuzzleDependency {
+             index: PuzzleDependencyValue::Delayed(slot.clone()),
+             #[cfg(debug_assertions)]
+             name: Arc::new(Mutex::new("".to_string()))
+        }
+    }
+
+    pub(super) fn resolve(&self, builder: &PuzzleBuilder) -> Option<usize> {
+        match &self.index {
+            PuzzleDependencyValue::Constant => None,
+            PuzzleDependencyValue::Variable(x) => Some(*x),
+            PuzzleDependencyValue::Delayed(slot) => builder.get_delayed(&slot).resolve(builder)
+        }
+    }
 }
+
+#[cfg_attr(test,derive(Debug,PartialEq,Eq))]
+#[derive(Clone)]
+pub(super) struct DelaySlot(usize);
 
 identitynumber!(BIDS);
 
-#[derive(Clone)] // XXX not Clone
+#[derive(Clone)]
 pub struct PuzzleBuilder {
     pub bid: u64,
     readies: Arc<Mutex<Vec<Box<dyn FnOnce(&mut PuzzleBuilder) + 'static>>>>,
     graph: Arc<Mutex<PuzzleGraph>>,
-    pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>
+    pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>,
+    delayed: Arc<Mutex<Vec<Option<PuzzleDependency>>>>
 }
 
 impl PuzzleBuilder {
@@ -74,7 +103,8 @@ impl PuzzleBuilder {
             bid: BIDS.next(),
             graph: Arc::new(Mutex::new(PuzzleGraph::new())),
             pieces: Arc::new(Mutex::new(vec![])),
-            readies: Arc::new(Mutex::new(vec![]))
+            readies: Arc::new(Mutex::new(vec![])),
+            delayed: Arc::new(Mutex::new(vec![])),
         }
     }
 
@@ -82,8 +112,7 @@ impl PuzzleBuilder {
     pub fn new_piece<T: 'static>(&self) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
-        let dependency = PuzzleDependency::new(id);
-        let out = PuzzlePiece::new(&self.graph,dependency,|| None,self.bid);
+        let out = PuzzlePiece::new(&self.graph,id,|| None,self.bid);
         pieces.push(out.erased());
         out
     }
@@ -92,8 +121,7 @@ impl PuzzleBuilder {
     pub fn new_piece_default<T: Clone+'static>(&self, default: T) -> PuzzlePiece<T> {
         let mut pieces = lock!(self.pieces);
         let id = pieces.len();
-        let dependency = PuzzleDependency::new(id);
-        let out = PuzzlePiece::new(&self.graph,dependency,move || Some(default.clone()),self.bid);
+        let out = PuzzlePiece::new(&self.graph,id,move || Some(default.clone()),self.bid);
         pieces.push(out.erased());
         out
     }
@@ -107,6 +135,29 @@ impl PuzzleBuilder {
         for ready in readies {
             ready(self);
         }
+        for piece in lock!(self.pieces).iter_mut() {
+            piece.puzzle_ready(self);
+        }
+    }
+
+    pub(super) fn allocate_delayed(&self) -> DelaySlot {
+        let mut delayed = lock!(self.delayed);
+        let index = delayed.len();
+        delayed.push(None);
+        DelaySlot(index)
+    }
+
+    pub(super) fn set_delayed(&self, slot: &DelaySlot, value: PuzzleDependency) {
+        let mut delayed = lock!(self.delayed);
+        delayed[slot.0] = Some(value);
+    }
+
+    pub(super) fn get_delayed(&self, slot: &DelaySlot) -> PuzzleDependency {
+        let delayed = lock!(self.delayed);
+        if delayed[slot.0].is_none() {
+            panic!("delayed slot not populated");
+        }
+        delayed[slot.0].as_ref().unwrap().clone()
     }
 }
 
@@ -114,16 +165,9 @@ impl PuzzleBuilder {
 pub struct Puzzle(Arc<PuzzleBuilder>);
 
 impl Puzzle {
-    fn puzzle_ready(&self) {
-        for piece in lock!(self.0.pieces).iter_mut() {
-            piece.puzzle_ready();
-        }
-    }
-
     pub fn new(mut builder: PuzzleBuilder) -> Puzzle {
         builder.run_readies();
         let out = Puzzle(Arc::new(builder));
-        out.puzzle_ready();
         out
     }
 
@@ -136,10 +180,10 @@ hashable!(PuzzleSolution,id);
 pub struct PuzzleSolution {
     pub bid: u64,
     id: u64,
-    graph: Arc<Mutex<PuzzleGraph>>,
+    graph: PuzzleGraphReady,
     mapping: Vec<Option<AnswerIndex>>,
     pieces: Arc<Mutex<Vec<Box<dyn ErasedPiece>>>>,
-    just_answered: Vec<PuzzleDependency>,
+    just_answered: Vec<usize>,
     num_solved: usize
 }
 
@@ -148,7 +192,7 @@ impl PuzzleSolution {
         PuzzleSolution {
             bid: puzzle.0.bid,
             id: IDS.next(),
-            graph: puzzle.0.graph.clone(),
+            graph: PuzzleGraphReady::new(&puzzle.0,&*lock!(puzzle.0.graph)),
             mapping: vec![None;lock!(puzzle.0.pieces).len()],
             pieces: puzzle.0.pieces.clone(),
             just_answered: vec![],
@@ -159,7 +203,7 @@ impl PuzzleSolution {
     pub fn id(&self) -> u64 { self.id }
 
     #[cfg(test)]
-    pub(super) fn graph(&self) -> MutexGuard<PuzzleGraph> { lock!(self.graph) }
+    pub(super) fn graph(&self) -> &PuzzleGraphReady { &self.graph }
 
     /* only pub(super) for testing */
     pub(super) fn all_solved(&self) -> bool { self.num_solved == self.mapping.len() }
@@ -178,12 +222,24 @@ impl PuzzleSolution {
         }
     }
 
+    #[allow(unused)]
+    #[cfg(debug_assertions)]
+    fn count(&self) {
+        let mut counts = HashMap::new();
+        for piece in lock!(self.pieces).iter() {
+            *counts.entry(piece.name().to_string()).or_insert(0) += 1;
+        }
+        for (name,value) in &counts {
+            warn!("count: {} {}",name,*value);
+        }
+    }
+
     pub fn solve(&mut self) -> bool {
         let pieces = self.pieces.clone();
         for piece in lock!(pieces).iter_mut() {
             piece.apply_defaults(self,false);
         }
-        let mut solver = PuzzleSolver::new(self,lock!(self.graph).borrow());
+        let mut solver = PuzzleSolver::new(self,&self.graph);
         let from = now();
         solver.run(self);
         let took = now() - from;
@@ -193,28 +249,28 @@ impl PuzzleSolution {
         log_extra!("{} pieces, {} solved took {}ms id={}",self.mapping.len(),self.num_solved,took,self.id);
         #[cfg(debug_assertions)]
         self.confess();
+        #[cfg(debug_assertions)]
+        self.count();
         self.all_solved()
     }
 
-    pub(super) fn set_answer_index(&mut self, dependency: &PuzzleDependency, index: &AnswerIndex) -> bool {
-        let dependency_index = if let Some(index) = dependency.index { index } else { return false; };
-        if self.mapping[dependency_index].is_some() { return false; }
+    pub(super) fn set_answer_index(&mut self, dependency: usize, index: &AnswerIndex) -> bool {
+        if self.mapping[dependency].is_some() { return false; }
         self.num_solved += 1;
-        self.mapping[dependency_index] = Some(index.clone());
+        self.mapping[dependency] = Some(index.clone());
         true
     }
 
-    pub(super) fn get_answer_index(&self, dependency: &PuzzleDependency) -> Option<AnswerIndex> {
-        let dependency_index = if let Some(index) = dependency.index { index } else { return None; };
-        self.mapping[dependency_index].clone()
+    pub(super) fn get_answer_index(&self, dependency: usize) -> Option<AnswerIndex> {
+        self.mapping[dependency].clone()
     }
 
-    pub(super) fn is_solved(&self, dependency: &PuzzleDependency) -> bool { 
-        let dependency_index = if let Some(index) = dependency.index { index } else { return true; };
+    pub(super) fn is_solved(&self, dependency: &Option<usize>) -> bool { 
+        let dependency_index = if let Some(index) = dependency { *index } else { return true; };
         self.mapping[dependency_index].is_some()
     }
     pub(super) fn num_pieces(&self) -> usize{ lock!(self.pieces).len() }
-    pub(super) fn just_answered(&mut self) -> &mut Vec<PuzzleDependency> { &mut self.just_answered }
+    pub(super) fn just_answered(&mut self) -> &mut Vec<usize> { &mut self.just_answered }
 }
 
 impl Drop for PuzzleSolution {

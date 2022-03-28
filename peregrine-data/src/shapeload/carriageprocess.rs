@@ -51,6 +51,10 @@ impl CarriageProcess {
             .map_err(|errors| {
                DataMessage::CarriageUnavailable(self.extent.clone(),errors)
             })?;
+        match mode {
+            LoadMode::Network => { return Ok(()); },
+            _ => {}
+        }
         *lock!(self.shapes) = Some(CarriageShapes::new(&shapes));
         if let Some(lifecycle) = &self.try_lifecycle {
             lifecycle.set();
