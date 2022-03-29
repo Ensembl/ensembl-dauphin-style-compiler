@@ -20,7 +20,6 @@ fn height(puzzle: &PuzzleBuilder, child_height: &PuzzleValueHolder<f64>, tracked
 
 pub(crate) trait PadderSpecifics {
     fn cloned(&self) -> Box<dyn PadderSpecifics>;
-    fn add_child(&mut self, child: &dyn Stackable);
     fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64>;
 }
 
@@ -99,7 +98,6 @@ impl Padder {
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
-        self.specifics.add_child(child);
         lock!(self.children).push(child.cloned());
     }
 }
@@ -113,6 +111,8 @@ impl Stackable for Padder {
         let value = value.clone();
         self.top.set(&self.builder,value);
     }
+
+    fn name(&self) -> &AllotmentName { &self.name }
 
     fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize {
         let mut ranges = CommutingSequence::new(RangeUsed::None, |x,y| x.merge(&y));
@@ -138,6 +138,7 @@ impl Stackable for Padder {
         }
         self.height.set(&prep.puzzle,height.clone());
         BuildSize {
+            name: self.name.clone(),
             height,
             range: ranges.build(&prep.puzzle)
         }

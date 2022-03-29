@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, FoldValue, ConstantPuzzlePiece, CommutingSequence, DelayedPuzzleValue, compose2, build_puzzle_vec, DerivedPuzzlePiece}, lock, log};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize}};
 
@@ -93,6 +93,7 @@ impl UnpaddedStacker {
 
 impl Stackable for Stacker {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
@@ -105,10 +106,6 @@ impl Coordinated for Stacker {
 
 impl PadderSpecifics for UnpaddedStacker {
     fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
-
-    fn add_child(&mut self, child: &dyn Stackable) {
-        //StackableAddable::add_child(self,child,priority);
-    }
 
     fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
         let mut added = AddedChildren::new(&self.puzzle,&self.top);

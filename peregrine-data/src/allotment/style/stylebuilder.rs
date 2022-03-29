@@ -2,7 +2,7 @@ use std::{sync::{Arc}, collections::HashMap};
 
 use crate::{allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, boxes::{ stacker::Stacker, overlay::Overlay, bumper::Bumper }, boxes::{leaf::{FloatingLeaf}}, transformers::drawinginfo::DrawingInfo, stylespec::stylegroup::AllotmentStyleGroup, util::bppxconverter::BpPxConverter}, DataMessage, LeafRequest};
 
-use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
+use super::{holder::{ContainerHolder, LeafHolder}, allotmentname::{AllotmentNamePart, AllotmentName}, style::{ContainerAllotmentStyle, ContainerAllotmentType, LeafCommonStyle}};
 
 struct StyleBuilder<'a> {
     aligner: Aligner,
@@ -52,8 +52,8 @@ impl<'a> StyleBuilder<'a> {
         }
     }
 
-    fn new_floating_leaf(&self, container: &mut ContainerHolder,  info: &DrawingInfo, leaf_style: &LeafCommonStyle) -> Result<FloatingLeaf,DataMessage> {
-        let child = FloatingLeaf::new(&self.prep.puzzle,&self.converter,&leaf_style,info,&self.aligner);
+    fn new_floating_leaf(&self, name: &AllotmentNamePart, container: &mut ContainerHolder,  info: &DrawingInfo, leaf_style: &LeafCommonStyle) -> Result<FloatingLeaf,DataMessage> {
+        let child = FloatingLeaf::new(&self.prep.puzzle,name,&self.converter,&leaf_style,info,&self.aligner);
         container.add_leaf(&LeafHolder::Leaf(child.clone()),leaf_style);
         Ok(child)
     }
@@ -61,7 +61,7 @@ impl<'a> StyleBuilder<'a> {
     fn new_leaf(&mut self, name: &AllotmentNamePart, info: &DrawingInfo, styles: &AllotmentStyleGroup, leaf_style: &LeafCommonStyle) -> Result<LeafHolder,DataMessage> {
         Ok(if let Some((_,rest)) = name.pop() {
             let mut container = self.try_new_container(&rest,styles)?;
-            LeafHolder::Leaf(self.new_floating_leaf(&mut container,info,&leaf_style)?)
+            LeafHolder::Leaf(self.new_floating_leaf(name,&mut container,info,&leaf_style)?)
         } else {
             LeafHolder::Leaf(self.dustbin.clone())
         })
@@ -81,11 +81,12 @@ impl<'a> StyleBuilder<'a> {
 
 pub(crate) fn make_transformable(prep: &mut CarriageUniversePrep, converter: &Arc<BpPxConverter>, pendings: &mut dyn Iterator<Item=&LeafRequest>) -> Result<(),DataMessage> {
     let aligner = Aligner::new(&prep.root);
+    let dustbin_name = AllotmentNamePart::new(AllotmentName::new(""));
     let mut styler = StyleBuilder {
         root: ContainerHolder::Root(prep.root.clone()),
         leafs_made: HashMap::new(),
         containers_made: HashMap::new(),
-        dustbin: FloatingLeaf::new(&prep.puzzle,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&aligner),
+        dustbin: FloatingLeaf::new(&prep.puzzle,&dustbin_name,converter,&LeafCommonStyle::dustbin(),&DrawingInfo::new(),&aligner),
         aligner: aligner.clone(),
         converter: converter.clone(),
         prep

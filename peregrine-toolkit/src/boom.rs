@@ -1,7 +1,12 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-/* hide some of the horrible inefficeincies of Rust BTrees */
+/* Boom is a BTree(i64->f64) implementation which wraps Rust's native BTree implementation to hide some
+ * horrible inefficiencies. As well as the usual operations (insert, remove, all), there is an unusual 
+ * pseudo-iterator, BoomCursorMut. As well as a next() method, it has rewind() which efficiently goes to the
+ * entry *before* the current position. One of these iterators can be placed at the start() or at some key.
+ * All these methods are present in Rust's btreemapbut are horribly inefficient.
+ */
 
 #[derive(Debug)]
 enum BoomCursorLocation {

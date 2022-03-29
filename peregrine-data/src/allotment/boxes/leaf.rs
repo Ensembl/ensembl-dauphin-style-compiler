@@ -2,7 +2,7 @@ use std::{sync::{Arc}};
 
 use peregrine_toolkit::{puzzle::{PuzzleSolution, PuzzleValueHolder, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant, DerivedPuzzlePiece}};
 
-use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
+use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::LeafCommonStyle, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
@@ -24,6 +24,7 @@ fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>
 #[derive(Clone)]
 pub struct FloatingLeaf {
     builder: PuzzleBuilder,
+    name: AllotmentName,
     statics: Arc<LeafCommonStyle>,
     pixel_range_piece: DelayedConstant<RangeUsed<f64>>,
     base_range_piece: DelayedConstant<RangeUsed<f64>>,
@@ -36,7 +37,7 @@ pub struct FloatingLeaf {
 }
 
 impl FloatingLeaf {
-    pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
+    pub fn new(puzzle: &PuzzleBuilder, name: &AllotmentNamePart, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
         let drawing_info = Arc::new(drawing_info.clone());
         let base_range_piece = DelayedConstant::new();
         let pixel_range_piece = DelayedConstant::new();
@@ -55,6 +56,7 @@ impl FloatingLeaf {
         };
         let indent = aligner.get(puzzle,&statics.indent);
         FloatingLeaf {
+            name: AllotmentName::from_part(name),
             builder: puzzle.clone(),
             statics: Arc::new(statics.clone()),
             converter: PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone())), // kept in puzzle because SHOULD be variable
@@ -86,6 +88,7 @@ impl Stackable for FloatingLeaf {
 
     fn priority(&self) -> i64 { self.statics.priority }
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn name(&self) -> &AllotmentName { &self.name }
     fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.top_value.clone() }
 
     fn build(&mut self, _prep: &mut CarriageUniversePrep) -> BuildSize {
@@ -93,6 +96,7 @@ impl Stackable for FloatingLeaf {
         self.base_range_piece.set(self.drawing_info.base_range().clone());
         self.max_y_piece.set(self.drawing_info.max_y());
         BuildSize {
+            name: self.name.clone(),
             height: PuzzleValueHolder::new(self.max_y_piece.clone()),
             range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&self.converter)
         }

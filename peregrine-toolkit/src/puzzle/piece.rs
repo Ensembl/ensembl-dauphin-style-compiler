@@ -1,6 +1,6 @@
 use std::{sync::{Arc, Mutex}, mem};
 
-use crate::lock;
+use crate::{ lock, error };
 
 use super::{puzzle::{PuzzleSolution, PuzzleDependency}, graph::PuzzleGraph, answers::{Answers, AnswerIndex}, PuzzleBuilder,};
 
@@ -141,6 +141,15 @@ impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
         #[cfg(any(debug_assertions,test))]
         self.answers.check_for_aliens(solution.bid,&lock!(self.name));
         index.and_then(|index| self.answers.get(&index))
+    }
+
+    #[cfg(debug_assertions)]
+    fn get(&self, solution: &PuzzleSolution) -> Arc<T> {
+        let out = self.try_get(solution);
+        if out.is_none() {
+            error!("get on undefined: {}",lock!(self.name));
+        }
+        out.unwrap()
     }
 
     fn known_constant_value(&self) -> Option<Arc<T>> { None }

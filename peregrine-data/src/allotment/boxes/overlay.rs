@@ -1,6 +1,6 @@
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence}};
 
-use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize }};
 
@@ -38,6 +38,7 @@ impl Coordinated for Overlay {
 
 impl Stackable for Overlay {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
@@ -46,10 +47,6 @@ impl Stackable for Overlay {
 
 impl PadderSpecifics for UnpaddedOverlay {
     fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
-
-    fn add_child(&mut self, child: &dyn Stackable) {
-        //StackableAddable::add_child(self,child,priority);
-    }
 
     fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
         let mut max_height = CommutingSequence::new(0.,|a,b| { f64::max(*a,*b) });

@@ -1,9 +1,34 @@
-use std::fmt::Debug;
-
-/* We don't need any of bplustree's fancy locking, but it's themost complete B+ Tree impl for rust. If those locks
- * slow things down too much, we might need to roll our own. The opswe would need would be:
- * goto-first; prev; next; seek; insert; delete.
+/* A Watermark is the core data-structure of bumping. It maintains a piecewise-continuous maximum value along
+ * a discrete dimension (i64). Initially this maximum is zero everywhere but pieces can be added to it. A piece
+ * comprises a range along the dimension and a height. The height of the waterline is set so that the height in
+ * the range supplied is set to the maximum existing value in that range plus the height given. The watermark 
+ * also keeps track ofthe maximum value used anywhere. Because of the nature of bumping, these maximums are
+ * usually best imagined being in the "down" direction. For exmaple watermark might do:
+ * 
+ *   0       3        6        10   11
+ * 0---------+                       +-------
+ * 1         |                  +----+
+ * 2         +--------+         |                <-- BEFORE
+ * 3                  |         |
+ * 4                  +---------+
+ * 
+ * Add (5-8) height 2
+ * 
+ *   0       3     5      8    10   11
+ * 0---------+                       +-------
+ * 1         |                  +----+
+ * 2         +-----+            |                <-- AFTER
+ * 3               |            |
+ * 4               |      +-----+
+ * 5               |      |
+ * 6               +------+
+ * 
+ * Internally a range is known as a "node" and is stored at its leftmost position. For example in the above
+ * example, BEFORE has nodes at 0, 3, 6, 10, 11 and those nodes have height 0, 2, 4, 1, 0. Note that a node
+ * does not have an end, it remains in-force until superseded by another node.
  */
+
+use std::fmt::Debug;
 
 use crate::boom::{Boom, BoomCursorMut};
 
@@ -30,24 +55,28 @@ impl<'a> WatermarkRequest<'a> {
         }
     }
 
-    /* Investigate the node before the place we will put start (if any), recording any pertainent information for later.
-     * Present or not, leave the iterator such that iter.next() will return the first node at or after start.
+    /* Investigate the node immediately before our intended start (if any), recording any relevant information
+     * for later. Whether such a node is present or not, leave the iterator such that iter.next() will 
+     * return the first node at or after out intended start.
      * 
-     * We care about the height of this pre-node, if any, for three reasons.
+     * We care about the height of this previous node, if any, for three reasons.
      * 
-     * 1. Unless there is an node already at start, this will be a contender for the maxiumum height in the region, 
-     * overlapping a new allocation from the left, so we record this in self.max_existing_heiight. If there does turn out
-     * to be a node at exactly start, we find out about it later and reset its value to zero.
+     * 1. Unless an existing node is at our intended start, the previous node will affect the existing maxiumum
+     * height in the region, overlapping a new allocation from the left, so we record this in 
+     * self.max_existing_heiight. If there does turn out to be a node at exactly at our intended start, we find
+     * out about it later and reset self.max_existing_height value to zero before it is futher changed.
      * 
-     * 2. After we have finished, unless there is a new start at our end, we need to re-esebalish the last prevailing
-     * height in the region, being the last to start underneath it. If no such region exists, we must reestablish the
-     * height before our region started, so wer record it in self.final_masked_height, overridden by any later node.
+     * 2. At our intended end, unless there is a new start at exactly that position, we need to re-esebalish
+     * the last pre-existing height in the region, being the last node under our intended locaiont. If no such
+     * node exists, we must reestablish the height before our allocation started, so we record it in 
+     * self.final_masked_height, overridden by any node to the right, under our allocation.
      * 
-     * 3. If the height of this node matches the ultimately determined height of our new region we don't need to insert
-     * a new entry, we just let it run on. To test for this, self.pre_start_height is set.
+     * 3. If the height of this preceding node matches the ultimately determined height of our new node we 
+     * don't need to insert a new entry, we just let the existing node run on. To test for this, 
+     * self.pre_start_height is set.
      */
      fn investigate_pre_start(&mut self) {
-        if let Some((prev_start,prev_height)) = self.iter.rewind() {
+        if let Some((_,prev_height)) = self.iter.rewind() {
             /* there is a node before start */
             self.iter.next();
             self.max_existing_height = prev_height;
@@ -56,31 +85,35 @@ impl<'a> WatermarkRequest<'a> {
         }
     }
 
-    /* Advance the iterator looking for nodes to remove and remove them if we should, updating any internal variables
-     * as necessary.
+    /* Advance the iterator under our intended region, looking for existing nodes to remove, removing them if we should,
+     * updating any internal variables as necessary. This method does one step of that process.
      * 
-     * In detail, we schedule for removal those nodes which start before our end. In this case we need to update three
-     * things:
+     * Where a node is to be removed (because it sits under our new region):
      * 
-     * 1. This node has a height and overlaps our target region, so self.max_existing_height needs updating to take that
-     * into account, if necessary.
+     * 1. The removed node ndecssarily has a height and overlaps our target region, so self.max_existing_height
+     * needs updating to take that into account, if necessary.
      * 
-     * 2. This could be the last start in our resion and so be the value which we may need to reestablish at our end,
-     * when we are done. To allow for this, we update self.final_masked_height.
+     * 2. If this is the last start in our intended region, this will be the height to reestablish at the end
+     * of our intended region, when we are done. To allow for this, we update self.final_masked_height.
      * 
-     * 3. We assumed at the start that there would be some overlap between the pre-start node (if any) and our region.
-     * If the existing allocations actually already had a node starting at start, coincident with the new node, then the
-     * previous region doesn't matter. To guard for this, if this node is at the start self.max_existing_height is reset.
+     * 3. We assumed in investigate_pre_start() that there would be some overlap between that pre-start node (if
+     * any) and our intended region. But if there is already a node at exactly our start, coincident with the
+     * new node, then the height of the previous region doesn't matter. To effect this, if a node is found at
+     * our intended start, self.max_existing_height is reset to zero from the value in investigate_pre_start().
      * 
-     * If we actually find a node at or after our end, there are two things we need to check about it:
+     * This function runs on to one node at-or-after our new region (but doesn't remove it). When it encounters
+     * that node (if any):
      * 
-     * 1. We need to record its position. If it is co-incident with our end, we don't add an end range to the map for
-     * our region because a new region starts immediately.
+     * 1. If this node is *at* our end rather than *after*, we don't add a new node at our end to establish the
+     * pre-existing height.
      * 
-     * 2. Otherwise, if its height matches the height we wish to reestablish at end, though we do need to add our new
-     * end position, we can delete this later node.
+     * 2. If, however, the node is *after* our end, we certainly do need to insert an end node. *However* if that
+     * existing node is thesame height as our end then that node is deleted. In effect, we "shift" it back to our
+     * end position.
      * 
-     * To achieve these later, the position and height of this node, whereit exists, are recorded in self.after_end.
+     * We don't do either of these operations, but we record the position and height of this node, where it
+     * exists in self.after_end, ready for use. This method doesn't actually do any deleting! It returns the
+     * index of the node to be removed (if any). The loop does the deletion.
      */
     fn remove_one_old(&mut self) -> Option<i64> {
         if let Some((next_start,next_height)) = self.iter.next() {
@@ -101,15 +134,15 @@ impl<'a> WatermarkRequest<'a> {
         None
     }
 
-    /* call remove_one_old until it yields no more.*/
+    /* Loop calling remove_one_old() until it yields no more. See comment on that method for details. */
     fn remove_to_end(&mut self) {
         while let Some(remove) = self.remove_one_old() {
             self.iter.tree().remove(remove);
         }
     }
 
-    /* Now we know the final height, we must fixup the map: here relating to the region start.
-     * We insert a start node unless our height matches the height of the previous node.
+    /* Insert node at "our" start of calculated final height, unless the pre_start node identified in
+     * investigate_pre_start() matches (inwhich case, that range runs on).
      */
     fn update_map_start(&mut self, new_height: f64) {
         if new_height != self.pre_start_height {
@@ -117,33 +150,36 @@ impl<'a> WatermarkRequest<'a> {
         }
     }
 
-    /* We probably need to add the previous final at our end position to re-establish it. Complexities:
-     * a. If the next value is at end and matches our new height, delete it and we are done.
-     * b. Otherwise, if there is such a value, leave it be.
-     * c. If there is no value, establish the resored value at end.
-     * d. If the subsequent value matches the newly-established value, delete that subsequent value.
+    /* Do "the right thing" at the end of our range. The right thing is one of:
+     * a. If the next node is directly *at* our end, and *matches* our new height, delete it and we are done.
+     * b. Otherwise, if there is a node *at* our end, leave it be.
+     * c. If there is no node directly *at* our end, add a node *at* end set to the correct height.
+     * d. Following (c), if the subsequent node height (if any) matches the correct height, delete that node.
      */
     fn update_map_end(&mut self, new_height: f64) {
         if let Some((after_start,after_height)) = self.after_pos {
+            /* There *is* a node after ours */
             if after_start == self.end {
-                /* cases a&b */
+                /* cases a&b: the node is *at* our end */
                 if new_height == after_height {
-                    /* case a */
+                    /* case a: it matches the new intended height */
                     self.iter.tree().remove(after_start);
                 }
                 return;
             }
         }
-        /* cases c&d */
+        /* cases c&d: no node directly *at* our end, add it */
         self.iter.tree().insert(self.end,self.final_masked_height);
         if let Some((after_start,after_height)) = self.after_pos {
+            /* There *is* a node after ours */
             if after_height == self.final_masked_height {
-                /* case d */
+                /* case d: node after ours hassame height, delete it. */
                 self.iter.tree().remove(after_start);
             }
         }
     }
 
+    /* The only method other than the constructor called externally! */
     fn add(&mut self) -> f64 {
         self.investigate_pre_start();
         self.remove_to_end();

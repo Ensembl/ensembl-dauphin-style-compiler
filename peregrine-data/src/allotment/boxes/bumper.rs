@@ -1,6 +1,8 @@
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder}};
+use std::sync::Arc;
 
-use crate::{allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed, collisionalgorithm::{CollisionToken, CollisionAlgorithmHolder}}}, CoordinateSystem};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, DerivedPuzzlePiece}};
+
+use crate::{allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed, collisionalgorithm::{CollisionAlgorithmHolder}}}, CoordinateSystem};
 
 use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize}};
 
@@ -23,6 +25,7 @@ impl Coordinated for Bumper {
 
 impl Stackable for Bumper {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
@@ -31,10 +34,10 @@ impl Stackable for Bumper {
 
 #[derive(Clone)]
 struct BumpItem {
+    name: AllotmentName,
     range: PuzzleValueHolder<RangeUsed<f64>>,
     height: PuzzleValueHolder<f64>,
-    top: PuzzlePiece<f64>,
-    token: PuzzlePiece<CollisionToken>
+    top: PuzzlePiece<f64>
 }
 
 #[derive(Clone)]
@@ -63,54 +66,46 @@ impl UnpaddedBumper {
 impl PadderSpecifics for UnpaddedBumper {
     fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
 
-    fn add_child(&mut self, child: &dyn Stackable) {
-        //StackableAddable::add_child(self,child,priority);
-    }
-
     fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+        let mut dependencies = vec![self.algorithm.dependency()];
         let mut items = vec![];
         for (child,size) in children {
             let mut child_top = self.puzzle.new_piece();
             #[cfg(debug_assertions)]
             child_top.set_name("bumper/child_top");
-            let mut token = self.puzzle.new_piece();
-            #[cfg(debug_assertions)]
-            token.set_name("bumper/token");
             let child_top2 = child_top.clone();
             items.push(BumpItem {
+                name: size.name.clone(),
                 range: size.range.clone(),
                 height: size.height.clone(),
-                top: child_top,
-                token
+                top: child_top
             });
             child.set_top(&PuzzleValueHolder::new(child_top2.clone()));
+            dependencies.push(size.range.dependency());
+            dependencies.push(size.height.dependency());
         }
-        let mut dependencies = vec![];
-        for item in &*items {
-            let algorithm = self.algorithm.clone();
-            let algorithm2 = algorithm.clone();
-            let item2 = item.clone();
-            item.token.add_solver(&[algorithm.dependency(),item.range.dependency(),item.height.dependency()], move |solution| {
-                let algorithm = &algorithm2.get(solution);
-                Some(algorithm.add_entry(&item2.range.get_clone(solution),item2.height.get_clone(solution)))
-            });
-            dependencies.push(item.token.dependency());
-        }
-        dependencies.push(self.algorithm.dependency());
-        let algorithm2 = self.algorithm.clone();
+        let all_items = Arc::new(items);
+        let all_items2 = all_items.clone();
         let mut solved = self.puzzle.new_piece();
+        let algorithm = self.algorithm.clone();
         #[cfg(debug_assertions)]
         solved.set_name("bumper/solved");
         solved.add_solver(&dependencies, move |solution| {
-            Some(algorithm2.get(solution).bump())
+            let algorithm = algorithm.get(solution);
+            for item in all_items2.iter() {
+                algorithm.add_entry(&item.name,&item.range.get_clone(solution),item.height.get_clone(solution));
+            }
+            algorithm.bump();
+            Some(algorithm)
         });
-        for item in &*items {
+        for item in all_items.iter() {
             let item2 = item.clone();
             let our_top2 = self.our_top.clone();
-            item.top.add_solver(&[self.our_top.dependency(),item.token.dependency(),solved.dependency()], move |solution| {
-                Some(our_top2.get_clone(solution) + item2.token.get(solution).get())
+            let algorithm = self.algorithm.clone();
+            item.top.add_solver(&[self.our_top.dependency(),solved.dependency()], move |solution| {
+                Some(our_top2.get_clone(solution) + algorithm.get(solution).get(&item2.name))
             });
         }
-        PuzzleValueHolder::new(solved)
+        PuzzleValueHolder::new(DerivedPuzzlePiece::new(solved, |solved| solved.height()))
     }
 }
