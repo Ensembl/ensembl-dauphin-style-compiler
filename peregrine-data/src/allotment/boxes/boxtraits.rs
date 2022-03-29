@@ -2,35 +2,26 @@ use std::sync::Arc;
 
 use peregrine_toolkit::puzzle::{PuzzleValueHolder, PuzzleBuilder, PuzzleValue, ClonablePuzzleValue, PuzzleSolution};
 
-use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}}, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{transformers::transformers::{Transformer}, style::{style::{LeafCommonStyle}}, util::rangeused::RangeUsed, core::carriageuniverse::CarriageUniversePrep}, CoordinateSystem};
 
 pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;
 }
 
-pub trait Stackable : Coordinated {
+pub(crate) struct BuildSize {
+    pub height: PuzzleValueHolder<f64>,
+    pub range: PuzzleValueHolder<RangeUsed<f64>>
+}
+
+pub(crate) trait Stackable : Coordinated {
+    fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize;
+
     fn set_top(&self, value: &PuzzleValueHolder<f64>);
-    fn height(&self) -> PuzzleValueHolder<f64>;
+    fn priority(&self) -> i64;
 
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64>;
 
-    fn bottom_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
-        let mut piece = puzzle.new_piece();
-        #[cfg(debug_assertions)]
-        piece.set_name("bottom_anchor");
-        let top = self.top_anchor(puzzle);
-        let height = self.height();
-        piece.add_solver(&[top.dependency(),height.dependency()],move |solution| {
-            Some(top.get_clone(solution) + height.get_clone(solution))
-        });
-        PuzzleValueHolder::new(piece)
-    }
-
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>>;
-}
-
-pub trait StackableAddable {
-    fn add_child(&mut self, child: &dyn Stackable, priority: i64);
+    fn cloned(&self) -> Box<dyn Stackable>;
 }
 
 pub trait Transformable {

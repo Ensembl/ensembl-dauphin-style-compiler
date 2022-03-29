@@ -20,8 +20,9 @@ impl<T: 'static,U> DerivedPuzzlePiece<T,U> {
 }
 
 impl<T: 'static,U: 'static> PuzzleValue<U> for DerivedPuzzlePiece<T,U> {
-    fn dependency(&self) -> PuzzleDependency {
-        self.value.dependency()
+    fn dependency(&self) -> PuzzleDependency { self.value.dependency() }
+    fn known_constant_value(&self) -> Option<Arc<U>> { 
+        self.value.known_constant_value().map(|v| Arc::new((self.callback)(&v)) )
     }
 
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<U>> {
@@ -45,6 +46,7 @@ impl<T: Clone> Clone for ConstantPuzzlePiece<T> {
 
 impl<T: 'static> PuzzleValue<T> for ConstantPuzzlePiece<T> {
     fn dependency(&self) -> PuzzleDependency { PuzzleDependency::constant() }
+    fn known_constant_value(&self) -> Option<Arc<T>> { Some(self.0.clone()) }
 
     fn try_get(&self, _solution: &PuzzleSolution) -> Option<Arc<T>> {
         Some(self.0.clone())
@@ -72,6 +74,7 @@ impl<T: Clone> Clone for DelayedPuzzleValue<T> {
 
 impl<T: 'static> PuzzleValue<T> for DelayedPuzzleValue<T> {
     fn dependency(&self) -> PuzzleDependency { PuzzleDependency::delayed(&self.0) }
+    fn known_constant_value(&self) -> Option<Arc<T>> { lock!(self.1).as_ref().and_then(|c| c.known_constant_value()) }
 
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> {
         lock!(self.1).as_ref().and_then(|x| x.try_get(solution))
@@ -98,6 +101,7 @@ impl<T:Clone> Clone for DelayedConstant<T> {
 
 impl<T: 'static> PuzzleValue<T> for DelayedConstant<T> {
     fn dependency(&self) -> PuzzleDependency { PuzzleDependency::constant() }
+    fn known_constant_value(&self) -> Option<Arc<T>> { lock!(self.0).as_ref().cloned() }
 
     fn try_get(&self, _solution: &PuzzleSolution) -> Option<Arc<T>> {
         lock!(self.0).as_ref().cloned()

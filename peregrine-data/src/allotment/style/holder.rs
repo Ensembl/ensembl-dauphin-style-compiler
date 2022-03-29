@@ -19,7 +19,7 @@ impl ContainerHolder {
                 root.add_child(leaf);
             },
             (ContainerHolder::Stack(stack),LeafHolder::Leaf(leaf)) => {
-                stack.add_child(leaf,style.priority);
+                stack.add_child(leaf);
             },
             (ContainerHolder::Overlay(overlay),LeafHolder::Leaf(leaf)) => {
                 overlay.add_child(leaf);
@@ -51,7 +51,7 @@ impl ContainerHolder {
                 parent.add_child(container.stackable()?);            
             },
             ContainerHolder::Stack(parent) => {
-                parent.add_child(container.stackable()?,style.priority);
+                parent.add_child(container.stackable()?);
             }
         }
         Ok(())

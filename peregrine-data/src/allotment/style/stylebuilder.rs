@@ -98,6 +98,7 @@ pub(crate) fn make_transformable(prep: &mut CarriageUniversePrep, converter: &Ar
         let xformable = styler.try_new_leaf(&parts,&info,&styles,&leaf_style)?.into_tranfsormable();
         pending.set_transformable(&mut styler.prep.plm,xformable);
     }
+    prep.root.clone().build(prep);
     prep.height_tracker.build();
     Ok(())
 }
@@ -108,7 +109,7 @@ mod test {
 
     use peregrine_toolkit::puzzle::{PuzzleBuilder, Puzzle, PuzzleSolution};
 
-    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, aligner::Aligner, leafrequest::LeafRequestMap, carriageuniverse::CarriageUniversePrep}, boxes::root::Root, style::{allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
+    use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadata}, carriageuniverse::CarriageUniversePrep}, style::{allotmentname::AllotmentName, holder::ContainerHolder, stylebuilder::make_transformable}, stylespec::{stylegroup::AllotmentStyleGroup, styletreebuilder::StyleTreeBuilder, styletree::StyleTree}, util::{bppxconverter::BpPxConverter, rangeused::RangeUsed}}, LeafRequest};
 
     fn make_pendings(names: &[&str], heights: &[f64], pixel_range: &[RangeUsed<f64>], style: &AllotmentStyleGroup) -> Vec<LeafRequest> {
         let heights = if heights.len() > 0 {

@@ -1,65 +1,51 @@
 use std::{sync::{Arc}};
 
-use peregrine_toolkit::{puzzle::{PuzzleSolution, PuzzleValueHolder, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant}};
+use peregrine_toolkit::{puzzle::{PuzzleSolution, PuzzleValueHolder, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant, DerivedPuzzlePiece}};
 
-use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
+use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::style::LeafCommonStyle, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
-use super::{boxtraits::{Stackable, Transformable, Coordinated }};
+use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
-fn full_range_piece(puzzle: &PuzzleBuilder, coord_system: &CoordinateSystem, base_range: &DelayedConstant<RangeUsed<f64>>, pixel_range: &DelayedConstant<RangeUsed<f64>>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
+// TODO ranged bppxconverter
+fn full_range_piece(coord_system: &CoordinateSystem, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> {
     let base_range = base_range.clone();
     let pixel_range = pixel_range.clone();
     let bp_px_converter = bp_px_converter.clone();
     let coord_system = coord_system.clone();
-    let mut piece = puzzle.new_piece_default(RangeUsed::None);
-    #[cfg(debug_assertions)]
-    piece.set_name("leaf/full_range_piece");
-    piece.add_solver(&[base_range.dependency(),pixel_range.dependency(),bp_px_converter.dependency()],move |solution| {
-        let base_range = base_range.get_clone(solution);
-        let pixel_range = pixel_range.get_clone(solution);
-        let bp_px_converter = bp_px_converter.get_clone(solution);
-        Some(if coord_system.is_tracking() {
+    PuzzleValueHolder::new(DerivedPuzzlePiece::new(bp_px_converter,move |bp_px_converter| {
+        if coord_system.is_tracking() {
             bp_px_converter.full_pixel_range(&base_range,&pixel_range)
         } else {
-            pixel_range
-        })
-    });
-    PuzzleValueHolder::new(piece)
+            pixel_range.clone()
+        }
+    }))
 }
 
 #[derive(Clone)]
 pub struct FloatingLeaf {
     builder: PuzzleBuilder,
     statics: Arc<LeafCommonStyle>,
-    full_range_piece: PuzzleValueHolder<RangeUsed<f64>>,
-    max_y_piece: PuzzleValueHolder<f64>,
+    pixel_range_piece: DelayedConstant<RangeUsed<f64>>,
+    base_range_piece: DelayedConstant<RangeUsed<f64>>,
+    converter: PuzzleValueHolder<Arc<BpPxConverter>>,
+    max_y_piece: DelayedConstant<f64>,
     top: Option<DelayedPuzzleValue<f64>>,
     top_value: PuzzleValueHolder<f64>,
-    indent: PuzzleValueHolder<f64>
+    indent: PuzzleValueHolder<f64>,
+    drawing_info: Arc<DrawingInfo>
 }
 
 impl FloatingLeaf {
     pub fn new(puzzle: &PuzzleBuilder, converter: &Arc<BpPxConverter>, statics: &LeafCommonStyle, drawing_info: &DrawingInfo, aligner: &Aligner) -> FloatingLeaf {
-        let converter = PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone()));
         let drawing_info = Arc::new(drawing_info.clone());
-        let drawing_info2 = drawing_info.clone();
         let base_range_piece = DelayedConstant::new();
-        let piece = base_range_piece.clone();
-        puzzle.add_ready(move |_| {
-            piece.set(drawing_info2.base_range().clone());
-        });
         let pixel_range_piece = DelayedConstant::new();
-        let piece = pixel_range_piece.clone();
-        let drawing_info2 = drawing_info.clone();
-        puzzle.add_ready(move |_| {
-            piece.set(drawing_info2.pixel_range().clone());
-        });
         let max_y_piece = DelayedConstant::new();
-        let piece = max_y_piece.clone();
-        let drawing_info2 = drawing_info.clone();
-        puzzle.add_ready(move |_| {
-            piece.set(drawing_info2.max_y());
-        });
+        if statics.coord_system.is_dustbin() {
+            base_range_piece.set(RangeUsed::None);
+            pixel_range_piece.set(RangeUsed::None);
+            max_y_piece.set(0.);
+        }
         let (top,top_value) = if statics.coord_system.is_dustbin() {
             (None,PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)))
         } else {
@@ -67,16 +53,25 @@ impl FloatingLeaf {
             let top_value = PuzzleValueHolder::new(top.clone());
             (Some(top),top_value)
         };
-        let full_range_piece = full_range_piece(
-            puzzle,
-            &statics.coord_system,&base_range_piece,&pixel_range_piece,&converter);
         let indent = aligner.get(puzzle,&statics.indent);
         FloatingLeaf {
             builder: puzzle.clone(),
             statics: Arc::new(statics.clone()),
-            max_y_piece: PuzzleValueHolder::new(max_y_piece),
-            full_range_piece, indent,
-            top, top_value
+            converter: PuzzleValueHolder::new(ConstantPuzzlePiece::new(converter.clone())), // kept in puzzle because SHOULD be variable
+            max_y_piece,
+            indent, pixel_range_piece, base_range_piece,
+            top, top_value,
+            drawing_info
+        }
+    }
+
+    fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> { 
+        let full_range_piece = full_range_piece(
+            &self.statics.coord_system,&base_range,&pixel_range,bp_px_converter);
+        if self.statics.coord_system.is_tracking() {
+            full_range_piece.clone()
+        } else {
+            PuzzleValueHolder::new(ConstantPuzzlePiece::new(RangeUsed::None))
         }
     }
 }
@@ -89,15 +84,17 @@ impl Stackable for FloatingLeaf {
         }
     }
 
-    fn height(&self) -> PuzzleValueHolder<f64> { self.max_y_piece.clone() }
-
+    fn priority(&self) -> i64 { self.statics.priority }
+    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.top_value.clone() }
 
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { 
-        if self.statics.coord_system.is_tracking() {
-            self.full_range_piece.clone()
-        } else {
-            PuzzleValueHolder::new(ConstantPuzzlePiece::new(RangeUsed::None))
+    fn build(&mut self, _prep: &mut CarriageUniversePrep) -> BuildSize {
+        self.pixel_range_piece.set(self.drawing_info.pixel_range().clone());
+        self.base_range_piece.set(self.drawing_info.base_range().clone());
+        self.max_y_piece.set(self.drawing_info.max_y());
+        BuildSize {
+            height: PuzzleValueHolder::new(self.max_y_piece.clone()),
+            range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&self.converter)
         }
     }
 }

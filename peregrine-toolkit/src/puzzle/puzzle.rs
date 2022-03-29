@@ -213,7 +213,7 @@ impl PuzzleSolution {
         let mut names = HashSet::new();
         for piece in lock!(self.pieces).iter() {
             if !piece.is_solved(self) {
-                names.insert(piece.erased_dependency().name().to_string());
+                names.insert(piece.name().to_string());
             }
         }
         #[cfg(warn_missing_piece)]

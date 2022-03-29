@@ -23,7 +23,7 @@ pub mod puzzle {
     pub use puzzle::{ Puzzle, PuzzleBuilder, PuzzleSolution, PuzzleDependency };
     pub use derived::{ DerivedPuzzlePiece, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant };
     pub use piece::{ PuzzlePiece, PuzzleValue, ClonablePuzzleValue, PuzzleValueHolder };
-    pub use util::{ FoldValue };
+    pub use util::{ FoldValue, CommutingSequence, compose2, build_puzzle_vec };
 }
 
 pub mod boom;

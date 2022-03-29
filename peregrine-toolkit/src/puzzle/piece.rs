@@ -9,7 +9,6 @@ pub(super) trait ErasedPiece {
     fn finish(&self, index: &AnswerIndex);
     fn apply_defaults(&mut self, solution: &mut PuzzleSolution, post: bool);
     fn is_solved(&self, solution: &PuzzleSolution) -> bool;
-    fn erased_dependency(&self) -> PuzzleDependency;
 
     #[cfg(debug_assertions)]
     fn name(&self) -> String;
@@ -18,6 +17,7 @@ pub(super) trait ErasedPiece {
 pub trait PuzzleValue<T: 'static> {
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>>;
     fn get(&self, solution: &PuzzleSolution) -> Arc<T> { self.try_get(solution).unwrap() }
+    fn known_constant_value(&self) -> Option<Arc<T>>;
     fn dependency(&self) -> PuzzleDependency;
 }
 
@@ -41,8 +41,8 @@ impl<T: 'static> PuzzleValueHolder<T> {
 
 impl<T: 'static> PuzzleValue<T> for PuzzleValueHolder<T> {
     fn try_get(&self, solution: &PuzzleSolution) -> Option<Arc<T>> { self.0.try_get(solution) }
-
     fn dependency(&self) -> PuzzleDependency { self.0.dependency() }
+    fn known_constant_value(&self) -> Option<Arc<T>> { self.0.known_constant_value() }
 }
 
 impl<T: 'static+ Clone> ClonablePuzzleValue<T> for PuzzleValueHolder<T> {}
@@ -143,6 +143,7 @@ impl<T: 'static> PuzzleValue<T> for PuzzlePiece<T> {
         index.and_then(|index| self.answers.get(&index))
     }
 
+    fn known_constant_value(&self) -> Option<Arc<T>> { None }
     fn dependency(&self) -> PuzzleDependency { PuzzleDependency::variable(self.dependency) }
 }
 
@@ -173,8 +174,6 @@ impl<T: 'static> ErasedPiece for PuzzlePiece<T> {
 
     #[cfg(debug_assertions)]
     fn name(&self) -> String { lock!(self.name).to_string() }
-
-    fn erased_dependency(&self) -> PuzzleDependency { PuzzleDependency::variable(self.dependency) }
 }
 
 #[cfg(test)]
@@ -228,7 +227,7 @@ mod text {
         let flag = Arc::new(Mutex::new(false));
         let p1 : PuzzlePiece<()> = builder.new_piece();
         let flag2 = flag.clone();
-        p1.add_ready(move |p,_| {
+        p1.add_ready(move |_,_| {
             *lock!(flag2) = true;
         });
         assert_eq!(false,*lock!(flag));

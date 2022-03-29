@@ -1,57 +1,34 @@
-use std::sync::{Arc, Mutex};
-
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder}, lock};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence}};
 
 use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo}, boxtraits::{Coordinated, StackableAddable }};
+use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize }};
 
 #[derive(Clone)]
-pub struct Overlay(Padder<UnpaddedOverlay>);
+pub struct Overlay(Padder);
 
 impl Overlay {
     pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Overlay {
-        Overlay(Padder::new(prep,name,style,aligner,|prep,info| UnpaddedOverlay::new(&prep.puzzle,info)))
+        Overlay(Padder::new(prep,name,style,aligner,|prep,info| Box::new(UnpaddedOverlay::new(&prep.puzzle,info))))
     }
 
-    pub fn add_child(&mut self, child: &dyn Stackable) {
-        self.0.add_child(child,0)
+    pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
+        self.0.add_child(child)
     }
 }
 
 #[derive(Clone)]
 struct UnpaddedOverlay {
-    info: PadderInfo,
-    kid_heights: Arc<Mutex<Vec<PuzzleValueHolder<f64>>>>,
+    puzzle: PuzzleBuilder,
+    info: PadderInfo
 }
 
 impl UnpaddedOverlay {
-    fn new(_puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
-        let kid_heights = Arc::new(Mutex::new(vec![]));
-        let kid_heights2 = kid_heights.clone();
-        let mut height2 = info.child_height.clone();
-        #[cfg(debug_assertions)]
-        height2.set_name("ch in overlay");
-        info.child_height.add_ready(move |_,_| {
-            let deps = lock!(kid_heights2).iter().map(|x : &PuzzleValueHolder<f64>| x.dependency()).collect::<Vec<_>>();
-            height2.add_solver(&deps, move |solution| {
-                let height = lock!(kid_heights2).iter()
-                    .map(|p| p.get_clone(solution))
-                    .fold(0., f64::max);
-                Some(height)
-            })
-        });
+    fn new(puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
         UnpaddedOverlay { 
-            info: info.clone(), 
-            kid_heights
+            puzzle: puzzle.clone(),
+            info: info.clone()
         }
-    }
-}
-
-impl StackableAddable for UnpaddedOverlay {
-    fn add_child(&mut self, child: &dyn Stackable, _priority: i64) {
-        child.set_top(&self.info.draw_top);
-        lock!(self.kid_heights).push(child.height());
     }
 }
 
@@ -60,8 +37,26 @@ impl Coordinated for Overlay {
 }
 
 impl Stackable for Overlay {
+    fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn priority(&self) -> i64 { self.0.priority() }
     fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
-    fn height(&self) -> PuzzleValueHolder<f64> { self.0.height() }
     fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
-    fn full_range(&self) -> PuzzleValueHolder<RangeUsed<f64>> { self.0.full_range() }
+    fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize { self.0.build(prep) }
+}
+
+impl PadderSpecifics for UnpaddedOverlay {
+    fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
+
+    fn add_child(&mut self, child: &dyn Stackable) {
+        //StackableAddable::add_child(self,child,priority);
+    }
+
+    fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+        let mut max_height = CommutingSequence::new(0.,|a,b| { f64::max(*a,*b) });
+        for (child,size) in children {
+            child.set_top(&self.info.draw_top);
+            max_height.add(&size.height);
+        }
+        max_height.build(&self.puzzle)
+    }
 }
