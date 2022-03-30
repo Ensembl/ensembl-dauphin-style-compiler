@@ -8,6 +8,12 @@ pub trait Coordinated {
     fn coordinate_system(&self) -> &CoordinateSystem;
 }
 
+pub(crate) trait ContainerSpecifics {
+    fn cloned(&self) -> Box<dyn ContainerSpecifics>;
+    fn build_reduce(&mut self, prep: &mut CarriageUniversePrep, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64>;
+    fn set_locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]);
+}
+
 pub(crate) struct BuildSize {
     pub name: AllotmentName,
     pub height: PuzzleValueHolder<f64>,
@@ -16,12 +22,9 @@ pub(crate) struct BuildSize {
 
 pub(crate) trait Stackable : Coordinated {
     fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize;
+    fn locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>);
     fn name(&self) -> &AllotmentName;
-    fn set_top(&self, value: &PuzzleValueHolder<f64>);
     fn priority(&self) -> i64;
-
-    fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64>;
-
     fn cloned(&self) -> Box<dyn Stackable>;
 }
 

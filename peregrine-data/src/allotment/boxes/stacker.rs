@@ -1,15 +1,17 @@
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzlePiece, ClonablePuzzleValue, PuzzleValue, PuzzleBuilder, FoldValue, ConstantPuzzlePiece, CommutingSequence, DelayedPuzzleValue, compose2, build_puzzle_vec, DerivedPuzzlePiece}, lock, log};
+use std::sync::Arc;
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}, util::rangeused::RangeUsed}, CoordinateSystem};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence, DelayedPuzzleValue, compose2, build_puzzle_vec, DerivedPuzzlePiece}};
 
-use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize}};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageuniverse::CarriageUniversePrep}}, CoordinateSystem};
+
+use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
 #[derive(Clone)]
-pub struct Stacker(Padder);
+pub struct Stacker(Container);
 
 impl Stacker {
     pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Stacker {
-        Stacker(Padder::new(prep,name,style,aligner,|prep,info| Box::new(UnpaddedStacker::new(&prep.puzzle,info))))
+        Stacker(Container::new(prep,name,style,aligner,UnpaddedStacker::new(&prep.puzzle)))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
@@ -17,76 +19,50 @@ impl Stacker {
     }
 }
 
+#[derive(Clone)]
 struct AddedChild {
     priority: i64,
-    top: DelayedPuzzleValue<f64>,
     height: PuzzleValueHolder<f64>
 }
 
-struct AddedChildren {
-    children: Vec<AddedChild>,
-    self_top: PuzzleValueHolder<f64>
-}
-
-impl AddedChildren {
-    fn new(puzzle: &PuzzleBuilder, top: &PuzzleValueHolder<f64>) -> AddedChildren {
-        AddedChildren {
-            children: vec![],
-            self_top: top.clone()
-        }
+fn child_tops(puzzle: &PuzzleBuilder, children: &[AddedChild]) -> (PuzzleValueHolder<Vec<f64>>,PuzzleValueHolder<f64>) {
+    let mut children = children.iter().enumerate().collect::<Vec<_>>();
+    let mut self_height = CommutingSequence::new(0.,|a,b| *a+*b);
+    children.sort_by_cached_key(|c| c.1.priority);
+    let positions = Arc::new(children.iter().map(|c| c.0).collect::<Vec<_>>());
+    let heights = children.iter().map(|c| c.1.height.clone()).collect::<Vec<_>>();
+    for child_height in &heights {
+        self_height.add(&child_height);
     }
-
-    fn add_child(&mut self, _puzzle: &mut PuzzleBuilder, top: &DelayedPuzzleValue<f64>, height: &PuzzleValueHolder<f64>, priority: i64) {
-        self.children.push(AddedChild {
-            priority,
-            top: top.clone(),
-            height: height.clone()
-        });
-    }
-
-    fn ready(&mut self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
-        let mut self_height = CommutingSequence::new(0.,|a,b| *a+*b);
-        self.children.sort_by_cached_key(|c| c.priority);
-        let heights = self.children.iter().map(|c| c.height.clone()).collect::<Vec<_>>();
-        for child_height in &heights {
-            self_height.add(&child_height);
+    let heights = build_puzzle_vec(puzzle,&heights);
+    /* calculate our own height */
+    let self_height = self_height.build(puzzle);
+    /* set relative tops */
+    let relative_tops = DerivedPuzzlePiece::new(heights,move |heights| {
+        let mut tops = vec![];
+        let mut top = 0.;
+        for height in heights {
+            tops.push(top);
+            top += *height.as_ref();
         }
-        let heights = build_puzzle_vec(puzzle,&heights);
-        /* calculate our own height */
-        let self_height = self_height.build(puzzle);
-        /* set relative tops */
-
-        let relative_tops = DerivedPuzzlePiece::new(heights,|heights| {
-            let mut tops = vec![];
-            let mut top = 0.;
-            for height in heights {
-                tops.push(top);
-                top += *height.as_ref();
-            }
-            tops
-        });
-        /* set child tops */
-        for (i,child) in self.children.iter().enumerate() {
-            let children_before = i;
-            child.top.set(puzzle,compose2(puzzle,&self.self_top,&PuzzleValueHolder::new(relative_tops.clone()),move |a,b| {
-                a+b[children_before]
-            }));
+        let mut out = vec![0.;tops.len()];
+        for (i,pos) in positions.iter().enumerate() {
+            out[*pos] = tops[i];
         }
-        self_height
-    }
+        out
+    });
+    (PuzzleValueHolder::new(relative_tops),PuzzleValueHolder::new(self_height))
 }
 
 #[derive(Clone)]
 struct UnpaddedStacker {
-    puzzle: PuzzleBuilder,
-    top: PuzzleValueHolder<f64>
+    relative_tops: DelayedPuzzleValue<Vec<f64>>
 }
 
 impl UnpaddedStacker {
-    fn new(puzzle: &PuzzleBuilder, padder_info: &PadderInfo) -> UnpaddedStacker {
+    fn new(puzzle: &PuzzleBuilder) -> UnpaddedStacker {
         UnpaddedStacker {
-            puzzle: puzzle.clone(),
-            top: padder_info.draw_top.clone()
+            relative_tops: DelayedPuzzleValue::new(puzzle)
         }
     }
 }
@@ -94,9 +70,8 @@ impl UnpaddedStacker {
 impl Stackable for Stacker {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { self.0.name( )}
+    fn locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
     fn priority(&self) -> i64 { self.0.priority() }
-    fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
-    fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
     fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize { self.0.build(prep) }
 }
 
@@ -104,16 +79,27 @@ impl Coordinated for Stacker {
     fn coordinate_system(&self) -> &CoordinateSystem { self.0.coordinate_system() }
 }
 
-impl PadderSpecifics for UnpaddedStacker {
-    fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
+impl ContainerSpecifics for UnpaddedStacker {
+    fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
-        let mut added = AddedChildren::new(&self.puzzle,&self.top);
+    fn build_reduce(&mut self, prep: &mut CarriageUniversePrep, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+        let mut added = vec![];
         for (child,size) in children {
-            let top = DelayedPuzzleValue::new(&self.puzzle);
-            added.add_child(&mut self.puzzle,&top,&size.height,child.priority());    
-            child.set_top(&PuzzleValueHolder::new(top.clone()));
+            added.push(AddedChild {
+                height: size.height.clone(),
+                priority: child.priority()
+            });
         }
-        added.ready(&self.puzzle)
+        let (relative_tops,self_height) = child_tops(&prep.puzzle,&added);
+        self.relative_tops.set(&prep.puzzle, relative_tops);
+        self_height
+    }
+
+    fn set_locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+        for (i,child) in children.iter_mut().enumerate() {
+            let relative_top = DerivedPuzzlePiece::new(self.relative_tops.clone(),move |tops| tops[i]);
+            let abs_top = compose2(&prep.puzzle,top,&PuzzleValueHolder::new(relative_top),|a,b| *a+*b);
+            child.locate(prep,&abs_top);
+        }
     }
 }

@@ -1,15 +1,15 @@
-use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence}};
+use peregrine_toolkit::{puzzle::{PuzzleValueHolder, CommutingSequence}};
 
-use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{ aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable}, CoordinateSystem};
 
-use super::{padder::{Padder, PadderInfo, PadderSpecifics}, boxtraits::{Coordinated, BuildSize }};
+use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics }};
 
 #[derive(Clone)]
-pub struct Overlay(Padder);
+pub struct Overlay(Container);
 
 impl Overlay {
     pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Overlay {
-        Overlay(Padder::new(prep,name,style,aligner,|prep,info| Box::new(UnpaddedOverlay::new(&prep.puzzle,info))))
+        Overlay(Container::new(prep,name,style,aligner,UnpaddedOverlay::new()))
     }
 
     pub(crate) fn add_child(&mut self, child: &dyn Stackable) {
@@ -19,16 +19,11 @@ impl Overlay {
 
 #[derive(Clone)]
 struct UnpaddedOverlay {
-    puzzle: PuzzleBuilder,
-    info: PadderInfo
 }
 
 impl UnpaddedOverlay {
-    fn new(puzzle: &PuzzleBuilder, info: &PadderInfo,) -> UnpaddedOverlay {
-        UnpaddedOverlay { 
-            puzzle: puzzle.clone(),
-            info: info.clone()
-        }
+    fn new() -> UnpaddedOverlay {
+        UnpaddedOverlay {}
     }
 }
 
@@ -38,22 +33,26 @@ impl Coordinated for Overlay {
 
 impl Stackable for Overlay {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
+    fn locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
-    fn set_top(&self, value: &PuzzleValueHolder<f64>) { self.0.set_top(value); }
-    fn top_anchor(&self, puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.0.top_anchor(puzzle) }
     fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize { self.0.build(prep) }
 }
 
-impl PadderSpecifics for UnpaddedOverlay {
-    fn cloned(&self) -> Box<dyn PadderSpecifics> { Box::new(self.clone()) }
+impl ContainerSpecifics for UnpaddedOverlay {
+    fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+    fn build_reduce(&mut self, prep: &mut CarriageUniversePrep, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
         let mut max_height = CommutingSequence::new(0.,|a,b| { f64::max(*a,*b) });
-        for (child,size) in children {
-            child.set_top(&self.info.draw_top);
+        for (_,size) in children {
             max_height.add(&size.height);
         }
-        max_height.build(&self.puzzle)
+        max_height.build(&prep.puzzle)
+    }
+
+    fn set_locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+        for child in children {
+            child.locate(prep,&top);
+        }
     }
 }

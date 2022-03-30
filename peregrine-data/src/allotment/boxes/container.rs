@@ -4,11 +4,7 @@ use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, DerivedPuzzle
 
 use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner, carriageuniverse::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
-use super::{boxtraits::{Coordinated, BuildSize}};
-
-fn draw_top(top: &DelayedPuzzleValue<f64>, padding_top: f64) -> PuzzleValueHolder<f64> {
-    PuzzleValueHolder::new(DerivedPuzzlePiece::new(top.clone(),move |top| *top + padding_top))
-}
+use super::{boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
 fn height(puzzle: &PuzzleBuilder, child_height: &PuzzleValueHolder<f64>, tracked_height: &DelayedPuzzleValue<f64>, min_height: f64, padding_top: f64, padding_bottom: f64) -> PuzzleValueHolder<f64> {
     compose2(puzzle,child_height,&PuzzleValueHolder::new(tracked_height.clone()),move |child_height,tracked_height| {
@@ -18,14 +14,9 @@ fn height(puzzle: &PuzzleBuilder, child_height: &PuzzleValueHolder<f64>, tracked
     })
 }
 
-pub(crate) trait PadderSpecifics {
-    fn cloned(&self) -> Box<dyn PadderSpecifics>;
-    fn build_reduce(&mut self, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64>;
-}
-
-pub struct Padder {
+pub struct Container {
     builder: PuzzleBuilder,
-    specifics: Box<dyn PadderSpecifics>,
+    specifics: Box<dyn ContainerSpecifics>,
     children: Arc<Mutex<Vec<Box<dyn Stackable>>>>,
     coord_system: CoordinateSystem,
     priority: i64,
@@ -33,17 +24,11 @@ pub struct Padder {
     top: DelayedPuzzleValue<f64>,
     /* outgoing variables */
     name: AllotmentName,
-    info: PadderInfo,
     height: DelayedPuzzleValue<f64>,
     style: Arc<ContainerAllotmentStyle>,
 }
 
-#[derive(Clone)]
-pub struct PadderInfo {
-    pub draw_top: PuzzleValueHolder<f64>
-}
-
-impl Clone for Padder {
+impl Clone for Container {
     fn clone(&self) -> Self {
         Self {
             builder: self.builder.clone(),
@@ -52,7 +37,6 @@ impl Clone for Padder {
             coord_system: self.coord_system.clone(),
             priority: self.priority.clone(),
             top: self.top.clone(),
-            info: self.info.clone(),
             height: self.height.clone(),
             name: self.name.clone(),
             style: self.style.clone()
@@ -71,28 +55,22 @@ fn add_report(metadata: &mut AllotmentMetadataBuilder, in_values: &HashMap<Strin
     metadata.add(group);
 }
 
-impl Padder {
-    pub(crate) fn new<F>(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, ctor: F) -> Padder where F: FnOnce(&mut CarriageUniversePrep, &PadderInfo) -> Box<dyn PadderSpecifics> {
+impl Container {
+    pub(crate) fn new<F>(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, specifics: F) -> Container where F: ContainerSpecifics + 'static {
         let top = DelayedPuzzleValue::new(&prep.puzzle);
-        let draw_top = draw_top(&top,style.padding.padding_top);
-        let info = PadderInfo {
-            draw_top
-        };
-        let specifics = ctor(prep,&info);
         if let Some(datum) = &style.set_align {
             aligner.set_datum(&prep.puzzle,datum,&PuzzleValueHolder::new(top.clone()));
         }
         let height = DelayedPuzzleValue::new(&prep.puzzle);
-        Padder {
+        Container {
             builder: prep.puzzle.clone(),
             name: AllotmentName::from_part(name),
-            specifics,
+            specifics: Box::new(specifics),
             children: Arc::new(Mutex::new(vec![])),
             coord_system: style.coord_system.clone(),
             priority: style.priority,
             top,
             height,
-            info,
             style: Arc::new(style.clone())
         }
     }
@@ -102,14 +80,18 @@ impl Padder {
     }
 }
 
-impl Coordinated for Padder {
+impl Coordinated for Container {
     fn coordinate_system(&self) -> &CoordinateSystem { &self.coord_system }
 }
 
-impl Stackable for Padder {
-    fn set_top(&self, value: &PuzzleValueHolder<f64>) {
-        let value = value.clone();
-        self.top.set(&self.builder,value);
+impl Stackable for Container {
+    fn locate(&mut self, prep: &mut CarriageUniversePrep, value: &PuzzleValueHolder<f64>) {
+        let mut children = lock!(self.children);
+        let mut kids = children.iter_mut().collect::<Vec<_>>();
+        let padding_top = self.style.padding.padding_top;
+        let draw_top = DerivedPuzzlePiece::new(value.clone(),move |top| *top+padding_top);
+        self.specifics.set_locate(prep,&PuzzleValueHolder::new(draw_top),&mut kids);
+        self.top.set(&self.builder,value.clone());
     }
 
     fn name(&self) -> &AllotmentName { &self.name }
@@ -124,7 +106,7 @@ impl Stackable for Padder {
             input.push((&*child,size));
         }
         let tracked_height = DelayedPuzzleValue::new(&prep.puzzle);
-        let internal = self.specifics.build_reduce(&input);
+        let internal = self.specifics.build_reduce(prep,&input);
         let height = height(&self.builder,&internal,&tracked_height,self.style.padding.min_height,self.style.padding.padding_top,self.style.padding.padding_bottom);
         if self.style.tracked_height {
             prep.height_tracker.add(&self.name,&height);
@@ -145,10 +127,6 @@ impl Stackable for Padder {
     }
 
     fn priority(&self) -> i64 { self.priority }
-
-    fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> {
-        PuzzleValueHolder::new(self.info.draw_top.clone())
-    }
 
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
 }

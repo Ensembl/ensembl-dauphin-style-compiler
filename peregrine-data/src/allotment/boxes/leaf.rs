@@ -79,17 +79,9 @@ impl FloatingLeaf {
 }
 
 impl Stackable for FloatingLeaf {
-    fn set_top(&self, value: &PuzzleValueHolder<f64>) {
-        let value = value.clone();
-        if let Some(top) = &self.top {
-            top.set(&self.builder,value.clone());
-        }
-    }
-
     fn priority(&self) -> i64 { self.statics.priority }
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { &self.name }
-    fn top_anchor(&self, _puzzle: &PuzzleBuilder) -> PuzzleValueHolder<f64> { self.top_value.clone() }
 
     fn build(&mut self, _prep: &mut CarriageUniversePrep) -> BuildSize {
         self.pixel_range_piece.set(self.drawing_info.pixel_range().clone());
@@ -99,6 +91,13 @@ impl Stackable for FloatingLeaf {
             name: self.name.clone(),
             height: PuzzleValueHolder::new(self.max_y_piece.clone()),
             range: self.full_range(self.drawing_info.base_range(),self.drawing_info.pixel_range(),&self.converter)
+        }
+    }
+
+    fn locate(&mut self, _prep: &mut CarriageUniversePrep, value: &PuzzleValueHolder<f64>) {
+        let value = value.clone();
+        if let Some(top) = &self.top {
+            top.set(&self.builder,value.clone());
         }
     }
 }

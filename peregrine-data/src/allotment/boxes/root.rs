@@ -21,7 +21,6 @@ impl Root {
     }
 
     pub(crate) fn add_child(&self, child: &dyn Stackable) {
-        child.set_top(&PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)));
         lock!(self.children).push(child.cloned());
     }
 
@@ -38,6 +37,9 @@ impl Root {
         for child in &mut *children {
             let build_size = child.build(prep);
             lock!(self.playing_field).set(child.coordinate_system(),&build_size.height);
+        }
+        for child in &mut *children {
+            child.locate(prep,&PuzzleValueHolder::new(ConstantPuzzlePiece::new(0.)));
         }
     }
 }
