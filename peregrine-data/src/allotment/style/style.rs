@@ -121,6 +121,7 @@ impl Padding {
 #[derive(Clone)]
 pub struct LeafInheritStyle {
     coord_system: Option<CoordinateSystemVariety>,
+    bump_invisible: Option<bool>,
     reverse: Option<bool>,
     depth: Option<i8>,
     indent: Option<Indent>
@@ -130,6 +131,7 @@ impl LeafInheritStyle {
     pub(crate) fn empty() -> LeafInheritStyle {
         LeafInheritStyle {
             coord_system: None,
+            bump_invisible: None,
             reverse: None,
             depth: None,
             indent: None
@@ -141,8 +143,9 @@ impl LeafInheritStyle {
         let depth = depth.map(|x| x.parse::<i8>().ok()).flatten();
         let (coord_system,reverse) = CoordinateSystem::build(spec);
         let indent = Indent::build(spec);
+        let bump_invisible = spec.get("bump-width").map(|x| x.as_str() == "none");
         LeafInheritStyle {
-            depth, coord_system, reverse, indent
+            depth, coord_system, reverse, indent, bump_invisible
         }
     }
 
@@ -159,6 +162,9 @@ impl LeafInheritStyle {
         if other.indent.is_some() {
             self.indent = other.indent.clone();
         }
+        if other.bump_invisible.is_some() {
+            self.bump_invisible = other.bump_invisible.clone();
+        }
     }
 
     pub(crate) fn make(&self, style: &LeafAllotmentStyle) -> LeafCommonStyle {
@@ -168,7 +174,8 @@ impl LeafInheritStyle {
             depth: self.depth.unwrap_or(0),
             coord_system: CoordinateSystem(variety,reverse),
             priority: style.priority,
-            indent: self.indent.as_ref().unwrap_or(&Indent::None).clone()
+            indent: self.indent.as_ref().unwrap_or(&Indent::None).clone(),
+            bump_invisible: self.bump_invisible.unwrap_or(false)
         }
     }
 }
@@ -179,7 +186,8 @@ pub struct LeafCommonStyle {
     pub coord_system: CoordinateSystem,
     pub depth: i8,
     pub priority: i64,
-    pub indent: Indent
+    pub indent: Indent,
+    pub bump_invisible: bool
 }
 
 impl LeafCommonStyle {
@@ -188,7 +196,8 @@ impl LeafCommonStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Dustbin,false),
             depth: 0,
             priority: 0,
-            indent: Indent::None
+            indent: Indent::None,
+            bump_invisible: false
         }
     }
 
@@ -197,7 +206,8 @@ impl LeafCommonStyle {
             coord_system: CoordinateSystem(CoordinateSystemVariety::Window,false),
             depth: 0,
             priority: 0,
-            indent: Indent::None
+            indent: Indent::None,
+            bump_invisible: false
         }
     }
 }

@@ -70,7 +70,7 @@ impl FloatingLeaf {
     fn full_range(&self, base_range: &RangeUsed<f64>, pixel_range: &RangeUsed<f64>, bp_px_converter: &PuzzleValueHolder<Arc<BpPxConverter>>) -> PuzzleValueHolder<RangeUsed<f64>> { 
         let full_range_piece = full_range_piece(
             &self.statics.coord_system,&base_range,&pixel_range,bp_px_converter);
-        if self.statics.coord_system.is_tracking() {
+        if self.statics.coord_system.is_tracking() && !self.statics.bump_invisible {
             full_range_piece.clone()
         } else {
             PuzzleValueHolder::new(ConstantPuzzlePiece::new(RangeUsed::None))

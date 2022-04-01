@@ -111,6 +111,7 @@ style("tracks/track/focus/",["priority","report"][],["-900","track;switch-id=foc
 
 style("**/main/main/",["type"][],["bumper"][]);
 style("**/main/main/*/",["type"][],["overlay"][]);
+style("**/main/main/*/text",["bump-width"][],["none"][]);
 style("**/main/main/*/diagram/",["type"][],["overlay"][]);
 style("**/main/main/*/diagram/under",["depth"][],["-3"][]);
 style("**/main/main/*/diagram/far-under",["depth"][],["-2"][]);
