@@ -57,7 +57,7 @@ impl PuzzleDependency {
     #[cfg(debug_assertions)]
     pub fn set_name(&mut self, name: &str) { *lock!(self.name) = name.to_string(); }
 
-    pub(super) fn constant() -> PuzzleDependency {
+    pub fn constant() -> PuzzleDependency {
         PuzzleDependency {
              index: PuzzleDependencyValue::Constant,
              #[cfg(debug_assertions)]

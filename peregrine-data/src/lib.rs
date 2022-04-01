@@ -9,6 +9,16 @@ mod allotment {
         pub(crate) mod root;
     }
 
+    pub(crate) mod collision {
+        mod bumppart;
+        pub(crate) mod bumperfactory;
+        mod castle;
+        pub(crate) mod collisionalgorithm;
+        mod skylinesequence;
+        mod regionuse;
+        mod slidingwindow;
+    }
+
     pub(crate) mod style {
         pub(crate) mod allotmentname;
         pub(crate) mod holder;
@@ -42,7 +52,6 @@ mod allotment {
 
     pub(crate) mod util {
         pub(crate) mod bppxconverter;
-        pub(crate) mod collisionalgorithm;
         pub(crate) mod rangeused;
     }
 }

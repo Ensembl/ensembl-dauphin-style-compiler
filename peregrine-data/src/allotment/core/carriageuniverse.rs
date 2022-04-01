@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::{Arc, Mutex}};
 use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}, lock, log};
 
-use crate::{allotment::{style::{allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, holder::ContainerHolder, stylebuilder::{make_transformable}, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, CarriageShapeListRaw};
+use crate::{allotment::{style::{allotmentname::{AllotmentName, new_efficient_allotmentname_hashmap, BuildPassThroughHasher}, stylebuilder::{make_transformable}, style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, util::bppxconverter::BpPxConverter, collision::bumperfactory::BumperFactory}, ShapeRequestGroup, Shape, DataMessage, LeafRequest};
 
 use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, playingfield::PlayingField, leafrequest::LeafRequestMap, heighttracker::{HeightTrackerPieces, HeightTracker}, trainstate::TrainState};
 
@@ -10,7 +10,8 @@ pub(crate) struct CarriageUniversePrep {
     pub metadata: AllotmentMetadataBuilder,
     pub root: Root,
     pub plm: LeafRequestMap,
-    pub height_tracker: HeightTrackerPieces
+    pub height_tracker: HeightTrackerPieces,
+    pub bumper_factory: BumperFactory
 }
 
 impl CarriageUniversePrep {
@@ -20,7 +21,8 @@ impl CarriageUniversePrep {
             root: Root::new(builder),
             plm: LeafRequestMap::new(),
             puzzle: builder.clone(),
-            height_tracker: HeightTrackerPieces::new(&builder)
+            height_tracker: HeightTrackerPieces::new(&builder),
+            bumper_factory: BumperFactory::new()
         }
     }
 }

@@ -1,4 +1,4 @@
-/* A Watermark is the core data-structure of bumping. It maintains a piecewise-continuous maximum value along
+/* A Skyline is the core data-structure of bumping. It maintains a piecewise-continuous maximum value along
  * a discrete dimension (i64). Initially this maximum is zero everywhere but pieces can be added to it. A piece
  * comprises a range along the dimension and a height. The height of the waterline is set so that the height in
  * the range supplied is set to the maximum existing value in that range plus the height given. The watermark 
@@ -32,8 +32,8 @@ use std::fmt::Debug;
 
 use crate::boom::{Boom, BoomCursorMut};
 
-struct WatermarkRequest<'a> {
-    iter: BoomCursorMut<'a>,
+struct SkylineRequest<'a> {
+    iter: BoomCursorMut<'a,f64>,
     start: i64,
     end: i64,
     own_height: f64,
@@ -43,9 +43,9 @@ struct WatermarkRequest<'a> {
     final_masked_height: f64
 }
 
-impl<'a> WatermarkRequest<'a> {
-    fn new(watermark: &'a mut Watermark, start: i64, end: i64, height: f64) -> WatermarkRequest<'a> {
-        WatermarkRequest {
+impl<'a> SkylineRequest<'a> {
+    fn new(watermark: &'a mut Skyline, start: i64, end: i64, height: f64) -> SkylineRequest<'a> {
+        SkylineRequest {
             iter: watermark.tree.seek_mut(&start),
             start, end, own_height: height,
             after_pos: None,
@@ -77,6 +77,7 @@ impl<'a> WatermarkRequest<'a> {
      */
      fn investigate_pre_start(&mut self) {
         if let Some((_,prev_height)) = self.iter.rewind() {
+            let prev_height = *prev_height;
             /* there is a node before start */
             self.iter.next();
             self.max_existing_height = prev_height;
@@ -119,16 +120,16 @@ impl<'a> WatermarkRequest<'a> {
         if let Some((next_start,next_height)) = self.iter.next() {
             if next_start < self.end {
                 /* node is to be removed */
-                self.final_masked_height = next_height;
+                self.final_masked_height = *next_height;
                 if next_start == self.start {
                     /* start coincident with ours so previous node doesn't contribute after all: no overlap */
                     self.max_existing_height = 0.;
                 }
-                self.max_existing_height = self.max_existing_height.max(next_height);
+                self.max_existing_height = self.max_existing_height.max(*next_height);
                 return Some(next_start);
             } else {
                 /* node which exists but is not to be removed */
-                self.after_pos = Some((next_start,next_height));
+                self.after_pos = Some((next_start,*next_height));
             }
         }
         None
@@ -190,29 +191,29 @@ impl<'a> WatermarkRequest<'a> {
     }
 }
 
-pub struct Watermark {
-    tree: Boom,
+pub struct Skyline {
+    tree: Boom<f64>,
     max_height: f64
 }
 
 #[cfg(any(debug_assertions,test))]
-impl Debug for Watermark {
+impl Debug for Skyline {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let all = self.readout_map().iter().map(|(start,height)| format!("({},{})",start,height)).collect::<Vec<_>>();
         write!(f,"[{}]",all.join(", "))
     }
 }
 
-impl Watermark {
-    pub fn new() -> Watermark {
-        Watermark {
+impl Skyline {
+    pub fn new() -> Skyline {
+        Skyline {
             tree: Boom::new(),
             max_height: 0.
         }
     }
 
     pub fn add(&mut self, start: i64, end: i64, height: f64) -> f64 {
-        let mut req = WatermarkRequest::new(self,start,end,height);
+        let mut req = SkylineRequest::new(self,start,end,height);
         let offset = req.add();
         drop(req);
         self.max_height = self.max_height.max(offset+height);
@@ -223,17 +224,17 @@ impl Watermark {
 
     #[cfg(any(debug_assertions,test))]
     fn readout_map(&self) -> Vec<(i64,f64)> {
-        self.tree.all().iter().map(|(k,v)| (*k,*v)).collect::<Vec<_>>()
+        self.tree.all().iter().map(|(k,v)| (*k,**v)).collect::<Vec<_>>()
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::Watermark;
+    use super::Skyline;
 
     #[test]
     fn test_watermark_smoke() {
-        let mut watermark = Watermark::new();
+        let mut watermark = Skyline::new();
         println!("{:?}",watermark);
         assert_eq!(watermark.readout_map(),vec![]);
         assert_eq!(0.,watermark.add(5,12,3.));
@@ -260,7 +261,7 @@ mod test {
     }
 
     fn test_once(inputs: &[(i64,i64,f64,f64)], outputs: &[(i64,f64)]) {
-        let mut watermark = Watermark::new();
+        let mut watermark = Skyline::new();
         for (start,end,height,offset) in inputs {
             assert_eq!(*offset,watermark.add(*start,*end,*height));
         }

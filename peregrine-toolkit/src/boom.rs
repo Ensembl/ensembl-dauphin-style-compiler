@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-/* Boom is a BTree(i64->f64) implementation which wraps Rust's native BTree implementation to hide some
+/* Boom is a BTree(i64->T) implementation which wraps Rust's native BTree implementation to hide some
  * horrible inefficiencies. As well as the usual operations (insert, remove, all), there is an unusual 
  * pseudo-iterator, BoomCursorMut. As well as a next() method, it has rewind() which efficiently goes to the
  * entry *before* the current position. One of these iterators can be placed at the start() or at some key.
@@ -16,25 +16,25 @@ enum BoomCursorLocation {
     End
 }
 
-pub struct BoomCursorMut<'a>(&'a mut Boom,BoomCursorLocation);
+pub struct BoomCursorMut<'a,T>(&'a mut Boom<T>,BoomCursorLocation);
 
-impl<'a> Debug for BoomCursorMut<'a> {
+impl<'a,T> Debug for BoomCursorMut<'a,T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("BoomCursorMut").field(&self.1).finish()
     }
 }
 
-impl<'a> BoomCursorMut<'a> {
-    pub fn tree<'b>(&'b mut self) -> &'b mut Boom { self.0 }
+impl<'a,T> BoomCursorMut<'a,T> {
+    pub fn tree<'b>(&'b mut self) -> &'b mut Boom<T> { self.0 }
 
-    pub fn rewind(&mut self) -> Option<(i64,f64)> {
+    pub fn rewind(&mut self) -> Option<(i64,&T)> {
         match &self.1 {
             BoomCursorLocation::Start => { None },
             BoomCursorLocation::GreaterOrEqual(cmp) => {
                 let mut iter = self.0.tree.range(..cmp).rev();
                 if let Some((k,v)) = iter.next() {
                     self.1 = BoomCursorLocation::GreaterOrEqual(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::Start;
                     None
@@ -44,7 +44,7 @@ impl<'a> BoomCursorMut<'a> {
                 let mut iter = self.0.tree.range(..(cmp+1)).rev();
                 if let Some((k,v)) = iter.next() {
                     self.1 = BoomCursorLocation::GreaterOrEqual(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::Start;
                     None
@@ -53,7 +53,7 @@ impl<'a> BoomCursorMut<'a> {
             BoomCursorLocation::End => {
                 if let Some((k,v)) = self.0.tree.range(..).rev().next() {
                     self.1 = BoomCursorLocation::GreaterOrEqual(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::Start;
                     None
@@ -62,12 +62,12 @@ impl<'a> BoomCursorMut<'a> {
         }
     }
 
-    pub fn next(&mut self) -> Option<(i64,f64)> {
+    pub fn next(&mut self) -> Option<(i64,&T)> {
         match &self.1 {
             BoomCursorLocation::Start => {
                 if let Some((k,v)) = self.0.tree.range(..).next() {
                     self.1 = BoomCursorLocation::Greater(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::End;
                     None
@@ -77,7 +77,7 @@ impl<'a> BoomCursorMut<'a> {
                 let mut iter = self.0.tree.range((cmp+1)..);
                 if let Some((k,v)) = iter.next() {
                     self.1 = BoomCursorLocation::Greater(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::End;
                     None
@@ -87,7 +87,7 @@ impl<'a> BoomCursorMut<'a> {
                 let mut iter = self.0.tree.range(cmp..);
                 if let Some((k,v)) = iter.next() {
                     self.1 = BoomCursorLocation::Greater(k.clone());
-                    Some((*k,*v))
+                    Some((*k,v))
                 } else {
                     self.1 = BoomCursorLocation::End;
                     None
@@ -98,18 +98,18 @@ impl<'a> BoomCursorMut<'a> {
     }
 }
 
-pub struct Boom {
-    tree: BTreeMap<i64,f64>
+pub struct Boom<T> {
+    tree: BTreeMap<i64,T>
 }
 
-impl Boom {
-    pub fn new() -> Boom {
+impl<T> Boom<T> {
+    pub fn new() -> Boom<T> {
         Boom {
             tree: BTreeMap::new()
         }
     }
 
-    pub fn insert(&mut self, key: i64, value: f64) {
+    pub fn insert(&mut self, key: i64, value: T) {
         self.tree.insert(key,value);
     }
 
@@ -117,11 +117,11 @@ impl Boom {
         self.tree.remove(&key);
     }
 
-    pub fn start_mut(&mut self) -> BoomCursorMut {
+    pub fn start_mut(&mut self) -> BoomCursorMut<T> {
         BoomCursorMut(self,BoomCursorLocation::Start)
     }
 
-    pub fn seek_mut(&mut self, key: &i64) -> BoomCursorMut {
+    pub fn seek_mut(&mut self, key: &i64) -> BoomCursorMut<T> {
         if let Some(key) = self.tree.range(key..).next().map(|x| *x.0) {
             BoomCursorMut(self,BoomCursorLocation::GreaterOrEqual(key.clone()))
         } else {
@@ -129,10 +129,10 @@ impl Boom {
         }
     }
 
-    pub fn all(&self) -> Vec<(i64,f64)> {
+    pub fn all(&self) -> Vec<(i64,&T)> {
         let mut out = vec![];
         for (k,v) in self.tree.range(..) {
-            out.push((*k,*v));
+            out.push((*k,v));
         }
         out
     }
