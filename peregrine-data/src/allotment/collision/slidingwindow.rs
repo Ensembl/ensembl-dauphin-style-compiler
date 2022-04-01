@@ -1,14 +1,15 @@
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 
 pub(super) enum SlidingWindowContext<'a,T> {
     Fresh(&'a mut T),
-    Left(Option<&'a T>,&'a mut T),
-    Right(&'a mut T,Option<&'a T>)
+    Left(&'a mut T,&'a T),
+    Right(&'a T,&'a mut T)
 }
 
 pub(super) struct SlidingWindow<'a,T> {
     length: usize,
     left: Option<usize>,
+    locked: HashSet<usize>,
     index: Box<dyn (Fn(&T) -> usize) + 'a>,
     make: Box<dyn Fn(SlidingWindowContext<'_,T>) + 'a>,
     remove: Box<dyn Fn(&mut T) + 'a>,
@@ -21,6 +22,7 @@ impl<'a,T> SlidingWindow<'a,T> {
         SlidingWindow {
             length,
             left: None,
+            locked: HashSet::new(),
             index: Box::new(index),
             make: Box::new(make),
             remove: Box::new(remove),
@@ -32,26 +34,30 @@ impl<'a,T> SlidingWindow<'a,T> {
         (self.make)(SlidingWindowContext::Fresh(&mut store));
         self.left = Some(index);
         self.stores.push_front(store);
-        if self.stores.len() > self.length {
-            let mut gone = self.stores.pop_back().unwrap();
-            (self.remove)(&mut gone);
-            *self.left.as_mut().unwrap() += 1;
-        }
     }
 
     fn add_left(&mut self, mut store: T) {
-        (self.make)(SlidingWindowContext::Left(None,&mut store));
+        (self.make)(SlidingWindowContext::Left(&mut store,self.stores.back().unwrap()));
         *self.left.as_mut().unwrap() -= 1;
         self.stores.push_back(store);
-        if self.stores.len() > self.length {
+        /* remove from right if necessary/possible */
+        let rightmost = self.left.unwrap() + self.stores.len() - 1;
+        if self.stores.len() > self.length && !self.locked.contains(&rightmost) {
             let mut gone = self.stores.pop_front().unwrap();
             (self.remove)(&mut gone);
         }
     }
 
     fn add_right(&mut self, mut store: T) {
-        (self.make)(SlidingWindowContext::Right(&mut store,None));
+        (self.make)(SlidingWindowContext::Right(self.stores.front().unwrap(),&mut store));
         self.stores.push_front(store);
+        /* remove from right if necessary/possible */
+        let leftmost = self.left.unwrap();
+        if self.stores.len() > self.length && !self.locked.contains(&leftmost) {
+            let mut gone = self.stores.pop_back().unwrap();
+            (self.remove)(&mut gone);
+            *self.left.as_mut().unwrap() += 1;
+        }
     }
 
     pub(super) fn add(&mut self, store: T) -> bool {
@@ -70,5 +76,21 @@ impl<'a,T> SlidingWindow<'a,T> {
             self.add_first(index,store);
             true
         }
+    }
+
+    pub(super) fn set_lock(&mut self, index: usize, yn: bool) {
+        let left = if let Some(left) = self.left { left } else { return; };
+        if index < left || index >= self.stores.len() + left { return; }
+        if yn {
+            self.locked.insert(index);
+        } else {
+            self.locked.remove(&index);
+        }
+    }
+
+    pub(super) fn get(&self, index: usize) -> Option<&T> {
+        let left = if let Some(left) = self.left { left } else { return None; };
+        if index < left || index >= self.stores.len() + left { return None; }
+        self.stores.get(index - left)
     }
 }

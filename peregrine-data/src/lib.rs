@@ -14,8 +14,7 @@ mod allotment {
         pub(crate) mod bumperfactory;
         mod castle;
         pub(crate) mod collisionalgorithm;
-        mod skylinesequence;
-        mod regionuse;
+        mod bumpstory;
         mod slidingwindow;
     }
 
