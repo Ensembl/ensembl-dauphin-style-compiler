@@ -158,22 +158,22 @@ impl Castle {
         }
     }
 
-    pub(super) fn advance_to(&mut self, position: i64) {
+    pub(super) fn advance_to(&mut self, position: u64) {
         while let Some((stored_end,offset,height)) = self.regions.peek().cloned() {
             let end = if self.increasing { -stored_end } else { stored_end };
-            if end > position { break; }
+            if end > position as i64 { break; }
             self.regions.pop();
             self.cursor.free(offset,height);
         }
     }
 
-    pub(super) fn allocate_at(&mut self, end: i64, offset: i64, height: i64) {
-        let stored_end = if self.increasing { -end } else { end };
+    pub(super) fn allocate_at(&mut self, end: u64, offset: i64, height: i64) {
+        let stored_end = if self.increasing { -(end as i64) } else { end as i64 };
         self.regions.push((stored_end,offset,height));
         self.cursor.in_use(offset,height);
     }
 
-    pub(super) fn allocate(&mut self, end: i64, height: i64) -> i64 {
+    pub(super) fn allocate(&mut self, end: u64, height: i64) -> i64 {
         let offset = self.cursor.find(height);
         self.allocate_at(end,offset,height);
         offset

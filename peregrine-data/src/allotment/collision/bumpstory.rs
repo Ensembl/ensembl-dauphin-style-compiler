@@ -1,15 +1,15 @@
 /*
- * A CarriageBumpItemStore contains a list of items from a carriage which need to be bumped. A BumpStory
- * accommodates a lit of contiguous CarriageBumpItemStores and, when doing so, bumps them. You can then use
+ * A BumpRequests contains a list of items from a carriage which need to be bumped. A BumpStory
+ * accommodates a lit of contiguous BumpRequestss and, when doing so, bumps them. You can then use
  * the BumpStory to answer the BumpingOffset question.
  * 
- * BumpStory uses SlidingWindow to maintain the list of contiguous CarriageBumpItemStores and to give the
+ * BumpStory uses SlidingWindow to maintain the list of contiguous BumpRequests and to give the
  * relevant context when adding a new one, to allow it to be bumped. The bumping uses Castles. The Castle
- * is first created by the adjacent CarriageBumpItemStore (if any) and then passes through the newly added
- * CarriageBumpItemStore in the relevant direction, adding offsets.
+ * is first created by the adjacent BumpRequests (if any) and then passes through the newly added
+ * BumpRequests in the relevant direction, adding offsets.
  * 
- * Note that the start and end within a BumpItem inside any given CarriageBumpItemStore is guaranteed to
- * contain *all* the region in the carriage for that CarriageBumpItemStore but not necessarily any more than
+ * Note that the start and end within a BumpRequest inside any given BumpRequests is guaranteed to
+ * contain *all* the region in the carriage for that BumpRequests but not necessarily any more than
  * that. It may contain more than that, up to the entire allocation, but there is no guarantee of that.
  */
 
@@ -20,55 +20,79 @@ use crate::allotment::{style::allotmentname::AllotmentName, collision::castle::C
 use super::slidingwindow::{SlidingWindow, SlidingWindowContext};
 
 #[derive(Clone)]
-struct BumpItem {
-    start: i64,
-    end: i64,
-    offset: i64,
+struct BumpRequest {
+    start: u64,
+    end: u64,
     height: i64
 }
 
-impl BumpItem {
-    fn try_add_to_overhang_castle(&self, castle: &mut Castle, cut_off: i64, hanging_left: bool) {
+impl BumpRequest {
+    fn try_add_to_overhang_castle(&self, results: &BumpResults, name: &AllotmentName, castle: &mut Castle, cut_off: u64, hanging_left: bool) {
         if hanging_left && self.start < cut_off {
-            castle.allocate_at(self.start,self.offset,self.height);
+            let offset = results.items.get(name).cloned().unwrap_or(0);
+            castle.allocate_at(self.start,offset,self.height);
         }
         if !hanging_left && self.end >= cut_off {
-            castle.allocate_at(self.end,self.offset,self.height);
+            let offset = results.items.get(name).cloned().unwrap_or(0);
+            castle.allocate_at(self.end,offset,self.height);
         }
     }
 }
 
-pub(super) struct CarriageBumpItemStore {
-    bp_per_carriage: i64,
+pub(super) struct BumpRequests {
+    bp_per_carriage: u64,
     carriage_index: usize,
-    items: HashMap<AllotmentName,BumpItem>
+    items: HashMap<AllotmentName,BumpRequest>
 }
 
-impl CarriageBumpItemStore {
-    fn new(bp_per_carriage: i64, carriage_index: usize) -> CarriageBumpItemStore {
-        CarriageBumpItemStore {
+pub(super) struct BumpResults {
+    items: HashMap<AllotmentName,i64>
+}
+
+impl BumpResults {
+    fn get_offset(&self, name: &AllotmentName) -> Option<i64> {
+        self.items.get(name).cloned()
+    }
+}
+
+struct BumpOutcome(BumpRequests,Option<BumpResults>);
+
+impl BumpOutcome {
+    fn new(requests: BumpRequests) -> BumpOutcome {
+        BumpOutcome(requests,None)
+    }
+
+    fn make_castle(&self, hanging_left: bool) -> Castle {
+        let delta = if hanging_left { 0 } else { 1 };
+        let cut_off = self.0.bp_per_carriage * ((self.0.carriage_index+delta) as u64);
+        let mut castle = Castle::new(!hanging_left);
+        for (name,item) in self.0.items.iter() {
+            item.try_add_to_overhang_castle(&self.1.as_ref().unwrap(),name,&mut castle,cut_off,hanging_left);
+        }
+        castle
+    }
+
+    fn bump(&mut self, companion: Option<&BumpOutcome>, to_left_of_companion: bool) {
+        self.1 = Some(self.0.bump(companion,to_left_of_companion));
+    }
+}
+
+impl BumpRequests {
+    fn new(bp_per_carriage: u64, carriage_index: usize) -> BumpRequests {
+        BumpRequests {
             bp_per_carriage,
             carriage_index,
             items: HashMap::new()
         }
     }
 
-    pub(super) fn add_item(&mut self, name: &AllotmentName, start: i64, end: i64, height: i64) {
-        let item = BumpItem { start, end, offset: 0 , height };
+    pub(super) fn add_item(&mut self, name: &AllotmentName, start: u64, end: u64, height: i64) {
+        let item = BumpRequest { start, end, height };
         self.items.insert(name.clone(),item);
     }
 
-    fn make_castle(&self, hanging_left: bool) -> Castle {
-        let delta = if hanging_left { 0 } else { 1 };
-        let cut_off = self.bp_per_carriage * ((self.carriage_index+delta) as i64);
-        let mut castle = Castle::new(!hanging_left);
-        for item in self.items.values() {
-            item.try_add_to_overhang_castle(&mut castle,cut_off,hanging_left);
-        }
-        castle
-    }
-
-    fn bump(&mut self, companion: Option<&CarriageBumpItemStore>, to_left_of_companion: bool) {
+    fn bump(&mut self, companion: Option<&BumpOutcome>, to_left_of_companion: bool) -> BumpResults {
+        let mut out = BumpResults { items: HashMap::new() };
         /* Get castle due to overhang or make our own */
         let (mut castle,go_left) = if let Some(companion) = companion {
             (companion.make_castle(to_left_of_companion),to_left_of_companion)
@@ -81,30 +105,29 @@ impl CarriageBumpItemStore {
             if go_left { item.end } else { item.start }
         });
         /* Add our items and set offset */
-        for (_,item) in order.iter_mut() {
-            item.offset = castle.allocate(if go_left { item.start } else { item.end }, item.height);
+        for (name,item) in order.iter_mut() {
+            castle.advance_to(if go_left { item.end } else { item.start });
+            let offset = castle.allocate(if go_left { item.start } else { item.end }, item.height);
+            out.items.insert(name.clone(),offset);
         }
-    }
-
-    fn get_offset(&self, name: &AllotmentName) -> Option<i64> {
-        self.items.get(name).map(|item| item.offset)
+        out
     }
 }
 
 const STORE_LENGTH : usize = 11;
 
-pub(super) struct BumpStory {
-    sliding: SlidingWindow<'static,CarriageBumpItemStore>,
-    bp_per_carriage: i64,
+pub(crate) struct BumpStory {
+    sliding: SlidingWindow<'static,BumpOutcome>,
+    bp_per_carriage: u64,
 }
 
 impl BumpStory {
-    pub(super) fn new(bp_per_carriage: i64) -> BumpStory {
+    pub(crate) fn new(bp_per_carriage: u64) -> BumpStory {
         BumpStory {
             bp_per_carriage,
             sliding: SlidingWindow::new(
                 STORE_LENGTH,
-                |store: &CarriageBumpItemStore| store.carriage_index,
+                |store: &BumpOutcome| store.0.carriage_index,
                 |ctx| {
                     match ctx {
                         SlidingWindowContext::Fresh(store) => store.bump(None,false),
@@ -117,20 +140,20 @@ impl BumpStory {
         }
     }
 
-    pub(super) fn make_store(&self, index: usize) -> CarriageBumpItemStore {
-        CarriageBumpItemStore::new(self.bp_per_carriage,index)
+    pub(super) fn make_carriage_bumps(&self, index: usize) -> BumpRequests {
+        BumpRequests::new(self.bp_per_carriage,index)
     }
 
-    pub(super) fn add(&mut self, store: CarriageBumpItemStore) ->bool {
+    pub(super) fn add(&mut self, store: BumpRequests) -> bool {
         self.sliding.set_lock(store.carriage_index,true);
-        self.sliding.add(store)
+        self.sliding.add(BumpOutcome::new(store))
     }
 
     pub(super) fn unlock(&mut self, carriage_index: usize) {
         self.sliding.set_lock(carriage_index,false);
     }
 
-    pub(super) fn get_offset(&self, carriage_index: usize, name: &AllotmentName) -> Option<i64> {
-        self.sliding.get(carriage_index).and_then(|store| store.get_offset(name))
+    pub(super) fn get_results(&self, carriage_index: usize) -> Option<&BumpResults> {
+        self.sliding.get(carriage_index).and_then(|x| x.1.as_ref())
     }
 }

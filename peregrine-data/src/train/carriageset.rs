@@ -63,7 +63,7 @@ impl CarriageProcessSet {
     }
 }
 
-pub struct CarriageSet {
+pub(super) struct CarriageSet {
     constant: CarriageSetConstant,
     index: Option<u64>,
     train_state: Option<TrainState>,
@@ -73,7 +73,7 @@ pub struct CarriageSet {
 }
 
 impl CarriageSet {
-    pub(crate) fn new(try_lifecycle: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSet {
+    pub(super) fn new(try_lifecycle: &Needed, extent: &TrainExtent, configs: &TrainTrackConfigList, messages: &MessageSender) -> CarriageSet {
         let constant = CarriageSetConstant::new(try_lifecycle,extent,configs,messages);
         CarriageSet {
             constant,
@@ -85,7 +85,7 @@ impl CarriageSet {
         }
     }
 
-    pub(crate) fn discard(&mut self, railway_events: &mut RailwayEvents) {
+    pub(super) fn discard(&mut self, railway_events: &mut RailwayEvents) {
         self.drawing_carriages.clear(railway_events);
         self.changes_pending = true;
     }

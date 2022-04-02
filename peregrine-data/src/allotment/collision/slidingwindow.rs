@@ -94,3 +94,11 @@ impl<'a,T> SlidingWindow<'a,T> {
         self.stores.get(index - left)
     }
 }
+
+impl<'a,T> Drop for SlidingWindow<'a,T> {
+    fn drop(&mut self) {
+        for mut source in self.stores.drain(..) {
+            (self.remove)(&mut source);
+        }
+    }
+}
