@@ -4,7 +4,7 @@ use std::sync::{ Arc, Mutex };
 use peregrine_toolkit::{lock, log};
 use peregrine_toolkit::sync::needed::Needed;
 
-use crate::allotment::collision::bumpstory::BumpStory;
+use crate::allotment::collision::concretebump::ConcreteBump;
 use crate::allotment::core::allotmentmetadata::AllotmentMetadataReport;
 use crate::allotment::core::trainstate::TrainState;
 use crate::api::{CarriageSpeed, MessageSender, PeregrineCore };
@@ -24,7 +24,7 @@ struct TrainData {
     max: Option<u64>,
     carriages: CarriageSet,
     messages: MessageSender,
-    bump_story: BumpStory,
+    bump_story: ConcreteBump,
     train_state: TrainState,
     validity_counter: u64
 }
@@ -40,7 +40,7 @@ impl TrainData {
             max: None,
             messages: messages.clone(),
             train_state: TrainState::independent(),
-            bump_story: BumpStory::new(extent.scale().bp_in_carriage()),
+            bump_story: ConcreteBump::new(extent.scale().bp_in_carriage()),
             validity_counter
         };
         out.set_position(extent,carriage_event,viewport)?;

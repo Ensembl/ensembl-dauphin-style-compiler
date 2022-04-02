@@ -6,19 +6,19 @@ pub(super) enum SlidingWindowContext<'a,T> {
     Right(&'a T,&'a mut T)
 }
 
-pub(super) struct SlidingWindow<'a,T> {
+pub(super) struct SlidingWindow<'a,T,U> {
     length: usize,
     left: Option<usize>,
     locked: HashSet<usize>,
     index: Box<dyn (Fn(&T) -> usize) + 'a>,
-    make: Box<dyn Fn(SlidingWindowContext<'_,T>) + 'a>,
+    make: Box<dyn Fn(SlidingWindowContext<'_,T>) -> U + 'a>,
     remove: Box<dyn Fn(&mut T) + 'a>,
     stores: VecDeque<T> // "back" is left, "front" is right.
 }
 
-impl<'a,T> SlidingWindow<'a,T> {
-    pub(super) fn new<F,G,H>(length: usize, index: H, make: F, remove: G) -> SlidingWindow<'a,T>
-            where F: Fn(SlidingWindowContext<'_,T>) + 'a, G: Fn(&mut T) + 'a, H: Fn(&T) -> usize + 'a {
+impl<'a,T,U> SlidingWindow<'a,T,U> {
+    pub(super) fn new<F,G,H>(length: usize, index: H, make: F, remove: G) -> SlidingWindow<'a,T,U>
+            where F: Fn(SlidingWindowContext<'_,T>) -> U + 'a, G: Fn(&mut T) + 'a, H: Fn(&T) -> usize + 'a {
         SlidingWindow {
             length,
             left: None,
@@ -30,14 +30,15 @@ impl<'a,T> SlidingWindow<'a,T> {
         }
     }
 
-    fn add_first(&mut self, index: usize, mut store: T) {
-        (self.make)(SlidingWindowContext::Fresh(&mut store));
+    fn add_first(&mut self, index: usize, mut store: T) -> U {
+        let out= (self.make)(SlidingWindowContext::Fresh(&mut store));
         self.left = Some(index);
         self.stores.push_front(store);
+        out
     }
 
-    fn add_left(&mut self, mut store: T) {
-        (self.make)(SlidingWindowContext::Left(&mut store,self.stores.back().unwrap()));
+    fn add_left(&mut self, mut store: T) -> U {
+        let out = (self.make)(SlidingWindowContext::Left(&mut store,self.stores.back().unwrap()));
         *self.left.as_mut().unwrap() -= 1;
         self.stores.push_back(store);
         /* remove from right if necessary/possible */
@@ -46,10 +47,11 @@ impl<'a,T> SlidingWindow<'a,T> {
             let mut gone = self.stores.pop_front().unwrap();
             (self.remove)(&mut gone);
         }
+        out
     }
 
-    fn add_right(&mut self, mut store: T) {
-        (self.make)(SlidingWindowContext::Right(self.stores.front().unwrap(),&mut store));
+    fn add_right(&mut self, mut store: T) -> U {
+        let out = (self.make)(SlidingWindowContext::Right(self.stores.front().unwrap(),&mut store));
         self.stores.push_front(store);
         /* remove from right if necessary/possible */
         let leftmost = self.left.unwrap();
@@ -58,23 +60,21 @@ impl<'a,T> SlidingWindow<'a,T> {
             (self.remove)(&mut gone);
             *self.left.as_mut().unwrap() += 1;
         }
+        out
     }
 
-    pub(super) fn add(&mut self, store: T) -> bool {
+    pub(super) fn add(&mut self, store: T) -> Option<U> {
         let index = (self.index)(&store);
         if let Some(left) = self.left {
             if index == left-1 {
-                self.add_left(store);
-                true
+                Some(self.add_left(store))
             } else if index == left + self.stores.len() {
-                self.add_right(store);
-                true
+                Some(self.add_right(store))
             } else {
-                false
+                None
             }
         } else {
-            self.add_first(index,store);
-            true
+            Some(self.add_first(index,store))
         }
     }
 
@@ -95,7 +95,7 @@ impl<'a,T> SlidingWindow<'a,T> {
     }
 }
 
-impl<'a,T> Drop for SlidingWindow<'a,T> {
+impl<'a,T,U> Drop for SlidingWindow<'a,T,U> {
     fn drop(&mut self) {
         for mut source in self.stores.drain(..) {
             (self.remove)(&mut source);

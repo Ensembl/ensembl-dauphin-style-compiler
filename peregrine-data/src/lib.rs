@@ -12,9 +12,10 @@ mod allotment {
     pub(crate) mod collision {
         mod bumppart;
         pub(crate) mod bumperfactory;
+        mod bumpprocess;
         mod castle;
         pub(crate) mod collisionalgorithm;
-        pub(crate) mod bumpstory;
+        pub(crate) mod concretebump;
         mod slidingwindow;
     }
 

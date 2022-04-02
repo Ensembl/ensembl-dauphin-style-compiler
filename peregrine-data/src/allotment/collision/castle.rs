@@ -146,6 +146,7 @@ impl CastleCursor {
 pub(super) struct Castle {
     cursor: CastleCursor,
     regions: BinaryHeap<(i64,i64,i64)>, // (end,offset,height) // increasing negates end as maxheap,
+    maximum: i64,
     increasing: bool
 }
 
@@ -154,6 +155,7 @@ impl Castle {
         Castle {
             cursor: CastleCursor::new(),
             regions: BinaryHeap::new(),
+            maximum: 0,
             increasing
         }
     }
@@ -171,11 +173,15 @@ impl Castle {
         let stored_end = if self.increasing { -(end as i64) } else { end as i64 };
         self.regions.push((stored_end,offset,height));
         self.cursor.in_use(offset,height);
+        self.maximum = self.maximum.max(offset+height);
     }
 
     pub(super) fn allocate(&mut self, end: u64, height: i64) -> i64 {
         let offset = self.cursor.find(height);
         self.allocate_at(end,offset,height);
+        self.maximum = self.maximum.max(offset+height);
         offset
     }
+
+    pub(super) fn maximum(&self) -> i64 { self.maximum }
 }
