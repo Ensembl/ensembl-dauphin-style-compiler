@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, CommutingSequence, DelayedPuzzleValue, compose2, build_puzzle_vec, DerivedPuzzlePiece}};
 
-use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}}, CoordinateSystem};
+use crate::{allotment::{style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::boxtraits::Stackable, core::{aligner::Aligner, carriageoutput::BoxPositionContext}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -10,7 +10,7 @@ use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, Containe
 pub struct Stacker(Container);
 
 impl Stacker {
-    pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Stacker {
+    pub(crate) fn new(prep: &mut BoxPositionContext, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Stacker {
         Stacker(Container::new(prep,name,style,aligner,UnpaddedStacker::new(&prep.puzzle)))
     }
 
@@ -70,9 +70,9 @@ impl UnpaddedStacker {
 impl Stackable for Stacker {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { self.0.name( )}
-    fn locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
     fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize { self.0.build(prep) }
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
 }
 
 impl Coordinated for Stacker {
@@ -82,7 +82,7 @@ impl Coordinated for Stacker {
 impl ContainerSpecifics for UnpaddedStacker {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, prep: &mut CarriageUniversePrep, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+    fn build_reduce(&mut self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
         let mut added = vec![];
         for (child,size) in children {
             added.push(AddedChild {
@@ -95,7 +95,7 @@ impl ContainerSpecifics for UnpaddedStacker {
         self_height
     }
 
-    fn set_locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
         for (i,child) in children.iter_mut().enumerate() {
             let relative_top = DerivedPuzzlePiece::new(self.relative_tops.clone(),move |tops| tops[i]);
             let abs_top = compose2(&prep.puzzle,top,&PuzzleValueHolder::new(relative_top),|a,b| *a+*b);

@@ -1,10 +1,8 @@
-use std::{collections::HashMap, sync::Arc};
-
-use peregrine_toolkit::puzzle::PuzzleBuilder;
+use std::{collections::HashMap};
 
 use crate::{allotment::{style::{allotmentname::{AllotmentName, BuildPassThroughHasher, new_efficient_allotmentname_hashmap}, stylebuilder::make_transformable}, util::bppxconverter::BpPxConverter}, LeafRequest, ShapeRequestGroup, DataMessage};
 
-use super::carriageoutput::CarriageUniversePrep;
+use super::carriageoutput::BoxPositionContext;
 
 pub struct LeafList {
     leafs: HashMap<AllotmentName,LeafRequest,BuildPassThroughHasher>
@@ -33,11 +31,9 @@ impl LeafList {
         }
     }
 
-    pub(super) fn make_transformable(&self, extent: Option<&ShapeRequestGroup>) -> Result<CarriageUniversePrep,DataMessage> {
-        let mut builder = PuzzleBuilder::new();
-        let mut prep = CarriageUniversePrep::new(&mut builder,extent.map(|x| x.region().clone()));
-        let bp_px_converter = Arc::new(BpPxConverter::new(extent));
-        make_transformable(&mut prep,&bp_px_converter,&mut self.leafs.values())?;
+    pub(super) fn position_boxes(&self, extent: Option<&ShapeRequestGroup>) -> Result<BoxPositionContext,DataMessage> {
+        let mut prep = BoxPositionContext::new(extent);
+        make_transformable(&mut prep,&mut self.leafs.values())?;
         Ok(prep)
     }
 }

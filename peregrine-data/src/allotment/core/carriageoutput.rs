@@ -1,13 +1,14 @@
 use std::{sync::{Arc}};
 use peregrine_toolkit::{puzzle::{PuzzleBuilder, PuzzleSolution, Puzzle}};
 
-use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory, bumpprocess::{BumpRequests}}}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, Region};
+use crate::{allotment::{style::{style::LeafCommonStyle }, boxes::{root::{Root}, boxtraits::Transformable}, collision::{bumperfactory::BumperFactory, bumpprocess::{BumpRequests}}, util::bppxconverter::BpPxConverter}, ShapeRequestGroup, Shape, DataMessage, LeafRequest, Region};
 
 use super::{allotmentmetadata::{AllotmentMetadataReport, AllotmentMetadata, AllotmentMetadataBuilder}, playingfield::PlayingField, leafrequest::LeafTransformableMap, heighttracker::{HeightTrackerPieces}, leaflist::LeafList};
 
-pub(crate) struct CarriageUniversePrep {
+pub(crate) struct BoxPositionContext {
     pub puzzle: PuzzleBuilder,
     pub bump_requests: BumpRequests,
+    pub bp_px_converter: Arc<BpPxConverter>,
     pub metadata: AllotmentMetadataBuilder,
     pub root: Root,
     pub plm: LeafTransformableMap,
@@ -15,15 +16,18 @@ pub(crate) struct CarriageUniversePrep {
     pub bumper_factory: BumperFactory
 }
 
-impl CarriageUniversePrep {
-    pub(crate) fn new(builder: &mut PuzzleBuilder, region: Option<Region>) -> CarriageUniversePrep {
-        CarriageUniversePrep {
+impl BoxPositionContext {
+    pub(crate) fn new(extent: Option<&ShapeRequestGroup>) -> BoxPositionContext {
+        let region = extent.map(|x| x.region().clone());
+        let mut builder = PuzzleBuilder::new();
+        BoxPositionContext {
+            bp_px_converter: Arc::new(BpPxConverter::new(extent)),
             metadata: AllotmentMetadataBuilder::new(),
             bump_requests: BumpRequests::new(region.as_ref().map(|r| r.index()).unwrap_or(0) as usize),
-            root: Root::new(builder),
+            root: Root::new(&mut builder),
             plm: LeafTransformableMap::new(),
-            puzzle: builder.clone(),
             height_tracker: HeightTrackerPieces::new(&builder),
+            puzzle: builder,
             bumper_factory: BumperFactory::new()
         }
     }
@@ -40,7 +44,7 @@ pub struct CarriageOutput {
 
 impl CarriageOutput {
     pub fn new(builder: &LeafList, shapes: &[Shape<LeafRequest>], extent: Option<&ShapeRequestGroup>) -> Result<CarriageOutput,DataMessage> {
-        let prep = builder.make_transformable(extent)?;
+        let prep = builder.position_boxes(extent)?;
         let shapes = shapes.iter().map(|x| 
             x.map_new_allotment(|r| prep.plm.transformable(r.name()).cloned())
         ).collect::<Vec<_>>();

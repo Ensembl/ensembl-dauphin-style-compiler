@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleValue, ClonablePuzzleValue, PuzzleBuilder, DerivedPuzzlePiece, DelayedPuzzleValue, compose2}};
 
-use crate::{allotment::{core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
+use crate::{allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentNamePart, AllotmentName}}, boxes::{boxtraits::Stackable}, util::{rangeused::RangeUsed}, collision::{collisionalgorithm::CollisionAlgorithm}}, CoordinateSystem};
 
 use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -10,7 +10,7 @@ use super::{container::{Container}, boxtraits::{Coordinated, BuildSize, Containe
 pub struct Bumper(Container);
 
 impl Bumper {
-    pub(crate) fn new(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Bumper {
+    pub(crate) fn new(prep: &mut BoxPositionContext, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner) -> Bumper {
         Bumper(Container::new(prep,name,style,aligner,UnpaddedBumper::new(&prep.puzzle,&AllotmentName::from_part(name))))
     }
 
@@ -25,10 +25,10 @@ impl Coordinated for Bumper {
 
 impl Stackable for Bumper {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
-    fn locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
+    fn locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>) { self.0.locate(prep,top); }
     fn name(&self) -> &AllotmentName { self.0.name( )}
     fn priority(&self) -> i64 { self.0.priority() }
-    fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize { self.0.build(prep) }
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize { self.0.build(prep) }
 }
 
 #[derive(Clone)]
@@ -56,7 +56,7 @@ impl UnpaddedBumper {
 impl ContainerSpecifics for UnpaddedBumper {
     fn cloned(&self) -> Box<dyn ContainerSpecifics> { Box::new(self.clone()) }
 
-    fn build_reduce(&mut self, prep: &mut CarriageUniversePrep, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
+    fn build_reduce(&mut self, prep: &mut BoxPositionContext, children: &[(&Box<dyn Stackable>,BuildSize)]) -> PuzzleValueHolder<f64> {
         /* build all_items, a solution-invariant structure of everything we need to bump each time */
         let mut dependencies = vec![];
         let mut items = vec![];
@@ -92,7 +92,7 @@ impl ContainerSpecifics for UnpaddedBumper {
         PuzzleValueHolder::new(DerivedPuzzlePiece::new(solved, |solved| solved.height()))
     }
 
-    fn set_locate(&mut self, prep: &mut CarriageUniversePrep, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
+    fn set_locate(&mut self, prep: &mut BoxPositionContext, top: &PuzzleValueHolder<f64>, children: &mut [&mut Box<dyn Stackable>]) {
         for child in children.iter_mut() {
             /* Retrieve algorithm offset from bumper top */
             let name = child.name().clone();

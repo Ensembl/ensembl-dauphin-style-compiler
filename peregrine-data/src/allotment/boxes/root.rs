@@ -2,7 +2,7 @@ use std::{sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{ConstantPuzzlePiece, PuzzleValueHolder, PuzzleBuilder, PuzzleSolution}, lock };
 
-use crate::{ allotment::core::{playingfield::{PlayingFieldHolder, PlayingFieldPieces, PlayingField}, carriageoutput::CarriageUniversePrep}};
+use crate::{ allotment::core::{playingfield::{PlayingFieldHolder, PlayingFieldPieces, PlayingField}, carriageoutput::BoxPositionContext}};
 
 use super::boxtraits::Stackable;
 
@@ -32,7 +32,7 @@ impl Root {
         lock!(self.playing_field).get(solution)
     }
 
-    pub(crate) fn build(&mut self, prep: &mut CarriageUniversePrep) {
+    pub(crate) fn build(&mut self, prep: &mut BoxPositionContext) {
         let mut children = lock!(self.children);
         for child in &mut *children {
             let build_size = child.build(prep);

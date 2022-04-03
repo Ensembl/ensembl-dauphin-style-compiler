@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use peregrine_toolkit::{puzzle::{PuzzleValueHolder, PuzzleBuilder, DerivedPuzzlePiece, ConstantPuzzlePiece, DelayedPuzzleValue, compose2, CommutingSequence}, lock};
 
-use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner, carriageoutput::CarriageUniversePrep}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
+use crate::{allotment::{core::{allotmentmetadata::{AllotmentMetadataBuilder, AllotmentMetadataGroup}, aligner::Aligner, carriageoutput::BoxPositionContext}, style::{style::{ContainerAllotmentStyle}, allotmentname::{AllotmentName, AllotmentNamePart}}, boxes::boxtraits::Stackable, util::rangeused::RangeUsed}, CoordinateSystem};
 
 use super::{boxtraits::{Coordinated, BuildSize, ContainerSpecifics}};
 
@@ -56,7 +56,7 @@ fn add_report(metadata: &mut AllotmentMetadataBuilder, in_values: &HashMap<Strin
 }
 
 impl Container {
-    pub(crate) fn new<F>(prep: &mut CarriageUniversePrep, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, specifics: F) -> Container where F: ContainerSpecifics + 'static {
+    pub(crate) fn new<F>(prep: &mut BoxPositionContext, name: &AllotmentNamePart, style: &ContainerAllotmentStyle, aligner: &Aligner, specifics: F) -> Container where F: ContainerSpecifics + 'static {
         let top = DelayedPuzzleValue::new(&prep.puzzle);
         if let Some(datum) = &style.set_align {
             aligner.set_datum(&prep.puzzle,datum,&PuzzleValueHolder::new(top.clone()));
@@ -85,7 +85,7 @@ impl Coordinated for Container {
 }
 
 impl Stackable for Container {
-    fn locate(&mut self, prep: &mut CarriageUniversePrep, value: &PuzzleValueHolder<f64>) {
+    fn locate(&mut self, prep: &mut BoxPositionContext, value: &PuzzleValueHolder<f64>) {
         let mut children = lock!(self.children);
         let mut kids = children.iter_mut().collect::<Vec<_>>();
         let padding_top = self.style.padding.padding_top;
@@ -96,7 +96,7 @@ impl Stackable for Container {
 
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, prep: &mut CarriageUniversePrep) -> BuildSize {
+    fn build(&mut self, prep: &mut BoxPositionContext) -> BuildSize {
         let mut ranges = CommutingSequence::new(RangeUsed::None, |x,y| x.merge(&y));
         let mut children = lock!(self.children);
         let mut input = vec![];

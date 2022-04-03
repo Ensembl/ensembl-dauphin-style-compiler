@@ -2,7 +2,7 @@ use std::{sync::{Arc}};
 
 use peregrine_toolkit::{puzzle::{PuzzleSolution, PuzzleValueHolder, ClonablePuzzleValue, PuzzleBuilder, ConstantPuzzlePiece, DelayedPuzzleValue, DelayedConstant, DerivedPuzzlePiece}};
 
-use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageoutput::CarriageUniversePrep}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::LeafCommonStyle, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
+use crate::{CoordinateSystem, allotment::{core::{aligner::Aligner, carriageoutput::BoxPositionContext}, transformers::{transformers::{Transformer, TransformerVariety}, simple::{SimpleTransformerHolder, SimpleTransformer}, drawinginfo::DrawingInfo}, style::{style::LeafCommonStyle, allotmentname::{AllotmentNamePart, AllotmentName}}, util::{rangeused::RangeUsed, bppxconverter::BpPxConverter}}};
 
 use super::{boxtraits::{Stackable, Transformable, Coordinated, BuildSize }};
 
@@ -83,7 +83,7 @@ impl Stackable for FloatingLeaf {
     fn cloned(&self) -> Box<dyn Stackable> { Box::new(self.clone()) }
     fn name(&self) -> &AllotmentName { &self.name }
 
-    fn build(&mut self, _prep: &mut CarriageUniversePrep) -> BuildSize {
+    fn build(&mut self, _prep: &mut BoxPositionContext) -> BuildSize {
         self.pixel_range_piece.set(self.drawing_info.pixel_range().clone());
         self.base_range_piece.set(self.drawing_info.base_range().clone());
         self.max_y_piece.set(self.drawing_info.max_y());
@@ -94,7 +94,7 @@ impl Stackable for FloatingLeaf {
         }
     }
 
-    fn locate(&mut self, _prep: &mut CarriageUniversePrep, value: &PuzzleValueHolder<f64>) {
+    fn locate(&mut self, _prep: &mut BoxPositionContext, value: &PuzzleValueHolder<f64>) {
         let value = value.clone();
         if let Some(top) = &self.top {
             top.set(&self.builder,value.clone());
